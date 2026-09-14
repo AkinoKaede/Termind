@@ -38,14 +38,6 @@ paid-to-paid renewals, and must be tested in Sandbox before enabling Production.
 `StoreKit/Termind.storekit` is local test data only. App Store Connect remains the
 source of production product metadata and cannot be changed by the repository.
 
-## Legacy trial compatibility
-
-`com.akinokaede.termind.pro.trial` is retired and must not be fetched or offered.
-Verified historical transactions remain readable so an unexpired legacy trial is
-honored. Expired, revoked, or unverifiable legacy trial history grants nothing and
-does not affect Apple's introductory-offer eligibility for the new subscription
-group. `ProTrial.duration` and `TrialClock` exist only for this compatibility path.
-
 There is no review-demo access override. App Review and release verification use
 the StoreKit configuration, Sandbox accounts, or Apple's review environment.
 
@@ -72,8 +64,6 @@ Before submission, verify with a new Sandbox account:
 2. Trial purchase, renewal, cancellation, restore, expiration, billing retry, paid-
    to-paid grace, refund, revocation, Ask to Buy, and transaction updates.
 3. Same-account access across Mac, iPhone, and iPad, plus Family Sharing.
-4. An active legacy trial remains usable, but its expiration does not block the
-   annual introductory offer.
 
 References: [subscriptions](https://developer.apple.com/app-store/subscriptions/),
 [`isEligibleForIntroOffer`](https://developer.apple.com/documentation/storekit/product/subscriptioninfo/iseligibleforintrooffer),

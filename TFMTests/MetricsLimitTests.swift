@@ -99,7 +99,7 @@ struct MetricsLimitTests {
     }
 
     @Test
-    func productionWiringUsesTheExistingProPaywallAndIncludesTheTrial() {
+    func productionWiringUsesTheExistingProPaywallAndIncludesSubscriptionAccess() {
         let free = ProAccessController.testing(status: .free(trialAvailable: true))
         let app = AppModel(hosts: HostLibraryModel(), proAccess: free)
         defer { app.shutdownForTermination() }
@@ -108,7 +108,11 @@ struct MetricsLimitTests {
         #expect(free.isPaywallPresented)
         #expect(free.requestedFeature == .unlimitedMetrics)
         for status in [
-            EntitlementStatus.trialActive(expiresAt: .distantFuture), .purchased(.purchased), .purchased(.familyShared),
+            EntitlementStatus.subscription(
+                ProSubscriptionStatus(
+                    phase: .introductoryTrial, expiresAt: .distantFuture, willAutoRenew: true,
+                    ownership: .purchased)),
+            .purchased(.purchased), .purchased(.familyShared),
         ] {
             let access = ProAccessController.testing(status: status)
             #expect(access.canUse(.unlimitedMetrics))

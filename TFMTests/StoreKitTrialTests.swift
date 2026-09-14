@@ -48,31 +48,10 @@ struct StoreKitTrialTests {
     }
 
     @Test
-    func legacyTrialRemainsValidButDoesNotConsumeAnnualIntroEligibility() async throws {
-        let fixture = try Fixture()
-        let transaction = try await fixture.session.buyProduct(identifier: ProAccessController.trialProductID)
-        var date = transaction.originalPurchaseDate.addingTimeInterval(7 * 86_400)
-        let access = fixture.controller(now: { date })
-        await access.reloadProducts()
-        await access.refresh()
-
-        guard case .trialActive(let expiration) = access.status else {
-            Issue.record("Expected the retired standalone trial to remain active")
-            return
-        }
-        #expect(access.canStartTrial)
-        date = expiration
-        await access.refresh()
-        #expect(access.status == .free(trialAvailable: true))
-        #expect(access.canStartTrial)
-        #expect(access.canPurchase)
-    }
-
-    @Test
     func lifetimePurchaseTakesPrecedenceOverAnnualSubscription() async throws {
         let fixture = try Fixture()
         try await fixture.session.buyProduct(identifier: ProAccessController.annualProductID)
-        try await fixture.session.buyProduct(identifier: ProAccessController.productID)
+        try await fixture.session.buyProduct(identifier: ProAccessController.lifetimeProductID)
         let access = fixture.controller()
         await access.refresh()
 
@@ -196,25 +175,21 @@ struct StoreKitTrialTests {
         }
 
         let session: SKTestSession
-        let suite = "StoreKitTrialTests.\(UUID().uuidString)"
-        let defaults: UserDefaults
 
         init(configuration: URL = configurationURL) throws {
             session = try SKTestSession(contentsOf: configuration)
             session.resetToDefaultState()
             session.disableDialogs = true
             session.clearTransactions()
-            defaults = UserDefaults(suiteName: suite)!
         }
 
         isolated deinit {
             session.clearTransactions()
             session.resetToDefaultState()
-            defaults.removePersistentDomain(forName: suite)
         }
 
         func controller(now: @escaping () -> Date = { .now }) -> ProAccessController {
-            ProAccessController(defaults: defaults, now: now, observeStore: false)
+            ProAccessController(now: now, observeStore: false)
         }
 
         static func modifiedConfiguration(_ name: String) throws -> URL {

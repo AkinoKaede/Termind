@@ -507,7 +507,6 @@ private struct ProSettings: View {
 
     private var expirationDate: Date? {
         switch app.proAccess.status {
-        case .trialActive(let expiresAt): expiresAt
         case .subscription(let subscription): subscription.expiresAt
         default: nil
         }
@@ -515,8 +514,6 @@ private struct ProSettings: View {
 
     private var expirationLabel: LocalizedStringKey? {
         switch app.proAccess.status {
-        case .trialActive:
-            "Trial Ends"
         case .subscription(let subscription):
             switch subscription.phase {
             case .introductoryTrial: "Trial Ends"
@@ -545,8 +542,6 @@ private struct ProSettings: View {
         switch app.proAccess.status {
         case .loading: Label("Checking…", systemImage: "arrow.triangle.2.circlepath")
         case .free: Label("Free", systemImage: "person.crop.circle")
-        case .trialActive: Label("Legacy Free Trial", systemImage: "clock")
-        case .trialExpired: Label("Trial Ended", systemImage: "clock.badge.xmark")
         case .subscription(let subscription): subscriptionStatusLabel(subscription)
         case .purchased(.purchased): Label("Lifetime", systemImage: "infinity")
         case .purchased(.familyShared): Label("Lifetime · Family Shared", systemImage: "person.3.fill")

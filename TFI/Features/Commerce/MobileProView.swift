@@ -60,12 +60,6 @@ struct MobileProView: View {
             statusCard("Checking…", symbol: "arrow.triangle.2.circlepath", tint: .secondary)
         case .free:
             statusCard("Free", symbol: "person.crop.circle", tint: .secondary)
-        case .trialActive(let expiresAt):
-            statusCard(
-                "Legacy Free Trial", symbol: "clock.fill", tint: .orange,
-                detail: Text(expiresAt, format: .dateTime.year().month().day().hour().minute()))
-        case .trialExpired:
-            statusCard("Trial Ended", symbol: "clock.badge.xmark", tint: .orange)
         case .subscription(let subscription):
             subscriptionStatusCard(subscription)
         case .purchased(.purchased):

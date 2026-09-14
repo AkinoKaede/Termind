@@ -5,12 +5,9 @@ import TermindDomain
 @MainActor
 @Observable
 public final class ProAccessController {
-    public static let productID = "com.akinokaede.termind.pro"
+    public static let lifetimeProductID = "com.akinokaede.termind.pro"
     public static let annualProductID = "com.akinokaede.termind.pro.annual"
-    /// Retained only to honor transactions created by the retired standalone trial.
-    public static let trialProductID = "com.akinokaede.termind.pro.trial"
 
-    private let defaults: UserDefaults?
     private let now: () -> Date
     private var transactionUpdates: Task<Void, Never>?
     private var refreshTask: Task<Void, Never>?
@@ -56,25 +53,23 @@ public final class ProAccessController {
         return nil
     }
 
-    public static func live() -> ProAccessController { ProAccessController(defaults: .standard) }
+    public static func live() -> ProAccessController { ProAccessController() }
 
     public static func unrestrictedForTesting() -> ProAccessController {
         testing(status: .unrestrictedForTesting)
     }
 
     public static func testing(status: EntitlementStatus) -> ProAccessController {
-        let controller = ProAccessController(defaults: nil, observeStore: false)
+        let controller = ProAccessController(observeStore: false)
         controller.status = status
         controller.workspaceCompositionGrantedForLaunch = status.hasProAccess
         return controller
     }
 
     public init(
-        defaults: UserDefaults?,
         now: @escaping () -> Date = { .now },
         observeStore: Bool = true
     ) {
-        self.defaults = defaults
         self.now = now
         status = .loading
         workspaceCompositionGrantedForLaunch = false
@@ -109,7 +104,7 @@ public final class ProAccessController {
         case .annual:
             return pendingProductID != Self.annualProductID && annualProduct != nil
         case .lifetime:
-            return pendingProductID != Self.productID && product != nil
+            return pendingProductID != Self.lifetimeProductID && product != nil
         }
     }
 
@@ -152,8 +147,6 @@ public final class ProAccessController {
             pendingProductID = nil
         case .subscription(let subscription) where subscription.phase.hasProAccess:
             if pendingProductID == Self.annualProductID { pendingProductID = nil }
-        case .trialActive where pendingProductID == Self.trialProductID:
-            pendingProductID = nil
         default:
             break
         }
@@ -162,7 +155,7 @@ public final class ProAccessController {
 
     /// Purchases the annual subscription. StoreKit applies its introductory offer for eligible accounts.
     public func purchaseAnnual() async { await purchaseProduct(Self.annualProductID) }
-    public func purchaseLifetime() async { await purchaseProduct(Self.productID) }
+    public func purchaseLifetime() async { await purchaseProduct(Self.lifetimeProductID) }
 
     private func purchaseProduct(_ id: String) async {
         guard !isProcessing, pendingProductID != id, status.canPurchase else { return }
@@ -178,7 +171,7 @@ public final class ProAccessController {
             case Self.annualProductID:
                 guard let annualProduct else { throw ProAccessControllerError.productUnavailable }
                 selected = annualProduct
-            case Self.productID:
+            case Self.lifetimeProductID:
                 guard let product else { throw ProAccessControllerError.productUnavailable }
                 selected = product
             default:
@@ -216,7 +209,7 @@ public final class ProAccessController {
             try await AppStore.sync()
             await refresh()
             switch status {
-            case .purchased, .trialActive:
+            case .purchased:
                 isPaywallPresented = false
             case .subscription(let subscription) where subscription.phase.hasProAccess:
                 isPaywallPresented = false
@@ -242,7 +235,11 @@ public final class ProAccessController {
     }
 
     private func fetchProducts() async throws {
-        let task = productsTask ?? Task { try await Product.products(for: [Self.productID, Self.annualProductID]) }
+        let task =
+            productsTask
+            ?? Task {
+                try await Product.products(for: [Self.lifetimeProductID, Self.annualProductID])
+            }
         productsTask = task
         defer { productsTask = nil }
         let loaded = try await task.value
@@ -266,7 +263,7 @@ public final class ProAccessController {
     }
 
     public static func isLifetimeProduct(_ product: Product) -> Bool {
-        product.id == productID && product.type == .nonConsumable && product.isFamilyShareable
+        product.id == lifetimeProductID && product.type == .nonConsumable && product.isFamilyShareable
     }
 
     public static func isAnnualSubscription(_ product: Product) -> Bool {
@@ -305,26 +302,13 @@ public final class ProAccessController {
             }
         }
 
-        var legacyTrials: [ProTrial] = []
-        if let update, update.productID == Self.trialProductID {
-            legacyTrials.append(Self.trialRecord(update))
-        }
-        for await result in Transaction.all {
-            if case .verified(let transaction) = result, transaction.productID == Self.trialProductID {
-                legacyTrials.append(Self.trialRecord(transaction))
-            }
-        }
-        if let trial = ProTrial.earliest(legacyTrials) {
-            let legacyStatus = trial.status(at: TrialClock(defaults: defaults).effectiveNow(for: trial, now: now()))
-            if legacyStatus.hasProAccess { return legacyStatus }
-        }
         return verificationFailed ? .verificationFailed : .free(trialAvailable: isEligibleForAnnualIntroOffer == true)
     }
 
     private func currentLifetimeTransaction(
         including update: Transaction?
     ) async -> (transaction: Transaction?, verificationFailed: Bool) {
-        if let update, update.productID == Self.productID, update.productType == .nonConsumable,
+        if let update, update.productID == Self.lifetimeProductID, update.productType == .nonConsumable,
             update.revocationDate == nil
         {
             return (update, false)
@@ -334,22 +318,22 @@ public final class ProAccessController {
             switch result {
             case .verified(let transaction)
             where
-                transaction.productID == Self.productID && transaction.revocationDate == nil
+                transaction.productID == Self.lifetimeProductID && transaction.revocationDate == nil
                 && transaction.productType == .nonConsumable
-                && !(update?.productID == Self.productID && update?.revocationDate != nil
+                && !(update?.productID == Self.lifetimeProductID && update?.revocationDate != nil
                     && update?.originalID == transaction.originalID):
                 return (transaction, false)
-            case .unverified(let transaction, _) where transaction.productID == Self.productID:
+            case .unverified(let transaction, _) where transaction.productID == Self.lifetimeProductID:
                 verificationFailed = true
             default:
                 break
             }
         }
-        if let latest = await Transaction.latest(for: Self.productID) {
+        if let latest = await Transaction.latest(for: Self.lifetimeProductID) {
             switch latest {
             case .verified(let transaction)
             where transaction.revocationDate == nil && transaction.productType == .nonConsumable
-                && !(update?.productID == Self.productID && update?.revocationDate != nil
+                && !(update?.productID == Self.lifetimeProductID && update?.revocationDate != nil
                     && update?.originalID == transaction.originalID):
                 return (transaction, false)
             case .unverified:
@@ -425,16 +409,8 @@ public final class ProAccessController {
         transaction.ownershipType == .familyShared ? .familyShared : .purchased
     }
 
-    private static func trialRecord(_ transaction: Transaction) -> ProTrial {
-        ProTrial(
-            originalID: transaction.originalID, purchasedAt: transaction.originalPurchaseDate,
-            isRevoked: transaction.revocationDate != nil || transaction.ownershipType != .purchased
-                || transaction.productType != .nonConsumable
-        )
-    }
-
     public func handleTransactionUpdate(_ update: VerificationResult<Transaction>) async {
-        let knownProductIDs = [Self.productID, Self.annualProductID, Self.trialProductID]
+        let knownProductIDs = [Self.lifetimeProductID, Self.annualProductID]
         guard knownProductIDs.contains(update.unsafePayloadValue.productID) else { return }
         if case .verified(let transaction) = update {
             error = nil
@@ -453,8 +429,6 @@ public final class ProAccessController {
         entitlementExpirationTask?.cancel()
         let expiresAt: Date?
         switch next {
-        case .trialActive(let expiration):
-            expiresAt = expiration
         case .subscription(let subscription) where subscription.phase.hasProAccess:
             expiresAt = subscription.expiresAt
         default:

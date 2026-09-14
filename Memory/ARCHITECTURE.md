@@ -226,17 +226,15 @@ the model cannot assume an action was never dispatched.
 Family Sharing non-consumable; annual Pro is a Family Sharing auto-renewable
 subscription whose introductory-offer eligibility, free period, billing period,
 localized price, expiration, and renewal state come from StoreKit. Permanent access
-wins over subscription and legacy-trial access. Subscribed, introductory-trial, and
+wins over subscription access. Subscribed, introductory-trial, and
 verified grace-period states grant Pro; billing retry without grace, expiration,
 refund, and revocation do not. Product metadata failure never replaces verified
 access.
 
-The retired standalone trial product is never fetched or offered. Domain's
-`ProTrial` and Infrastructure's per-original-transaction `TrialClock` remain only to
-honor an unexpired verified legacy transaction; expired legacy history does not
-affect Apple's subscription-group eligibility. Entitlement expiration is checked on
-activation and at most minutely while active. Current-launch workspace composition
-is not dismantled, but other Pro features and a fresh launch receive no stale grant.
+The retired standalone trial product and its historical transactions are not recognized.
+Entitlement expiration is checked on activation and at most minutely while active.
+Current-launch workspace composition is not dismantled, but other Pro features and a
+fresh launch receive no stale grant.
 
 One app-wide shared `AppReviewController` stores device-local first-use/active-day/version/
 attempt history, never syncs it, and never claims a review was shown. Desktop windows

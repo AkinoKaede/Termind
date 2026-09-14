@@ -58,9 +58,6 @@ public nonisolated struct ProSubscriptionStatus: Equatable, Sendable {
 public nonisolated enum EntitlementStatus: Equatable, Sendable {
     case loading
     case free(trialAvailable: Bool)
-    /// Compatibility for the retired zero-price non-consumable trial.
-    case trialActive(expiresAt: Date)
-    case trialExpired
     case subscription(ProSubscriptionStatus)
     case purchased(ProOwnership)
     case verificationFailed
@@ -68,7 +65,7 @@ public nonisolated enum EntitlementStatus: Equatable, Sendable {
 
     public var hasProAccess: Bool {
         switch self {
-        case .trialActive, .purchased, .unrestrictedForTesting: true
+        case .purchased, .unrestrictedForTesting: true
         case .subscription(let subscription): subscription.phase.hasProAccess
         default: false
         }
