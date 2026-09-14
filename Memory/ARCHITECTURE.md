@@ -223,13 +223,17 @@ Every call has an approval policy before the run's permission mode is consulted:
   timeout, transport failure, or malformed review fails closed and is recorded.
 - Full access pre-approves Ask calls but retains host-key, secret, schema,
   path, fetch, sandbox, and capability boundaries.
-- Termind downgrades Approve to Ask for MCP tools carrying a destructive hint. MCP
-  tools otherwise follow Deny, Ask, or Approve in both acting and planning runs.
+- A genuinely new MCP tool starts at Approve only when its remote
+  `readOnlyHint` is true and its `destructiveHint` is not true; every other new
+  tool starts at Ask. Rediscovery preserves the user's stored policy, including
+  an explicit Approve choice for a destructive tool.
+- MCP tools follow Deny, Ask, or Approve in both acting and planning runs.
 
 Skills are trusted procedures only because users install them through Settings;
 tools, MCP servers, and fetched pages cannot write or enable them. `allowed-tools`
-and MCP annotations never authorize actions. The model receives enabled names and
-descriptions at the context boundary, then loads bounded bodies through the
+never authorizes actions. MCP annotations may seed the local approval policy for a
+new tool, but cannot override a stored user choice. The model receives enabled names
+and descriptions at the context boundary, then loads bounded bodies through the
 read-only `load_skill`; downstream reads remain untrusted. The enabled set is fixed
 per run. Built-ins seed once, deleted built-ins stay deleted, and reset replaces the
 library only after confirmation.

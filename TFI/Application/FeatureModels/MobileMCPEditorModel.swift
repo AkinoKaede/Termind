@@ -77,8 +77,7 @@ final class MobileMCPEditorModel {
                 var seen = Set<String>()
                 draft.tools = outcome.tools.filter { seen.insert($0.id).inserted }.map {
                     var tool = $0
-                    tool.accessPolicy = policies[tool.id] ?? .ask
-                    tool.enforceTermindApprovalPolicy()
+                    tool.accessPolicy = policies[tool.id] ?? tool.termindDefaultApprovalPolicy
                     return tool
                 }
                 draft.negotiatedVersion = outcome.protocolVersion

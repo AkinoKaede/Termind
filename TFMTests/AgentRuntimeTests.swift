@@ -919,7 +919,7 @@ struct AgentRuntimeTests {
     @Test
     func mcpToolAccessPoliciesControlApprovalWithoutHidingTools() throws {
         var server = MCPServer(name: "Gateway")
-        var destructive = MCPTool(id: "destructive", accessPolicy: .ask)
+        var destructive = MCPTool(id: "destructive", accessPolicy: .approve)
         destructive.annotations.destructiveHint = true
         server.tools = [
             MCPTool(id: "denied", accessPolicy: .deny),
@@ -934,6 +934,7 @@ struct AgentRuntimeTests {
         #expect(descriptors.first { $0.name == "denied" }?.approvalPolicy == .deny)
         #expect(descriptors.first { $0.name == "asked" }?.approvalPolicy == .ask)
         #expect(descriptors.first { $0.name == "approved" }?.approvalPolicy == .approve)
+        #expect(descriptors.first { $0.name == "destructive" }?.approvalPolicy == .approve)
         #expect(descriptors.first { $0.name == "destructive" }?.concurrency == .sequential)
     }
 

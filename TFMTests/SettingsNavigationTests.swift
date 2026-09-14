@@ -194,18 +194,48 @@ struct SettingsNavigationTests {
     func mcpToolAccessPolicyIsAtomicAndSurvivesRediscovery() throws {
         var existingTool = MCPTool(id: "search")
         existingTool.accessPolicy = .deny
+        let existingAsk = MCPTool(id: "existing-ask", accessPolicy: .ask)
+        let existingApprove = MCPTool(id: "existing-approve", accessPolicy: .approve)
         var server = MCPServer(name: "Gateway")
-        server.tools = [existingTool]
+        server.tools = [existingTool, existingAsk, existingApprove]
         let store = AIConfigurationModel(mcpServers: [server], persistsSecrets: false)
 
         store.setTools(
-            [MCPTool(id: "search", title: "Updated"), MCPTool(id: "new-tool")],
+            [
+                MCPTool(
+                    id: "search", title: "Updated",
+                    annotations: MCPToolAnnotations(readOnlyHint: true)
+                ),
+                MCPTool(
+                    id: "existing-ask",
+                    annotations: MCPToolAnnotations(readOnlyHint: true)
+                ),
+                MCPTool(id: "existing-approve"),
+                MCPTool(
+                    id: "new-read-only",
+                    annotations: MCPToolAnnotations(readOnlyHint: true)
+                ),
+                MCPTool(
+                    id: "new-not-read-only",
+                    annotations: MCPToolAnnotations(readOnlyHint: false)
+                ),
+                MCPTool(id: "new-without-hint"),
+                MCPTool(
+                    id: "new-conflicting-hints",
+                    annotations: MCPToolAnnotations(readOnlyHint: true, destructiveHint: true)
+                ),
+            ],
             version: "2025-06-18", for: server.id
         )
 
         let rediscovered = try #require(store.mcpServer(server.id))
         #expect(rediscovered.tools.first { $0.id == "search" }?.accessPolicy == .deny)
-        #expect(rediscovered.tools.first { $0.id == "new-tool" }?.accessPolicy == .ask)
+        #expect(rediscovered.tools.first { $0.id == "existing-ask" }?.accessPolicy == .ask)
+        #expect(rediscovered.tools.first { $0.id == "existing-approve" }?.accessPolicy == .approve)
+        #expect(rediscovered.tools.first { $0.id == "new-read-only" }?.accessPolicy == .approve)
+        #expect(rediscovered.tools.first { $0.id == "new-not-read-only" }?.accessPolicy == .ask)
+        #expect(rediscovered.tools.first { $0.id == "new-without-hint" }?.accessPolicy == .ask)
+        #expect(rediscovered.tools.first { $0.id == "new-conflicting-hints" }?.accessPolicy == .ask)
 
         store.setToolAccessPolicy(.approve, tool: "search", on: server.id)
         #expect(
@@ -215,7 +245,7 @@ struct SettingsNavigationTests {
     }
 
     @Test
-    func destructiveMCPToolsCannotRemainApprovedAndDeniedToolsStayAvailable() throws {
+    func destructiveMCPToolsCanBeApprovedAndDeniedToolsStayAvailable() throws {
         var destructive = MCPTool(id: "destroy", accessPolicy: .approve)
         destructive.annotations.destructiveHint = true
         let denied = MCPTool(id: "denied", accessPolicy: .deny)
@@ -223,17 +253,16 @@ struct SettingsNavigationTests {
         let store = AIConfigurationModel(mcpServers: [server], persistsSecrets: false)
 
         let normalized = try #require(store.mcpServer(server.id))
-        #expect(!normalized.tools[0].allowsTermindPreapproval)
-        #expect(normalized.tools[0].accessPolicy == .ask)
+        #expect(normalized.tools[0].accessPolicy == .approve)
         #expect(store.availableTools.map(\.tool.id).contains("denied"))
 
         store.setToolAccessPolicy(.approve, tool: "destroy", on: server.id)
-        #expect(store.mcpServer(server.id)?.tools[0].accessPolicy == .ask)
+        #expect(store.mcpServer(server.id)?.tools[0].accessPolicy == .approve)
 
         var newlyDestructive = MCPTool(id: "denied", accessPolicy: .ask)
         newlyDestructive.annotations.destructiveHint = true
         store.setToolAccessPolicy(.approve, tool: "denied", on: server.id)
         store.setTools([newlyDestructive], version: "2025-06-18", for: server.id)
-        #expect(store.mcpServer(server.id)?.tools[0].accessPolicy == .ask)
+        #expect(store.mcpServer(server.id)?.tools[0].accessPolicy == .approve)
     }
 }

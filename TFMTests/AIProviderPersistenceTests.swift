@@ -81,7 +81,13 @@ struct AIProviderPersistenceTests {
         store.upsert(server)
 
         store.setTools(
-            [MCPTool(id: "existing"), MCPTool(id: "new")],
+            [
+                MCPTool(id: "existing"), MCPTool(id: "new"),
+                MCPTool(
+                    id: "read-only",
+                    annotations: MCPToolAnnotations(readOnlyHint: true)
+                ),
+            ],
             version: "2025-06-18",
             for: server.id
         )
@@ -92,6 +98,7 @@ struct AIProviderPersistenceTests {
         let tools = try #require(reloaded.mcpServer(server.id)?.tools)
         #expect(tools.first { $0.id == "existing" }?.accessPolicy == .approve)
         #expect(tools.first { $0.id == "new" }?.accessPolicy == .ask)
+        #expect(tools.first { $0.id == "read-only" }?.accessPolicy == .approve)
         #expect(reloaded.mcpServer(server.id)?.negotiatedVersion == "2025-06-18")
         #expect(reloaded.mcpServer(server.id)?.lastConnectedAt != nil)
     }

@@ -33,7 +33,7 @@ struct MCPSettings: View {
             }
 
             Text(
-                "Termind connects directly from this Mac over HTTP. Tools ask for approval before running by default."
+                "Termind connects directly from this Mac over HTTP. New read-only tools are approved by default; all others ask for approval."
             )
             .font(.caption)
             .foregroundStyle(.secondary)

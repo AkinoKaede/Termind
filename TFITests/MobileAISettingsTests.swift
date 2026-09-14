@@ -195,7 +195,20 @@ struct MobileAISettingsTests {
                 #expect(request.url == "https://draft.invalid/mcp")
                 #expect(token == "draft-token")
                 return MCPDiscovery(
-                    protocolVersion: "test", serverName: "Test", tools: [MCPTool(id: "existing"), MCPTool(id: "new")])
+                    protocolVersion: "test", serverName: "Test",
+                    tools: [
+                        MCPTool(id: "existing"),
+                        MCPTool(id: "new"),
+                        MCPTool(
+                            id: "read-only",
+                            annotations: MCPToolAnnotations(readOnlyHint: true)
+                        ),
+                        MCPTool(
+                            id: "conflicting",
+                            annotations: MCPToolAnnotations(readOnlyHint: true, destructiveHint: true)
+                        ),
+                    ]
+                )
             })
         editor.draft.url = "https://draft.invalid/mcp"
         editor.key.action = .replace
@@ -203,10 +216,12 @@ struct MobileAISettingsTests {
         editor.connect()
         while editor.running { await Task.yield() }
         #expect(ai.mcpServers.isEmpty)
-        #expect(editor.draft.tools.map(\.accessPolicy) == [.deny, .ask])
+        #expect(editor.draft.tools.map(\.accessPolicy) == [.deny, .ask, .approve, .ask])
+        let conflictingIndex = try #require(editor.draft.tools.firstIndex { $0.id == "conflicting" })
+        editor.draft.tools[conflictingIndex].accessPolicy = .approve
         try editor.save()
         #expect(ai.mcpServer(server.id)?.namespaceID == "gateway")
-        #expect(ai.mcpServer(server.id)?.tools.map(\.accessPolicy) == [.deny, .ask])
+        #expect(ai.mcpServer(server.id)?.tools.map(\.accessPolicy) == [.deny, .ask, .approve, .approve])
     }
 
     @Test func mcpCancellationAndRemoteDeletionCannotRestoreResults() async {

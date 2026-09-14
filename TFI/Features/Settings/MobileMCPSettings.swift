@@ -36,7 +36,9 @@ struct MobileMCPSettings: View {
                         }
                 }
             } footer: {
-                Text("Connect to remote MCP servers over HTTP. New tools always ask for approval by default.")
+                Text(
+                    "Connect to remote MCP servers over HTTP. New read-only tools are approved by default; all others ask for approval."
+                )
             }
         }
         .navigationTitle("MCP")
@@ -265,12 +267,11 @@ struct MobileMCPEditor: View {
                             Text("Ask").tag(AgentToolDescriptor.ApprovalPolicy.ask)
                             Text("Approve")
                                 .tag(AgentToolDescriptor.ApprovalPolicy.approve)
-                                .disabled(!tool.allowsTermindPreapproval)
                         }
                     }
                 }
                 Text(
-                    "Deny refuses the call. Ask uses the conversation's manual or automatic approval. Approve runs without approval and is unavailable for tools marked destructive."
+                    "Deny refuses the call. Ask uses the conversation's manual or automatic approval. Approve runs without approval."
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }

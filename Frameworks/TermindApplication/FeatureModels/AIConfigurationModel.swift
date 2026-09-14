@@ -86,7 +86,7 @@ public final class AIConfigurationModel {
         self.webSearchPersistence = webSearchPersistence
         self.modelProviders = modelProviders
         self.endpoints = endpoints
-        self.mcpServers = mcpServers.map { $0.enforcingTermindApprovalPolicies() }
+        self.mcpServers = mcpServers
         self.roles = roles
         self.lastSelectedModel = lastSelectedModel
         self.lastSelectedPermissionMode =
@@ -110,7 +110,7 @@ public final class AIConfigurationModel {
             self.endpoints = loaded.endpoints
             self.roles = loaded.roles
             self.lastSelectedModel = loaded.lastSelectedModel
-            self.mcpServers = loaded.mcpServers.map { $0.enforcingTermindApprovalPolicies() }
+            self.mcpServers = loaded.mcpServers
         } catch {
             storageError = error.localizedDescription
         }
@@ -278,7 +278,7 @@ public final class AIConfigurationModel {
         endpoints = snapshot.endpoints
         roles = snapshot.roles
         lastSelectedModel = localSelection.flatMap { lookup($0) == nil ? nil : $0 }
-        mcpServers = snapshot.mcpServers.map { $0.enforcingTermindApprovalPolicies() }
+        mcpServers = snapshot.mcpServers
         mcpStatuses = mcpStatuses.filter { id, _ in
             previousServers[id] == mcpServers.first { $0.id == id }
         }
@@ -557,7 +557,6 @@ public final class AIConfigurationModel {
     // MARK: - MCP writes
 
     public func upsert(_ server: MCPServer) {
-        let server = server.enforcingTermindApprovalPolicies()
         mutatePersistedState {
             if let index = mcpServers.firstIndex(where: { $0.id == server.id }) {
                 mcpServers[index] = server
@@ -598,7 +597,8 @@ public final class AIConfigurationModel {
     ///
     /// A tool keeps its access policy across rediscovery — otherwise every
     /// reconnect would silently undo the decision made about this server. A
-    /// genuinely new tool arrives at the default, which means always asking.
+    /// genuinely new tool uses its Termind default: a non-destructive tool with
+    /// `readOnlyHint == true` is approved, while every other tool asks.
     public func setTools(_ discovered: [MCPTool], version: String, for id: MCPServer.ID) {
         mutatePersistedState {
             guard let index = mcpServers.firstIndex(where: { $0.id == id }) else { return }
@@ -608,8 +608,8 @@ public final class AIConfigurationModel {
 
             mcpServers[index].tools = discovered.map { tool in
                 var merged = tool
-                if let old = previous[tool.id] { merged.accessPolicy = old.accessPolicy }
-                merged.enforceTermindApprovalPolicy()
+                merged.accessPolicy =
+                    previous[tool.id]?.accessPolicy ?? merged.termindDefaultApprovalPolicy
                 return merged
             }
             mcpServers[index].negotiatedVersion = version
@@ -622,7 +622,6 @@ public final class AIConfigurationModel {
     ) {
         mutate(toolID, on: serverID) {
             $0.accessPolicy = policy
-            $0.enforceTermindApprovalPolicy()
         }
     }
 

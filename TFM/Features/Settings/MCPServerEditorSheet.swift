@@ -26,14 +26,10 @@ final class MCPServerEditorSession {
 ///
 /// The tool list is the important half. It only exists after a successful
 /// Connect, because it is what the server said rather than what the user typed —
-/// and each row carries two switches, one for whether the tool is offered to the
-/// model at all and one for whether calling it needs a click.
-///
-/// That second switch defaults to on and is the reason this sheet is worth
-/// building now rather than at P3. Termind's whole premise is that nothing runs
-/// without the user's say-so; a tool list fetched over the network from a server
-/// the model can also talk to is precisely where that premise would spring a
-/// leak if approval were opt-in.
+/// and each row carries a local policy for whether the tool is denied, follows
+/// the conversation's approval mode, or runs without another approval. New
+/// non-destructive tools carrying `readOnlyHint == true` begin approved; every
+/// other new tool begins by asking, and rediscovery preserves the user's choice.
 ///
 /// Edits write straight through and the page returns to the MCP list in place.
 struct MCPServerEditorPage: View {
@@ -245,7 +241,7 @@ struct MCPServerEditorPage: View {
         } footer: {
             if !server.tools.isEmpty {
                 Text(
-                    "Deny refuses the call. Ask uses the conversation's manual or automatic approval. Approve runs without approval and is unavailable for tools marked destructive."
+                    "Deny refuses the call. Ask uses the conversation's manual or automatic approval. Approve runs without approval."
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -375,7 +371,6 @@ private struct ToolRow: View {
                 ForEach(AgentToolDescriptor.ApprovalPolicy.allCases) { option in
                     Text(option.displayName)
                         .tag(option)
-                        .disabled(option == .approve && !tool.allowsTermindPreapproval)
                 }
             }
             .labelsHidden()
