@@ -94,6 +94,17 @@ authentication; callers never perform a separate discovery connection.
 Generation tokens prevent callbacks, credential results, and retry timers from a
 retired connection mutating its replacement.
 
+The SSH worker's serial queue owns PTY dimensions. It retains the latest valid
+viewport during authentication and uses it for the initial PTY request, including
+pixel dimensions. Nonblocking window-change requests retain their original size
+through EAGAIN; the pump finishes that packet before sending the newest viewport.
+Other channel I/O continues so an earlier blocked write can finish. Disconnect and
+connection failure clear resize state, and a retired authentication attempt cannot install a
+PTY or clear its replacement's pending dimensions. Ghostty remains the source of
+grid measurements; platform layout callbacks never compute remote rows or columns.
+Window-change failures are diagnostic logs, not connection failures or UI alerts;
+the failed packet is discarded while newer or subsequently requested sizes can proceed.
+
 `RemoteFile` is a Domain value, `RemoteFileSystem` the Application port, and the
 libssh2 `SFTPClientProtocol` its Remote Infrastructure implementation. File symbols
 and localized kind names belong to Presentation. `MobileSFTPSessionModel` owns

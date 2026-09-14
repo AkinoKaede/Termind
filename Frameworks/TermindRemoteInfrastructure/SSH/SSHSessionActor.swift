@@ -1,6 +1,7 @@
 import CSSH2
 import Darwin
 import Foundation
+import OSLog
 import TermindApplication
 import TermindDomain
 
@@ -602,6 +603,7 @@ public actor SSHSessionActor {
 }
 
 public nonisolated final class SSHSessionWorker: @unchecked Sendable {
+    private static let logger = Logger(subsystem: "com.akinokaede.termind", category: "SSH")
     private static let initialization: Void = {
         precondition(libssh2_init(0) == 0, "libssh2 initialization failed")
     }()
@@ -617,6 +619,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private var channel: OpaquePointer?
     private var pumpTimer: (any DispatchSourceTimer)?
     private var pendingWrites = Data()
+    private var ptyResize = SSHPTYResizeState()
     private var shellIntegration: RemoteShellIntegrationBootstrap?
     private var commandEventFilter: RemoteCommandEventFilter?
     private var didReportExit = false
@@ -866,12 +869,25 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         columns: UInt16, rows: UInt16,
         progress: SSHRouteProgressHandler?
     ) async throws {
-        await queue.perform { self.cleanup() }
-        let opened = try await Self.openAuthenticatedSession(
-            using: request, timeout: 20, progress: progress
-        )
+        let generation = try await queue.perform { [self] in
+            // Preserve a viewport received before this worker's first connect,
+            // but never carry another connection's pending request forward.
+            var nextResize = ptyResize
+            let generation = nextResize.beginConnection(columns: columns, rows: rows)
+            cleanup()
+            ptyResize = nextResize
+            return generation
+        }
         do {
+            let opened = try await Self.openAuthenticatedSession(
+                using: request, timeout: 20, progress: progress
+            )
             try await queue.perform { [self] in
+                guard ptyResize.generation == generation, let size = ptyResize.requestedSize else {
+                    _ = libssh2_session_free(opened.session)
+                    opened.transport.close()
+                    throw CancellationError()
+                }
                 routeTransport = opened.transport
                 socket = opened.transport.socket
                 session = opened.session
@@ -888,9 +904,11 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 channel = opened
                 let pty = libssh2_channel_request_pty_ex(
                     opened, "xterm-256color", 14, nil, 0,
-                    Int32(columns), Int32(rows), 0, 0
+                    Int32(size.columns), Int32(size.rows),
+                    Int32(clamping: size.widthPixels), Int32(clamping: size.heightPixels)
                 )
                 guard pty == 0 else { throw Self.sessionError(created, prefix: "PTY request failed") }
+                ptyResize.didCreatePTY(size: size)
                 guard libssh2_channel_process_startup(opened, "shell", 5, nil, 0) == 0 else {
                     throw Self.sessionError(created, prefix: "Remote shell request failed")
                 }
@@ -908,7 +926,10 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             }
             try Task.checkCancellation()
         } catch {
-            await queue.perform { self.cleanup() }
+            await queue.perform { [self] in
+                guard ptyResize.generation == generation else { return }
+                cleanup()
+            }
             throw error
         }
     }
@@ -928,11 +949,10 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     public func resize(columns: UInt16, rows: UInt16, widthPixels: UInt32, heightPixels: UInt32) {
         guard columns > 0, rows > 0 else { return }
         queue.async { [self] in
-            guard let channel else { return }
-            _ = libssh2_channel_request_pty_size_ex(
-                channel, Int32(columns), Int32(rows),
-                Int32(clamping: widthPixels), Int32(clamping: heightPixels)
+            ptyResize.request(
+                SSHPTYSize(columns: columns, rows: rows, widthPixels: widthPixels, heightPixels: heightPixels)
             )
+            pump()
         }
     }
 
@@ -1113,6 +1133,18 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
 
     private func pump() {
         guard let session, let channel else { return }
+        let resizeResult = ptyResize.flush { size in
+            libssh2_channel_request_pty_size_ex(
+                channel, Int32(size.columns), Int32(size.rows),
+                Int32(clamping: size.widthPixels), Int32(clamping: size.heightPixels)
+            )
+        }
+        if resizeResult != 0, resizeResult != LIBSSH2_ERROR_EAGAIN {
+            Self.logger.error("PTY resize failed (libssh2 code: \(resizeResult))")
+            ptyResize.discardFailedRequest()
+        }
+        // Continue other I/O on EAGAIN: window-change may itself be waiting
+        // for a previously blocked channel write or window adjustment.
         var buffer = [CChar](repeating: 0, count: 32 * 1024)
         while true {
             let count = libssh2_channel_read_ex(channel, 0, &buffer, buffer.count)
@@ -1231,6 +1263,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         pumpTimer?.cancel()
         pumpTimer = nil
         pendingWrites.removeAll(keepingCapacity: false)
+        ptyResize.reset()
         shellIntegration = nil
         commandEventFilter = nil
         if let channel {
