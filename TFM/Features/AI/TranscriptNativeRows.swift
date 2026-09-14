@@ -907,7 +907,7 @@ private enum NativeTranscriptFactory {
         context: NativeTranscriptContext
     ) -> NSView {
         if batch.cards.count == 1, let card = batch.cards.first {
-            return tool(card, defaultExpanded: true, context: context)
+            return tool(card, context: context)
         }
         let stack = NativeStack.vertical(spacing: Metrics.Space.s)
         let disclosureID = AssistantTranscriptDisclosureID.toolBatch(batch.id)

@@ -56,8 +56,8 @@ public struct MetricsSystemPanels: View {
             if let swapTotal = point?.swapTotal, swapTotal > 0 {
                 panel {
                     HStack {
+                        figure("Free Memory", value: MetricsFormat.bytes(point?.swapFree))
                         figure("Used", value: MetricsFormat.bytes(point?.swapUsed))
-                        figure("Free", value: MetricsFormat.bytes(point?.swapFree))
                         figure("Total", value: MetricsFormat.bytes(point?.swapTotal))
                         MetricsRing(title: "Swap", value: point?.swapPercent)
                     }

@@ -35,16 +35,15 @@ struct AssistantTranscriptPresentationTests {
         #expect(state.layoutRevision(for: [id]) > 0)
     }
 
-    @Test func aSingleToolCanDefaultOpenWithoutBecomingStoredBatchState() {
+    @Test func aSingleToolDefaultsClosedWithoutBecomingStoredBatchState() {
         let id = UUID()
         let state = AssistantTranscriptPresentationState()
 
-        #expect(state.isExpanded(.tool(id), default: true))
-        #expect(!state.isExpanded(.toolBatch(id)))
         #expect(!state.isExpanded(.tool(id)))
+        #expect(!state.isExpanded(.toolBatch(id)))
 
-        state.toggleDisclosure(.tool(id), default: true)
-        #expect(!state.isExpanded(.tool(id), default: true))
+        state.toggleDisclosure(.tool(id))
+        #expect(state.isExpanded(.tool(id)))
         #expect(!state.isExpanded(.toolBatch(id)))
     }
 
@@ -52,13 +51,11 @@ struct AssistantTranscriptPresentationTests {
         let id = UUID()
         let untouched = AssistantTranscriptPresentationState()
 
-        #expect(untouched.isExpanded(.tool(id), default: true))
-        #expect(!untouched.isExpanded(.toolBatch(id)))
         #expect(!untouched.isExpanded(.tool(id)))
+        #expect(!untouched.isExpanded(.toolBatch(id)))
 
         let explicitlyExpanded = AssistantTranscriptPresentationState()
-        explicitlyExpanded.toggleDisclosure(.tool(id), default: true)
-        explicitlyExpanded.toggleDisclosure(.tool(id), default: true)
+        explicitlyExpanded.toggleDisclosure(.tool(id))
         #expect(explicitlyExpanded.isExpanded(.tool(id)))
         #expect(!explicitlyExpanded.isExpanded(.toolBatch(id)))
     }

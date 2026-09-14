@@ -9951,22 +9951,6 @@
         }
       }
     },
-    "Free" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "空闲"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "空閒"
-          }
-        }
-      }
-    },
     "Free includes up to 3 monitoring cards. Upgrade to Pro for more." : {
       "localizations" : {
         "zh-Hans" : {
@@ -21698,6 +21682,7 @@
       }
     },
     "Swap" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -24564,6 +24549,7 @@
       }
     },
     "Total" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

@@ -148,8 +148,7 @@ private struct MobileAssistantToolBatchRow: View {
             MobileAssistantToolRow(
                 card: card,
                 presentation: presentation,
-                hostName: hostName,
-                defaultExpanded: true
+                hostName: hostName
             )
         } else {
             MobileAssistantDisclosure(
