@@ -1093,7 +1093,9 @@ final class SSHSessionModel: Identifiable {
         guard let initialCommand = pendingInitialCommand else { return }
         pendingInitialCommand = nil
         if !initialCommand.recordsInHistory {
-            commandExcludedFromHistory = initialCommand.command
+            commandExcludedFromHistory = CommandHistoryEntry.normalizingLineContinuations(
+                in: initialCommand.command
+            )
         }
         insert(initialCommand.command, submit: true)
     }
@@ -1105,6 +1107,7 @@ final class SSHSessionModel: Identifiable {
 
     @discardableResult
     func recordExecutedCommand(_ command: String) -> CommandHistoryEntry.ID? {
+        let command = CommandHistoryEntry.normalizingLineContinuations(in: command)
         guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return nil
         }

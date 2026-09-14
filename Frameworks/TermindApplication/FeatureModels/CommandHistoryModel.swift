@@ -33,14 +33,20 @@ public final class CommandHistoryModel {
             storageError = error.localizedDescription
             return []
         }
-        guard !query.isEmpty else { return values }
-        return values.filter { $0.command.localizedCaseInsensitiveContains(query) }
+        let normalized = values.map { entry in
+            var entry = entry
+            entry.command = CommandHistoryEntry.normalizingLineContinuations(in: entry.command)
+            return entry
+        }
+        guard !query.isEmpty else { return normalized }
+        return normalized.filter { $0.command.localizedCaseInsensitiveContains(query) }
     }
 
     @discardableResult
     public func record(
         _ command: String, for hostID: Host.ID, at date: Date = Date()
     ) -> CommandHistoryEntry? {
+        let command = CommandHistoryEntry.normalizingLineContinuations(in: command)
         guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return nil
         }

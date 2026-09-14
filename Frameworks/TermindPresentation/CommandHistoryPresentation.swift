@@ -2,6 +2,13 @@ import Foundation
 import TermindDomain
 
 public nonisolated enum CommandHistoryPresentation {
+    public static func title(for entry: CommandHistoryEntry) -> String {
+        guard let lineBreak = entry.command.rangeOfCharacter(from: .newlines) else {
+            return entry.command
+        }
+        return String(entry.command[..<lineBreak.lowerBound]) + "…"
+    }
+
     public static func subtitle(for entry: CommandHistoryEntry, locale: Locale) -> String {
         var parts = [
             entry.executedAt.formatted(

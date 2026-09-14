@@ -493,6 +493,7 @@ final class MobileWorkspace: Identifiable {
             submitPendingInitialCommandIfReady()
         case .commandStarted(let command):
             guard shellIntegrationAvailable else { return }
+            let command = CommandHistoryEntry.normalizingLineContinuations(in: command)
             isShellPromptReady = false
             invalidateCommandGeneration()
             if command == commandExcludedFromHistory {
@@ -710,7 +711,9 @@ final class MobileWorkspace: Identifiable {
         guard let pendingCommand else { return nil }
         self.pendingCommand = nil
         if !pendingCommand.recordsInHistory {
-            commandExcludedFromHistory = pendingCommand.command
+            commandExcludedFromHistory = CommandHistoryEntry.normalizingLineContinuations(
+                in: pendingCommand.command
+            )
         }
         return pendingCommand.command
     }

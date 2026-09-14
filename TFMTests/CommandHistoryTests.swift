@@ -16,6 +16,49 @@ import struct TermindDomain.Host
 @MainActor
 struct CommandHistoryTests {
     @Test
+    func historyNormalizesExplicitContinuationsAndPreservesRealLineBreaks() throws {
+        let hostID = UUID()
+        let legacy = CommandHistoryEntry(
+            hostID: hostID,
+            command: "printf legacy \\\r\n\t value\nprintf retained"
+        )
+        let store = CommandHistoryModel(entries: [legacy])
+
+        let newCommand =
+            "printf new \\\n                value \\\n                  again\nprintf retained"
+        let recorded = try #require(store.record(newCommand, for: hostID))
+
+        #expect(recorded.command == "printf new value again\nprintf retained")
+        #expect(
+            store.entries(for: hostID).map(\.command) == [
+                "printf new value again\nprintf retained",
+                "printf legacy value\nprintf retained",
+            ]
+        )
+        #expect(
+            CommandHistoryEntry.normalizingLineContinuations(
+                in: "printf escaped \\\\\nnext"
+            ) == "printf escaped \\\\\nnext"
+        )
+    }
+
+    @Test
+    func historyTitleShowsOneLogicalLineWithoutChangingTheCommand() {
+        let single = CommandHistoryEntry(hostID: UUID(), command: "uptime")
+        let multiline = CommandHistoryEntry(
+            hostID: UUID(), command: "printf first\nprintf second"
+        )
+        let windowsMultiline = CommandHistoryEntry(
+            hostID: UUID(), command: "printf first\r\nprintf second"
+        )
+
+        #expect(CommandHistoryPresentation.title(for: single) == "uptime")
+        #expect(CommandHistoryPresentation.title(for: multiline) == "printf first…")
+        #expect(CommandHistoryPresentation.title(for: windowsMultiline) == "printf first…")
+        #expect(multiline.command == "printf first\nprintf second")
+    }
+
+    @Test
     func memoryStoreKeepsDuplicatesSearchesAndScopesByHost() throws {
         let firstHost = UUID()
         let secondHost = UUID()
@@ -151,6 +194,22 @@ struct CommandHistoryTests {
     }
 
     @Test
+    func continuedStartupCommandIsExcludedAfterHistoryNormalization() {
+        let submittedCommand = "printf '%s' one \\\n            two"
+        let reportedCommand = "printf '%s' one \\\n                two"
+        let session = SSHSessionModel(
+            host: Host(name: "Files", host: "files.example"),
+            initialCommand: submittedCommand,
+            recordsInitialCommandInHistory: false
+        )
+
+        session.submitPendingInitialCommand()
+        session.recordExecutedCommand(reportedCommand)
+
+        #expect(session.transientCommandHistory.isEmpty)
+    }
+
+    @Test
     func ordinaryStartupCommandStillAppearsInHistory() {
         let session = SSHSessionModel(
             host: Host(name: "Shell", host: "shell.example"),
@@ -194,6 +253,18 @@ struct CommandHistoryTests {
         #expect(entry.duration == 5)
     }
 
+    @Test
+    func shellLifecycleStoresContinuedCommandsWithOneSpacePerBoundary() throws {
+        let session = SSHSessionModel(host: Host(name: "Shell", host: "shell.example"))
+
+        session.receiveShellIntegrationEvent(
+            .commandStarted("printf first \\\n                second\nprintf retained")
+        )
+
+        let entry = try #require(session.transientCommandHistory.first)
+        #expect(entry.command == "printf first second\nprintf retained")
+    }
+
     private func makeContainer(_ name: String) throws -> ModelContainer {
         let configuration = localModelConfiguration(
             name, schema: HostPersistence.schema, isStoredInMemoryOnly: true
@@ -231,6 +302,18 @@ struct RemoteCommandEventFilterTests {
         )
         #expect(second.events == [.commandStarted("echo 你好\nsecond")])
         #expect(String(decoding: second.visibleOutput, as: UTF8.self) == "after")
+    }
+
+    @Test
+    func transportsAChunkedBackslashContinuationAsOneCommandEvent() {
+        var filter = RemoteCommandEventFilter(token: "TOKEN")
+        let first = filter.receive(
+            Data("\u{1B}]777;TermindCommand=TOKEN;printf%20one%20%5C%0A".utf8)
+        )
+        let second = filter.receive(Data("%20%20two\u{7}".utf8))
+
+        #expect(first.events.isEmpty)
+        #expect(second.events == [.commandStarted("printf one \\\n  two")])
     }
 
     @Test

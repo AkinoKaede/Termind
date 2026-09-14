@@ -638,6 +638,7 @@ private struct SidebarCard<Trailing: View>: View {
     var symbolTint: AnyShapeStyle?
     let title: String
     var titleIsMonospaced = false
+    var titleLineLimit: Int?
     let subtitle: String?
     var subtitleIsMonospaced = true
     var truncatesSubtitleInMiddle = false
@@ -663,7 +664,7 @@ private struct SidebarCard<Trailing: View>: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(titleIsMonospaced ? .caption.monospaced() : .body)
-                    .lineLimit(titleIsMonospaced ? 2 : 1)
+                    .lineLimit(titleLineLimit ?? (titleIsMonospaced ? 2 : 1))
                 if let subtitle {
                     Text(subtitle)
                         .font(subtitleIsMonospaced ? .caption.monospaced() : .caption)
@@ -854,7 +855,7 @@ private struct SSHCommandHistorySidebar: View {
                     RoundedRectangle(cornerRadius: Metrics.Radius.small)
                         .strokeBorder(Color.accentColor.opacity(0.55))
                 }
-                Text(entry.command)
+                Text(CommandHistoryPresentation.title(for: entry))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -1283,8 +1284,9 @@ private struct CommandHistoryCard: View {
     var body: some View {
         SidebarCard(
             symbol: nil,
-            title: entry.command,
+            title: CommandHistoryPresentation.title(for: entry),
             titleIsMonospaced: true,
+            titleLineLimit: 1,
             subtitle: CommandHistoryPresentation.subtitle(for: entry, locale: locale),
             subtitleIsMonospaced: false,
             isSelected: isSelected

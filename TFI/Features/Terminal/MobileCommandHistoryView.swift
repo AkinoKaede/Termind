@@ -83,9 +83,9 @@ struct MobileCommandHistoryView: View {
     private func historyRow(_ entry: CommandHistoryEntry) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
-                Text(entry.command)
+                Text(CommandHistoryPresentation.title(for: entry))
                     .font(.body.monospaced())
-                    .lineLimit(2)
+                    .lineLimit(1)
                     .textSelection(.enabled)
                 Text(CommandHistoryPresentation.subtitle(for: entry, locale: locale))
                     .font(.caption)

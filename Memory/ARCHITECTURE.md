@@ -112,7 +112,10 @@ History rows or marks the prompt busy.
 
 Command History begins only after an authenticated start event. Completion may add
 remote exit status and duration; both remain optional and duration is never inferred
-from client receive time. History is capped at 1,000 rows per host.
+from client receive time. Explicit backslash continuations are stored with each
+boundary normalized to one space; other line breaks remain part of the command while
+desktop and mobile History rows show only the first line with an ellipsis. History is
+capped at 1,000 rows per host.
 
 SFTP History is device-local persisted truth shared across apps. Directories are
 recorded only after a fresh successful listing and files only after download.
