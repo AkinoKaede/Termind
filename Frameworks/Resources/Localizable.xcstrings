@@ -609,6 +609,53 @@
         }
       }
     },
+    "%lld commands" : {
+      "comment" : "A batch summary count for SSH commands executed by the assistant.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld command"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld commands"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld条命令"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld條指令"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld hosts" : {
       "localizations" : {
         "en" : {
@@ -23878,6 +23925,53 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "任務清單"
+          }
+        }
+      }
+    },
+    "the task list %lld times" : {
+      "comment" : "A batch summary describing how many times the assistant replaced the complete task list.",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "the task list once"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "the task list %lld times"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "任务列表%lld次"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "任務清單%lld次"
+                }
+              }
+            }
           }
         }
       }

@@ -631,9 +631,14 @@ nonisolated public enum AgentToolPresentation {
             return fallbackAction(for: first.state, activity: activity.text, locale: locale)
         }
 
-        let activity = batchActivity(presentation.activity, cards: cards, locale: locale)
+        let semanticActivity = semanticBatchActivity(
+            presentation.activity, count: cards.count, locale: locale
+        )
+        let activity =
+            semanticActivity
+            ?? batchActivity(presentation.activity, cards: cards, locale: locale)
         if let actionKind = actionKind(for: first) {
-            if isChinese(locale), cards.count > 1 {
+            if isChinese(locale), cards.count > 1, semanticActivity == nil {
                 return repeatedActionSummary(
                     actionKind, state: first.state, count: cards.count, locale: locale
                 )
@@ -654,6 +659,32 @@ nonisolated public enum AgentToolPresentation {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return fallbackAction(for: first.state, activity: activity.text, locale: locale)
+    }
+
+    /// Repeated calls whose descriptor names a domain activity should count
+    /// that activity, not expose the implementation detail that it was a tool
+    /// call. A task-list call replaces the whole list, so its count describes
+    /// replacements rather than pretending to know how many tasks changed.
+    private static func semanticBatchActivity(
+        _ activity: AgentToolDescriptor.Presentation.Activity,
+        count: Int,
+        locale: Locale
+    ) -> RenderedOperation? {
+        guard count > 1 else { return nil }
+        switch activity {
+        case .semanticArgument(_, let kind) where kind == .sshCommand:
+            return RenderedOperation(
+                text: localized("\(count) commands", locale: locale),
+                isArgumentValue: false
+            )
+        case .semanticLabel(let kind) where kind == .taskList:
+            return RenderedOperation(
+                text: localized("the task list \(count) times", locale: locale),
+                isArgumentValue: false
+            )
+        default:
+            return nil
+        }
     }
 
     private static func replacingQuotedActivity(in template: String, with activity: String) -> String {
