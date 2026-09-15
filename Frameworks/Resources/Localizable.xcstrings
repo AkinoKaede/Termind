@@ -23724,19 +23724,19 @@
         }
       }
     },
-    "The server closed the connection before sending its SSH identification. Check the server's unauthenticated connection limits." : {
+    "The server closed the connection before sending its SSH identification." : {
       "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "服务器在发送SSH标识前关闭了连接。请检查服务器的未认证连接限制。"
+            "value" : "服务器在发送SSH标识前关闭了连接。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "伺服器在傳送SSH標識前關閉了連線。請檢查伺服器的未認證連線限制。"
+            "value" : "伺服器在傳送SSH標識前關閉了連線。"
           }
         }
       }

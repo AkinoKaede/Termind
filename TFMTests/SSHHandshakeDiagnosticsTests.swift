@@ -99,7 +99,6 @@ struct SSHHandshakeDiagnosticsTests {
             elapsedMilliseconds: 20_000, peer: peer
         )
 
-        #expect(disconnected.localizedDescription.contains("unauthenticated connection limits"))
         #expect(invalid.localizedDescription.contains("invalid SSH identification"))
         #expect(timedOut.localizedDescription.contains("timed out"))
         #expect(disconnected.diagnosticDescription.contains("peer \(peer)"))

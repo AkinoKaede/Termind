@@ -112,7 +112,7 @@ public nonisolated struct SSHHandshakeFailure: Hashable, Sendable {
         case .peerClosed:
             message = String(
                 localized:
-                    "The server closed the connection before sending its SSH identification. Check the server's unauthenticated connection limits."
+                    "The server closed the connection before sending its SSH identification."
             )
         case .receiveFailed:
             message = String(
