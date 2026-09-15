@@ -97,6 +97,13 @@ authentication; callers never perform a separate discovery connection.
 Generation tokens prevent callbacks, credential results, and retry timers from a
 retired connection mutating its replacement.
 
+An Identity's persisted `lastUsedAt` means its saved password or private key was
+successfully read for connection setup, not that remote authentication succeeded.
+Connection-specific resolvers batch those accesses across destinations, jump hosts,
+and authenticated proxies; missing secrets and ordinary Keychain availability or
+editing reads never update usage. Later transport failure does not roll the access
+back, while pooled or borrowed live connections do not reread or refresh it.
+
 The SSH worker's serial queue owns PTY dimensions. It retains the latest valid
 viewport during authentication and uses it for the initial PTY request, including
 pixel dimensions. Nonblocking window-change requests retain their original size

@@ -358,7 +358,10 @@ final class SFTPSessionModel: Identifiable {
                     )
                     var credentials: [SSHCredentials] = []
                     if let keyID = suppliedAuthentication.keyID,
-                        let key = store.key(keyID), let stored = try? store.keyCredential(for: key)
+                        let key = store.key(keyID),
+                        let stored = try? store.connectionKeyCredential(
+                            for: key, identityID: suppliedAuthentication.identityID
+                        )
                     {
                         credentials.append(
                             stored.sshCredential(
@@ -604,7 +607,7 @@ final class SFTPSessionModel: Identifiable {
             submittedPassword =
                 try password
                 ?? selectedIdentity.flatMap {
-                    try store.passwordCredential(for: $0)
+                    try store.connectionPasswordCredential(for: $0)
                 }
         } catch {
             requestAuthentication(host: host, store: store, failure: error.localizedDescription)

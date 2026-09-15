@@ -356,7 +356,7 @@ public final class AgentHostResolver: Sendable {
             guard let identity = store.identity(identityID) else {
                 throw TermindSSHError.missingCredential
             }
-            let password = try store.passwordCredential(for: identity)
+            let password = try store.connectionPasswordCredential(for: identity)
             if answer.save {
                 var updated = host
                 updated.identityID = identity.id

@@ -3,6 +3,8 @@ import TermindDomain
 
 import struct TermindDomain.Host
 
+public typealias SSHCredentialAccessHandler = @Sendable (Set<Identity.ID>, Date) -> Void
+
 /// A value snapshot taken on MainActor. Resolving Keychain references can block and
 /// therefore happens on a detached worker, before any SSH transport is opened.
 public nonisolated struct SSHConnectionPreparation: Sendable {
@@ -28,6 +30,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
     }
     public var nodes: [Node]
     public var secrets: any SecretStoring
+    public var credentialAccessHandler: SSHCredentialAccessHandler?
 
     public func resolve(
         discoveryOnly: Bool = false,
@@ -51,6 +54,12 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
     private func resolveSynchronously(
         discoveryOnly: Bool, trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHConnectionConfiguration {
+        var accessedIdentityIDs: Set<Identity.ID> = []
+        defer {
+            if !accessedIdentityIDs.isEmpty {
+                credentialAccessHandler?(accessedIdentityIDs, Date())
+            }
+        }
         guard let target = nodes.last else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
@@ -58,7 +67,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         for (offset, node) in nodes.dropLast().enumerated() {
             do {
                 try Task.checkCancellation()
-                let material = try credentials(node)
+                let material = try credentials(node, accessedIdentityIDs: &accessedIdentityIDs)
                 if trustPolicy == .requireKnownHost, node.trustedKeys.isEmpty {
                     throw TermindSSHError.untrustedHost
                 }
@@ -66,7 +75,8 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                     SSHRouteHopConfiguration(
                         id: node.host.id, name: node.host.name, host: node.host.host, port: node.host.port,
                         username: material.0, credentials: material.1,
-                        expectedHostKeys: node.trustedKeys, proxy: try proxy(node)
+                        expectedHostKeys: node.trustedKeys,
+                        proxy: try proxy(node, accessedIdentityIDs: &accessedIdentityIDs)
                     ))
             } catch {
                 if error is CancellationError { throw error }
@@ -80,37 +90,48 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             }
         }
         try Task.checkCancellation()
-        let material = discoveryOnly ? ("", [SSHCredentials]()) : try credentials(target)
+        let material =
+            discoveryOnly
+            ? ("", [SSHCredentials]())
+            : try credentials(target, accessedIdentityIDs: &accessedIdentityIDs)
         if !discoveryOnly, trustPolicy == .requireKnownHost, target.trustedKeys.isEmpty {
             throw TermindSSHError.untrustedHost
         }
         return SSHConnectionConfiguration(
             hostID: target.host.id, host: target.host.host, port: target.host.port,
             username: material.0, credentials: material.1, expectedHostKeys: target.trustedKeys,
-            proxy: try proxy(target), jumps: jumps
+            proxy: try proxy(target, accessedIdentityIDs: &accessedIdentityIDs), jumps: jumps
         )
     }
 
-    private func credentials(_ node: Node) throws -> (String, [SSHCredentials]) {
+    private func credentials(
+        _ node: Node, accessedIdentityIDs: inout Set<Identity.ID>
+    ) throws -> (String, [SSHCredentials]) {
         let username = (node.submission?.username ?? node.identity?.username ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !username.isEmpty else { throw TermindSSHError.missingUsername }
         var result: [SSHCredentials] = []
         var retrievalFailure: (any Error)?
         if let key = node.key {
-            if key.requiresPassphraseEntry, node.submission?.passphrase?.isEmpty != false {
-                throw TermindSSHError.keyPassphraseRequired
-            }
+            let stored: StoredSSHKeyCredential?
             do {
-                if let credential = try secrets.keyCredential(for: key.credentialRef, storage: key.storage) {
-                    result.append(
-                        credential.sshCredential(
-                            publicKey: key.publicKey, certificate: key.certificate,
-                            passphraseOverride: node.submission?.passphrase
-                        ))
+                stored = try secrets.keyCredential(for: key.credentialRef, storage: key.storage)
+                if stored != nil, let identity = connectionIdentity(for: node) {
+                    accessedIdentityIDs.insert(identity.id)
                 }
             } catch {
+                stored = nil
                 retrievalFailure = error
+            }
+            if let stored {
+                if key.requiresPassphraseEntry, node.submission?.passphrase?.isEmpty != false {
+                    throw TermindSSHError.keyPassphraseRequired
+                }
+                result.append(
+                    stored.sshCredential(
+                        publicKey: key.publicKey, certificate: key.certificate,
+                        passphraseOverride: node.submission?.passphrase
+                    ))
             }
         }
         try Task.checkCancellation()
@@ -124,6 +145,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                     for: identity.credentialRef, storage: identity.passwordStorage
                 ) {
                     result.append(.password(password))
+                    accessedIdentityIDs.insert(identity.id)
                 }
             } catch {
                 if retrievalFailure == nil { retrievalFailure = error }
@@ -134,7 +156,9 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         return (username, result)
     }
 
-    private func proxy(_ node: Node) throws -> SSHTransportProxy? {
+    private func proxy(
+        _ node: Node, accessedIdentityIDs: inout Set<Identity.ID>
+    ) throws -> SSHTransportProxy? {
         guard let proxy = node.host.proxy else { return nil }
         guard proxy.isValid else {
             throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
@@ -148,6 +172,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             guard password != nil else {
                 throw TermindSSHError.proxy(String(localized: "The proxy password is unavailable."))
             }
+            accessedIdentityIDs.insert(identity.id)
         }
         return SSHTransportProxy(
             kind: proxy.kind, hostname: proxy.hostname, port: proxy.port,
@@ -159,9 +184,18 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         if case .untrustedHost = error { return true }
         return false
     }
-    public init(nodes: [Node], secrets: any SecretStoring) {
+    private func connectionIdentity(for node: Node) -> Identity? {
+        if node.submission != nil, node.submission?.identityID == nil { return nil }
+        return node.identity
+    }
+
+    public init(
+        nodes: [Node], secrets: any SecretStoring,
+        credentialAccessHandler: SSHCredentialAccessHandler? = nil
+    ) {
         self.nodes = nodes
         self.secrets = secrets
+        self.credentialAccessHandler = credentialAccessHandler
     }
 
 }

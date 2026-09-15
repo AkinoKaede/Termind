@@ -35,6 +35,7 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func sshCredentials(for identity: Identity) -> SSHCredentialResolution
     func passwordCredential(for identity: Identity) throws -> String?
     func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential?
+    func recordIdentityCredentialAccess(_ identityIDs: Set<Identity.ID>, at date: Date)
     func setConnectionStatus(_ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID)
     func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID)
     func trust(_ entry: KnownHostEntry)
@@ -45,6 +46,24 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public func connectionPasswordCredential(for identity: Identity) throws -> String? {
+        let password = try passwordCredential(for: identity)
+        if password != nil {
+            recordIdentityCredentialAccess([identity.id], at: Date())
+        }
+        return password
+    }
+
+    public func connectionKeyCredential(
+        for key: SSHKeyRef, identityID: Identity.ID?
+    ) throws -> StoredSSHKeyCredential? {
+        let credential = try keyCredential(for: key)
+        if credential != nil, let identityID {
+            recordIdentityCredentialAccess([identityID], at: Date())
+        }
+        return credential
+    }
+
     public func expectedHostKeys(
         for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
     ) throws -> Set<SSHHostKeyIdentity> {

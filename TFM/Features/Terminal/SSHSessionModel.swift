@@ -478,7 +478,9 @@ final class SSHSessionModel: Identifiable {
             if let keyID = suppliedAuthentication.keyID {
                 if let key = store.key(keyID) {
                     do {
-                        if let credential = try store.keyCredential(for: key) {
+                        if let credential = try store.connectionKeyCredential(
+                            for: key, identityID: suppliedAuthentication.identityID
+                        ) {
                             credentials.append(
                                 credential.sshCredential(
                                     publicKey: key.publicKey, certificate: key.certificate,
@@ -664,7 +666,7 @@ final class SSHSessionModel: Identifiable {
             submittedPassword =
                 try password
                 ?? selectedIdentity.flatMap {
-                    try store.passwordCredential(for: $0)
+                    try store.connectionPasswordCredential(for: $0)
                 }
         } catch {
             requestAuthentication(

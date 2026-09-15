@@ -69,6 +69,9 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential? {
         try library.keyCredential(for: key)
     }
+    func recordIdentityCredentialAccess(_ identityIDs: Set<Identity.ID>, at date: Date) {
+        library.recordIdentityCredentialAccess(identityIDs, at: date)
+    }
     func setConnectionStatus(
         _ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID
     ) {
