@@ -130,11 +130,12 @@ struct IdentityCredentialUsageTests {
         let dates = snapshot.identities.compactMap { store.identity($0.id)?.lastUsedAt }
         #expect(dates.count == 3)
         #expect(Set(dates).count == 1)
-        #expect(persistence.saveCount == 1)
+        #expect(persistence.identityUsageSaveCount == 1)
+        #expect(persistence.saveCount == 0)
     }
 
     @Test
-    func usageDatesAreMonotonicAndFailedPersistenceRollsBack() {
+    func usageDatesAreMonotonicAndRepeatedReadsPersistOncePerProcess() {
         let identity = Identity(name: "Deploy", username: "deploy")
         let persistence = CredentialAccessPersistence(
             snapshot: VaultSnapshot(identities: [identity])
@@ -148,14 +149,59 @@ struct IdentityCredentialUsageTests {
         )
 
         #expect(store.identity(identity.id)?.lastUsedAt == newer)
-        #expect(persistence.saveCount == 1)
+        #expect(persistence.identityUsageSaveCount == 1)
 
-        persistence.failsSave = true
         store.recordIdentityCredentialAccess(
             [identity.id], at: Date(timeIntervalSince1970: 300)
         )
         #expect(store.identity(identity.id)?.lastUsedAt == newer)
+        #expect(persistence.identityUsageSaveCount == 1)
+    }
+
+    @Test
+    func failedUsagePersistenceRollsBackAndCanRetry() {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        let persistence = CredentialAccessPersistence(
+            snapshot: VaultSnapshot(identities: [identity])
+        )
+        let store = HostLibraryModel(persistence: persistence)
+        let usedAt = Date(timeIntervalSince1970: 300)
+
+        persistence.failsIdentityUsageSave = true
+        store.recordIdentityCredentialAccess([identity.id], at: usedAt)
+        #expect(store.identity(identity.id)?.lastUsedAt == nil)
         #expect(store.storageError != nil)
+
+        persistence.failsIdentityUsageSave = false
+        store.recordIdentityCredentialAccess([identity.id], at: usedAt)
+        #expect(store.identity(identity.id)?.lastUsedAt == usedAt)
+        #expect(persistence.identityUsageSaveCount == 2)
+        #expect(store.storageError == nil)
+    }
+
+    @Test
+    func staleIdentitySavePreservesUsageAndCredentialChangesAllowAnotherRecord() throws {
+        let usedAt = Date(timeIntervalSince1970: 200)
+        let identity = Identity(name: "Deploy", username: "deploy")
+        let persistence = CredentialAccessPersistence(
+            snapshot: VaultSnapshot(identities: [identity])
+        )
+        let store = HostLibraryModel(persistence: persistence)
+        store.recordIdentityCredentialAccess([identity.id], at: usedAt)
+
+        var edited = identity
+        edited.name = "Renamed"
+        edited.lastUsedAt = Date(timeIntervalSince1970: 100)
+        #expect(store.upsert(edited))
+        #expect(store.identity(identity.id)?.lastUsedAt == usedAt)
+
+        edited = try #require(store.identity(identity.id))
+        edited.username = "root"
+        #expect(store.upsert(edited))
+        let later = Date(timeIntervalSince1970: 300)
+        store.recordIdentityCredentialAccess([identity.id], at: later)
+        #expect(store.identity(identity.id)?.lastUsedAt == later)
+        #expect(persistence.identityUsageSaveCount == 2)
     }
 
     @Test
@@ -187,9 +233,11 @@ struct IdentityCredentialUsageTests {
 
 @MainActor
 private final class CredentialAccessPersistence: VaultPersisting {
-    let snapshot: VaultSnapshot
+    var snapshot: VaultSnapshot
     var saveCount = 0
     var failsSave = false
+    var identityUsageSaveCount = 0
+    var failsIdentityUsageSave = false
 
     init(snapshot: VaultSnapshot) {
         self.snapshot = snapshot
@@ -200,7 +248,19 @@ private final class CredentialAccessPersistence: VaultPersisting {
     func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet {
         saveCount += 1
         if failsSave { throw CocoaError(.fileWriteUnknown) }
+        self.snapshot = snapshot
         return .empty
+    }
+
+    func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {
+        identityUsageSaveCount += 1
+        if failsIdentityUsageSave { throw CocoaError(.fileWriteUnknown) }
+        for index in snapshot.identities.indices {
+            guard let date = updates[snapshot.identities[index].id],
+                snapshot.identities[index].lastUsedAt.map({ $0 >= date }) != true
+            else { continue }
+            snapshot.identities[index].lastUsedAt = date
+        }
     }
 
     func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {

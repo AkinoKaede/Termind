@@ -168,6 +168,138 @@ struct VaultSyncTests {
     }
 
     @Test
+    func identityUsageStaysLocalAndDoesNotCreateVaultMutations() throws {
+        let container = try makeContainer("LocalIdentityUsage")
+        let context = container.mainContext
+        let persistence = HostPersistence(context: context)
+        let identity = Identity(name: "Deploy", username: "deploy")
+        let key = VaultRecordKey(kind: .identity, id: identity.id)
+        _ = try persistence.save(VaultSnapshot(identities: [identity]))
+        let journal = VaultSyncJournal(context: context)
+        let initial = try #require(try journal.envelope(for: key))
+        try journal.markUploaded(key, version: initial.version)
+        try context.save()
+
+        let usedAt = Date(timeIntervalSince1970: 500)
+        try persistence.saveIdentityLastUsedAt([identity.id: usedAt])
+
+        #expect(try persistence.load().identities.first?.lastUsedAt == usedAt)
+        #expect(try journal.pendingEnvelopes().isEmpty)
+        #expect(try journal.envelope(for: key)?.version == initial.version)
+        if case .identity(let payload) = try journal.envelope(for: key)?.payload {
+            #expect(payload.lastUsedAt == nil)
+        } else {
+            Issue.record("Expected an Identity payload")
+        }
+    }
+
+    @Test
+    func lastUsedOnlySnapshotSaveDoesNotAdvanceIdentityEnvelope() throws {
+        let container = try makeContainer("LastUsedOnlySnapshot")
+        let context = container.mainContext
+        let persistence = HostPersistence(context: context)
+        var identity = Identity(name: "Deploy", username: "deploy")
+        let key = VaultRecordKey(kind: .identity, id: identity.id)
+        _ = try persistence.save(VaultSnapshot(identities: [identity]))
+        let initial = try #require(try VaultSyncJournal(context: context).envelope(for: key))
+        identity.lastUsedAt = Date(timeIntervalSince1970: 800)
+
+        let mutations = try persistence.save(VaultSnapshot(identities: [identity]))
+
+        #expect(mutations.isEmpty)
+        #expect(try VaultSyncJournal(context: context).envelope(for: key)?.version == initial.version)
+        #expect(try persistence.load().identities.first?.lastUsedAt == identity.lastUsedAt)
+    }
+
+    @Test
+    func remoteIdentityPreservesLocalUsageAndStillAppliesConfiguration() throws {
+        let container = try makeContainer("RemoteIdentityUsage")
+        let context = container.mainContext
+        let persistence = HostPersistence(context: context)
+        let identity = Identity(name: "Deploy", username: "deploy")
+        let key = VaultRecordKey(kind: .identity, id: identity.id)
+        _ = try persistence.save(VaultSnapshot(identities: [identity]))
+        let localEnvelope = try #require(try VaultSyncJournal(context: context).envelope(for: key))
+        let localUsage = Date(timeIntervalSince1970: 400)
+        try persistence.saveIdentityLastUsedAt([identity.id: localUsage])
+
+        var remoteIdentity = identity
+        remoteIdentity.name = "Remote Deploy"
+        remoteIdentity.lastUsedAt = Date(timeIntervalSince1970: 900)
+        let remote = VaultEnvelope(
+            key: key,
+            version: VaultVersion(
+                modifiedAt: localEnvelope.version.modifiedAt.addingTimeInterval(10),
+                counter: 0, writerID: UUID()
+            ),
+            payload: .identity(remoteIdentity)
+        )
+
+        let result = try persistence.applyRemote([remote])
+
+        #expect(result.snapshot.identities.first?.name == remoteIdentity.name)
+        #expect(result.snapshot.identities.first?.lastUsedAt == localUsage)
+        if case .identity(let payload) = try VaultSyncJournal(context: context).envelope(for: key)?.payload {
+            #expect(payload.lastUsedAt == nil)
+        } else {
+            Issue.record("Expected an Identity payload")
+        }
+    }
+
+    @Test
+    func legacyPendingIdentityUsageIsRemovedBeforeUpload() throws {
+        let container = try makeContainer("LegacyPendingIdentityUsage")
+        let context = container.mainContext
+        let identity = Identity(
+            name: "Deploy", username: "deploy",
+            lastUsedAt: Date(timeIntervalSince1970: 700)
+        )
+        let envelope = VaultEnvelope(
+            key: VaultRecordKey(kind: .identity, id: identity.id),
+            version: .baseline(writerID: UUID()), payload: .identity(identity)
+        )
+        context.insert(try PersistentVaultSyncEntry(envelope: envelope, needsUpload: true))
+        try context.save()
+
+        let journal = VaultSyncJournal(context: context)
+        let outgoing = try #require(try journal.outgoingEntry(for: envelope.key))
+        if case .identity(let payload) = outgoing.envelope.payload {
+            #expect(payload.lastUsedAt == nil)
+        } else {
+            Issue.record("Expected an Identity payload")
+        }
+        #expect(try journal.pendingEnvelopes() == [outgoing.envelope])
+    }
+
+    @Test
+    func identityConfigurationEditsStillCreateVaultMutations() throws {
+        let container = try makeContainer("IdentityConfigurationEdit")
+        let persistence = HostPersistence(context: container.mainContext)
+        var identity = Identity(
+            name: "Deploy", username: "deploy",
+            lastUsedAt: Date(timeIntervalSince1970: 100)
+        )
+        _ = try persistence.save(VaultSnapshot(identities: [identity]))
+        identity.name = "Production Deploy"
+        identity.lastUsedAt = Date(timeIntervalSince1970: 200)
+
+        let mutations = try persistence.save(VaultSnapshot(identities: [identity]))
+
+        #expect(mutations.keys == [VaultRecordKey(kind: .identity, id: identity.id)])
+        let envelope = try #require(
+            try VaultSyncJournal(context: container.mainContext).envelope(
+                for: VaultRecordKey(kind: .identity, id: identity.id)
+            )
+        )
+        if case .identity(let payload) = envelope.payload {
+            #expect(payload.name == identity.name)
+            #expect(payload.lastUsedAt == nil)
+        } else {
+            Issue.record("Expected an Identity payload")
+        }
+    }
+
+    @Test
     func newerRemoteRecordWinsAndOlderRemoteRecordIsRequeued() throws {
         let container = try makeContainer("RemoteMerge")
         let context = container.mainContext

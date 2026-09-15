@@ -24,6 +24,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public private(set) var storageError: String?
     private let vault: VaultStore
     private let keychain: any SecretStoring
+    @ObservationIgnored private var recordedIdentityCredentialAccesses: Set<Identity.ID> = []
     /// Runtime resources live in AppModel, so deletion announces before model
     /// references are removed and the controller can stop listeners cleanly.
     public var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
@@ -658,16 +659,46 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public func recordIdentityCredentialAccess(
         _ identityIDs: Set<Identity.ID>, at date: Date = Date()
     ) {
-        guard !identityIDs.isEmpty else { return }
+        let pending = identityIDs.subtracting(recordedIdentityCredentialAccesses)
+        guard !pending.isEmpty else { return }
         let previous = identities
-        var changed = false
-        for index in identities.indices where identityIDs.contains(identities[index].id) {
-            if identities[index].lastUsedAt.map({ $0 >= date }) == true { continue }
-            identities[index].lastUsedAt = date
-            changed = true
+        var updates: [Identity.ID: Date] = [:]
+        var found: Set<Identity.ID> = []
+        for index in identities.indices where pending.contains(identities[index].id) {
+            let id = identities[index].id
+            found.insert(id)
+            if identities[index].lastUsedAt.map({ $0 >= date }) != true {
+                identities[index].lastUsedAt = date
+                updates[id] = date
+            }
         }
-        guard changed else { return }
-        if !persistCore() { identities = previous }
+        guard !found.isEmpty else { return }
+        do {
+            try vault.saveIdentityLastUsedAt(updates)
+            recordedIdentityCredentialAccesses.formUnion(found)
+            storageError = nil
+        } catch {
+            identities = previous
+            storageError = error.localizedDescription
+        }
+    }
+
+    private static func identityConnectionFieldsChanged(_ old: Identity, _ new: Identity) -> Bool {
+        old.username != new.username
+            || old.credentialRef != new.credentialRef
+            || old.passwordStorage != new.passwordStorage
+            || old.keyID != new.keyID
+    }
+
+    private static func keyConnectionFieldsChanged(_ old: SSHKeyRef, _ new: SSHKeyRef) -> Bool {
+        old.algorithm != new.algorithm
+            || old.publicKey != new.publicKey
+            || old.certificate != new.certificate
+            || old.fingerprint != new.fingerprint
+            || old.credentialRef != new.credentialRef
+            || old.storage != new.storage
+            || old.hasPassphrase != new.hasPassphrase
+            || old.requiresUserPresence != new.requiresUserPresence
     }
 
     /// Every host tag, deduplicated case-insensitively and sorted.
@@ -957,9 +988,17 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// is sorted by name wherever it is shown, so there is no order to keep.
     @discardableResult
     public func upsert(_ identity: Identity) -> Bool {
+        var resetsCredentialAccess = false
         if let index = identities.firstIndex(where: { $0.id == identity.id }) {
+            let previous = identities[index]
             var updated = identity
-            updated.sortIndex = identities[index].sortIndex
+            updated.sortIndex = previous.sortIndex
+            if let lastUsedAt = previous.lastUsedAt,
+                updated.lastUsedAt.map({ $0 < lastUsedAt }) != false
+            {
+                updated.lastUsedAt = lastUsedAt
+            }
+            resetsCredentialAccess = Self.identityConnectionFieldsChanged(previous, updated)
             identities[index] = updated
         } else {
             var new = identity
@@ -972,7 +1011,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 hosts[index].proxy?.username = ""
             }
         }
-        return persistCore()
+        let saved = persistCore()
+        if saved, resetsCredentialAccess { recordedIdentityCredentialAccesses.remove(identity.id) }
+        return saved
     }
 
     /// Updates an Identity and its Keychain password as one operation.
@@ -1058,6 +1099,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 storageError ?? String(localized: "The identity could not be saved.")
             )
         }
+        if case .replace = passwordUpdate { recordedIdentityCredentialAccesses.remove(updated.id) }
 
         let removesPrevious =
             !previousReference.isEmpty
@@ -1146,11 +1188,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             }
             return false
         }
+        recordedIdentityCredentialAccesses.remove(identityID)
         return true
     }
 
     public func upsert(_ key: SSHKeyRef, credential: StoredSSHKeyCredential? = nil) throws {
         let previousKey = self.key(key.id)
+        let resetsCredentialAccess =
+            credential != nil || previousKey.map { Self.keyConnectionFieldsChanged($0, key) } == true
         if key.storage == .secureEnclave, !key.certificate.isEmpty {
             throw TermindSSHError.library(
                 String(localized: "Secure Enclave keys cannot store an SSH certificate.")
@@ -1214,6 +1259,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 storageError ?? String(localized: "The key could not be saved.")
             )
         }
+        if resetsCredentialAccess {
+            recordedIdentityCredentialAccesses.subtract(identities(using: key.id).map(\.id))
+        }
 
         if changesLocation, let previousKey {
             do {
@@ -1266,6 +1314,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func delete(keyID: SSHKeyRef.ID) throws {
         guard let key = key(keyID) else { return }
+        let affectedIdentityIDs = Set(identities(using: keyID).map(\.id))
         let credential = try keyCredential(for: key)
         try keychain.removeKeyCredential(key.credentialRef, storage: key.storage)
         let keySnapshot = keys
@@ -1286,6 +1335,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 storageError ?? String(localized: "The key could not be deleted.")
             )
         }
+        recordedIdentityCredentialAccesses.subtract(affectedIdentityIDs)
     }
 
     /// Adds or updates a group. A new group is placed after its last sibling
@@ -1751,6 +1801,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Applies a CloudKit-imported projection without writing it back as a new
     /// local edit. Runtime connection and transfer state intentionally remain.
     public func replacePersistedSnapshot(_ snapshot: VaultSnapshot) {
+        let previousIdentities = Dictionary(uniqueKeysWithValues: identities.map { ($0.id, $0) })
+        let previousKeys = Dictionary(uniqueKeysWithValues: keys.map { ($0.id, $0) })
         hosts = snapshot.hosts
         groups = snapshot.groups
         identities = normalizedManualOrder(
@@ -1758,6 +1810,23 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         )
         keys = normalizedManualOrder(
             snapshot.keys, sortIndex: \SSHKeyRef.sortIndex, name: \SSHKeyRef.label
+        )
+        let currentIdentityIDs = Set(identities.map(\.id))
+        recordedIdentityCredentialAccesses.formIntersection(currentIdentityIDs)
+        for identity in identities {
+            if let previous = previousIdentities[identity.id],
+                Self.identityConnectionFieldsChanged(previous, identity)
+            {
+                recordedIdentityCredentialAccesses.remove(identity.id)
+            }
+        }
+        let currentKeys = Dictionary(uniqueKeysWithValues: keys.map { ($0.id, $0) })
+        let changedKeyIDs = Set(previousKeys.keys).union(currentKeys.keys).filter { id in
+            guard let previous = previousKeys[id], let current = currentKeys[id] else { return true }
+            return Self.keyConnectionFieldsChanged(previous, current)
+        }
+        recordedIdentityCredentialAccesses.subtract(
+            identities.filter { $0.keyID.map(changedKeyIDs.contains) == true }.map(\.id)
         )
         knownHosts = snapshot.knownHosts
         snippets = normalizedSnippetOrder(snapshot.snippets)

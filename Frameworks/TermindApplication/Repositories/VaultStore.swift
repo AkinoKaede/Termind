@@ -30,6 +30,13 @@ public final class VaultStore {
         didPersist?()
     }
 
+    /// Device-local usage metadata bypasses the Vault journal and repository
+    /// refresh callbacks because it does not change connection configuration.
+    public func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {
+        guard !updates.isEmpty else { return }
+        try persistence?.saveIdentityLastUsedAt(updates)
+    }
+
     public func modifiedAt(for key: VaultRecordKey) -> Date? {
         modificationDates[key]
     }

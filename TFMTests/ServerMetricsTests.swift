@@ -500,6 +500,24 @@ struct ServerMetricsLifecycleTests {
     }
 
     @Test
+    func recordingCredentialAccessDoesNotRestartConnection() async throws {
+        let fixture = try Fixture()
+        defer { fixture.model.shutdown() }
+        fixture.model.add(fixture.host)
+        let server = try #require(fixture.model.servers.first)
+        await eventually { server.point != nil }
+        await eventually { fixture.hosts.identity(for: fixture.host)?.lastUsedAt != nil }
+
+        fixture.model.reconcile()
+        fixture.model.reconcile()
+
+        #expect(!server.isConnecting)
+        #expect(server.collectionState == .live)
+        #expect(await fixture.sampler.connections == 1)
+        #expect(await fixture.sampler.disconnections == 0)
+    }
+
+    @Test
     func changingHostConfigurationRestartsConnection() async throws {
         let fixture = try Fixture()
         defer { fixture.model.shutdown() }

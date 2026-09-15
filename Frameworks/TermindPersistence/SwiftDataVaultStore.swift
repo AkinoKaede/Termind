@@ -51,6 +51,20 @@ public final class HostPersistence {
         }
     }
 
+    public func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {
+        guard !updates.isEmpty else { return }
+        do {
+            for row in try context.fetch(FetchDescriptor<PersistentIdentity>()) {
+                guard let date = updates[row.id], row.lastUsedAt.map({ $0 >= date }) != true else { continue }
+                row.lastUsedAt = date
+            }
+            if context.hasChanges { try context.save() }
+        } catch {
+            context.rollback()
+            throw error
+        }
+    }
+
     public func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
         do {
             let journal = VaultSyncJournal(context: context)

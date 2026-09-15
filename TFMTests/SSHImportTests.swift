@@ -565,6 +565,9 @@ struct SSHImportTests {
 private final class FailingImportPersistence: VaultPersisting {
     func load() throws -> VaultSnapshot { VaultSnapshot() }
     func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet { throw CocoaError(.fileWriteUnknown) }
+    func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {
+        throw CocoaError(.fileWriteUnknown)
+    }
     func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
         throw CocoaError(.fileWriteUnknown)
     }

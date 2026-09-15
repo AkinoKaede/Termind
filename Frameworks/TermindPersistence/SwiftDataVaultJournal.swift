@@ -38,7 +38,8 @@ extension VaultSnapshot {
         for value in groups {
             result[VaultRecordKey(kind: .hostGroup, id: value.id)] = .hostGroup(value)
         }
-        for value in identities {
+        for var value in identities {
+            value.lastUsedAt = nil
             result[VaultRecordKey(kind: .identity, id: value.id)] = .identity(value)
         }
         for value in keys {
@@ -77,7 +78,9 @@ extension VaultSnapshot {
         switch payload {
         case .host(let value): upsert(value, in: &hosts)
         case .hostGroup(let value): upsert(value, in: &groups)
-        case .identity(let value): upsert(value, in: &identities)
+        case .identity(var value):
+            value.lastUsedAt = identities.first(where: { $0.id == value.id })?.lastUsedAt
+            upsert(value, in: &identities)
         case .sshKey(let value): upsert(value, in: &keys)
         case .knownHost(let value): upsert(value, in: &knownHosts)
         case .snippet(let value): upsert(value, in: &snippets)
@@ -107,6 +110,22 @@ extension VaultSnapshot {
         } else {
             values.append(value)
         }
+    }
+}
+
+extension VaultRecordPayload {
+    fileprivate var withoutDeviceLocalMetadata: Self {
+        guard case .identity(var value) = self else { return self }
+        value.lastUsedAt = nil
+        return .identity(value)
+    }
+}
+
+extension VaultEnvelope {
+    fileprivate var withoutDeviceLocalMetadata: Self {
+        var copy = self
+        copy.payload = payload?.withoutDeviceLocalMetadata
+        return copy
     }
 }
 
@@ -183,18 +202,21 @@ public final class VaultSyncJournal {
             FetchDescriptor<PersistentVaultSyncEntry>(
                 predicate: #Predicate { $0.needsUpload }
             )
-        ).compactMap(\.envelope)
+        ).compactMap(\.envelope).map(\.withoutDeviceLocalMetadata)
     }
 
     public func outgoingEntry(for key: VaultRecordKey) throws -> VaultOutgoingEntry? {
         guard let row = try entry(recordName: key.recordName), let envelope = row.envelope else {
             return nil
         }
-        return VaultOutgoingEntry(envelope: envelope, systemFieldsData: row.systemFieldsData)
+        return VaultOutgoingEntry(
+            envelope: envelope.withoutDeviceLocalMetadata,
+            systemFieldsData: row.systemFieldsData
+        )
     }
 
     public func envelope(for key: VaultRecordKey) throws -> VaultEnvelope? {
-        try entry(recordName: key.recordName)?.envelope
+        try entry(recordName: key.recordName)?.envelope?.withoutDeviceLocalMetadata
     }
 
     public func modificationDates() throws -> [VaultRecordKey: Date] {
@@ -209,14 +231,17 @@ public final class VaultSyncJournal {
     public func mergeDecision(for remote: [VaultEnvelope]) throws -> VaultRemoteMerge {
         var result = VaultRemoteMerge()
         let entries = try entriesByName()
-        for envelope in remote {
+        for rawEnvelope in remote {
+            let envelope = rawEnvelope.withoutDeviceLocalMetadata
             guard envelope.formatVersion <= VaultEnvelope.currentFormatVersion else {
                 throw VaultSyncPersistenceError.unsupportedFormat(envelope.formatVersion)
             }
             guard envelope.isValid else {
                 throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
             }
-            guard let local = entries[envelope.key.recordName]?.envelope else {
+            guard
+                let local = entries[envelope.key.recordName]?.envelope?.withoutDeviceLocalMetadata
+            else {
                 result.accepted.append(envelope)
                 continue
             }
@@ -240,7 +265,7 @@ public final class VaultSyncJournal {
     public func acceptRemote(_ envelopes: [VaultEnvelope]) throws {
         var entries = try entriesByName()
         for envelope in envelopes {
-            try store(envelope, needsUpload: false, in: &entries)
+            try store(envelope.withoutDeviceLocalMetadata, needsUpload: false, in: &entries)
         }
     }
 
@@ -250,10 +275,12 @@ public final class VaultSyncJournal {
     }
 
     public func markUploaded(_ key: VaultRecordKey, version: VaultVersion) throws {
-        guard let row = try entry(recordName: key.recordName), row.envelope?.version == version else {
+        guard let row = try entry(recordName: key.recordName), let envelope = row.envelope,
+            envelope.version == version
+        else {
             return
         }
-        row.needsUpload = false
+        row.apply(envelope.withoutDeviceLocalMetadata, needsUpload: false)
     }
 
     public func updateSystemFields(_ data: Data?, for key: VaultRecordKey) throws {
@@ -302,7 +329,10 @@ public final class VaultSyncJournal {
 
         for (key, payload) in current {
             let row = entries[key.recordName]
-            guard row?.envelope?.payload != payload || row?.envelope?.isDeleted != false else {
+            guard
+                row?.envelope?.withoutDeviceLocalMetadata.payload != payload
+                    || row?.envelope?.isDeleted != false
+            else {
                 continue
             }
             let envelope = VaultEnvelope(

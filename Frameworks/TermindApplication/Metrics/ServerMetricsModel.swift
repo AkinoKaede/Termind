@@ -378,7 +378,11 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         encoder.outputFormatting = .sortedKeys
         var result = (try? encoder.encode(route)) ?? Data()
         for item in route {
-            if let identity = hosts.identity(for: item) {
+            if var identity = hosts.identity(for: item) {
+                // Credential access updates presentation metadata after a connection
+                // is prepared. It must not make Metrics mistake that same connection
+                // for a configuration change and restart its worker on reconciliation.
+                identity.lastUsedAt = nil
                 result.append((try? encoder.encode(identity)) ?? Data())
                 if let id = identity.keyID, let key = hosts.key(id) {
                     result.append((try? encoder.encode(key)) ?? Data())
