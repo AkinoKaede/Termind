@@ -140,9 +140,19 @@ public nonisolated enum SettingsRecordKind: String, Codable, CaseIterable, Senda
 }
 
 public nonisolated struct SettingsRecordKey: Codable, Hashable, Sendable {
+    public static let legacySecurityReviewID = "securityReview"
+
     public var kind: SettingsRecordKind
     public var id: String
     public var recordName: String { "v1/\(kind.rawValue)/\(id)" }
+
+    public var isLegacyGuardianRole: Bool {
+        kind == .role && id == Self.legacySecurityReviewID
+    }
+
+    public var canonicalized: Self {
+        isLegacyGuardianRole ? Self(kind: .role, id: AIRole.guardian.rawValue) : self
+    }
 
     public init(kind: SettingsRecordKind, id: String) {
         self.kind = kind
@@ -159,7 +169,7 @@ public nonisolated struct SettingsRecordKey: Codable, Hashable, Sendable {
         case .provider, .mcpServer, .skill:
             guard let uuid = UUID(uuidString: id), uuid.uuidString.lowercased() == id else { return nil }
         case .role:
-            guard AIRole(rawValue: id) != nil || id == "securityReview" else { return nil }
+            guard AIRole(rawValue: id) != nil || id == Self.legacySecurityReviewID else { return nil }
         case .selection, .webSearch, .terminal:
             guard id == "default" else { return nil }
         }
@@ -213,6 +223,32 @@ public nonisolated struct SettingsEnvelope: Codable, Hashable, Sendable {
         formatVersion == Self.currentFormatVersion
             && SettingsRecordKey(recordName: key.recordName) == key
             && (isDeleted ? payload == nil : payload?.key == key)
+    }
+
+    /// `securityReview` was the wire identifier for Guardian before AgentKit
+    /// 0.9. Decoding its role value intentionally produces `.guardian`, so the
+    /// old key and decoded payload no longer compare equal under `isValid`.
+    /// Accept that one mismatch only at the read boundary; all new writes use
+    /// the canonical Guardian key.
+    public var isValidLegacyGuardianRecord: Bool {
+        guard formatVersion == Self.currentFormatVersion,
+            SettingsRecordKey(recordName: key.recordName) == key,
+            key.isLegacyGuardianRole
+        else { return false }
+        if isDeleted { return payload == nil }
+        guard case .some(.role(.guardian, _)) = payload else { return false }
+        return true
+    }
+
+    public var canonicalized: Self {
+        guard key.isLegacyGuardianRole else { return self }
+        return Self(
+            formatVersion: formatVersion,
+            key: key.canonicalized,
+            version: version,
+            isDeleted: false,
+            payload: isDeleted ? .role(.guardian, nil) : payload
+        )
     }
 }
 

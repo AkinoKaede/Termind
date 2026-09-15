@@ -380,6 +380,12 @@ records cover providers/models, MCP clients, skills, roles, Web Search, and term
 preferences/custom text. The most recently selected conversation model remains
 device-local. Remote commits refresh models without
 re-entering local mutation. Active Agent runs keep their starting snapshot.
+Every model role has a live synced record: a nil Command Generator assignment means
+Same as Chat and a nil Guardian assignment means Automatic, while Chat's explicit
+selection is synced normally. Resolved fallback models remain local. The legacy
+`securityReview` record ID is accepted only at the CloudKit read boundary, migrated
+to `guardian` without reusing its record system fields, and all new writes use the
+canonical ID.
 
 Conversations, approval mode, local MCP listener settings, and unrelated defaults do
 not sync. Listener enablement, port, and tool selection remain UserDefaults; its token

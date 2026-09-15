@@ -22,6 +22,48 @@ public final class SettingsSyncJournal {
 
     public init(context: ModelContext) { self.context = context }
 
+    /// Moves the pre-Guardian role record onto its canonical key. The legacy
+    /// row cannot be uploaded by current code because its decoded role is
+    /// `.guardian` while its record name is still `securityReview`.
+    ///
+    /// The replacement deliberately has no CloudKit system fields: those
+    /// fields belong to the old record ID and must never be reused for the new
+    /// `v1/role/guardian` record.
+    public func migrateLegacyGuardianRole() throws -> SettingsMutationSet {
+        let legacyKey = SettingsRecordKey(kind: .role, id: SettingsRecordKey.legacySecurityReviewID)
+        guard let legacyRow = try entry(recordName: legacyKey.recordName),
+            let legacyEnvelope = legacyRow.envelope,
+            legacyEnvelope.isValidLegacyGuardianRecord
+        else { return .empty }
+
+        let migrated = legacyEnvelope.canonicalized
+        let canonicalKey = migrated.key
+        let canonicalRow = try entry(recordName: canonicalKey.recordName)
+        let winner: SettingsEnvelope
+        if let current = canonicalRow?.envelope {
+            winner = try preferred(current, migrated)
+        } else {
+            winner = migrated
+        }
+
+        let canonicalChanged = canonicalRow?.envelope != winner
+        if canonicalChanged {
+            if let canonicalRow {
+                try canonicalRow.apply(winner, needsUpload: true)
+                canonicalRow.systemFieldsData = nil
+            } else {
+                context.insert(
+                    try PersistentAIConfigurationSyncEntry(envelope: winner, needsUpload: true)
+                )
+            }
+        }
+        context.delete(legacyRow)
+        try clearQuarantine(recordName: legacyKey.recordName)
+        let syncState = try state()
+        syncState.engineStateData = nil
+        return SettingsMutationSet(keys: canonicalChanged ? [canonicalKey] : [])
+    }
+
     /// Removes records that are retained only for wire compatibility. Resetting
     /// the engine state also drops any pending save for those records without
     /// creating a CloudKit deletion.
@@ -324,6 +366,15 @@ public final class SettingsSyncJournal {
             context.insert(row)
             entries[envelope.key.recordName] = row
         }
+    }
+
+    private func preferred(_ first: SettingsEnvelope, _ second: SettingsEnvelope) throws -> SettingsEnvelope {
+        if first.version != second.version {
+            return first.version < second.version ? second : first
+        }
+        let firstData = try SettingsSyncCodec.encode(first)
+        let secondData = try SettingsSyncCodec.encode(second)
+        return firstData.lexicographicallyPrecedes(secondData) ? second : first
     }
 
     private func entriesByName() throws -> [String: PersistentAIConfigurationSyncEntry] {

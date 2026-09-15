@@ -392,6 +392,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         _ changes: CKSyncEngine.Event.FetchedRecordZoneChanges, engine: CKSyncEngine
     ) throws {
         var recordsByKey: [SettingsRecordKey: CKRecord] = [:]
+        var legacyGuardianKeys = Set<SettingsRecordKey>()
         var envelopes: [SettingsEnvelope] = []
         var quarantinedError: String?
         for modification in changes.modifications {
@@ -408,7 +409,12 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             do {
                 let envelope = try Self.envelope(from: record)
                 try journal.clearQuarantine(recordName: record.recordID.recordName)
-                recordsByKey[envelope.key] = record
+                let sourceKey = SettingsRecordKey(recordName: record.recordID.recordName)
+                if sourceKey == envelope.key {
+                    recordsByKey[envelope.key] = record
+                } else {
+                    legacyGuardianKeys.insert(envelope.key)
+                }
                 envelopes.append(envelope)
             } catch {
                 try journal.quarantine(
@@ -424,7 +430,11 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         for (key, record) in recordsByKey {
             try journal.updateSystemFields(Self.systemFields(of: record), for: key)
         }
-        try journal.markNeedsUpload(result.needsUpload)
+        // An accepted legacy value has no canonical CloudKit record behind it.
+        // Publish the normalized Guardian record so current clients converge.
+        let bridgeKeys = legacyGuardianKeys.intersection(result.acceptedKeys)
+        let needsUpload = result.needsUpload.union(bridgeKeys)
+        try journal.markNeedsUpload(needsUpload)
 
         // Physical deletes are not part of the protocol; recreate the local
         let physicallyDeleted = Set(
@@ -433,7 +443,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             }
         ).filter { (try? journal.envelope(for: $0)) != nil }
         try journal.markNeedsUpload(physicallyDeleted)
-        addPendingChanges(result.needsUpload.union(physicallyDeleted))
+        addPendingChanges(needsUpload.union(physicallyDeleted))
         try context.save()
         if !result.acceptedKeys.isEmpty {
             didApplyRemote?(result.snapshot, result.acceptedKeys)
@@ -543,10 +553,12 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             throw SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName)
         }
         let envelope = try SettingsSyncCodec.decode(data)
-        guard envelope.key.recordName == record.recordID.recordName, envelope.isValid else {
+        guard envelope.key.recordName == record.recordID.recordName,
+            envelope.isValid || envelope.isValidLegacyGuardianRecord
+        else {
             throw SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName)
         }
-        return envelope
+        return envelope.canonicalized
     }
 
     public nonisolated static func payloadData(from record: CKRecord) throws -> Data {

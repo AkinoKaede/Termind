@@ -63,6 +63,7 @@ public final class SettingsSyncPersistence {
         let seeded = defaults.integer(forKey: SettingsKey.seededSkillGeneration)
         var mutations = SettingsMutationSet.empty
         try context.commit {
+            mutations.keys.formUnion(try journal.migrateLegacyGuardianRole().keys)
             try journal.discardInactiveEntries()
             if try !journal.state().bootstrapCompleted {
                 let installed = try skills.load()
@@ -85,7 +86,7 @@ public final class SettingsSyncPersistence {
                     if try journal.envelope(for: key) == nil { installed.append(skill) }
                 }
                 try skills.replace(installed)
-                mutations = try journal.recordLocalChanges(from: previous, to: load())
+                mutations.keys.formUnion(try journal.recordLocalChanges(from: previous, to: load()).keys)
             }
             // V14 adds Terminal preferences to stores whose V13 bootstrap is already complete.
             let terminal = SettingsRecordPayload.terminal(try terminalPreferences().load())

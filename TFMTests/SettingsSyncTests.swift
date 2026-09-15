@@ -1,6 +1,7 @@
 import AgentKit
 import CloudKit
 import CoreData
+import CryptoKit
 import Foundation
 import SwiftData
 import TermindApplication
@@ -43,6 +44,21 @@ struct SettingsSyncTests {
             key: payload.key,
             version: .next(after: nil, writerID: UUID(), now: Date(timeIntervalSince1970: time)),
             payload: payload)
+    }
+
+    private func legacyGuardianData(_ envelope: SettingsEnvelope) throws -> Data {
+        let data = try SettingsSyncCodec.encode(envelope)
+        let current = String(decoding: data, as: UTF8.self)
+        return Data(
+            current.replacingOccurrences(
+                of: AIRole.guardian.rawValue,
+                with: SettingsRecordKey.legacySecurityReviewID
+            ).utf8
+        )
+    }
+
+    private func payloadHash(_ data: Data) -> String {
+        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
     }
 
     @Test
@@ -214,6 +230,143 @@ struct SettingsSyncTests {
         }
         let wire = SyncedModelProvider(provider, endpoint: snapshot.configuration.endpoints[provider.id]!, sortIndex: 0)
         #expect(wire.value.models == provider.models)
+    }
+
+    @Test
+    func chatAndDefaultRoleOptionsSyncAsLiveValues() throws {
+        let (sourceContainer, source, _) = try fixture()
+        let (destinationContainer, destination, _) = try fixture()
+        defer { withExtendedLifetime((sourceContainer, destinationContainer)) {} }
+
+        var provider = provider()
+        provider.models.append(AIModel(id: "second-chat"))
+        let first = AIModelRef(modelProviderID: provider.id, modelID: provider.models[0].id)
+        let second = AIModelRef(modelProviderID: provider.id, modelID: provider.models[1].id)
+        var configuration = try source.load().configuration
+        configuration.providers = [provider]
+        configuration.roles = [.chat: first, .commandGenerator: second, .guardian: first]
+        try source.saveConfiguration(configuration)
+        _ = try destination.applyRemote(source.journal.pendingEnvelopes())
+        #expect(try destination.load().configuration.roles == configuration.roles)
+
+        configuration.roles = [.chat: second]
+        try source.saveConfiguration(configuration)
+        let keys = [AIRole.chat, .commandGenerator, .guardian].map {
+            SettingsRecordKey(kind: .role, id: $0.rawValue)
+        }
+        let changes = try keys.compactMap { try source.journal.envelope(for: $0) }
+        let result = try destination.applyRemote(changes.reversed())
+
+        #expect(result.snapshot.configuration.roles == [.chat: second])
+        for role in [AIRole.commandGenerator, .guardian] {
+            let key = SettingsRecordKey(kind: .role, id: role.rawValue)
+            guard case .role(let storedRole, nil) = try source.journal.envelope(for: key)?.payload else {
+                Issue.record("Missing live default role payload for \(role.rawValue)")
+                continue
+            }
+            #expect(storedRole == role)
+        }
+        let resolved = AIConfigurationModel(
+            modelProviders: result.snapshot.configuration.providers,
+            roles: result.snapshot.configuration.roles,
+            persistsSecrets: false
+        )
+        #expect(resolved.resolve(.chat)?.model.id == "second-chat")
+        #expect(resolved.resolve(.commandGenerator)?.model.id == "second-chat")
+        #expect(resolved.resolve(.guardian)?.model.id == "second-chat")
+    }
+
+    @Test
+    func legacySecurityReviewRecordDecodesAsCanonicalGuardian() throws {
+        let canonical = envelope(.role(.guardian, nil))
+        let data = try legacyGuardianData(canonical)
+        let recordID = CKRecord.ID(
+            recordName: "v1/role/\(SettingsRecordKey.legacySecurityReviewID)",
+            zoneID: CKRecordZone.ID(zoneName: SettingsSyncCoordinator.zoneName)
+        )
+        let record = CKRecord(recordType: SettingsSyncCoordinator.recordType, recordID: recordID)
+        record["payload"] = data as NSData
+        record["payloadHash"] = payloadHash(data) as NSString
+
+        let decoded = try SettingsSyncCoordinator.envelope(from: record)
+
+        #expect(decoded.key == SettingsRecordKey(kind: .role, id: AIRole.guardian.rawValue))
+        #expect(decoded.payload == .role(.guardian, nil))
+        #expect(decoded.isValid)
+    }
+
+    @Test
+    func legacyAndCanonicalGuardianRecordsUseLatestVersionRegardlessOfOrder() throws {
+        let (container, store, _) = try fixture()
+        defer { withExtendedLifetime(container) {} }
+        let ref = AIModelRef(modelProviderID: UUID(), modelID: "private-chat")
+        let legacyCanonical = envelope(.role(.guardian, ref), time: 2)
+        let legacyData = try legacyGuardianData(legacyCanonical)
+        let legacyRecord = CKRecord(
+            recordType: SettingsSyncCoordinator.recordType,
+            recordID: CKRecord.ID(
+                recordName: "v1/role/\(SettingsRecordKey.legacySecurityReviewID)",
+                zoneID: CKRecordZone.ID(zoneName: SettingsSyncCoordinator.zoneName)
+            )
+        )
+        legacyRecord["payload"] = legacyData as NSData
+        legacyRecord["payloadHash"] = payloadHash(legacyData) as NSString
+        let legacy = try SettingsSyncCoordinator.envelope(from: legacyRecord)
+        let automatic = envelope(.role(.guardian, nil), time: 3)
+
+        let automaticResult = try store.applyRemote([automatic, legacy])
+        #expect(automaticResult.snapshot.configuration.roles[.guardian] == nil)
+
+        var newerLegacy = legacy
+        newerLegacy.version = .next(
+            after: automatic.version,
+            writerID: UUID(),
+            now: Date(timeIntervalSince1970: 4)
+        )
+        let explicitResult = try store.applyRemote([automatic, newerLegacy])
+        #expect(explicitResult.snapshot.configuration.roles[.guardian] == ref)
+    }
+
+    @Test
+    func prepareMigratesLegacySecurityReviewJournalWithoutReusingSystemFields() throws {
+        let (container, store, _) = try fixture()
+        defer { withExtendedLifetime(container) {} }
+        let legacyKey = SettingsRecordKey(kind: .role, id: SettingsRecordKey.legacySecurityReviewID)
+        let canonicalKey = SettingsRecordKey(kind: .role, id: AIRole.guardian.rawValue)
+        let ref = AIModelRef(modelProviderID: UUID(), modelID: "private-chat")
+        let canonical = envelope(.role(.guardian, ref), time: 5)
+        let legacyData = try legacyGuardianData(canonical)
+
+        try container.mainContext.delete(
+            model: PersistentAIConfigurationSyncEntry.self,
+            where: #Predicate { $0.recordName == canonicalKey.recordName }
+        )
+        let legacy = try PersistentAIConfigurationSyncEntry(envelope: canonical, needsUpload: false)
+        legacy.recordName = legacyKey.recordName
+        legacy.kind = legacyKey.kind.rawValue
+        legacy.entityID = legacyKey.id
+        legacy.envelopeData = legacyData
+        legacy.systemFieldsData = Data([1, 2, 3])
+        container.mainContext.insert(legacy)
+        container.mainContext.insert(
+            PersistentAIConfigurationSyncQuarantine(
+                recordName: legacyKey.recordName,
+                payloadData: legacyData,
+                reason: "legacy"
+            )
+        )
+        let state = try store.journal.state()
+        state.engineStateData = Data([4, 5, 6])
+        try container.mainContext.save()
+
+        try store.prepare()
+
+        #expect(try store.journal.envelope(for: legacyKey) == nil)
+        let migrated = try #require(try store.journal.outgoingEntry(for: canonicalKey))
+        #expect(migrated.envelope.payload == .role(.guardian, ref))
+        #expect(migrated.systemFieldsData == nil)
+        #expect(try store.journal.state().engineStateData == nil)
+        #expect(try store.journal.firstQuarantineReason() == nil)
     }
 
     @Test
