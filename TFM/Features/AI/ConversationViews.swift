@@ -1287,7 +1287,7 @@ struct ComposerView: View {
                 Text(permissionDescription(mode))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .lineLimit(2)
+                    .lineLimit(1)
             }
 
             Spacer(minLength: Metrics.Space.s)
@@ -1311,7 +1311,7 @@ struct ComposerView: View {
         switch mode {
         case .askForApproval: "Always ask for approval before protected actions"
         case .approveForMe: "Only ask for actions detected as potentially unsafe"
-        case .fullAccess: "Unrestricted access to files, commands, and the network"
+        case .fullAccess: "Unrestricted to the Internet and any files on your hosts"
         }
     }
 

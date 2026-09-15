@@ -19003,18 +19003,18 @@
         }
       }
     },
-    "Unrestricted access to files, commands, and the network" : {
+    "Unrestricted to the Internet and any files on your hosts" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不受限制地访问文件、执行命令和使用网络"
+            "value" : "不受限制地访问互联网和主机上的任何文件"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "不受限制地存取檔案、執行指令和使用網路"
+            "value" : "不受限制地存取網際網路和主機上的任何檔案"
           }
         }
       }
