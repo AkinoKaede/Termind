@@ -8,7 +8,7 @@ repository_directory="${script_directory:h}"
 derived_data="$repository_directory/.build/mac-marketing-tests"
 products="$derived_data/Build/Products"
 backup_directory="$repository_directory/.build/screenshot-backups/$(date +%Y%m%d-%H%M%S)"
-output_directory="$repository_directory/LandingPage/public/screenshots/workspace"
+output_directory="$repository_directory/Marketing/Screenshots/Captures/workspace"
 
 xcodebuild \
     -project "$repository_directory/Termind.xcodeproj" \

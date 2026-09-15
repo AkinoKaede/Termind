@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """Generate front-facing Termind device mockups using MockUPhone templates.
 
-Raw screenshots are read-only inputs. Framed outputs are written alongside them
-with a ``-framed.png`` suffix so the source captures remain available.
+Raw screenshots are read-only inputs in Marketing/Screenshots/Captures. Framed
+outputs are written to Marketing/Screenshots/DeviceFrames with a
+``-framed.png`` suffix so source and derived marketing assets stay separate.
 """
 
 from __future__ import annotations
@@ -17,7 +18,8 @@ from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 
 REPOSITORY = Path(__file__).resolve().parents[1]
-SCREENSHOTS = REPOSITORY / "LandingPage" / "public" / "screenshots"
+CAPTURES = REPOSITORY / "Marketing" / "Screenshots" / "Captures"
+DEVICE_FRAMES = REPOSITORY / "Marketing" / "Screenshots" / "DeviceFrames"
 CACHE = REPOSITORY / ".build" / "mockuphone-assets"
 MOCKUPHONE = "https://mockuphone.com/images"
 FEATURES = ("vault", "sftp", "ssh", "metrics", "assistant")
@@ -156,8 +158,9 @@ def generate(source: Path, destination: Path, device: Device) -> None:
 def mobile_sources(device_name: str):
     for feature in FEATURES:
         for locale in LOCALES:
-            source = SCREENSHOTS / feature / f"{device_name}-{locale}.png"
-            yield source, source.with_name(f"{device_name}-{locale}-framed.png")
+            source = CAPTURES / feature / f"{device_name}-{locale}.png"
+            destination = DEVICE_FRAMES / feature / f"{device_name}-{locale}-framed.png"
+            yield source, destination
 
 
 def main() -> int:
@@ -165,8 +168,8 @@ def main() -> int:
         *((source, destination, IPHONE) for source, destination in mobile_sources("iphone")),
         *((source, destination, IPAD) for source, destination in mobile_sources("ipad")),
         *((
-            SCREENSHOTS / "workspace" / f"mac-{locale}.png",
-            SCREENSHOTS / "workspace" / f"mac-{locale}-framed.png",
+            CAPTURES / "workspace" / f"mac-{locale}.png",
+            DEVICE_FRAMES / "workspace" / f"mac-{locale}-framed.png",
             MAC,
         ) for locale in LOCALES),
     ]

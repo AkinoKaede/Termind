@@ -5,7 +5,7 @@ setopt typesetsilent
 
 script_directory="${0:A:h}"
 repository_directory="${script_directory:h}"
-output_directory="$repository_directory/LandingPage/public/screenshots"
+output_directory="$repository_directory/Marketing/Screenshots/Captures"
 derived_data="$repository_directory/.build/mobile-marketing-screenshots"
 marketing_xctestrun="$derived_data/Build/Products/Marketing-TFI.xctestrun"
 marketing_scenes="${TERMIND_MARKETING_SCENES:-}"
