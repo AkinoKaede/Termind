@@ -176,9 +176,10 @@ preflight, card creation, hooks, authorization, then execution, and
 OpenAI Responses/Chat Completions, Anthropic Messages, and Gemini. Models without
 tool capability receive no tools; only recognized chat-purpose models appear in
 conversation pickers, and unknown purpose values safely default to chat.
-AgentKit's callable `fetch`, `web_search`, and `scratch_fetch` tools are `.ask`
-because each initiates an external network request. A provider-native search card
-is instead a post-hoc record of a search the selected model provider already ran.
+AgentKit's callable `fetch` and `scratch_fetch` tools are `.ask` because each
+contacts a caller-selected URL. Explicitly enabled `web_search` remains
+pre-approved; a provider-native search card is a post-hoc record of a search the
+selected model provider already ran.
 
 Guardian owns Auto-reviewing as an isolated `.reviewing` agent posture. Ordinary
 tools default only to `.planning` and `.acting`. The registry supports disjoint

@@ -1262,7 +1262,7 @@ struct ComposerView: View {
             .padding(.horizontal, Metrics.Space.s)
             .padding(.bottom, Metrics.Space.s)
         }
-        .frame(width: 320)
+        .frame(width: 360)
         // The same system glass the composer that raised it is made of, rather
         // than a flat panel colour — a popover anchored to a glass surface that
         // is itself opaque reads as a different app's window. The presentation
