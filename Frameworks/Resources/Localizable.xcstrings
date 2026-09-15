@@ -537,6 +537,54 @@
         }
       }
     },
+    "%lld commands" : {
+      "comment" : "A batch summary count for SSH commands executed by the assistant.",
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld command"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld commands"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld条命令"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld條指令"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "%lld connected" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -605,53 +653,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%lld傳輸失敗"
-          }
-        }
-      }
-    },
-    "%lld commands" : {
-      "comment" : "A batch summary count for SSH commands executed by the assistant.",
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld command"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld commands"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld条命令"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hant" : {
-          "variations" : {
-            "plural" : {
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld條指令"
-                }
-              }
-            }
           }
         }
       }
@@ -2422,6 +2423,22 @@
         }
       }
     },
+    "Agent error" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent错误"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent錯誤"
+          }
+        }
+      }
+    },
     "AI" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2668,6 +2685,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一律詢問"
+          }
+        }
+      }
+    },
+    "Always ask for approval before protected actions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "执行受保护操作前始终请求批准"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行受保護操作前始終要求核准"
           }
         }
       }
@@ -3101,22 +3134,6 @@
         }
       }
     },
-    "Agent error" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Agent错误"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Agent錯誤"
-          }
-        }
-      }
-    },
     "Archive" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3294,22 +3311,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "問點什麼…"
-          }
-        }
-      }
-    },
-    "Always ask for approval before protected actions" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "执行受保护操作前始终请求批准"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "執行受保護操作前始終要求核准"
           }
         }
       }
@@ -3510,6 +3511,44 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "授權存取檔案"
+          }
+        }
+      }
+    },
+    "Auto-reviewing in progress" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在自动审查"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在自動審查"
+          }
+        }
+      }
+    },
+    "Auto-reviewing: %@ — %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Auto-reviewing: %1$@ — %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动审查：%1$@—%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動審查：%1$@—%2$@"
           }
         }
       }
@@ -15336,6 +15375,22 @@
         }
       }
     },
+    "Only ask for actions detected as potentially unsafe" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅在检测到操作可能不安全时询问"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅在偵測到操作可能不安全時詢問"
+          }
+        }
+      }
+    },
     "Only SKILL.md was imported. These were not: %@." : {
       "comment" : "A warning that a skill was imported but some files were not. The list of files is a comma-separated list.",
       "extractionState" : "stale",
@@ -17854,22 +17909,6 @@
         }
       }
     },
-    "Reconnecting… %lld/%lld" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在重新连接…%1$lld/%2$lld"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在重新連線…%1$lld/%2$lld"
-          }
-        }
-      }
-    },
     "Reconnecting · attempt %lld" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17906,6 +17945,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在重新連線%1$@·%2$@"
+          }
+        }
+      }
+    },
+    "Reconnecting… %lld/%lld" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重新连接…%1$lld/%2$lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重新連線…%1$lld/%2$lld"
           }
         }
       }
@@ -19082,22 +19138,6 @@
         }
       }
     },
-    "Unrestricted to the Internet and any files on your hosts" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不受限制地访问互联网和主机上的任何文件"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "不受限制地存取網際網路和主機上的任何檔案"
-          }
-        }
-      }
-    },
     "Run the copied command in a terminal on this Mac. Enable the server before connecting." : {
       "localizations" : {
         "zh-Hans" : {
@@ -19677,44 +19717,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安全隔區傳回了無效的P-256簽名。"
-          }
-        }
-      }
-    },
-    "Auto-reviewing in progress" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在自动审查"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在自動審查"
-          }
-        }
-      }
-    },
-    "Auto-reviewing: %@ — %@" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "Auto-reviewing: %1$@ — %2$@"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动审查：%1$@—%2$@"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動審查：%1$@—%2$@"
           }
         }
       }
@@ -23963,6 +23965,7 @@
     },
     "the task list %lld times" : {
       "comment" : "A batch summary describing how many times the assistant replaced the complete task list.",
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "variations" : {
@@ -25550,6 +25553,22 @@
         }
       }
     },
+    "Unrestricted to the Internet and any files on your hosts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不受限制地访问互联网和主机上的任何文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "不受限制地存取網際網路和主機上的任何檔案"
+          }
+        }
+      }
+    },
     "Unsupported SSH certificate algorithm: %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -25929,22 +25948,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用「連線」建立工作區。"
-          }
-        }
-      }
-    },
-    "Only ask for actions detected as potentially unsafe" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅在检测到操作可能不安全时询问"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "僅在偵測到操作可能不安全時詢問"
           }
         }
       }
