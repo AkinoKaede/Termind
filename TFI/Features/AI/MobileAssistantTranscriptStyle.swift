@@ -80,6 +80,7 @@ struct MobileAssistantScanning: ViewModifier {
 
 struct MobileAssistantActivity: View {
     var cyclesText = false
+    var reconnectingTitle: String? = nil
     @State private var startedAt = Date.now
     @Environment(\.mobileListRowIsDisplayed) private var displayed
     @Environment(\.mobileListReduceMotion) private var reduceMotion
@@ -87,7 +88,9 @@ struct MobileAssistantActivity: View {
 
     var body: some View {
         Group {
-            if cyclesText && displayed && !reduceMotion && sceneIsActive {
+            if let reconnectingTitle {
+                Text(reconnectingTitle)
+            } else if cyclesText && displayed && !reduceMotion && sceneIsActive {
                 TimelineView(.animation(minimumInterval: AssistantTranscriptStyle.activityTextDuration)) { context in
                     let titles: [LocalizedStringKey] = ["Working…", "Thinking…", "Reasoning…"]
                     let index =
@@ -102,7 +105,10 @@ struct MobileAssistantActivity: View {
                 Text("Working…")
             }
         }
-        .foregroundStyle(.secondary)
+        .foregroundStyle(
+            reconnectingTitle == nil
+                ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary)
+        )
         .modifier(MobileAssistantScanning(active: true))
         .frame(maxWidth: .infinity, alignment: .leading)
     }

@@ -9,11 +9,12 @@ nonisolated public enum AssistantTranscriptDisclosureID: Hashable, Sendable {
     case reasoning(UUID)
     case plan(UUID)
     case compactionActivity(UUID)
+    case failure(UUID)
 
     fileprivate var sourceID: UUID {
         switch self {
         case .work(let id), .tool(let id), .toolBatch(let id), .reasoning(let id), .plan(let id),
-            .compactionActivity(let id):
+            .compactionActivity(let id), .failure(let id):
             id
         }
     }

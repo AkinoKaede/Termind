@@ -259,7 +259,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                     guard let state = AgentRunState(rawValue: run.state) else { return nil }
                     return AgentRunSummary(
                         id: run.id, state: state, startedAt: run.startedAt,
-                        finishedAt: run.finishedAt
+                        finishedAt: run.finishedAt, failure: run.failure
                     )
                 },
                 toolCards: cards,
@@ -456,7 +456,8 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
                         AgentRunSnapshot(
                             id: summary.id, conversationID: value.id, state: summary.state,
                             permissionMode: .askForApproval, messages: [],
-                            startedAt: summary.startedAt, finishedAt: summary.finishedAt
+                            startedAt: summary.startedAt, finishedAt: summary.finishedAt,
+                            failure: summary.failure
                         )))
             }
             let validRunIDs = Set(summaries.map(\.id))

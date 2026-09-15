@@ -36,7 +36,11 @@ struct MobileAssistantWorkRow: View {
                                 .modifier(MobileAssistantScanning(active: group.activeReasoningBlockID == block.id))
                         case .message(let message):
                             if message.text.isEmpty && message.isStreaming {
-                                MobileAssistantActivity()
+                                MobileAssistantActivity(
+                                    reconnectingTitle: group.retryProgress.map {
+                                        AgentWorkPresentation.reconnectingTitle($0, locale: locale)
+                                    }
+                                )
                             } else if !message.text.isEmpty {
                                 MobileAssistantMarkdown(text: message.text)
                             }
@@ -54,11 +58,20 @@ struct MobileAssistantWorkRow: View {
 
     private func workTitle(now: Date) -> some View {
         Text(
-            AgentWorkPresentation.title(
-                for: group.run.state, from: group.run.startedAt, to: group.run.finishedAt ?? now, locale: locale
-            )
+            group.retryProgress.map {
+                AgentWorkPresentation.reconnectingTitle($0, locale: locale)
+            }
+                ?? AgentWorkPresentation.title(
+                    for: group.run.state, from: group.run.startedAt,
+                    to: group.run.finishedAt ?? now, locale: locale
+                )
         )
-        .font(.callout).foregroundStyle(.secondary).monospacedDigit()
+        .font(.callout)
+        .foregroundStyle(
+            group.retryProgress == nil
+                ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary)
+        )
+        .monospacedDigit()
     }
 }
 

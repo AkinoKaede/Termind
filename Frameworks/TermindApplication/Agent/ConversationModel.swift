@@ -277,6 +277,8 @@ nonisolated public struct ChatMessage: Identifiable, Hashable, Sendable {
     public var contextChips: [ContextChipReference] = []
     public var images: [AgentImageAttachment] = []
     public var commands: [SuggestedCommand] = []
+    /// Provider retry state is live presentation, never conversation history.
+    public var retryProgress: AgentModelRetryProgress?
     /// True while tokens are still arriving, so the view can show a caret.
     public var isStreaming: Bool = false
     /// Orders this message against the tool cards, which are a separate list.
@@ -287,7 +289,8 @@ nonisolated public struct ChatMessage: Identifiable, Hashable, Sendable {
     public init(
         id: UUID = UUID(), role: Role, text: String, reasoning: [AgentReasoningBlock] = [],
         contextChips: [ContextChipReference] = [], images: [AgentImageAttachment] = [],
-        commands: [SuggestedCommand] = [], isStreaming: Bool = false, createdAt: Date = .now
+        commands: [SuggestedCommand] = [], retryProgress: AgentModelRetryProgress? = nil,
+        isStreaming: Bool = false, createdAt: Date = .now
     ) {
         self.id = id
         self.role = role
@@ -296,6 +299,7 @@ nonisolated public struct ChatMessage: Identifiable, Hashable, Sendable {
         self.contextChips = contextChips
         self.images = images
         self.commands = commands
+        self.retryProgress = retryProgress
         self.isStreaming = isStreaming
         self.createdAt = createdAt
     }
@@ -374,6 +378,24 @@ nonisolated public struct PendingSteeringMessage: Identifiable, Hashable, Sendab
     }
 }
 
+nonisolated public struct AgentRunFailureNotice: Identifiable, Hashable, Sendable {
+    public var runID: UUID
+    public var reason: String
+    public var createdAt: Date
+
+    public var id: UUID {
+        AgentTranscriptMessage.toolResultID(
+            runID: runID, callID: "__termind_agent_failure_notice__"
+        )
+    }
+
+    public init(runID: UUID, reason: String, createdAt: Date) {
+        self.runID = runID
+        self.reason = reason
+        self.createdAt = createdAt
+    }
+}
+
 /// One row of a conversation, whichever of the two lists it came from.
 nonisolated public enum TimelineItem: Identifiable, Hashable, Sendable {
     case message(ChatMessage)
@@ -383,6 +405,7 @@ nonisolated public enum TimelineItem: Identifiable, Hashable, Sendable {
     case plan(AgentPlanCard)
     case compaction(AgentCompactionMark)
     case compactionActivity(AgentCompactionActivity)
+    case failure(AgentRunFailureNotice)
 
     public var id: UUID {
         switch self {
@@ -393,6 +416,7 @@ nonisolated public enum TimelineItem: Identifiable, Hashable, Sendable {
         case .plan(let card): card.id
         case .compaction(let mark): mark.id
         case .compactionActivity(let activity): activity.id
+        case .failure(let failure): failure.id
         }
     }
 
@@ -407,6 +431,7 @@ nonisolated public enum TimelineItem: Identifiable, Hashable, Sendable {
         case .plan(let card): card.createdAt
         case .compaction(let mark): mark.createdAt
         case .compactionActivity(let activity): activity.createdAt
+        case .failure(let failure): failure.createdAt
         }
     }
 
@@ -418,6 +443,7 @@ nonisolated public enum TimelineItem: Identifiable, Hashable, Sendable {
         switch self {
         case .work: -1
         case .compaction, .compactionActivity: 1
+        case .failure: 2
         default: 0
         }
     }
@@ -498,10 +524,12 @@ nonisolated public struct AgentWorkGroup: Identifiable, Hashable, Sendable {
     /// The provider summary currently receiving deltas. The view scans this
     /// text instead of showing a second generic Working indicator outside.
     public var activeReasoningBlockID: AgentReasoningBlock.ID?
+    public var retryProgress: AgentModelRetryProgress?
 
     public init(
         run: AgentRunSummary, items: [AgentWorkItem], orderedAt: Date, anchorMessageID: UUID? = nil,
-        appearsAfterAnswer: Bool, activeReasoningBlockID: AgentReasoningBlock.ID? = nil
+        appearsAfterAnswer: Bool, activeReasoningBlockID: AgentReasoningBlock.ID? = nil,
+        retryProgress: AgentModelRetryProgress? = nil
     ) {
         self.run = run
         self.items = items
@@ -509,10 +537,20 @@ nonisolated public struct AgentWorkGroup: Identifiable, Hashable, Sendable {
         self.anchorMessageID = anchorMessageID
         self.appearsAfterAnswer = appearsAfterAnswer
         self.activeReasoningBlockID = activeReasoningBlockID
+        self.retryProgress = retryProgress
     }
 }
 
 nonisolated public enum AgentWorkPresentation {
+    public static func reconnectingTitle(
+        _ progress: AgentModelRetryProgress, locale: Locale = .current
+    ) -> String {
+        AppLocalization.string(
+            "Reconnecting… \(progress.attempt)/\(progress.maximumAttempts)",
+            locale: locale
+        )
+    }
+
     public static func isExpandedByDefault(
         for state: AgentRunState, appearsAfterAnswer: Bool = false,
         isCompact _: Bool = false
@@ -1303,6 +1341,7 @@ public final class ConversationModel: Identifiable {
             let activeReasoningBlockID = processMessages.first(where: {
                 $0.id == activeReasoningMessageID && $0.isStreaming && $0.text.isEmpty
             })?.reasoning.last?.id
+            let retryProgress = processMessages.compactMap(\.retryProgress).last
             var items =
                 reasoningItems + visibleProcess.map(AgentWorkItem.message)
                 + cards.map(AgentWorkItem.tool)
@@ -1357,7 +1396,8 @@ public final class ConversationModel: Identifiable {
             return AgentWorkGroup(
                 run: run, items: items, orderedAt: orderedAt,
                 anchorMessageID: anchorID, appearsAfterAnswer: answerAt != nil,
-                activeReasoningBlockID: activeReasoningBlockID
+                activeReasoningBlockID: activeReasoningBlockID,
+                retryProgress: retryProgress
             )
         }.sorted { $0.orderedAt < $1.orderedAt }
     }
@@ -1432,8 +1472,17 @@ public final class ConversationModel: Identifiable {
         }
         items += groups.filter { !emittedGroups.contains($0.id) }.map(TimelineItem.work)
         let commands = toolCards.compactMap(\.terminalSuggestion)
+        let failures = runSummaries.values.compactMap { run -> AgentRunFailureNotice? in
+            guard run.state == .failed, let reason = run.failure, !reason.isEmpty else {
+                return nil
+            }
+            return AgentRunFailureNotice(
+                runID: run.id, reason: reason,
+                createdAt: run.finishedAt ?? run.startedAt
+            )
+        }
         guard
-            !commands.isEmpty || !plans.isEmpty || !compactions.isEmpty
+            !commands.isEmpty || !plans.isEmpty || !compactions.isEmpty || !failures.isEmpty
                 || compactionActivity != nil
         else {
             return items
@@ -1446,6 +1495,7 @@ public final class ConversationModel: Identifiable {
             commands.map(TimelineItem.command)
             + plans.map(TimelineItem.plan)
             + compactions.map(TimelineItem.compaction)
+            + failures.map(TimelineItem.failure)
         if let compactionActivity { extra.append(.compactionActivity(compactionActivity)) }
         return (items + extra).sorted {
             $0.orderedAt == $1.orderedAt
@@ -1827,6 +1877,25 @@ public final class ConversationModel: Identifiable {
                 handle(event)
             }
         }
+    }
+
+    /// Records a request that could not construct a runtime, such as a missing
+    /// model or credential, using the same durable run failure UI as a provider
+    /// error that arrived after dispatch.
+    public func recordFailedRun(_ snapshot: AgentRunSnapshot) {
+        guard snapshot.conversationID == id, snapshot.state == .failed,
+            let failure = snapshot.failure
+        else { return }
+        if let prompt = snapshot.messages.last(where: { $0.role == .user }) {
+            messageRunIDs[prompt.id] = snapshot.id
+        }
+        runSummaries[snapshot.id] = AgentRunSummary(
+            id: snapshot.id, state: .failed, startedAt: snapshot.startedAt,
+            finishedAt: snapshot.finishedAt, failure: failure
+        )
+        reportedRunState = .failed
+        updatedAt = snapshot.finishedAt ?? .now
+        runDidFinish?()
     }
 
     /// Retains the ordered event consumer until the cancellation snapshot is durable.
@@ -2316,6 +2385,7 @@ public final class ConversationModel: Identifiable {
                 continue
             }
             messages[index].isStreaming = false
+            messages[index].retryProgress = nil
         }
         contextEstimateTracker.clearStreamingText()
         publishContextEstimateImmediately()
@@ -2367,6 +2437,30 @@ public final class ConversationModel: Identifiable {
                         createdAt: started.createdAt
                     ))
             }
+        case .modelRetryScheduled(let progress):
+            activeReasoningMessageID = nil
+            if let index = messages.firstIndex(where: { $0.id == progress.messageID }) {
+                messages[index].text = ""
+                messages[index].reasoning = []
+                messages[index].commands = []
+                messages[index].retryProgress = progress
+                messages[index].isStreaming = true
+            } else {
+                messages.append(
+                    ChatMessage(
+                        id: progress.messageID, role: .assistant, text: "",
+                        retryProgress: progress, isStreaming: true
+                    ))
+            }
+            messageRunIDs[progress.messageID] = progress.runID
+            contextEstimateTracker.clearStreamingText()
+            publishContextEstimateImmediately()
+        case .modelRetryRecovered(let progress):
+            if let index = messages.firstIndex(where: { $0.id == progress.messageID }),
+                messages[index].retryProgress == progress
+            {
+                messages[index].retryProgress = nil
+            }
         case .messageDelta(let id, let text):
             if let activeRunID, messageRunIDs[id] != activeRunID {
                 messageRunIDs[id] = activeRunID
@@ -2412,6 +2506,7 @@ public final class ConversationModel: Identifiable {
             if let index = messages.firstIndex(where: { $0.id == message.id }) {
                 messages[index].text = message.text
                 messages[index].reasoning = message.reasoning
+                messages[index].retryProgress = nil
                 messages[index].isStreaming = false
             } else {
                 messages.append(
@@ -2508,7 +2603,11 @@ public final class ConversationModel: Identifiable {
         case .tasksUpdated(let updated):
             tasks = updated
         case .failed(let reason):
-            messages.append(ChatMessage(role: .assistant, text: reason))
+            guard let activeRunID, var run = runSummaries[activeRunID] else { break }
+            run.state = .failed
+            run.finishedAt = .now
+            run.failure = reason
+            runSummaries[activeRunID] = run
         }
     }
 

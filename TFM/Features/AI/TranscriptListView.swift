@@ -442,6 +442,15 @@ struct TranscriptListView: NSViewRepresentable {
                     .configure { [weak self] row, entry, context in
                         self?.configure(row, entry: entry, width: context.width, measurement: false)
                     }
+                ListRow(TranscriptFailureRow.self)
+                    .when { $0.kind == .failure }
+                    .estimatedHeight(48)
+                    .height { [weak self] entry, context in
+                        self?.height(for: entry, width: context.width) ?? 48
+                    }
+                    .configure { [weak self] row, entry, context in
+                        self?.configure(row, entry: entry, width: context.width, measurement: false)
+                    }
                 ListRow(TranscriptInterruptedRow.self)
                     .when { $0.kind == .interrupted }
                     .estimatedHeight(96)

@@ -538,6 +538,7 @@ struct ArchitectureBoundaryTests {
             "AgentRuntime", "AgentToolExecutor", "AgentToolScheduler", "AgentTurnDriver",
             "AgentToolCatalog", "AgentToolRegistry", "AgentEventChannel", "AgentContextPipeline",
             "AgentSecretLifecycle", "AgentApprovalBroker", "SecretBroker", "AgentProviderClient",
+            "AgentModelRetryPolicy", "AgentModelRetryProgress",
             "MCPClient", "MCPServer", "ModelProvider", "AIModel", "AgentSkill",
         ]
         let declaration = try Regex(

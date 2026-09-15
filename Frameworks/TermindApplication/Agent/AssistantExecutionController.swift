@@ -115,17 +115,27 @@ public final class AssistantExecutionController {
         guard !userPrompt.isEmpty || !userImages.isEmpty || !userContextAttachments.isEmpty
         else { return }
         guard let chat = ai.resolve(conversation: conversation.model) else {
-            conversation.messages.append(
-                ChatMessage(
-                    role: .assistant, text: String(localized: "No Chat model is configured.")
-                ))
+            recordFailedRun(
+                conversation,
+                promptID: promptID ?? lastUserTurn?.id ?? UUID(),
+                prompt: userPrompt,
+                authoredPrompt: authoredPrompt ?? lastUserTurn?.authoredText,
+                images: userImages,
+                contextAttachments: userContextAttachments,
+                reason: String(localized: "No Chat model is configured.")
+            )
             return
         }
         guard let secret = ai.secret(for: chat.provider.effectiveCredentialRef), !secret.isEmpty else {
-            conversation.messages.append(
-                ChatMessage(
-                    role: .assistant, text: String(localized: "The Chat model has no available credential.")
-                ))
+            recordFailedRun(
+                conversation,
+                promptID: promptID ?? lastUserTurn?.id ?? UUID(),
+                prompt: userPrompt,
+                authoredPrompt: authoredPrompt ?? lastUserTurn?.authoredText,
+                images: userImages,
+                contextAttachments: userContextAttachments,
+                reason: String(localized: "The Chat model has no available credential.")
+            )
             return
         }
 
@@ -266,6 +276,36 @@ public final class AssistantExecutionController {
                 sessionContext: frozenContext.sessionContext, contextSnapshot: frozenContext
             ))
         scheduleTitle(for: conversation)
+    }
+
+    private func recordFailedRun(
+        _ conversation: ConversationModel,
+        promptID: UUID,
+        prompt: String,
+        authoredPrompt: String?,
+        images: [AgentImageAttachment],
+        contextAttachments: [AgentContextAttachment],
+        reason: String
+    ) {
+        var messages = conversation.pendingPriorMessages
+        if !messages.contains(where: { $0.id == promptID }) {
+            messages.append(
+                AgentTranscriptMessage(
+                    id: promptID, role: .user, text: prompt,
+                    authoredText: authoredPrompt, images: images,
+                    contextAttachments: contextAttachments,
+                    contextSnapshot: conversation.transcript.first(where: { $0.id == promptID })?.contextSnapshot
+                ))
+        }
+        let now = Date.now
+        let snapshot = AgentRunSnapshot(
+            conversationID: conversation.id, state: .failed,
+            permissionMode: ai.resolve(conversation: conversation.permissionMode),
+            messages: messages, startedAt: now, finishedAt: now,
+            failure: reason
+        )
+        conversation.recordFailedRun(snapshot)
+        Task { [agentRunRepository] in try? await agentRunRepository.save(snapshot) }
     }
 
     public func contextSnapshot(

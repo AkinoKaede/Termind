@@ -176,6 +176,14 @@ preflight, card creation, hooks, authorization, then execution, and
 OpenAI Responses/Chat Completions, Anthropic Messages, and Gemini. Models without
 tool capability receive no tools; only recognized chat-purpose models appear in
 conversation pickers, and unknown purpose values safely default to chat.
+Ordinary planning and acting runs have no turn or tool-call count ceiling; they end
+when the model finishes, the user stops, a hook terminates, or an error occurs.
+Guardian remains separately bounded so unavailable or inconclusive review fails closed.
+Each ordinary model turn retries only transient provider transport/service failures
+five times at 1/2/4/8/16 seconds. A retry reuses the logical message and request,
+abandons its partial presentation, and cannot replay a tool because tool dispatch begins
+only after a complete model response. Retry progress is ephemeral; final run failures
+remain durable and render as error rows rather than assistant-authored text.
 AgentKit's callable `fetch` and `scratch_fetch` tools are `.ask` because each
 contacts a caller-selected URL. Explicitly enabled `web_search` remains
 pre-approved; a provider-native search card is a post-hoc record of a search the

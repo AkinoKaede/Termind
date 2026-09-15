@@ -3101,6 +3101,22 @@
         }
       }
     },
+    "Agent error" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent错误"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Agent錯誤"
+          }
+        }
+      }
+    },
     "Archive" : {
       "localizations" : {
         "zh-Hans" : {
@@ -17834,6 +17850,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在重新連線"
+          }
+        }
+      }
+    },
+    "Reconnecting… %lld/%lld" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重新连接…%1$lld/%2$lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在重新連線…%1$lld/%2$lld"
           }
         }
       }

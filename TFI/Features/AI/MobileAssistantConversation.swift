@@ -646,6 +646,8 @@ struct MobileAssistantConversation: View {
             timelineRow(.compaction(mark))
         case .compactionActivity(let activity):
             timelineRow(.compactionActivity(activity))
+        case .failure(let failure):
+            agentFailureRow(failure)
         case .interrupted:
             Label("This run was interrupted and was not resumed.", systemImage: "pause.circle")
                 .font(.caption).foregroundStyle(.secondary)
@@ -669,6 +671,8 @@ struct MobileAssistantConversation: View {
         case .compactionActivity(let activity): compactionActivityRow(activity)
         case .compaction(let mark):
             compactionRow(mark)
+        case .failure(let failure):
+            agentFailureRow(failure)
         }
     }
 
@@ -736,6 +740,39 @@ struct MobileAssistantConversation: View {
         }
     }
 
+    private func agentFailureRow(_ failure: AgentRunFailureNotice) -> some View {
+        DisclosureGroup(isExpanded: disclosureBinding(for: .failure(failure.id))) {
+            HStack(alignment: .top, spacing: 12) {
+                Rectangle()
+                    .fill(Color(uiColor: .separator))
+                    .frame(width: 1)
+                    .accessibilityHidden(true)
+                Text(failure.reason)
+                    .font(.caption.monospaced())
+                    .foregroundStyle(.red)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button("Copy", systemImage: "doc.on.doc") {
+                    UIPasteboard.general.string = failure.reason
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+            .padding(.leading, 24)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle")
+                    .foregroundStyle(.red)
+                Text("Agent error")
+                    .foregroundStyle(.primary)
+            }
+            .font(.callout)
+        }
+        .tint(.secondary)
+        .accessibilityHint(Text("Show failure details"))
+    }
+
     private var imageTileSize: CGFloat { sizeClass == .compact ? 104 : 160 }
 
     private func messageRow(_ message: ChatMessage) -> some View {
@@ -798,7 +835,12 @@ struct MobileAssistantConversation: View {
                 }
             }
             if message.isStreaming && message.text.isEmpty && message.reasoning.isEmpty {
-                MobileAssistantActivity(cyclesText: true)
+                MobileAssistantActivity(
+                    cyclesText: message.retryProgress == nil,
+                    reconnectingTitle: message.retryProgress.map {
+                        AgentWorkPresentation.reconnectingTitle($0, locale: locale)
+                    }
+                )
             }
             if !message.isStreaming { messageActions(message) }
             ForEach(message.commands) { command in MobileAssistantCommandRow(command: command) }

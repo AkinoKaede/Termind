@@ -179,6 +179,7 @@ class TranscriptNativeRow: ListRowView {
         case .plan: TranscriptPlanRow()
         case .compaction: TranscriptCompactionRow()
         case .compactionActivity: TranscriptCompactionActivityRow()
+        case .failure: TranscriptFailureRow()
         case .interrupted: TranscriptInterruptedRow()
         }
     }
@@ -370,6 +371,7 @@ class TranscriptNativeRow: ListRowView {
 @MainActor final class TranscriptPlanRow: TranscriptNativeRow {}
 @MainActor final class TranscriptCompactionRow: TranscriptNativeRow {}
 @MainActor final class TranscriptCompactionActivityRow: TranscriptNativeRow {}
+@MainActor final class TranscriptFailureRow: TranscriptNativeRow {}
 @MainActor final class TranscriptInterruptedRow: TranscriptNativeRow {}
 
 @MainActor
@@ -441,13 +443,21 @@ private enum NativeTranscriptFactory {
                 stack.addArrangedSubview(markdownView)
             }
             if message.isStreaming, message.text.isEmpty {
+                let retry = message.retryProgress
+                let title = retry.map {
+                    AgentWorkPresentation.reconnectingTitle(
+                        $0, locale: context.configuration.locale
+                    )
+                } ?? String(localized: "Working…")
                 let activity = NativeActivityLabel(
-                    text: String(localized: "Working…"),
-                    alternatives: [
-                        String(localized: "Working…"),
-                        String(localized: "Thinking…"),
-                        String(localized: "Reasoning…"),
-                    ],
+                    text: title,
+                    alternatives: retry == nil
+                        ? [
+                            String(localized: "Working…"),
+                            String(localized: "Thinking…"),
+                            String(localized: "Reasoning…"),
+                        ] : [title],
+                    color: retry == nil ? .secondaryLabelColor : .tertiaryLabelColor,
                     reduceMotion: context.configuration.reduceMotion,
                     measurement: context.measurement
                 )
@@ -527,6 +537,8 @@ private enum NativeTranscriptFactory {
             return compaction(mark)
         case .compactionActivity(let activity):
             return compactionActivity(activity, context: context)
+        case .failure(let failure):
+            return failureRow(failure, context: context)
         }
     }
 
@@ -834,7 +846,12 @@ private enum NativeTranscriptFactory {
         )
         let expanded = context.presentation.disclosures.isExpanded(.work(group.id), default: defaultExpanded)
         let titleProvider = {
-            AgentWorkPresentation.title(
+            if let retry = group.retryProgress {
+                return AgentWorkPresentation.reconnectingTitle(
+                    retry, locale: context.configuration.locale
+                )
+            }
+            return AgentWorkPresentation.title(
                 for: group.run.state,
                 from: group.run.startedAt,
                 to: group.run.finishedAt ?? .now,
@@ -844,8 +861,9 @@ private enum NativeTranscriptFactory {
         let header = NativeDisclosureHeader(
             symbol: nil,
             title: titleProvider(),
-            titleColor: .secondaryLabelColor,
+            titleColor: group.retryProgress == nil ? .secondaryLabelColor : .tertiaryLabelColor,
             expanded: expanded,
+            active: group.retryProgress != nil,
             reduceMotion: context.configuration.reduceMotion,
             measurement: context.measurement,
             lineLimit: 1,
@@ -877,10 +895,17 @@ private enum NativeTranscriptFactory {
                     workItems.addArrangedSubview(reasoning)
                 case .message(let message):
                     if message.text.isEmpty, message.isStreaming {
+                        let title = group.retryProgress.map {
+                            AgentWorkPresentation.reconnectingTitle(
+                                $0, locale: context.configuration.locale
+                            )
+                        } ?? String(localized: "Working…")
                         workItems.addArrangedSubview(
                             NativeActivityLabel(
-                                text: String(localized: "Working…"),
-                                alternatives: [String(localized: "Working…")],
+                                text: title,
+                                alternatives: [title],
+                                color: group.retryProgress == nil
+                                    ? .secondaryLabelColor : .tertiaryLabelColor,
                                 reduceMotion: context.configuration.reduceMotion,
                                 measurement: context.measurement
                             ))
@@ -1144,6 +1169,51 @@ private enum NativeTranscriptFactory {
                     color: .systemRed,
                     selectable: true
                 ))
+            stack.addArrangedSubview(detail)
+        }
+        return stack
+    }
+
+    private static func failureRow(
+        _ failure: AgentRunFailureNotice,
+        context: NativeTranscriptContext
+    ) -> NSView {
+        let stack = NativeStack.vertical()
+        let disclosureID = AssistantTranscriptDisclosureID.failure(failure.id)
+        let expanded = context.presentation.disclosures.isExpanded(disclosureID)
+        let header = NativeDisclosureHeader(
+            symbol: "exclamationmark.triangle",
+            title: String(localized: "Agent error"),
+            iconColor: .systemRed,
+            titleColor: .labelColor,
+            expanded: expanded,
+            reduceMotion: context.configuration.reduceMotion,
+            measurement: context.measurement,
+            lineLimit: 1
+        )
+        header.toolTip = String(localized: "Show failure details")
+        header.handler = {
+            context.presentation.disclosures.toggleDisclosure(disclosureID)
+            context.invalidate(context.entryID, false)
+        }
+        stack.addArrangedSubview(header)
+        if expanded {
+            let detail = NativeStack.horizontal(spacing: Metrics.Space.m)
+            detail.edgeInsets = .init(
+                top: 0, left: Metrics.Sidebar.rowIcon, bottom: 0, right: 0
+            )
+            detail.addArrangedSubview(NativeVerticalRule())
+            detail.addArrangedSubview(
+                NativeLabel(
+                    failure.reason,
+                    font: .monospacedSystemFont(
+                        ofSize: NSFont.smallSystemFontSize,
+                        weight: .regular
+                    ),
+                    color: .systemRed,
+                    selectable: true
+                ))
+            detail.addArrangedSubview(NativeCopyButton(text: failure.reason))
             stack.addArrangedSubview(detail)
         }
         return stack

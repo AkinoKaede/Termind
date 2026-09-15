@@ -14,6 +14,7 @@ nonisolated public struct AssistantTranscriptEntry: Identifiable, Hashable, Send
         case plan
         case compaction
         case compactionActivity
+        case failure
         case interrupted
     }
 
@@ -27,6 +28,7 @@ nonisolated public struct AssistantTranscriptEntry: Identifiable, Hashable, Send
         case plan(AgentPlanCard)
         case compaction(AgentCompactionMark)
         case compactionActivity(AgentCompactionActivity)
+        case failure(AgentRunFailureNotice)
         case interrupted
     }
 
@@ -63,6 +65,7 @@ nonisolated public struct AssistantTranscriptEntry: Identifiable, Hashable, Send
                 case .plan(let card): .plan(card)
                 case .compaction(let mark): .compaction(mark)
                 case .compactionActivity(let activity): .compactionActivity(activity)
+                case .failure(let failure): .failure(failure)
                 }
             return Self(id: item.id, content: content, hasLeadingSpacing: index > 0)
         }
@@ -93,6 +96,7 @@ nonisolated public struct AssistantTranscriptEntry: Identifiable, Hashable, Send
         case .plan: .plan
         case .compaction: .compaction
         case .compactionActivity: .compactionActivity
+        case .failure: .failure
         case .interrupted: .interrupted
         }
     }
