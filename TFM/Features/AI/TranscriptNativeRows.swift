@@ -1976,6 +1976,16 @@ private final class NativeDisclosureHeader: NSControl {
                     color: .secondaryLabelColor
                 ))
         }
+        if reviewing {
+            let shield = NSImageView(
+                image: NSImage(
+                    systemSymbolName: "checkmark.shield",
+                    accessibilityDescription: String(localized: "Auto-reviewing in progress")
+                ) ?? NSImage()
+            )
+            shield.contentTintColor = .systemOrange
+            row.addArrangedSubview(shield)
+        }
         if let expanded {
             let chevron = NSImageView(
                 image: NSImage(
@@ -1986,16 +1996,6 @@ private final class NativeDisclosureHeader: NSControl {
             chevron.contentTintColor = .tertiaryLabelColor
             chevron.symbolConfiguration = .init(pointSize: 8, weight: .bold)
             row.addArrangedSubview(chevron)
-        }
-        if reviewing {
-            let shield = NSImageView(
-                image: NSImage(
-                    systemSymbolName: "checkmark.shield",
-                    accessibilityDescription: String(localized: "Auto-reviewing in progress")
-                ) ?? NSImage()
-            )
-            shield.contentTintColor = .systemOrange
-            row.addArrangedSubview(shield)
         }
         row.translatesAutoresizingMaskIntoConstraints = false
         addSubview(row)
