@@ -423,12 +423,12 @@ private struct SoftwareKeyEditor: View {
 
                     Section("Key") {
                         TextField("Name", text: $name)
-                        LabeledContent("Color") {
-                            ColorTagPicker(selection: $colorTag, layout: .compact)
-                        }
                         Picker("Store in", selection: $storage) {
                             Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
                             Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
+                        }
+                        LabeledContent("Color") {
+                            ColorTagPicker(selection: $colorTag, layout: .compact)
                         }
                     }
 
@@ -828,15 +828,15 @@ private struct GenerateKeySheet: View {
         VaultDetailScaffold(title: "Generate Key", symbol: "key.fill", close: close) {
             Form {
                 TextField("Name", text: $label, prompt: Text(defaultName))
-                LabeledContent("Color") {
-                    ColorTagPicker(selection: $colorTag, layout: .compact)
-                }
                 Picker("Store in", selection: $storage) {
                     ForEach(availableStorage) { location in
                         Label(location.displayName, systemImage: location.symbol)
                             .tag(location)
                             .disabled(location == .secureEnclave && !SecureEnclaveKey.isAvailable)
                     }
+                }
+                LabeledContent("Color") {
+                    ColorTagPicker(selection: $colorTag, layout: .compact)
                 }
                 if storage == .secureEnclave {
                     LabeledContent("Algorithm", value: "ECDSA")

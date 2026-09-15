@@ -7,12 +7,9 @@ import struct TermindDomain.Host
 public final class SSHImportModel {
     public var items: [SSHImportItem] = []
     public var expanded = Set(SSHImportCategory.allCases)
-    public var storage: KeyStorage = .iCloud
-    public var keyColor: TagColor = .none
-    public var identityPasswordStorage: PasswordStorage = .iCloud
-    public var identityColor: TagColor = .none
+    public var storage: PasswordStorage = .iCloud
+    public var importColor: TagColor = .none
     public var hostGroupID: HostGroup.ID?
-    public var hostColor: TagColor = .none
     public var hostTags: [String] = []
     public private(set) var isWorking = false
     public private(set) var error: String?
@@ -406,8 +403,8 @@ public final class SSHImportModel {
             usedNames.insert(name)
             let identity = Identity(
                 id: id, name: name, username: signature.username,
-                passwordStorage: identityPasswordStorage, keyID: signature.keyID,
-                colorTag: identityColor)
+                passwordStorage: storage, keyID: signature.keyID,
+                colorTag: importColor)
             let selected: Bool
             if let previous {
                 selected = previous.selected
@@ -706,8 +703,12 @@ public final class SSHImportModel {
         var batch = SSHImportBatch()
         batch.keys = selectedItems(.keys).compactMap { item in
             guard var key = item.key else { return nil }
-            key.storage = storage
-            key.colorTag = keyColor
+            key.storage =
+                switch storage {
+                case .thisDevice: .thisDevice
+                case .iCloud: .iCloud
+                }
+            key.colorTag = importColor
             return key
         }
         batch.knownHosts = selectedItems(.knownHosts).compactMap(\.knownHost)
@@ -717,8 +718,8 @@ public final class SSHImportModel {
                 identity.keyID.map({ library.key($0) != nil || selectedKeyIDs.contains($0) }) ?? true
             else { return nil }
             identity.name = item.name
-            identity.passwordStorage = identityPasswordStorage
-            identity.colorTag = identityColor
+            identity.passwordStorage = storage
+            identity.colorTag = importColor
             return identity
         }
         let importedIdentityIDs = Set(batch.identities.map(\.id))
@@ -753,7 +754,7 @@ public final class SSHImportModel {
             let host = Host(
                 id: item.id, name: item.name, host: imported.hostname, port: imported.port,
                 identityID: identityID, jumpHostID: jumpID, groupID: hostGroupID,
-                tags: hostTags, colorTag: hostColor)
+                tags: hostTags, colorTag: importColor)
             built[item.id] = host
             return host
         }

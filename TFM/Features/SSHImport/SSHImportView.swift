@@ -50,6 +50,16 @@ private struct SSHImportContent: View {
                         sourcePicker
                     }
                     if !knownHostsOnly {
+                        Section {
+                            Picker("Store in", selection: $model.storage) {
+                                ForEach(PasswordStorage.allCases) { storage in
+                                    Label(storage.displayName, systemImage: storage.symbol).tag(storage)
+                                }
+                            }
+                            LabeledContent("Color") {
+                                ColorTagPicker(selection: $model.importColor, layout: .compact)
+                            }
+                        }
                         Section("Hosts") {
                             Picker("Group", selection: $model.hostGroupID) {
                                 Text("None").tag(HostGroup.ID?.none)
@@ -57,31 +67,9 @@ private struct SSHImportContent: View {
                                     Text(group.name).tag(HostGroup.ID?.some(group.id))
                                 }
                             }
-                            LabeledContent("Color") {
-                                ColorTagPicker(selection: $model.hostColor, layout: .compact)
-                            }
                             VStack(alignment: .leading, spacing: Metrics.Space.s) {
                                 Text("Tags")
                                 TagField(tags: $model.hostTags, suggestions: app.hostLibrary.allTags)
-                            }
-                        }
-                        Section("Keys") {
-                            LabeledContent("Color") {
-                                ColorTagPicker(selection: $model.keyColor, layout: .compact)
-                            }
-                            Picker("Store in", selection: $model.storage) {
-                                Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
-                                Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
-                            }
-                        }
-                        Section("Identities") {
-                            Picker("Store password in", selection: $model.identityPasswordStorage) {
-                                ForEach(PasswordStorage.allCases) { storage in
-                                    Label(storage.displayName, systemImage: storage.symbol).tag(storage)
-                                }
-                            }
-                            LabeledContent("Color") {
-                                ColorTagPicker(selection: $model.identityColor, layout: .compact)
                             }
                         }
                     }

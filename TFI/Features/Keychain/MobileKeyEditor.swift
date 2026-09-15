@@ -20,10 +20,6 @@ struct MobileKeyEditor: View {
                         TextField("Name", text: $model.label, prompt: Text(model.defaultName))
                             .multilineTextAlignment(.trailing)
                     }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Color")
-                        ColorTagPicker(selection: $model.colorTag, layout: .touch)
-                    }
                     if !model.isEnclave {
                         Picker("Store in", selection: $model.storage) {
                             Text("This Device").tag(KeyStorage.thisDevice)
@@ -32,6 +28,10 @@ struct MobileKeyEditor: View {
                                 Text("Secure Enclave").tag(KeyStorage.secureEnclave)
                             }
                         }
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Color")
+                        ColorTagPicker(selection: $model.colorTag, layout: .touch)
                     }
                     if model.mode == .generate {
                         if model.storage == .secureEnclave {

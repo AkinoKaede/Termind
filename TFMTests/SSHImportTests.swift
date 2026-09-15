@@ -181,8 +181,17 @@ struct SSHImportTests {
         #expect(source.contains("Form {"))
         #expect(source.contains(".formStyle(.grouped)"))
         #expect(source.contains("ForEach(model.items.filter"))
-        #expect(source.contains("Section(\"Identities\")"))
-        #expect(source.contains("Picker(\"Store password in\""))
+        let tags = try #require(source.range(of: "TagField(tags: $model.hostTags"))
+        let storage = try #require(source.range(of: "Picker(\"Store in\", selection: $model.storage)"))
+        let color = try #require(source.range(of: "ColorTagPicker(selection: $model.importColor"))
+        let preview = try #require(source.range(of: "if !model.items.isEmpty"))
+        #expect(storage.lowerBound < color.lowerBound)
+        #expect(color.lowerBound < tags.lowerBound)
+        #expect(tags.lowerBound < preview.lowerBound)
+        #expect(!source.contains("hostColor"))
+        #expect(!source.contains("keyColor"))
+        #expect(!source.contains("identityColor"))
+        #expect(!source.contains("Store password in"))
         #expect(!source.contains("private func categorySection"))
     }
 
@@ -249,9 +258,9 @@ struct SSHImportTests {
         let store = HostLibraryModel(groups: [group])
         let model = SSHImportModel(library: store, reader: SSHImportReader())
         model.hostGroupID = group.id
-        model.hostColor = .teal
         model.hostTags = ["production", "ssh"]
-        model.keyColor = .purple
+        model.storage = .thisDevice
+        model.importColor = .purple
         await model.scan(url, knownHostsOnly: false)
         #expect(model.selectedItems().count == 4)
         #expect(store.hosts.isEmpty && store.keys.isEmpty)
@@ -262,9 +271,12 @@ struct SSHImportTests {
         let identity = try #require(store.identities.first)
         #expect(identity.username == "deploy" && identity.keyID == store.keys.first?.id)
         #expect(store.hosts.first?.groupID == group.id)
-        #expect(store.hosts.first?.colorTag == .teal)
+        #expect(store.hosts.first?.colorTag == .purple)
         #expect(store.hosts.first?.tags == ["production", "ssh"])
         #expect(store.keys.first?.colorTag == .purple)
+        #expect(store.keys.first?.storage == .thisDevice)
+        #expect(identity.colorTag == .purple)
+        #expect(identity.passwordStorage == .thisDevice)
         #expect(store.keyAvailability(for: try #require(store.keys.first)) == .available)
         let again = SSHImportModel(library: store, reader: SSHImportReader())
         await again.scan(url, knownHostsOnly: false)
@@ -347,8 +359,8 @@ struct SSHImportTests {
         """.write(to: url.appendingPathComponent("config"), atomically: true, encoding: .utf8)
         let store = HostLibraryModel()
         let model = SSHImportModel(library: store, reader: SSHImportReader())
-        model.identityPasswordStorage = .thisDevice
-        model.identityColor = .orange
+        model.storage = .thisDevice
+        model.importColor = .orange
 
         await model.scan(url, knownHostsOnly: false)
 
