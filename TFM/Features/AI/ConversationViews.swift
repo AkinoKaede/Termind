@@ -1287,7 +1287,7 @@ struct ComposerView: View {
                 Text(permissionDescription(mode))
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .lineLimit(2)
             }
 
             Spacer(minLength: Metrics.Space.s)
@@ -1309,9 +1309,9 @@ struct ComposerView: View {
 
     private func permissionDescription(_ mode: AgentPermissionMode) -> LocalizedStringKey {
         switch mode {
-        case .askForApproval: "Ask before protected actions"
-        case .approveForMe: "Use Security Review automatically"
-        case .fullAccess: "Run protected actions without review"
+        case .askForApproval: "Always ask for approval before protected actions"
+        case .approveForMe: "Only ask for actions detected as potentially unsafe"
+        case .fullAccess: "Unrestricted access to files, commands, and the network"
         }
     }
 

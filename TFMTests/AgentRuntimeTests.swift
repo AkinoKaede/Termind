@@ -33,30 +33,30 @@ private struct ScriptedAgentModel: AgentModelStreaming {
     }
 }
 
-private struct FixedReviewer: SecurityReviewing {
-    var result: Result<SecurityReviewDecision, any Error>
-    func review(_ request: AgentApprovalRequest) async throws -> SecurityReviewDecision { try result.get() }
+private struct FixedReviewer: GuardianReviewing {
+    var result: Result<GuardianDecision, any Error>
+    func review(_ request: AgentApprovalRequest) async throws -> GuardianDecision { try result.get() }
 }
 
-private actor CountingReviewer: SecurityReviewing {
+private actor CountingReviewer: GuardianReviewing {
     private(set) var count = 0
-    func review(_ request: AgentApprovalRequest) async throws -> SecurityReviewDecision {
+    func review(_ request: AgentApprovalRequest) async throws -> GuardianDecision {
         count += 1
-        return SecurityReviewDecision(
+        return GuardianDecision(
             verdict: .approve, risk: .medium,
-            userAuthorization: .sufficient, reason: "approved"
+            userAuthorization: .high, reason: "approved"
         )
     }
 }
 
 private struct ReviewFailure: Error {}
 
-private struct HangingReviewer: SecurityReviewing {
-    func review(_ request: AgentApprovalRequest) async throws -> SecurityReviewDecision {
+private struct HangingReviewer: GuardianReviewing {
+    func review(_ request: AgentApprovalRequest) async throws -> GuardianDecision {
         try await Task.sleep(for: .seconds(30))
-        return SecurityReviewDecision(
+        return GuardianDecision(
             verdict: .approve, risk: .low,
-            userAuthorization: .sufficient, reason: "late"
+            userAuthorization: .high, reason: "late"
         )
     }
 }
@@ -615,8 +615,8 @@ struct AgentRuntimeTests {
         let manual = Counter()
         let reviewer = FixedReviewer(
             result: .success(
-                SecurityReviewDecision(
-                    verdict: .approve, risk: .medium, userAuthorization: .sufficient, reason: "ok"
+                GuardianDecision(
+                    verdict: .approve, risk: .medium, userAuthorization: .high, reason: "ok"
                 )))
         let broker = AgentApprovalBroker(
             reviewer: reviewer,
@@ -729,9 +729,9 @@ struct AgentRuntimeTests {
         let critical = AgentApprovalBroker(
             reviewer: FixedReviewer(
                 result: .success(
-                    SecurityReviewDecision(
+                    GuardianDecision(
                         verdict: .approve, risk: .critical,
-                        userAuthorization: .sufficient, reason: "critical"
+                        userAuthorization: .high, reason: "critical"
                     ))),
             manualApproval: { _ in .allow }
         )

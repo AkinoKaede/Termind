@@ -15,6 +15,7 @@ public final class AssistantExecutionController {
     private let makeRegistry: RegistryFactory
     private let title: @MainActor (ConversationTitleContext) async throws -> String
     private let agentCompaction = AgentCompactionService()
+    private let guardianSessions = GuardianSessionStore()
     private var titledConversationIDs = Set<UUID>()
     private var preparationGeneration: UInt64 = 0
     private var preparing = Set<UUID>()
@@ -137,20 +138,6 @@ public final class AssistantExecutionController {
             reasoning: conversation.reasoningEffort,
             webSearch: nativeSearch, promptCacheKey: conversation.id.uuidString
         )
-        let reviewer: (any SecurityReviewing)? = {
-            guard mode == .approveForMe, let review = ai.resolve(.securityReview) else { return nil }
-            guard let reviewSecret = ai.secret(for: review.provider.effectiveCredentialRef),
-                !reviewSecret.isEmpty
-            else { return nil }
-            let reasoning = SecurityReviewClient.preferredReasoning(
-                model: review.model, provider: review.provider
-            )
-            return SecurityReviewClient(
-                model: AgentProviderClient(
-                    provider: review.provider, model: review.model, secret: reviewSecret,
-                    reasoning: reasoning
-                ))
-        }()
         // One channel for the whole run, shared by everything that publishes
         // into it. The broker used to raise its review events through a closure
         // of its own, each wrapped in an unstructured `Task` — so a review's
@@ -158,6 +145,47 @@ public final class AssistantExecutionController {
         // between, and its durable writes had no defined order against
         // anything. See `AgentEventChannel`.
         let channel = AgentEventChannel(repository: agentRunRepository)
+
+        // Read once, here, for the reason `isPlanning` below is: a run's posture
+        // is fixed when it starts, so enabling a skill while the agent is
+        // thinking must not change what this run was told it had. Empty when the
+        // model cannot call tools, which is what keeps the catalog block from
+        // naming a tool this run was never given.
+        let skillCatalog =
+            chat.model.abilities.contains(.toolCall)
+            ? skills.catalog : AgentSkillCatalog()
+
+        let registry = makeRegistry(
+            conversation, chat.model, chat.provider, skillCatalog, channel, includesTerminalSuggestion)
+        let interaction = WeakAgentUserInteraction(conversation)
+        let services = AgentToolServices()
+            .setting(interaction.sshInteraction, for: .sshInteraction)
+        let guardianServices = AgentToolServices()
+            .setting(AgentSSHInteraction.unavailable, for: .sshInteraction)
+        let reviewer: (any GuardianReviewing)? = {
+            guard mode == .approveForMe, let review = ai.resolve(.guardian) else { return nil }
+            guard let reviewSecret = ai.secret(for: review.provider.effectiveCredentialRef),
+                !reviewSecret.isEmpty
+            else { return nil }
+            let reasoning = GuardianClient.preferredReasoning(
+                model: review.model, provider: review.provider
+            )
+            let reviewTools =
+                review.model.abilities.contains(.toolCall)
+                ? registry : AgentToolRegistry([])
+            return GuardianClient(
+                model: AgentProviderClient(
+                    provider: review.provider, model: review.model, secret: reviewSecret,
+                    reasoning: reasoning,
+                    promptCacheKey: TermindAgentPolicy.guardianCacheKey(conversationID: conversation.id)
+                ),
+                sessions: guardianSessions,
+                sessionID: "\(conversation.id.uuidString):\(review.provider.id):\(review.model.id)",
+                tools: reviewTools,
+                services: guardianServices,
+                additionalPolicy: TermindAgentPolicy.guardianPolicy
+            )
+        }()
         // Weakly. The conversation owns the runtime, the runtime owns the broker
         // and the interaction handler, and both of those used to own the
         // conversation back — so every chat that had ever run an agent stayed
@@ -171,20 +199,9 @@ public final class AssistantExecutionController {
                 }
                 return await conversation.requestApproval(request)
             },
+            reviewTimeout: .seconds(90),
             event: channel.emit
         )
-
-        // Read once, here, for the reason `isPlanning` below is: a run's posture
-        // is fixed when it starts, so enabling a skill while the agent is
-        // thinking must not change what this run was told it had. Empty when the
-        // model cannot call tools, which is what keeps the catalog block from
-        // naming a tool this run was never given.
-        let skillCatalog =
-            chat.model.abilities.contains(.toolCall)
-            ? skills.catalog : AgentSkillCatalog()
-
-        let registry = makeRegistry(
-            conversation, chat.model, chat.provider, skillCatalog, channel, includesTerminalSuggestion)
         // The one place the resolved tool set exists. Recorded on the
         // conversation so the context gauge can account for the schemas without
         // rebuilding a registry on every keystroke.
@@ -220,14 +237,12 @@ public final class AssistantExecutionController {
                 planContract: TermindAgentPolicy.planContract
             )
         }
-        let interaction = WeakAgentUserInteraction(conversation)
         let runtime = AgentRuntime(
             model: model, registry: registry,
             approval: approval,
             repository: agentRunRepository,
             userInteraction: interaction,
-            services: AgentToolServices()
-                .setting(interaction.sshInteraction, for: .sshInteraction),
+            services: services,
             hooks: [TermindAgentPolicy.planModeHook(isPlanning: isPlanning)],
             configuration: configuration,
             channel: channel
@@ -247,6 +262,7 @@ public final class AssistantExecutionController {
                 permissionMode: mode, isPlanning: isPlanning,
                 systemPrompt: TermindAgentPolicy.systemPrompt,
                 priorMessages: conversation.pendingPriorMessages,
+                authorizationEvidence: GuardianEvidence.collect(from: conversation.transcript),
                 sessionContext: frozenContext.sessionContext, contextSnapshot: frozenContext
             ))
         scheduleTitle(for: conversation)

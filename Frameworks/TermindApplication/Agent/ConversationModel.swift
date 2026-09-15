@@ -319,7 +319,7 @@ nonisolated public struct AgentToolCard: Identifiable, Hashable, Sendable {
     public var descriptor: AgentToolDescriptor
     public var state: State = .proposed
     public var result: AgentToolResult?
-    public var review: SecurityReviewDecision?
+    public var review: GuardianDecision?
 
     /// `terminal_suggest` is a user-facing artifact, like `present_plan`, not
     /// work detail. Once the tool has completed, promote its validated input to
@@ -342,7 +342,7 @@ nonisolated public struct AgentToolCard: Identifiable, Hashable, Sendable {
 
     public init(
         invocation: AgentToolInvocation, descriptor: AgentToolDescriptor, state: State = .proposed,
-        result: AgentToolResult? = nil, review: SecurityReviewDecision? = nil
+        result: AgentToolResult? = nil, review: GuardianDecision? = nil
     ) {
         self.invocation = invocation
         self.descriptor = descriptor

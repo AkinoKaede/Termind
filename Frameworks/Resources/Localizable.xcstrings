@@ -3235,18 +3235,18 @@
         }
       }
     },
-    "Ask before protected actions" : {
+    "Always ask for approval before protected actions" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在保护动作前询问"
+            "value" : "执行受保护操作前始终请求批准"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在保護動作前詢問"
+            "value" : "執行受保護操作前始終要求核准"
           }
         }
       }
@@ -19003,18 +19003,18 @@
         }
       }
     },
-    "Run protected actions without review" : {
+    "Unrestricted access to files, commands, and the network" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "无需审查即可运行受保护操作"
+            "value" : "不受限制地访问文件、执行命令和使用网络"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "無需審查即可執行受保護操作"
+            "value" : "不受限制地存取檔案、執行指令和使用網路"
           }
         }
       }
@@ -19602,40 +19602,40 @@
         }
       }
     },
-    "Security Review in progress" : {
+    "Auto-reviewing in progress" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在进行安全审查"
+            "value" : "正在自动审查"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "正在進行安全審查"
+            "value" : "正在自動審查"
           }
         }
       }
     },
-    "Security Review: %@ — %@" : {
+    "Auto-reviewing: %@ — %@" : {
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "Security Review: %1$@ — %2$@"
+            "value" : "Auto-reviewing: %1$@ — %2$@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安全审查：%1$@—%2$@"
+            "value" : "自动审查：%1$@—%2$@"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "安全審查：%1$@—%2$@"
+            "value" : "自動審查：%1$@—%2$@"
           }
         }
       }
@@ -25807,18 +25807,18 @@
         }
       }
     },
-    "Use Security Review automatically" : {
+    "Only ask for actions detected as potentially unsafe" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自动使用安全审查"
+            "value" : "仅在检测到操作可能不安全时询问"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "自動使用安全審查"
+            "value" : "僅在偵測到操作可能不安全時詢問"
           }
         }
       }

@@ -41,6 +41,20 @@ struct AgentBuiltInToolAvailabilityTests {
         #expect(mainAssistant.contains { $0.name == "terminal_suggest" })
         #expect(mainAssistant == workspaceSidebar)
         #expect(workspaceSidebar.contains { $0.name == "terminal_suggest" })
+
+        let registry = AgentToolRegistry(
+            TermindAgentTools.tools(
+                in: .init(
+                    hosts: hosts, metrics: TestMetricsReader(), connections: connections
+                )
+            )
+        )
+        let planning = Set(registry.available(in: .planning).descriptors.map(\.name))
+        let acting = Set(registry.available(in: .acting).descriptors.map(\.name))
+        #expect(registry.available(in: .reviewing).descriptors.isEmpty)
+        #expect(planning.contains("ssh_exec"))
+        #expect(!planning.contains("sftp_write"))
+        #expect(acting.isSuperset(of: ["ssh_exec", "sftp_write"]))
     }
 
     @Test

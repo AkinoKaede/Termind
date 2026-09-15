@@ -46,7 +46,10 @@ nonisolated extension SFTPToolDefinition {
         let arguments = try Arguments(invocation)
         checked.targetHostID = try arguments.uuid("host_id")
         _ = try AgentToolSupport.normalizeRemotePath(arguments.string("path"))
-        return AgentToolPreflight(invocation: checked, approvalPolicy: Self.approvalPolicy)
+        return AgentToolPreflight(
+            invocation: checked,
+            approvalPolicy: Self.approvalPolicy
+        )
     }
 
     public func execute(

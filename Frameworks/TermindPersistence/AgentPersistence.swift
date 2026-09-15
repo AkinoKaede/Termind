@@ -239,7 +239,7 @@ public final class PersistentAgentReviewRecord {
     public var reason: String?
     public var createdAt: Date = Date()
 
-    public init(runID: UUID, invocationID: UUID, decision: SecurityReviewDecision?) {
+    public init(runID: UUID, invocationID: UUID, decision: GuardianDecision?) {
         self.runID = runID
         self.invocationID = invocationID
         if let decision {

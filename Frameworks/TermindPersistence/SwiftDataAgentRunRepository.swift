@@ -648,12 +648,15 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         )
         let review = reviews.filter { $0.invocationID == row.id }
             .sorted { $0.createdAt < $1.createdAt }
-            .last.flatMap { stored -> SecurityReviewDecision? in
-                guard let verdict = stored.verdict.flatMap(SecurityReviewVerdict.init),
-                    let risk = stored.risk.flatMap(SecurityReviewRisk.init),
-                    let authorization = stored.userAuthorization.flatMap(SecurityReviewAuthorization.init)
+            .last.flatMap { stored -> GuardianDecision? in
+                guard let verdict = stored.verdict.flatMap(GuardianVerdict.init),
+                    let risk = stored.risk.flatMap(GuardianRisk.init),
+                    let authorization = stored.userAuthorization.flatMap({ raw in
+                        GuardianAuthorization(rawValue: raw)
+                            ?? (raw == "sufficient" ? .high : raw == "insufficient" ? .low : nil)
+                    })
                 else { return nil }
-                return SecurityReviewDecision(
+                return GuardianDecision(
                     verdict: verdict, risk: risk, userAuthorization: authorization,
                     reason: stored.reason ?? ""
                 )

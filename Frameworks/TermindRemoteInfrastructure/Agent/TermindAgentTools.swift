@@ -82,10 +82,20 @@ nonisolated public enum TermindAgentTools {
     }
 
     private static let definitions: [Registration] = [
-        .init(GetMetricsTool.self) { GetMetricsTool(hosts: $0.hosts, metrics: $0.metrics) },
-        .init(ListHostsTool.self) { ListHostsTool(hosts: $0.hosts) },
-        .init(SSHExecTool.self) {
+        .init(GetMetricsTool.self) {
+            GetMetricsTool(hosts: $0.hosts, metrics: $0.metrics)
+        },
+        .init(ListHostsTool.self) {
+            ListHostsTool(hosts: $0.hosts)
+        },
+        .init(SSHExecTool.self, availableIn: [.acting]) {
             SSHExecTool(
+                authentication: $0.authentication, pool: $0.connections,
+                background: $0.background
+            )
+        },
+        .init(PlanningSSHExecTool.self, availableIn: [.planning]) {
+            PlanningSSHExecTool(
                 authentication: $0.authentication, pool: $0.connections,
                 background: $0.background
             )
@@ -103,19 +113,19 @@ nonisolated public enum TermindAgentTools {
         .init(SFTPReadTool.self) {
             SFTPReadTool(authentication: $0.authentication, connections: $0.connections)
         },
-        .init(SFTPWriteTool.self) {
+        .init(SFTPWriteTool.self, availableIn: [.acting]) {
             SFTPWriteTool(authentication: $0.authentication, connections: $0.connections)
         },
-        .init(SFTPMkdirTool.self) {
+        .init(SFTPMkdirTool.self, availableIn: [.acting]) {
             SFTPMkdirTool(authentication: $0.authentication, connections: $0.connections)
         },
-        .init(SFTPMoveTool.self) {
+        .init(SFTPMoveTool.self, availableIn: [.acting]) {
             SFTPMoveTool(authentication: $0.authentication, connections: $0.connections)
         },
-        .init(SFTPChmodTool.self) {
+        .init(SFTPChmodTool.self, availableIn: [.acting]) {
             SFTPChmodTool(authentication: $0.authentication, connections: $0.connections)
         },
-        .init(SFTPDeleteTool.self) {
+        .init(SFTPDeleteTool.self, availableIn: [.acting]) {
             SFTPDeleteTool(authentication: $0.authentication, connections: $0.connections)
         },
         .init(ScratchPullTool.self) { environment in
@@ -126,7 +136,7 @@ nonisolated public enum TermindAgentTools {
                 )
             }
         },
-        .init(ScratchPushTool.self) { environment in
+        .init(ScratchPushTool.self, availableIn: [.acting]) { environment in
             environment.workspace.map {
                 ScratchPushTool(
                     workspace: $0, pool: environment.connections,

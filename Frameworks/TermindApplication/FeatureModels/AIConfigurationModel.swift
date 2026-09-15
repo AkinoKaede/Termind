@@ -173,9 +173,10 @@ public final class AIConfigurationModel {
     /// One chain, and no step of it is required:
     ///
     ///   1. an explicit assignment for this role
-    ///   2. for non-chat roles, whatever Chat resolves to
-    ///   3. the last model picked in a conversation's menu
-    ///   4. the first chat model of the first enabled provider
+    ///   2. for Guardian, the highest-priority available review model
+    ///   3. for other non-chat roles, whatever Chat resolves to
+    ///   4. the last model picked in a conversation's menu
+    ///   5. the first chat model of the first enabled provider
     ///
     /// Any step whose ref no longer resolves is skipped rather than returning
     /// nothing, so deleting a provider degrades the app instead of breaking it.
@@ -183,10 +184,92 @@ public final class AIConfigurationModel {
     /// works — the role pickers are for tuning, not for setup.
     public func resolve(_ role: AIRole) -> (provider: ModelProvider, model: AIModel)? {
         if let ref = roles[role], let hit = lookup(ref) { return hit }
-        if role != .chat, let ref = roles[.chat], let hit = lookup(ref) { return hit }
+        if role == .guardian {
+            if let codex = firstGuardianModel(named: "codex-auto-review") {
+                return codex
+            }
+            for family in Self.guardianModelFamilies {
+                if let newest = newestGuardianModel(
+                    prefix: family.prefix, suffix: family.suffix
+                ) {
+                    return newest
+                }
+            }
+            return resolveAutomaticChat()
+        }
+        if role != .chat, let chat = resolveAutomaticChat() { return chat }
+        return resolveAutomaticChat()
+    }
+
+    private func resolveAutomaticChat() -> (provider: ModelProvider, model: AIModel)? {
+        if let ref = roles[.chat], let hit = lookup(ref) { return hit }
         if let ref = lastSelectedModel, let hit = lookup(ref) { return hit }
         if let ref = firstAvailableModel, let hit = lookup(ref) { return hit }
         return nil
+    }
+
+    private static let guardianModelFamilies = [
+        (prefix: "gpt-", suffix: "-luna"),
+        (prefix: "claude-sonnet-", suffix: ""),
+        (prefix: "gemini-", suffix: "-flash"),
+        (prefix: "deepseek-v", suffix: "-flash"),
+        (prefix: "glm-", suffix: "-flash"),
+    ]
+
+    private func firstGuardianModel(named id: String) -> (provider: ModelProvider, model: AIModel)? {
+        for provider in enabledModelProviders {
+            if let model = provider.chatModels.first(where: {
+                let candidate = Self.normalizedModelID($0.id)
+                return candidate == id
+            }) {
+                return (provider, model)
+            }
+        }
+        return nil
+    }
+
+    private func newestGuardianModel(
+        prefix: String, suffix: String
+    ) -> (provider: ModelProvider, model: AIModel)? {
+        var best: (provider: ModelProvider, model: AIModel, version: [Int])?
+        for provider in enabledModelProviders {
+            for model in provider.chatModels {
+                let id = Self.normalizedModelID(model.id)
+                guard let version = Self.guardianVersion(in: id, prefix: prefix, suffix: suffix)
+                else { continue }
+                if let best, !Self.version(version, isNewerThan: best.version) { continue }
+                best = (provider, model, version)
+            }
+        }
+        return best.map { ($0.provider, $0.model) }
+    }
+
+    private static func guardianVersion(
+        in id: String, prefix: String, suffix: String
+    ) -> [Int]? {
+        guard id.hasPrefix(prefix), suffix.isEmpty || id.hasSuffix(suffix) else { return nil }
+        let start = id.index(id.startIndex, offsetBy: prefix.count)
+        let end = suffix.isEmpty ? id.endIndex : id.index(id.endIndex, offsetBy: -suffix.count)
+        guard start < end else { return nil }
+        let raw = id[start..<end]
+        let components = raw.split(whereSeparator: { $0 == "." || $0 == "-" })
+        let version = components.compactMap { Int($0) }
+        guard !version.isEmpty, version.count == components.count else { return nil }
+        return version
+    }
+
+    private static func version(_ lhs: [Int], isNewerThan rhs: [Int]) -> Bool {
+        let count = max(lhs.count, rhs.count)
+        for index in 0..<count {
+            let left = lhs.indices.contains(index) ? lhs[index] : 0
+            let right = rhs.indices.contains(index) ? rhs[index] : 0
+            if left != right { return left > right }
+        }
+        return false
+    }
+
+    private static func normalizedModelID(_ id: String) -> String {
+        id.lowercased().split(separator: "/").last.map(String.init) ?? id.lowercased()
     }
 
     /// The model a conversation will actually use.

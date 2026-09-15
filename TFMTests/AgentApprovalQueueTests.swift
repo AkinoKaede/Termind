@@ -221,8 +221,8 @@ struct AgentApprovalQueueTests {
         conversation.handle(
             .reviewFinished(
                 request,
-                SecurityReviewDecision(
-                    verdict: .approve, risk: .low, userAuthorization: .sufficient, reason: "ok"
+                GuardianDecision(
+                    verdict: .approve, risk: .low, userAuthorization: .high, reason: "ok"
                 )))
         #expect(conversation.runState == .waitingForUser)
 

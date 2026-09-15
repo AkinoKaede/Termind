@@ -647,10 +647,10 @@ struct AgentToolPresentationTests {
     }
 
     @Test
-    func duplicateSecurityReviewDenialIsShownOnlyOnce() {
+    func duplicateGuardianDenialIsShownOnlyOnce() {
         let reason = "The request was not explicitly authorized."
-        let review = SecurityReviewDecision(
-            verdict: .deny, risk: .high, userAuthorization: .insufficient,
+        let review = GuardianDecision(
+            verdict: .deny, risk: .high, userAuthorization: .low,
             reason: reason
         )
         let duplicate = AgentToolResult(
@@ -673,8 +673,8 @@ struct AgentToolPresentationTests {
 
     @Test
     func allowedReviewNeverHidesAResult() {
-        let review = SecurityReviewDecision(
-            verdict: .approve, risk: .low, userAuthorization: .sufficient,
+        let review = GuardianDecision(
+            verdict: .approve, risk: .low, userAuthorization: .high,
             reason: "Completed with a warning."
         )
         let result = AgentToolResult(

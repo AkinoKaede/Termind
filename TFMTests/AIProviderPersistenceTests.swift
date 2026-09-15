@@ -340,11 +340,30 @@ struct AIProviderPersistenceTests {
         #expect(provider.chatModels.map(\.id) == [hidden.id, visible.id])
         #expect(provider.assistantModels.map(\.id) == [visible.id])
 
-        store.assign(hiddenRef, to: .securityReview)
+        store.assign(hiddenRef, to: .guardian)
         store.select(hiddenRef)
-        #expect(store.assignment(for: .securityReview) == hiddenRef)
-        #expect(store.resolve(.securityReview)?.model.id == hidden.id)
+        #expect(store.assignment(for: .guardian) == hiddenRef)
+        #expect(store.resolve(.guardian)?.model.id == hidden.id)
         #expect(store.resolve(conversation: nil)?.model.id == hidden.id)
+    }
+
+    @Test
+    func legacyRoleAssignmentLoadsAsGuardian() throws {
+        let container = try makeContainer("LegacyGuardianRole")
+        let model = AIModel(id: "guardian")
+        let provider = ModelProvider(name: "OpenAI", models: [model])
+        let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
+        store.upsert(provider)
+        let row = PersistentAIRoleAssignment(
+            role: .guardian,
+            ref: AIModelRef(modelProviderID: provider.id, modelID: model.id)
+        )
+        row.role = "securityReview"
+        container.mainContext.insert(row)
+        try container.mainContext.save()
+
+        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
+        #expect(reloaded.resolve(.guardian)?.model.id == model.id)
     }
 
     @Test(arguments: ["image", "other", "unknown-purpose"])
@@ -426,12 +445,9 @@ struct ModelCapabilityResolverTests {
 
         #expect(resolution.catalogSource == .init(provider: "openai", modelID: "gpt-5.4"))
         #expect(resolution.model.input == [.text, .image])
-        // `webSearch` is the one ability that does come from the model id, and
-        // it has to: Pi's catalog has no field for server-side search, so this
-        // record says nothing about it either way. The rule the rest of this
-        // test guards is unchanged — a record that *does* list abilities is
-        // taken verbatim, and only a record silent on them is filled in.
-        #expect(resolution.model.abilities == [.toolCall, .reasoning, .webSearch])
+        // Search and structured output are additive model-family capabilities:
+        // catalogs commonly omit both even when the request protocol supports them.
+        #expect(resolution.model.abilities == [.toolCall, .reasoning, .structuredOutput, .webSearch])
         #expect(resolution.model.contextLength == 272_000)
         #expect(resolution.model.maxOutputTokens == 128_000)
         #expect(resolution.model.isShownInAssistant)
@@ -454,8 +470,8 @@ struct ModelCapabilityResolverTests {
         )
 
         // The reported list is still honoured — reasoning is absent because the
-        // endpoint did not claim it — and search is added on top.
-        #expect(resolution.model.abilities == [.toolCall, .webSearch])
+        // endpoint did not claim it — while protocol capabilities are additive.
+        #expect(resolution.model.abilities == [.toolCall, .structuredOutput, .webSearch])
     }
 
     /// DeepSeek v4 reaches `/responses` with the identical
@@ -573,7 +589,7 @@ struct ModelCapabilityResolverTests {
         #expect(resolution.model.ownedBy == "openai")
         #expect(resolution.model.input == [.text, .image])
         #expect(resolution.model.output == [.text])
-        #expect(resolution.model.abilities == [.toolCall, .reasoning])
+        #expect(resolution.model.abilities == [.toolCall, .reasoning, .structuredOutput])
         #expect(resolution.model.contextLength == 272_000)
         #expect(resolution.model.maxOutputTokens == nil)
         #expect(!resolution.model.isShownInAssistant)
@@ -632,10 +648,10 @@ struct ModelCapabilityResolverTests {
         #expect(resolution.model.output == [.image])
         // Reported abilities still win — `toolCall` and `reasoning` stay off
         // despite the catalog claiming both for gpt-5.4. `webSearch` is the
-        // exception, deliberately: an empty array is the endpoint listing what
-        // it knows about, and no endpoint knows about server-side search. See
+        // exceptions, deliberately: an empty array is the endpoint listing what
+        // it knows about, and catalogs omit server-side search and structured output. See
         // `webSearchIsInferredEvenWhenTheEndpointReportedItsAbilities`.
-        #expect(resolution.model.abilities == [.webSearch])
+        #expect(resolution.model.abilities == [.structuredOutput, .webSearch])
         #expect(resolution.model.contextLength == 7)
         #expect(resolution.model.maxOutputTokens == 8)
         #expect(resolution.supported == [.off])

@@ -159,7 +159,7 @@ public nonisolated struct SettingsRecordKey: Codable, Hashable, Sendable {
         case .provider, .mcpServer, .skill:
             guard let uuid = UUID(uuidString: id), uuid.uuidString.lowercased() == id else { return nil }
         case .role:
-            guard AIRole(rawValue: id) != nil else { return nil }
+            guard AIRole(rawValue: id) != nil || id == "securityReview" else { return nil }
         case .selection, .webSearch, .terminal:
             guard id == "default" else { return nil }
         }

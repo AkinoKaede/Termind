@@ -477,7 +477,7 @@ struct AgentScratchTests {
     @Test
     func approvedActionsSkipTheGateInEveryPermissionMode() async {
         for mode in AgentPermissionMode.allCases {
-            let reviewer = CountingSecurityReviewer()
+            let reviewer = CountingGuardianReviewer()
             let broker = AgentApprovalBroker(
                 reviewer: reviewer,
                 manualApproval: { _ in .deny("a person was asked") }
@@ -492,7 +492,7 @@ struct AgentScratchTests {
 
     @Test
     func askedRemoteWritesReachTheSelectedGate() async {
-        let asked = CountingSecurityReviewer()
+        let asked = CountingGuardianReviewer()
         let manual = AgentApprovalBroker(
             reviewer: asked, manualApproval: { _ in .deny("denied by the user") }
         )
@@ -504,8 +504,8 @@ struct AgentScratchTests {
         // Ask for approval asks the person, not the reviewer.
         #expect(await asked.count == 0)
 
-        // Approve for me hands the same request to Security Review, which decides.
-        let reviewed = CountingSecurityReviewer()
+        // Approve for me hands the same request to Guardian, which decides.
+        let reviewed = CountingGuardianReviewer()
         let automatic = AgentApprovalBroker(
             reviewer: reviewed, manualApproval: { _ in .deny("nobody should be asked") }
         )
@@ -602,20 +602,20 @@ struct AgentScratchTests {
                 == .sequential
         )
 
-        // Same terms again for the web: absent without a client, and when present a
-        // network read landing in contained storage — no approval, may overlap.
+        // Absent without a client. When present, the write remains contained and
+        // parallel, but the external network request requires approval.
         #expect(!local.contains { $0.descriptor.name == "scratch_fetch" })
         let withWeb = Fixture.scratchTools(workspace: workspace, web: Fixture.web())
         let fetch = try #require(withWeb.first { $0.descriptor.name == "scratch_fetch" })
         #expect(fetch.descriptor.target == .network)
-        #expect(fetch.descriptor.approvalPolicy == .approve)
+        #expect(fetch.descriptor.approvalPolicy == .ask)
         #expect(fetch.descriptor.concurrency == .parallel)
     }
 
     /// `fetch` is a separate tool, not a new mode of `fetch`. The same promise
     /// `theSFTPToolsAreUnchanged` makes about `sftp_read` / `sftp_write`.
     @Test @MainActor
-    func theFetchToolIsUnchanged() {
+    func theFetchToolKeepsItsSchemaAndRequiresApproval() {
         let tools = Fixture.builtInTools(
             hosts: AgentHostResolver(store: HostLibraryModel()),
             connections: Fixture.pool(StubTransferSFTPClient())
@@ -624,7 +624,7 @@ struct AgentScratchTests {
         let properties = fetch?.inputSchema.objectValue?["properties"]?.objectValue ?? [:]
         #expect(properties["scratch_path"] == nil)
         #expect(properties.keys.sorted() == ["format", "url"])
-        #expect(fetch?.approvalPolicy == .approve)
+        #expect(fetch?.approvalPolicy == .ask)
         #expect(!tools.contains { $0.descriptor.name.hasPrefix("scratch_") })
     }
 
@@ -1121,13 +1121,13 @@ private enum Fixture {
     }
 }
 
-private actor CountingSecurityReviewer: SecurityReviewing {
+private actor CountingGuardianReviewer: GuardianReviewing {
     private(set) var count = 0
 
-    func review(_ request: AgentApprovalRequest) async throws -> SecurityReviewDecision {
+    func review(_ request: AgentApprovalRequest) async throws -> GuardianDecision {
         count += 1
-        return SecurityReviewDecision(
-            verdict: .approve, risk: .low, userAuthorization: .sufficient, reason: "fine"
+        return GuardianDecision(
+            verdict: .approve, risk: .low, userAuthorization: .high, reason: "fine"
         )
     }
 }

@@ -43,7 +43,8 @@ public final class AIPersistence {
 
         var roles: [AIRole: AIModelRef] = [:]
         for row in try context.fetch(FetchDescriptor<PersistentAIRoleAssignment>()) {
-            guard let role = AIRole(rawValue: row.role) else { continue }
+            guard let role = AIRole(rawValue: row.role) ?? (row.role == "securityReview" ? .guardian : nil)
+            else { continue }
             let ref = AIModelRef(modelProviderID: row.providerID, modelID: row.modelID)
             if preservingUnresolvedReferences || valid(ref) { roles[role] = ref }
         }

@@ -658,8 +658,8 @@ struct AgentPersistenceTests {
         try await repository.record(
             .reviewFinished(
                 request,
-                SecurityReviewDecision(
-                    verdict: .approve, risk: .low, userAuthorization: .sufficient,
+                GuardianDecision(
+                    verdict: .approve, risk: .low, userAuthorization: .high,
                     reason: "Allowed"
                 )),
             runID: snapshot.id

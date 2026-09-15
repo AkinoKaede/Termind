@@ -5,8 +5,8 @@ import TermindApplication
 /// The "Model Roles" section: which model answers which job.
 ///
 /// Chat always names the model that will actually answer, matching the concrete-only
-/// model picker in the Assistant. The other roles retain **Same as Chat**, which is
-/// what an unset assignment actually does.
+/// model picker in the Assistant. Each auxiliary role supplies the label for its own
+/// automatic resolution behavior.
 public struct ModelRoleSettings: View {
     let ai: AIConfigurationModel
 

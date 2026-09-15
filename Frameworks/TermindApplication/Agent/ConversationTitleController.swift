@@ -25,7 +25,7 @@ public final class ConversationTitleController: ConversationTitling {
             throw ConversationTitleError.missingCredential
         }
         // `.off`, not `.low`. The shared clamp walks *upward* first, which is
-        // right for Security Review — a review that does not reason is worse
+        // right for Guardian — a review that does not reason is worse
         // than a slow one — but backwards here. Asking for low on a model whose
         // levels are `[off, high]`, as several Kimi builds are, hands back high:
         // full reasoning effort to write six words. Asking for off takes off

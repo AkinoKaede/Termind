@@ -14,7 +14,8 @@
       ],
       "abilities": [
         "toolCall",
-        "reasoning"
+        "reasoning",
+        "structuredOutput"
       ],
       "showInAssistant": false,
       "contextWindow": 272000,

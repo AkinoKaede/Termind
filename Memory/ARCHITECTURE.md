@@ -176,6 +176,29 @@ preflight, card creation, hooks, authorization, then execution, and
 OpenAI Responses/Chat Completions, Anthropic Messages, and Gemini. Models without
 tool capability receive no tools; only recognized chat-purpose models appear in
 conversation pickers, and unknown purpose values safely default to chat.
+AgentKit's callable `fetch`, `web_search`, and `scratch_fetch` tools are `.ask`
+because each initiates an external network request. A provider-native search card
+is instead a post-hoc record of a search the selected model provider already ran.
+
+Guardian owns Auto-reviewing as an isolated `.reviewing` agent posture. Ordinary
+tools default only to `.planning` and `.acting`. The registry supports disjoint
+same-name registrations with independent schema, preflight, and execution for
+each run mode, but Termind currently registers no `.reviewing` tools, so every
+Guardian request is tool-free. Its in-memory per-conversation channels serialize
+reviews and retain a bounded full-to-delta transcript, while only direct authored
+user text and locally captured `request_user_input` answers may establish authorization.
+OpenAI-shaped requests use `guardian:<conversation-id>` as the stable prompt
+cache key; fixed policy, schema, and tool prefixes remain byte-identical.
+Structured Guardian decisions use provider-native JSON schema when the selected
+model declares support and strict local validation otherwise. Any unavailable,
+timed-out, malformed, recursively gated, or policy-inconsistent result fails
+closed before the pending tool executes.
+An unset Guardian role is Automatic: it prefers `codex-auto-review`, then the
+highest numeric version in the `gpt-*-luna`, `claude-sonnet-*`,
+`gemini-*-flash`, `deepseek-v*-flash`, and `glm-*-flash` families, in that
+order, before falling back to the resolved Chat model. Matching is
+case-insensitive and compares numeric version components (`0.11` is newer than
+`0.8`). An explicit Guardian assignment always wins.
 
 User messages carry immutable, hidden `AgentTurnContextSnapshot` metadata. Session
 facts, skill catalogs, plan contracts, and surface-tool availability are captured on

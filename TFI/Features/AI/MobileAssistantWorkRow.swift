@@ -99,14 +99,14 @@ struct MobileAssistantToolRow: View {
                 .modifier(MobileAssistantScanning(active: card.state == .running))
                 if card.state == .reviewing {
                     Image(systemName: "checkmark.shield").foregroundStyle(.orange)
-                        .accessibilityLabel(Text("Security Review in progress"))
+                        .accessibilityLabel(Text("Auto-reviewing in progress"))
                 }
             }
             .font(.callout).opacity(card.state == .interrupted ? 0.5 : 1)
         } content: {
             VStack(alignment: .leading, spacing: 8) {
                 if let review = card.review {
-                    Text("Security Review: \(review.risk.displayName) — \(review.reason)")
+                    Text("Auto-reviewing: \(review.risk.displayName) — \(review.reason)")
                         .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
                 if let detail = AgentToolPresentation.detail(

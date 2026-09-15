@@ -47,6 +47,7 @@ private func spyTool(
     _ name: String,
     approvalPolicy: AgentToolDescriptor.ApprovalPolicy,
     target: AgentToolDescriptor.Target = .local,
+    availableIn: Set<AgentRunMode> = [.planning, .acting],
     ran: RanFlag
 ) -> AnyAgentTool {
     AnyAgentTool(
@@ -54,6 +55,7 @@ private func spyTool(
             name: name, summary: name, inputSchema: emptySchema,
             target: target, approvalPolicy: approvalPolicy, concurrency: .parallel
         ),
+        availableIn: availableIn,
         execute: { invocation, _ in
             await ran.mark()
             return AgentToolResult(callID: invocation.call.id, content: "ok")
@@ -77,10 +79,10 @@ private func execTool(ran: RanFlag) -> AnyAgentTool {
         ),
         preflight: { invocation in
             let command = invocation.call.arguments.objectValue?["command"]?.stringValue ?? ""
-            let safe = CommandRiskClassifier.assess(command).risk == .safe
+            let risk = CommandRiskClassifier.assess(command).risk
             return AgentToolPreflight(
                 invocation: invocation,
-                approvalPolicy: safe ? .approve : .ask
+                approvalPolicy: risk == .destructive ? .deny : risk == .safe ? .approve : .ask
             )
         },
         execute: { invocation, _ in
@@ -149,7 +151,12 @@ struct AgentPlanModeTests {
     func planModeRefusesAToolThatChangesSomethingOutsideTermind() async {
         let ran = RanFlag()
         let events = await drain(
-            tools: [spyTool("sftp_write", approvalPolicy: .ask, ran: ran)],
+            tools: [
+                spyTool(
+                    "sftp_write", approvalPolicy: .ask,
+                    availableIn: [.acting], ran: ran
+                )
+            ],
             turns: callingTurns(["sftp_write"]), isPlanning: true
         )
 
@@ -164,7 +171,12 @@ struct AgentPlanModeTests {
     func theSameToolRunsOnceThePostureIsOff() async {
         let ran = RanFlag()
         _ = await drain(
-            tools: [spyTool("sftp_write", approvalPolicy: .ask, ran: ran)],
+            tools: [
+                spyTool(
+                    "sftp_write", approvalPolicy: .ask,
+                    availableIn: [.acting], ran: ran
+                )
+            ],
             turns: callingTurns(["sftp_write"]), isPlanning: false
         )
 
@@ -355,7 +367,12 @@ struct AgentPlanModeTests {
     func theTaskListIsRefusedWhilePlanningEvenThoughItIsReadOnly() async {
         let ran = RanFlag()
         let events = await drain(
-            tools: [spyTool("manage_tasks", approvalPolicy: .approve, ran: ran)],
+            tools: [
+                spyTool(
+                    "manage_tasks", approvalPolicy: .approve,
+                    availableIn: [.acting], ran: ran
+                )
+            ],
             turns: callingTurns(["manage_tasks"]), isPlanning: true
         )
 
@@ -383,7 +400,10 @@ struct AgentPlanModeTests {
         let events = await drain(
             tools: [
                 spyTool("sftp_read", approvalPolicy: .approve, ran: ran),
-                spyTool("sftp_write", approvalPolicy: .ask, ran: ran),
+                spyTool(
+                    "sftp_write", approvalPolicy: .ask,
+                    availableIn: [.acting], ran: ran
+                ),
             ],
             turns: callingTurns(["sftp_read", "sftp_write"]), isPlanning: true
         )

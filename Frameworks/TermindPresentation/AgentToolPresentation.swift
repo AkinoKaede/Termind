@@ -247,7 +247,7 @@ nonisolated public enum AgentToolPresentation {
     public static func detailOutput(
         from result: AgentToolResult,
         presentation: AgentToolDescriptor.Presentation?,
-        review: SecurityReviewDecision?
+        review: GuardianDecision?
     ) -> String? {
         let rendered = output(from: result, presentation: presentation)
         guard result.isError, let review, !review.allowsExecution,

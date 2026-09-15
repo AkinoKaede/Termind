@@ -796,7 +796,7 @@ private enum NativeTranscriptFactory {
             if let review = card.review {
                 detail.addArrangedSubview(
                     NativeLabel(
-                        String(localized: "Security Review: \(review.risk.displayName) — \(review.reason)"),
+                        String(localized: "Auto-reviewing: \(review.risk.displayName) — \(review.reason)"),
                         font: .systemFont(ofSize: NSFont.smallSystemFontSize),
                         color: .secondaryLabelColor,
                         selectable: true
@@ -1991,7 +1991,7 @@ private final class NativeDisclosureHeader: NSControl {
             let shield = NSImageView(
                 image: NSImage(
                     systemSymbolName: "checkmark.shield",
-                    accessibilityDescription: String(localized: "Security Review in progress")
+                    accessibilityDescription: String(localized: "Auto-reviewing in progress")
                 ) ?? NSImage()
             )
             shield.contentTintColor = .systemOrange

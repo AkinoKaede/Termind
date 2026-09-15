@@ -62,7 +62,7 @@ struct SettingsPortTests {
         try store.prepare()
         let server = MCPServer(name: "Preserved")
         let unresolved = AIModelRef(modelProviderID: UUID(), modelID: "not-arrived")
-        try store.saveConfiguration(.init(providers: [], roles: [.securityReview: unresolved], mcpServers: [server]))
+        try store.saveConfiguration(.init(providers: [], roles: [.guardian: unresolved], mcpServers: [server]))
         let skills = try store.load().skills
         let ai = AIConfigurationModel(persistence: SyncedAIConfigurationPersistence(store))
         #expect(
@@ -71,7 +71,7 @@ struct SettingsPortTests {
         let saved = try store.load()
         #expect(saved.skills == skills)
         #expect(saved.configuration.mcpServers == [server])
-        #expect(saved.configuration.roles[.securityReview] == unresolved)
+        #expect(saved.configuration.roles[.guardian] == unresolved)
         #expect(try !store.journal.pendingEnvelopes().isEmpty)
     }
 

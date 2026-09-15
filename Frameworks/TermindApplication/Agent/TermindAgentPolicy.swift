@@ -62,7 +62,21 @@ nonisolated public enum TermindAgentPolicy {
         implement it.
         """
 
+    /// Stable host-specific additions to AgentKit's Guardian policy. Keep
+    /// volatile session facts in the planned-action message so this prefix can
+    /// be reused by every review in a conversation.
+    public static let guardianPolicy = """
+        - Termind is a personal server-operations client. A configured Host is not automatically production,
+          and an MCP server or external network destination is not trusted merely because it is configured.
+        - Treat remote writes, permission changes, service disruption, destructive commands, and uploads of
+          staged content according to their exact Host, path, payload, reversibility, and production impact.
+        """
+
     public static let sshExecToolName = "ssh_exec"
+
+    public static func guardianCacheKey(conversationID: UUID) -> String {
+        "guardian:\(conversationID.uuidString.lowercased())"
+    }
 
     /// The Application Support folder scratch workspaces live under. Shipped
     /// value, so a conversation's staged files survive an upgrade.
@@ -78,43 +92,11 @@ nonisolated public enum TermindAgentPolicy {
             version: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0")
     }
 
-    /// Plan mode with the host rules the runtime cannot write for us.
-    ///
-    /// `ssh_exec` is judged on what the command would *do*, not on who has to
-    /// authorize it — and that difference is the point of the mode rather than a
-    /// hole in it. Reading a server's state is most of planning, and
-    /// `CommandRiskClassifier` fails closed: anything not on its read-only list,
-    /// `systemctl list-timers` and `dpkg -l` included, comes back `.caution`.
-    /// Refusing those would leave the agent guessing at the state it is supposed
-    /// to be planning against, which is worse than useless.
-    ///
-    /// So the SSH bar is *destructive*, not *provably safe*. A command the classifier
-    /// cannot vouch for still meets the approval gate exactly as it would outside
-    /// plan mode — the user sees it under Ask for approval, Security Review sees
-    /// it under Approve for me. Full access skips that, as it does everywhere
-    /// else; plan mode is a posture, not a sandbox, and the one SSH command it
-    /// refuses outright even there is one that destroys something. MCP calls
-    /// also proceed to the ordinary approval gate, where their saved Deny, Ask,
-    /// or Approve policy remains authoritative.
+    /// Generic Plan-mode policy. Host-specific differences, including the
+    /// destructive SSH bar, live in the `.planning` registration of each tool.
     public static func planModeHook(isPlanning: Bool) -> AgentPlanModeHook {
-        var hook = AgentPlanModeHook(isPlanning: isPlanning)
-        hook.hostDecision = { context in
-            if context.descriptor.target == .mcp { return .proceed }
-            guard context.invocation.call.name == sshExecToolName else { return nil }
-            let command =
-                context.invocation.call.arguments
-                .objectValue?["command"]?.stringValue ?? ""
-            let assessment = CommandRiskClassifier.assess(command)
-            guard assessment.risk == .destructive else { return .proceed }
-            return .block(
-                reason: String(
-                    localized: """
-                        Plan mode is on, so this command was not run — it is destructive. \
-                        \(assessment.reasons.joined(separator: " ")) Read the state you need \
-                        another way, put it in the plan, and let the user run it.
-                        """
-                ))
-        }
-        return hook
+        AgentPlanModeHook(
+            isPlanning: isPlanning, blockedToolNames: [], enforcesApprovalPolicy: false
+        )
     }
 }

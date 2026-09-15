@@ -9,8 +9,8 @@ import Testing
 @Suite @MainActor
 struct MobileAISettingsTests {
     @Test func roleLabelsMatchDesktopDefaults() {
-        #expect(AIRole.commandGenerator.unsetLabel == AIRole.securityReview.unsetLabel)
-        #expect(AIRole.chat.unsetLabel != AIRole.securityReview.unsetLabel)
+        #expect(AIRole.chat.unsetLabel == AIRole.guardian.unsetLabel)
+        #expect(AIRole.commandGenerator.unsetLabel != AIRole.guardian.unsetLabel)
     }
 
     private func provider() -> ModelProvider {
