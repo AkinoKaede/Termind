@@ -1,12 +1,13 @@
 import Foundation
 
 public nonisolated enum SSHImportCategory: String, CaseIterable, Identifiable, Sendable {
-    case hosts, keys, knownHosts
+    case hosts, keys, identities, knownHosts
     public var id: Self { self }
     public var title: String {
         switch self {
         case .hosts: String(localized: "Hosts")
         case .keys: String(localized: "Keys")
+        case .identities: String(localized: "Identities")
         case .knownHosts: String(localized: "Known Hosts")
         }
     }
@@ -28,6 +29,7 @@ public nonisolated struct SSHImportItem: Identifiable, Sendable {
     public var acceptedWarnings = false
     public var host: SSHImportedHost?
     public var key: SSHKeyRef?
+    public var identity: Identity?
     public var knownHost: KnownHostEntry?
     public var preferredKeyID: UUID?
     public var existingID: UUID?
@@ -36,7 +38,8 @@ public nonisolated struct SSHImportItem: Identifiable, Sendable {
         id: UUID = UUID(), category: SSHImportCategory, name: String, source: String, selected: Bool = true,
         issue: String = "", unavailable: Bool = false, requiresPassphrase: Bool = false,
         needsAuthorization: String? = nil, warnings: [String] = [], acceptedWarnings: Bool = false,
-        host: SSHImportedHost? = nil, key: SSHKeyRef? = nil, knownHost: KnownHostEntry? = nil,
+        host: SSHImportedHost? = nil, key: SSHKeyRef? = nil, identity: Identity? = nil,
+        knownHost: KnownHostEntry? = nil,
         preferredKeyID: UUID? = nil, existingID: UUID? = nil, certificatePaths: [String] = []
     ) {
         self.id = id
@@ -52,6 +55,7 @@ public nonisolated struct SSHImportItem: Identifiable, Sendable {
         self.acceptedWarnings = acceptedWarnings
         self.host = host
         self.key = key
+        self.identity = identity
         self.knownHost = knownHost
         self.preferredKeyID = preferredKeyID
         self.existingID = existingID
@@ -69,10 +73,14 @@ public nonisolated struct SSHImportedHost: Sendable {
     public var certificatePaths: [String] = []
     public var jumps: [String] = []
     public var existingKeyID: UUID?
+    /// The exact existing or selected imported Identity used by this Host.
+    /// `nil` deliberately means the Host will be imported without a login.
+    public var identityID: UUID?
     public var usesDefaultIdentityFiles = false
     public init(
         alias: String, hostname: String, port: Int = 22, username: String, identityPaths: [String] = [],
         certificatePaths: [String] = [], jumps: [String] = [], existingKeyID: UUID? = nil,
+        identityID: UUID? = nil,
         usesDefaultIdentityFiles: Bool = false
     ) {
         self.alias = alias
@@ -83,6 +91,7 @@ public nonisolated struct SSHImportedHost: Sendable {
         self.certificatePaths = certificatePaths
         self.jumps = jumps
         self.existingKeyID = existingKeyID
+        self.identityID = identityID
         self.usesDefaultIdentityFiles = usesDefaultIdentityFiles
     }
 

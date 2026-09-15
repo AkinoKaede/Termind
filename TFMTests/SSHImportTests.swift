@@ -181,6 +181,8 @@ struct SSHImportTests {
         #expect(source.contains("Form {"))
         #expect(source.contains(".formStyle(.grouped)"))
         #expect(source.contains("ForEach(model.items.filter"))
+        #expect(source.contains("Section(\"Identities\")"))
+        #expect(source.contains("Picker(\"Store password in\""))
         #expect(!source.contains("private func categorySection"))
     }
 
@@ -251,7 +253,7 @@ struct SSHImportTests {
         model.hostTags = ["production", "ssh"]
         model.keyColor = .purple
         await model.scan(url, knownHostsOnly: false)
-        #expect(model.selectedItems().count == 3)
+        #expect(model.selectedItems().count == 4)
         #expect(store.hosts.isEmpty && store.keys.isEmpty)
         #expect(model.canImport)
         await model.commit()
@@ -289,8 +291,134 @@ struct SSHImportTests {
         let host = try #require(model.items.first { $0.host != nil })
         #expect(model.chosenKey(for: host)?.id == id)
         model.setSelected(false, category: .keys)
-        #expect(model.chosenKey(for: host) == nil)
+        #expect(model.items.first(where: { $0.id == host.id })?.host?.identityID == nil)
         #expect(model.canImport)
+    }
+
+    @Test
+    func identitySelectionControlsKeysAndHostBindingWithoutChangingHostSelection() async throws {
+        let url = try root()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        try material.privateKey.write(
+            to: url.appendingPathComponent("deploy"), atomically: true, encoding: .utf8)
+        try "Host app\n User deploy\n IdentityFile ~/.ssh/deploy".write(
+            to: url.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        let model = SSHImportModel(library: HostLibraryModel(), reader: SSHImportReader())
+
+        await model.scan(url, knownHostsOnly: false)
+
+        let hostID = try #require(model.items.first(where: { $0.host != nil })?.id)
+        let identityID = try #require(model.items.first(where: { $0.identity != nil })?.id)
+        let keyID = try #require(model.items.first(where: { $0.key != nil })?.id)
+        #expect(model.items.first(where: { $0.id == hostID })?.host?.identityID == identityID)
+
+        model.setSelected(false, itemID: identityID)
+        #expect(model.items.first(where: { $0.id == hostID })?.selected == true)
+        #expect(model.items.first(where: { $0.id == hostID })?.host?.identityID == nil)
+        #expect(model.items.first(where: { $0.id == keyID })?.selected == true)
+
+        model.setSelected(false, itemID: hostID)
+        model.setSelected(true, itemID: hostID)
+        #expect(model.items.first(where: { $0.id == identityID })?.selected == false)
+        #expect(model.items.first(where: { $0.id == hostID })?.host?.identityID == nil)
+
+        model.setSelected(true, itemID: identityID)
+        #expect(model.items.first(where: { $0.id == keyID })?.selected == true)
+        #expect(model.items.first(where: { $0.id == hostID })?.host?.identityID == identityID)
+
+        model.setSelected(false, itemID: keyID)
+        #expect(model.items.first(where: { $0.id == identityID })?.selected == false)
+        #expect(model.items.first(where: { $0.id == hostID })?.selected == true)
+        #expect(model.items.first(where: { $0.id == hostID })?.host?.identityID == nil)
+    }
+
+    @Test
+    func sharedIdentityIsImportedOnceAndReceivesImportDefaults() async throws {
+        let url = try root()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let material = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        try material.privateKey.write(
+            to: url.appendingPathComponent("deploy"), atomically: true, encoding: .utf8)
+        try """
+        Host app-one app-two
+            User deploy
+            IdentityFile ~/.ssh/deploy
+        """.write(to: url.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        let store = HostLibraryModel()
+        let model = SSHImportModel(library: store, reader: SSHImportReader())
+        model.identityPasswordStorage = .thisDevice
+        model.identityColor = .orange
+
+        await model.scan(url, knownHostsOnly: false)
+
+        #expect(model.items.filter { $0.category == .identities }.count == 1)
+        await model.commit()
+        let identity = try #require(store.identities.first)
+        #expect(store.identities.count == 1)
+        #expect(store.hosts.count == 2)
+        #expect(store.hosts.allSatisfy { $0.identityID == identity.id })
+        #expect(identity.passwordStorage == .thisDevice)
+        #expect(identity.colorTag == .orange)
+        #expect(!identity.usesPassword)
+    }
+
+    @Test
+    func exactExistingIdentityIsReusedWhileDifferentKeysGetDistinctNames() async throws {
+        let url = try root()
+        defer { try? FileManager.default.removeItem(at: url) }
+        let first = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        let second = try SSHKeyMaterial.generate(.ed25519, comment: "", passphrase: nil)
+        try first.privateKey.write(to: url.appendingPathComponent("first"), atomically: true, encoding: .utf8)
+        try second.privateKey.write(to: url.appendingPathComponent("second"), atomically: true, encoding: .utf8)
+        try """
+        Host first
+            User deploy
+            IdentityFile ~/.ssh/first
+        Host second
+            User deploy
+            IdentityFile ~/.ssh/second
+        """.write(to: url.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        let existingKey = SSHKeyRef(
+            label: "Saved", publicKey: first.publicKey, fingerprint: first.fingerprint,
+            credentialRef: "saved")
+        let existingIdentity = Identity(name: "Existing Deploy", username: "deploy", keyID: existingKey.id)
+        let secrets = InMemorySecretStore()
+        try secrets.setKeyCredential(
+            .software(SSHPrivateKeySecret(privateKey: first.privateKey)),
+            for: existingKey.credentialRef, storage: existingKey.storage)
+        let store = HostLibraryModel(keys: [existingKey], identities: [existingIdentity], secrets: secrets)
+        let model = SSHImportModel(library: store, reader: SSHImportReader())
+
+        await model.scan(url, knownHostsOnly: false)
+
+        let identities = model.items.filter { $0.category == .identities }
+        #expect(identities.count == 2)
+        #expect(identities.contains { $0.existingID == existingIdentity.id && $0.name == "Existing Deploy" })
+        #expect(identities.contains { $0.existingID == nil && $0.name.contains("second") })
+    }
+
+    @Test
+    func indexedIdentityPlanningHandlesTheImportFileLimit() async {
+        let rows = (0..<4_096).map { index in
+            SSHImportItem(
+                category: .hosts, name: "host-\(index)", source: "config:\(index + 1)",
+                host: SSHImportedHost(
+                    alias: "host-\(index)", hostname: "host-\(index).invalid",
+                    username: "user-\(index)"))
+        }
+        let model = SSHImportModel(library: HostLibraryModel(), reader: FixtureSSHImportReader(items: rows))
+        let start = ContinuousClock.now
+
+        await model.scan(URL(fileURLWithPath: "/fixture/.ssh"), knownHostsOnly: false)
+
+        #expect(start.duration(to: .now) < .seconds(2))
+        #expect(model.items.filter { $0.category == .identities }.count == 4_096)
+        let hostID = rows[2_048].id
+        let selectionStart = ContinuousClock.now
+        model.setSelected(false, itemID: hostID)
+        #expect(selectionStart.duration(to: .now) < .milliseconds(100))
+        #expect(model.items.first(where: { $0.id == hostID })?.selected == false)
     }
 
     @Test
@@ -428,4 +556,17 @@ private final class FailingImportPersistence: VaultPersisting {
     func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
         throw CocoaError(.fileWriteUnknown)
     }
+}
+
+private actor FixtureSSHImportReader: SSHImportReading {
+    let items: [SSHImportItem]
+
+    init(items: [SSHImportItem]) {
+        self.items = items
+    }
+
+    func scan(root: URL, knownHostsOnly: Bool, grants: [URL]) -> [SSHImportItem] { items }
+    func unlock(id: UUID, name: String, passphrase: String) -> [SSHImportItem] { [] }
+    func credentials(for ids: Set<UUID>) -> [UUID: StoredSSHKeyCredential] { [:] }
+    func discard() {}
 }

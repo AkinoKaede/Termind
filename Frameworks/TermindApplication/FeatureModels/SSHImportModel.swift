@@ -9,6 +9,8 @@ public final class SSHImportModel {
     public var expanded = Set(SSHImportCategory.allCases)
     public var storage: KeyStorage = .iCloud
     public var keyColor: TagColor = .none
+    public var identityPasswordStorage: PasswordStorage = .iCloud
+    public var identityColor: TagColor = .none
     public var hostGroupID: HostGroup.ID?
     public var hostColor: TagColor = .none
     public var hostTags: [String] = []
@@ -24,6 +26,18 @@ public final class SSHImportModel {
     private var knownHostsOnly = false
     private let defaultUsername: String
     private var jumpIDs: [String: UUID] = [:]
+    private var stableIdentityIDs: [IdentitySignature: UUID] = [:]
+    private var itemIndexByID: [UUID: Int] = [:]
+    private var keyOptionsByHostID: [UUID: [SSHKeyRef]] = [:]
+    private var keyItemIDByKeyID: [UUID: UUID] = [:]
+    private var hostIDsByIdentityID: [UUID: [UUID]] = [:]
+    private var selectedHostNameCounts: [String: Int] = [:]
+    private var existingHostNames: Set<String> = []
+
+    private struct IdentitySignature: Hashable {
+        var username: String
+        var keyID: UUID?
+    }
 
     public init(library: HostLibraryModel, reader: any SSHImportReading, defaultUsername: String = "") {
         self.defaultUsername = defaultUsername
@@ -52,6 +66,7 @@ public final class SSHImportModel {
         error = nil
         defer { isWorking = false }
         do {
+            let previousItems = items
             let previous = Dictionary(uniqueKeysWithValues: items.map { ($0.id, $0) })
             items = try await reader.scan(root: root, knownHostsOnly: knownHostsOnly, grants: grants)
             addJumpDestinations()
@@ -64,6 +79,7 @@ public final class SSHImportModel {
                 }
             }
             refreshDuplicates()
+            rebuildIdentityPlan(preserving: previousItems)
         } catch {
             self.error =
                 (error as? SSHImportSourceError)?.localizedDescription
@@ -72,9 +88,15 @@ public final class SSHImportModel {
     }
 
     private func addJumpDestinations() {
-        let originalIDs = items.filter { $0.host != nil }.map(\.id)
+        let originalIndexes = items.indices.filter { items[$0].host != nil }
+        var itemIndexByAlias: [String: Int] = [:]
+        for index in originalIndexes {
+            if let alias = items[index].host?.alias { itemIndexByAlias[alias] = index }
+        }
+        let savedHostsByName = Dictionary(
+            library.hosts.map { ($0.name, $0) }, uniquingKeysWith: { first, _ in first })
         let jumps = items.compactMap(\.host).flatMap(\.jumps)
-        for jump in jumps where !items.contains(where: { $0.host?.alias == jump }) {
+        for jump in jumps where itemIndexByAlias[jump] == nil {
             let userParts = jump.split(separator: "@", maxSplits: 1).map(String.init)
             let address = userParts.last ?? jump
             let host: String
@@ -89,9 +111,9 @@ public final class SSHImportModel {
                 host = address
                 port = nil
             }
-            let saved = library.hosts.first { $0.name == host }
+            let saved = savedHostsByName[host]
             let identity = saved?.identityID.flatMap(library.identity)
-            let base = items.first { $0.host?.alias == host }?.host
+            let base = itemIndexByAlias[host].flatMap { items[$0].host }
             let value = SSHImportedHost(
                 alias: jump, hostname: base?.hostname ?? saved?.host ?? host,
                 port: port ?? base?.port ?? saved?.port ?? 22,
@@ -100,17 +122,16 @@ public final class SSHImportModel {
             let id = jumpIDs[jump] ?? UUID()
             jumpIDs[jump] = id
             items.append(SSHImportItem(id: id, category: .hosts, name: jump, source: "ProxyJump", host: value))
+            itemIndexByAlias[jump] = items.index(before: items.endIndex)
         }
         // A multi-hop route must not rewrite the standalone configuration of its intermediate aliases.
-        for id in originalIDs {
-            guard let index = items.firstIndex(where: { $0.id == id }),
-                let chain = items[index].host?.jumps, chain.count > 1
-            else { continue }
+        for index in originalIndexes {
+            guard let chain = items[index].host?.jumps, chain.count > 1 else { continue }
             var previous = chain[0]
             for alias in chain.dropFirst() {
-                guard let base = items.first(where: { $0.host?.alias == alias }), var host = base.host else { continue }
+                guard let baseIndex = itemIndexByAlias[alias], var host = items[baseIndex].host else { continue }
                 let routeAlias = previous + " → " + alias
-                if !items.contains(where: { $0.host?.alias == routeAlias }) {
+                if itemIndexByAlias[routeAlias] == nil {
                     host.alias = routeAlias
                     host.jumps = [previous]
                     let id = jumpIDs[routeAlias] ?? UUID()
@@ -118,7 +139,8 @@ public final class SSHImportModel {
                     items.append(
                         SSHImportItem(
                             id: id, category: .hosts, name: routeAlias,
-                            source: items[index].source, warnings: base.warnings, host: host))
+                            source: items[index].source, warnings: items[baseIndex].warnings, host: host))
+                    itemIndexByAlias[routeAlias] = items.index(before: items.endIndex)
                 }
                 previous = routeAlias
             }
@@ -127,34 +149,45 @@ public final class SSHImportModel {
     }
 
     public func refreshDuplicates() {
+        for index in items.indices where items[index].category != .identities {
+            items[index].existingID = nil
+        }
+        rebuildItemIndex()
+        rebuildKeyOptionIndex()
+        let existingKeys = Dictionary(
+            library.keys.compactMap { key in
+                library.keyAvailability(for: key) == .available
+                    ? (KeySignature(fingerprint: key.fingerprint, certificate: key.certificate), key.id) : nil
+            }, uniquingKeysWith: { first, _ in first })
+        var seenKeys: [KeySignature: UUID] = [:]
+        var existingKnownHosts: [KnownHostSignature: UUID] = [:]
+        for entry in library.knownHosts {
+            existingKnownHosts[KnownHostSignature(entry), default: entry.id] = entry.id
+        }
+        var seenKnownHosts: [KnownHostSignature: UUID] = [:]
         for index in items.indices {
             guard !items[index].unavailable else { continue }
             if let key = items[index].key {
-                if let existing = library.keys.first(where: {
-                    $0.fingerprint == key.fingerprint && $0.certificate == key.certificate
-                        && library.keyAvailability(for: $0) == .available
-                }) {
-                    items[index].existingID = existing.id
+                let signature = KeySignature(fingerprint: key.fingerprint, certificate: key.certificate)
+                if let existingID = existingKeys[signature] {
+                    items[index].existingID = existingID
                     items[index].selected = false
-                } else if let duplicate = items[..<index].first(where: {
-                    $0.key?.fingerprint == key.fingerprint && $0.key?.certificate == key.certificate
-                }) {
-                    items[index].existingID = duplicate.existingID ?? duplicate.id
+                } else if let duplicateID = seenKeys[signature] {
+                    items[index].existingID = duplicateID
                     items[index].selected = false
                 }
+                seenKeys[signature] = items[index].existingID ?? items[index].id
             }
             if let entry = items[index].knownHost {
-                let same: (KnownHostEntry) -> Bool = {
-                    $0.hostname == entry.hostname && ($0.isHashed || $0.port == entry.port)
-                        && $0.identity == entry.identity
-                }
-                if let existing = library.knownHosts.first(where: same) {
-                    items[index].existingID = existing.id
+                let signature = KnownHostSignature(entry)
+                if let existingID = existingKnownHosts[signature] {
+                    items[index].existingID = existingID
                     items[index].selected = false
-                } else if let previous = items[..<index].first(where: { $0.knownHost.map(same) == true }) {
-                    items[index].existingID = previous.existingID ?? previous.id
+                } else if let duplicateID = seenKnownHosts[signature] {
+                    items[index].existingID = duplicateID
                     items[index].selected = false
                 }
+                seenKnownHosts[signature] = items[index].existingID ?? items[index].id
             }
         }
         for index in items.indices where items[index].host != nil {
@@ -163,6 +196,7 @@ public final class SSHImportModel {
                 items[index].selected = false
             }
         }
+        rebuildItemIndex()
     }
 
     public func selectable(_ item: SSHImportItem) -> Bool { !item.unavailable && item.existingID == nil }
@@ -173,15 +207,61 @@ public final class SSHImportModel {
         items.filter { (category == nil || $0.category == category) && selectable($0) }
     }
     public func setSelected(_ selected: Bool, category: SSHImportCategory? = nil) {
-        var updated = items
-        for index in updated.indices
-        where selectable(updated[index]) && (category == nil || updated[index].category == category) {
-            updated[index].selected = selected
+        var changedIdentities: Set<UUID> = []
+        var deselectedKeyIDs: Set<UUID> = []
+        for index in items.indices
+        where selectable(items[index]) && (category == nil || items[index].category == category) {
+            items[index].selected = selected
+            if items[index].category == .identities { changedIdentities.insert(items[index].id) }
+            if !selected, let key = items[index].key { deselectedKeyIDs.insert(key.id) }
         }
-        items = updated
+        applyIdentityKeyDependencies(selected: selected, identityIDs: changedIdentities)
+        if !deselectedKeyIDs.isEmpty {
+            changedIdentities.formUnion(deselectIdentities(using: deselectedKeyIDs))
+        }
+        rebuildHostNameIndex()
+        updateHostBindings(for: changedIdentities)
+    }
+
+    public func setSelected(_ selected: Bool, itemID: UUID) {
+        guard let index = itemIndexByID[itemID], selectable(items[index]) else { return }
+        let category = items[index].category
+        let wasSelected = items[index].selected
+        items[index].selected = selected
+        if category == .hosts, wasSelected != selected {
+            selectedHostNameCounts[items[index].name, default: 0] += selected ? 1 : -1
+        }
+        var changedIdentities: Set<UUID> = category == .identities ? [itemID] : []
+        if category == .identities, selected {
+            applyIdentityKeyDependencies(selected: true, identityIDs: changedIdentities)
+        } else if category == .keys, !selected, let keyID = items[index].key?.id {
+            changedIdentities.formUnion(deselectIdentities(using: [keyID]))
+        }
+        updateHostBindings(for: changedIdentities)
+    }
+
+    public func isSelected(_ itemID: UUID) -> Bool {
+        itemIndexByID[itemID].map { items[$0].selected } ?? false
+    }
+
+    public func item(_ itemID: UUID) -> SSHImportItem? {
+        itemIndexByID[itemID].map { items[$0] }
+    }
+
+    public func updateItem(_ updated: SSHImportItem) {
+        guard let initialIndex = itemIndexByID[updated.id] else { return }
+        let current = items[initialIndex]
+        if current.selected != updated.selected { setSelected(updated.selected, itemID: updated.id) }
+        if current.preferredKeyID != updated.preferredKeyID {
+            setPreferredKey(updated.preferredKeyID, for: updated.id)
+        }
+        if current.name != updated.name { setName(updated.name, for: updated.id) }
+        guard let finalIndex = itemIndexByID[updated.id] else { return }
+        items[finalIndex].acceptedWarnings = updated.acceptedWarnings
     }
 
     public func keyOptions(for item: SSHImportItem) -> [SSHKeyRef] {
+        if let cached = keyOptionsByHostID[item.id] { return cached }
         guard let host = item.host else { return [] }
         if let id = host.existingKeyID, let key = library.key(id) { return [key] }
         var seen: Set<UUID> = []
@@ -198,7 +278,7 @@ public final class SSHImportModel {
                     if let other = items.first(where: { $0.id == id && $0.selected }) { return other.key }
                     return nil
                 }
-                return candidate.selected ? candidate.key : nil
+                return candidate.key
             }
         }.filter { seen.insert($0.id).inserted }
     }
@@ -206,6 +286,275 @@ public final class SSHImportModel {
     public func chosenKey(for item: SSHImportItem) -> SSHKeyRef? {
         let options = keyOptions(for: item)
         return options.first { $0.id == item.preferredKeyID } ?? options.first
+    }
+
+    public func setPreferredKey(_ keyID: UUID?, for hostID: UUID) {
+        guard let index = itemIndexByID[hostID], items[index].host != nil else { return }
+        let previousItems = items
+        items[index].preferredKeyID = keyID
+        rebuildIdentityPlan(preserving: previousItems, changedHostID: hostID)
+    }
+
+    public func setName(_ name: String, for itemID: UUID) {
+        guard let index = itemIndexByID[itemID] else { return }
+        if items[index].category == .hosts, items[index].selected, selectable(items[index]) {
+            selectedHostNameCounts[items[index].name, default: 0] -= 1
+            selectedHostNameCounts[name, default: 0] += 1
+        }
+        items[index].name = name
+    }
+
+    public func identityName(for hostItem: SSHImportItem) -> String? {
+        guard let identityID = hostItem.host?.identityID else { return nil }
+        if let index = itemIndexByID[identityID], items[index].identity != nil {
+            return items[index].name
+        }
+        return library.identity(identityID)?.name
+    }
+
+    public func linkedHostNames(for identityItem: SSHImportItem) -> [String] {
+        (hostIDsByIdentityID[identityItem.id] ?? []).compactMap { id in
+            itemIndexByID[id].map { items[$0].name }
+        }
+    }
+
+    public func keyName(_ id: UUID) -> String? {
+        library.key(id)?.label
+            ?? keyItemIDByKeyID[id].flatMap { itemIndexByID[$0] }.flatMap { items[$0].key?.label }
+    }
+
+    private struct KeySignature: Hashable {
+        var fingerprint: String
+        var certificate: String
+    }
+
+    private struct KnownHostSignature: Hashable {
+        var hostname: String
+        var port: Int
+        var identity: SSHHostKeyIdentity
+
+        init(_ entry: KnownHostEntry) {
+            hostname = entry.hostname
+            port = entry.isHashed ? 0 : entry.port
+            identity = entry.identity
+        }
+    }
+
+    /// Rebuilds public Identity previews from public key metadata. This never
+    /// reads private material. Dictionaries keep the scan linear in items plus
+    /// Host-to-key relationships instead of repeating array searches per row.
+    private func rebuildIdentityPlan(preserving previousItems: [SSHImportItem], changedHostID: UUID? = nil) {
+        let previousIdentities = Dictionary(
+            previousItems.compactMap { item -> (IdentitySignature, SSHImportItem)? in
+                guard let identity = item.identity else { return nil }
+                return (IdentitySignature(username: identity.username, keyID: identity.keyID), item)
+            }, uniquingKeysWith: { first, _ in first })
+        let previousHostIdentitySelection: Bool? = changedHostID.flatMap { hostID in
+            guard let oldHost = previousItems.first(where: { $0.id == hostID }),
+                let identityID = oldHost.host?.identityID,
+                let identityItem = previousItems.first(where: { $0.id == identityID })
+            else { return nil }
+            return identityItem.existingID != nil || identityItem.selected
+        }
+
+        items.removeAll { $0.category == .identities }
+        rebuildItemIndex()
+        rebuildKeyOptionIndex()
+
+        let existingIdentities = Dictionary(
+            library.identities.map {
+                (IdentitySignature(username: $0.username, keyID: $0.keyID), $0)
+            }, uniquingKeysWith: { first, _ in first })
+
+        var signatures: [IdentitySignature] = []
+        var hostsBySignature: [IdentitySignature: [UUID]] = [:]
+        for item in items where item.host != nil {
+            guard let host = item.host else { continue }
+            let signature = IdentitySignature(username: host.username, keyID: chosenKey(for: item)?.id)
+            if hostsBySignature[signature] == nil { signatures.append(signature) }
+            hostsBySignature[signature, default: []].append(item.id)
+        }
+
+        let signaturesPerUsername = Dictionary(grouping: signatures, by: \.username)
+        var usedNames: Set<String> = Set(library.identities.map(\.name))
+        var identityItems: [SSHImportItem] = []
+        identityItems.reserveCapacity(signatures.count)
+        hostIDsByIdentityID = [:]
+
+        for signature in signatures {
+            let hostIDs = hostsBySignature[signature] ?? []
+            if let existing = existingIdentities[signature] {
+                identityItems.append(
+                    SSHImportItem(
+                        id: existing.id, category: .identities, name: existing.name,
+                        source: identitySource(for: hostIDs), selected: false,
+                        identity: existing, existingID: existing.id))
+                hostIDsByIdentityID[existing.id] = hostIDs
+                continue
+            }
+
+            let id = stableIdentityIDs[signature] ?? UUID()
+            stableIdentityIDs[signature] = id
+            let previous = previousIdentities[signature]
+            var name =
+                previous?.name
+                ?? defaultIdentityName(
+                    for: signature,
+                    hasAmbiguousUsername: (signaturesPerUsername[signature.username]?.count ?? 0) > 1,
+                    usedNames: usedNames)
+            if name.isEmpty { name = signature.username }
+            usedNames.insert(name)
+            let identity = Identity(
+                id: id, name: name, username: signature.username,
+                passwordStorage: identityPasswordStorage, keyID: signature.keyID,
+                colorTag: identityColor)
+            let selected: Bool
+            if let previous {
+                selected = previous.selected
+            } else if let changedHostID, hostIDs.contains(changedHostID), let previousHostIdentitySelection {
+                selected = previousHostIdentitySelection
+            } else {
+                selected = true
+            }
+            identityItems.append(
+                SSHImportItem(
+                    id: id, category: .identities, name: name,
+                    source: identitySource(for: hostIDs), selected: selected, identity: identity))
+            hostIDsByIdentityID[id] = hostIDs
+        }
+
+        items.append(contentsOf: identityItems)
+        rebuildItemIndex()
+        updateAllHostBindings()
+    }
+
+    private func rebuildKeyOptionIndex() {
+        keyOptionsByHostID = [:]
+        keyItemIDByKeyID = [:]
+        var canonicalKeysBySignature: [KeySignature: SSHKeyRef] = [:]
+        for key in library.keys where library.keyAvailability(for: key) == .available {
+            canonicalKeysBySignature[KeySignature(fingerprint: key.fingerprint, certificate: key.certificate)] = key
+        }
+        for item in items where item.category == .keys {
+            guard let key = item.key else { continue }
+            let signature = KeySignature(fingerprint: key.fingerprint, certificate: key.certificate)
+            if canonicalKeysBySignature[signature] == nil { canonicalKeysBySignature[signature] = key }
+        }
+
+        var keyRowsBySource: [String: [(SSHImportItem, SSHKeyRef)]] = [:]
+        for item in items where item.category == .keys {
+            guard let key = item.key,
+                let canonical = canonicalKeysBySignature[
+                    KeySignature(fingerprint: key.fingerprint, certificate: key.certificate)]
+            else { continue }
+            keyRowsBySource[item.source, default: []].append((item, canonical))
+            if library.key(canonical.id) == nil { keyItemIDByKeyID[canonical.id] = canonical.id }
+        }
+
+        for item in items where item.host != nil {
+            guard let host = item.host else { continue }
+            if let keyID = host.existingKeyID, let key = library.key(keyID) {
+                keyOptionsByHostID[item.id] = [key]
+                continue
+            }
+            var seen: Set<UUID> = []
+            var options: [SSHKeyRef] = []
+            for path in host.identityPaths {
+                for (candidate, key) in keyRowsBySource[path] ?? [] {
+                    let matchesCertificate: Bool
+                    if host.certificatePaths.isEmpty {
+                        matchesCertificate =
+                            candidate.certificatePaths.isEmpty
+                            || candidate.certificatePaths.contains(path + "-cert.pub")
+                    } else {
+                        matchesCertificate =
+                            !candidate.certificatePaths.isEmpty
+                            && !Set(candidate.certificatePaths).isDisjoint(with: host.certificatePaths)
+                    }
+                    if matchesCertificate, seen.insert(key.id).inserted { options.append(key) }
+                }
+            }
+            keyOptionsByHostID[item.id] = options
+        }
+    }
+
+    private func defaultIdentityName(
+        for signature: IdentitySignature, hasAmbiguousUsername: Bool, usedNames: Set<String>
+    ) -> String {
+        guard hasAmbiguousUsername || usedNames.contains(signature.username) else { return signature.username }
+        let keyLabel =
+            signature.keyID.flatMap { keyID in
+                library.key(keyID)?.label
+                    ?? keyItemIDByKeyID[keyID].flatMap { itemIndexByID[$0] }.flatMap { items[$0].key?.label }
+            } ?? String(localized: "No Key")
+        let base = "\(signature.username) (\(keyLabel))"
+        guard usedNames.contains(base), let keyID = signature.keyID,
+            let key = library.key(keyID)
+                ?? keyItemIDByKeyID[keyID].flatMap({ itemIndexByID[$0] }).flatMap({ items[$0].key })
+        else { return base }
+        let shortFingerprint = key.fingerprint.split(separator: ":").last.map(String.init)?.prefix(8) ?? ""
+        return "\(base) \(shortFingerprint)"
+    }
+
+    private func identitySource(for hostIDs: [UUID]) -> String {
+        hostIDs.compactMap { id in itemIndexByID[id].map { items[$0].name } }.joined(separator: ", ")
+    }
+
+    private func rebuildItemIndex() {
+        itemIndexByID = Dictionary(uniqueKeysWithValues: items.indices.map { (items[$0].id, $0) })
+        rebuildHostNameIndex()
+    }
+
+    private func rebuildHostNameIndex() {
+        existingHostNames = Set(library.hosts.map(\.name))
+        selectedHostNameCounts = [:]
+        for item in items where item.host != nil && item.selected && selectable(item) {
+            selectedHostNameCounts[item.name, default: 0] += 1
+        }
+    }
+
+    private func applyIdentityKeyDependencies(selected: Bool, identityIDs: Set<UUID>) {
+        guard selected else { return }
+        for identityID in identityIDs {
+            guard let identityIndex = itemIndexByID[identityID], let keyID = items[identityIndex].identity?.keyID,
+                let keyItemID = keyItemIDByKeyID[keyID], let keyIndex = itemIndexByID[keyItemID],
+                selectable(items[keyIndex])
+            else { continue }
+            items[keyIndex].selected = true
+        }
+    }
+
+    private func deselectIdentities(using keyIDs: Set<UUID>) -> Set<UUID> {
+        var changed: Set<UUID> = []
+        for index in items.indices where items[index].category == .identities && items[index].existingID == nil {
+            guard let keyID = items[index].identity?.keyID, keyIDs.contains(keyID), items[index].selected else {
+                continue
+            }
+            items[index].selected = false
+            changed.insert(items[index].id)
+        }
+        return changed
+    }
+
+    private func updateAllHostBindings() {
+        for identityID in hostIDsByIdentityID.keys { updateHostBindings(for: [identityID]) }
+    }
+
+    private func updateHostBindings(for identityIDs: Set<UUID>) {
+        for identityID in identityIDs {
+            guard let identityIndex = itemIndexByID[identityID] else { continue }
+            let identityItem = items[identityIndex]
+            let keyAvailable =
+                identityItem.identity?.keyID.map { keyID in
+                    library.key(keyID) != nil
+                        || keyItemIDByKeyID[keyID].flatMap { itemIndexByID[$0] }.map { items[$0].selected } == true
+                } ?? true
+            let available = identityItem.existingID != nil || (identityItem.selected && keyAvailable)
+            for hostID in hostIDsByIdentityID[identityID] ?? [] {
+                guard let hostIndex = itemIndexByID[hostID] else { continue }
+                items[hostIndex].host?.identityID = available ? identityID : nil
+            }
+        }
     }
 
     private func identicalHost(_ item: SSHImportItem) -> Host? {
@@ -246,8 +595,8 @@ public final class SSHImportModel {
 
     public func hasNameConflict(_ item: SSHImportItem) -> Bool {
         guard item.host != nil else { return false }
-        return (library.hosts.contains { $0.name == item.name } && identicalHost(item) == nil)
-            || selectedItems(.hosts).contains { $0.id != item.id && $0.name == item.name }
+        return (existingHostNames.contains(item.name) && item.existingID == nil)
+            || selectedHostNameCounts[item.name, default: 0] > 1
     }
 
     public func problem(for item: SSHImportItem, includeWarningReminder: Bool = true) -> String? {
@@ -257,6 +606,16 @@ public final class SSHImportModel {
         }
         if includeWarningReminder && !warnings(for: item).isEmpty && !item.acceptedWarnings {
             return String(localized: "Review and accept the import warnings.")
+        }
+        if let identity = item.identity {
+            guard !item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                !identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            else { return String(localized: "Invalid SSH record.") }
+            if let keyID = identity.keyID, library.key(keyID) == nil,
+                keyItemIDByKeyID[keyID].flatMap({ itemIndexByID[$0] }).map({ items[$0].selected }) != true
+            {
+                return String(localized: "Invalid SSH record.")
+            }
         }
         if let host = item.host {
             guard !item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -300,6 +659,7 @@ public final class SSHImportModel {
             }
             items.replaceSubrange(index...index, with: replacements)
             refreshDuplicates()
+            rebuildIdentityPlan(preserving: items)
         } catch {
             if let sourceError = error as? SSHImportSourceError {
                 self.error = sourceError.localizedDescription
@@ -310,7 +670,9 @@ public final class SSHImportModel {
     }
 
     public func commit() async {
+        let beforeInitialRefresh = items
         refreshDuplicates()
+        rebuildIdentityPlan(preserving: beforeInitialRefresh)
         guard canImport else { return }
         isWorking = true
         error = nil
@@ -319,7 +681,9 @@ public final class SSHImportModel {
             var batch = try makeBatch()
             batch.credentials = try await reader.credentials(for: Set(batch.keys.map(\.id)))
             // Revalidate after awaiting the reader, because another window or sync can write meanwhile.
+            let beforeFinalRefresh = items
             refreshDuplicates()
+            rebuildIdentityPlan(preserving: beforeFinalRefresh)
             let refreshed = try makeBatch()
             guard Set(refreshed.keys.map(\.id)) == Set(batch.keys.map(\.id)),
                 selectedItems().allSatisfy({ problem(for: $0) == nil })
@@ -330,7 +694,7 @@ public final class SSHImportModel {
             batch.identities = refreshed.identities
             batch.knownHosts = refreshed.knownHosts
             try library.commitSSHImport(batch)
-            importedCount = batch.keys.count + batch.hosts.count + batch.knownHosts.count
+            importedCount = batch.keys.count + batch.identities.count + batch.hosts.count + batch.knownHosts.count
             completed = true
             await reader.discard()
         } catch { self.error = error.localizedDescription }
@@ -347,6 +711,17 @@ public final class SSHImportModel {
             return key
         }
         batch.knownHosts = selectedItems(.knownHosts).compactMap(\.knownHost)
+        let selectedKeyIDs = Set(batch.keys.map(\.id))
+        batch.identities = selectedItems(.identities).compactMap { item in
+            guard var identity = item.identity,
+                identity.keyID.map({ library.key($0) != nil || selectedKeyIDs.contains($0) }) ?? true
+            else { return nil }
+            identity.name = item.name
+            identity.passwordStorage = identityPasswordStorage
+            identity.colorTag = identityColor
+            return identity
+        }
+        let importedIdentityIDs = Set(batch.identities.map(\.id))
         var built: [UUID: Host] = [:]
         var visiting: Set<UUID> = []
         func build(_ item: SSHImportItem, forcedJump: UUID? = nil) throws -> Host {
@@ -372,19 +747,12 @@ public final class SSHImportModel {
                     throw ImportRouteError.invalid
                 }
             }
-            let keyID = chosenKey(for: item)?.id
-            let identity: Identity
-            if let existing = (library.identities + batch.identities).first(where: {
-                $0.username == imported.username && $0.keyID == keyID
-            }) {
-                identity = existing
-            } else {
-                identity = Identity(name: imported.username, username: imported.username, keyID: keyID)
-                batch.identities.append(identity)
+            let identityID = imported.identityID.flatMap { id in
+                library.identity(id) != nil || importedIdentityIDs.contains(id) ? id : nil
             }
             let host = Host(
                 id: item.id, name: item.name, host: imported.hostname, port: imported.port,
-                identityID: identity.id, jumpHostID: jumpID, groupID: hostGroupID,
+                identityID: identityID, jumpHostID: jumpID, groupID: hostGroupID,
                 tags: hostTags, colorTag: hostColor)
             built[item.id] = host
             return host

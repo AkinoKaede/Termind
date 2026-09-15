@@ -74,6 +74,16 @@ private struct SSHImportContent: View {
                                 Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
                             }
                         }
+                        Section("Identities") {
+                            Picker("Store password in", selection: $model.identityPasswordStorage) {
+                                ForEach(PasswordStorage.allCases) { storage in
+                                    Label(storage.displayName, systemImage: storage.symbol).tag(storage)
+                                }
+                            }
+                            LabeledContent("Color") {
+                                ColorTagPicker(selection: $model.identityColor, layout: .compact)
+                            }
+                        }
                     }
                     if !model.items.isEmpty {
                         Section {
@@ -233,10 +243,9 @@ private struct SSHImportContent: View {
 
     private func binding(for item: SSHImportItem) -> Binding<SSHImportItem> {
         Binding {
-            model.items.first(where: { $0.id == item.id }) ?? item
+            model.item(item.id) ?? item
         } set: { updated in
-            guard let index = model.items.firstIndex(where: { $0.id == item.id }) else { return }
-            model.items[index] = updated
+            model.updateItem(updated)
         }
     }
 
@@ -253,12 +262,18 @@ private struct SSHImportContent: View {
         let item = binding.wrappedValue
         return VStack(alignment: .leading, spacing: Metrics.Space.s) {
             HStack(alignment: .center, spacing: Metrics.Space.s) {
-                Toggle(item.name, isOn: binding.selected)
-                    .labelsHidden()
-                    .toggleStyle(.checkbox)
-                    .fixedSize()
-                    .accessibilityLabel(item.name)
-                    .accessibilityHint(item.source)
+                Toggle(
+                    item.name,
+                    isOn: Binding(
+                        get: { model.isSelected(item.id) },
+                        set: { model.setSelected($0, itemID: item.id) }
+                    )
+                )
+                .labelsHidden()
+                .toggleStyle(.checkbox)
+                .fixedSize()
+                .accessibilityLabel(item.name)
+                .accessibilityHint(item.source)
                 VStack(alignment: .leading) {
                     Text(item.name).fontWeight(.medium).lineLimit(2)
                     Text(sourceLabel(item.source)).font(.caption).foregroundStyle(.secondary).lineLimit(2).help(
@@ -267,7 +282,7 @@ private struct SSHImportContent: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)
                 .onTapGesture {
-                    if model.selectable(item) { binding.selected.wrappedValue.toggle() }
+                    if model.selectable(item) { model.setSelected(!model.isSelected(item.id), itemID: item.id) }
                 }
                 .accessibilityHidden(true)
             }
@@ -283,7 +298,7 @@ private struct SSHImportContent: View {
                             get: { binding.name.wrappedValue },
                             set: {
                                 editingNames.insert(item.id)
-                                binding.name.wrappedValue = $0
+                                model.setName($0, for: item.id)
                             }
                         ))
                 }
@@ -292,10 +307,35 @@ private struct SSHImportContent: View {
                     Picker(
                         "Key",
                         selection: Binding(
-                            get: { model.chosenKey(for: item)?.id }, set: { binding.preferredKeyID.wrappedValue = $0 })
+                            get: { model.chosenKey(for: item)?.id },
+                            set: { model.setPreferredKey($0, for: item.id) })
                     ) {
                         ForEach(options) { key in Text(key.label).tag(Optional(key.id)) }
                     }
+                }
+            }
+            if item.host != nil {
+                LabeledContent("Identity", value: model.identityName(for: item) ?? String(localized: "None"))
+            }
+            if let identity = item.identity {
+                if model.selectable(item) {
+                    TextField(
+                        "Name",
+                        text: Binding(
+                            get: { binding.name.wrappedValue },
+                            set: { model.setName($0, for: item.id) }
+                        ))
+                }
+                LabeledContent("Username", value: identity.username)
+                LabeledContent(
+                    "Key",
+                    value: identity.keyID.flatMap { id in
+                        model.keyName(id)
+                    } ?? String(localized: "No Key")
+                )
+                let hosts = model.linkedHostNames(for: item)
+                if !hosts.isEmpty {
+                    LabeledContent("Hosts", value: hosts.joined(separator: ", "))
                 }
             }
             if item.requiresPassphrase {
