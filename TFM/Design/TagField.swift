@@ -78,8 +78,11 @@ struct TagField: View {
             Image(systemName: "number")
                 .foregroundStyle(.secondary)
 
-            TextField("Add a tag…", text: $query)
+            TextField(text: $query, prompt: Text("Add a tag…")) { EmptyView() }
                 .textFieldStyle(.plain)
+                .labelsHidden()
+                .multilineTextAlignment(.leading)
+                .accessibilityLabel(Text("Add a tag…"))
                 .focused($isFocused)
                 // Return takes the highlighted row, so the whole interaction is
                 // type-then-Return without reaching for the arrow keys. A
@@ -130,6 +133,7 @@ struct TagField: View {
             .accessibilityLabel(Text(isListOpen ? "Hide tag suggestions" : "Show tag suggestions"))
         }
         .padding(Metrics.Space.s)
+        .frame(maxWidth: .infinity, alignment: .leading)
         // A row can leave the visible window as the query narrows the list, and
         // a highlight nobody can see is the same as no highlight.
         .onChange(of: query) { _, _ in
@@ -268,6 +272,8 @@ private struct TagRowView: View {
         HStack(spacing: Metrics.Space.s) {
             switch row {
             case .existing(let tag):
+                Image(systemName: "number")
+                    .foregroundStyle(.secondary)
                 Text(tag)
             case .create(let tag):
                 Image(systemName: "plus.circle")
