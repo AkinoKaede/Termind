@@ -21,7 +21,7 @@ struct MobileWorkspaceListView: View {
                 }
             }
             if app.workspaces.isEmpty, !historyRows.isEmpty {
-                Section("History") { historyRowsContent }
+                Section("Recents") { historyRowsContent }
             } else {
                 Section("Workspaces") { workspaceRows }
             }
