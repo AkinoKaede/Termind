@@ -99,9 +99,15 @@ struct MCPServerSettings: View {
         }
 
         Section("Call History") {
-            TextField("Filter by client, tool, host or argument", text: $historyQuery.singleLineText, axis: .horizontal)
-                .singleLinePaste()
-                .lineLimit(1)
+            TextField(
+                "Filter by client, tool, host or argument", text: $historyQuery.singleLineText,
+                prompt: Text("Filter by client, tool, host or argument"), axis: .horizontal
+            )
+            .singleLinePaste()
+            .lineLimit(1)
+            .labelsHidden()
+            .multilineTextAlignment(.leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
             let rows = app.toolAudit.entries(matching: historyQuery)
             if rows.isEmpty {
                 ContentUnavailableView(
