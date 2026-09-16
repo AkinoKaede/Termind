@@ -152,6 +152,10 @@ recorded only after a fresh successful listing and files only after download.
 Failed, cancelled, stale, missing, or type-changed operations do not update it.
 Transfers own dedicated connections and outlive browser closure; host deletion and
 background expiration cancel them, and nothing is silently replayed.
+Desktop and mobile upload/download preparation and enqueueing use the Remote
+Infrastructure planners. Download batches retain their destination independently of
+file jobs, so directory-only selections still create their empty directory trees.
+App sessions retain pending-batch presentation, cancellation, and completion handling.
 
 ## Callback isolation
 

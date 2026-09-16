@@ -791,6 +791,114 @@ struct SFTPFeatureTests {
         #expect(batch.conflictCount == 0)
     }
 
+    @Test(arguments: [TransferConflictPolicy.skip, .replace, .keepBoth], [false, true])
+    func downloadingAFileResolvesExistingFilesAndDirectories(
+        policy: TransferConflictPolicy, existingIsDirectory: Bool
+    ) async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = root.appending(path: "report.txt")
+        if existingIsDirectory {
+            try FileManager.default.createDirectory(at: original, withIntermediateDirectories: true)
+        }
+        let preserved = existingIsDirectory ? original.appending(path: "keep.txt") : original
+        try Data("original".utf8).write(to: preserved)
+        let client = WritingSFTPClient()
+        let session = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/source", client: client, configuration: testConfiguration
+        )
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
+
+        await session.prepareDownload([remoteFile(path: "/source/report.txt", kind: .file)], to: root)
+        #expect(session.conflictCount == 1)
+        await session.enqueuePending(policy: policy, coordinator: coordinator)
+        for _ in 0..<200 {
+            guard coordinator.sftpTransfers.contains(where: { $0.state == .queued || $0.state == .running }) else {
+                break
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(session.operationError == nil)
+        #expect(!session.hasPendingBatch)
+        if policy != .replace { #expect(try Data(contentsOf: preserved) == Data("original".utf8)) }
+        if policy == .skip {
+            #expect(coordinator.sftpTransfers.isEmpty)
+        } else {
+            let destination = policy == .keepBoth ? root.appending(path: "report.2.txt") : original
+            #expect(coordinator.sftpTransfers.map(\.state) == [.completed])
+            #expect(try Data(contentsOf: destination) == Data("termind".utf8))
+        }
+    }
+
+    @Test(arguments: [TransferConflictPolicy.skip, .replace, .keepBoth])
+    func downloadingAConflictingDirectoryAppliesThePolicyToItsWholeSubtree(
+        policy: TransferConflictPolicy
+    ) async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let original = root.appending(path: "bundle")
+        try Data("original".utf8).write(to: original)
+        let bundle = remoteFile(path: "/source/bundle", kind: .directory)
+        let nested = remoteFile(path: "/source/bundle/nested", kind: .directory)
+        let file = remoteFile(path: "/source/bundle/nested/payload.txt", kind: .file)
+        let sibling = remoteFile(path: "/source/bundle-other", kind: .directory)
+        let client = TreeSFTPClient(listings: [bundle.path: [nested], nested.path: [file]])
+        let session = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/source", client: client, configuration: testConfiguration
+        )
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
+
+        await session.prepareDownload([bundle, sibling], to: root)
+        #expect(session.conflictCount == 1)
+        await session.enqueuePending(policy: policy, coordinator: coordinator)
+
+        #expect(session.operationError == nil)
+        #expect(!session.hasPendingBatch)
+        #expect(try root.appending(path: "bundle-other").resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true)
+        if policy != .replace { #expect(try Data(contentsOf: original) == Data("original".utf8)) }
+        if policy == .skip {
+            #expect(coordinator.sftpTransfers.isEmpty)
+        } else {
+            let directory = policy == .keepBoth ? root.appending(path: "bundle.2") : original
+            let destination = directory.appending(path: "nested/payload.txt")
+            #expect(coordinator.sftpTransfers.map(\.localPath) == [destination.path])
+            #expect(coordinator.sftpTransfers.map(\.remotePath) == [file.path])
+            #expect(coordinator.sftpTransfers.map(\.direction) == [.download])
+            #expect(
+                try directory.appending(path: "nested").resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true)
+        }
+    }
+
+    @Test
+    func downloadingOnlyEmptyDirectoriesCreatesThemUnlessTheBatchWasCancelled() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let bundle = remoteFile(path: "/source/bundle", kind: .directory)
+        let empty = remoteFile(path: "/source/bundle/empty", kind: .directory)
+        let client = TreeSFTPClient(listings: [bundle.path: [empty]])
+        let session = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/source", client: client, configuration: testConfiguration
+        )
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
+
+        await session.prepareDownload([bundle], to: root)
+        #expect(session.hasPendingBatch)
+        session.cancelPendingBatch()
+        await session.enqueuePending(policy: .skip, coordinator: coordinator)
+        #expect(!FileManager.default.fileExists(atPath: root.path))
+
+        await session.prepareDownload([bundle], to: root)
+        await session.enqueuePending(policy: .skip, coordinator: coordinator)
+
+        #expect(session.operationError == nil)
+        #expect(!session.hasPendingBatch)
+        #expect(coordinator.sftpTransfers.isEmpty)
+        #expect(try root.appending(path: "bundle/empty").resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true)
+    }
+
     @Test
     func remoteCopyPreflightFindsTargetConflicts() async {
         let sourceHostID = UUID()

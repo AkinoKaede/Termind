@@ -86,26 +86,6 @@ private struct SFTPDirectoryPresentation {
 
 @Observable
 final class SFTPSessionModel: Identifiable {
-    struct PreparedJob {
-        var direction: SFTPTransfer.Direction
-        var localURL: URL
-        var remotePath: String
-        var byteCount: Int64
-        var scopedRoot: URL
-        var hasConflict: Bool
-        var conflictingTargetIsDirectory: Bool
-    }
-
-    struct PreparedBatch {
-        var id = UUID()
-        var jobs: [PreparedJob]
-        var remoteDirectories: [String]
-        var remoteDirectoryConflicts: Set<String>
-        var localDirectories: [URL]
-        var localDirectoryConflicts: Set<URL>
-        var conflictCount: Int
-    }
-
     struct PreparedRemoteCopyJob {
         var sourcePath: String
         var destinationPath: String
@@ -187,7 +167,7 @@ final class SFTPSessionModel: Identifiable {
     var pendingAuthentication: SSHAuthenticationPrompt?
     let connection = RemoteSessionConnectionController()
     var connectionJourney: ConnectionJourney { connection.journey }
-    var pendingBatch: PreparedBatch?
+    private var pendingDownloadBatch: SFTPRemoteDownloadBatch?
     var pendingUploadBatch: SFTPLocalUploadBatch?
     var pendingRemoteCopyBatch: PreparedRemoteCopyBatch?
     var operationError: String?
@@ -253,11 +233,11 @@ final class SFTPSessionModel: Identifiable {
     var conflictCount: Int {
         pendingRemoteCopyBatch?.conflictCount
             ?? pendingUploadBatch?.conflictCount
-            ?? pendingBatch?.conflictCount
+            ?? pendingDownloadBatch?.conflictCount
             ?? 0
     }
     var hasPendingBatch: Bool {
-        pendingUploadBatch != nil || pendingBatch != nil || pendingRemoteCopyBatch != nil
+        pendingUploadBatch != nil || pendingDownloadBatch != nil || pendingRemoteCopyBatch != nil
     }
     /// What the list draws. Already filtered, sorted, and formatted.
     var visibleRows: [SFTPRow] { directoryPresentation.visibleRows }
@@ -831,7 +811,7 @@ final class SFTPSessionModel: Identifiable {
 
     func cancelPendingBatch() {
         pendingUploadBatch = nil
-        pendingBatch = nil
+        pendingDownloadBatch = nil
         pendingRemoteCopyBatch = nil
     }
 
@@ -843,7 +823,7 @@ final class SFTPSessionModel: Identifiable {
                 destination: path,
                 client: client
             )
-            pendingBatch = nil
+            pendingDownloadBatch = nil
             pendingRemoteCopyBatch = nil
             pendingUploadBatch = batch.isEmpty ? nil : batch
         } catch {
@@ -854,48 +834,13 @@ final class SFTPSessionModel: Identifiable {
 
     func prepareDownload(_ files: [RemoteFile], to directory: URL) async {
         guard let client else { return }
-        var jobs: [PreparedJob] = []
-        var directories: [URL] = []
-        var directoryConflicts: Set<URL> = []
-        var conflicts = 0
         do {
             pendingUploadBatch = nil
-            func collect(_ remote: RemoteFile, local: URL) async throws {
-                if remote.isDirectory {
-                    directories.append(local)
-                    for child in try await client.listDirectory(at: remote.path) {
-                        try await collect(child, local: local.appendingPathComponent(child.name))
-                    }
-                } else {
-                    var isDirectory: ObjCBool = false
-                    let exists = FileManager.default.fileExists(atPath: local.path, isDirectory: &isDirectory)
-                    if exists { conflicts += 1 }
-                    jobs.append(
-                        PreparedJob(
-                            direction: .download, localURL: local, remotePath: remote.path,
-                            byteCount: remote.size, scopedRoot: directory, hasConflict: exists,
-                            conflictingTargetIsDirectory: exists && isDirectory.boolValue
-                        ))
-                }
-            }
-            for file in files {
-                try await collect(file, local: directory.appendingPathComponent(file.name))
-            }
-            for directory in directories {
-                var isDirectory: ObjCBool = false
-                if FileManager.default.fileExists(atPath: directory.path, isDirectory: &isDirectory),
-                    !isDirectory.boolValue
-                {
-                    directoryConflicts.insert(directory)
-                    conflicts += 1
-                }
-            }
-            pendingRemoteCopyBatch = nil
-            pendingBatch = PreparedBatch(
-                jobs: jobs, remoteDirectories: [], remoteDirectoryConflicts: [],
-                localDirectories: directories, localDirectoryConflicts: directoryConflicts,
-                conflictCount: conflicts
+            let batch = try await SFTPRemoteDownloadPlanner.prepare(
+                files, destination: directory, client: client
             )
+            pendingRemoteCopyBatch = nil
+            pendingDownloadBatch = batch
         } catch { operationError = error.localizedDescription }
     }
 
@@ -935,7 +880,7 @@ final class SFTPSessionModel: Identifiable {
                 jobs[index].conflictingTargetIsDirectory = kind
             }
 
-            pendingBatch = nil
+            pendingDownloadBatch = nil
             pendingRemoteCopyBatch = PreparedRemoteCopyBatch(
                 source: manifest.source, jobs: jobs,
                 remoteDirectories: preflight.directories,
@@ -1082,113 +1027,15 @@ final class SFTPSessionModel: Identifiable {
             }
             return
         }
-        guard let batch = pendingBatch, let connection = transferConnection, let client else {
+        guard let batch = pendingDownloadBatch, let connection = transferConnection, client != nil else {
             return
         }
-        pendingBatch = nil
+        pendingDownloadBatch = nil
         do {
-            let remoteResolution = try await resolveRemoteDirectories(
-                batch.remoteDirectories, conflicts: batch.remoteDirectoryConflicts,
-                policy: policy, client: client
+            try SFTPRemoteDownloadPlanner.enqueue(
+                batch, policy: policy, hostID: hostID, connection: connection,
+                homeDirectory: homeResolution.resolvedDirectory, coordinator: coordinator
             )
-            let localRoots = Set(batch.jobs.filter { $0.direction == .download }.map(\.scopedRoot))
-            var skippedLocalPrefixes: [URL] = []
-            var localMappings: [(URL, URL)] = []
-            for root in localRoots {
-                let scoped = root.startAccessingSecurityScopedResource()
-                defer { if scoped { root.stopAccessingSecurityScopedResource() } }
-                for originalDirectory in batch.localDirectories where originalDirectory.path.hasPrefix(root.path) {
-                    if skippedLocalPrefixes.contains(where: {
-                        originalDirectory.path == $0.path
-                            || originalDirectory.path.hasPrefix($0.path + "/")
-                    }) {
-                        continue
-                    }
-                    var directory = originalDirectory
-                    for mapping in localMappings
-                    where directory.path == mapping.0.path || directory.path.hasPrefix(mapping.0.path + "/") {
-                        directory = URL(
-                            fileURLWithPath: mapping.1.path + directory.path.dropFirst(mapping.0.path.count))
-                    }
-                    if batch.localDirectoryConflicts.contains(originalDirectory) {
-                        switch policy {
-                        case .skip:
-                            skippedLocalPrefixes.append(originalDirectory)
-                            continue
-                        case .replace:
-                            try FileManager.default.removeItem(at: originalDirectory)
-                        case .keepBoth:
-                            let candidate = Self.keepBothLocalURL(originalDirectory)
-                            localMappings.append((originalDirectory, candidate))
-                            directory = candidate
-                        }
-                    }
-                    try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-                }
-            }
-            for var job in batch.jobs {
-                if remoteResolution.skipped.contains(where: {
-                    job.remotePath == $0 || job.remotePath.hasPrefix($0 + "/")
-                })
-                    || skippedLocalPrefixes.contains(where: {
-                        job.localURL.path == $0.path || job.localURL.path.hasPrefix($0.path + "/")
-                    })
-                {
-                    continue
-                }
-                for mapping in remoteResolution.mappings
-                where job.remotePath == mapping.0 || job.remotePath.hasPrefix(mapping.0 + "/") {
-                    job.remotePath = mapping.1 + job.remotePath.dropFirst(mapping.0.count)
-                    job.hasConflict = false
-                }
-                for mapping in localMappings
-                where job.localURL.path == mapping.0.path || job.localURL.path.hasPrefix(mapping.0.path + "/") {
-                    let suffix = job.localURL.path.dropFirst(mapping.0.path.count)
-                    job.localURL = URL(fileURLWithPath: mapping.1.path + suffix)
-                    job.hasConflict = false
-                    try FileManager.default.createDirectory(
-                        at: job.localURL.deletingLastPathComponent(), withIntermediateDirectories: true
-                    )
-                }
-                if job.hasConflict {
-                    if job.direction == .upload {
-                        guard
-                            let resolved = try await resolveRemoteConflict(
-                                path: job.remotePath,
-                                conflictingTargetIsDirectory: job.conflictingTargetIsDirectory,
-                                policy: policy, client: client
-                            )
-                        else { continue }
-                        job.remotePath = resolved.path
-                        job.hasConflict = resolved.overwrite
-                    } else {
-                        switch policy {
-                        case .skip: continue
-                        case .replace:
-                            if job.conflictingTargetIsDirectory {
-                                try FileManager.default.removeItem(at: job.localURL)
-                            }
-                        case .keepBoth:
-                            job.localURL = Self.keepBothLocalURL(job.localURL)
-                        }
-                    }
-                }
-                let completion: ((SFTPTransfer.State) -> Void)? =
-                    job.direction == .upload
-                    ? { [weak self] state in
-                        if state == .completed { self?.scheduleSilentRefresh() }
-                    }
-                    : nil
-                coordinator.enqueue(
-                    direction: job.direction, batchID: batch.id, localURL: job.localURL,
-                    remotePath: job.remotePath, byteCount: job.byteCount, hostID: hostID,
-                    connection: connection, scopedRoot: job.scopedRoot,
-                    overwrite: job.hasConflict && policy == .replace,
-                    homeDirectory: homeResolution.resolvedDirectory,
-                    completion: completion
-                )
-            }
-            if remoteResolution.changed { scheduleSilentRefresh() }
         } catch { operationError = error.localizedDescription }
     }
 
@@ -1429,20 +1276,6 @@ final class SFTPSessionModel: Identifiable {
         return result
     }
 
-    private static func keepBothLocalURL(_ url: URL) -> URL {
-        let ext = url.pathExtension
-        let base = url.deletingPathExtension()
-        var index = 2
-        while true {
-            let name =
-                ext.isEmpty
-                ? "\(base.lastPathComponent).\(index)"
-                : "\(base.lastPathComponent).\(index).\(ext)"
-            let candidate = base.deletingLastPathComponent().appendingPathComponent(name)
-            if !FileManager.default.fileExists(atPath: candidate.path) { return candidate }
-            index += 1
-        }
-    }
 }
 
 // MARK: - Demo data
