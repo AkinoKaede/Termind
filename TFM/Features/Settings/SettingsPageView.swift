@@ -167,6 +167,7 @@ struct SettingsPageView: View {
                 }
                 ModelRoleSettings()
                 WebSearchSettings()
+                MemorySettingsSection(memory: app.memory, ai: app.aiConfiguration)
                 SkillSettings(
                     edit: { id, isNew in navigate(to: .skill(id, isNew: isNew)) }
                 )

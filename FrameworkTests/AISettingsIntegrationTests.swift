@@ -78,7 +78,7 @@ struct AISettingsIntegrationTests {
         #expect(glm.resolve(.guardian)?.model.id == "GLM-4.7-FLASH")
     }
 
-    @Test func skillImportExportPreservesContentAndReportsOmittedFiles() throws {
+    @Test func skillImportExportPreservesContentAndSupportingFiles() throws {
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -90,7 +90,8 @@ struct AISettingsIntegrationTests {
         #expect(outcome.document.name == skill.name)
         #expect(outcome.document.description == skill.summary)
         #expect(outcome.document.body.contains("Read usage."))
-        #expect(outcome.warnings.count == 1)
+        #expect(outcome.warnings.isEmpty)
+        #expect(outcome.document.package.files["reference.txt"] == Data("unused".utf8))
         let library = SkillLibraryModel()
         let first = library.install(outcome.document, importedFrom: outcome.origin)
         let second = library.install(outcome.document, importedFrom: outcome.origin)

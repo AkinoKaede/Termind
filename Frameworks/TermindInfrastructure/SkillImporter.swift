@@ -1,4 +1,5 @@
 import AgentKit
+import Darwin
 import Foundation
 
 /// Reading a skill off disk, kept out of the view so the parsing decisions are
@@ -14,19 +15,15 @@ public enum SkillImporter {
         let accessed = url.startAccessingSecurityScopedResource()
         defer { if accessed { url.stopAccessingSecurityScopedResource() } }
 
-        let values = try url.resourceValues(forKeys: [.isDirectoryKey])
+        let values = try url.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey])
+        guard values.isSymbolicLink != true else { throw AgentSkillImportError.notReadable }
         let isDirectory = values.isDirectory == true
         let file = isDirectory ? url.appending(path: "SKILL.md") : url
         guard FileManager.default.fileExists(atPath: file.path) else {
             throw AgentSkillImportError.noSkillFile
         }
 
-        let handle = try FileHandle(forReadingFrom: file)
-        defer { try? handle.close() }
-        let data = try handle.read(upToCount: AgentSkill.maximumBodyBytes + 1) ?? Data()
-        guard data.count <= AgentSkill.maximumBodyBytes else {
-            throw AgentSkillImportError.tooLarge
-        }
+        let data = try readBounded(file, root: isDirectory ? url : nil, limit: AgentSkill.maximumBodyBytes)
         guard let text = String(data: data, encoding: .utf8) else {
             throw AgentSkillImportError.notReadable
         }
@@ -34,29 +31,65 @@ public enum SkillImporter {
         // The folder name is the skill name for anything written against the
         // standard, where the directory *is* the identifier.
         let source = isDirectory ? url : url.deletingPathExtension()
-        let document = try AgentSkillDocument.parse(
+        var document = try AgentSkillDocument.parse(
             text, fallbackName: source.lastPathComponent
         )
-        return Outcome(
-            document: document, origin: file.lastPathComponent,
-            warnings: isDirectory ? bundledFileWarnings(in: url) : []
-        )
+        if isDirectory {
+            let root = url.standardizedFileURL
+            let keys: [URLResourceKey] = [.isRegularFileKey, .isDirectoryKey, .isSymbolicLinkKey, .fileSizeKey]
+            guard let enumerator = FileManager.default.enumerator(at: root, includingPropertiesForKeys: keys) else {
+                throw AgentSkillImportError.notReadable
+            }
+            for case let resource as URL in enumerator {
+                let values = try resource.resourceValues(forKeys: Set(keys))
+                guard values.isSymbolicLink != true else { throw AgentSkillImportError.notReadable }
+                if values.isDirectory == true { continue }
+                guard values.isRegularFile == true else { throw AgentSkillImportError.notReadable }
+                let path = String(resource.standardizedFileURL.path.dropFirst(root.path.count + 1))
+                if path == "SKILL.md" { continue }
+                try AgentSkillPackage.validatePath(path)
+                document.package.files[path] = try readBounded(
+                    resource, root: root, limit: AgentSkillPackage.maximumFileBytes)
+                try document.package.validate()
+            }
+        }
+        return Outcome(document: document, origin: file.lastPathComponent, warnings: [])
     }
 
-    /// Says what was left behind. A skill written for pi or Claude Code may ship
-    /// `scripts/` and `references/`; Termind imports the Markdown only, and
-    /// silently dropping the rest would leave the model following steps that
-    /// reference files nobody has.
-    private static func bundledFileWarnings(in directory: URL) -> [String] {
-        let contents = try? FileManager.default.contentsOfDirectory(
-            at: directory, includingPropertiesForKeys: nil
-        )
-        let extras = (contents ?? [])
-            .filter { $0.lastPathComponent != "SKILL.md" }
-            .map(\.lastPathComponent)
-            .sorted()
-        guard !extras.isEmpty else { return [] }
-        let names = extras.joined(separator: ", ")
-        return [String(localized: "Only SKILL.md was imported. These were not: \(names).")]
+    public static func readResource(_ url: URL) throws -> Data {
+        let access = url.startAccessingSecurityScopedResource()
+        defer { if access { url.stopAccessingSecurityScopedResource() } }
+        return try readBounded(url, root: nil, limit: AgentSkillPackage.maximumFileBytes)
+    }
+
+    private static func readBounded(_ url: URL, root: URL?, limit: Int) throws -> Data {
+        var descriptor: Int32
+        if let root {
+            let path = String(url.standardizedFileURL.path.dropFirst(root.standardizedFileURL.path.count + 1))
+            try AgentSkillPackage.validatePath(path)
+            descriptor = open(root.path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+            guard descriptor >= 0 else { throw AgentSkillImportError.notReadable }
+            let parts = path.components(separatedBy: "/")
+            for (index, part) in parts.enumerated() {
+                let flags = O_RDONLY | O_NOFOLLOW | O_CLOEXEC | (index == parts.count - 1 ? 0 : O_DIRECTORY)
+                let next = openat(descriptor, part, flags)
+                close(descriptor)
+                guard next >= 0 else { throw AgentSkillImportError.notReadable }
+                descriptor = next
+            }
+        } else {
+            descriptor = open(url.path, O_RDONLY | O_NOFOLLOW | O_CLOEXEC)
+            guard descriptor >= 0 else { throw AgentSkillImportError.notReadable }
+        }
+        let handle = FileHandle(fileDescriptor: descriptor, closeOnDealloc: true)
+        defer { try? handle.close() }
+        var info = stat()
+        guard fstat(descriptor, &info) == 0, info.st_mode & S_IFMT == S_IFREG else {
+            throw AgentSkillImportError.notReadable
+        }
+        guard info.st_size <= limit else { throw AgentSkillImportError.tooLarge }
+        let data = try handle.read(upToCount: limit + 1) ?? Data()
+        guard data.count <= limit else { throw AgentSkillImportError.tooLarge }
+        return data
     }
 }

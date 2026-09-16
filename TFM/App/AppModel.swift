@@ -97,6 +97,7 @@ final class AppModel {
     /// key at, this is a library of documents. See `SkillLibraryModel`.
     let terminalSettings: TerminalSettingsModel
     let skills: SkillLibraryModel
+    let memory: MemoryModel
     let commandGenerator: CommandGeneratorController
     /// Names conversations for the chat list. Held as the protocol, not the
     /// concrete controller, so a test can watch the trigger without a provider.
@@ -128,6 +129,7 @@ final class AppModel {
     init(
         hosts: HostLibraryModel, ai: AIConfigurationModel = AIConfigurationModel(),
         skills: SkillLibraryModel = SkillLibraryModel(),
+        memory: MemoryModel = MemoryModel(),
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
@@ -166,7 +168,8 @@ final class AppModel {
         externalAuthentication = ExternalAuthCoordinator()
         connections = connectionCoordinator
         serialPorts = dependencies.serialPortService
-        agentRunRepository = dependencies.agentRunRepository ?? InMemoryAgentRunRepository()
+        agentRunRepository = MemoryIndexedAgentRepository(
+            base: dependencies.agentRunRepository ?? InMemoryAgentRunRepository(), memory: memory)
         let agentHostServices = AgentHostServices.live(store: hosts, coordinator: connectionCoordinator)
         agentHosts = agentHostServices.resolver
         agentAuthentication = agentHostServices.authentication
@@ -183,6 +186,7 @@ final class AppModel {
         )
         self.ai = ai
         self.skills = skills
+        self.memory = memory
         self.terminalSettings = terminalSettings
         commandGenerator = CommandGeneratorController(ai: ai)
         conversationTitles = ConversationTitleController(ai: ai)
@@ -317,7 +321,7 @@ final class AppModel {
         repository: agentRunRepository)
 
     @ObservationIgnored private lazy var assistantExecution = AssistantExecutionController(
-        ai: ai, skills: skills, repository: agentRunRepository,
+        ai: ai, skills: skills, repository: agentRunRepository, memory: memory,
         authorize: { [weak self] in self?.proAccess.require(.assistant) == true },
         makeRegistry: { [weak self] conversation, model, provider, skills, channel, includes in
             guard let self else { return AgentToolRegistry([AnyAgentTool]()) }
@@ -592,6 +596,7 @@ final class AppModel {
     /// The delegate gives this asynchronous cleanup a bounded termination window.
     @discardableResult
     func shutdownForTermination() -> Task<Void, Never> {
+        memory.suspend()
         if let terminationTask { return terminationTask }
         serverMetrics.shutdown()
         speechTranscription.cancelAll()

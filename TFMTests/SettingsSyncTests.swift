@@ -103,7 +103,8 @@ struct SettingsSyncTests {
         try AIPersistence(context: legacy!.mainContext).save(
             AIConfigurationSnapshot(
                 providers: [provider], endpoints: [provider.id: endpoint], roles: [:]))
-        try SkillPersistence(context: legacy!.mainContext).save([skill])
+        legacy!.mainContext.insert(PersistentAgentSkill(skill, sortIndex: 0))
+        try legacy!.mainContext.save()
         legacy = nil
         let migrated = try ModelContainer(
             for: HostPersistence.schema, migrationPlan: TermindMigrationPlan.self,

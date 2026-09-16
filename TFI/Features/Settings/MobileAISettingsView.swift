@@ -25,6 +25,8 @@ struct MobileAISettingsView: View {
         switch destination {
         case .models:
             MobileModelsSettingsView(ai: app.ai)
+        case .memory:
+            Form { MemorySettingsSection(memory: app.memory, ai: app.ai) }.navigationTitle("Hermes Memory")
         case .skills:
             MobileSkillSettings(skills: app.skills)
         case .mcp:
@@ -36,6 +38,7 @@ struct MobileAISettingsView: View {
 enum MobileAISettingsDestination: String, CaseIterable, Identifiable {
     case models
     case skills
+    case memory
     case mcp
 
     var id: Self { self }
@@ -44,6 +47,7 @@ enum MobileAISettingsDestination: String, CaseIterable, Identifiable {
         switch self {
         case .models: "Models"
         case .skills: "Skills"
+        case .memory: "Hermes Memory"
         case .mcp: "MCP"
         }
     }
@@ -52,6 +56,7 @@ enum MobileAISettingsDestination: String, CaseIterable, Identifiable {
         switch self {
         case .models: "cube"
         case .skills: "doc.text"
+        case .memory: "brain"
         case .mcp: "network"
         }
     }

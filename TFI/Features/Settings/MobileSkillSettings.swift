@@ -67,7 +67,7 @@ struct MobileSkillSettings: View {
                 Button("Add Skill", systemImage: "plus") { editing = AgentSkill(name: "") }
                     .labelStyle(.iconOnly)
                 Menu {
-                    Button("Import Skill…", systemImage: "square.and.arrow.down") { importing = true }
+                    Button("Import Skill", systemImage: "square.and.arrow.down") { importing = true }
                     Divider()
                     Button("Reset", systemImage: "arrow.counterclockwise", role: .destructive) { reset = true }
                 } label: {
@@ -109,21 +109,6 @@ struct MobileSkillSettings: View {
                 "Skills you wrote, imported or edited are deleted. This cannot be undone — export anything you want to keep first."
             )
         }
-    }
-}
-
-private struct SkillFile: FileDocument {
-    static var readableContentTypes: [UTType] { [.plainText, UTType(filenameExtension: "md") ?? .plainText] }
-    var text: String
-    init(text: String) { self.text = text }
-    init(configuration: ReadConfiguration) throws {
-        guard let data = configuration.file.regularFileContents, let text = String(data: data, encoding: .utf8) else {
-            throw AgentSkillImportError.notReadable
-        }
-        self.text = text
-    }
-    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
-        FileWrapper(regularFileWithContents: Data(text.utf8))
     }
 }
 
@@ -194,12 +179,13 @@ struct MobileSkillEditor: View {
                             .foregroundStyle(.orange)
                     }
                 }
+                SkillPackageEditor(package: $model.draft.package, readResource: SkillImporter.readResource)
                 if let error { Section { Text(error).foregroundStyle(.red) } }
             }
         )
         .fileExporter(
-            isPresented: $exporting, document: SkillFile(text: AgentSkillDocument.render(model.draft)),
-            contentType: UTType(filenameExtension: "md") ?? .plainText, defaultFilename: "SKILL.md"
+            isPresented: $exporting, document: try? SkillPackageDocument(skill: model.draft),
+            contentType: .folder, defaultFilename: model.draft.effectiveName
         ) { result in
             if case .failure(let error) = result { self.error = error.localizedDescription }
         }

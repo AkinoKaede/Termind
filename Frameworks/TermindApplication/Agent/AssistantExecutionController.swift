@@ -10,6 +10,8 @@ public final class AssistantExecutionController {
         AgentToolRegistry
     private let ai: AIConfigurationModel
     private let skills: SkillLibraryModel
+    private let memory: MemoryModel?
+    private var preparingMemory = Set<UUID>()
     private let agentRunRepository: any AgentRunPersisting
     private let authorize: @MainActor () -> Bool
     private let makeRegistry: RegistryFactory
@@ -24,11 +26,13 @@ public final class AssistantExecutionController {
 
     public init(
         ai: AIConfigurationModel, skills: SkillLibraryModel, repository: any AgentRunPersisting,
+        memory: MemoryModel? = nil,
         authorize: @escaping @MainActor () -> Bool, makeRegistry: @escaping RegistryFactory,
         title: @escaping @MainActor (ConversationTitleContext) async throws -> String
     ) {
         self.ai = ai
         self.skills = skills
+        self.memory = memory
         agentRunRepository = repository
         self.authorize = authorize
         self.makeRegistry = makeRegistry
@@ -45,7 +49,7 @@ public final class AssistantExecutionController {
         guard conversation.canSendDraft, !conversation.isArchived, !conversation.isStreaming,
             !conversation.isCompacting, !conversation.isHistoryChanging,
             conversation.composer.pendingAttachments.isEmpty,
-            preparing.insert(conversation.id).inserted
+            !preparingMemory.contains(conversation.id), preparing.insert(conversation.id).inserted
         else { return }
         let generation = preparationGeneration
         // The *returned* text, not `draft`: attachments are folded in there, and
@@ -96,6 +100,43 @@ public final class AssistantExecutionController {
         promptContextAttachments: [AgentContextAttachment]? = nil,
         context: SessionContext? = nil,
         includesTerminalSuggestion: Bool = false
+    ) {
+        guard authorize(), !conversation.isStreaming, !conversation.isArchived else { return }
+        guard preparingMemory.insert(conversation.id).inserted else { return }
+        let generation = preparationGeneration
+        if let memory, memory.isEnabled {
+            Task { [weak self, weak conversation] in
+                guard let self, let conversation else { return }
+                defer { preparingMemory.remove(conversation.id) }
+                let id =
+                    conversation.transcript.first(where: { $0.contextSnapshot?.memorySessionID != nil })?
+                    .contextSnapshot?.memorySessionID ?? conversation.id
+                let session = await memory.session(id)
+                guard generation == preparationGeneration, !Task.isCancelled else { return }
+                performStartAgentRun(
+                    conversation, promptID: promptID, prompt: prompt, authoredPrompt: authoredPrompt,
+                    promptImages: promptImages, promptContextAttachments: promptContextAttachments,
+                    context: context, includesTerminalSuggestion: includesTerminalSuggestion, memorySession: session)
+            }
+        } else {
+            preparingMemory.remove(conversation.id)
+            performStartAgentRun(
+                conversation, promptID: promptID, prompt: prompt, authoredPrompt: authoredPrompt,
+                promptImages: promptImages, promptContextAttachments: promptContextAttachments,
+                context: context, includesTerminalSuggestion: includesTerminalSuggestion)
+        }
+    }
+
+    private func performStartAgentRun(
+        _ conversation: ConversationModel,
+        promptID: UUID? = nil,
+        prompt: String? = nil,
+        authoredPrompt: String? = nil,
+        promptImages: [AgentImageAttachment]? = nil,
+        promptContextAttachments: [AgentContextAttachment]? = nil,
+        context: SessionContext? = nil,
+        includesTerminalSuggestion: Bool = false,
+        memorySession: (context: AgentMemoryContext, access: any AgentMemoryAccessing)? = nil
     ) {
         guard authorize() else { return }
         guard !conversation.isStreaming, !conversation.isArchived, !conversation.isHistoryChanging else { return }
@@ -165,8 +206,15 @@ public final class AssistantExecutionController {
             chat.model.abilities.contains(.toolCall)
             ? skills.catalog : AgentSkillCatalog()
 
-        let registry = makeRegistry(
+        let baseRegistry = makeRegistry(
             conversation, chat.model, chat.provider, skillCatalog, channel, includesTerminalSuggestion)
+        let skillRegistry = AgentToolCatalog.registry(
+            builtIn: .init(
+                groups: [.skills, .memory], skills: skillCatalog, skillInventory: skills.skills, skillLibrary: skills,
+                memory: memorySession?.access))
+        let registry =
+            chat.model.abilities.contains(.toolCall)
+            ? AgentToolRegistry(skillRegistry.registeredTools + baseRegistry.registeredTools) : baseRegistry
         let interaction = WeakAgentUserInteraction(conversation)
         let services = AgentToolServices()
             .setting(interaction.sshInteraction, for: .sshInteraction)
@@ -241,11 +289,13 @@ public final class AssistantExecutionController {
                 planContract: planning ? TermindAgentPolicy.planContract : nil)
         }
         configuration.contextPipeline = { sessionContext, promptID, planning in
-            AgentContextPipeline.chat(
+            var pipeline = AgentContextPipeline.chat(
                 sessionContext: sessionContext, before: promptID,
                 isPlanning: planning, skills: skillCatalog,
                 planContract: TermindAgentPolicy.planContract
             )
+            if let memorySession { pipeline.transforms.append(memorySession.context) }
+            return pipeline
         }
         let runtime = AgentRuntime(
             model: model, registry: registry,
@@ -275,7 +325,7 @@ public final class AssistantExecutionController {
                 authorizationEvidence: GuardianEvidence.collect(from: conversation.transcript),
                 sessionContext: frozenContext.sessionContext, contextSnapshot: frozenContext
             ))
-        scheduleTitle(for: conversation)
+        scheduleTitle(for: conversation, isPlanning: isPlanning)
     }
 
     private func recordFailedRun(
@@ -318,7 +368,10 @@ public final class AssistantExecutionController {
             sessionContext: context.modelContext,
             skillCatalog: catalog.isEmpty ? nil : catalog.catalogBlock,
             planContract: conversation.isPlanning ? TermindAgentPolicy.planContract : nil,
-            toolAvailability: ["terminal_suggest": includesTerminalSuggestion]
+            toolAvailability: ["terminal_suggest": includesTerminalSuggestion],
+            memorySessionID: memory?.isEnabled == true
+                ? (conversation.transcript.first(where: { $0.contextSnapshot?.memorySessionID != nil })?
+                    .contextSnapshot?.memorySessionID ?? conversation.id) : nil
         )
     }
 
@@ -368,6 +421,10 @@ public final class AssistantExecutionController {
         }
 
         do {
+            if !conversation.isPlanning, let memory, let review = memoryReviewModel(conversation) {
+                await memory.review(
+                    conversationID: conversation.id, messages: conversation.transcript, model: review, wait: true)
+            }
             let summary = try await agentCompaction.summarize(
                 span.summarize, instructions: instructions,
                 toolResultLimit: compactionBudget.toolResultLimit, model: model
@@ -450,10 +507,16 @@ public final class AssistantExecutionController {
     /// whose rows rewrite themselves as the conversation grows is harder to scan
     /// than one whose rows stay put. `titledConversationIDs` is what makes the
     /// second run a no-op even though every run re-arms the hook.
-    private func scheduleTitle(for conversation: ConversationModel) {
+    private func scheduleTitle(for conversation: ConversationModel, isPlanning: Bool) {
         conversation.runDidFinish = { [weak self, weak conversation] in
-            guard let self, let conversation,
-                let context = Self.titleContext(for: conversation),
+            guard let self, let conversation else { return }
+            if conversation.runState == .completed, !isPlanning, let memory,
+                let model = memoryReviewModel(conversation)
+            {
+                let messages = conversation.transcript
+                Task { await memory.review(conversationID: conversation.id, messages: messages, model: model) }
+            }
+            guard let context = Self.titleContext(for: conversation),
                 !titledConversationIDs.contains(conversation.id)
             else { return }
             titledConversationIDs.insert(conversation.id)
@@ -470,6 +533,16 @@ public final class AssistantExecutionController {
                 }
             }
         }
+    }
+
+    private func memoryReviewModel(_ conversation: ConversationModel) -> (any AgentModelCompleting)? {
+        guard memory?.isEnabled == true else { return nil }
+        guard let resolved = ai.resolve(conversation: memory?.reviewModel ?? conversation.model),
+            let secret = ai.secret(for: resolved.provider.effectiveCredentialRef), !secret.isEmpty
+        else { return nil }
+        return AgentProviderClient(
+            provider: resolved.provider, model: resolved.model, secret: secret,
+            reasoning: conversation.reasoningEffort)
     }
 
     /// The opening exchange, if this conversation has one worth naming.

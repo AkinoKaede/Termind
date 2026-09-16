@@ -1,0 +1,184 @@
+import AgentKit
+import SwiftUI
+import TermindApplication
+import UniformTypeIdentifiers
+
+public struct MemorySettingsSection: View {
+    @Bindable private var memory: MemoryModel
+    private let ai: AIConfigurationModel
+    @State private var confirmDestroy = false
+    @State private var editing: AgentMemoryTarget?
+    @State private var draft = ""
+    @State private var exporting = false
+    @State private var exportError: String?
+    public init(memory: MemoryModel, ai: AIConfigurationModel) {
+        self.memory = memory
+        self.ai = ai
+    }
+    public var body: some View {
+        Section {
+            Toggle(
+                "Enable Memory",
+                isOn: Binding(
+                    get: { memory.isEnabled },
+                    set: { enabled in
+                        Task { await memory.setEnabled(enabled) }
+                    })
+            ).disabled(memory.isBusy)
+            Text(
+                "Memory is saved on this device. New conversations receive a fixed snapshot of your notes and profile."
+            )
+            .font(.caption).foregroundStyle(.secondary)
+            if memory.isEnabled {
+                Toggle("Automatic Learning", isOn: $memory.reviewEnabled)
+                Picker("Learning Model", selection: $memory.reviewModel) {
+                    Text("Same as Chat").tag(AIModelRef?.none)
+                    ForEach(ai.enabledModelProviders) { provider in
+                        Section(provider.name) {
+                            ForEach(provider.chatModels) { model in
+                                Text(model.label).tag(
+                                    AIModelRef?.some(.init(modelProviderID: provider.id, modelID: model.id)))
+                            }
+                        }
+                    }
+                }
+                Text("Automatic learning uses your configured model and may incur API charges.")
+                    .font(.caption).foregroundStyle(.secondary)
+                ForEach(AgentMemoryTarget.allCases, id: \.self) { target in
+                    Button {
+                        draft = memory.state.text(target)
+                        editing = target
+                    } label: {
+                        HStack {
+                            Text(target == .memory ? "Memory Notes" : "User Profile")
+                            Spacer()
+                            Text("\(memory.state.usage(target))/\(target.characterLimit)")
+                                .monospacedDigit().foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                Button("Export Memory") { exporting = true }
+                Button("Rebuild History Index") { Task { await memory.rebuildHistoryIndex() } }.disabled(
+                    memory.isIndexing)
+                if memory.isIndexing { ProgressView("Indexing History") }
+            }
+            if let error = exportError ?? memory.error {
+                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+            }
+            Button("Destroy", role: .destructive) { confirmDestroy = true }.disabled(memory.isBusy)
+            if memory.isBusy { ProgressView() }
+        } header: {
+            Text("Hermes Memory")
+        }
+        .task { await memory.refresh() }
+        .confirmationDialog("Destroy Memory?", isPresented: $confirmDestroy, titleVisibility: .visible) {
+            Button("Destroy", role: .destructive) { Task { await memory.destroy() } }
+        } message: {
+            Text(
+                "Delete saved memory, snapshots, learning progress, and search indexes, then turn off Memory. Skills and chat history are kept. Re-enabling Memory can rebuild memories from old chats."
+            )
+        }
+        .sheet(isPresented: Binding(get: { editing != nil }, set: { if !$0 { editing = nil } })) {
+            NavigationStack {
+                Form {
+                    TextEditor(text: $draft).frame(minHeight: 220)
+                    if let error = memory.error { Text(error).foregroundStyle(.red) }
+                    if let editing {
+                        Text("\(draft.unicodeScalars.count)/\(editing.characterLimit)").monospacedDigit()
+                    }
+                }
+                .navigationTitle(editing == .memory ? "Memory Notes" : "User Profile")
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { editing = nil } }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            guard let target = editing else { return }
+                            Task {
+                                await memory.edit(target, text: draft)
+                                if memory.error == nil { editing = nil }
+                            }
+                        }.disabled(draft.unicodeScalars.count > (editing?.characterLimit ?? 0) || memory.isBusy)
+                    }
+                }
+            }.frame(minWidth: 320, minHeight: 360)
+        }
+        .fileExporter(
+            isPresented: $exporting, document: KnowledgeFileDocument(data: Data(memory.state.prompt.utf8)),
+            contentType: .plainText, defaultFilename: "Memory.md"
+        ) { result in
+            if case .failure(let error) = result { exportError = error.localizedDescription }
+        }
+    }
+}
+
+public struct KnowledgeFileDocument: FileDocument {
+    public static var readableContentTypes: [UTType] { [.data] }
+    public var data: Data
+    public init(data: Data) { self.data = data }
+    public init(configuration: ReadConfiguration) throws { data = configuration.file.regularFileContents ?? Data() }
+    public func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
+
+public struct SkillPackageDocument: FileDocument {
+    public static var readableContentTypes: [UTType] { [.folder] }
+    private var files: [String: Data]
+    public init(skill: AgentSkill) throws {
+        try skill.package?.validate()
+        files = skill.package?.files ?? [:]
+        files["SKILL.md"] = Data(AgentSkillDocument.render(skill).utf8)
+    }
+    public init(configuration: ReadConfiguration) throws {
+        var contents: [String: Data] = [:]
+        func read(_ wrapper: FileWrapper, prefix: String) throws {
+            if let children = wrapper.fileWrappers {
+                for (name, child) in children {
+                    let path = prefix.isEmpty ? name : prefix + "/" + name
+                    try AgentSkillPackage.validatePath(path)
+                    try read(child, prefix: path)
+                }
+            } else if let bytes = wrapper.regularFileContents {
+                guard contents.count < AgentSkillPackage.maximumFiles + 1,
+                    bytes.count <= AgentSkillPackage.maximumFileBytes
+                else { throw AgentSkillImportError.tooLarge }
+                contents[prefix] = bytes
+            } else {
+                throw AgentSkillImportError.notReadable
+            }
+        }
+        try read(configuration.file, prefix: "")
+        guard contents.values.reduce(0, { $0 + $1.count }) <= AgentSkillPackage.maximumBytes else {
+            throw AgentSkillImportError.tooLarge
+        }
+        files = contents
+    }
+    private func makeWrapper() throws -> FileWrapper {
+        let root = FileWrapper(directoryWithFileWrappers: [:])
+        for (path, bytes) in files.sorted(by: { $0.key < $1.key }) {
+            try AgentSkillPackage.validatePath(path)
+            let parts = path.components(separatedBy: "/")
+            var directory = root
+            for part in parts.dropLast() {
+                if let existing = directory.fileWrappers?[part] {
+                    guard existing.isDirectory else { throw AgentSkillImportError.notReadable }
+                    directory = existing
+                } else {
+                    let child = FileWrapper(directoryWithFileWrappers: [:])
+                    child.preferredFilename = part
+                    directory.addFileWrapper(child)
+                    directory = child
+                }
+            }
+            guard directory.fileWrappers?[parts.last!] == nil else { throw AgentSkillImportError.notReadable }
+            let file = FileWrapper(regularFileWithContents: bytes)
+            file.preferredFilename = parts.last
+            directory.addFileWrapper(file)
+        }
+        return root
+    }
+    public func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper { try makeWrapper() }
+    public func write(to url: URL) throws {
+        try makeWrapper().write(to: url, options: .atomic, originalContentsURL: nil)
+    }
+}

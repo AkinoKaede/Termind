@@ -38,7 +38,7 @@ struct SkillSettings: View {
             }
 
             HStack {
-                Button("Import Skill…") { importSkill() }
+                Button("Import Skill") { importSkill() }
                 Spacer(minLength: Metrics.Space.m)
                 Button("Reset") { isConfirmingReset = true }
             }

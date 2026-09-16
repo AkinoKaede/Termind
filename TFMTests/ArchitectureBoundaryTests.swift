@@ -7,10 +7,10 @@ struct ArchitectureBoundaryTests {
     func mobileLayersKeepUIAndInfrastructureSeparate() throws {
         try assertNoImports(
             in: "../TFI/Application",
-            forbidden: ["SwiftUI", "UIKit", "SwiftData", "TermindPersistence"])
+            forbidden: ["SwiftUI", "UIKit", "SwiftData", "GRDB", "TermindPersistence"])
         try assertNoImports(
             in: "../TFI/UI",
-            forbidden: ["SwiftData", "TermindPersistence", "TermindRemoteInfrastructure"])
+            forbidden: ["SwiftData", "GRDB", "TermindPersistence", "TermindRemoteInfrastructure"])
         try assertNoConcreteImplementations(in: "../TFI/Features")
     }
 
@@ -19,7 +19,7 @@ struct ArchitectureBoundaryTests {
         try assertNoImports(
             in: "../Frameworks/TermindDomain",
             forbidden: [
-                "SwiftUI", "AppKit", "UIKit", "SwiftData", "Security", "Network", "StoreKit", "CloudKit",
+                "SwiftUI", "AppKit", "UIKit", "SwiftData", "GRDB", "Security", "Network", "StoreKit", "CloudKit",
                 "CSSH2", "OpenSSL", "GhosttyTerminal", "GhosttyTheme",
             ]
         )
@@ -30,7 +30,7 @@ struct ArchitectureBoundaryTests {
         try assertNoImports(
             in: "Application",
             forbidden: [
-                "SwiftUI", "AppKit", "UIKit", "SwiftData", "Security", "Network",
+                "SwiftUI", "AppKit", "UIKit", "SwiftData", "GRDB", "Security", "Network",
                 "CSSH2", "OpenSSL", "GhosttyTerminal", "GhosttyTheme",
             ]
         )
@@ -42,7 +42,7 @@ struct ArchitectureBoundaryTests {
     func featuresDoNotAccessPersistenceOrTransportsDirectly() throws {
         try assertNoImports(
             in: "Features",
-            forbidden: ["SwiftData", "Security", "Network", "CSSH2", "OpenSSL"]
+            forbidden: ["SwiftData", "GRDB", "Security", "Network", "CSSH2", "OpenSSL"]
         )
         try assertNoConcreteImplementations(in: "Features")
     }
@@ -125,7 +125,7 @@ struct ArchitectureBoundaryTests {
         try assertNoImports(
             in: "../Frameworks/TermindPresentation",
             forbidden: [
-                "Termind", "TermindIOS", "UIKit", "AppKit", "SwiftData", "TermindPersistence",
+                "Termind", "TermindIOS", "UIKit", "AppKit", "SwiftData", "GRDB", "TermindPersistence",
                 "TermindRemoteInfrastructure",
             ])
     }

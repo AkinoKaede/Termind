@@ -268,7 +268,7 @@ struct AgentSkillCatalogInjectionTests {
 }
 
 @Suite
-struct LoadSkillToolTests {
+struct SkillReadFileToolTests {
     private let catalog = AgentSkillCatalog([
         AgentSkill(
             name: "disk-triage", title: "Disk Triage",
@@ -281,7 +281,7 @@ struct LoadSkillToolTests {
         AgentToolInvocation(
             runID: UUID(),
             call: AgentToolCall(
-                id: "call-1", name: LoadSkillTool.name,
+                id: "call-1", name: SkillReadFileTool.name,
                 arguments: .object(["name": .string(name)])
             )
         )
@@ -300,7 +300,7 @@ struct LoadSkillToolTests {
     /// skill wrapped in those markers is a skill it is told to ignore.
     @Test
     func aSkillBodyIsNotFramedAsUntrustedData() async throws {
-        let result = try await LoadSkillTool(skills: catalog)
+        let result = try await SkillReadFileTool(skills: catalog)
             .execute(invocation("disk-triage"), context: context)
 
         #expect(!result.content.contains(AgentToolResult.untrustedDataOpeningMarker))
@@ -311,13 +311,35 @@ struct LoadSkillToolTests {
     }
 
     @Test
+    func supportingFilesArePagedReferenceData() async throws {
+        let catalog = AgentSkillCatalog([
+            AgentSkill(
+                name: "example", summary: "Example", body: "Instructions",
+                package: .init(files: [
+                    "references/guide.md": Data("one\ntwo\nthree\nfour".utf8)
+                ]))
+        ])
+        var call = invocation("example")
+        call.call.arguments = .object([
+            "name": .string("example"), "path": .string("references/guide.md"),
+            "offset": .number(2), "limit": .number(2),
+        ])
+        let result = try await SkillReadFileTool(skills: catalog).execute(call, context: context)
+        let payload = try #require(result.untrustedPayload)
+        let fields = try #require(try AgentJSONValue.decode(Data(payload.utf8)).objectValue)
+        #expect(fields["content"]?.stringValue == "two\nthree")
+        #expect(fields["next_offset"]?.integerValue == 4)
+        #expect(result.metadata["skill_instructions"] == nil)
+    }
+
+    @Test
     func namesWhatExistsWhenTheNameDoesNot() async {
         await #expect(throws: (any Error).self) {
-            try await LoadSkillTool(skills: catalog)
+            try await SkillReadFileTool(skills: catalog)
                 .execute(invocation("disk-triag"), context: context)
         }
         do {
-            _ = try await LoadSkillTool(skills: catalog)
+            _ = try await SkillReadFileTool(skills: catalog)
                 .execute(invocation("disk-triag"), context: context)
         } catch {
             #expect(error.localizedDescription.contains("disk-triage"))
@@ -327,7 +349,7 @@ struct LoadSkillToolTests {
 
     @Test
     func readsNothingAndSoNeedsNoApproval() {
-        let descriptor = LoadSkillTool(skills: catalog).descriptor
+        let descriptor = SkillReadFileTool(skills: catalog).descriptor
         #expect(descriptor.approvalPolicy == .approve)
         #expect(descriptor.concurrency == .parallel)
         #expect(descriptor.target == .local)
@@ -338,8 +360,8 @@ struct LoadSkillToolTests {
         let without = AgentToolCatalog.registry(builtIn: .init()).descriptors
         let with = AgentToolCatalog.registry(builtIn: .init(skills: catalog)).descriptors
 
-        #expect(!without.contains { $0.name == LoadSkillTool.name })
-        #expect(with.contains { $0.name == LoadSkillTool.name })
+        #expect(!without.contains { $0.name == SkillReadFileTool.name })
+        #expect(with.contains { $0.name == SkillReadFileTool.name })
     }
 }
 
@@ -350,17 +372,18 @@ struct AgentSkillTrimmingTests {
     @Test
     func aLoadedSkillSurvivesTrimmingWhileCommandOutputDoesNot() {
         let long = String(repeating: "x", count: 20_000)
+        let document = AgentJSONValue.object(["path": .string("SKILL.md"), "content": .string(long)]).encodedString
         let older = AgentTranscriptMessage(
             role: .assistant, text: "",
             toolCalls: [
-                AgentToolCall(id: "a", name: LoadSkillTool.name, arguments: .object([:])),
+                AgentToolCall(id: "a", name: SkillReadFileTool.name, arguments: .object([:])),
                 AgentToolCall(id: "b", name: "ssh_exec", arguments: .object([:])),
             ]
         )
         let messages = [
             older,
             AgentTranscriptMessage(
-                role: .tool, text: long, toolCallID: "a", toolName: LoadSkillTool.name
+                role: .tool, text: document, toolCallID: "a", toolName: SkillReadFileTool.name
             ),
             AgentTranscriptMessage(
                 role: .tool, text: long, toolCallID: "b", toolName: "ssh_exec"
@@ -379,7 +402,7 @@ struct AgentSkillTrimmingTests {
                 systemPrompt: "", messages: messages, tools: []
             ))
 
-        #expect(result.messages[1].text.count == long.count)
+        #expect(result.messages[1].text == document)
         #expect(result.messages[2].text.count < long.count)
         // The newest turn's output is exempt already, and stays that way.
         #expect(result.messages[5].text.count == long.count)

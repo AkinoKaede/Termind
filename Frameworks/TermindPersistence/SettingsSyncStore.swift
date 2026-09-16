@@ -175,7 +175,16 @@ public final class SettingsSyncPersistence {
             }
             try journal.acceptRemote(merge.accepted)
             // Rebuild from the complete journal, so roles arriving before providers survive.
+            let existingPackages = Dictionary(
+                uniqueKeysWithValues: try skills.load().compactMap { skill in
+                    skill.package.map { (skill.id, $0) }
+                })
             snapshot = try materialize()
+            let remoteSnapshot = snapshot
+            for index in snapshot.skills.indices where snapshot.skills[index].package == nil {
+                snapshot.skills[index].package = existingPackages[snapshot.skills[index].id]
+            }
+            merge.needsUpload.formUnion(try journal.recordLocalChanges(from: remoteSnapshot, to: snapshot).keys)
             try ai.replace(snapshot.configuration)
             try skills.replace(snapshot.skills)
             try preferences().apply(snapshot.webSearch)

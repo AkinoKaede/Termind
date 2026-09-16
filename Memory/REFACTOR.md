@@ -168,3 +168,11 @@ Verification audit (2026-09-16 UTC):
 - All five original test identifiers are retained; none is skipped, deleted, or marked as an expected failure. Only the two mobile test files and this record change. Production behavior, architecture invariants/guards, localization catalogs, and pinned dependencies remain unchanged.
 - Verification: all five tests passed in three separate Xcode test actions (`fixed-repeat.xcresult`, `focused-2.xcresult`, `focused-3.xcresult`), then the full pinned TFI action passed **433/433** and full TFM action passed **1,399/1,399**, both with zero failures/skips (`full-ios.xcresult`, `full-macos.xcresult`, exit 0). Although the first action supplied `-test-iterations 3`, its log contains only one Swift Testing run; two independent actions supply the actual repetition evidence. This resolves the outstanding automated iOS verification blocker in the preceding entry.
 - Full strict recursive Swift formatting, `Scripts/check-zh-localization.sh`, and whitespace checks passed. Standalone SourceKit probes could not confirm the Xcode test-module graph; the successful Xcode compilation and simulator tests are the authoritative checks. Full results retain 29 iOS and 168 macOS runtime warnings, not investigated or baseline-attributed by this test-only repair; the three focused actions have none. Artifacts and the sequential verification script are under `/tmp/termind-ios-five-fixes.NfgsN4/`.
+
+
+## 2026-09-17 — Replace the single-document skill loader
+
+- Evidence: `load_skill` had its own definition, presenter, catalog guidance, and name-based output exemptions. A package file reader now supplies the same bounded SKILL.md behavior plus supporting resources.
+- Action: remove the executable `LoadSkillTool` and register `skill_read_file`; retain only the historical presenter ID and replay compatibility.
+- Estimated reduction: remove roughly 100 lines of the superseded loader; package management is an additive feature, not a net code-reduction claim.
+- Status: implemented. AgentKit tests pass; application skill, migration, memory lifecycle, and mobile suites have been exercised.

@@ -21,7 +21,7 @@ The agent runtime is the separately versioned `AgentKit` package.
 - `TermindPresentation` owns reusable SwiftUI content, presentation policy,
   Ghostty themes, and the `TerminalPreferences` bridge. It depends only on
   Application and Domain; native surfaces, transports, and lifetimes stay in apps.
-- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V16
+- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V17
   schema, migration plan, and container factory. It never depends on an app target.
 - `TFM` and `TFI` own platform UI, adapters, and lifecycle orchestration. Both use
   `App`, `Application`, `Design`, `DesignSystem`, `Features`, `Infrastructure`,
@@ -398,14 +398,35 @@ Every call has an approval policy before the run's permission mode is consulted:
   an explicit Approve choice for a destructive tool.
 - MCP tools follow Deny, Ask, or Approve in both acting and planning runs.
 
-Skills are trusted procedures only because users install them through Settings;
-tools, MCP servers, and fetched pages cannot write or enable them. `allowed-tools`
-never authorizes actions. MCP annotations may seed the local approval policy for a
-new tool, but cannot override a stored user choice. The model receives enabled names
-and descriptions at the context boundary, then loads bounded bodies through the
-read-only `load_skill`; downstream reads remain untrusted. The enabled set is fixed
-per run. Built-ins seed once, deleted built-ins stay deleted, and reset replaces the
-library only after confirmation.
+Skills are global, app-managed packages. Settings imports and approved `skill_manage`
+transactions use the same library and Settings sync journal. `skills_list` snapshots
+inventory, and `skill_read_file` reads bounded SKILL.md instructions or paged supporting
+resources. Only SKILL.md is an instructional result; supporting files remain reference
+data and no frontmatter grants permission. Mutations are acting-only, Ask, atomic, and
+bound to the library revision reviewed at preflight. Running agents retain their starting
+package snapshots; edits become available on the next run. The retired `load_skill`
+name has historical presentation/replay support only. V18 adds independent package
+backing while V1-V17 models remain frozen. Complete packages sync with existing skills;
+legacy records without package fields cannot erase supporting files.
+
+Hermes Memory is a device-local, default-off feature. AgentKit owns generic memory
+values, content screening, tools, learning, and revocable prompt snapshots; Application
+owns lifecycle and UI state; Persistence alone imports GRDB. Its dedicated Application
+Support database stores bounded global `memory` (2200 Unicode scalars) and `user`
+(1375 scalars), frozen per-conversation snapshots, learning checkpoints, and the FTS5
+history index. SwiftData remains the original conversation source. Forks retain the
+snapshot reference, not a second copy of memory in SwiftData. Tool writes are atomic;
+background reviews compare their base state transactionally before committing. Skills
+always retain their separate approval boundary. Memory and credentials never sync.
+
+Disabling memory revokes live access and prompt snapshots and cancels learning/indexing,
+but preserves storage. Destroy is user-only: persist disablement and an unfinished-destroy
+marker, revoke all leases, cancel and join work, close GRDB, then remove its entire owned
+directory. Failed destruction remains disabled and is retried at launch. No stale task
+can write through an old generation. Skills, original messages/tool results, and exported
+files survive. Explicit re-enablement creates a new memory store and permits full history
+backfill; old chats may therefore teach the agent the same facts again. Disabled startup
+does not create or open a database. Planning can search history but cannot write memory.
 
 Tools never receive the interactive PTY. SSH exec uses a dedicated channel and file
 operations use run-scoped SFTP. User-entered secrets are single-use handles bound to

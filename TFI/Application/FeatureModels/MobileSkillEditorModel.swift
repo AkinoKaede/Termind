@@ -32,6 +32,7 @@ final class MobileSkillEditorModel {
             try fields.merge(\.title)
             try fields.merge(\.summary)
             try fields.merge(\.body)
+            try fields.merge(\.package)
             value = fields.result
         }
         if value.name.isEmpty, AgentSkillNaming.isValid(value.effectiveName),

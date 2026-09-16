@@ -138,7 +138,7 @@ struct ChatComposerStateTests {
 
         #expect(sent.authoredText == "root is at 99%")
         #expect(sent.text.contains("<use_skill name=\"disk-triage\">"))
-        #expect(sent.text.contains("load_skill"))
+        #expect(sent.text.contains("skill_read_file"))
         #expect(conversation.messages.last?.text == "root is at 99%")
         #expect(conversation.transcript.last?.authoredText == "root is at 99%")
         #expect(try #require(conversation.transcript.last).text.contains("disk-triage"))

@@ -433,7 +433,7 @@ private struct SkillChip: View {
 
     /// A closed book: a procedure that exists and has not been opened yet, which
     /// is exactly the state a named-but-unloaded skill is in. The same glyph
-    /// carries it through the `/skill` row and the `load_skill` card.
+    /// carries it through the `/skill` row and the `skill_read_file` card.
     static let symbol = "book.closed"
 }
 

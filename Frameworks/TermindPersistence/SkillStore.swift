@@ -21,10 +21,15 @@ public final class SkillPersistence {
         let rows = try context.fetch(
             FetchDescriptor<PersistentAgentSkill>(sortBy: [SortDescriptor(\.sortIndex)])
         )
+        let packages = try context.fetch(FetchDescriptor<PersistentSkillPackage>())
+        var byID: [UUID: AgentSkillPackage] = [:]
+        for package in packages { byID[package.skillID] = try package.value() }
         var seen: Set<UUID> = []
         return rows.compactMap { row in
             guard seen.insert(row.id).inserted else { return nil }
-            return row.value
+            var value = row.value
+            value.package = byID[row.id]
+            return value
         }
     }
 
@@ -35,8 +40,13 @@ public final class SkillPersistence {
     /// Stages rows in the caller-owned transaction.
     public func replace(_ skills: [AgentSkill]) throws {
         try context.delete(model: PersistentAgentSkill.self)
+        try context.delete(model: PersistentSkillPackage.self)
         for (index, skill) in skills.enumerated() {
             context.insert(PersistentAgentSkill(skill, sortIndex: index))
+            if let package = skill.package {
+                try package.validate()
+                context.insert(try PersistentSkillPackage(skillID: skill.id, package: package))
+            }
         }
     }
 }

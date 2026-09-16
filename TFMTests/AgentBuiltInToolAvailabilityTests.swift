@@ -98,7 +98,7 @@ struct AgentBuiltInToolAvailabilityTests {
     }
 
     /// The point of `AgentToolGroup`: an adopter with no web client and no
-    /// skills gets a registry that never names `fetch` or `load_skill`, rather
+    /// skills gets a registry that never names `fetch` or `skill_read_file`, rather
     /// than one that offers them and fails on the first call.
     @Test
     func onlyTheSelectedGroupsReachTheRegistry() throws {
@@ -124,7 +124,7 @@ struct AgentBuiltInToolAvailabilityTests {
         #expect(names.contains("scratch_write"))
         #expect(names.contains("request_user_secret"))
         for absent in [
-            "fetch", "web_search", "scratch_fetch", "load_skill", "manage_tasks",
+            "fetch", "web_search", "scratch_fetch", "skill_read_file", "manage_tasks",
             "present_plan",
         ] {
             #expect(!names.contains(absent), "\(absent) survived group selection")
@@ -133,7 +133,7 @@ struct AgentBuiltInToolAvailabilityTests {
         // Everything the narrowed set dropped is present when its group is.
         let all = Set(AgentToolCatalog.registry(builtIn: everything).descriptors.map(\.name))
         #expect(names.isSubset(of: all))
-        #expect(all.isSuperset(of: ["fetch", "web_search", "load_skill", "present_plan"]))
+        #expect(all.isSuperset(of: ["fetch", "web_search", "skill_read_file", "present_plan"]))
     }
 
     /// A selected group whose dependency is missing contributes nothing. The

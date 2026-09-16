@@ -97,6 +97,10 @@ struct TermindApp: App {
                         permissionDefaults: .standard, aiSecrets: aiSecrets, webSearchPersistence: settingsPersistence
                     ),
                     skills: SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence)),
+                    memory: isRunningTests
+                        ? MemoryModel()
+                        : MemoryModel(
+                            storage: GRDBMemoryStore(directory: GRDBMemoryStore.defaultDirectory), defaults: .standard),
                     terminalSettings: TerminalSettingsModel(persistence: settingsPersistence),
                     commandHistory: CommandHistoryModel(modelContext: container.mainContext),
                     sftpHistory: SFTPHistoryModel(

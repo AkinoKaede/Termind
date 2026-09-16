@@ -1,5 +1,6 @@
 import AgentKit
 import SwiftUI
+import TermindInfrastructure
 import TermindPresentation
 import UniformTypeIdentifiers
 
@@ -13,7 +14,7 @@ import UniformTypeIdentifiers
 ///
 /// The name locks on first save, like `MCPServer.namespaceID`: it is how a
 /// conversation already in progress refers to this skill, and moving it would
-/// strand `load_skill` calls that are still in a transcript.
+/// strand `skill_read_file` calls that are still in a transcript.
 struct SkillEditorPage: View {
     let skillID: AgentSkill.ID
     let deleted: () -> Void
@@ -41,13 +42,14 @@ struct SkillEditorPage: View {
                     identitySection(skill)
                     descriptionSection(skill)
                     bodySection(skill)
+                    SkillPackageEditor(package: binding(\.package), readResource: SkillImporter.readResource)
                     Section {
                         // One row, with the destructive action at the far
                         // trailing edge. Stacked, the two read as a list of
                         // equals and Delete sits directly under the pointer
                         // after an Export.
                         HStack {
-                            Button("Export as SKILL.md") { export(skill) }
+                            Button("Export Skill Package") { export(skill) }
                             Spacer(minLength: Metrics.Space.m)
                             Button("Delete Skill", role: .destructive) {
                                 app.skills.delete(id: skillID)
@@ -182,13 +184,22 @@ struct SkillEditorPage: View {
     /// Writes the skill back out in the portable format, so one written here can
     /// be dropped into a pi or Claude Code skills directory.
     private func export(_ skill: AgentSkill) {
-        let panel = NSSavePanel()
-        panel.nameFieldStringValue = "SKILL.md"
-        panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
-        guard panel.runModal() == .OK, let url = panel.url else { return }
-        let accessed = url.startAccessingSecurityScopedResource()
-        defer { if accessed { url.stopAccessingSecurityScopedResource() } }
-        try? Data(AgentSkillDocument.render(skill).utf8).write(to: url)
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        guard panel.runModal() == .OK, let parent = panel.url else { return }
+        let accessed = parent.startAccessingSecurityScopedResource()
+        defer { if accessed { parent.stopAccessingSecurityScopedResource() } }
+        do {
+            let destination = parent.appending(path: skill.effectiveName, directoryHint: .isDirectory)
+            guard !FileManager.default.fileExists(atPath: destination.path) else {
+                throw CocoaError(.fileWriteFileExists)
+            }
+            try SkillPackageDocument(skill: skill).write(to: destination)
+        } catch {
+            NSAlert(error: error).runModal()
+        }
     }
 
     private func binding<Value>(_ keyPath: WritableKeyPath<AgentSkill, Value>) -> Binding<Value> {

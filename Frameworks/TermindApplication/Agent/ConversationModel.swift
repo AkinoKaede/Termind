@@ -1808,7 +1808,7 @@ public final class ConversationModel: Identifiable {
         let skillDirective = composer.armedSkillName.map { name in
             """
             <use_skill name="\(name)">
-            The user asked for this skill by name. Load it with load_skill before answering, and \
+            The user asked for this skill by name. Load it with skill_read_file before answering, and \
             follow it.
             </use_skill>
             """

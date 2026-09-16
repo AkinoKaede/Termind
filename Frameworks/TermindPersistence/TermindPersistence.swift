@@ -5,7 +5,7 @@ import SwiftData
 /// choose storage and own the container lifetime, never the model set.
 @MainActor
 public enum TermindPersistence {
-    public static let schema = Schema(versionedSchema: TermindSchemaV17.self)
+    public static let schema = Schema(versionedSchema: TermindSchemaV18.self)
 
     public static func makeContainer(inMemory: Bool = false, url: URL? = nil) throws -> ModelContainer {
         precondition(!inMemory || url == nil, "An in-memory store cannot also have a file URL")

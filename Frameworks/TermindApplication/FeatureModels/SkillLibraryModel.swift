@@ -7,12 +7,9 @@ import Foundation
 /// about endpoints you spend a key at, and this is a library of documents. They
 /// share nothing but the Settings page they appear on.
 ///
-/// The only writer. A skill reaches this model from the editor or from an import
-/// the user chose, and from nowhere else — no tool, no MCP server and no fetched
-/// page can reach it. `LoadSkillTool` depends on that: it is why a skill body is
-/// the one tool result that is not framed as untrusted data.
-@Observable
-public final class SkillLibraryModel {
+/// Settings and authorized skill tools share this atomic persistence boundary.
+@Observable @MainActor
+public final class SkillLibraryModel: AgentSkillLibraryManaging {
     public private(set) var skills: [AgentSkill] = []
     public private(set) var storageError: String?
 
@@ -106,6 +103,21 @@ public final class SkillLibraryModel {
         storageError = nil
     }
 
+    public func skillSnapshot() async throws -> AgentSkillLibrarySnapshot {
+        if let storageError { throw AgentToolError.invalidArguments(storageError) }
+        return AgentSkillLibrarySnapshot(skills)
+    }
+
+    public func applySkillOperations(_ operations: [AgentSkillOperation], expectedRevision: String) async throws {
+        guard AgentSkillLibrarySnapshot(skills).revision == expectedRevision else {
+            throw AgentToolError.invalidArguments("The skill library changed after review. Read it again and retry.")
+        }
+        let updated = try AgentSkillOperation.applying(operations, to: skills)
+        try persistence?.save(updated)
+        skills = updated
+        storageError = nil
+    }
+
     // MARK: - Writes
 
     public func upsert(_ skill: AgentSkill) {
@@ -183,7 +195,7 @@ public final class SkillLibraryModel {
             title: Self.title(of: document),
             summary: document.description,
             body: document.body,
-            importedFrom: importedFrom
+            importedFrom: importedFrom, package: document.package
         )
         upsert(skill)
         return skill

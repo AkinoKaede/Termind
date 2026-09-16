@@ -54,6 +54,7 @@ final class MobileAppModel {
     let settingsSync: SettingsSyncCoordinator?
     let metricsSync: MetricsSyncCoordinator?
     let skills: SkillLibraryModel
+    let memory: MemoryModel
     let ai: AIConfigurationModel
     let commandGenerator: CommandGeneratorController
     let assistant: MobileAssistantModel
@@ -151,6 +152,8 @@ final class MobileAppModel {
             webSearchPersistence: settingsPersistence)
         commandGenerator = CommandGeneratorController(ai: ai)
         skills = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence))
+        memory = MemoryModel(
+            storage: GRDBMemoryStore(directory: GRDBMemoryStore.defaultDirectory), defaults: settingsDefaults)
         library = HostLibraryModel(persistence: persistence, secrets: secrets)
         metrics = MobileMetricsModel(preferences: metricsPersistence, hosts: library, services: dependencies.metrics)
         let speechAudio = IOSSpeechAudioInput()
@@ -160,7 +163,9 @@ final class MobileAppModel {
         speechAudio.onInterruption = { [weak speech] in speech?.cancelAll() }
         assistant = MobileAssistantModel(
             configuration: ai,
-            repository: SwiftDataAgentRunRepository(context: ModelContext(container)),
+            repository: MemoryIndexedAgentRepository(
+                base: SwiftDataAgentRunRepository(context: ModelContext(container)), memory: memory),
+            memory: memory,
             hostServices: AgentHostServices.live(store: library), metrics: metrics.core, skills: skills,
             authorize: { [pro] in pro.require(.assistant) },
             speech: speech,
@@ -294,6 +299,7 @@ final class MobileAppModel {
         scenePhases[id] = phase
         let isBackground = scenePhases.values.allSatisfy { $0 == .background }
         if isBackground && !wasBackground {
+            memory.suspend()
             vaultSync?.pause()
             metricsSync?.pause()
             settingsSync?.pause()

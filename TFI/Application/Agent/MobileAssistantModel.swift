@@ -38,7 +38,7 @@ final class MobileAssistantModel {
     }
 
     init(
-        configuration: AIConfigurationModel, repository: any AgentRunPersisting,
+        configuration: AIConfigurationModel, repository: any AgentRunPersisting, memory: MemoryModel? = nil,
         hostServices: AgentHostServices, metrics: any MetricsSnapshotReading, skills: SkillLibraryModel,
         authorize: @escaping @MainActor () -> Bool,
         speech: SpeechTranscriptionCoordinator,
@@ -59,7 +59,7 @@ final class MobileAssistantModel {
         self.background = background
         let titles = ConversationTitleController(ai: configuration)
         execution = AssistantExecutionController(
-            ai: configuration, skills: skills, repository: repository,
+            ai: configuration, skills: skills, repository: repository, memory: memory,
             authorize: authorize,
             makeRegistry: { conversation, model, provider, catalog, channel, _ in
                 AssistantToolRegistry.make(
