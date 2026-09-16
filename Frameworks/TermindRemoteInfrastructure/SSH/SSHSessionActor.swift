@@ -46,6 +46,10 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     private var detectedShell: String?
     private var detectedSystemInfo: RemoteSystemInfo?
 
+    private var probeEchoMarker: Data {
+        Data("__TRMD_\(token)_PROBE__".utf8)
+    }
+
     public init(
         token: String = UUID().uuidString.replacingOccurrences(of: "-", with: ""),
         now: UInt64 = DispatchTime.now().uptimeNanoseconds
@@ -54,7 +58,12 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         // The POSIX helper reads os-release as inert assignment text instead of
         // sourcing it. Its output precedes the shell marker, so a missing `sh`
         // still leaves the original shell-only bootstrap path usable.
-        var probeCommand = " command sh -c 'f=; did=; dlike=; dver=; "
+        // Put a token near the start of the line so the bootstrap echo can still
+        // be recognized when zsh or fish redraws the remaining command with
+        // syntax-highlighting escape sequences. `true` accepts the inert token
+        // in all supported shells and produces no output.
+        var probeCommand = " command true '__TRMD_\(token)_PROBE__'; "
+        probeCommand += "command sh -c 'f=; did=; dlike=; dver=; "
         probeCommand += "[ -r /etc/os-release ] && f=/etc/os-release; "
         probeCommand += "[ -z \"$f\" ] && [ -r /usr/lib/os-release ] && f=/usr/lib/os-release; "
         probeCommand += "if [ -n \"$f\" ]; then while IFS= read -r line; do case \"$line\" in "
@@ -103,8 +112,10 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     ) -> Update {
         switch phase {
         case .probing where now >= deadline:
+            let isEchoingProbe = buffer.range(of: probeEchoMarker) != nil
             let visible = cleanBufferedOutput()
-            phase = .scanningForLateProbe
+            phase = isEchoingProbe ? .suppressingLateProbe : .scanningForLateProbe
+            if isEchoingProbe { deadline = now + Self.responseTimeout }
             lastActivity = nil
             return Update(visibleOutput: visible, homeResolutionUnavailable: true)
         case .scanningForLateProbe:
@@ -241,10 +252,15 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     private mutating func scanForLateProbe(now: UInt64) -> Update {
         let echo = Data(startCommand.dropFirst().dropLast())
         let marker = Data("__TRMD_\(token)_SHELL__".utf8)
-        let targets = [echo, marker]
+        let targets = [echo, probeEchoMarker, marker]
 
         if let match = earliestMatch(of: targets, in: buffer) {
-            var suppressionStart = match.range.lowerBound
+            var suppressionStart: Data.Index
+            if match.targetIndex == 1 {
+                suppressionStart = startOfLine(containing: match.range.lowerBound, in: buffer)
+            } else {
+                suppressionStart = match.range.lowerBound
+            }
             if match.targetIndex == 0, suppressionStart > buffer.startIndex {
                 let preceding = buffer.index(before: suppressionStart)
                 if buffer[preceding] == 0x20 { suppressionStart = preceding }
@@ -310,7 +326,16 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     private mutating func cleanBufferedOutput() -> Data {
         var visible = preservedOutput
         if visible.isEmpty { visible = outputBeforeCommand(in: buffer) }
-        let suffix = outputAfterLastLineBreak(in: buffer)
+        let suffix: Data
+        if let markerRange = buffer.range(of: probeEchoMarker),
+            buffer[markerRange.upperBound...].firstIndex(of: 0x0A) == nil
+        {
+            // The line editor has drawn the probe but the shell has not yet
+            // accepted the line. Keeping the unfinished line would reveal it.
+            suffix = Data()
+        } else {
+            suffix = outputAfterLastLineBreak(in: buffer)
+        }
         if !suffix.isEmpty { visible.append(suffix) }
         buffer.removeAll(keepingCapacity: false)
         preservedOutput.removeAll(keepingCapacity: false)
@@ -333,10 +358,22 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
 
     private func outputBeforeCommand(in data: Data) -> Data {
         let echo = Data(startCommand.dropLast())
-        let boundary = data.range(of: echo)?.lowerBound ?? data.endIndex
+        let boundary: Data.Index
+        if let echoRange = data.range(of: echo) {
+            boundary = echoRange.lowerBound
+        } else if let markerRange = data.range(of: probeEchoMarker) {
+            boundary = startOfLine(containing: markerRange.lowerBound, in: data)
+        } else {
+            boundary = data.endIndex
+        }
         let prefix = data[..<boundary]
         guard let lineEnd = prefix.lastIndex(of: 0x0A) else { return Data() }
         return Data(prefix[...lineEnd])
+    }
+
+    private func startOfLine(containing index: Data.Index, in data: Data) -> Data.Index {
+        data[..<index].lastIndex(of: 0x0A).map { data.index(after: $0) }
+            ?? data.startIndex
     }
 
     private func installationCommand(for shell: String?) -> Data? {

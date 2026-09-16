@@ -71,6 +71,80 @@ struct ShellIntegrationBootstrapTests {
         #expect(!visibleText.contains("__termind_report_cwd"))
     }
 
+    @Test(arguments: ["zsh", "fish"])
+    func redrawnProbeEchoIsHidden(shell: String) throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "REDRAW")
+        let probe = String(decoding: bootstrap.startCommand.dropLast(), as: UTF8.self)
+        let redrawnProbe = probe.replacingOccurrences(
+            of: "command sh", with: "\u{1B}[32mcommand\u{1B}[0m sh"
+        )
+        let probeOutput = Data(
+            ("Welcome\r\nuser@host$ " + redrawnProbe
+                + "\r\n__TRMD_REDRAW_SYSTEM__ubuntu||24.04|Linux|6.8.0|x86_64__\r\n"
+                + "__TRMD_REDRAW_SHELL__/bin/\(shell)__\r\nuser@host$ ").utf8
+        )
+
+        let probeUpdate = bootstrap.receive(probeOutput)
+        _ = try #require(probeUpdate.command)
+        #expect(probeUpdate.visibleOutput == nil)
+
+        let completed = bootstrap.receive(
+            Data(
+                ("__TRMD_REDRAW_HOME__%2Fhome%2Fuser\r\n"
+                    + "__TRMD_REDRAW_DONE__\r\nuser@host$ ").utf8
+            )
+        )
+        let visible = String(
+            decoding: try #require(completed.visibleOutput), as: UTF8.self
+        )
+
+        #expect(visible == "Welcome\r\nuser@host$ ")
+        #expect(!visible.contains("command sh"))
+        #expect(!visible.contains("__TRMD_"))
+    }
+
+    @Test(arguments: ["zsh", "fish"])
+    func timeoutDoesNotRevealRedrawnProbeEcho(shell: String) throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "SLOW", now: 0)
+        let probe = String(decoding: bootstrap.startCommand.dropLast(), as: UTF8.self)
+        let redrawnProbe = probe.replacingOccurrences(
+            of: "command sh", with: "\u{1B}[35mcommand\u{1B}[0m sh"
+        )
+        _ = bootstrap.receive(
+            Data(("Welcome\r\n\(shell)> " + redrawnProbe).utf8), now: 100_000_000
+        )
+
+        let update = bootstrap.poll(now: 3_000_000_000)
+        let visible = String(decoding: update.visibleOutput ?? Data(), as: UTF8.self)
+
+        #expect(visible == "Welcome\r\n")
+        #expect(!visible.contains("command sh"))
+        #expect(!visible.contains("__TRMD_"))
+
+        let detected = bootstrap.receive(
+            Data(
+                ("\r\n__TRMD_SLOW_SYSTEM__ubuntu||24.04|Linux|6.8.0|x86_64__\r\n"
+                    + "__TRMD_SLOW_SHELL__/bin/\(shell)__\r\n\(shell)> ").utf8
+            ),
+            now: 3_100_000_000
+        )
+        _ = try #require(detected.command)
+        #expect(detected.visibleOutput == nil)
+
+        let completed = bootstrap.receive(
+            Data(
+                ("__TRMD_SLOW_HOME__%2Fhome%2Fuser\r\n"
+                    + "__TRMD_SLOW_DONE__\r\n\(shell)> ").utf8
+            ),
+            now: 3_200_000_000
+        )
+        let completedVisible = String(
+            decoding: try #require(completed.visibleOutput), as: UTF8.self
+        )
+        #expect(completedVisible == "\(shell)> ")
+        #expect(!completedVisible.contains("__TRMD_"))
+    }
+
     @Test
     func parsesCommonDistributionsAndKernelOnlyFallback() throws {
         for (token, systemLine, expected) in [
