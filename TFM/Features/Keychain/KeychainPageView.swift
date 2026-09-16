@@ -1426,13 +1426,13 @@ struct KeyObjectActions: View {
     let export: () -> Void
 
     var body: some View {
-        // Copy Public Key repeats Copy Fingerprint's verb, so the glyph stays on
+        // Copy Fingerprint repeats Copy Public Key's verb, so the glyph stays on
         // the first of the pair.
-        Button("Copy Fingerprint", systemImage: MenuSymbol.copy) {
+        Button("Copy Public Key", systemImage: MenuSymbol.copy) { copyToPasteboard(key.publicKey) }
+            .disabled(key.publicKey.isEmpty)
+        Button("Copy Fingerprint") {
             copyToPasteboard(key.fingerprint)
         }
-        Button("Copy Public Key") { copyToPasteboard(key.publicKey) }
-            .disabled(key.publicKey.isEmpty)
         Divider()
         Button("Export to Hosts", systemImage: MenuSymbol.export, action: export)
             .disabled(key.publicKey.isEmpty)
