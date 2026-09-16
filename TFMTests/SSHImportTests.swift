@@ -172,30 +172,6 @@ struct SSHImportTests {
     }
 
     @Test
-    func importPreviewKeepsItemsAsDirectFormRows() throws {
-        let sourceRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-        let source = try String(
-            contentsOf: sourceRoot.appendingPathComponent("TFM/Features/SSHImport/SSHImportView.swift"),
-            encoding: .utf8)
-
-        #expect(source.contains("Form {"))
-        #expect(source.contains(".formStyle(.grouped)"))
-        #expect(source.contains("ForEach(model.items.filter"))
-        let tags = try #require(source.range(of: "TagField(tags: $model.hostTags"))
-        let storage = try #require(source.range(of: "Picker(\"Store in\", selection: $model.storage)"))
-        let color = try #require(source.range(of: "ColorTagPicker(selection: $model.importColor"))
-        let preview = try #require(source.range(of: "if !model.items.isEmpty"))
-        #expect(storage.lowerBound < color.lowerBound)
-        #expect(color.lowerBound < tags.lowerBound)
-        #expect(tags.lowerBound < preview.lowerBound)
-        #expect(!source.contains("hostColor"))
-        #expect(!source.contains("keyColor"))
-        #expect(!source.contains("identityColor"))
-        #expect(!source.contains("Store password in"))
-        #expect(!source.contains("private func categorySection"))
-    }
-
-    @Test
     func droppedSourcesUseTheSameTypeValidationAsTheFilePicker() async throws {
         let url = try root()
         defer { try? FileManager.default.removeItem(at: url) }

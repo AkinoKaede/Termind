@@ -156,7 +156,6 @@ struct ListViewMigrationTests {
         #expect(normal.id == naming.id)
         #expect(normal != naming)
         #expect(normal.height == Metrics.Sidebar.historyCardHeight)
-        #expect(normal.height == 52)
         #expect(naming.height == Metrics.Sidebar.historyCardEditingHeight)
         #expect(naming.height > normal.height)
     }

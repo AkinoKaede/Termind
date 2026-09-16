@@ -13,33 +13,6 @@ import Testing
 @Suite
 @MainActor
 struct KeychainOrderTests {
-    private func storagePrecedesColor(in source: String, occurrences: Int) -> Bool {
-        var searchRange = source.startIndex..<source.endIndex
-        for _ in 0..<occurrences {
-            guard let storage = source.range(of: "Picker(\"Store in\"", range: searchRange),
-                let color = source.range(of: "ColorTagPicker", range: storage.upperBound..<source.endIndex)
-            else {
-                return false
-            }
-            searchRange = color.upperBound..<source.endIndex
-        }
-        return true
-    }
-
-    @Test
-    func keyFormsPlaceStorageBeforeColor() throws {
-        let sourceRoot = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
-        let desktop = try String(
-            contentsOf: sourceRoot.appendingPathComponent("TFM/Features/Keychain/KeychainPageView.swift"),
-            encoding: .utf8)
-        let mobile = try String(
-            contentsOf: sourceRoot.appendingPathComponent("TFI/Features/Keychain/MobileKeyEditor.swift"),
-            encoding: .utf8)
-
-        #expect(storagePrecedesColor(in: desktop, occurrences: 2))
-        #expect(storagePrecedesColor(in: mobile, occurrences: 1))
-    }
-
     @Test
     func unsortedInputsStartAlphabeticallyAndCanBeReordered() throws {
         let zebra = SSHKeyRef(label: "Zebra")

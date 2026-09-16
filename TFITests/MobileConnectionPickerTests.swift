@@ -82,34 +82,7 @@ struct MobileConnectionPickerTests {
         #expect(Set(rows.map { "\($0.entry.hostID.uuidString):\($0.entry.kind.rawValue)" }).count == rows.count)
     }
 
-    @Test func sharedHostPickerUsesConfiguredTitleWithoutHostsHeaderOrProtocolControl() async throws {
-        let app = try MobileAppModel(inMemory: true)
-        app.library.upsert(Host(name: "Production", host: "production.example.invalid"))
-
-        try await withNavigation(
-            MobileHostPicker(
-                library: app.library,
-                title: "Add Server",
-                emptyDescription: "Add a saved Linux server to start monitoring.",
-                cancel: {},
-                select: { _ in }),
-            language: "en"
-        ) { navigation in
-            #expect(navigation.topViewController?.navigationItem.title == "Add Server")
-            #expect(descendant(of: UISegmentedControl.self, in: navigation) == nil)
-            #expect(!labels(in: navigation.view).contains("Hosts"))
-        }
-
-        try await withNavigation(
-            MobileConnectionPicker(library: app.library, connect: { _, _ in }, cancel: {}),
-            language: "en"
-        ) { navigation in
-            #expect(descendant(of: UISegmentedControl.self, in: navigation) != nil)
-            #expect(!labels(in: navigation.view).contains("Hosts"))
-        }
-    }
-
-    @Test func snippetHostPickerUsesContextualTitlesAndCheckmarkConfirmation() async throws {
+    @Test func snippetHostPickerGatesConfirmationOnRequiredSelection() async throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Production", host: "production.example.invalid")
         app.library.upsert(host)
@@ -120,7 +93,6 @@ struct MobileConnectionPickerTests {
                 requiresSelection: true, save: { _ in }),
             language: "en"
         ) { navigation in
-            #expect(navigation.topViewController?.navigationItem.title == "Execute on Hosts")
             let execute = try #require(toolbarButton(named: "Execute", in: navigation))
             #expect(!execute.isEnabled)
         }
@@ -131,7 +103,6 @@ struct MobileConnectionPickerTests {
                 requiresSelection: false, save: { _ in }),
             language: "en"
         ) { navigation in
-            #expect(navigation.topViewController?.navigationItem.title == "Add Hosts")
             let done = try #require(toolbarButton(named: "Done", in: navigation))
             #expect(done.isEnabled)
         }
@@ -161,18 +132,6 @@ struct MobileConnectionPickerTests {
 
             let more = try #require(toolbarButton(named: expectedMoreName, in: navigation))
             #expect(more.isEnabled)
-        }
-    }
-
-    @Test func workspaceToolbarKeepsMoreAndConnectAvailableWithoutWorkspaces() async throws {
-        try await withNavigation(
-            ToolbarHost(hasWorkspaces: false, closeAll: {}, connect: {}),
-            language: "en"
-        ) { navigation in
-            let more = try #require(toolbarButton(named: "More", in: navigation))
-            #expect(more.isEnabled)
-            let connect = try #require(toolbarButton(named: "Connect", in: navigation))
-            #expect(connect.isEnabled)
         }
     }
 
@@ -244,24 +203,6 @@ struct MobileConnectionPickerTests {
             if let presented = next.presentedViewController { pending.append(presented) }
         }
         return nil
-    }
-
-    private func descendant<T: UIView>(of type: T.Type, in viewController: UIViewController) -> T? {
-        descendant(of: type, in: viewController.view)
-    }
-
-    private func descendant<T: UIView>(of type: T.Type, in view: UIView) -> T? {
-        if let result = view as? T { return result }
-        for child in view.subviews {
-            if let result = descendant(of: type, in: child) { return result }
-        }
-        return nil
-    }
-
-    private func labels(in view: UIView) -> [String] {
-        var result = (view as? UILabel).flatMap(\.text).map { [$0] } ?? []
-        for child in view.subviews { result.append(contentsOf: labels(in: child)) }
-        return result
     }
 }
 

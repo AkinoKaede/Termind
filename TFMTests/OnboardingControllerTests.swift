@@ -98,15 +98,13 @@ struct OnboardingControllerTests {
             controller.preview(.commandGenerator)
             controller.consider(window: window, context: OnboardingContext())
             guard
-                case .waitingForContext(let reason) = controller.developerStatus(
+                case .waitingForContext = controller.developerStatus(
                     for: .commandGenerator
                 )
             else {
                 Issue.record("Expected Preview to wait for a shell context")
                 return
             }
-            #expect(reason.contains("supported SSH shell"))
-
             controller.consider(
                 window: window,
                 context: OnboardingContext(canGenerateCommand: true)

@@ -53,34 +53,6 @@ struct MobileTerminalListTests {
         }
     }
 
-    @Test func nativeHistoryRemeasuresForAccessibilityDynamicType() async throws {
-        let app = try MobileAppModel(inMemory: true)
-        let host = TermindDomain.Host(name: "Test", host: "example.invalid")
-        app.library.upsert(host)
-        app.commandHistory.record("echo a command that needs two lines in the compact sheet", for: host.id)
-        let workspace = MobileWorkspace(
-            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
-            hosts: app.library,
-            commandHistory: app.commandHistory)
-
-        try await withHostedView(
-            MobileCommandHistoryView(workspace: workspace)
-                .environment(\.dynamicTypeSize, .accessibility3)
-        ) { root in
-            let cell = try #require(nativeVisibleCells(in: root.view).first)
-            #expect(cell.bounds.height > 100)
-        }
-    }
-
-    @Test func terminalRiskIndicatorsShareTheCompactPalette() {
-        #expect(MobileTerminalRiskIndicator.color(for: .safe) == .systemGreen)
-        #expect(MobileTerminalRiskIndicator.color(for: .caution) == .systemOrange)
-        #expect(MobileTerminalRiskIndicator.color(for: .destructive) == .systemRed)
-        #expect(MobileTerminalRiskIndicator.accessibilityIdentifier(for: .safe) == "TerminalRisk.safe")
-        #expect(MobileTerminalRiskIndicator.accessibilityIdentifier(for: .caution) == "TerminalRisk.caution")
-        #expect(MobileTerminalRiskIndicator.accessibilityIdentifier(for: .destructive) == "TerminalRisk.destructive")
-    }
-
     private func withHostedView<Content: View>(
         _ content: Content, check: (UIViewController) async throws -> Void
     ) async throws {

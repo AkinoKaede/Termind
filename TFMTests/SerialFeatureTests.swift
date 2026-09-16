@@ -119,7 +119,6 @@ struct SerialFeatureTests {
         window.select(workspace.id)
 
         #expect(pane.kind == .serialSession)
-        #expect(pane.symbol == "cable.connector")
         #expect(pane.serialSession?.title == "USB UART")
         #expect(window.sessionPanes.map(\.pane.id) == [pane.id])
         #expect(window.serialSessionPanes.map(\.pane.id) == [pane.id])

@@ -68,74 +68,6 @@ struct ColorSystemTests {
         #expect(colorDistance(light, dark) > 0.5)
     }
 
-    @Test
-    func featureUIHasNoLiteralDisplayColorsOrDecorativeBlue() throws {
-        let sourceRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "TFM", directoryHint: .isDirectory)
-        let exemptPaths = ["DesignSystem/TagColor+Presentation.swift"]
-        let forbidden = [
-            "Color.white", "Color.black", "NSColor.white", "NSColor.gray",
-            "foregroundStyle(.white)", "AnyShapeStyle(.white)",
-            ".shadow(color: .black", "Color(white:", "Color(red:", "NSColor(red:",
-            ".blue", "systemBlue",
-        ]
-
-        for file in try swiftFiles(in: sourceRoot) {
-            let relative = file.path.replacingOccurrences(
-                of: sourceRoot.path + "/",
-                with: ""
-            )
-            if exemptPaths.contains(relative) { continue }
-            let lines = try String(contentsOf: file, encoding: .utf8)
-                .split(separator: "\n", omittingEmptySubsequences: false)
-            for (offset, line) in lines.enumerated() {
-                // Black and white are alpha values here, not visible UI hues.
-                let isMask =
-                    relative == "Features/AI/TranscriptNativeRows.swift"
-                    && line.contains("mask.colors")
-                if isMask { continue }
-                // A `TagColor` case a user picked for a host or key, not a hue
-                // this code chose to draw. Its presentation is resolved through
-                // the exempt `TagColor+Presentation.swift`, which is the file
-                // this scan exists to funnel such choices into.
-                if line.contains("colorTag:") { continue }
-                for token in forbidden {
-                    #expect(
-                        !line.contains(token),
-                        "\(relative):\(offset + 1) bypasses TermindColor with \(token)"
-                    )
-                }
-            }
-        }
-    }
-
-    @Test
-    func nativeHostingListsReloadRowsWhenTheirEnvironmentChanges() throws {
-        let sourceRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "TFM", directoryHint: .isDirectory)
-
-        for file in try swiftFiles(in: sourceRoot) {
-            let text = try String(contentsOf: file, encoding: .utf8)
-            let environmentChangeCount =
-                text.components(
-                    separatedBy: "let environmentChanged"
-                ).count - 1
-            guard environmentChangeCount > 0 else { continue }
-            let forcedReloadCount =
-                text.components(
-                    separatedBy: "if environmentChanged { listView.reloadData() }"
-                ).count - 1
-            #expect(
-                forcedReloadCount == environmentChangeCount,
-                "\(file.path) can leave recycled NSHostingView rows in the old appearance"
-            )
-        }
-    }
-
     private func resolved(
         _ color: Color,
         appearance name: NSAppearance.Name
@@ -170,20 +102,5 @@ struct ColorSystemTests {
         return 0.2126 * linear(color.redComponent)
             + 0.7152 * linear(color.greenComponent)
             + 0.0722 * linear(color.blueComponent)
-    }
-
-    private func swiftFiles(in root: URL) throws -> [URL] {
-        let keys: Set<URLResourceKey> = [.isRegularFileKey]
-        guard
-            let enumerator = FileManager.default.enumerator(
-                at: root,
-                includingPropertiesForKeys: Array(keys)
-            )
-        else { return [] }
-        return try enumerator.compactMap { value in
-            guard let url = value as? URL, url.pathExtension == "swift" else { return nil }
-            let values = try url.resourceValues(forKeys: keys)
-            return values.isRegularFile == true ? url : nil
-        }
     }
 }

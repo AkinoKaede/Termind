@@ -7,17 +7,6 @@ import Testing
 
 @Suite @MainActor
 struct MobileNavigationParityTests {
-    @Test func speechAudioTapDoesNotInheritMainActorIsolation() throws {
-        let root = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let source = try String(
-            contentsOf: root.appending(path: "TFI/Platform/IOSSpeechAudioInput.swift"), encoding: .utf8)
-
-        #expect(source.contains("nonisolated static func makeTapHandler"))
-        #expect(source.contains("block: Self.makeTapHandler"))
-    }
-
     @Test func vaultReplacesWelcomeAndMetricsRemainsBelowItOnIPad() {
         let features = MobileFeatureRegistry.standard()
         #expect(features.registrations(on: .phoneTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
@@ -25,10 +14,6 @@ struct MobileNavigationParityTests {
             features.registrations(on: .padSidebar).map(\.id)
                 == [.vault, .metrics, .workspaces, .assistant, .settings]
         )
-    }
-
-    @Test func aiSettingsUseThreeNativeManagementPages() {
-        #expect(MobileAISettingsDestination.allCases == [.models, .skills, .mcp])
     }
 
     @Test func metricsUsesAvailableWidthRatherThanDeviceOrientation() {

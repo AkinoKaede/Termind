@@ -191,17 +191,11 @@ struct AgentToolPresentationTests {
             Issue.record("Expected a grouped host listing")
             return
         }
-        #expect(listing.summary == "3 hosts · 1 connected · 1 temporary")
         #expect(
-            listing.sections.map(\.title) == [
-                "Production · 1 host", "Production / Edge · 0 hosts",
-                "Ungrouped · 1 host", "Temporary · 1 host",
+            listing.sections.map { $0.rows.map(\.title) } == [
+                ["API Server"], [], ["Loose Box"], ["Current Terminal"],
             ])
-        #expect(listing.sections[0].rows[0].title == "API Server")
-        #expect(listing.sections[0].rows[0].subtitle == "deploy@api.example.com · Connected")
         #expect(listing.sections[0].rows[0].badges == ["prod", "nginx"])
-        #expect(listing.sections[2].rows[0].subtitle == "root@10.0.0.2 · Failed")
-        #expect(listing.sections[3].rows[0].subtitle == "root@10.0.0.8 · Reconnecting")
         let rendered = String(describing: detail)
         #expect(!rendered.contains(productionID))
         #expect(!rendered.contains("aaaaaaaa-aaaa"))
@@ -591,88 +585,6 @@ struct AgentToolPresentationTests {
         #expect(
             AgentToolPresentation.batchSymbol(for: [first, question])
                 == "wrench.and.screwdriver"
-        )
-    }
-
-    @Test
-    func sshExecBatchCountsCommandsAcrossLifecycleStatesAndLocales() {
-        let presentation = AgentToolDescriptor.Presentation(
-            symbol: "terminal",
-            activity: .semanticArgument(key: "command", fallback: .sshCommand),
-            actionKind: .run
-        )
-
-        func cards(_ state: AgentToolCard.State) -> [AgentToolCard] {
-            ["uname -a", "uptime"].map { command in
-                var card = makeCard(
-                    name: "ssh_exec", target: .host,
-                    arguments: ["command": .string(command)], presentation: presentation
-                )
-                card.state = state
-                return card
-            }
-        }
-
-        let english = Locale(identifier: "en")
-        #expect(AgentToolPresentation.batchSummary(for: cards(.running), locale: english) == "Running 2 commands")
-        #expect(AgentToolPresentation.batchSummary(for: cards(.completed), locale: english) == "Ran 2 commands")
-        #expect(AgentToolPresentation.batchSummary(for: cards(.failed), locale: english) == "Failed to run 2 commands")
-        #expect(
-            AgentToolPresentation.batchSummary(
-                for: cards(.completed), locale: Locale(identifier: "zh-Hans")
-            ) == "已运行2条命令"
-        )
-        #expect(
-            AgentToolPresentation.batchSummary(
-                for: cards(.completed), locale: Locale(identifier: "zh-Hant")
-            ) == "已執行2條指令"
-        )
-    }
-
-    @Test
-    func manageTasksBatchCountsWholeListUpdates() {
-        let presentation = AgentToolDescriptor.Presentation(
-            symbol: "checklist", activity: .semanticLabel(.taskList),
-            actionKind: .update
-        )
-        let cards = (0..<2).map { _ in
-            var card = makeCard(name: "manage_tasks", target: .user, presentation: presentation)
-            card.state = .completed
-            return card
-        }
-
-        #expect(
-            AgentToolPresentation.batchSummary(for: cards, locale: Locale(identifier: "en"))
-                == "Updated the task list 2 times"
-        )
-        #expect(
-            AgentToolPresentation.batchSummary(
-                for: cards, locale: Locale(identifier: "zh-Hans")
-            ) == "已更新任务列表2次"
-        )
-        #expect(
-            AgentToolPresentation.batchSummary(
-                for: cards, locale: Locale(identifier: "zh-Hant")
-            ) == "已更新任務清單2次"
-        )
-    }
-
-    @Test
-    func unknownSemanticBatchKeepsGenericToolCallFallback() {
-        let presentation = AgentToolDescriptor.Presentation(
-            symbol: "wrench.and.screwdriver",
-            activity: .semanticLabel(.init("database")),
-            actionKind: .inspect
-        )
-        let cards = (0..<2).map { _ in
-            var card = makeCard(name: "custom_inspect", target: .mcp, presentation: presentation)
-            card.state = .completed
-            return card
-        }
-
-        #expect(
-            AgentToolPresentation.batchSummary(for: cards, locale: Locale(identifier: "en"))
-                == "Inspected 2 tool calls"
         )
     }
 

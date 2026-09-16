@@ -8,19 +8,11 @@ import UIKit
 @Suite(.serialized) @MainActor
 struct MobileEditorToolbarTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func iconButtonsKeepTheirNamesAndSaveLifecycle(language: String) async throws {
+    func saveDisablesActionsUntilCompletionAndThenDismisses(language: String) async throws {
         let state = EditorState()
         try await withEditor(state, language: language) { _, navigation in
             let cancel = try #require(cancelButton(in: navigation))
             let save = try #require(saveButton(in: navigation))
-            #expect(accessibleName(cancel) == (language == "en" ? "Cancel" : "取消"))
-            let expectedSave =
-                switch language {
-                case "zh-Hans": "保存"
-                case "zh-Hant": "儲存"
-                default: "Save"
-                }
-            #expect(accessibleName(save) == expectedSave)
             #expect(cancel.isEnabled)
             #expect(!save.isEnabled)
             state.canSave = true
@@ -51,8 +43,7 @@ struct MobileEditorToolbarTests {
             #expect(state.isPresented)
             #expect(state.title == "Example")
             #expect(saveButton(in: navigation)?.isEnabled == true)
-            let alert = try #require(descendant(of: UIAlertController.self, in: controller))
-            #expect(alert.title == "Unable to Save")
+            _ = try #require(descendant(of: UIAlertController.self, in: controller))
         }
     }
 

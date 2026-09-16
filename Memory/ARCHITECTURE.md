@@ -42,7 +42,10 @@ and bundle-derived Keychain access group, with target-specific signing.
 Shared localized resources are copied into each app bundle. Platform icons and
 metadata remain app-owned. Framework, macOS, and mobile tests stay separate;
 architecture tests fail closed when an expected production directory is absent or
-empty.
+empty. Source-based checks are limited to module dependencies, native-list import
+allowlists, AgentKit type ownership, and SwiftData model ownership. They do not pin
+UI copy, source layout, call-site spellings, retired paths, or shared-component wiring;
+those concerns rely on behavioral tests or explicit visual review.
 
 ## State, navigation, and ownership
 
@@ -622,7 +625,6 @@ Application derives flattened Host and Snippet sections once for both platforms.
 Presentation owns the shared command-history subtitle, Vault sync status label,
 and the exported SFTP drag type. App targets retain native card/list composition,
 selection, menus, and clipboard behavior.
-
 
 ### Assistant transcript presentation parity (2026-09-12)
 

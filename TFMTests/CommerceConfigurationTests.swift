@@ -11,29 +11,6 @@ import Testing
 
 struct CommerceConfigurationTests {
     @Test
-    func normalDebugLaunchUsesLiveCommerce() throws {
-        let appFile = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "TFM/App/TermindApp.swift")
-        let app = try String(contentsOf: appFile, encoding: .utf8)
-
-        #expect(!app.contains(".developmentDefault()"))
-        #expect(app.contains(": .live()"))
-    }
-
-    @Test
-    func appTargetDeclaresInAppPurchaseCapability() throws {
-        let projectFile = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appending(path: "Termind.xcodeproj/project.pbxproj")
-        let project = try String(contentsOf: projectFile, encoding: .utf8)
-
-        #expect(project.contains("com.apple.InAppPurchase = {"))
-    }
-
-    @Test
     func localStoreKitProductMatchesPurchaseRequest() throws {
         let configurationFile = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

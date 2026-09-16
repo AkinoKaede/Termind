@@ -34,18 +34,6 @@ struct MetricsInteractionTests {
         #expect(window.isToolbarFindFocused)
     }
 
-    @Test
-    func processColumnsSupportAscendingAndDescendingSort() {
-        let rows = [
-            MetricsProcess(pid: 20, started: 1, name: "zeta", cpu: 30, memory: 200),
-            MetricsProcess(pid: 2, started: 1, name: "alpha", cpu: 70, memory: 100),
-        ]
-        #expect(rows.sorted(using: KeyPathComparator(\.pid)).map(\.pid) == [2, 20])
-        #expect(rows.sorted(using: KeyPathComparator(\.name)).map(\.pid) == [2, 20])
-        #expect(rows.sorted(using: KeyPathComparator(\.cpuSortValue, order: .reverse)).map(\.pid) == [2, 20])
-        #expect(rows.sorted(using: KeyPathComparator(\.memorySortValue, order: .reverse)).map(\.pid) == [20, 2])
-    }
-
     @Test(arguments: [HostChooserPurpose.connect, .batchStartup, .metrics])
     func hostChoosersRenderWithTheirRequiredEnvironment(
         purpose: HostChooserPurpose

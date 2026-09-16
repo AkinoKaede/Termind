@@ -48,7 +48,6 @@ struct ConnectionJourneyTests {
         #expect(journey.mode == .reconnection)
         #expect(journey.phase == .connecting)
         #expect(journey.isPresented)
-        #expect(journey.plainTextLog.contains("Reconnecting SSH session"))
     }
 
     @Test
@@ -114,7 +113,6 @@ struct ConnectionJourneyTests {
         journey.waitForLocalPassphrase(at: destination.id)
         #expect(journey.waitsForLocalPassphrase)
         #expect(!journey.waitsForLocalIdentity)
-        #expect(journey.plainTextLog.contains("Waiting for a Passphrase"))
 
         journey.waitForLocalIdentity(at: destination.id)
         #expect(journey.waitsForLocalIdentity)
