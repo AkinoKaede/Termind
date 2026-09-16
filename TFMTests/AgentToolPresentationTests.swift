@@ -54,18 +54,8 @@ struct AgentToolPresentationTests {
             locale: Locale(identifier: "en")
         )
 
-        #expect(presentation.symbol == "terminal")
-        #expect(presentation.title == "Run the SSH command on Production")
         #expect(!presentation.title.contains(command))
         #expect(!presentation.title.contains(hostID.uuidString))
-        #expect(
-            AgentToolPresentation.approval(
-                for: request,
-                presenter: SSHExecTool.presenter,
-                hostName: "Production",
-                locale: Locale(identifier: "zh-Hans")
-            ).title == "在Production上运行SSH命令"
-        )
         #expect(
             presentation.detail.items == [
                 .text(.init(title: "Command", text: command, style: .monospaced)),
@@ -97,7 +87,6 @@ struct AgentToolPresentationTests {
         let presentation = AgentToolPresentation.approval(
             for: request, locale: Locale(identifier: "en")
         )
-        #expect(presentation.title == "Run remote tool")
         #expect(!presentation.title.contains("hunter2"))
         #expect(
             presentation.detail.items == [

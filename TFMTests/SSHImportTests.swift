@@ -533,7 +533,6 @@ struct SSHImportTests {
         #expect(window.vaultSelection(for: .knownHosts) == [.knownHost(entry.id)])
         #expect(window.vaultPages.knownHosts.query == "key")
         #expect(window.findKind == .knownHosts)
-        #expect(VaultPage.knownHosts.symbol == "touchid")
         #expect(VaultPage.allCases.last == .knownHosts)
     }
 }

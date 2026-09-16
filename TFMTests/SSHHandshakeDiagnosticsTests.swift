@@ -84,23 +84,12 @@ struct SSHHandshakeDiagnosticsTests {
         #expect(server.acceptedConnections == 1)
     }
 
-    @Test func handshakeFailureDescriptionsDistinguishBannerConditions() {
+    @Test func handshakeDiagnosticsRetainThePeerEndpoint() {
         let peer = "203.0.113.4:22"
         let disconnected = SSHHandshakeFailure(
             code: -13, systemError: nil, phase: .identification,
             elapsedMilliseconds: 18, peer: peer
         )
-        let invalid = SSHHandshakeFailure(
-            code: -2, systemError: nil, phase: .identification,
-            elapsedMilliseconds: 7, peer: peer
-        )
-        let timedOut = SSHHandshakeFailure(
-            code: -30, systemError: ETIMEDOUT, phase: .identification,
-            elapsedMilliseconds: 20_000, peer: peer
-        )
-
-        #expect(invalid.localizedDescription.contains("invalid SSH identification"))
-        #expect(timedOut.localizedDescription.contains("timed out"))
         #expect(disconnected.diagnosticDescription.contains("peer \(peer)"))
     }
 

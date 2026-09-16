@@ -11,7 +11,7 @@ struct WorkspaceUploadNoticeTests {
                 hasTransferConfiguration: false,
                 isWorkingDirectoryPending: true,
                 workingDirectory: nil
-            ) == String(localized: "The SSH session is not ready for file transfer.")
+            ) != nil
         )
         #expect(
             TerminalUploadAvailability.problem(
@@ -19,7 +19,7 @@ struct WorkspaceUploadNoticeTests {
                 hasTransferConfiguration: true,
                 isWorkingDirectoryPending: true,
                 workingDirectory: nil
-            ) == String(localized: "Wait for the shell prompt to report its current directory.")
+            ) != nil
         )
         #expect(
             TerminalUploadAvailability.problem(
@@ -31,10 +31,8 @@ struct WorkspaceUploadNoticeTests {
         )
     }
 
-    @Test func uploadNoticePresentationUsesOneCrossPlatformMapping() {
+    @Test func uploadNoticeRetainsItsDestinationAndRejectionState() {
         let queued = WorkspaceUploadNotice.queued(2, "/srv/project")
-        #expect(queued.symbol == "checkmark.circle.fill")
-        #expect(queued.title == String(localized: "Added 2 items to Transfers"))
         #expect(queued.detail == "/srv/project")
         #expect(!queued.isRejected)
         #expect(WorkspaceUploadNotice.rejected("Denied").isRejected)

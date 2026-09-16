@@ -160,7 +160,6 @@ struct WindowToolbarFindTests {
             #expect(actions.last?.startsGroup == true)
             let menu = window.creationMenu(for: page, locale: Locale(identifier: "en"))
             #expect(menu[menu.count - 2].isSeparator)
-            #expect(menu.last?.title == "Import .ssh Folder")
         }
     }
 

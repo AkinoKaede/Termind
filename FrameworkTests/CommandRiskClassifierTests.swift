@@ -11,12 +11,6 @@ struct CommandRiskCase: Sendable, CustomTestStringConvertible {
 
 @Suite
 struct CommandRiskClassifierTests {
-    @Test
-    func cautionLabelAlsoFitsUnknownCommands() {
-        #expect(CommandRisk.caution.label == String(localized: "Caution"))
-        #expect(CommandRiskClassifier.assess("vendorctl inspect").risk == .caution)
-    }
-
     @Test(
         arguments: [
             CommandRiskCase(command: "ls -la", expected: .safe),

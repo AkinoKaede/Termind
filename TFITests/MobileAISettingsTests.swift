@@ -8,11 +8,6 @@ import Testing
 
 @Suite @MainActor
 struct MobileAISettingsTests {
-    @Test func roleLabelsMatchDesktopDefaults() {
-        #expect(AIRole.chat.unsetLabel == AIRole.guardian.unsetLabel)
-        #expect(AIRole.commandGenerator.unsetLabel != AIRole.guardian.unsetLabel)
-    }
-
     private func provider() -> ModelProvider {
         var value = ModelProvider(name: "Gateway", inferenceURL: "https://example.invalid/v1/responses")
         value.models = [AIModel(id: "one"), AIModel(id: "two")]

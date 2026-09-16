@@ -899,8 +899,10 @@ struct SFTPFeatureTests {
         #expect(try root.appending(path: "bundle/empty").resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true)
     }
 
-    @Test
-    func remoteCopyPreflightFindsTargetConflicts() async {
+    @Test(arguments: [TransferConflictPolicy.skip, .replace, .keepBoth], [RemoteFile.Kind.file, .directory])
+    func remoteCopyResolvesExistingFilesAndDirectories(
+        policy: TransferConflictPolicy, kind: RemoteFile.Kind
+    ) async throws {
         let sourceHostID = UUID()
         let targetHostID = UUID()
         let bundle = remoteFile(path: "/source/bundle", kind: .directory)
@@ -908,7 +910,7 @@ struct SFTPFeatureTests {
         let sourceClient = TreeSFTPClient(listings: [bundle.path: [readme]])
         let targetClient = ManifestSFTPClient(entries: [
             "/incoming/bundle/README.md": remoteFile(
-                path: "/incoming/bundle/README.md", kind: .file, size: 3
+                path: "/incoming/bundle/README.md", kind: kind, size: 3
             )
         ])
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { sourceClient }
@@ -925,10 +927,78 @@ struct SFTPFeatureTests {
 
         await target.prepareRemoteCopy(payload, coordinator: coordinator)
 
-        #expect(target.pendingRemoteCopyBatch?.remoteDirectories == ["/incoming/bundle"])
-        #expect(target.pendingRemoteCopyBatch?.jobs.first?.destinationPath == "/incoming/bundle/README.md")
-        #expect(target.pendingRemoteCopyBatch?.jobs.first?.hasConflict == true)
+        #expect(target.pendingRemoteCopyBatch?.directoryCount == 1)
+        #expect(target.pendingRemoteCopyBatch?.transferCount == 1)
         #expect(target.conflictCount == 1)
+        await target.enqueuePendingRemoteCopy(policy: policy, coordinator: coordinator)
+        #expect(!target.hasPendingBatch)
+        #expect(target.operationError == nil)
+        let name = policy == .keepBoth ? "README.2.md" : "README.md"
+        #expect(coordinator.sftpTransfers.map(\.remotePath) == (policy == .skip ? [] : ["/incoming/bundle/\(name)"]))
+        #expect(coordinator.sftpTransfers.allSatisfy { $0.direction == .copy && $0.localPath == readme.path })
+        let existing = try await targetClient.attributes(at: "/incoming/bundle/README.md")
+        #expect(existing?.kind == (policy == .replace && kind == .directory ? nil : kind))
+    }
+
+    @Test(arguments: [TransferConflictPolicy.skip, .replace, .keepBoth])
+    func remoteCopyDirectoryConflictsApplyToTheWholeSubtree(policy: TransferConflictPolicy) async throws {
+        let bundle = remoteFile(path: "/source/bundle", kind: .directory)
+        let nested = remoteFile(path: "/source/bundle/nested", kind: .directory)
+        let file = remoteFile(path: "/source/bundle/nested/payload.txt", kind: .file)
+        let sibling = remoteFile(path: "/source/bundle-other", kind: .directory)
+        let source = TreeSFTPClient(listings: [bundle.path: [nested], nested.path: [file]])
+        let destination = ManifestSFTPClient(
+            entries: ["/incoming/bundle": remoteFile(path: "/incoming/bundle", kind: .file)],
+            rejectedAttributePrefix: policy == .replace ? nil : "/incoming/bundle/"
+        )
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { source }
+        let payload = coordinator.registerRemoteCopySource(
+            SFTPRemoteCopySource(hostID: UUID(), configuration: testConfiguration, files: [bundle, sibling]))
+        let session = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/incoming", client: destination, configuration: testConfiguration
+        )
+
+        await session.prepareRemoteCopy(payload, coordinator: coordinator)
+        #expect(session.conflictCount == 1)
+        await session.enqueuePendingRemoteCopy(policy: policy, coordinator: coordinator)
+
+        #expect(session.operationError == nil)
+        #expect(!session.hasPendingBatch)
+        #expect(await destination.rejectedAttributeRequestCount == 0)
+        #expect(try await destination.attributes(at: "/incoming/bundle-other")?.isDirectory == true)
+        let directory = policy == .keepBoth ? "/incoming/bundle.2" : "/incoming/bundle"
+        #expect(
+            coordinator.sftpTransfers.map(\.remotePath) == (policy == .skip ? [] : [directory + "/nested/payload.txt"]))
+        if policy != .replace { #expect(try await destination.attributes(at: "/incoming/bundle")?.kind == .file) }
+    }
+
+    @Test
+    func remoteCopyOfEmptyDirectoriesRefreshesTheBrowserAndHonorsPendingCancellation() async throws {
+        let empty = remoteFile(path: "/source/empty", kind: .directory)
+        let source = TreeSFTPClient(listings: [:])
+        let destination = ManifestSFTPClient(entries: [:])
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { source }
+        let payload = coordinator.registerRemoteCopySource(
+            SFTPRemoteCopySource(hostID: UUID(), configuration: testConfiguration, files: [empty]))
+        let session = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/incoming", client: destination, configuration: testConfiguration
+        )
+
+        await session.prepareRemoteCopy(payload, coordinator: coordinator)
+        session.cancelPendingBatch()
+        await session.enqueuePendingRemoteCopy(policy: .replace, coordinator: coordinator)
+        #expect(await destination.createdDirectories.isEmpty)
+
+        await session.prepareRemoteCopy(payload, coordinator: coordinator)
+        await session.enqueuePendingRemoteCopy(policy: .replace, coordinator: coordinator)
+        for _ in 0..<200 {
+            if !session.files.isEmpty { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(session.files.map(\.path) == ["/incoming/empty"])
+        #expect(session.operationError == nil)
+        #expect(!session.hasPendingBatch)
+        #expect(coordinator.sftpTransfers.isEmpty)
     }
 
     @Test
@@ -1058,7 +1128,7 @@ private func makeTestConfiguration(hostID: UUID, host: String) -> SSHConnectionC
     )
 }
 
-private func remoteFile(
+private nonisolated func remoteFile(
     path: String, kind: RemoteFile.Kind, size: Int64 = 0, modifiedAt: Date? = nil
 ) -> RemoteFile {
     RemoteFile(
@@ -1211,7 +1281,7 @@ private actor BorrowedSFTPTransferClient: SFTPClientProtocol {
 }
 
 private actor ManifestSFTPClient: SFTPClientProtocol {
-    private let entries: [String: RemoteFile]
+    private var entries: [String: RemoteFile]
     private let rejectedAttributePrefix: String?
     private let home: String
     private let rejectsHome: Bool
@@ -1239,7 +1309,9 @@ private actor ManifestSFTPClient: SFTPClientProtocol {
         if rejectsHome { throw SFTPError.operation("Home unavailable") }
         return home
     }
-    func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
+    func listDirectory(at path: String) async throws -> [RemoteFile] {
+        entries.values.filter { ($0.path as NSString).deletingLastPathComponent == path }
+    }
     func attributes(at path: String) async throws -> RemoteFile? {
         if let rejectedAttributePrefix, path.hasPrefix(rejectedAttributePrefix) {
             rejectedAttributeRequestCount += 1
@@ -1248,10 +1320,13 @@ private actor ManifestSFTPClient: SFTPClientProtocol {
         return entries[path]
     }
     func setPermissions(at path: String, to permissions: UInt32) async throws {}
-    func createDirectory(at path: String) async throws { createdDirectories.append(path) }
+    func createDirectory(at path: String) async throws {
+        createdDirectories.append(path)
+        entries[path] = remoteFile(path: path, kind: .directory)
+    }
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
-    func removeFile(at path: String) async throws {}
-    func removeDirectory(at path: String) async throws {}
+    func removeFile(at path: String) async throws { entries[path] = nil }
+    func removeDirectory(at path: String) async throws { entries[path] = nil }
     func uploadFile(
         from localURL: URL, to remotePath: String, overwrite: Bool,
         cancellation: TransferCancellationToken,

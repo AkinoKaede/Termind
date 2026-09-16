@@ -173,10 +173,12 @@ background expiration pauses uploads/downloads and cancels remote copies; borrow
 session retirement still cancels its transfers. macOS termination gives asynchronous
 cleanup at most three seconds, so an unreachable server cannot hold up quitting.
 Nothing is silently replayed.
-Desktop and mobile upload/download preparation and enqueueing use the Remote
-Infrastructure planners. Download batches retain their destination independently of
-file jobs, so directory-only selections still create their empty directory trees.
-App sessions retain pending-batch presentation, cancellation, and completion handling.
+Desktop and mobile upload/download and remote-copy preparation and enqueueing use
+Remote Infrastructure planners. Download batches retain their destination independently
+of file jobs, so directory-only selections still create their empty directory trees.
+Remote-copy enqueueing reports directory mutations so desktop refreshes also cover
+copies without file jobs. App sessions retain pending-batch presentation, cancellation,
+error handling, and completion refresh; interactive browser deletion stays app-owned.
 
 `sftp_copy` is Termind-owned and acting-only in Assistant, with Ask/sequential
 policy. It copies regular files and directory trees into an existing directory;

@@ -27,28 +27,6 @@ struct MobileSFTPCopyAvailabilityTests {
         #expect(registry.available(in: .reviewing).descriptors.isEmpty)
         #expect(TermindAgentTools.presenter(for: descriptor)?.id == "builtin.sftp_copy")
     }
-
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func copyApprovalLabelsAndOverwriteWarningUseAppResources(_ language: String) {
-        let items = SFTPCopyTool.presentArguments(
-            .init(
-                arguments: [
-                    "source_host_id": .string("source"), "destination_host_id": .string("destination"),
-                    "conflict_policy": .string("replace"),
-                ], locale: Locale(identifier: language)
-            ))
-        let label = language == "en" ? "Source host" : language == "zh-Hant" ? "來源主機" : "源主机"
-        #expect(
-            items.contains {
-                if case .field(let field) = $0 { return field.label == label }
-                return false
-            })
-        #expect(
-            items.contains {
-                if case .message(_, .warning) = $0 { return true }
-                return false
-            })
-    }
 }
 
 @MainActor

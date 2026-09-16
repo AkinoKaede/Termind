@@ -279,25 +279,25 @@ struct SFTPCopyToolTests {
         #expect(await fixture.backend.opens == 0)
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func approvalDetailsLocalizeBothEndpointsAndDestructiveWarning(_ language: String) throws {
+    @Test(arguments: ["skip", "replace", "keep_both"], ["en", "zh-Hans", "zh-Hant"])
+    func approvalDetailsRetainEndpointsAndWarnOnlyForReplacement(_ policy: String, _ language: String) throws {
         let fixture = CopyFixture()
         let items = SFTPCopyTool.presentArguments(
             .init(
-                arguments: try #require(fixture.invocation(policy: "replace").call.arguments.objectValue),
+                arguments: try #require(fixture.invocation(policy: policy).call.arguments.objectValue),
                 locale: Locale(identifier: language)
             ))
-        let labels = items.compactMap { item -> String? in
-            if case .field(let field) = item { return field.label }
+        let values = items.compactMap { item -> String? in
+            if case .field(let field) = item { return field.value }
             return nil
         }
-        #expect(labels.contains(language == "en" ? "Source host" : language == "zh-Hant" ? "來源主機" : "源主机"))
-        #expect(labels.contains(language == "en" ? "Destination host" : language == "zh-Hant" ? "目標主機" : "目标主机"))
+        #expect(values.contains(fixture.sourceID.uuidString))
+        #expect(values.contains(fixture.destinationID.uuidString))
         #expect(
             items.contains {
                 if case .message(_, .warning) = $0 { return true }
                 return false
-            })
+            } == (policy == "replace"))
     }
 }
 

@@ -256,6 +256,8 @@ public nonisolated enum SFTPRemoteCopyPlanner {
         )
     }
 
+    /// Returns whether resolving the batch changed remote directories, even without file jobs.
+    @discardableResult
     @MainActor public static func enqueue(
         _ batch: SFTPRemoteCopyBatch,
         policy: TransferConflictPolicy,
@@ -265,7 +267,7 @@ public nonisolated enum SFTPRemoteCopyPlanner {
         client: any SFTPClientProtocol,
         coordinator: SFTPTransferCoordinator,
         completion: ((SFTPTransfer.State) -> Void)? = nil
-    ) async throws {
+    ) async throws -> Bool {
         let resolution = try await resolveDirectories(
             batch.directories, conflicts: batch.directoryConflicts,
             policy: policy, client: client
@@ -304,6 +306,7 @@ public nonisolated enum SFTPRemoteCopyPlanner {
                 completion: completion
             )
         }
+        return resolution.changed
     }
 
     private struct Preflight {
@@ -317,6 +320,7 @@ public nonisolated enum SFTPRemoteCopyPlanner {
         var skipped: [String] = []
         var mappings: [(String, String)] = []
         var created: [String] = []
+        var changed = false
     }
 
     private static func preflight(
@@ -367,6 +371,7 @@ public nonisolated enum SFTPRemoteCopyPlanner {
                     continue
                 case .replace:
                     try await client.removeFile(at: original)
+                    result.changed = true
                 case .keepBoth:
                     destination = try await availablePath(for: original, client: client)
                     result.mappings.append((original, destination))
@@ -375,6 +380,7 @@ public nonisolated enum SFTPRemoteCopyPlanner {
             if try await client.attributes(at: destination) == nil {
                 try await client.createDirectory(at: destination)
                 result.created.append(destination)
+                result.changed = true
             }
         }
         return result
