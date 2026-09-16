@@ -288,7 +288,8 @@ private struct SSHImportContent: View {
                                 editingNames.insert(item.id)
                                 model.setName($0, for: item.id)
                             }
-                        ))
+                        ).singleLineText, axis: .horizontal
+                    ).singleLinePaste().lineLimit(1)
                 }
                 let options = model.keyOptions(for: item)
                 if options.count > 1 {
@@ -312,7 +313,8 @@ private struct SSHImportContent: View {
                         text: Binding(
                             get: { binding.name.wrappedValue },
                             set: { model.setName($0, for: item.id) }
-                        ))
+                        ).singleLineText, axis: .horizontal
+                    ).singleLinePaste().lineLimit(1)
                 }
                 LabeledContent("Username", value: identity.username)
                 LabeledContent(

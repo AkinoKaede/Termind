@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import TermindPresentation
 
 struct MobileWorkspaceRenameView: View {
     let originalTitle: String
@@ -19,7 +20,10 @@ struct MobileWorkspaceRenameView: View {
             canSave: !normalizedTitle.isEmpty && normalizedTitle != originalTitle,
             compact: true,
             save: { save(normalizedTitle) },
-            content: { TextField("Workspace Name", text: $title) }
+            content: {
+                TextField("Workspace Name", text: $title.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(
+                    1)
+            }
         )
     }
 

@@ -54,7 +54,9 @@ struct MobileHostEditor: View {
                     }
                     if draft.proxy != nil {
                         LabeledContent("Hostname") {
-                            TextField("Hostname", text: proxyString(\.hostname))
+                            TextField("Hostname", text: proxyString(\.hostname).singleLineText, axis: .horizontal)
+                                .singleLinePaste()
+                                .lineLimit(1)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .keyboardType(.URL)
@@ -62,7 +64,7 @@ struct MobileHostEditor: View {
                         }
                         .accessibilityLabel("Proxy Hostname")
                         LabeledContent("Port") {
-                            TextField("Port", value: proxyInt(\.port), format: .number.grouping(.never))
+                            TextField("Port", value: proxyInt(\.port), format: .number.grouping(.never)).lineLimit(1)
                                 .keyboardType(.numberPad)
                                 .multilineTextAlignment(.trailing)
                         }
@@ -76,7 +78,9 @@ struct MobileHostEditor: View {
                         .accessibilityLabel("Proxy Identity")
                         if draft.proxy?.identityID != nil {
                             LabeledContent("Username") {
-                                TextField("Username", text: proxyString(\.username))
+                                TextField("Username", text: proxyString(\.username).singleLineText, axis: .horizontal)
+                                    .singleLinePaste()
+                                    .lineLimit(1)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
                                     .multilineTextAlignment(.trailing)

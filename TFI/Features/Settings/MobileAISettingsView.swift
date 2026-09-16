@@ -239,7 +239,7 @@ struct MobileProviderEditor: View {
 
     private var modelSection: some View {
         Section("Models") {
-            TextField("Filter", text: $query)
+            TextField("Filter", text: $query.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                 .textFieldStyle(.plain)
                 .multilineTextAlignment(.leading)
                 .textInputAutocapitalization(.never)
@@ -411,7 +411,7 @@ struct MobileModelFetchSheet: View {
                     }
                 }
             }
-            .searchable(text: $query, prompt: "Filter")
+            .searchable(text: $query.singleLineText, prompt: "Filter")
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .background(Color(uiColor: .systemBackground))
@@ -451,10 +451,12 @@ struct MobileAddModelSheet: View {
         NavigationStack {
             Form {
                 Section("Model ID") {
-                    TextField("Model ID", text: $modelID)
-                        .textFieldStyle(.plain).multilineTextAlignment(.leading)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled()
-                        .focused($focused).onSubmit(submit)
+                    TextField("Model ID", text: $modelID.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(
+                        1
+                    )
+                    .textFieldStyle(.plain).multilineTextAlignment(.leading)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                    .focused($focused).onSubmit(submit)
                     if existing.contains(trimmedID) { Text("Added").foregroundStyle(.secondary) }
                 }
             }

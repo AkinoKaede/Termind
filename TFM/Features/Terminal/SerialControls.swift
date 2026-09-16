@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 nonisolated struct SerialComboOption: Identifiable, Hashable, Sendable {
     let value: String
@@ -19,7 +20,7 @@ struct SerialEditableComboField: View {
     var body: some View {
         LabeledContent {
             HStack(spacing: 0) {
-                TextField("", text: $value)
+                TextField("", text: $value.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                     .textFieldStyle(.plain)
                     .font(monospaced ? .body.monospaced() : .body)
                     .padding(.leading, Metrics.Space.m)

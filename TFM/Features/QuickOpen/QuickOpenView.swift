@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 /// The window-level presentation for Command-P.
 ///
@@ -94,7 +95,9 @@ struct QuickOpenView: View {
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
-            TextField("Open a page, chat, workspace, host, or command", text: $query)
+            TextField("Open a page, chat, workspace, host, or command", text: $query.singleLineText, axis: .horizontal)
+                .singleLinePaste()
+                .lineLimit(1)
                 .textFieldStyle(.plain)
                 .font(.system(size: 17, weight: .medium))
                 .focused($searchFocused)

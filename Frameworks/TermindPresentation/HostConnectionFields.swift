@@ -12,11 +12,15 @@ public struct HostConnectionFields: View {
     public var body: some View {
         Section("Connection") {
             LabeledContent("Name") {
-                TextField("Name", text: $host.name, prompt: Text(host.host)).labelsHidden().multilineTextAlignment(
-                    .trailing)
+                TextField("Name", text: $host.name.singleLineText, prompt: Text(host.host), axis: .horizontal)
+                    .singleLinePaste()
+                    .lineLimit(1).labelsHidden().multilineTextAlignment(
+                        .trailing)
             }
             LabeledContent("Host") {
-                TextField("Host", text: $host.host, prompt: Text("IP address or hostname"))
+                TextField(
+                    "Host", text: $host.host.singleLineText, prompt: Text("IP address or hostname"), axis: .horizontal
+                ).singleLinePaste().lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)
                     #if os(iOS)
                         .textInputAutocapitalization(.never)
@@ -25,7 +29,7 @@ public struct HostConnectionFields: View {
                     #endif
             }
             LabeledContent("Port") {
-                TextField("Port", value: $host.port, format: .number.grouping(.never))
+                TextField("Port", value: $host.port, format: .number.grouping(.never)).lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)
                     #if os(iOS)
                         .keyboardType(.numberPad)
@@ -34,7 +38,10 @@ public struct HostConnectionFields: View {
         }
         Section("SFTP") {
             LabeledContent("Initial Path") {
-                TextField("Initial Path", text: $host.sftpSessionInitialPath, prompt: Text("~"))
+                TextField(
+                    "Initial Path", text: $host.sftpSessionInitialPath.singleLineText, prompt: Text("~"),
+                    axis: .horizontal
+                ).singleLinePaste().lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)
                     .font(.body.monospaced())
                     #if os(iOS)

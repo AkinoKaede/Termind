@@ -170,7 +170,7 @@ struct MobileHostPicker<Header: View>: View {
                 }
             }
         }
-        .searchable(text: $model.query, prompt: "Search hosts")
+        .searchable(text: $model.query.singleLineText, prompt: "Search hosts")
         .navigationTitle(Text(title))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

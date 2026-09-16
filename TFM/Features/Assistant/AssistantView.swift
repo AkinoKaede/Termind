@@ -2,6 +2,7 @@ import AppKit
 import ListViewKit
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 nonisolated enum AssistantSidebarEscapePolicy {
     static func shouldCloseConversation(
@@ -1340,8 +1341,8 @@ struct AssistantConversationRow: View {
                     controlActiveState: controlActiveState,
                     onSubmit: onCommitRename,
                     onCancel: onCancelRename
-                )
-                .frame(height: 18)
+                ).singleLinePaste()
+                    .frame(height: 18)
             } else {
                 Text(conversation.derivedTitle).lineLimit(1)
             }

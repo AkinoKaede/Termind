@@ -70,7 +70,7 @@ struct SkillEditorPage: View {
     @ViewBuilder
     private func identitySection(_ skill: AgentSkill) -> some View {
         Section {
-            TextField("Title", text: binding(\.title))
+            TextField("Title", text: binding(\.title).singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
 
             if isNameLocked {
                 LabeledContent("Name") {

@@ -2,6 +2,7 @@ import AppKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -94,6 +95,7 @@ struct NativeSearchField: NSViewRepresentable {
         field.stringValue = text
         field.controlSize = controlSize
         field.focusRingType = .default
+        field.cell?.usesSingleLineMode = true
         // Filter as the user types. The default batches until Return, which for
         // a list that narrows in place means the field looks broken.
         field.sendsWholeSearchString = false
@@ -178,8 +180,10 @@ struct NativeSearchField: NSViewRepresentable {
         }
 
         func controlTextDidChange(_ notification: Notification) {
-            guard let searchField = notification.object as? NSSearchField else { return }
-            field.text = searchField.stringValue
+            guard let searchField = notification.object as? NSSearchField,
+                let value = SingleLineFieldEditing.normalizedValue(in: searchField)
+            else { return }
+            field.text = value
         }
 
         // MARK: Holding the keyboard
@@ -409,7 +413,7 @@ struct WindowToolbarSearchHost: View {
     private var searchableHost: some View {
         Color.clear
             .searchable(
-                text: searchText,
+                text: searchText.singleLineText,
                 isPresented: $isPresented,
                 placement: .automatic,
                 prompt: Text("Search")
@@ -487,12 +491,12 @@ struct WindowToolbarFindField: View {
                     cancel: context.cancel,
                     installFocusHandler: { window.focusToolbarFindField = $0 },
                     onFocusChange: { window.isToolbarFindFocused = $0 }
-                )
-                .frame(width: Metrics.Toolbar.searchFieldWidth)
-                .help(Text(AppLocalization.string("Search", locale: locale)))
-                .accessibilityLabel(
-                    Text(AppLocalization.string("Search", locale: locale))
-                )
+                ).singleLinePaste()
+                    .frame(width: Metrics.Toolbar.searchFieldWidth)
+                    .help(Text(AppLocalization.string("Search", locale: locale)))
+                    .accessibilityLabel(
+                        Text(AppLocalization.string("Search", locale: locale))
+                    )
             } else {
                 // Zero width, full height. A toolbar with nothing in it is
                 // shorter than one holding a search field, and the titlebar

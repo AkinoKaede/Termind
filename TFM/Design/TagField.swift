@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 /// A token field: the tags already chosen, shown as removable chips, over a
 /// search field that narrows the tags in use elsewhere and offers to create the
@@ -78,7 +79,9 @@ struct TagField: View {
             Image(systemName: "number")
                 .foregroundStyle(.secondary)
 
-            TextField(text: $query, prompt: Text("Add a tag…")) { EmptyView() }
+            TextField(text: $query.singleLineText, prompt: Text("Add a tag…"), axis: .horizontal) { EmptyView() }
+                .singleLinePaste()
+                .lineLimit(1)
                 .textFieldStyle(.plain)
                 .labelsHidden()
                 .multilineTextAlignment(.leading)

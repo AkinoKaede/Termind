@@ -2,6 +2,7 @@ import AgentKit
 import SwiftUI
 import TermindApplication
 import TermindInfrastructure
+import TermindPresentation
 
 struct MobileMCPSettings: View {
     let ai: AIConfigurationModel
@@ -205,7 +206,9 @@ struct MobileMCPEditor: View {
         Form {
             Section("Connection") {
                 LabeledContent("Name") {
-                    TextField("Name", text: $model.draft.name).multilineTextAlignment(.trailing)
+                    TextField("Name", text: $model.draft.name.singleLineText, axis: .horizontal).singleLinePaste()
+                        .lineLimit(1)
+                        .multilineTextAlignment(.trailing)
                 }
                 Toggle("Enabled", isOn: $model.draft.isEnabled)
                 LabeledContent("ID") {
@@ -222,7 +225,8 @@ struct MobileMCPEditor: View {
                     ForEach(MCPServer.Transport.allCases) { Text($0.displayName).tag($0) }
                 }
                 LabeledContent("URL") {
-                    TextField("MCP endpoint URL", text: $model.draft.url)
+                    TextField("MCP endpoint URL", text: $model.draft.url.singleLineText, axis: .horizontal)
+                        .singleLinePaste().lineLimit(1)
                         .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
                         .multilineTextAlignment(.trailing)
                 }
@@ -397,12 +401,14 @@ private struct MobileMCPHeaderEditor: View {
         Form {
             Section {
                 LabeledContent("Name") {
-                    TextField("Header name", text: $draft.name)
+                    TextField("Header name", text: $draft.name.singleLineText, axis: .horizontal).singleLinePaste()
+                        .lineLimit(1)
                         .focused($focusedField, equals: .name)
                         .multilineTextAlignment(.trailing)
                 }
                 LabeledContent("Value") {
-                    TextField("Header value", text: $draft.value)
+                    TextField("Header value", text: $draft.value.singleLineText, axis: .horizontal).singleLinePaste()
+                        .lineLimit(1)
                         .focused($focusedField, equals: .value)
                         .multilineTextAlignment(.trailing)
                 }

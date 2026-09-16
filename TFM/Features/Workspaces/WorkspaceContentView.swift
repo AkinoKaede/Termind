@@ -723,12 +723,14 @@ private struct PaneView: View {
                 .foregroundStyle(.secondary)
 
             if isRenaming {
-                TextField("Pane Name", text: $draftTitle)
-                    .textFieldStyle(.plain)
-                    .font(.system(size: 11, weight: .medium))
-                    .focused($titleFieldFocused)
-                    .onSubmit(commitRename)
-                    .onExitCommand { isRenaming = false }
+                TextField("Pane Name", text: $draftTitle.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(
+                    1
+                )
+                .textFieldStyle(.plain)
+                .font(.system(size: 11, weight: .medium))
+                .focused($titleFieldFocused)
+                .onSubmit(commitRename)
+                .onExitCommand { isRenaming = false }
             } else {
                 title
             }
@@ -1127,8 +1129,8 @@ private struct WelcomeWorkspaceTemplateRow: View {
                     controlActiveState: controlActiveState,
                     onSubmit: commitRename,
                     onCancel: cancelRename
-                )
-                .frame(height: 18)
+                ).singleLinePaste()
+                    .frame(height: 18)
             } else {
                 VStack(alignment: .leading, spacing: Metrics.Space.xs) {
                     Text(template.name)

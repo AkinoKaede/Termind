@@ -843,18 +843,18 @@ private struct SSHCommandHistorySidebar: View {
                     prompt: String(localized: "Snippet Name"),
                     onSubmit: { saveSnippet(from: entry) },
                     onCancel: cancelSnippetNaming
-                )
-                .frame(height: 18)
-                .padding(.horizontal, Metrics.Space.s)
-                .padding(.vertical, 4)
-                .background(
-                    Color.primary.opacity(0.055),
-                    in: .rect(cornerRadius: Metrics.Radius.small)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: Metrics.Radius.small)
-                        .strokeBorder(Color.accentColor.opacity(0.55))
-                }
+                ).singleLinePaste()
+                    .frame(height: 18)
+                    .padding(.horizontal, Metrics.Space.s)
+                    .padding(.vertical, 4)
+                    .background(
+                        Color.primary.opacity(0.055),
+                        in: .rect(cornerRadius: Metrics.Radius.small)
+                    )
+                    .overlay {
+                        RoundedRectangle(cornerRadius: Metrics.Radius.small)
+                            .strokeBorder(Color.accentColor.opacity(0.55))
+                    }
                 Text(CommandHistoryPresentation.title(for: entry))
                     .font(.caption.monospaced())
                     .foregroundStyle(.secondary)
@@ -1342,6 +1342,7 @@ private struct SidebarInlineTextField: NSViewRepresentable {
         field.focusRingType = .none
         field.font = NSFont.preferredFont(forTextStyle: .body)
         field.lineBreakMode = .byTruncatingTail
+        field.cell?.usesSingleLineMode = true
         field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         context.coordinator.requestFocus(for: field)
         return field
@@ -1378,8 +1379,10 @@ private struct SidebarInlineTextField: NSViewRepresentable {
         }
 
         func controlTextDidChange(_ notification: Notification) {
-            guard let field = notification.object as? NSTextField else { return }
-            text.wrappedValue = field.stringValue
+            guard let field = notification.object as? NSTextField,
+                let value = SingleLineFieldEditing.normalizedValue(in: field)
+            else { return }
+            text.wrappedValue = value
         }
 
         func control(

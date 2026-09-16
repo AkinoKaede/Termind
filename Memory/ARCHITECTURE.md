@@ -46,6 +46,14 @@ empty.
 
 ## State, navigation, and ownership
 
+Single-line UI fields share Presentation's newline-to-space editing policy and
+horizontal layout. Binding reads preserve stored values; only edits are normalized.
+App-owned native rename editors apply the same policy without interrupting marked
+text. Platforms inject app-owned single-line paste adapters so normalization happens
+before native controls flatten individual line breaks. Multiline content and secrets
+are excluded. Existing validation is unchanged. No persistence migration or bulk
+cleanup is performed.
+
 - Repository snapshots and preference models are application-wide. A window owns
   its shell, quick-open, search, navigation, and context-panel state.
 - Desktop navigation starts with Vault and Assistant, places Metrics above Vault

@@ -422,7 +422,7 @@ private struct SoftwareKeyEditor: View {
                     }
 
                     Section("Key") {
-                        TextField("Name", text: $name)
+                        TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                         Picker("Store in", selection: $storage) {
                             Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
                             Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
@@ -827,7 +827,8 @@ private struct GenerateKeySheet: View {
     var body: some View {
         VaultDetailScaffold(title: "Generate Key", symbol: "key.fill", close: close) {
             Form {
-                TextField("Name", text: $label, prompt: Text(defaultName))
+                TextField("Name", text: $label.singleLineText, prompt: Text(defaultName), axis: .horizontal).lineLimit(
+                    1)
                 Picker("Store in", selection: $storage) {
                     ForEach(availableStorage) { location in
                         Label(location.displayName, systemImage: location.symbol)
@@ -873,7 +874,7 @@ private struct GenerateKeySheet: View {
                                 Text(cipher.displayName).tag(cipher)
                             }
                         }
-                        TextField("Rounds", value: $rounds, format: .number)
+                        TextField("Rounds", value: $rounds, format: .number).lineLimit(1)
                     }
                     if !passwordsMatch {
                         Text("Passphrases do not match.")
@@ -1047,7 +1048,7 @@ private struct SecureEnclaveKeyEditor: View {
         VaultDetailScaffold(title: "Edit Key", symbol: "pencil", close: close) {
             Form {
                 Section("Key") {
-                    TextField("Name", text: $name)
+                    TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                     LabeledContent("Color") {
                         ColorTagPicker(selection: $colorTag, layout: .compact)
                     }
@@ -1157,7 +1158,8 @@ struct ExportKeyToHostsSheet: View {
             HStack(spacing: Metrics.Space.s) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search hosts", text: queryBinding)
+                TextField("Search hosts", text: queryBinding.singleLineText, axis: .horizontal).singleLinePaste()
+                    .lineLimit(1)
                     .textFieldStyle(.plain)
                     .focused($searchFocused)
                     .onKeyPress(.upArrow) { moveCursor(-1) }

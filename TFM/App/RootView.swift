@@ -1,6 +1,7 @@
 @preconcurrency import AppKit
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 /// One window with one native Navigator column and one persistent detail deck.
 ///
@@ -58,6 +59,7 @@ struct RootView: View {
                 )
         }
         .navigationSplitViewStyle(.balanced)
+        .environment(\.singleLinePasteAction, { SingleLineFieldEditing.paste() })
         .background {
             MetricsWindowRegistration(model: window)
             WindowToolbarSearchHost()

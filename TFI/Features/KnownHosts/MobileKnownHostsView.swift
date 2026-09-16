@@ -62,7 +62,7 @@ struct MobileKnownHostsView: View {
                 }
             }
         }
-        .searchable(text: $query)
+        .searchable(text: $query.singleLineText)
         .navigationTitle("Known Hosts")
         .sheet(item: $editing) { MobileKnownHostEditor(app: app, entry: $0) }
         .confirmationDialog(
@@ -101,14 +101,15 @@ struct MobileKnownHostEditor: View {
             content: {
                 Section {
                     LabeledContent("Hostname") {
-                        TextField("Hostname", text: $draft.hostname)
+                        TextField("Hostname", text: $draft.hostname.singleLineText, axis: .horizontal).singleLinePaste()
+                            .lineLimit(1)
                             .multilineTextAlignment(.trailing)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                     }
                     if !draft.isHashed {
                         LabeledContent("Port") {
-                            TextField("Port", value: $draft.port, format: .number.grouping(.never))
+                            TextField("Port", value: $draft.port, format: .number.grouping(.never)).lineLimit(1)
                                 .multilineTextAlignment(.trailing)
                                 .keyboardType(.numberPad)
                         }
@@ -117,11 +118,13 @@ struct MobileKnownHostEditor: View {
                         ForEach(SSHKeyAlgorithm.allCases) { Text($0.displayName).tag($0) }
                     }
                     LabeledContent("Fingerprint") {
-                        TextField("Fingerprint", text: $draft.fingerprint)
-                            .multilineTextAlignment(.trailing)
-                            .font(.body.monospaced())
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
+                        TextField("Fingerprint", text: $draft.fingerprint.singleLineText, axis: .horizontal).lineLimit(
+                            1
+                        )
+                        .multilineTextAlignment(.trailing)
+                        .font(.body.monospaced())
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
                     }
                 }
                 if draft.isHashed {

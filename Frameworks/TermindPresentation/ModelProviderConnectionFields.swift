@@ -16,7 +16,9 @@ public struct ModelProviderConnectionFields: View {
     public var body: some View {
         Section {
             LabeledContent("Name") {
-                TextField("Name", text: $name).labelsHidden().multilineTextAlignment(.trailing)
+                TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                    .labelsHidden()
+                    .multilineTextAlignment(.trailing)
             }
             Toggle("Enabled", isOn: $isEnabled)
             Picker("API Type", selection: $endpoint.apiType) {
@@ -25,7 +27,9 @@ public struct ModelProviderConnectionFields: View {
         }
         Section("Endpoint") {
             LabeledContent("URL") {
-                TextField("URL", text: $endpoint.url).labelsHidden().autocorrectionDisabled()
+                TextField("URL", text: $endpoint.url.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                    .labelsHidden()
+                    .autocorrectionDisabled()
                     .multilineTextAlignment(.trailing)
             }
             if endpoint.isConfigured {

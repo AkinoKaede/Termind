@@ -10,6 +10,29 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func singleLineEditingIsSharedButNativeFieldEditorsRemainAppOwned() throws {
+        let root = sourceRoot.deletingLastPathComponent()
+        let policy = try String(
+            contentsOf: root.appending(path: "Frameworks/TermindPresentation/SingleLineTextInput.swift"),
+            encoding: .utf8)
+        for forbidden in ["import AppKit", "import UIKit", "import TermindPersistence", "import AgentKit"] {
+            #expect(!policy.contains(forbidden))
+        }
+        let native = try String(
+            contentsOf: sourceRoot.appending(path: "UI/Components/SingleLineFieldEditing.swift"), encoding: .utf8)
+        #expect(native.contains("SingleLineTextInput.normalized"))
+        #expect(native.contains("hasMarkedText()"))
+        for path in [
+            "TFM/Features/AI/ConversationTranscriptView.swift",
+            "TFI/Features/AI/MobileAssistantComposer.swift",
+            "TFI/Features/AI/MobileAssistantInteraction.swift",
+        ] {
+            let content = try String(contentsOf: root.appending(path: path), encoding: .utf8)
+            #expect(!content.contains(".singleLineText"))
+        }
+    }
+
+    @Test
     func aiSettingsUsePortableModelsAndSyncedSkills() throws {
         let root = sourceRoot.deletingLastPathComponent()
         let library = try String(

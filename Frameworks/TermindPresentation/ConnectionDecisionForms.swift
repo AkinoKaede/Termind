@@ -136,7 +136,8 @@ public struct SSHAuthenticationForm: View {
                     if identityID == nil {
                         GridRow {
                             Text("Username").foregroundStyle(.secondary)
-                            TextField("Username", text: usernameInput)
+                            TextField("Username", text: usernameInput.singleLineText, axis: .horizontal)
+                                .singleLinePaste().lineLimit(1)
                                 .focused($focusedField, equals: .username)
                         }
                         GridRow {

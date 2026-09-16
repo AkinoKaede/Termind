@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 extension View {
     func termindTransientOverlaySurface() -> some View {
@@ -62,7 +63,7 @@ struct TermindSearchField: View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField(prompt, text: $text)
+            TextField(prompt, text: $text.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                 .textFieldStyle(.plain)
                 .font(density == .prominent ? .title3 : .body)
                 .focused(externalFocus ?? $localFocus)
@@ -205,7 +206,7 @@ struct ManagedChooserHeader: View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: "magnifyingglass")
                 .foregroundStyle(.secondary)
-            TextField(prompt, text: $query)
+            TextField(prompt, text: $query.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                 .textFieldStyle(.plain)
                 .focused($searchFocused)
                 .onSubmit(onSubmit)

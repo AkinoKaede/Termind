@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import UIKit
 
 struct MobileTerminalSnippetsView: View {
@@ -40,7 +41,7 @@ struct MobileTerminalSnippetsView: View {
                 }
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .searchable(text: $query)
+            .searchable(text: $query.singleLineText)
             .navigationTitle("Snippets")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

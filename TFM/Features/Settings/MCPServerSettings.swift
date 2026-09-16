@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 #if canImport(AppKit)
     import AppKit
@@ -37,9 +38,9 @@ struct MCPServerSettings: View {
                         get: { server.port },
                         set: { server.setPort($0) }
                     ), format: .number.grouping(.never)
-                )
-                .frame(width: 100)
-                .multilineTextAlignment(.trailing)
+                ).lineLimit(1)
+                    .frame(width: 100)
+                    .multilineTextAlignment(.trailing)
             }
             Text(
                 "The server listens only on 127.0.0.1 and ::1. It is off by default; when enabled, external calls execute without per-call approval."
@@ -98,7 +99,9 @@ struct MCPServerSettings: View {
         }
 
         Section("Call History") {
-            TextField("Filter by client, tool, host or argument", text: $historyQuery)
+            TextField("Filter by client, tool, host or argument", text: $historyQuery.singleLineText, axis: .horizontal)
+                .singleLinePaste()
+                .lineLimit(1)
             let rows = app.toolAudit.entries(matching: historyQuery)
             if rows.isEmpty {
                 ContentUnavailableView(

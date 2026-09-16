@@ -159,12 +159,16 @@ struct KnownHostEditorView: View {
     var body: some View {
         VaultDetailScaffold(title: "Host Key", symbol: "touchid", close: window.closeVaultWork) {
             Form {
-                TextField("Hostname", text: $draft.hostname)
-                if !draft.isHashed { TextField("Port", value: $draft.port, format: .number.grouping(.never)) }
+                TextField("Hostname", text: $draft.hostname.singleLineText, axis: .horizontal).singleLinePaste()
+                    .lineLimit(1)
+                if !draft.isHashed {
+                    TextField("Port", value: $draft.port, format: .number.grouping(.never)).lineLimit(1)
+                }
                 Picker("Key Type", selection: $draft.algorithm) {
                     ForEach(SSHKeyAlgorithm.allCases) { Text($0.displayName).tag($0) }
                 }
-                TextField("Fingerprint", text: $draft.fingerprint)
+                TextField("Fingerprint", text: $draft.fingerprint.singleLineText, axis: .horizontal).singleLinePaste()
+                    .lineLimit(1)
                     .font(.body.monospaced())
                 if draft.isHashed {
                     Text("The original address and port cannot be recovered from this hash.").font(.caption)

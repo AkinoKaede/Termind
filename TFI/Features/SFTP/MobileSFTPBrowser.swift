@@ -155,7 +155,8 @@ private struct MobileSFTPPathBar: View {
     var body: some View {
         Group {
             if editsPath {
-                TextField("Remote Path", text: $session.pathText)
+                TextField("Remote Path", text: $session.pathText.singleLineText, axis: .horizontal).singleLinePaste()
+                    .lineLimit(1)
                     .font(.body.monospaced())
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()

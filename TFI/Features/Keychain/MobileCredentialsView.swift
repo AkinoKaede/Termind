@@ -71,7 +71,7 @@ struct MobileCredentialsView: View {
                 }
             }
         }
-        .searchable(text: $query)
+        .searchable(text: $query.singleLineText)
         .navigationTitle("Keychain")
         .toolbar {
             Menu {
@@ -304,11 +304,15 @@ private struct MobileIdentityEditor: View {
             content: {
                 Section("Identity") {
                     LabeledContent("Name") {
-                        TextField("Name", text: $draft.name, prompt: Text(draft.username))
+                        TextField(
+                            "Name", text: $draft.name.singleLineText, prompt: Text(draft.username), axis: .horizontal
+                        ).singleLinePaste().lineLimit(1)
                             .multilineTextAlignment(.trailing)
                     }
                     LabeledContent("Username") {
-                        TextField("Username", text: $draft.username).textInputAutocapitalization(.never)
+                        TextField("Username", text: $draft.username.singleLineText, axis: .horizontal).singleLinePaste()
+                            .lineLimit(1)
+                            .textInputAutocapitalization(.never)
                             .autocorrectionDisabled().multilineTextAlignment(.trailing)
                     }
                 }

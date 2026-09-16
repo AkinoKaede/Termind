@@ -17,7 +17,10 @@ struct MobileKeyEditor: View {
             content: {
                 Section("Key") {
                     LabeledContent("Name") {
-                        TextField("Name", text: $model.label, prompt: Text(model.defaultName))
+                        TextField(
+                            "Name", text: $model.label.singleLineText, prompt: Text(model.defaultName),
+                            axis: .horizontal
+                        ).singleLinePaste().lineLimit(1)
                             .multilineTextAlignment(.trailing)
                     }
                     if !model.isEnclave {
@@ -65,7 +68,7 @@ struct MobileKeyEditor: View {
                                     ForEach(SSHKeyMaterial.Cipher.allCases) { Text($0.displayName).tag($0) }
                                 }
                                 LabeledContent("Rounds") {
-                                    TextField("Rounds", value: $model.rounds, format: .number)
+                                    TextField("Rounds", value: $model.rounds, format: .number).lineLimit(1)
                                         .multilineTextAlignment(.trailing).keyboardType(.numberPad)
                                 }
                                 if model.passphrase != model.confirmation {

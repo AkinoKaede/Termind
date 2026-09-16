@@ -1,6 +1,7 @@
 import AgentKit
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 @Observable
 final class MCPServerEditorSession {
@@ -86,7 +87,7 @@ struct MCPServerEditorPage: View {
     @ViewBuilder
     private func connectionSection(_ server: MCPServer) -> some View {
         Section {
-            TextField("Name", text: binding(\.name))
+            TextField("Name", text: binding(\.name).singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
             Toggle(
                 "Enabled",
                 isOn: Binding(
@@ -124,7 +125,9 @@ struct MCPServerEditorPage: View {
                 ForEach(MCPServer.Transport.allCases) { Text($0.displayName).tag($0) }
             }
 
-            TextField("URL", text: binding(\.url), prompt: Text("MCP endpoint URL"))
+            TextField("URL", text: binding(\.url).singleLineText, prompt: Text("MCP endpoint URL"), axis: .horizontal)
+                .singleLinePaste()
+                .lineLimit(1)
 
             Text(server.transport.detail)
                 .font(.caption)
@@ -199,9 +202,13 @@ struct MCPServerEditorPage: View {
             ForEach(server.headers) { header in
                 HStack(spacing: Metrics.Space.s) {
                     TextField(
-                        "Name", text: headerBinding(header.id, \.name), prompt: Text("Header name"))
+                        "Name", text: headerBinding(header.id, \.name).singleLineText, prompt: Text("Header name"),
+                        axis: .horizontal
+                    ).singleLinePaste().lineLimit(1)
                     TextField(
-                        "Value", text: headerBinding(header.id, \.value), prompt: Text("Header value"))
+                        "Value", text: headerBinding(header.id, \.value).singleLineText, prompt: Text("Header value"),
+                        axis: .horizontal
+                    ).singleLinePaste().lineLimit(1)
                     Button {
                         removeHeader(header.id)
                     } label: {

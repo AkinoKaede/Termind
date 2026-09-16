@@ -110,9 +110,10 @@ struct NewIdentitySheet: View {
         Form {
             Section {
                 if configuration.showsName {
-                    TextField("Name", text: $name, prompt: Text(username))
+                    TextField("Name", text: $name.singleLineText, prompt: Text(username), axis: .horizontal).lineLimit(
+                        1)
                 }
-                TextField("Username", text: $username)
+                TextField("Username", text: $username.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
 
                 // Both optional, and both allowed at once: a key to get in and a
                 // password the same account still asks for is an ordinary setup,

@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindPresentation
 
 /// A transparent native field for inline renaming inside emphasized sidebar
 /// rows. Return commits, Escape cancels, and a pointer exit commits only after
@@ -103,8 +104,10 @@ struct SidebarInlineRenameField: NSViewRepresentable {
         }
 
         func controlTextDidChange(_ notification: Notification) {
-            guard let field = notification.object as? NSTextField else { return }
-            text.wrappedValue = field.stringValue
+            guard let field = notification.object as? NSTextField,
+                let value = SingleLineFieldEditing.normalizedValue(in: field)
+            else { return }
+            text.wrappedValue = value
         }
 
         func controlTextDidEndEditing(_: Notification) {
@@ -400,7 +403,7 @@ struct SidebarSearchFooter: View {
     var placeholder: String
 
     var body: some View {
-        NativeSearchField(text: $text, placeholder: placeholder, controlSize: .large)
+        NativeSearchField(text: $text, placeholder: placeholder, controlSize: .large).singleLinePaste()
             .frame(height: Metrics.Sidebar.searchFieldHeight)
             .padding(.horizontal, Metrics.Space.m)
             .padding(.vertical, Metrics.Space.s)

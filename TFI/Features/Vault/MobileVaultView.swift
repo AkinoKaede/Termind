@@ -227,7 +227,7 @@ struct MobileVaultView: View {
                 searchResults
             }
         }
-        .searchable(text: $query)
+        .searchable(text: $query.singleLineText)
         .navigationTitle("Vault")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -249,7 +249,7 @@ struct MobileVaultView: View {
                     if let error = app.library.storageError { throw MobileEditorError.message(error) }
                     groupName = ""
                 }
-            ) { TextField("Name", text: $groupName) }
+            ) { TextField("Name", text: $groupName.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1) }
         }
         .confirmationDialog(
             "Delete Host?", isPresented: Binding(get: { deletingHost != nil }, set: { if !$0 { deletingHost = nil } }),

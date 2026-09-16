@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -588,7 +589,7 @@ struct SnippetEditorSheet: View {
         ) {
             Form {
                 Section {
-                    TextField("Name", text: $title)
+                    TextField("Name", text: $title.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                     VStack(alignment: .leading, spacing: Metrics.Space.s) {
                         Text("Script")
                             .font(.caption)
@@ -868,7 +869,7 @@ struct SnippetPackageSheet: View {
             symbol: "folder.fill", close: close
         ) {
             Form {
-                TextField("Name", text: $name)
+                TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                 Picker("Inside", selection: $parentID) {
                     Text("Top Level").tag(SnippetPackage.ID?.none)
                     ForEach(parentChoices, id: \.package.id) { choice in

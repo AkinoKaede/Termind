@@ -148,7 +148,9 @@ struct MobileSkillEditor: View {
             content: {
                 Section("Skill") {
                     LabeledContent("Title") {
-                        TextField("Title", text: $model.draft.title).multilineTextAlignment(.trailing)
+                        TextField("Title", text: $model.draft.title.singleLineText, axis: .horizontal).singleLinePaste()
+                            .lineLimit(1)
+                            .multilineTextAlignment(.trailing)
                     }
                     LabeledContent("Name") {
                         Text(

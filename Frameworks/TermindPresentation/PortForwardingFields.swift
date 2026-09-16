@@ -7,14 +7,20 @@ public struct PortForwardingFields: View {
 
     public var body: some View {
         Section("Port Forwarding") {
-            TextField("Name", text: $rule.label).textFieldStyle(.automatic).multilineTextAlignment(.leading)
+            TextField("Name", text: $rule.label.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                .textFieldStyle(
+                    .automatic
+                ).multilineTextAlignment(.leading)
             PortForwardingDirectionPicker(kind: $rule.kind)
             Text(directionDescription).font(.caption).foregroundStyle(.secondary)
             LabeledContent("Bind Address") {
-                TextField("Bind Address", text: $rule.bindHost).labelsHidden().multilineTextAlignment(.trailing)
+                TextField("Bind Address", text: $rule.bindHost.singleLineText, axis: .horizontal).singleLinePaste()
+                    .lineLimit(1)
+                    .labelsHidden().multilineTextAlignment(.trailing)
             }
             LabeledContent("Bind Port") {
-                TextField("Bind Port", value: $rule.bindPort, format: .number.grouping(.never)).labelsHidden()
+                TextField("Bind Port", value: $rule.bindPort, format: .number.grouping(.never)).lineLimit(1)
+                    .labelsHidden()
                     .multilineTextAlignment(.trailing)
                     #if os(iOS)
                         .keyboardType(.numberPad)
@@ -25,13 +31,14 @@ public struct PortForwardingFields: View {
                     TextField(
                         "Target Host",
                         text: Binding(get: { rule.targetHost ?? "localhost" }, set: { rule.targetHost = $0 })
-                    ).labelsHidden().multilineTextAlignment(.trailing)
+                            .singleLineText, axis: .horizontal
+                    ).singleLinePaste().lineLimit(1).labelsHidden().multilineTextAlignment(.trailing)
                 }
                 LabeledContent("Target Port") {
                     TextField(
                         "Target Port", value: Binding(get: { rule.targetPort ?? 80 }, set: { rule.targetPort = $0 }),
                         format: .number.grouping(.never)
-                    ).labelsHidden().multilineTextAlignment(.trailing)
+                    ).lineLimit(1).labelsHidden().multilineTextAlignment(.trailing)
                         #if os(iOS)
                             .keyboardType(.numberPad)
                         #endif

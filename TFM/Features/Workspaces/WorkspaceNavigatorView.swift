@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 import UniformTypeIdentifiers
 
 /// The native source list for Vault and Workspaces.
@@ -414,8 +415,8 @@ private struct WorkspaceNavigatorRow: View {
                     controlActiveState: controlActiveState,
                     onSubmit: onCommitRename,
                     onCancel: onCancelRename
-                )
-                .frame(height: 18)
+                ).singleLinePaste()
+                    .frame(height: 18)
             } else {
                 VStack(alignment: .leading, spacing: 1) {
                     Text(workspace.title(in: app.hostLibrary, locale: locale))

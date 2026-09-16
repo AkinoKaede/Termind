@@ -1,6 +1,7 @@
 import AgentKit
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 enum MobileAssistantLibraryRoute: String, Identifiable, Hashable {
     case conversations
@@ -101,7 +102,8 @@ struct MobileAssistantView: View {
                 "Rename",
                 isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
             ) {
-                TextField("Conversation Name", text: $title)
+                TextField("Conversation Name", text: $title.singleLineText, axis: .horizontal).singleLinePaste()
+                    .lineLimit(1)
                 Button("Cancel", role: .cancel) { renaming = nil }
                 Button("Save") {
                     if let renaming { Task { await model.rename(renaming, title: title) } }
@@ -295,9 +297,10 @@ struct MobileAssistantLibrary: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query, prompt: "Search")
+        .searchable(text: $query.singleLineText, prompt: "Search")
         .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("Conversation Name", text: $title)
+            TextField("Conversation Name", text: $title.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(
+                1)
             Button("Cancel", role: .cancel) { renaming = nil }
             Button("Save") {
                 if let renaming { Task { await model.rename(renaming, title: title) } }

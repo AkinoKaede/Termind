@@ -2,6 +2,7 @@ import Foundation
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 extension Workspace {
     func workspaceTemplateLayout(in hosts: HostLibraryModel) -> WorkspaceTemplateLayout? {
@@ -162,7 +163,8 @@ struct WorkspaceTemplateNameSheet: View {
         VStack(alignment: .leading, spacing: Metrics.Space.l) {
             Text(title)
                 .font(.title2.weight(.semibold))
-            TextField("Workspace Name", text: $presentation.name)
+            TextField("Workspace Name", text: $presentation.name.singleLineText, axis: .horizontal).singleLinePaste()
+                .lineLimit(1)
                 .textFieldStyle(.roundedBorder)
                 .focused($isNameFocused)
             if let error = presentation.error {

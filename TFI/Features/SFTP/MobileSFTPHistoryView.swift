@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 import UIKit
 
 struct MobileSFTPHistoryView: View {
@@ -65,7 +66,7 @@ struct MobileSFTPHistoryView: View {
                         .background(.bar)
                 }
             }
-            .searchable(text: $query, prompt: "Search History")
+            .searchable(text: $query.singleLineText, prompt: "Search History")
             .navigationTitle("History")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -76,7 +77,7 @@ struct MobileSnippetsView: View {
                 }
             }
         }
-        .searchable(text: $query)
+        .searchable(text: $query.singleLineText)
         .navigationTitle("Snippets")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -613,7 +614,8 @@ struct MobileSnippetEditor: View {
             save: save
         ) {
             Section {
-                TextField("Title", text: $draft.title).multilineTextAlignment(.leading)
+                TextField("Title", text: $draft.title.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                    .multilineTextAlignment(.leading)
                 TextEditor(text: $draft.body).multilineTextAlignment(.leading)
                     .font(.body.monospaced()).frame(minHeight: 220)
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
@@ -726,7 +728,9 @@ struct MobileSnippetPackageEditor: View {
             isDirty: draft != original, canSave: !trimmedName.isEmpty, compact: true,
             save: save
         ) {
-            TextField("Name", text: $draft.name).multilineTextAlignment(.leading)
+            TextField("Name", text: $draft.name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                .multilineTextAlignment(
+                    .leading)
             Picker("Inside", selection: $draft.parentID) {
                 Text("Top Level").tag(SnippetPackage.ID?.none)
                 ForEach(parentChoices, id: \.package.id) { choice in
@@ -834,7 +838,7 @@ struct MobileSnippetHostPicker: View {
                     }
                 }
             }
-            .searchable(text: $query, prompt: "Search hosts")
+            .searchable(text: $query.singleLineText, prompt: "Search hosts")
             .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -273,7 +273,7 @@ struct MobileWorkspaceView: View {
                 Text("Use this choice for all conflicts in this batch.")
             }
             .alert("New Folder", isPresented: $creatingDirectory) {
-                TextField("Name", text: $directoryName)
+                TextField("Name", text: $directoryName.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                 Button("Create") {
                     Task {
                         await workspace.sftpSession.createDirectory(directoryName)

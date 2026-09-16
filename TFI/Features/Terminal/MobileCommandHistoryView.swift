@@ -63,7 +63,7 @@ struct MobileCommandHistoryView: View {
                         .background(.bar)
                 }
             }
-            .searchable(text: $query)
+            .searchable(text: $query.singleLineText)
             .navigationTitle("History")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

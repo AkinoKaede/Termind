@@ -106,15 +106,16 @@ struct HostEditorView: View {
                 }
 
                 if draft.proxy != nil {
-                    TextField("Hostname", text: proxyString(\.hostname))
+                    TextField("Hostname", text: proxyString(\.hostname).singleLineText, axis: .horizontal)
+                        .singleLinePaste().lineLimit(1)
                         .padding(.leading, Metrics.Space.xxl)
                         .accessibilityLabel("Proxy Hostname")
                     TextField(
                         "Port", value: proxyInt(\.port),
                         format: .number.grouping(.never)
-                    )
-                    .padding(.leading, Metrics.Space.xxl)
-                    .accessibilityLabel("Proxy Port")
+                    ).lineLimit(1)
+                        .padding(.leading, Metrics.Space.xxl)
+                        .accessibilityLabel("Proxy Port")
                     Picker("Identity", selection: proxyIdentityChoice) {
                         Text("None").tag(Choice<Identity.ID>.unset)
                         ForEach(proxyIdentities) { identity in
@@ -127,7 +128,9 @@ struct HostEditorView: View {
                     .padding(.leading, Metrics.Space.xxl)
                     .accessibilityLabel("Proxy Identity")
                     if draft.proxy?.identityID != nil {
-                        TextField("Username", text: proxyString(\.username))
+                        TextField("Username", text: proxyString(\.username).singleLineText, axis: .horizontal)
+                            .singleLinePaste()
+                            .lineLimit(1)
                             .padding(.leading, Metrics.Space.xxl)
                             .accessibilityLabel("Proxy Username")
                     }

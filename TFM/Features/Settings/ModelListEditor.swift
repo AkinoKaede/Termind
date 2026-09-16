@@ -1,6 +1,7 @@
 import AgentKit
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 /// A provider's full-width models page: a checkable list and details for the
 /// selected row.
@@ -117,10 +118,11 @@ struct ModelListEditor: View {
                 HStack(spacing: Metrics.Space.s) {
                     TextField(
                         "Exact model ID, such as gpt-5.4",
-                        text: Binding(get: { state.newModelID }, set: { state.newModelID = $0 })
-                    )
-                    .textFieldStyle(.roundedBorder)
-                    .onSubmit(addModel)
+                        text: Binding(get: { state.newModelID }, set: { state.newModelID = $0 }).singleLineText,
+                        axis: .horizontal
+                    ).singleLinePaste().lineLimit(1)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit(addModel)
 
                     Button("Cancel") {
                         state.newModelID = ""
@@ -141,8 +143,9 @@ struct ModelListEditor: View {
         HStack(spacing: Metrics.Space.xs) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
             TextField(
-                "Filter", text: Binding(get: { state.query }, set: { state.query = $0 })
-            ).textFieldStyle(.plain)
+                "Filter", text: Binding(get: { state.query }, set: { state.query = $0 }).singleLineText,
+                axis: .horizontal
+            ).singleLinePaste().lineLimit(1).textFieldStyle(.plain)
             if !state.query.isEmpty {
                 Button {
                     state.query = ""
@@ -335,7 +338,10 @@ struct ModelListEditor: View {
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    TextField("Name", text: field(model, \.displayName), prompt: Text(model.id))
+                    TextField(
+                        "Name", text: field(model, \.displayName).singleLineText, prompt: Text(model.id),
+                        axis: .horizontal
+                    ).singleLinePaste().lineLimit(1)
                         .textFieldStyle(.roundedBorder)
 
                     Picker("Type", selection: field(model, \.kind)) {
@@ -525,11 +531,11 @@ struct ModelListEditor: View {
                         updated.setReasoningWireValue(trimmed.isEmpty ? nil : value, for: effort)
                         app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
-                )
-            )
-            .textFieldStyle(.roundedBorder)
-            .disabled(!mapping.isSupported)
-            .accessibilityLabel(Text("\(effort.displayName) provider value"))
+                ).singleLineText, axis: .horizontal
+            ).singleLinePaste().lineLimit(1)
+                .textFieldStyle(.roundedBorder)
+                .disabled(!mapping.isSupported)
+                .accessibilityLabel(Text("\(effort.displayName) provider value"))
         }
     }
 
@@ -553,9 +559,9 @@ struct ModelListEditor: View {
                     }
                 ),
                 format: .number
-            )
-            .labelsHidden()
-            .textFieldStyle(.roundedBorder)
+            ).lineLimit(1)
+                .labelsHidden()
+                .textFieldStyle(.roundedBorder)
         }
     }
 

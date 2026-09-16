@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 /// Make or edit a group without leaving whatever raised the sheet — the
 /// companion to `NewIdentitySheet`, and the only place a group is ever edited.
@@ -64,7 +65,7 @@ struct NewGroupSheet: View {
     private var form: some View {
         Form {
             Section {
-                TextField("Name", text: $name)
+                TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
 
                 // "Inside", not "Parent": the answer is where the group goes,
                 // and every other row here is phrased as a property of the

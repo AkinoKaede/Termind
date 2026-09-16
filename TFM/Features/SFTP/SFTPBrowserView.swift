@@ -306,7 +306,8 @@ struct SFTPBrowserView: View {
             }
         }
         .alert("New Folder", isPresented: $newFolderPresented) {
-            TextField("Folder Name", text: $newFolderName)
+            TextField("Folder Name", text: $newFolderName.singleLineText, axis: .horizontal).singleLinePaste()
+                .lineLimit(1)
             Button("Cancel", role: .cancel) {}
             Button("Create") {
                 let name = newFolderName
@@ -321,7 +322,7 @@ struct SFTPBrowserView: View {
                 set: { if !$0 { renameTarget = nil } }
             )
         ) {
-            TextField("Name", text: $renameName)
+            TextField("Name", text: $renameName.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
             Button("Cancel", role: .cancel) { renameTarget = nil }
             Button("Rename") {
                 guard let target = renameTarget else { return }
@@ -408,7 +409,8 @@ struct SFTPBrowserView: View {
                 }
 
                 if editsPath {
-                    TextField("Remote Path", text: $sftpSession.pathText)
+                    TextField("Remote Path", text: $sftpSession.pathText.singleLineText, axis: .horizontal)
+                        .singleLinePaste().lineLimit(1)
                         .textFieldStyle(.plain)
                         .font(.body.monospaced())
                         .focused($pathFocused)
@@ -1328,7 +1330,7 @@ private struct SFTPEditPermissionsSheet: View {
                         .truncationMode(.middle)
                         .help(displayedPath)
                     Spacer(minLength: Metrics.Space.xl)
-                    TextField("Mode", text: modeText)
+                    TextField("Mode", text: modeText.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                         .labelsHidden()
                         .font(.body.monospacedDigit())
                         .multilineTextAlignment(.trailing)

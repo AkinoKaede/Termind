@@ -1,6 +1,7 @@
 import AgentKit
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 struct MobileModelFields: View {
     @Binding var model: AIModel
@@ -9,7 +10,9 @@ struct MobileModelFields: View {
     var body: some View {
         Section {
             LabeledContent("Name") {
-                TextField("Name", text: $model.displayName).multilineTextAlignment(.trailing)
+                TextField("Name", text: $model.displayName.singleLineText, axis: .horizontal).singleLinePaste()
+                    .lineLimit(1)
+                    .multilineTextAlignment(.trailing)
             }
             Picker("Type", selection: $model.kind) {
                 ForEach(AIModel.Kind.allCases) { Text($0.displayName).tag($0) }
@@ -54,11 +57,11 @@ struct MobileModelFields: View {
 
         Section("Limits") {
             LabeledContent("Context Window") {
-                TextField("Context Window", value: $model.contextLength, format: .number)
+                TextField("Context Window", value: $model.contextLength, format: .number).lineLimit(1)
                     .multilineTextAlignment(.trailing).keyboardType(.numberPad)
             }
             LabeledContent("Max Output") {
-                TextField("Max Output", value: $model.maxOutputTokens, format: .number)
+                TextField("Max Output", value: $model.maxOutputTokens, format: .number).lineLimit(1)
                     .multilineTextAlignment(.trailing).keyboardType(.numberPad)
             }
         }
@@ -118,14 +121,14 @@ struct MobileModelFields: View {
                             for: effort
                         )
                     }
-                )
-            )
-            .textFieldStyle(.roundedBorder)
-            .textInputAutocapitalization(.never)
-            .autocorrectionDisabled()
-            .disabled(!mapping.isSupported)
-            .opacity(mapping.isSupported ? 1 : 0.55)
-            .accessibilityLabel(Text("\(effort.displayName) provider value"))
+                ).singleLineText, axis: .horizontal
+            ).singleLinePaste().lineLimit(1)
+                .textFieldStyle(.roundedBorder)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .disabled(!mapping.isSupported)
+                .opacity(mapping.isSupported ? 1 : 0.55)
+                .accessibilityLabel(Text("\(effort.displayName) provider value"))
         }
     }
 

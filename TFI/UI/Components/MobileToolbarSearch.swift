@@ -1,13 +1,14 @@
 import SwiftUI
+import TermindPresentation
 
 extension View {
     @ViewBuilder
     func mobileToolbarSearch(text: Binding<String>, prompt: Text? = nil) -> some View {
         if #available(iOS 26.0, *) {
-            searchable(text: text, placement: .toolbar, prompt: prompt)
+            searchable(text: text.singleLineText, placement: .toolbar, prompt: prompt)
                 .searchToolbarBehavior(.minimize)
         } else {
-            searchable(text: text, placement: .toolbar, prompt: prompt)
+            searchable(text: text.singleLineText, placement: .toolbar, prompt: prompt)
         }
     }
 
@@ -18,10 +19,10 @@ extension View {
         prompt: Text? = nil
     ) -> some View {
         if #available(iOS 26.0, *) {
-            searchable(text: text, isPresented: isPresented, placement: .toolbar, prompt: prompt)
+            searchable(text: text.singleLineText, isPresented: isPresented, placement: .toolbar, prompt: prompt)
                 .searchToolbarBehavior(.minimize)
         } else {
-            searchable(text: text, isPresented: isPresented, placement: .toolbar, prompt: prompt)
+            searchable(text: text.singleLineText, isPresented: isPresented, placement: .toolbar, prompt: prompt)
         }
     }
 }

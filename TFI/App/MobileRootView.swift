@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 /// iPhone has four destinations. iPad retains the sidebar with individual library routes.
 struct MobileRootView: View {
@@ -51,6 +52,7 @@ struct MobileRootView: View {
                 .id(scene.selectedDestination ?? .vault)
             }
         }
+        .environment(\.singleLineInputAdapter, { AnyView(MobileSingleLineFieldInput()) })
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {
             MobileProView(pro: app.pro)
         }

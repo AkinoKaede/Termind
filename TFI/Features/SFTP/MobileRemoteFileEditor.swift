@@ -35,7 +35,8 @@ struct MobileRemoteFileEditor: View {
             content: {
                 Section { Text(file.path).font(.caption.monospaced()).textSelection(.enabled) }
                 if mode == .rename {
-                    TextField("Name", text: $name).textInputAutocapitalization(.never).autocorrectionDisabled()
+                    TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .multilineTextAlignment(.leading)
                 } else {
                     Section("Permissions") {
@@ -44,10 +45,10 @@ struct MobileRemoteFileEditor: View {
                             text: Binding(
                                 get: { permissions.text },
                                 set: { _ = permissions.accept($0) }
-                            )
-                        )
-                        .font(.body.monospaced())
-                        .keyboardType(.numberPad)
+                            ).singleLineText, axis: .horizontal
+                        ).singleLinePaste().lineLimit(1)
+                            .font(.body.monospaced())
+                            .keyboardType(.numberPad)
                     }
                     Section("File Access") { UnixPermissionGrid(draft: $permissions) }
                     Section("Ownership") {
