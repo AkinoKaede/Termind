@@ -297,13 +297,11 @@ private struct SettingsCategoryRow: View {
 
 enum SettingsDraftPolicy {
     static func shouldDiscard(_ provider: ModelProvider) -> Bool {
-        let hasDefaultName =
-            provider.name.trimmingCharacters(in: .whitespacesAndNewlines)
-            == String(localized: "New Provider")
+        let hasEmptyName = provider.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let hasConfiguration =
             !provider.inferenceURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             || provider.hasCredential || !provider.models.isEmpty
-        return hasDefaultName && !hasConfiguration
+        return hasEmptyName && !hasConfiguration
     }
 
     static func shouldDiscard(_ server: MCPServer) -> Bool {

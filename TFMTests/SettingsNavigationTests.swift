@@ -121,19 +121,31 @@ struct SettingsNavigationTests {
         #expect(window.sidebarMode == .navigation)
     }
 
-    @Test
-    func emptyProviderDraftIsDiscarded() {
-        let provider = ModelProvider(name: String(localized: "New Provider"))
+    @Test(arguments: ["", " \t\n "])
+    func emptyProviderDraftIsDiscarded(name: String) {
+        var provider = ModelProvider(name: name)
+        provider.inferenceURL = " \t\n "
         #expect(SettingsDraftPolicy.shouldDiscard(provider))
     }
 
     @Test
     func configuredProviderDraftIsKept() {
-        var provider = ModelProvider(name: String(localized: "New Provider"))
+        var provider = ModelProvider(name: "")
         provider.inferenceURL = "https://example.com/v1/chat/completions"
         #expect(!SettingsDraftPolicy.shouldDiscard(provider))
 
-        provider = ModelProvider(name: "Work")
+        provider = ModelProvider(name: "")
+        provider.credentialRef = "test-credential"
+        #expect(!SettingsDraftPolicy.shouldDiscard(provider))
+
+        provider = ModelProvider(name: "")
+        provider.models = [AIModel(id: "test-model")]
+        #expect(!SettingsDraftPolicy.shouldDiscard(provider))
+    }
+
+    @Test(arguments: ["Work", "New Provider", String(localized: "New Provider")])
+    func namedProviderDraftIsKept(name: String) {
+        let provider = ModelProvider(name: name)
         #expect(!SettingsDraftPolicy.shouldDiscard(provider))
     }
 

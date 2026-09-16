@@ -26,7 +26,7 @@ struct ModelProviderSettings: View {
                 // there is one code path for "new" and "edit" and no half-built
                 // provider living in a view's `@State`. Cancelling takes it back
                 // out again — which is what `isNew` below is for.
-                let provider = ModelProvider(name: String(localized: "New Provider"))
+                let provider = ModelProvider(name: "")
                 app.aiConfiguration.upsert(provider)
                 edit(provider.id, true)
             }

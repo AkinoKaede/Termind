@@ -14507,6 +14507,7 @@
       }
     },
     "New Provider" : {
+      "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

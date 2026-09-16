@@ -16,9 +16,8 @@ public struct ModelProviderConnectionFields: View {
     public var body: some View {
         Section {
             LabeledContent("Name") {
-                TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
-                    .labelsHidden()
-                    .multilineTextAlignment(.trailing)
+                TextField("Name", text: $name.singleLineText, prompt: Text("New Provider"), axis: .horizontal)
+                    .singleLinePaste().lineLimit(1).labelsHidden().multilineTextAlignment(.trailing)
             }
             Toggle("Enabled", isOn: $isEnabled)
             Picker("API Type", selection: $endpoint.apiType) {
