@@ -9,9 +9,31 @@ public nonisolated final class TransferCancellationToken: @unchecked Sendable {
     public init() {}
     private let lock = NSLock()
     private var cancelled = false
+    private var observers: [UUID: @Sendable () -> Void] = [:]
 
     public var isCancelled: Bool { lock.withLock { cancelled } }
-    public func cancel() { lock.withLock { cancelled = true } }
+    public func cancel() {
+        let callbacks = lock.withLock {
+            cancelled = true
+            let callbacks = Array(observers.values)
+            observers.removeAll()
+            return callbacks
+        }
+        for callback in callbacks { callback() }
+    }
+
+    func observeCancellation(_ callback: @escaping @Sendable () -> Void) -> UUID {
+        let id = UUID()
+        let alreadyCancelled = lock.withLock {
+            if cancelled { return true }
+            observers[id] = callback
+            return false
+        }
+        if alreadyCancelled { callback() }
+        return id
+    }
+
+    func removeObserver(_ id: UUID) { _ = lock.withLock { observers.removeValue(forKey: id) } }
 }
 
 public nonisolated struct SFTPProgress: Sendable {
@@ -283,39 +305,56 @@ public actor SFTPClient: SFTPClientProtocol {
             throw SFTPError.operation("The destination cannot receive a streamed SFTP copy.")
         }
         let relay = try SFTPSocketRelay()
-        defer { relay.close() }
-        try await withThrowingTaskGroup(of: Void.self) { group in
-            group.addTask {
-                defer { relay.finishWriting() }
-                try await self.worker.downloadFile(
-                    from: sourcePath, toSocket: relay.writer,
-                    cancellation: cancellation
-                )
+        let observer = cancellation.observeCancellation { relay.stop() }
+        defer {
+            cancellation.removeObserver(observer)
+            relay.close()
+        }
+        try await withTaskCancellationHandler {
+            try Task.checkCancellation()
+            try await withThrowingTaskGroup(of: Void.self) { group in
+                group.addTask {
+                    do {
+                        try await self.worker.downloadFile(
+                            from: sourcePath, toSocket: relay.writer,
+                            cancellation: cancellation
+                        )
+                        relay.finishWriting()
+                    } catch {
+                        cancellation.cancel()
+                        throw error
+                    }
+                }
+                group.addTask {
+                    try await destination.worker.uploadFile(
+                        fromSocket: relay.reader, to: destinationPath,
+                        byteCount: byteCount, overwrite: overwrite,
+                        cancellation: cancellation, progress: progress,
+                        sourceSucceeded: { relay.sourceSucceeded }
+                    )
+                }
+                do {
+                    while try await group.next() != nil {}
+                } catch {
+                    cancellation.cancel()
+                    relay.stop()
+                    group.cancelAll()
+                    throw error
+                }
             }
-            group.addTask {
-                try await destination.worker.uploadFile(
-                    fromSocket: relay.reader, to: destinationPath,
-                    byteCount: byteCount, overwrite: overwrite,
-                    cancellation: cancellation, progress: progress
-                )
-            }
-            do {
-                while try await group.next() != nil {}
-            } catch {
-                cancellation.cancel()
-                relay.stop()
-                group.cancelAll()
-                throw error
-            }
+        } onCancel: {
+            cancellation.cancel()
         }
     }
 }
 
-private nonisolated final class SFTPSocketRelay: @unchecked Sendable {
+nonisolated final class SFTPSocketRelay: @unchecked Sendable {
     public let writer: Int32
     public let reader: Int32
     private let lock = NSLock()
     private var closed = false
+    private var readSucceeded = false
+    public var sourceSucceeded: Bool { lock.withLock { readSucceeded } }
 
     public init() throws {
         var pair: [Int32] = [-1, -1]
@@ -336,6 +375,7 @@ private nonisolated final class SFTPSocketRelay: @unchecked Sendable {
     public func finishWriting() {
         lock.withLock {
             guard !closed else { return }
+            readSucceeded = true
             _ = Darwin.shutdown(writer, SHUT_WR)
         }
     }
@@ -767,7 +807,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         fromSocket socket: Int32, to remotePath: String,
         byteCount: Int64, overwrite: Bool,
         cancellation: TransferCancellationToken,
-        progress: @escaping @Sendable (SFTPProgress) -> Void
+        progress: @escaping @Sendable (SFTPProgress) -> Void,
+        sourceSucceeded: @escaping @Sendable () -> Bool
     ) async throws {
         try await queue.perform {
             let sftp = try self.requireSFTP()
@@ -780,6 +821,9 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                     if cancellation.isCancelled { throw SFTPError.cancelled }
                     let count = Darwin.recv(socket, &buffer, buffer.count, 0)
                     if count > 0 {
+                        guard Int64(count) <= byteCount - meter.completed else {
+                            throw SFTPError.operation(String(localized: "The SFTP copy source grew during transfer."))
+                        }
                         try buffer.withUnsafeBytes { bytes in
                             guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self)
                             else { return }
@@ -802,6 +846,7 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                         throw SFTPError.operation("The SFTP copy relay was interrupted.")
                     }
                 }
+                guard !cancellation.isCancelled, sourceSucceeded() else { throw SFTPError.cancelled }
                 guard meter.completed == byteCount else {
                     throw SFTPError.operation(
                         "The source changed while it was being copied "

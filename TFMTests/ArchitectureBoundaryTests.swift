@@ -337,6 +337,17 @@ struct ArchitectureBoundaryTests {
         )
         #expect(transport.contains("SFTPClientProtocol: RemoteFileSystem"))
         #expect(!transport.contains("struct RemoteFile"))
+        #expect(transport.contains("sourceSucceeded()"))
+        #expect(transport.contains("observeCancellation { relay.stop() }"))
+
+        let copy = try String(
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindRemoteInfrastructure/Agent/SFTPCopyTool.swift"),
+            encoding: .utf8
+        )
+        #expect(copy.contains("withDedicatedSFTP"))
+        #expect(!copy.contains("AgentScratchWorkspace"))
+        #expect(!copy.contains("SFTPClient()"))
 
         let mobile = try String(
             contentsOf: sourceRoot.appending(path: "../TFI/Application/Transfers/MobileSFTPSessionModel.swift"),

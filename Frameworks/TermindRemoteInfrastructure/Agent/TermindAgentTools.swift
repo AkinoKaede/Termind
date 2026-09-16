@@ -122,6 +122,9 @@ nonisolated public enum TermindAgentTools {
         .init(SFTPMoveTool.self, availableIn: [.acting]) {
             SFTPMoveTool(authentication: $0.authentication, connections: $0.connections)
         },
+        .init(SFTPCopyTool.self, availableIn: [.acting]) {
+            SFTPCopyTool(hosts: $0.hosts, authentication: $0.authentication, connections: $0.connections)
+        },
         .init(SFTPChmodTool.self, availableIn: [.acting]) {
             SFTPChmodTool(authentication: $0.authentication, connections: $0.connections)
         },

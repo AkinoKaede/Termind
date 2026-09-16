@@ -20,7 +20,7 @@ struct MCPServerToolsTests {
         let server = makeMCPServerTools()
         let descriptors = server.descriptors
 
-        #expect(descriptors.count == 13)
+        #expect(descriptors.count == 14)
         #expect(Set(descriptors.map(\.name)) == MCPServerTools.exportedNames)
         for descriptor in descriptors {
             #expect(descriptor.inputSchema.objectValue?["type"]?.stringValue == "object")

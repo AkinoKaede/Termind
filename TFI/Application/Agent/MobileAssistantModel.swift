@@ -29,6 +29,10 @@ final class MobileAssistantModel {
 
     var isRunning: Bool { store.conversations.contains { $0.isStreaming } }
 
+    func disconnectHost(_ id: UUID) {
+        Task { await connections.disconnect(hostID: id) }
+    }
+
     func makeSceneModel() -> MobileAssistantSceneModel {
         MobileAssistantSceneModel(runtime: self, library: AssistantLibraryModel(store: store))
     }

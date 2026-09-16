@@ -196,24 +196,7 @@ public final class SFTPTransferCoordinator {
         let lease = try await clientLease(for: source.connection)
         let client = lease.client
         do {
-            var entries: [SFTPRemoteManifestEntry] = []
-            func collect(_ file: RemoteFile, relativePath: String) async throws {
-                entries.append(
-                    SFTPRemoteManifestEntry(
-                        sourcePath: file.path, relativePath: relativePath,
-                        kind: file.kind, byteCount: file.size
-                    ))
-                guard file.isDirectory else { return }
-                for child in try await client.listDirectory(at: file.path) {
-                    try await collect(
-                        child,
-                        relativePath: relativePath + "/" + child.name
-                    )
-                }
-            }
-            for file in source.files {
-                try await collect(file, relativePath: file.name)
-            }
+            let entries = try await SFTPRemoteCopyPlanner.manifest(files: source.files, client: client)
             await lease.disconnect()
             return (source, entries)
         } catch {

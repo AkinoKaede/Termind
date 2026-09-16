@@ -269,6 +269,7 @@ final class MobileAppModel {
 
     func deleteHost(_ id: UUID) {
         do {
+            assistant.disconnectHost(id)
             for workspace in workspaces.filter({ $0.descriptor.hostID == id }) { close(workspace.id) }
             transfers.cancelAll(for: id)
             forwardings.remove(library.portForwardings(for: id).map(\.id))

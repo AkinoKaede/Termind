@@ -170,6 +170,30 @@ Infrastructure planners. Download batches retain their destination independently
 file jobs, so directory-only selections still create their empty directory trees.
 App sessions retain pending-batch presentation, cancellation, and completion handling.
 
+`sftp_copy` is Termind-owned and acting-only in Assistant, with Ask/sequential
+policy. It copies regular files and directory trees into an existing directory;
+unsupported descendants fail before writes. Its awaited operation shares browser
+manifest and conflict helpers, including directory merging and destructive type
+replacement. Source data is never deleted. Batches are not atomic: failures retain
+completed items and disclose the failing path and completed counts.
+Two dedicated SFTP leases use the same authenticated connection opener as other
+Agent tools, but are neither pooled nor idle-swept. Their shared cancellation token
+is cancelled by host deletion, transport shutdown, or caller cancellation. Leases
+remain tracked while opening and are always disconnected after use. Credential
+retries apply only to acquisition, never to an operation that has started.
+Socket-relayed copies require successful source EOF and an exact byte count before
+the remote temporary file is committed. Cancellation shuts down the relay to unblock
+socket I/O. No scratch staging, local temporary file, or model-visible payload is used.
+
+The macOS MCP Server exports the same `sftp_copy` definition without a scratch
+workspace. Its existing Bearer token/tool switches and Full access execution remain
+the authorization boundary; SSH credentials and host keys still use external
+authentication. The tool is annotated as state-changing, potentially destructive,
+non-idempotent, and open-world. Session termination/server shutdown cancels and awaits
+active copies. Audit consumes byte progress and final counts only, never file bodies;
+the summary records both endpoints and the conflict policy. The stdio bridge remains
+a protocol-only forwarder. Mobile exposes Assistant tools but no local MCP listener.
+
 ## Callback isolation
 
 Speech services and coordinator state are MainActor-isolated, but authorization

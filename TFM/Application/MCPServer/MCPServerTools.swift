@@ -8,7 +8,7 @@ final class MCPServerTools {
     static let exportedNames: Set<String> = [
         "list_hosts", "get_metrics", "request_user_secret", "ssh_exec", "ssh_wait",
         "sftp_list", "sftp_stat", "sftp_read", "sftp_write",
-        "sftp_mkdir", "sftp_move", "sftp_chmod", "sftp_delete",
+        "sftp_mkdir", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete",
     ]
 
     private let channel: AgentEventChannel
@@ -16,6 +16,7 @@ final class MCPServerTools {
     private let externalAuthentication: ExternalAuthCoordinator
     private let approval: AgentApprovalBroker
     private var registry: AgentToolRegistry
+    private var copies: [UUID: [UUID: Task<AgentToolResult, Never>]] = [:]
 
     init(
         hosts: AgentHostResolver, metrics: any MetricsSnapshotReading,
@@ -75,11 +76,26 @@ final class MCPServerTools {
             userIntent: "MCP client: \(clientName)"
         )
         let call = AgentToolCall(id: callID, name: name, arguments: arguments)
-        return await executor.execute(executor.plan(call))
+        guard name == "sftp_copy" else { return await executor.execute(executor.plan(call)) }
+        let id = UUID()
+        let task = Task { await executor.execute(executor.plan(call)) }
+        copies[runID, default: [:]][id] = task
+        defer {
+            copies[runID]?[id] = nil
+            if copies[runID]?.isEmpty == true { copies[runID] = nil }
+        }
+        return await withTaskCancellationHandler {
+            await task.value
+        } onCancel: {
+            task.cancel()
+        }
     }
 
     func endSession(runID: UUID, secretBroker: SecretBroker) async {
+        let tasks = Array(copies.removeValue(forKey: runID)?.values ?? [:].values)
+        for task in tasks { task.cancel() }
         externalAuthentication.cancel(runID: runID)
+        for task in tasks { _ = await task.value }
         history.unregister(runID: runID)
         await secretBroker.discardAll()
     }

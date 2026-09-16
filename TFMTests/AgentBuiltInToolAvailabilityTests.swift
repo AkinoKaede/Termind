@@ -54,6 +54,8 @@ struct AgentBuiltInToolAvailabilityTests {
         #expect(registry.available(in: .reviewing).descriptors.isEmpty)
         #expect(planning.contains("ssh_exec"))
         #expect(!planning.contains("sftp_write"))
+        #expect(!planning.contains("sftp_copy"))
+        #expect(acting.contains("sftp_copy"))
         #expect(acting.isSuperset(of: ["ssh_exec", "sftp_write"]))
     }
 

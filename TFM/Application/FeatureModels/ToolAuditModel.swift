@@ -90,6 +90,15 @@ final class ToolAuditModel {
             begin(invocation, descriptor: descriptor)
         case .toolFinished(let invocation, let result):
             finish(invocation, result: result)
+        case .toolProgress(let invocation, let result) where invocation.call.name == "sftp_copy":
+            if let id = rowsByInvocation[invocation.id], var row = value(id: id),
+                let payload = result.untrustedPayload,
+                let object = try? AgentJSONValue.decode(Data(payload.utf8)).objectValue
+            {
+                row.bytesRead = object["completed_bytes"]?.integerValue
+                row.bytesWritten = row.bytesRead
+                update(row)
+            }
         default:
             break
         }
@@ -132,6 +141,7 @@ final class ToolAuditModel {
         {
             row.exitCode = object["exit_code"]?.integerValue
             row.bytesRead = object["bytes"]?.integerValue
+            if invocation.call.name == "sftp_copy" { row.bytesWritten = object["bytes"]?.integerValue }
             if invocation.call.name == "ssh_exec",
                 let raw = object["handle"]?.stringValue, let handle = UUID(uuidString: raw),
                 let hostID = row.hostID
@@ -193,6 +203,12 @@ final class ToolAuditModel {
         case "sftp_move":
             return "\(oneLine(arguments["path"]?.stringValue ?? "")) → "
                 + oneLine(arguments["destination"]?.stringValue ?? "")
+        case "sftp_copy":
+            return "\(arguments["source_host_id"]?.stringValue ?? ""):"
+                + "\(oneLine(arguments["source_path"]?.stringValue ?? "")) → "
+                + "\(arguments["destination_host_id"]?.stringValue ?? ""):"
+                + "\(oneLine(arguments["destination_path"]?.stringValue ?? "")) "
+                + "[\(arguments["conflict_policy"]?.stringValue ?? "skip")]"
         case "sftp_chmod":
             return "\(oneLine(arguments["path"]?.stringValue ?? "")) "
                 + (arguments["mode"]?.stringValue ?? "")
@@ -226,6 +242,9 @@ final class ToolAuditModel {
         ].contains(call.name) {
             return .readOnly
         }
-        return call.name == "sftp_delete" ? .destructive : .modifiesState
+        let replacingCopy =
+            call.name == "sftp_copy"
+            && call.arguments.objectValue?["conflict_policy"]?.stringValue == "replace"
+        return call.name == "sftp_delete" || replacingCopy ? .destructive : .modifiesState
     }
 }

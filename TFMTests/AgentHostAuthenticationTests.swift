@@ -931,6 +931,71 @@ struct AgentHostAuthenticationTests {
         #expect(await setup.backend.sftpOpens == 2)
     }
 
+    @Test
+    func dedicatedSFTPRetriesCredentialsOnlyBeforeTheOperation() async throws {
+        let setup = authenticationSetup(sftpAuthenticationFailures: 1)
+        var prompts = 0
+        let interaction = AuthenticationResponder { _ in
+            prompts += 1
+            return .submit(.init(username: "deploy", password: "secret-\(prompts)", save: false))
+        }
+        let files = try await setup.registry.withDedicatedSFTP(
+            hostID: setup.host.id, invocationID: UUID(), interaction: interaction.sshInteraction,
+            pool: setup.pool, cancellation: TransferCancellationToken()
+        ) { client in try await client.listDirectory(at: "/") }
+        #expect(files.isEmpty)
+        #expect(prompts == 2)
+        #expect(await setup.backend.sftpOpens == 2)
+        #expect(await setup.backend.sftpOperations == 1)
+        #expect(await setup.pool.openConnectionCount == 0)
+    }
+
+    @Test
+    func dedicatedSFTPOperationFailureNeverRetries() async throws {
+        let setup = authenticationSetup(sftpOperationFailures: 1)
+        let interaction = AuthenticationResponder { _ in
+            .submit(.init(username: "deploy", password: "secret", save: false))
+        }
+        await #expect(throws: SFTPError.self) {
+            _ = try await setup.registry.withDedicatedSFTP(
+                hostID: setup.host.id, invocationID: UUID(), interaction: interaction.sshInteraction,
+                pool: setup.pool, cancellation: TransferCancellationToken()
+            ) { client in try await client.listDirectory(at: "/") }
+        }
+        #expect(await setup.backend.sftpOpens == 1)
+        #expect(await setup.backend.sftpOperations == 1)
+        #expect(await setup.pool.openConnectionCount == 0)
+    }
+
+    @Test
+    func sameHostDedicatedConnectionsShareOnlyTheScopedAuthenticationSession() async throws {
+        let setup = authenticationSetup()
+        var prompts = 0
+        let interaction = AuthenticationResponder { _ in
+            prompts += 1
+            return .submit(.init(username: "deploy", password: "secret", save: false))
+        }
+        let registry = setup.registry
+        let pool = setup.pool
+        let hostID = setup.host.id
+        let cancellation = TransferCancellationToken()
+        _ = try await registry.withDedicatedSFTP(
+            hostID: hostID, invocationID: UUID(), interaction: interaction.sshInteraction,
+            pool: pool, cancellation: cancellation
+        ) { first in
+            try await registry.withDedicatedSFTP(
+                hostID: hostID, invocationID: UUID(), interaction: interaction.sshInteraction,
+                pool: pool, cancellation: cancellation
+            ) { second in
+                _ = try await first.listDirectory(at: "/")
+                return try await second.listDirectory(at: "/")
+            }
+        }
+        #expect(prompts == 1)
+        #expect(await setup.backend.sftpOpens == 2)
+        #expect(await setup.pool.openConnectionCount == 0)
+    }
+
     private func authenticationSetup(
         sftpAuthenticationFailures: Int = 0,
         sftpOperationFailures: Int = 0,

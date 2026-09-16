@@ -4,6 +4,13 @@ import TermindDomain
 
 import struct TermindDomain.Host
 
+nonisolated struct SFTPRemoteCopySourceError: LocalizedError {
+    var path: String
+    var errorDescription: String? {
+        String(localized: "Unsupported or invalid SFTP copy source: \(path)")
+    }
+}
+
 public nonisolated struct SFTPRemoteDownloadBatch: Sendable {
     public struct Job: Sendable {
         var remotePath: String
@@ -180,6 +187,37 @@ public nonisolated struct SFTPRemoteCopyBatch: Sendable {
 }
 
 public nonisolated enum SFTPRemoteCopyPlanner {
+    static func manifest(
+        files: [RemoteFile], client: any SFTPClientProtocol, regularItemsOnly: Bool = false,
+        cancellation: TransferCancellationToken? = nil
+    ) async throws -> [SFTPRemoteManifestEntry] {
+        var entries: [SFTPRemoteManifestEntry] = []
+        func collect(_ file: RemoteFile, relativePath: String) async throws {
+            try Task.checkCancellation()
+            if cancellation?.isCancelled == true { throw SFTPError.cancelled }
+            if regularItemsOnly {
+                guard file.kind == .file || file.kind == .directory,
+                    RemoteFileName.isValid(file.name), file.size >= 0
+                else { throw SFTPRemoteCopySourceError(path: file.path) }
+            }
+            entries.append(
+                SFTPRemoteManifestEntry(
+                    sourcePath: file.path, relativePath: relativePath,
+                    kind: file.kind, byteCount: file.size
+                ))
+            guard file.isDirectory else { return }
+            for child in try await client.listDirectory(at: file.path) {
+                if regularItemsOnly {
+                    let expected = file.path == "/" ? "/\(child.name)" : "\(file.path)/\(child.name)"
+                    guard child.path == expected else { throw SFTPRemoteCopySourceError(path: child.path) }
+                }
+                try await collect(child, relativePath: relativePath + "/" + child.name)
+            }
+        }
+        for file in files { try await collect(file, relativePath: file.name) }
+        return entries
+    }
+
     public static func prepare(
         _ payload: SFTPRemoteItemsPayload,
         destination: String,
@@ -275,9 +313,10 @@ public nonisolated enum SFTPRemoteCopyPlanner {
         var conflictCount: Int
     }
 
-    private struct DirectoryResolution {
+    struct DirectoryResolution {
         var skipped: [String] = []
         var mappings: [(String, String)] = []
+        var created: [String] = []
     }
 
     private static func preflight(
@@ -309,12 +348,13 @@ public nonisolated enum SFTPRemoteCopyPlanner {
         )
     }
 
-    private static func resolveDirectories(
+    static func resolveDirectories(
         _ directories: [String], conflicts: Set<String>,
         policy: TransferConflictPolicy, client: any SFTPClientProtocol
     ) async throws -> DirectoryResolution {
         var result = DirectoryResolution()
         for original in directories {
+            try Task.checkCancellation()
             if result.skipped.contains(where: { contains(original, in: $0) }) { continue }
             var destination = original
             for mapping in result.mappings where contains(destination, in: mapping.0) {
@@ -334,12 +374,13 @@ public nonisolated enum SFTPRemoteCopyPlanner {
             }
             if try await client.attributes(at: destination) == nil {
                 try await client.createDirectory(at: destination)
+                result.created.append(destination)
             }
         }
         return result
     }
 
-    private static func resolveConflict(
+    static func resolveConflict(
         path: String, conflictingTargetIsDirectory: Bool,
         policy: TransferConflictPolicy, client: any SFTPClientProtocol
     ) async throws -> (path: String, overwrite: Bool)? {
@@ -361,6 +402,7 @@ public nonisolated enum SFTPRemoteCopyPlanner {
         var index = 2
         var candidate = RemotePath.keepBothCandidate(for: path, index: index)
         while try await client.attributes(at: candidate) != nil {
+            try Task.checkCancellation()
             index += 1
             candidate = RemotePath.keepBothCandidate(for: path, index: index)
         }
@@ -370,8 +412,13 @@ public nonisolated enum SFTPRemoteCopyPlanner {
     private static func deleteRecursively(
         _ file: RemoteFile, client: any SFTPClientProtocol
     ) async throws {
+        try Task.checkCancellation()
         if file.isDirectory {
             for child in try await client.listDirectory(at: file.path) {
+                let expected = file.path == "/" ? "/\(child.name)" : file.path + "/" + child.name
+                guard RemoteFileName.isValid(child.name), child.path == expected else {
+                    throw SFTPRemoteCopySourceError(path: child.path)
+                }
                 try await deleteRecursively(child, client: client)
             }
             try await client.removeDirectory(at: file.path)
