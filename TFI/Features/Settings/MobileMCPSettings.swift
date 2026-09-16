@@ -37,9 +37,7 @@ struct MobileMCPSettings: View {
                         }
                 }
             } footer: {
-                Text(
-                    "Connect to remote MCP servers over HTTP. New read-only tools are approved by default; all others ask for approval."
-                )
+                Text("Connect to remote MCP servers over HTTP.")
             }
         }
         .navigationTitle("MCP")

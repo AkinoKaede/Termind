@@ -32,12 +32,10 @@ struct MCPSettings: View {
                 edit(server.id, true)
             }
 
-            Text(
-                "Termind connects directly from this Mac over HTTP. New read-only tools are approved by default; all others ask for approval."
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+            Text("Termind connects directly from this Mac over HTTP.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let error = app.aiConfiguration.storageError {
                 Label(error, systemImage: "exclamationmark.triangle.fill")
