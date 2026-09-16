@@ -497,6 +497,9 @@ private struct TransferCenterPopover: View {
                             TransferCenterRow(
                                 transfer: item.transfer,
                                 route: item.route,
+                                canPause: coordinator.canPause(item.id),
+                                pause: { coordinator.pause(item.id) },
+                                resume: { coordinator.resume(item.id) },
                                 cancel: { coordinator.cancel(item.id) }
                             )
                             if item.id != transferItems.last?.id { Divider() }
@@ -557,6 +560,9 @@ nonisolated struct TransferCenterListItem: Identifiable, Hashable, Sendable {
 private struct TransferCenterRow: View {
     let transfer: SFTPTransfer
     let route: String
+    let canPause: Bool
+    let pause: () -> Void
+    let resume: () -> Void
     let cancel: () -> Void
 
     private var isActive: Bool {
@@ -618,7 +624,14 @@ private struct TransferCenterRow: View {
                     .lineLimit(isFailure ? 2 : 1)
             }
 
-            if isActive {
+            if canPause {
+                Button("Pause transfer", systemImage: "pause.circle", action: pause)
+                    .labelStyle(.iconOnly).buttonStyle(.plain).help("Pause transfer")
+            } else if transfer.state == .paused {
+                Button("Resume transfer", systemImage: "play.circle", action: resume)
+                    .labelStyle(.iconOnly).buttonStyle(.plain).help("Resume transfer")
+            }
+            if isActive || transfer.state == .paused {
                 Button(action: cancel) {
                     Image(systemName: "xmark.circle.fill")
                         .foregroundStyle(.secondary)

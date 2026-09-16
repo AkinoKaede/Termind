@@ -34,20 +34,30 @@ final class MCPServerTools {
         self.history = history
         self.externalAuthentication = externalAuthentication
         let budget = MCPTransferBudget()
-        uploads = MCPUploadCoordinator(hosts: hosts, history: history, budget: budget) {
-            request, runID, invocationID, client, read, token, report in
-            let handler = await externalAuthentication.handler(clientName: client, runID: runID)
-            return try await authentication.withDedicatedSFTP(
-                hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
-                pool: connections, cancellation: token
-            ) { client in
-                try await SFTPStreamUploadOperation.run(
-                    client: client, remotePath: request.remotePath, byteCount: request.byteCount,
-                    sha256: request.sha256, overwrite: request.overwrite,
-                    cancellation: token, read: read, progress: report
-                )
-            }
-        }
+        uploads = MCPUploadCoordinator(
+            hosts: hosts, history: history, budget: budget,
+            cleanup: {
+                request, runID, invocationID, clientName in
+                let handler = await externalAuthentication.handler(clientName: clientName, runID: runID)
+                try await authentication.withDedicatedSFTP(
+                    hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
+                    pool: connections, cancellation: TransferCancellationToken()
+                ) { client in try await request.resume.cleanup(using: client) }
+            },
+            transfer: {
+                request, runID, invocationID, client, read, token, report in
+                let handler = await externalAuthentication.handler(clientName: client, runID: runID)
+                return try await authentication.withDedicatedSFTP(
+                    hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
+                    pool: connections, cancellation: token
+                ) { client in
+                    try await SFTPStreamUploadOperation.run(
+                        client: client, remotePath: request.remotePath, byteCount: request.byteCount,
+                        sha256: request.sha256, overwrite: request.overwrite,
+                        cancellation: token, resume: request.resume, read: read, progress: report
+                    )
+                }
+            })
         downloads = MCPDownloadCoordinator(hosts: hosts, history: history, budget: budget) {
             request, runID, invocationID, clientName, token, serve in
             let handler = await externalAuthentication.handler(clientName: clientName, runID: runID)
@@ -176,7 +186,7 @@ final class MCPServerTools {
         AgentToolCatalog.registry(
             // `request_user_secret` is the only exported tool the runtime owns;
             // every other name below is Termind's. HTTP uploads have their own
-            // one-use byte channel, not an AgentKit scratch workspace. The rest of the built-in
+            // session-bound byte channel, not an AgentKit scratch workspace. The rest of the built-in
             // groups are left out rather than filtered out, so an external client
             // cannot reach a scratch workspace or a web fetch that no Termind
             // conversation is backing.

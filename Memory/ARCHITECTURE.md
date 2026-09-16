@@ -163,8 +163,16 @@ capped at 1,000 rows per host.
 SFTP History is device-local persisted truth shared across apps. Directories are
 recorded only after a fresh successful listing and files only after download.
 Failed, cancelled, stale, missing, or type-changed operations do not update it.
-Transfers own dedicated connections and outlive browser closure; host deletion and
-background expiration cancel them, and nothing is silently replayed.
+Transfers own dedicated connections and outlive browser closure. Upload/download
+checkpoints, file references, acknowledged offsets and incremental digests live only
+in memory. Pause and connection loss retain the destination partial file and release
+the connection; explicit resume verifies the source and partial prefix before seeking.
+No source staging, bookmark persistence, or restart recovery is added. Cancellation
+and host deletion remove partial files, reporting a path if cleanup fails. Mobile
+background expiration pauses uploads/downloads and cancels remote copies; borrowed
+session retirement still cancels its transfers. macOS termination gives asynchronous
+cleanup at most three seconds, so an unreachable server cannot hold up quitting.
+Nothing is silently replayed.
 Desktop and mobile upload/download preparation and enqueueing use the Remote
 Infrastructure planners. Download batches retain their destination independently of
 file jobs, so directory-only selections still create their empty directory trees.
@@ -195,7 +203,7 @@ the summary records both endpoints and the conflict policy. The stdio bridge rem
 a protocol-only forwarder. Mobile exposes Assistant tools but no local MCP listener.
 
 The macOS MCP server also owns a separate HTTP-to-SFTP byte channel. `sftp_upload`
-issues a ten-minute, one-use 256-bit capability bound to its MCP session, host,
+issues a ten-minute, session-bound 256-bit capability bound to its MCP session, host,
 full remote path, size, SHA-256, and overwrite intent. `sftp_upload_status` reads
 only that session's bounded in-memory state. Upload PUTs authenticate their own
 capability before consuming the body; ordinary MCP retains its 4 MiB body limit
@@ -207,8 +215,11 @@ local file staging or scratch access. Remote Infrastructure owns the HTTP-agnost
 stream operation and dedicated SFTP lease. Exact byte count and incrementally
 verified SHA-256 authorize source EOF; only then may the remote temporary file be
 closed and committed. Existing directories cannot be overwritten. Failed cleanup
-reports the potentially remaining remote temporary path. Started writes are never
-retried. Session retirement, host deletion, tool disablement, server shutdown, and
+reports the potentially remaining remote temporary path. Interrupted writes retain an in-memory checkpoint and a remote partial file.
+Status exposes `upload_offset`, counting only acknowledged remote writes. A sequential
+retry must send `Upload-Offset` equal to it and a Content-Length covering the remaining
+suffix; parallel claims are rejected. The full-file digest includes the verified
+prefix. Completed writes are never replayed. Session retirement, host deletion, tool disablement, server shutdown, and
 token rotation cancel live work; active uploads prevent idle session expiry.
 A completed remote commit stays successful even when its HTTP response is lost.
 Retained upload completions also keep an otherwise idle session queryable for
@@ -216,11 +227,15 @@ thirty minutes; terminal records are globally bounded to 256 entries.
 Metadata-only HTTP upload audit rows are independent of ticket-creation audit rows.
 No sandbox entitlement, persistence schema, or AgentKit dependency change is needed.
 
-`sftp_download` issues the reverse one-use HTTP capability, bound to the session,
+`sftp_download` issues the reverse resumable HTTP capability, bound to the session,
 host, full remote path, and optional expected SHA-256. Ticket creation performs no
 remote I/O. GET authenticates and atomically claims before connecting; it supports
-regular files only, with no query credentials, request bodies, HEAD, Range, or
-resume. A dedicated SFTP lease opens a checked `SFTPDownloadStream`; the worker
+regular files only, with no query credentials, request bodies or HEAD. A single
+open-ended `Range: bytes=N-` returns 206 and Content-Range, while an out-of-bounds
+offset returns 416 without consuming the ticket. The client chooses N from its
+actually saved bytes, not server send progress. A bounded prefix reread verifies
+previously read bytes before response headers and reconstructs the full-file digest;
+source metadata changes or prefix mismatches reject resumption. A dedicated SFTP lease opens a checked `SFTPDownloadStream`; the worker
 owns its handle IDs, native pointers, and queue. FSTAT on the opened handle fixes
 the reliable declared size, and EOF verifies exact byte count plus the final size
 and available modification time. This is not an atomic remote-file snapshot.
@@ -235,7 +250,11 @@ poll `sftp_download_status`, compare local size/hash, and finalize their own fil
 HTTP 200 and Content-Length alone are not proof of success or local persistence.
 
 Upload and download share one four-active-transfer budget. Each direction retains
-at most 64 waiting capabilities and 256 terminal records for thirty minutes. Both
+at most 64 unfinished capabilities (including paused attempts) and 256 terminal
+records for thirty minutes. HTTP disconnect and recoverable SSH failure pause a
+transfer; explicit revocation still cancels it. Retries require the original active
+session and unexpired capability, and neither checkpoints nor capabilities survive
+process exit. Generation IDs prevent old transport callbacks affecting a new attempt. Both
 directions share session/host retirement, server-stop, token-rotation, and activity
 boundaries; disabling one direction revokes it immediately. Capacity is released
 only after cleanup. HTTP download audit rows are independent of MCP ticket calls

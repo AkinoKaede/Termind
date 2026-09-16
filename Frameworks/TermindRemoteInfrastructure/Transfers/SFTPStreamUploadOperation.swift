@@ -15,13 +15,15 @@ public nonisolated enum SFTPStreamUploadOperation {
     public static func run(
         client: any SFTPClientProtocol, remotePath: String, byteCount: Int64, sha256: String,
         overwrite: Bool, cancellation: TransferCancellationToken,
-        idleTimeout: Duration = .seconds(60),
+        idleTimeout: Duration = .seconds(60), resume: SFTPResumeState? = nil,
         read: @escaping ReadChunk, progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws -> String {
         guard byteCount >= 0 else { throw Failure.invalidLength }
         let parent = (remotePath as NSString).deletingLastPathComponent
         guard try await client.attributes(at: parent)?.isDirectory == true else { throw Failure.missingParent }
-        if let target = try await client.attributes(at: remotePath), target.isDirectory || !overwrite {
+        if resume?.snapshot.committing != true,
+            let target = try await client.attributes(at: remotePath), target.isDirectory || !overwrite
+        {
             throw Failure.targetConflict
         }
         let relay = try SFTPSocketRelay()
@@ -30,6 +32,7 @@ public nonisolated enum SFTPStreamUploadOperation {
             cancellation.removeObserver(observer)
             relay.close()
         }
+        let checkpoint = resume?.snapshot
         let source = SourceState()
         let watchdog = Task {
             while !Task.isCancelled {
@@ -48,8 +51,8 @@ public nonisolated enum SFTPStreamUploadOperation {
                 return try await withThrowingTaskGroup(of: String?.self) { group in
                     group.addTask {
                         do {
-                            var digest = SHA256()
-                            var received: Int64 = 0
+                            var digest = checkpoint?.digest ?? SHA256()
+                            var received: Int64 = checkpoint?.offset ?? 0
                             while let chunk = try await read() {
                                 try Task.checkCancellation()
                                 guard !cancellation.isCancelled else { throw SFTPError.cancelled }
@@ -93,15 +96,29 @@ public nonisolated enum SFTPStreamUploadOperation {
                     }
                     group.addTask {
                         do {
-                            try await client.uploadStream(
-                                fromSocket: relay.reader, to: remotePath, byteCount: byteCount, overwrite: overwrite,
-                                cancellation: cancellation,
-                                progress: { value in
-                                    source.touch()
-                                    progress(value)
-                                },
-                                sourceSucceeded: { relay.sourceSucceeded }
-                            )
+                            if let resume {
+                                try await client.uploadStream(
+                                    fromSocket: relay.reader, to: remotePath, byteCount: byteCount,
+                                    overwrite: overwrite,
+                                    cancellation: cancellation, resume: resume,
+                                    progress: { value in
+                                        source.touch()
+                                        progress(value)
+                                    },
+                                    sourceSucceeded: { relay.sourceSucceeded }
+                                )
+                            } else {
+                                try await client.uploadStream(
+                                    fromSocket: relay.reader, to: remotePath, byteCount: byteCount,
+                                    overwrite: overwrite,
+                                    cancellation: cancellation,
+                                    progress: { value in
+                                        source.touch()
+                                        progress(value)
+                                    },
+                                    sourceSucceeded: { relay.sourceSucceeded }
+                                )
+                            }
                         } catch {
                             if let cleanup = error as? SFTPTemporaryFileCleanupError {
                                 source.recordCleanup(cleanup.path)

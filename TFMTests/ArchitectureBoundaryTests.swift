@@ -10,6 +10,27 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func resumableTransferStateRemainsProcessLocal() throws {
+        let root = sourceRoot.deletingLastPathComponent()
+        let checkpoint = try String(
+            contentsOf: root.appending(
+                path: "Frameworks/TermindRemoteInfrastructure/Transfers/SFTPResumeState.swift"), encoding: .utf8)
+        for forbidden in ["Codable", "SwiftData", "UserDefaults", "bookmark", "FileHandle", "FileManager"] {
+            #expect(!checkpoint.contains(forbidden))
+        }
+        let upload = try String(
+            contentsOf: sourceRoot.appending(
+                path: "Application/MCPServer/MCPUploadCoordinator.swift"), encoding: .utf8)
+        #expect(upload.contains("upload-offset"))
+        #expect(upload.contains("ticket.runID"))
+        let download = try String(
+            contentsOf: sourceRoot.appending(
+                path: "Application/MCPServer/MCPDownloadCoordinator.swift"), encoding: .utf8)
+        #expect(download.contains("Content-Range"))
+        #expect(download.contains("ticket.expiresAt > now()"))
+    }
+
+    @Test
     func httpDownloadsUseCheckedRemoteStreamsWithoutLocalFilesOrScratch() throws {
         let root = sourceRoot.deletingLastPathComponent()
         let coordinator = try String(

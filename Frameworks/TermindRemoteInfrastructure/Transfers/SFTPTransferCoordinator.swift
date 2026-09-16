@@ -71,6 +71,10 @@ public final class SFTPTransferCoordinator {
         var scopedRoot: URL
         var cancellation: TransferCancellationToken
         var completion: ((SFTPTransfer.State) -> Void)?
+        var resume = SFTPResumeState()
+        var pauseRequested = false
+        var cancelRequested = false
+        var generation = UUID()
     }
 
     private struct RemoteCopyRuntime {
@@ -302,26 +306,111 @@ public final class SFTPTransferCoordinator {
         )
     }
 
-    public func cancel(_ id: SFTPTransfer.ID) {
-        guard let sftpTransfer = store.sftpTransfer(id) else { return }
-        if sftpTransfer.state == .queued {
-            runtimes.removeValue(forKey: id)
-            remoteCopyRuntimes.removeValue(forKey: id)
-            store.finishSFTPTransfer(id, state: .cancelled)
+    public func replaceBorrowedConnection(_ connectionID: UUID, with client: any SFTPClientProtocol) {
+        for id in Array(runtimes.keys) where runtimes[id]?.connection.borrowedID == connectionID {
+            runtimes[id]?.connection = .borrowed(id: connectionID, client: client)
+        }
+    }
+
+    public func canPause(_ id: SFTPTransfer.ID) -> Bool {
+        guard let transfer = store.sftpTransfer(id) else { return false }
+        return runtimes[id] != nil && (transfer.state == .queued || transfer.state == .running)
+    }
+
+    public func pause(_ id: SFTPTransfer.ID) {
+        guard canPause(id), let runtime = runtimes[id] else { return }
+        runtimes[id]?.pauseRequested = true
+        if activeTasks[id] == nil {
+            store.setSFTPTransferState(.paused, for: id)
         } else {
-            if let runtime = runtimes[id] {
-                runtime.cancellation.cancel()
-            } else {
-                remoteCopyRuntimes[id]?.cancellation.cancel()
+            runtime.cancellation.cancel()
+        }
+    }
+
+    public func resume(_ id: SFTPTransfer.ID) {
+        guard store.sftpTransfer(id)?.state == .paused, activeTasks[id] == nil, runtimes[id] != nil else { return }
+        runtimes[id]?.pauseRequested = false
+        runtimes[id]?.cancellation = TransferCancellationToken()
+        runtimes[id]?.generation = UUID()
+        store.setSFTPTransferState(.queued, for: id)
+        schedule()
+    }
+
+    public func cancel(_ id: SFTPTransfer.ID) {
+        guard let transfer = store.sftpTransfer(id) else { return }
+        if let runtime = runtimes[id] {
+            guard !runtime.cancelRequested else { return }
+            runtimes[id]?.cancelRequested = true
+            runtimes[id]?.pauseRequested = false
+            runtime.cancellation.cancel()
+            if activeTasks[id] == nil {
+                let task = Task { [self] in
+                    var state: SFTPTransfer.State = .cancelled
+                    do { try await cleanup(runtime, direction: transfer.direction, client: nil) } catch {
+                        state = .failed(error.localizedDescription)
+                    }
+                    activeTasks[id] = nil
+                    let completion = runtimes.removeValue(forKey: id)?.completion
+                    store.finishSFTPTransfer(id, state: state)
+                    completion?(state)
+                    schedule()
+                }
+                activeTasks[id] = task
             }
+        } else if transfer.state == .queued {
+            let completion = remoteCopyRuntimes.removeValue(forKey: id)?.completion
+            store.finishSFTPTransfer(id, state: .cancelled)
+            completion?(.cancelled)
+        } else {
+            remoteCopyRuntimes[id]?.cancellation.cancel()
+        }
+    }
+
+    private func cleanup(
+        _ runtime: Runtime, direction: SFTPTransfer.Direction, client: (any SFTPClientProtocol)?
+    ) async throws {
+        let checkpoint = runtime.resume.snapshot
+        guard !checkpoint.committed, let path = checkpoint.temporaryPath else { return }
+        if direction == .download {
+            let scoped = runtime.scopedRoot.startAccessingSecurityScopedResource()
+            defer { if scoped { runtime.scopedRoot.stopAccessingSecurityScopedResource() } }
+            do {
+                if FileManager.default.fileExists(atPath: path) { try FileManager.default.removeItem(atPath: path) }
+            } catch { throw SFTPTemporaryFileCleanupError(path: path, cause: error) }
+        } else if let client {
+            try await runtime.resume.cleanup(using: client)
+        } else {
+            do {
+                if let id = runtime.connection.borrowedID { try await reserveBorrowedConnection(id) }
+                defer { if let id = runtime.connection.borrowedID { releaseBorrowedConnections([id]) } }
+                let lease = try await clientLease(for: runtime.connection)
+                do { try await runtime.resume.cleanup(using: lease.client) } catch {
+                    await lease.disconnect()
+                    throw error
+                }
+                await lease.disconnect()
+            } catch { throw SFTPTemporaryFileCleanupError(path: path, cause: error) }
+        }
+    }
+
+    public func pauseAll() {
+        for transfer in sftpTransfers where transfer.state == .queued || transfer.state == .running {
+            if canPause(transfer.id) { pause(transfer.id) } else { cancel(transfer.id) }
+        }
+    }
+
+    public func waitForCancellation() async {
+        while !activeTasks.isEmpty {
+            let tasks = Array(activeTasks.values)
+            for task in tasks { await task.value }
         }
     }
 
     public func cancelAll() {
         let ids = store.sftpTransfers.compactMap { sftpTransfer -> SFTPTransfer.ID? in
             switch sftpTransfer.state {
-            case .queued, .running: sftpTransfer.id
-            case .paused, .completed, .failed, .cancelled: nil
+            case .queued, .running, .paused: sftpTransfer.id
+            case .completed, .failed, .cancelled: nil
             }
         }
         for id in ids { cancel(id) }
@@ -335,12 +424,14 @@ public final class SFTPTransferCoordinator {
 
     public func cancelTransfers(usingBorrowedConnection connectionID: UUID) async {
         let ids = store.sftpTransfers.compactMap { transfer -> SFTPTransfer.ID? in
-            guard transfer.state == .queued || transfer.state == .running,
+            guard transfer.state == .queued || transfer.state == .running || transfer.state == .paused,
                 borrowedIDs(for: transfer).contains(connectionID)
             else { return nil }
             return transfer.id
         }
         for id in ids { cancel(id) }
+        let tasks = ids.compactMap { activeTasks[$0] }
+        for task in tasks { await task.value }
         while activeBorrowedConnections.contains(connectionID) {
             try? await Task.sleep(for: .milliseconds(10))
         }
@@ -383,14 +474,17 @@ public final class SFTPTransferCoordinator {
             let scoped = runtime.scopedRoot.startAccessingSecurityScopedResource()
             defer { if scoped { runtime.scopedRoot.stopAccessingSecurityScopedResource() } }
             var lease: ClientLease?
-            let result: SFTPTransfer.State
+            var result: SFTPTransfer.State
             do {
                 let acquired = try await clientLease(for: runtime.connection)
                 lease = acquired
                 let client = acquired.client
                 let progress: @Sendable (SFTPProgress) -> Void = { [weak self] value in
                     Task { @MainActor in
-                        self?.store.updateSFTPTransfer(
+                        guard let self, self.runtimes[sftpTransfer.id]?.generation == runtime.generation,
+                            self.store.sftpTransfer(sftpTransfer.id)?.state == .running
+                        else { return }
+                        self.store.updateSFTPTransfer(
                             sftpTransfer.id, completedBytes: value.completedBytes,
                             totalBytes: value.totalBytes, bytesPerSecond: value.bytesPerSecond
                         )
@@ -400,7 +494,7 @@ public final class SFTPTransferCoordinator {
                 case .upload:
                     try await client.uploadFile(
                         from: runtime.localURL, to: runtime.remotePath,
-                        overwrite: runtime.overwrite, cancellation: runtime.cancellation,
+                        overwrite: runtime.overwrite, cancellation: runtime.cancellation, resume: runtime.resume,
                         progress: progress
                     )
                 case .download:
@@ -410,19 +504,35 @@ public final class SFTPTransferCoordinator {
                     )
                     try await client.downloadFile(
                         from: runtime.remotePath, to: runtime.localURL,
-                        overwrite: runtime.overwrite, cancellation: runtime.cancellation,
+                        overwrite: runtime.overwrite, cancellation: runtime.cancellation, resume: runtime.resume,
                         progress: progress
                     )
                 case .copy:
                     throw SFTPError.operation("Invalid copy transfer runtime.")
                 }
                 result = .completed
-            } catch SFTPError.cancelled {
-                result = .cancelled
-            } catch is CancellationError {
-                result = .cancelled
             } catch {
-                result = .failed(error.localizedDescription)
+                let current = runtimes[sftpTransfer.id]
+                if current?.cancelRequested == true {
+                    result = .cancelled
+                } else if !(error is SFTPResumeFailure)
+                    && (current?.pauseRequested == true || Self.isRecoverable(error))
+                {
+                    result = .paused
+                } else {
+                    result = .failed(error.localizedDescription)
+                }
+            }
+            if result != .paused && result != .completed {
+                do { try await cleanup(runtime, direction: sftpTransfer.direction, client: lease?.client) } catch {
+                    result = .failed(error.localizedDescription)
+                }
+            }
+            if result == .paused || result == .completed {
+                let snapshot = runtime.resume.snapshot
+                store.updateSFTPTransfer(
+                    sftpTransfer.id, completedBytes: snapshot.offset,
+                    totalBytes: snapshot.source?.byteCount ?? sftpTransfer.byteCount, bytesPerSecond: 0)
             }
             await lease?.disconnect()
             finish(
@@ -431,6 +541,13 @@ public final class SFTPTransferCoordinator {
             )
         }
         activeTasks[sftpTransfer.id] = task
+    }
+
+    private static func isRecoverable(_ error: any Error) -> Bool {
+        switch error {
+        case SFTPError.notConnected, SFTPError.connectionLost: true
+        default: false
+        }
     }
 
     private func startRemoteCopy(_ sftpTransfer: SFTPTransfer, runtime: RemoteCopyRuntime) {
@@ -547,6 +664,11 @@ public final class SFTPTransferCoordinator {
             activePerHost[hostID] = max(0, activePerHost[hostID, default: 1] - 1)
         }
         releaseBorrowedConnections(borrowedIDs)
+        if state == .paused {
+            store.setSFTPTransferState(.paused, for: id)
+            schedule()
+            return
+        }
         let completion =
             runtimes.removeValue(forKey: id)?.completion
             ?? remoteCopyRuntimes.removeValue(forKey: id)?.completion

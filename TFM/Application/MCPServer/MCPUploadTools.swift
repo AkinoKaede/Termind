@@ -8,10 +8,13 @@ nonisolated struct MCPUploadTool: AgentToolDefinition, AgentToolSchemaBuilding {
     var descriptor: AgentToolDescriptor {
         Self.descriptor(
             "sftp_upload",
-            "Create a one-use HTTP-to-SFTP upload ticket for a single file. Send the local file bytes with a separate "
+            "Create a resumable HTTP-to-SFTP upload ticket for a single file. Send the local file bytes with a separate "
                 + "HTTP PUT using the returned URL and headers, not through MCP. Requires byte count and SHA-256. "
                 + "The parent directory must exist. Defaults to no overwrite. Tickets expire after ten minutes; "
-                + "use sftp_upload_status if the HTTP response is lost, never blindly retry a PUT.",
+                + "poll sftp_upload_status after an interruption. When paused, PUT only the suffix from upload_offset, "
+                + "set Upload-Offset to that value and Content-Length to the remaining size. "
+                + "One request at a time; succeeded means committed and must not be uploaded again. "
+                + "Resume requires the same live MCP session and application process.",
             properties: [
                 "host_id": Self.string(), "remote_path": Self.string(max: 4_096),
                 "byte_count": Self.integer(min: 0, max: MCPUploadRequest.maximumBytes),
@@ -43,7 +46,8 @@ nonisolated struct MCPUploadStatusTool: AgentToolDefinition, AgentToolSchemaBuil
     let uploads: MCPUploadCoordinator
     var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "sftp_upload_status", "Read an upload's status in this MCP session without retrying the upload.",
+            "sftp_upload_status",
+            "Read upload status and the acknowledged upload_offset. Resume only when paused; poll succeeded after a lost response.",
             properties: ["upload_id": Self.string()], required: ["upload_id"],
             target: .local, approvalPolicy: .approve, concurrency: .parallel,
             presentation: .init(

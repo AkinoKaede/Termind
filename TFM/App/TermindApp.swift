@@ -193,6 +193,8 @@ struct TermindApp: App {
         private let metricsActivity = MetricsActivityObserver()
         private let metricsMenu = MetricsMenuBarController()
         private var didRestoreForwardings = false
+        private var awaitingTermination = false
+        private var repliedToTermination = false
         private var quietLaunchObserver: (any NSObjectProtocol)?
         private let appearanceController = AppAppearanceController()
 
@@ -306,6 +308,28 @@ struct TermindApp: App {
             guard let observer = quietLaunchObserver else { return }
             NotificationCenter.default.removeObserver(observer)
             quietLaunchObserver = nil
+        }
+
+        func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+            guard let app else { return .terminateNow }
+            if awaitingTermination { return .terminateLater }
+            awaitingTermination = true
+            let cleanup = app.shutdownForTermination()
+            Task { @MainActor [weak self] in
+                await cleanup.value
+                self?.finishTermination()
+            }
+            Task { @MainActor [weak self] in
+                try? await Task.sleep(for: .seconds(3))
+                self?.finishTermination()
+            }
+            return .terminateLater
+        }
+
+        private func finishTermination() {
+            guard !repliedToTermination else { return }
+            repliedToTermination = true
+            NSApp.reply(toApplicationShouldTerminate: true)
         }
 
         func applicationWillTerminate(_ notification: Notification) {

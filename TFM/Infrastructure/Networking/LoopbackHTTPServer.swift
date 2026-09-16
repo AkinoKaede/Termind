@@ -492,6 +492,7 @@ actor LoopbackHTTPServer {
         switch status {
         case 200: "OK"
         case 202: "Accepted"
+        case 206: "Partial Content"
         case 400: "Bad Request"
         case 401: "Unauthorized"
         case 403: "Forbidden"
@@ -502,6 +503,7 @@ actor LoopbackHTTPServer {
         case 411: "Length Required"
         case 413: "Content Too Large"
         case 415: "Unsupported Media Type"
+        case 416: "Range Not Satisfiable"
         case 417: "Expectation Failed"
         case 422: "Unprocessable Content"
         case 429: "Too Many Requests"
@@ -546,9 +548,6 @@ private actor HTTPUploadBodyReader {
                 }
             } catch {
                 if timedOut.isCancelled { throw SFTPStreamUploadOperation.Failure.timedOut }
-                if case LoopbackHTTPServerError.endOfStream = error {
-                    throw SFTPStreamUploadOperation.Failure.invalidLength
-                }
                 throw error
             }
         }

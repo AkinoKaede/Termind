@@ -51,6 +51,7 @@ nonisolated struct QuickConnectTarget: Hashable, Sendable {
 /// `WindowModel` instead.
 @Observable
 final class AppModel {
+    private var terminationTask: Task<Void, Never>?
     private final class WeakWindow {
         weak var value: WindowModel?
         init(_ value: WindowModel) { self.value = value }
@@ -588,10 +589,10 @@ final class AppModel {
             .agentConnectionConfiguration
     }
 
-    /// Starts teardown without waiting for network peers. AppKit's termination
-    /// path runs on the main thread, so awaiting SSH/SFTP shutdown here can make
-    /// ⌘Q appear hung when a peer is slow or unreachable.
-    func shutdownForTermination() {
+    /// The delegate gives this asynchronous cleanup a bounded termination window.
+    @discardableResult
+    func shutdownForTermination() -> Task<Void, Never> {
+        if let terminationTask { return terminationTask }
         serverMetrics.shutdown()
         speechTranscription.cancelAll()
         let liveWindows = windows.values.compactMap(\.value)
@@ -599,12 +600,16 @@ final class AppModel {
         for window in liveWindows { window.closeAll() }
         sftpTransfers.cancelAll()
         forwarding.suspendAll()
-        Task { [mcpServer, agentConnections, agentBackgroundCommands] in
-            await mcpServer.stop()
+        let task = Task { [mcpServer, sftpTransfers, agentConnections, agentBackgroundCommands] in
+            async let stopMCP: Void = mcpServer.stop()
+            async let stopSFTP: Void = sftpTransfers.waitForCancellation()
+            _ = await (stopMCP, stopSFTP)
             await agentBackgroundCommands.closeAll()
             await agentConnections.closeAll()
         }
+        terminationTask = task
         outboxRunner?.stop()
+        return task
     }
 
     /// Opens a host in the given window, handing back the workspace it landed in.

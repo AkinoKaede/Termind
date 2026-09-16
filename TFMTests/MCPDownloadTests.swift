@@ -13,6 +13,71 @@ import Testing
 @MainActor
 struct MCPDownloadTests {
     @Test
+    func interruptedDownloadResumesFromClientOffsetAndHashesTheWholeFile() async throws {
+        let bytes = Data((0..<(160 * 1024)).map { UInt8($0 % 251) })
+        let fixture = DownloadFixture(bytes: bytes)
+        let ticket = try fixture.ticket()
+        let response = await fixture.prepare(ticket)
+        guard case .file(let body) = response.body else {
+            Issue.record("Expected file")
+            return
+        }
+        let chunk = try #require(try await body.read())
+        await body.sent(chunk.count)
+        body.cancel()
+        await body.finished(.failure(LoopbackHTTPServerError.endOfStream))
+        #expect(try fixture.status(ticket)["status"] == .string("paused"))
+        // Only 137 bytes were saved, despite a full chunk being sent.
+        var request = fixture.request(ticket)
+        request.headers["range"] = "bytes=137-"
+        let resumed = await fixture.prepare(ticket, request: request)
+        #expect(resumed.status == 206)
+        #expect(resumed.headers["Content-Range"] == "bytes 137-\(bytes.count - 1)/\(bytes.count)")
+        #expect(resumed.headers["Content-Length"] == String(bytes.count - 137))
+        let suffix = try await consumeDownload(resumed)
+        #expect(Data(chunk.prefix(137)) + suffix == bytes)
+        #expect(try fixture.status(ticket)["sha256"] == .string(downloadDigest(bytes)))
+        #expect(try fixture.status(ticket)["status"] == .string("succeeded"))
+        #expect(await fixture.backend.closes == 2)
+    }
+
+    @Test
+    func invalidRangeDoesNotConsumeTicketAndCompletedDownloadCanReplayARange() async throws {
+        let fixture = DownloadFixture(bytes: Data([1, 2, 3]))
+        let ticket = try fixture.ticket()
+        var request = fixture.request(ticket)
+        request.headers["range"] = "bytes=3-"
+        let rejected = await fixture.prepare(ticket, request: request)
+        #expect(rejected.status == 416)
+        #expect(rejected.headers["Content-Range"] == "bytes */3")
+        #expect(try fixture.status(ticket)["status"] == .string("waiting"))
+        #expect(try await consumeDownload(await fixture.prepare(ticket)) == Data([1, 2, 3]))
+        request.headers["range"] = "bytes=1-"
+        #expect(try await consumeDownload(await fixture.prepare(ticket, request: request)) == Data([2, 3]))
+        #expect(try fixture.status(ticket)["sha256"] == .string(downloadDigest(Data([1, 2, 3]))))
+    }
+
+    @Test
+    func changedPrefixRejectsResumeBeforeHeadersEvenWhenSizeIsUnchanged() async throws {
+        let fixture = DownloadFixture(bytes: Data(repeating: 1, count: 128 * 1024))
+        let ticket = try fixture.ticket()
+        guard case .file(let body) = await fixture.prepare(ticket).body else {
+            Issue.record("Expected file")
+            return
+        }
+        _ = try await body.read()
+        body.cancel()
+        await body.finished(.failure(LoopbackHTTPServerError.endOfStream))
+        await fixture.backend.replaceSource(Data(repeating: 2, count: 128 * 1024))
+        var request = fixture.request(ticket)
+        request.headers["range"] = "bytes=17-"
+        let response = await fixture.prepare(ticket, request: request)
+        #expect(response.status == 409)
+        #expect(try fixture.status(ticket)["error"] == .string("source_changed"))
+        #expect(try fixture.status(ticket)["status"] == .string("failed"))
+    }
+
+    @Test
     func deliveredFileResponseDoesNotRemainRetainedByItsExchange() async {
         let exchange = MCPDownloadExchange()
         var prepared: (HTTPResponse, WeakDownloadReader)? = weakFileResponse(exchange: exchange)
@@ -57,8 +122,18 @@ struct MCPDownloadTests {
         #expect(!body.isEmpty)
         #expect(body.count < 128 * 1_024)
         #expect(body.allSatisfy { $0 == 255 })
-        #expect(try fixture.status(ticket)["status"] == .string("failed"))
+        #expect(try fixture.status(ticket)["status"] == .string("paused"))
         #expect(await fixture.backend.closes == 1)
+        await fixture.backend.allowReads()
+        let resumed = try await rawDownload(
+            port: port, id: fixture.id(ticket), token: ticket["download_token"]!.stringValue!, range: "bytes=137-")
+        let resumedSeparator = try #require(resumed.range(of: Data("\r\n\r\n".utf8)))
+        let headers = String(decoding: resumed.prefix(resumedSeparator.lowerBound), as: UTF8.self)
+        #expect(headers.hasPrefix("HTTP/1.1 206 Partial Content"))
+        #expect(headers.contains("Content-Range: bytes 137-131071/131072"))
+        #expect(resumed[resumedSeparator.upperBound...].count == 128 * 1024 - 137)
+        #expect(
+            try fixture.status(ticket)["sha256"] == .string(downloadDigest(Data(repeating: 255, count: 128 * 1024))))
         await fixture.downloads.stop()
         await server.stop()
         continuation.finish()
@@ -181,7 +256,7 @@ struct MCPDownloadTests {
         let disabled = try fixture.ticket()
         fixture.downloads.setEnabled(false)
         fixture.downloads.setEnabled(true)
-        #expect(await fixture.prepare(disabled).status == 409)
+        #expect(await fixture.prepare(disabled).status == 410)
         #expect(try fixture.status(disabled)["status"] == .string("cancelled"))
         await fixture.downloads.endSession(runID: fixture.runID)
         #expect(throws: MCPDownloadError.self) { try fixture.status(disabled) }
@@ -267,7 +342,7 @@ struct MCPDownloadTests {
     }
 
     @Test
-    func cancellationWhileConnectingConsumesTheTicketWithoutPublishingAFileResponse() async throws {
+    func interruptedHTTPConnectionPausesWithoutPublishingAFileResponse() async throws {
         let fixture = DownloadFixture(bytes: Data())
         await fixture.backend.delayOpening()
         let ticket = try fixture.ticket()
@@ -279,7 +354,7 @@ struct MCPDownloadTests {
         }
         token.cancel()
         #expect(await task.value.status == 410)
-        #expect(try fixture.status(ticket)["status"] == .string("cancelled"))
+        #expect(try fixture.status(ticket)["status"] == .string("paused"))
         #expect(fixture.budget.claim(UUID()))
     }
 
@@ -328,7 +403,9 @@ struct MCPDownloadTests {
         } else {
             await #expect(throws: (any Error).self) { try await consumeDownload(response) }
         }
-        #expect(try fixture.status(ticket)["status"] == .string("failed"))
+        #expect(
+            try fixture.status(ticket)["status"]
+                == .string(kind == "read_error" || kind == "send_error" ? "paused" : "failed"))
         #expect(await fixture.backend.closes == 1)
         #expect(response.headers["Content-Type"] == "application/octet-stream")
     }
@@ -425,7 +502,7 @@ private func weakFileResponse(exchange: MCPDownloadExchange) -> (HTTPResponse, W
     )
 }
 
-private func rawDownload(port: UInt16, id: UUID, token: String) async throws -> Data {
+private func rawDownload(port: UInt16, id: UUID, token: String, range: String? = nil) async throws -> Data {
     let connection = NWConnection(host: "127.0.0.1", port: NWEndpoint.Port(rawValue: port)!, using: .tcp)
     connection.start(queue: DispatchQueue(label: "termind.tests.download.raw"))
     let timer = Task {
@@ -436,8 +513,9 @@ private func rawDownload(port: UInt16, id: UUID, token: String) async throws -> 
         timer.cancel()
         connection.cancel()
     }
+    let rangeHeader = range.map { "Range: \($0)\r\n" } ?? ""
     let request = Data(
-        "GET /downloads/\(id) HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer \(token)\r\nConnection: close\r\n\r\n"
+        "GET /downloads/\(id) HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer \(token)\r\n\(rangeHeader)Connection: close\r\n\r\n"
             .utf8)
     try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, any Error>) in
         connection.send(
@@ -544,7 +622,7 @@ private nonisolated final class DownloadClock: @unchecked Sendable {
 }
 
 private actor DownloadBackend {
-    let bytes: Data
+    var bytes: Data
     var opens = 0
     var closes = 0
     var streams: [MockDownloadStream] = []
@@ -553,10 +631,12 @@ private actor DownloadBackend {
     var closeFails = false
     var secondReadFails = false
     init(bytes: Data) { self.bytes = bytes }
+    func replaceSource(_ bytes: Data) { self.bytes = bytes }
     func setOpenFailure(_ failure: any Error) { openFailure = failure }
     func delayOpening() { delay = true }
     func failClosing() { closeFails = true }
     func failSecondRead() { secondReadFails = true }
+    func allowReads() { secondReadFails = false }
     func open(_ cancellation: TransferCancellationToken) async throws -> MockDownloadStream {
         opens += 1
         if delay { try await Task.sleep(for: .seconds(120)) }
@@ -576,6 +656,7 @@ private actor DownloadBackend {
 private actor MockDownloadStream: SFTPDownloadStream {
     nonisolated let byteCount: Int64
     var bytes: Data
+    let original: Data
     var reads = 0
     var modified = false
     var readFails = false
@@ -583,9 +664,11 @@ private actor MockDownloadStream: SFTPDownloadStream {
     let secondReadFails: Bool
     init(bytes: Data, secondReadFails: Bool = false) {
         self.bytes = bytes
+        self.original = bytes
         self.secondReadFails = secondReadFails
         byteCount = Int64(bytes.count)
     }
+    func seek(to offset: Int64) { bytes = Data(original.dropFirst(Int(offset))) }
     func replace(_ bytes: Data) { self.bytes = bytes }
     func markModified() { modified = true }
     func failRead() { readFails = true }

@@ -7,6 +7,7 @@ actor MCPDownloadReader {
     let stream: any SFTPDownloadStream
     let expectedSHA256: String?
     let cancellation: TransferCancellationToken
+    let resume: SFTPResumeState?
     private var digest = SHA256()
     private var received: Int64 = 0
     private var sent: Int64 = 0
@@ -15,11 +16,53 @@ actor MCPDownloadReader {
     private(set) var actualSHA256: String?
     var idleDuration: Duration { ContinuousClock.now - lastProgress }
 
-    init(stream: any SFTPDownloadStream, expectedSHA256: String?, cancellation: TransferCancellationToken) {
+    init(
+        stream: any SFTPDownloadStream, expectedSHA256: String?, cancellation: TransferCancellationToken,
+        resume: SFTPResumeState? = nil
+    ) {
         self.stream = stream
         self.expectedSHA256 = expectedSHA256
         self.cancellation = cancellation
+        self.resume = resume
     }
+    /// Verify the previous attempt's prefix before publishing HTTP headers.
+    /// Rehashing is bounded and also reconstructs the full-file digest for Range.
+    func prepare(offset: Int64) async throws {
+        guard let resume else { return }
+        try resume.validateSource(
+            stream.sourceIdentity ?? SFTPSourceIdentity(byteCount: stream.byteCount, modifiedAt: nil))
+        let previous = resume.snapshot
+        let end = max(offset, previous.offset)
+        var checked: Int64 = 0
+        var hash = SHA256()
+        var prefix = SHA256()
+        while checked < end {
+            try Task.checkCancellation()
+            guard !cancellation.isCancelled else { throw SFTPError.cancelled }
+            guard let chunk = try await stream.readChunk(), !chunk.isEmpty, chunk.count <= 64 * 1024 else {
+                throw SFTPResumeFailure.sourceChanged
+            }
+            var index = 0
+            while index < chunk.count && checked < end {
+                let boundary = [offset, previous.offset, end].filter { $0 > checked }.min()!
+                let count = Int(min(Int64(chunk.count - index), boundary - checked))
+                hash.update(data: chunk.subdata(in: index..<(index + count)))
+                checked += Int64(count)
+                index += count
+                if checked == offset { prefix = hash }
+                if checked == previous.offset, hash.finalize() != previous.digest.finalize() {
+                    throw SFTPResumeFailure.sourceChanged
+                }
+            }
+            lastProgress = .now
+        }
+        if end > 0 { try await stream.seek(to: offset) }
+        digest = prefix
+        received = offset
+        sent = offset
+        resume.recordPrefix(digest: hash, offset: end)
+    }
+
     func readChunk() async throws -> Data? {
         try Task.checkCancellation()
         guard !cancellation.isCancelled else { throw AgentToolError.cancelled }
@@ -29,6 +72,7 @@ actor MCPDownloadReader {
             guard Int64(chunk.count) <= stream.byteCount - received else { throw SFTPDownloadFailure.sourceChanged }
             received += Int64(chunk.count)
             digest.update(data: chunk)
+            resume?.recordPrefix(digest: digest, offset: received)
             lastProgress = .now
             return chunk
         }

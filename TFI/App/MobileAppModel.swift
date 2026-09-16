@@ -304,7 +304,7 @@ final class MobileAppModel {
                 guard let self else { return }
                 for workspace in workspaces { workspace.suspendForBackgroundExpiration() }
                 forwardings.suspendAll()
-                transfers.cancelAll()
+                transfers.pauseAll()
                 assistant.expireBackground()
             }
             liveActivities.update(workspaceActivitySessions)

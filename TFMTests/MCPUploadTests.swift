@@ -13,6 +13,81 @@ import Testing
 @MainActor
 struct MCPUploadTests {
     @Test
+    func uploadResumesOnlyAtAcknowledgedOffsetAndChecksFullDigest() async throws {
+        let fixture = UploadFixture()
+        let bytes = Data((0..<(256 * 1024)).map { UInt8($0 % 253) })
+        await fixture.client.interruptNextTransfer()
+        let ticket = try await fixture.ticket(bytes)
+        _ = try await fixture.consume(ticket, bytes: bytes)
+        let status = try #require(try fixture.uploads.status(id: fixture.id(ticket), runID: fixture.runID).objectValue)
+        #expect(status["status"] == .string("paused"))
+        let offset = try #require(status["upload_offset"]?.integerValue)
+        #expect(offset > 0 && offset < bytes.count)
+        var wrong = fixture.request(ticket, count: bytes.count - offset)
+        wrong.headers["upload-offset"] = String(offset + 1)
+        guard case .reject(let conflict) = fixture.uploads.prepare(wrong) else {
+            Issue.record("Accepted wrong offset")
+            return
+        }
+        #expect(conflict.status == 409)
+        var request = fixture.request(ticket, count: bytes.count - offset)
+        request.headers["upload-offset"] = String(offset)
+        guard case .accept(let consume, _) = fixture.uploads.prepare(request) else {
+            Issue.record("Rejected resume")
+            return
+        }
+        let source = UploadByteSource(Data(bytes.dropFirst(offset)))
+        #expect(await consume { await source.next() }.status == 200)
+        #expect(await fixture.client.committed == bytes)
+        let finished = try fixture.uploads.status(id: fixture.id(ticket), runID: fixture.runID).objectValue
+        #expect(finished?["sha256"] == .string(uploadDigest(bytes)))
+        #expect(finished?["status"] == .string("succeeded"))
+    }
+
+    @Test
+    func disconnectedHTTPUploadCanRetryButOldConnectionCannotCancelNewAttempt() async throws {
+        let fixture = UploadFixture()
+        let bytes = Data([1, 2, 3])
+        let ticket = try await fixture.ticket(bytes)
+        guard case .accept(_, let disconnected) = fixture.uploads.prepare(fixture.request(ticket, count: bytes.count))
+        else {
+            Issue.record("Rejected initial attempt")
+            return
+        }
+        disconnected()
+        for _ in 0..<100 { await Task.yield() }
+        #expect(
+            try fixture.uploads.status(id: fixture.id(ticket), runID: fixture.runID).objectValue?["status"]
+                == .string("paused"))
+        guard case .accept(let consume, _) = fixture.uploads.prepare(fixture.request(ticket, count: bytes.count)) else {
+            Issue.record("Rejected retry")
+            return
+        }
+        disconnected()
+        let source = UploadByteSource(bytes)
+        #expect(await consume { await source.next() }.status == 200)
+        #expect(await fixture.client.committed == bytes)
+    }
+
+    @Test
+    func pausedUploadExpiresAndCannotBeRevived() async throws {
+        let clock = UploadClock()
+        let fixture = UploadFixture(now: { clock.date })
+        await fixture.client.interruptNextTransfer()
+        let ticket = try await fixture.ticket(Data(count: 128 * 1024))
+        _ = try await fixture.consume(ticket, bytes: Data(count: 128 * 1024))
+        clock.advance(601)
+        guard case .reject(let response) = fixture.uploads.prepare(fixture.request(ticket, count: 0)) else {
+            Issue.record("Accepted expired ticket")
+            return
+        }
+        #expect(response.status == 410)
+        #expect(
+            try fixture.uploads.status(id: fixture.id(ticket), runID: fixture.runID).objectValue?["status"]
+                == .string("expired"))
+    }
+
+    @Test
     func longUploadCompletionKeepsTheSessionQueryableForTheRetentionWindow() async throws {
         let clock = UploadClock()
         let fixture = UploadFixture(now: { clock.date })
@@ -337,8 +412,8 @@ struct MCPUploadTests {
                 == .string("succeeded"))
     }
 
-    @Test
-    func actualHTTPRouteStreamsAboveTheMCPBodyLimit() async throws {
+    @Test(arguments: [false, true])
+    func actualHTTPRouteStreamsAboveTheMCPBodyLimit(resume: Bool) async throws {
         let fixture = UploadFixture()
         let server = LoopbackHTTPServer()
         let port = UInt16.random(in: 40_000...60_000)
@@ -364,7 +439,26 @@ struct MCPUploadTests {
         request.setValue("Bearer \(ticket["upload_token"]!.stringValue!)", forHTTPHeaderField: "Authorization")
         request.setValue("application/octet-stream", forHTTPHeaderField: "Content-Type")
         request.setValue("100-continue", forHTTPHeaderField: "Expect")
-        let (_, response) = try await URLSession.shared.upload(for: request, from: bytes)
+        var remaining = bytes
+        if resume {
+            await fixture.client.interruptNextTransfer()
+            _ = try? await URLSession.shared.upload(for: request, from: bytes)
+            for _ in 0..<200 {
+                if try fixture.uploads.status(id: fixture.id(ticket), runID: fixture.runID).objectValue?["status"]
+                    == .string("paused")
+                {
+                    break
+                }
+                try await Task.sleep(for: .milliseconds(5))
+            }
+            let offset = try #require(
+                try fixture.uploads.status(id: fixture.id(ticket), runID: fixture.runID)
+                    .objectValue?["upload_offset"]?.integerValue)
+            #expect(offset > 0 && offset < bytes.count)
+            request.setValue(String(offset), forHTTPHeaderField: "Upload-Offset")
+            remaining = Data(bytes.dropFirst(offset))
+        }
+        let (_, response) = try await URLSession.shared.upload(for: request, from: remaining)
         #expect((response as? HTTPURLResponse)?.statusCode == 200)
         #expect(await fixture.client.committed == bytes)
         await server.stop()
@@ -389,7 +483,7 @@ private final class UploadFixture {
             try await SFTPStreamUploadOperation.run(
                 client: client, remotePath: request.remotePath, byteCount: request.byteCount,
                 sha256: request.sha256, overwrite: request.overwrite, cancellation: token,
-                idleTimeout: idleTimeout, read: read, progress: report
+                idleTimeout: idleTimeout, resume: request.resume, read: read, progress: report
             )
         }
         uploads.configure(port: 7391)
@@ -457,6 +551,9 @@ private nonisolated final class UploadClock: @unchecked Sendable {
 
 private actor UploadSFTPClient: SFTPClientProtocol {
     var committed: Data?
+    let destination = UploadDestination()
+    var interruptNext = false
+    func interruptNextTransfer() { interruptNext = true }
     var started = false
     var conflict: RemoteFile.Kind?
     var delay = false
@@ -479,20 +576,39 @@ private actor UploadSFTPClient: SFTPClientProtocol {
         cancellation: TransferCancellationToken, progress: @escaping @Sendable (SFTPProgress) -> Void,
         sourceSucceeded: @escaping @Sendable () -> Bool
     ) async throws {
+        try await uploadStream(
+            fromSocket: socket, to: remotePath, byteCount: byteCount, overwrite: overwrite,
+            cancellation: cancellation, resume: SFTPResumeState(), progress: progress,
+            sourceSucceeded: sourceSucceeded)
+    }
+    func uploadStream(
+        fromSocket socket: Int32, to remotePath: String, byteCount: Int64, overwrite: Bool,
+        cancellation: TransferCancellationToken, resume: SFTPResumeState,
+        progress: @escaping @Sendable (SFTPProgress) -> Void,
+        sourceSucceeded: @escaping @Sendable () -> Bool
+    ) async throws {
         started = true
         if cleanupFails {
             throw SFTPTemporaryFileCleanupError(path: "/target/file.bin.part", cause: SFTPError.connectionLost("lost"))
         }
         if delay { try await Task.sleep(for: .seconds(120)) }
         let cleanupFailsAfterRead = cleanupFailsAfterRead
+        let destination = destination
+        if resume.snapshot.offset == 0 { destination.reset() }
+        let interrupt = interruptNext
+        interruptNext = false
         let data = try await Task.detached {
-            var data = Data()
+            var data = destination.bytes
             var buffer = [UInt8](repeating: 0, count: SFTPStreamUploadOperation.chunkBytes)
             while true {
                 let count = Darwin.recv(socket, &buffer, buffer.count, 0)
                 if count == 0 { break }
                 guard count > 0 else { throw SFTPError.cancelled }
-                data.append(contentsOf: buffer.prefix(count))
+                let chunk = Data(buffer.prefix(count))
+                data.append(chunk)
+                destination.append(chunk)
+                resume.acknowledge(chunk)
+                if interrupt { throw SFTPError.connectionLost("interrupted") }
                 progress(SFTPProgress(completedBytes: Int64(data.count), totalBytes: byteCount, bytesPerSecond: 0))
             }
             guard !cancellation.isCancelled, sourceSucceeded() else {
@@ -525,4 +641,12 @@ private actor UploadSFTPClient: SFTPClientProtocol {
         from remotePath: String, to localURL: URL, overwrite: Bool, cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws { throw MCPUploadError.invalidRequest }
+}
+
+private nonisolated final class UploadDestination: @unchecked Sendable {
+    private let lock = NSLock()
+    private var value = Data()
+    var bytes: Data { lock.withLock { value } }
+    func append(_ data: Data) { lock.withLock { value.append(data) } }
+    func reset() { lock.withLock { value = Data() } }
 }

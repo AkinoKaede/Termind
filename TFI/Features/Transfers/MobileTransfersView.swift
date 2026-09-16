@@ -54,7 +54,14 @@ struct MobileTransfersView: View {
                     Text(status(for: transfer)).font(.caption).foregroundStyle(tint(for: transfer))
                 }
                 Spacer(minLength: 8)
-                if active {
+                if transfers.canPause(transfer.id) {
+                    Button("Pause transfer", systemImage: "pause.circle") { transfers.pause(transfer.id) }
+                        .labelStyle(.iconOnly).font(.title3)
+                } else if transfer.state == .paused {
+                    Button("Resume transfer", systemImage: "play.circle") { transfers.resume(transfer.id) }
+                        .labelStyle(.iconOnly).font(.title3)
+                }
+                if active || transfer.state == .paused {
                     Button("Cancel transfer", systemImage: "xmark.circle.fill") {
                         transfers.cancel(transfer.id)
                     }

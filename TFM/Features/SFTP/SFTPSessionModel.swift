@@ -405,6 +405,7 @@ final class SFTPSessionModel: Identifiable {
                 }
                 self.connectionJourney.receive(.connected(host.id))
                 self.client = client
+                self.transferCoordinator?.replaceBorrowedConnection(self.id, with: client)
                 self.configuration = self.usesEphemeralCredentials ? nil : configuration
                 self.suppliedAuthentications.removeAll()
                 self.temporaryHostKeys.removeAll()

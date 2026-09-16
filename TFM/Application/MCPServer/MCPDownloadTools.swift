@@ -8,9 +8,12 @@ nonisolated struct MCPDownloadTool: AgentToolDefinition, AgentToolSchemaBuilding
     var descriptor: AgentToolDescriptor {
         Self.descriptor(
             "sftp_download",
-            "Create a ten-minute one-use HTTP download ticket for a single regular remote file. "
+            "Create a ten-minute resumable HTTP download ticket for a single regular remote file. "
                 + "Use the returned URL and Authorization header with a separate HTTP GET, not MCP. "
-                + "No directories, symlinks, Range, or resume. Save to a client-owned temporary file, then poll "
+                + "No directories or symlinks. Resume with Range: bytes=N- using the bytes actually saved locally. "
+                + "Only one request may run at a time, within the original ticket/session/process lifetime. "
+                + "A range response is 206 with Content-Range; 416 means the offset is outside the file. "
+                + "Save to a client-owned temporary file, then poll "
                 + "sftp_download_status to a terminal state and compare local size and SHA-256 before accepting it. "
                 + "HTTP 200 alone does not prove success. expected_sha256 is optional. No atomic remote snapshot is promised.",
             properties: [
@@ -42,7 +45,7 @@ nonisolated struct MCPDownloadStatusTool: AgentToolDefinition, AgentToolSchemaBu
         Self.descriptor(
             "sftp_download_status",
             "Read this MCP session's download status, sent byte count, actual SHA-256 and safe error. "
-                + "Connecting/transferring are not terminal; succeeded means the source and HTTP send completed, not that a client saved the file.",
+                + "Paused permits a Range retry; connecting/transferring are not terminal. succeeded means the source and HTTP send completed, not that a client saved the file.",
             properties: ["download_id": Self.string()], required: ["download_id"], target: .local,
             approvalPolicy: .approve,
             concurrency: .parallel,

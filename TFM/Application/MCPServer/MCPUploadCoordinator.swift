@@ -11,6 +11,7 @@ nonisolated struct MCPUploadRequest: Sendable {
     var byteCount: Int64
     var sha256: String
     var overwrite: Bool
+    let resume = SFTPResumeState()
 
     init(_ invocation: AgentToolInvocation) throws {
         let arguments = try Arguments(invocation)
@@ -36,6 +37,8 @@ final class MCPUploadCoordinator {
             TransferCancellationToken, @escaping @Sendable (SFTPProgress) -> Void
         ) async throws -> String
 
+    typealias Cleanup = @Sendable (MCPUploadRequest, UUID, UUID, String) async throws -> Void
+
     private struct Ticket {
         var id: UUID
         var token: String
@@ -52,14 +55,18 @@ final class MCPUploadCoordinator {
         var finishedAt: Date?
         var cancellation = TransferCancellationToken()
         var cancelRequested = false
+        var interrupted = false
+        var attemptID = UUID()
+        var attemptOffset: Int64 = 0
         var task: Task<HTTPResponse, Never>?
         var auditID: UUID?
-        var live: Bool { state == "connecting" || state == "transferring" }
+        var live: Bool { state == "connecting" || state == "transferring" || state == "cleaning" }
     }
 
     private let hosts: AgentHostResolver
     private let history: ToolAuditModel
     private let transfer: Transfer
+    private let cleanup: Cleanup
     private let now: @Sendable () -> Date
     private let budget: MCPTransferBudget
     private var tickets: [UUID: Ticket] = [:]
@@ -70,12 +77,14 @@ final class MCPUploadCoordinator {
     init(
         hosts: AgentHostResolver, history: ToolAuditModel,
         now: @escaping @Sendable () -> Date = { Date() }, budget: MCPTransferBudget = MCPTransferBudget(),
+        cleanup: @escaping Cleanup = { _, _, _, _ in },
         transfer: @escaping Transfer
     ) {
         self.hosts = hosts
         self.history = history
         self.now = now
         self.transfer = transfer
+        self.cleanup = cleanup
         self.budget = budget
     }
 
@@ -89,7 +98,7 @@ final class MCPUploadCoordinator {
         let date = now()
         return tickets.values.contains {
             $0.runID == runID
-                && ($0.live
+                && ($0.live || ($0.state == "paused" && $0.expiresAt > date)
                     || ($0.auditID != nil
                         && $0.finishedAt.map {
                             date.timeIntervalSince($0) < 1_800
@@ -111,7 +120,7 @@ final class MCPUploadCoordinator {
         guard enabled, let port, let client = clients[invocation.runID], !Task.isCancelled else {
             throw MCPUploadError.unavailable
         }
-        guard tickets.values.filter({ $0.state == "waiting" }).count < 64 else { throw MCPUploadError.capacity }
+        guard tickets.values.filter({ $0.finishedAt == nil }).count < 64 else { throw MCPUploadError.capacity }
         let token = try MCPUploadToken.make()
         let id = UUID()
         let expiry = now().addingTimeInterval(600)
@@ -128,6 +137,7 @@ final class MCPUploadCoordinator {
                 "Authorization": .string("Bearer \(token)"),
                 "Content-Type": .string("application/octet-stream"),
                 "Content-Length": .string(String(request.byteCount)),
+                "Upload-Offset": .string("0"),
             ]),
         ])
     }
@@ -156,8 +166,12 @@ final class MCPUploadCoordinator {
             LoopbackHTTPServer.constantTimeEqual(String(authorization.dropFirst(7)), ticket.token)
         else { return .reject(Self.error(401, "invalid_upload_token")) }
         guard clients[ticket.runID] != nil else { return .reject(Self.error(410, "upload_revoked")) }
-        guard ticket.state != "expired" else { return .reject(Self.error(410, "upload_expired")) }
-        guard ticket.state == "waiting" else { return .reject(Self.error(409, "upload_already_claimed")) }
+        guard ticket.expiresAt > now(), ticket.state != "expired" else {
+            return .reject(Self.error(410, "upload_expired"))
+        }
+        guard ticket.state == "waiting" || ticket.state == "paused" else {
+            return .reject(Self.error(409, "upload_already_claimed"))
+        }
         guard request.header("transfer-encoding") == nil else {
             return .reject(Self.error(411, "chunked_upload_not_supported"))
         }
@@ -167,12 +181,24 @@ final class MCPUploadCoordinator {
         guard let rawLength = request.header("content-length"), !rawLength.isEmpty,
             rawLength.utf8.allSatisfy({ (48...57).contains($0) }), let length = Int64(rawLength)
         else { return .reject(Self.error(411, "content_length_required")) }
-        guard length == ticket.request.byteCount else { return .reject(Self.error(400, "length_mismatch")) }
+        let rawOffset = request.header("upload-offset") ?? "0"
+        guard !rawOffset.isEmpty, rawOffset.utf8.allSatisfy({ (48...57).contains($0) }),
+            let offset = Int64(rawOffset), offset == ticket.request.resume.snapshot.offset
+        else { return .reject(Self.error(409, "upload_offset_mismatch")) }
+        guard length == ticket.request.byteCount - offset else {
+            return .reject(Self.error(400, "length_mismatch"))
+        }
         if let expect = request.header("expect"), expect.lowercased() != "100-continue" {
             return .reject(Self.error(417, "unsupported_expectation"))
         }
         guard budget.claim(id) else { return .reject(Self.error(429, "upload_capacity")) }
         ticket.state = "connecting"
+        ticket.cancellation = TransferCancellationToken()
+        ticket.interrupted = false
+        ticket.errorCode = nil
+        ticket.attemptID = UUID()
+        ticket.attemptOffset = offset
+        let attempt = ticket.attemptID
         ticket.auditID = history.beginUpload(
             runID: ticket.runID, clientName: ticket.clientName, hostID: ticket.request.hostID,
             remotePath: ticket.request.remotePath, overwrite: ticket.request.overwrite
@@ -181,9 +207,9 @@ final class MCPUploadCoordinator {
         return .accept(
             { [weak self] read in
                 guard let self else { return Self.error(503, "upload_unavailable") }
-                return await self.receive(id: id, read: read)
+                return await self.receive(id: id, attempt: attempt, read: read)
             },
-            disconnected: { [weak self] in Task { @MainActor in self?.cancel(id) } }
+            disconnected: { [weak self] in Task { @MainActor in self?.interrupt(id, attempt: attempt) } }
         )
     }
 
@@ -220,8 +246,12 @@ final class MCPUploadCoordinator {
         tickets.removeAll()
     }
 
-    private func receive(id: UUID, read: @escaping SFTPStreamUploadOperation.ReadChunk) async -> HTTPResponse {
-        guard let ticket = tickets[id], ticket.state == "connecting", !ticket.cancellation.isCancelled else {
+    private func receive(id: UUID, attempt: UUID, read: @escaping SFTPStreamUploadOperation.ReadChunk) async
+        -> HTTPResponse
+    {
+        guard let ticket = tickets[id], ticket.attemptID == attempt, ticket.state == "connecting",
+            !ticket.cancellation.isCancelled
+        else {
             return Self.error(410, "upload_cancelled")
         }
         let task = Task { [self] in
@@ -229,7 +259,7 @@ final class MCPUploadCoordinator {
                 let actual = try await transfer(
                     ticket.request, ticket.runID, ticket.invocationID, ticket.clientName, read, ticket.cancellation,
                     { [weak self] progress in
-                        Task { @MainActor in self?.progress(id: id, progress: progress) }
+                        Task { @MainActor in self?.progress(id: id, attempt: attempt, progress: progress) }
                     }
                 )
                 // Returning from the transfer proves remote commit. Cancellation
@@ -247,7 +277,15 @@ final class MCPUploadCoordinator {
                 {
                     tickets[id]?.actualSHA256 = actual
                 }
-                finish(id: id, state: code == "upload_cancelled" ? "cancelled" : "failed", error: code)
+                let canResume =
+                    tickets[id]?.cancelRequested != true
+                    && !Self.integrityFailure(cleanup?.cause ?? error)
+                    && (tickets[id]?.interrupted == true || Self.recoverable(cleanup?.cause ?? error))
+                    && ticket.expiresAt > now()
+                if !canResume { await cleanupTicket(id) }
+                finish(
+                    id: id, state: canResume ? "paused" : (code == "upload_cancelled" ? "cancelled" : "failed"),
+                    error: code)
                 if let completed = tickets[id] { return Self.json(status, payload(completed)) }
                 return Self.error(status, code)
             }
@@ -260,52 +298,109 @@ final class MCPUploadCoordinator {
         }
     }
 
-    private func progress(id: UUID, progress: SFTPProgress) {
-        guard var ticket = tickets[id], ticket.live else { return }
+    private func progress(id: UUID, attempt: UUID, progress: SFTPProgress) {
+        guard var ticket = tickets[id], ticket.attemptID == attempt, ticket.live else { return }
         ticket.state = "transferring"
         ticket.completedBytes = max(ticket.completedBytes, progress.completedBytes)
         tickets[id] = ticket
-        if let audit = ticket.auditID { history.updateUpload(id: audit, bytes: ticket.completedBytes) }
+        if let audit = ticket.auditID {
+            history.updateUpload(id: audit, bytes: max(0, ticket.completedBytes - ticket.attemptOffset))
+        }
     }
 
     private func finish(id: UUID, state: String, actual: String? = nil, error: String? = nil) {
         guard var ticket = tickets[id] else { return }
         ticket.state = state
-        ticket.finishedAt = now()
+        ticket.finishedAt = state == "paused" ? nil : now()
         if let actual { ticket.actualSHA256 = actual }
         ticket.errorCode = error
+        ticket.completedBytes = max(ticket.completedBytes, ticket.request.resume.snapshot.offset)
         if state == "succeeded" { ticket.completedBytes = ticket.request.byteCount }
         ticket.task = nil
         budget.release(id)
         tickets[id] = ticket
         if let audit = ticket.auditID {
-            history.updateUpload(id: audit, bytes: ticket.completedBytes, succeeded: state == "succeeded")
+            history.updateUpload(
+                id: audit, bytes: max(0, ticket.completedBytes - ticket.attemptOffset), succeeded: state == "succeeded")
         }
         sweep()
     }
 
-    private func cancel(_ id: UUID) {
-        guard let ticket = tickets[id], ticket.state == "waiting" || ticket.live else { return }
+    private func interrupt(_ id: UUID, attempt: UUID) {
+        guard let ticket = tickets[id], ticket.attemptID == attempt, ticket.live, !ticket.cancelRequested else {
+            return
+        }
+        tickets[id]?.interrupted = true
+        ticket.cancellation.cancel()
+        ticket.task?.cancel()
+        if ticket.task == nil { finish(id: id, state: "paused", error: "upload_interrupted") }
+    }
+
+    private func cleanupTicket(_ id: UUID) async {
+        guard let ticket = tickets[id], !ticket.request.resume.snapshot.committed,
+            ticket.request.resume.snapshot.temporaryPath != nil
+        else { return }
+        do {
+            // Teardown must not inherit the failed HTTP attempt's cancellation.
+            let cleanup = cleanup
+            try await Task { try await cleanup(ticket.request, ticket.runID, ticket.invocationID, ticket.clientName) }
+                .value
+        } catch {
+            tickets[id]?.temporaryPath = ticket.request.resume.snapshot.temporaryPath
+        }
+    }
+
+    private func cancel(_ id: UUID, state: String = "cancelled") {
+        guard let ticket = tickets[id], ticket.state == "waiting" || ticket.state == "paused" || ticket.live,
+            !ticket.cancelRequested
+        else { return }
         tickets[id]?.cancelRequested = true
         ticket.cancellation.cancel()
         ticket.task?.cancel()
-        if ticket.task == nil { finish(id: id, state: "cancelled", error: "upload_cancelled") }
+        if ticket.task == nil {
+            if ticket.request.resume.snapshot.temporaryPath == nil {
+                finish(id: id, state: state, error: "upload_" + state)
+            } else {
+                tickets[id]?.state = "cleaning"
+                tickets[id]?.task = Task { [self] in
+                    await cleanupTicket(id)
+                    finish(id: id, state: state, error: "upload_" + state)
+                    return Self.error(410, "upload_" + state)
+                }
+            }
+        }
     }
 
     private func cancelAndWait(ids: [UUID]) async {
-        let tasks = ids.compactMap { tickets[$0]?.task }
         for id in ids { cancel(id) }
+        let tasks = ids.compactMap { tickets[$0]?.task }
         for task in tasks { _ = await task.value }
+    }
+
+    private nonisolated static func integrityFailure(_ error: any Error) -> Bool {
+        if error is SFTPResumeFailure { return true }
+        if let failure = error as? SFTPStreamUploadOperation.Failure {
+            if case .timedOut = failure { return false }
+            return true
+        }
+        return false
+    }
+
+    private nonisolated static func recoverable(_ error: any Error) -> Bool {
+        switch error {
+        case SFTPError.connectionLost, SFTPError.notConnected, SFTPStreamUploadOperation.Failure.timedOut,
+            LoopbackHTTPServerError.endOfStream:
+            true
+        default: false
+        }
     }
 
     private func sweep() {
         let date = now()
         for id in Array(tickets.keys) {
             guard let ticket = tickets[id] else { continue }
-            if ticket.state == "waiting", ticket.expiresAt <= date {
-                tickets[id]?.state = "expired"
-                tickets[id]?.finishedAt = date
-                tickets[id]?.errorCode = "upload_expired"
+            if ticket.state == "waiting" || ticket.state == "paused", ticket.expiresAt <= date {
+                cancel(id, state: "expired")
             } else if let finished = ticket.finishedAt, date.timeIntervalSince(finished) >= 1_800 {
                 tickets[id] = nil
             }
@@ -319,6 +414,8 @@ final class MCPUploadCoordinator {
             "upload_id": .string(ticket.id.uuidString), "status": .string(ticket.state),
             "remote_path": .string(ticket.request.remotePath), "byte_count": .number(Double(ticket.request.byteCount)),
             "bytes": .number(Double(ticket.completedBytes)),
+            "upload_offset": .number(Double(ticket.request.resume.snapshot.offset)),
+            "resumable": .bool(ticket.state == "paused" && ticket.expiresAt > now()),
             "sha256": ticket.actualSHA256.map(AgentJSONValue.string) ?? .null,
             "error": ticket.errorCode.map(AgentJSONValue.string) ?? .null,
             "temporary_file_may_remain": ticket.temporaryPath.map(AgentJSONValue.string) ?? .null,
@@ -335,6 +432,7 @@ final class MCPUploadCoordinator {
             case .timedOut: return (504, "upload_timeout")
             }
         }
+        if error is SFTPResumeFailure { return (409, "upload_source_or_partial_changed") }
         if cancelled || error is CancellationError { return (410, "upload_cancelled") }
         return (502, "sftp_upload_failed")
     }
