@@ -1,6 +1,34 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "The download request is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "下载请求无效。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "下載請求無效。" } }
+      }
+    },
+    "HTTP downloads are not available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "HTTP下载不可用。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "HTTP下載無法使用。" } }
+      }
+    },
+    "Too many downloads are waiting." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "等待中的下载过多。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "等待中的下載過多。" } }
+      }
+    },
+    "The download is unknown or expired." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "下载不存在或已过期。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "下載不存在或已過期。" } }
+      }
+    },
     "The upload request is invalid." : {
       "extractionState" : "manual",
       "localizations" : {

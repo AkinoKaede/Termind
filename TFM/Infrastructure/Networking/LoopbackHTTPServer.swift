@@ -19,6 +19,7 @@ nonisolated struct HTTPResponse: Sendable {
     nonisolated enum Body: Sendable {
         case data(Data)
         case stream(AsyncStream<Data>)
+        case file(HTTPFileBody)
     }
 
     var status: Int
@@ -37,11 +38,25 @@ nonisolated struct HTTPResponse: Sendable {
         body = .stream(stream)
     }
 
+    init(status: Int, headers: [String: String] = [:], file: HTTPFileBody) {
+        self.status = status
+        self.headers = headers
+        body = .file(file)
+    }
+
     static func text(_ status: Int, _ value: String, headers: [String: String] = [:]) -> Self {
         var all = headers
         all["Content-Type"] = "text/plain; charset=utf-8"
         return Self(status: status, headers: all, body: Data(value.utf8))
     }
+}
+
+nonisolated struct HTTPFileBody: Sendable {
+    var byteCount: Int64
+    var read: @Sendable () async throws -> Data?
+    var sent: @Sendable (Int) async -> Void
+    var finished: @Sendable (Result<Void, any Error>) async -> Void
+    var cancel: @Sendable () -> Void
 }
 
 nonisolated enum HTTPStreamingDecision: Sendable {
@@ -55,6 +70,10 @@ nonisolated enum HTTPStreamingDecision: Sendable {
 actor LoopbackHTTPServer {
     typealias Handler = @Sendable (HTTPRequest) async -> HTTPResponse
     typealias StreamingHandler = @Sendable (HTTPRequest) async -> HTTPStreamingDecision
+    typealias DownloadHandler =
+        @Sendable (
+            HTTPRequest, TransferCancellationToken, @escaping @Sendable () -> Void
+        ) async -> HTTPResponse
     typealias StateHandler = @Sendable (State) -> Void
 
     nonisolated enum State: Sendable, Equatable {
@@ -73,6 +92,7 @@ actor LoopbackHTTPServer {
     private var token = ""
     private var handler: Handler?
     private var streamingHandler: StreamingHandler?
+    private var downloadHandler: DownloadHandler?
     private var stateHandler: StateHandler?
     private var readyListeners = 0
 
@@ -80,6 +100,7 @@ actor LoopbackHTTPServer {
         port: UInt16, token: String,
         stateHandler: @escaping StateHandler = { _ in },
         streamingHandler: StreamingHandler? = nil,
+        downloadHandler: DownloadHandler? = nil,
         handler: @escaping Handler
     ) throws {
         stop()
@@ -89,6 +110,7 @@ actor LoopbackHTTPServer {
         self.token = token
         self.handler = handler
         self.streamingHandler = streamingHandler
+        self.downloadHandler = downloadHandler
         self.stateHandler = stateHandler
         stateHandler(.starting)
 
@@ -136,6 +158,7 @@ actor LoopbackHTTPServer {
         connections.removeAll()
         handler = nil
         streamingHandler = nil
+        downloadHandler = nil
         readyListeners = 0
         stateHandler?(.stopped)
         stateHandler = nil
@@ -192,6 +215,26 @@ actor LoopbackHTTPServer {
             }
 
             let request = parsed.0
+            if request.target.hasPrefix("/downloads/") {
+                guard let downloadHandler else {
+                    try? await Self.send(.text(404, "Unknown download route."), on: connection)
+                    return
+                }
+                let cancellation = TransferCancellationToken()
+                connection.stateUpdateHandler = { state in
+                    switch state {
+                    case .failed, .cancelled: cancellation.cancel()
+                    default: break
+                    }
+                }
+                var downloadRequest = request
+                downloadRequest.body = buffer
+                var response = await downloadHandler(downloadRequest, cancellation, { connection.cancel() })
+                response.headers["Connection"] = "close"
+                try? await Self.send(response, on: connection)
+                connection.stateUpdateHandler = nil
+                return
+            }
             // Uploads use a scoped capability, not the long-lived MCP token. No body
             // is drained before route-specific authorization and atomic claiming.
             if request.target.hasPrefix("/uploads/") {
@@ -264,6 +307,7 @@ actor LoopbackHTTPServer {
             do { try await Self.send(outgoing, on: connection) } catch { return }
             if response.status == 401 || response.status == 403 { return }
             if case .stream = response.body { return }
+            if case .file = response.body { return }
             let connectionHeader = request.header("connection")?.lowercased()
             let keepAlive =
                 request.version == "HTTP/1.1"
@@ -342,11 +386,12 @@ actor LoopbackHTTPServer {
             guard !name.isEmpty else { throw LoopbackHTTPServerError.malformed }
             headers[name] = headers[name].map { "\($0), \(value)" } ?? value
         }
-        if headers["transfer-encoding"] != nil && !String(requestLine[1]).hasPrefix("/uploads/") {
+        let byteRoute = String(requestLine[1]).hasPrefix("/uploads/") || String(requestLine[1]).hasPrefix("/downloads/")
+        if headers["transfer-encoding"] != nil && !byteRoute {
             throw LoopbackHTTPServerError.chunkedRequest
         }
         if let raw = headers["content-length"] {
-            if !String(requestLine[1]).hasPrefix("/uploads/") {
+            if !byteRoute {
                 guard !raw.isEmpty, raw.utf8.allSatisfy({ (48...57).contains($0) }), Int(raw) != nil else {
                     throw LoopbackHTTPServerError.malformed
                 }
@@ -394,6 +439,33 @@ actor LoopbackHTTPServer {
             prefix = responseHead(status: response.status, headers: headers)
             try await send(prefix, on: connection)
             for await chunk in stream { try await send(chunk, on: connection) }
+        case .file(let file):
+            headers["Content-Length"] = String(file.byteCount)
+            headers["Connection"] = "close"
+            prefix = responseHead(status: response.status, headers: headers)
+            await withTaskCancellationHandler {
+                do {
+                    try Task.checkCancellation()
+                    try await send(prefix, on: connection)
+                    var sent: Int64 = 0
+                    while let chunk = try await file.read() {
+                        guard !chunk.isEmpty, chunk.count <= 64 * 1_024,
+                            Int64(chunk.count) <= file.byteCount - sent
+                        else { throw SFTPDownloadFailure.invalidChunk }
+                        try await send(chunk, on: connection)
+                        sent += Int64(chunk.count)
+                        await file.sent(chunk.count)
+                    }
+                    guard sent == file.byteCount else { throw SFTPDownloadFailure.sourceChanged }
+                    await file.finished(.success(()))
+                } catch {
+                    await file.finished(.failure(error))
+                    connection.cancel()
+                }
+            } onCancel: {
+                file.cancel()
+                connection.cancel()
+            }
         }
     }
 

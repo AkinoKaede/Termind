@@ -207,7 +207,7 @@ final class AppModel {
         )
         hosts.willDeleteHost = {
             [weak forwarding, weak serverMetrics, weak mcpServer, agentConnections] hostID, ruleIDs in
-            mcpServer?.tools.uploads.revokeHost(hostID)
+            mcpServer?.tools.revokeHost(hostID)
             serverMetrics?.remove(hostID)
             forwarding?.suspend(ruleIDs)
             // Not a `HostDeletionOutbox` step like the others: a live socket
@@ -240,8 +240,8 @@ final class AppModel {
                 },
                 cancelTransfers: { [weak self] deletion in
                     self?.sftpTransfers.cancelAll(for: deletion.hostID)
-                    self?.mcpServer.tools.uploads.revokeHost(deletion.hostID)
-                    if let self { Task { await self.mcpServer.tools.uploads.cancelHost(deletion.hostID) } }
+                    self?.mcpServer.tools.revokeHost(deletion.hostID)
+                    if let self { Task { await self.mcpServer.tools.cancelHostTransfers(deletion.hostID) } }
                 },
                 stopForwardings: { [weak self] deletion in
                     self?.forwarding.remove(deletion.forwardingRuleIDs)
@@ -301,7 +301,7 @@ final class AppModel {
             if change.isRemoved {
                 closeWorkspaces(for: change.id)
                 sftpTransfers.cancelAll(for: change.id)
-                mcpServer.tools.uploads.revokeHost(change.id)
+                mcpServer.tools.revokeHost(change.id)
                 commandHistory.clear(for: change.id)
                 sftpHistory.clear(for: change.id)
                 connectionHistory.clear(for: change.id)

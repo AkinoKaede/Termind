@@ -10,6 +10,35 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func httpDownloadsUseCheckedRemoteStreamsWithoutLocalFilesOrScratch() throws {
+        let root = sourceRoot.deletingLastPathComponent()
+        let coordinator = try String(
+            contentsOf: sourceRoot.appending(path: "Application/MCPServer/MCPDownloadCoordinator.swift"),
+            encoding: .utf8)
+        for forbidden in [
+            "AgentScratchWorkspace", "FileHandle", "FileManager", "localURL", "startAccessingSecurityScopedResource",
+        ] {
+            #expect(!coordinator.contains(forbidden))
+        }
+        let stream = try String(
+            contentsOf: root.appending(
+                path: "Frameworks/TermindRemoteInfrastructure/Transfers/SFTPDownloadStream.swift"), encoding: .utf8)
+        for forbidden in ["HTTPRequest", "HTTPResponse", "import Network", "AgentScratchWorkspace", "FileHandle"] {
+            #expect(!stream.contains(forbidden))
+        }
+        let tools = try String(
+            contentsOf: sourceRoot.appending(path: "Application/MCPServer/MCPServerTools.swift"), encoding: .utf8)
+        #expect(tools.contains("openDownloadStream("))
+        #expect(tools.contains("withDedicatedSFTP("))
+        let native = try String(
+            contentsOf: root.appending(path: "Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift"),
+            encoding: .utf8)
+        #expect(native.contains("readDownloadChunk(id:"))
+        #expect(native.contains("libssh2_sftp_fstat_ex(entry.handle"))
+        #expect(native.contains("entry.modificationTime"))
+    }
+
+    @Test
     func httpUploadsStayOutsideScratchAndDoNotReadClientFilePaths() throws {
         let root = sourceRoot.deletingLastPathComponent()
         let coordinator = try String(

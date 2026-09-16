@@ -22,7 +22,7 @@ public nonisolated final class TransferCancellationToken: @unchecked Sendable {
         for callback in callbacks { callback() }
     }
 
-    func observeCancellation(_ callback: @escaping @Sendable () -> Void) -> UUID {
+    public func observeCancellation(_ callback: @escaping @Sendable () -> Void) -> UUID {
         let id = UUID()
         let alreadyCancelled = lock.withLock {
             if cancelled { return true }
@@ -33,7 +33,7 @@ public nonisolated final class TransferCancellationToken: @unchecked Sendable {
         return id
     }
 
-    func removeObserver(_ id: UUID) { _ = lock.withLock { observers.removeValue(forKey: id) } }
+    public func removeObserver(_ id: UUID) { _ = lock.withLock { observers.removeValue(forKey: id) } }
 }
 
 public nonisolated struct SFTPProgress: Sendable {
@@ -90,6 +90,9 @@ nonisolated private struct SFTPProgressMeter {
 }
 
 public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
+    func openDownloadStream(
+        at path: String, maximumBytes: Int64, cancellation: TransferCancellationToken
+    ) async throws -> any SFTPDownloadStream
     func connect(
         using configuration: SSHConnectionConfiguration,
         progress: SSHRouteProgressHandler?
@@ -134,6 +137,11 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
 }
 
 nonisolated extension SFTPClientProtocol {
+    public func openDownloadStream(
+        at path: String, maximumBytes: Int64, cancellation: TransferCancellationToken
+    ) async throws -> any SFTPDownloadStream {
+        throw SFTPError.operation("This SFTP client does not support streamed downloads.")
+    }
     public func uploadStream(
         fromSocket socket: Int32, to remotePath: String, byteCount: Int64, overwrite: Bool,
         cancellation: TransferCancellationToken, progress: @escaping @Sendable (SFTPProgress) -> Void,
@@ -216,6 +224,13 @@ public nonisolated struct SFTPTemporaryFileCleanupError: Error, Sendable {
 }
 
 public actor SFTPClient: SFTPClientProtocol {
+    public func openDownloadStream(
+        at path: String, maximumBytes: Int64, cancellation: TransferCancellationToken
+    ) async throws -> any SFTPDownloadStream {
+        let (id, count) = try await worker.openDownloadStream(
+            at: path, maximumBytes: maximumBytes, cancellation: cancellation)
+        return NativeSFTPDownloadStream(worker: worker, id: id, byteCount: count)
+    }
     public init() {}
     private nonisolated let worker = SFTPWorker()
 
@@ -431,7 +446,29 @@ nonisolated final class SFTPSocketRelay: @unchecked Sendable {
     }
 }
 
+private nonisolated final class NativeSFTPDownloadStream: SFTPDownloadStream {
+    let worker: SFTPWorker
+    let id: UUID
+    let byteCount: Int64
+    init(worker: SFTPWorker, id: UUID, byteCount: Int64) {
+        self.worker = worker
+        self.id = id
+        self.byteCount = byteCount
+    }
+    func readChunk() async throws -> Data? { try await worker.readDownloadChunk(id: id) }
+    func close() async throws { try await worker.closeDownloadStream(id: id) }
+}
+
 private nonisolated final class SFTPWorker: @unchecked Sendable {
+    private struct DownloadHandle {
+        var handle: OpaquePointer
+        var byteCount: Int64
+        var modificationTime: UInt?
+        var received: Int64 = 0
+        var eof = false
+        var cancellation: TransferCancellationToken
+    }
+    private var downloadHandles: [UUID: DownloadHandle] = [:]
     private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.sftp")
     private var routeTransport: SSHRoutedSocket?
     private var session: OpaquePointer?
@@ -546,6 +583,98 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
             }
             if libssh2_sftp_last_error(sftp) == LIBSSH2_FX_NO_SUCH_FILE { return nil }
             throw self.error("Unable to inspect \(path)")
+        }
+    }
+
+    func openDownloadStream(
+        at path: String, maximumBytes: Int64, cancellation: TransferCancellationToken
+    ) async throws -> (UUID, Int64) {
+        try await queue.perform {
+            guard maximumBytes >= 0 else { throw SFTPDownloadFailure.tooLarge }
+            guard !cancellation.isCancelled else { throw SFTPError.cancelled }
+            let sftp = try self.requireSFTP()
+            var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+            let inspected = path.withCString {
+                libssh2_sftp_stat_ex(sftp, $0, UInt32(path.utf8.count), Int32(LIBSSH2_SFTP_LSTAT), &attributes)
+            }
+            if inspected != 0 {
+                if libssh2_sftp_last_error(sftp) == LIBSSH2_FX_NO_SUCH_FILE { throw SFTPDownloadFailure.missingFile }
+                throw self.error("Unable to inspect download source")
+            }
+            guard attributes.flags & UInt(LIBSSH2_SFTP_ATTR_PERMISSIONS) != 0,
+                attributes.permissions & 0o170000 == 0o100000
+            else { throw SFTPDownloadFailure.unsupportedType }
+            guard
+                let handle = path.withCString({
+                    libssh2_sftp_open_ex(
+                        sftp, $0, UInt32(path.utf8.count), UInt(LIBSSH2_FXF_READ), 0, Int32(LIBSSH2_SFTP_OPENFILE))
+                })
+            else { throw self.error("Unable to open download source") }
+            do {
+                guard libssh2_sftp_fstat_ex(handle, &attributes, 0) == 0 else {
+                    throw self.error("Unable to inspect download handle")
+                }
+                guard attributes.flags & UInt(LIBSSH2_SFTP_ATTR_PERMISSIONS) != 0,
+                    attributes.permissions & 0o170000 == 0o100000
+                else { throw SFTPDownloadFailure.unsupportedType }
+                guard attributes.flags & UInt(LIBSSH2_SFTP_ATTR_SIZE) != 0 else {
+                    throw self.error("Unable to determine download size")
+                }
+                guard attributes.filesize <= UInt64(maximumBytes), attributes.filesize <= UInt64(Int64.max)
+                else { throw SFTPDownloadFailure.tooLarge }
+                guard !cancellation.isCancelled else { throw SFTPError.cancelled }
+                let id = UUID()
+                let count = Int64(attributes.filesize)
+                self.downloadHandles[id] = DownloadHandle(
+                    handle: handle, byteCount: count,
+                    modificationTime: attributes.flags & UInt(LIBSSH2_SFTP_ATTR_ACMODTIME) != 0
+                        ? attributes.mtime : nil,
+                    cancellation: cancellation
+                )
+                return (id, count)
+            } catch {
+                _ = libssh2_sftp_close_handle(handle)
+                throw error
+            }
+        }
+    }
+
+    func readDownloadChunk(id: UUID) async throws -> Data? {
+        try await queue.perform {
+            guard var entry = self.downloadHandles[id] else { throw SFTPError.notConnected }
+            guard !entry.cancellation.isCancelled else { throw SFTPError.cancelled }
+            if entry.eof { return nil }
+            var buffer = [UInt8](repeating: 0, count: 64 * 1_024)
+            let count = libssh2_sftp_read(entry.handle, &buffer, buffer.count)
+            if count > 0 {
+                guard Int64(count) <= entry.byteCount - entry.received else { throw SFTPDownloadFailure.sourceChanged }
+                entry.received += Int64(count)
+                self.downloadHandles[id] = entry
+                return Data(buffer.prefix(count))
+            }
+            guard count == 0 else { throw self.error("Unable to read download source") }
+            var final = LIBSSH2_SFTP_ATTRIBUTES()
+            guard libssh2_sftp_fstat_ex(entry.handle, &final, 0) == 0 else {
+                throw self.error("Unable to verify download source")
+            }
+            guard final.flags & UInt(LIBSSH2_SFTP_ATTR_SIZE) != 0,
+                final.filesize == UInt64(entry.byteCount), entry.received == entry.byteCount
+            else { throw SFTPDownloadFailure.sourceChanged }
+            if let initialTime = entry.modificationTime {
+                guard final.flags & UInt(LIBSSH2_SFTP_ATTR_ACMODTIME) != 0, final.mtime == initialTime else {
+                    throw SFTPDownloadFailure.sourceChanged
+                }
+            }
+            entry.eof = true
+            self.downloadHandles[id] = entry
+            return nil
+        }
+    }
+
+    func closeDownloadStream(id: UUID) async throws {
+        try await queue.perform {
+            guard let entry = self.downloadHandles.removeValue(forKey: id) else { return }
+            guard libssh2_sftp_close_handle(entry.handle) == 0 else { throw SFTPDownloadFailure.closeFailed }
         }
     }
 
@@ -1000,6 +1129,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     private func cleanup() {
         keepaliveTimer?.cancel()
         keepaliveTimer = nil
+        for entry in downloadHandles.values { _ = libssh2_sftp_close_handle(entry.handle) }
+        downloadHandles.removeAll()
         if let sftp {
             _ = libssh2_sftp_shutdown(sftp)
             self.sftp = nil

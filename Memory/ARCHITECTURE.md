@@ -216,6 +216,32 @@ thirty minutes; terminal records are globally bounded to 256 entries.
 Metadata-only HTTP upload audit rows are independent of ticket-creation audit rows.
 No sandbox entitlement, persistence schema, or AgentKit dependency change is needed.
 
+`sftp_download` issues the reverse one-use HTTP capability, bound to the session,
+host, full remote path, and optional expected SHA-256. Ticket creation performs no
+remote I/O. GET authenticates and atomically claims before connecting; it supports
+regular files only, with no query credentials, request bodies, HEAD, Range, or
+resume. A dedicated SFTP lease opens a checked `SFTPDownloadStream`; the worker
+owns its handle IDs, native pointers, and queue. FSTAT on the opened handle fixes
+the reliable declared size, and EOF verifies exact byte count plus the final size
+and available modification time. This is not an atomic remote-file snapshot.
+
+The HTTP file-response body is pull-based, reading at most 64 KiB only after the
+previous network send completes; it never uses the SSE AsyncStream or local
+staging. SHA-256 covers actual transmitted bytes. A terminal success requires
+source validation, full HTTP sending, checked handle closure, and dedicated lease
+release. Pre-header failures return safe JSON; post-header failures close the
+connection without appending JSON or changing the announced status. Clients must
+poll `sftp_download_status`, compare local size/hash, and finalize their own file;
+HTTP 200 and Content-Length alone are not proof of success or local persistence.
+
+Upload and download share one four-active-transfer budget. Each direction retains
+at most 64 waiting capabilities and 256 terminal records for thirty minutes. Both
+directions share session/host retirement, server-stop, token-rotation, and activity
+boundaries; disabling one direction revokes it immediately. Capacity is released
+only after cleanup. HTTP download audit rows are independent of MCP ticket calls
+and retain only endpoint metadata, sent byte counts, and terminal state, never
+file bytes or capability tokens. The existing upload and stdio bridge remain intact.
+
 ## Callback isolation
 
 Speech services and coordinator state are MainActor-isolated, but authorization

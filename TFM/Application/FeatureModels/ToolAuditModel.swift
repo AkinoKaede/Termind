@@ -71,6 +71,25 @@ final class ToolAuditModel {
         update(row)
     }
 
+    func beginDownload(runID: UUID, clientName: String, hostID: UUID, remotePath: String) -> UUID {
+        let row = ExternalToolCall(
+            runID: runID, clientName: clientName, toolName: "http_sftp_download", hostID: hostID,
+            hostDisplayName: hostName(hostID), summary: remotePath, risk: .readOnly,
+            bytesRead: 0, startedAt: .now
+        )
+        insert(row)
+        return row.id
+    }
+    func updateDownload(id: UUID, bytes: Int64, succeeded: Bool? = nil) {
+        guard var row = value(id: id) else { return }
+        row.bytesRead = Int(bytes)
+        if let succeeded {
+            row.status = succeeded ? .ok : .error
+            row.finishedAt = .now
+        }
+        update(row)
+    }
+
     func entries(
         matching query: String = "", tool: String? = nil, hostID: Host.ID? = nil
     ) -> [ExternalToolCall] {
@@ -219,6 +238,8 @@ final class ToolAuditModel {
                 .replacingOccurrences(of: "\n", with: "\\n")
         }
         switch call.name {
+        case "sftp_download": return oneLine(arguments["remote_path"]?.stringValue ?? "")
+        case "sftp_download_status": return "Download \(arguments["download_id"]?.stringValue ?? "")"
         case "sftp_upload":
             return "\(oneLine(arguments["remote_path"]?.stringValue ?? "")) "
                 + "[bytes=\(arguments["byte_count"]?.integerValue ?? 0), "
@@ -264,7 +285,7 @@ final class ToolAuditModel {
         }
         if [
             "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
-            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status",
+            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status", "sftp_download", "sftp_download_status",
         ].contains(call.name) {
             return .readOnly
         }

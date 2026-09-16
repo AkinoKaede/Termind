@@ -9,6 +9,7 @@ final class MCPServerTools {
         "list_hosts", "get_metrics", "request_user_secret", "ssh_exec", "ssh_wait",
         "sftp_list", "sftp_stat", "sftp_read", "sftp_write",
         "sftp_mkdir", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete", "sftp_upload", "sftp_upload_status",
+        "sftp_download", "sftp_download_status",
     ]
 
     private let channel: AgentEventChannel
@@ -18,6 +19,7 @@ final class MCPServerTools {
     private var registry: AgentToolRegistry
     private var copies: [UUID: [UUID: Task<AgentToolResult, Never>]] = [:]
     let uploads: MCPUploadCoordinator
+    let downloads: MCPDownloadCoordinator
 
     init(
         hosts: AgentHostResolver, metrics: any MetricsSnapshotReading,
@@ -31,7 +33,8 @@ final class MCPServerTools {
         channel = AgentEventChannel(repository: InMemoryAgentRunRepository())
         self.history = history
         self.externalAuthentication = externalAuthentication
-        uploads = MCPUploadCoordinator(hosts: hosts, history: history) {
+        let budget = MCPTransferBudget()
+        uploads = MCPUploadCoordinator(hosts: hosts, history: history, budget: budget) {
             request, runID, invocationID, client, read, token, report in
             let handler = await externalAuthentication.handler(clientName: client, runID: runID)
             return try await authentication.withDedicatedSFTP(
@@ -45,7 +48,25 @@ final class MCPServerTools {
                 )
             }
         }
+        downloads = MCPDownloadCoordinator(hosts: hosts, history: history, budget: budget) {
+            request, runID, invocationID, clientName, token, serve in
+            let handler = await externalAuthentication.handler(clientName: clientName, runID: runID)
+            try await authentication.withDedicatedSFTP(
+                hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
+                pool: connections, cancellation: token
+            ) { client in
+                let stream = try await client.openDownloadStream(
+                    at: request.remotePath, maximumBytes: Int64(MCPUploadRequest.maximumBytes), cancellation: token
+                )
+                do { try await serve(stream) } catch {
+                    try await stream.close()
+                    throw error
+                }
+                try await stream.close()
+            }
+        }
         uploads.setEnabled(!disabledTools.contains("sftp_upload"))
+        downloads.setEnabled(!disabledTools.contains("sftp_download"))
         approval = AgentApprovalBroker(
             reviewer: nil,
             manualApproval: { _ in
@@ -55,7 +76,7 @@ final class MCPServerTools {
         )
         registry = Self.makeRegistry(
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
-            background: background, disabledTools: disabledTools, uploads: uploads
+            background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads
         )
         history.consume(channel)
     }
@@ -70,9 +91,10 @@ final class MCPServerTools {
         background: AgentBackgroundCommands
     ) {
         uploads.setEnabled(!disabledTools.contains("sftp_upload"))
+        downloads.setEnabled(!disabledTools.contains("sftp_download"))
         registry = Self.makeRegistry(
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
-            background: background, disabledTools: disabledTools, uploads: uploads
+            background: background, disabledTools: disabledTools, uploads: uploads, downloads: downloads
         )
     }
 
@@ -83,6 +105,7 @@ final class MCPServerTools {
         guard registry[name] != nil else { throw MCPServerToolsError.unknownTool(name) }
         history.register(runID: runID, clientName: clientName)
         uploads.register(runID: runID, clientName: clientName)
+        downloads.register(runID: runID, clientName: clientName)
         let handler = externalAuthentication.handler(clientName: clientName, runID: runID)
         let executor = AgentToolExecutor(
             tools: registry, approval: approval, hooks: AgentLoopHooks([]),
@@ -112,17 +135,43 @@ final class MCPServerTools {
     func endSession(runID: UUID, secretBroker: SecretBroker) async {
         let tasks = Array(copies.removeValue(forKey: runID)?.values ?? [:].values)
         for task in tasks { task.cancel() }
+        uploads.revokeSession(runID: runID)
+        downloads.revokeSession(runID: runID)
         await uploads.endSession(runID: runID)
+        await downloads.endSession(runID: runID)
         externalAuthentication.cancel(runID: runID)
         for task in tasks { _ = await task.value }
         history.unregister(runID: runID)
         await secretBroker.discardAll()
     }
 
+    func configureTransfers(port: UInt16) {
+        uploads.configure(port: port)
+        downloads.configure(port: port)
+    }
+    func stopTransfers() async {
+        uploads.suspend()
+        downloads.suspend()
+        await uploads.stop()
+        await downloads.stop()
+    }
+    func revokeHost(_ hostID: UUID) {
+        uploads.revokeHost(hostID)
+        downloads.revokeHost(hostID)
+    }
+    func cancelHostTransfers(_ hostID: UUID) async {
+        await uploads.cancelHost(hostID)
+        await downloads.cancelHost(hostID)
+    }
+    func hasTransferActivity(runID: UUID) -> Bool {
+        uploads.hasUploadActivity(runID: runID) || downloads.hasDownloadActivity(runID: runID)
+    }
+
     private static func makeRegistry(
         hosts: AgentHostResolver, metrics: any MetricsSnapshotReading, connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry,
-        background: AgentBackgroundCommands, disabledTools: Set<String>, uploads: MCPUploadCoordinator
+        background: AgentBackgroundCommands, disabledTools: Set<String>, uploads: MCPUploadCoordinator,
+        downloads: MCPDownloadCoordinator
     ) -> AgentToolRegistry {
         AgentToolCatalog.registry(
             // `request_user_secret` is the only exported tool the runtime owns;
@@ -141,6 +190,8 @@ final class MCPServerTools {
                     background: background
                 )) + [
                     AnyAgentTool(MCPUploadTool(uploads: uploads)), AnyAgentTool(MCPUploadStatusTool(uploads: uploads)),
+                    AnyAgentTool(MCPDownloadTool(downloads: downloads)),
+                    AnyAgentTool(MCPDownloadStatusTool(downloads: downloads)),
                 ]
         ).filtering {
             exportedNames.contains($0.name) && !disabledTools.contains($0.name)

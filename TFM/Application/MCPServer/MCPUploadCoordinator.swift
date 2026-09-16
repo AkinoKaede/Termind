@@ -61,6 +61,7 @@ final class MCPUploadCoordinator {
     private let history: ToolAuditModel
     private let transfer: Transfer
     private let now: @Sendable () -> Date
+    private let budget: MCPTransferBudget
     private var tickets: [UUID: Ticket] = [:]
     private var clients: [UUID: String] = [:]
     private var port: UInt16?
@@ -68,12 +69,14 @@ final class MCPUploadCoordinator {
 
     init(
         hosts: AgentHostResolver, history: ToolAuditModel,
-        now: @escaping @Sendable () -> Date = { Date() }, transfer: @escaping Transfer
+        now: @escaping @Sendable () -> Date = { Date() }, budget: MCPTransferBudget = MCPTransferBudget(),
+        transfer: @escaping Transfer
     ) {
         self.hosts = hosts
         self.history = history
         self.now = now
         self.transfer = transfer
+        self.budget = budget
     }
 
     func configure(port: UInt16) { self.port = port }
@@ -168,7 +171,7 @@ final class MCPUploadCoordinator {
         if let expect = request.header("expect"), expect.lowercased() != "100-continue" {
             return .reject(Self.error(417, "unsupported_expectation"))
         }
-        guard tickets.values.filter(\.live).count < 4 else { return .reject(Self.error(429, "upload_capacity")) }
+        guard budget.claim(id) else { return .reject(Self.error(429, "upload_capacity")) }
         ticket.state = "connecting"
         ticket.auditID = history.beginUpload(
             runID: ticket.runID, clientName: ticket.clientName, hostID: ticket.request.hostID,
@@ -197,6 +200,17 @@ final class MCPUploadCoordinator {
         let ids = tickets.values.filter { $0.runID == runID }.map(\.id)
         await cancelAndWait(ids: ids)
         for id in ids { tickets[id] = nil }
+    }
+
+    func revokeSession(runID: UUID) {
+        clients[runID] = nil
+        for id in tickets.values.filter({ $0.runID == runID }).map(\.id) { cancel(id) }
+    }
+
+    func suspend() {
+        port = nil
+        clients.removeAll()
+        for id in Array(tickets.keys) { cancel(id) }
     }
 
     func stop() async {
@@ -262,6 +276,7 @@ final class MCPUploadCoordinator {
         ticket.errorCode = error
         if state == "succeeded" { ticket.completedBytes = ticket.request.byteCount }
         ticket.task = nil
+        budget.release(id)
         tickets[id] = ticket
         if let audit = ticket.auditID {
             history.updateUpload(id: audit, bytes: ticket.completedBytes, succeeded: state == "succeeded")

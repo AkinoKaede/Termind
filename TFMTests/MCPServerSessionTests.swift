@@ -56,17 +56,24 @@ struct MCPServerSessionTests {
         let tools = try #require(
             try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue
         )
-        #expect(tools.count == 16)
+        #expect(tools.count == 18)
         let readOnly = Set([
             "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
-            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status",
+            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status", "sftp_download", "sftp_download_status",
         ])
         for tool in tools {
             let name = try #require(tool.objectValue?["name"]?.stringValue)
             let hint = tool.objectValue?["annotations"]?.objectValue?["readOnlyHint"]
             #expect(hint == .bool(readOnly.contains(name)), "\(name)")
-            if name == "sftp_upload_status" {
+            if name == "sftp_upload_status" || name == "sftp_download_status" {
                 #expect(tool.objectValue?["annotations"]?.objectValue?["openWorldHint"] == .bool(false))
+            }
+            if name == "sftp_download" {
+                let annotations = try #require(tool.objectValue?["annotations"]?.objectValue)
+                #expect(annotations["readOnlyHint"] == .bool(true))
+                #expect(annotations["destructiveHint"] == .bool(false))
+                #expect(annotations["idempotentHint"] == .bool(false))
+                #expect(annotations["openWorldHint"] == .bool(true))
             }
             if name == "sftp_copy" {
                 let annotations = try #require(tool.objectValue?["annotations"]?.objectValue)

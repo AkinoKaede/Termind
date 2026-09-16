@@ -143,11 +143,11 @@ final class MCPServerController {
         }
         Task { [weak self] in
             guard let self else { return }
-            await tools.uploads.stop()
+            await tools.stopTransfers()
             await protocolServer.stop()
             await http.replaceToken(generated)
             if let port = UInt16(exactly: self.port), self.isEnabled {
-                tools.uploads.configure(port: port)
+                tools.configureTransfers(port: port)
             }
         }
     }
@@ -161,7 +161,7 @@ final class MCPServerController {
     }
 
     func stop() async {
-        await tools.uploads.stop()
+        await tools.stopTransfers()
         await protocolServer.stop()
         await http.stop()
         externalAuthentication.cancelAll()
@@ -177,7 +177,7 @@ final class MCPServerController {
             return
         }
         status = .starting
-        tools.uploads.configure(port: validPort)
+        tools.configureTransfers(port: validPort)
         do {
             try await http.start(
                 port: validPort, token: token,
@@ -187,12 +187,15 @@ final class MCPServerController {
                 streamingHandler: { [uploads = tools.uploads] request in
                     await uploads.prepare(request)
                 },
+                downloadHandler: { [downloads = tools.downloads] request, token, cancelTransport in
+                    await downloads.prepare(request, cancellation: token, cancelTransport: cancelTransport)
+                },
                 handler: { [protocolServer] request in
                     await protocolServer.handle(request)
                 }
             )
         } catch {
-            await tools.uploads.stop()
+            await tools.stopTransfers()
             status = .failed(error.localizedDescription)
         }
     }

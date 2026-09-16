@@ -16,6 +16,47 @@ import struct TermindDomain.Host
 @MainActor
 struct MCPServerToolsTests {
     @Test
+    func downloadTicketAndStatusUseTheExecutorWithoutOpeningSSHOrLocalFiles() async throws {
+        let host = TermindDomain.Host(name: "Download", host: "download.example")
+        let server = makeMCPServerTools(hosts: [host])
+        server.configureTransfers(port: 7391)
+        let runID = UUID()
+        let broker = SecretBroker()
+        let result = try await server.call(
+            name: "sftp_download",
+            arguments: .object([
+                "host_id": .string(host.id.uuidString), "remote_path": .string("/source/a.zip"),
+            ]), runID: runID, clientName: "Tests", callID: "download", secretBroker: broker
+        )
+        #expect(!result.isError)
+        let payload = try #require(result.untrustedPayload)
+        let ticket = try #require(try AgentJSONValue.decode(Data(payload.utf8)).objectValue)
+        let token = try #require(ticket["download_token"]?.stringValue)
+        #expect(token.count == 43)
+        #expect(ticket["method"] == .string("GET"))
+        #expect(ticket["headers"]?.objectValue?["Authorization"] == .string("Bearer \(token)"))
+        #expect(ticket["download_url"]?.stringValue?.hasPrefix("http://127.0.0.1:7391/downloads/") == true)
+        let status = try await server.call(
+            name: "sftp_download_status", arguments: .object(["download_id": ticket["download_id"]!]),
+            runID: runID, clientName: "Tests", callID: "status", secretBroker: broker
+        )
+        #expect(!status.isError)
+        let initial = try #require(try AgentJSONValue.decode(Data(status.untrustedPayload!.utf8)).objectValue)
+        #expect(initial["status"] == .string("waiting"))
+        #expect(initial["byte_count"] == .null)
+        #expect(initial["sha256"] == .null)
+        let crossSession = try await server.call(
+            name: "sftp_download_status", arguments: .object(["download_id": ticket["download_id"]!]),
+            runID: UUID(), clientName: "Other", callID: "other", secretBroker: SecretBroker()
+        )
+        #expect(crossSession.isError)
+        await server.endSession(runID: runID, secretBroker: broker)
+        #expect(throws: MCPDownloadError.self) {
+            try server.downloads.status(id: UUID(uuidString: ticket["download_id"]!.stringValue!)!, runID: runID)
+        }
+    }
+
+    @Test
     func externalUploadTicketAndStatusUseTheMCPExecutorWithoutOpeningFilesOrSSH() async throws {
         let host = TermindDomain.Host(name: "Upload", host: "upload.example")
         let server = makeMCPServerTools(hosts: [host])
@@ -60,7 +101,7 @@ struct MCPServerToolsTests {
         let server = makeMCPServerTools()
         let descriptors = server.descriptors
 
-        #expect(descriptors.count == 16)
+        #expect(descriptors.count == 18)
         #expect(Set(descriptors.map(\.name)) == MCPServerTools.exportedNames)
         for descriptor in descriptors {
             #expect(descriptor.inputSchema.objectValue?["type"]?.stringValue == "object")
