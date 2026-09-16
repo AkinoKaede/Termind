@@ -43,7 +43,7 @@ public final class AssistantConversationOperations {
     public func move(
         _ conversation: ConversationModel, pinned: Bool, before nextID: UUID?, library: AssistantLibraryModel
     ) async throws {
-        guard !conversation.isStreaming, !conversation.isCompacting, !conversation.isArchived,
+        guard !conversation.isArchived,
             pending.insert(conversation.id).inserted
         else { return }
         conversation.isHistoryChanging = true

@@ -788,6 +788,48 @@ struct AgentPersistenceTests {
     }
 
     @Test
+    func liveRunSnapshotsCannotOverwriteManualOrder() async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let prompt = AgentTranscriptMessage(role: .user, text: "Inspect")
+        let conversation = ConversationModel(
+            messages: [ChatMessage(id: prompt.id, role: .user, text: prompt.text)],
+            transcript: [prompt], runState: .running, sortIndex: 1)
+        let peer = ConversationModel(sortIndex: 0)
+        var snapshot = AgentRunSnapshot(
+            conversationID: conversation.id, state: .running,
+            permissionMode: .askForApproval, messages: [prompt])
+        try await repository.save(snapshot)
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: peer.id, state: .completed,
+                permissionMode: .askForApproval, messages: []))
+        let library = AssistantLibraryModel(store: AssistantConversationStore(conversations: [peer, conversation]))
+        let operations = AssistantConversationOperations(repository: repository)
+        try await operations.move(conversation, pinned: false, before: peer.id, library: library)
+        try await operations.move(conversation, pinned: true, before: nil, library: library)
+        let response = AgentTranscriptMessage(role: .assistant, text: "Still working")
+        snapshot.messages.append(response)
+        try await repository.save(snapshot)
+        conversation.handle(.messageDelta(messageID: response.id, text: response.text))
+        #expect(conversation.messages.last?.text == "Still working")
+        #expect(conversation.runState == .running)
+        #expect(conversation.isPinned)
+        #expect(conversation.sortIndex == 0)
+        snapshot.state = .completed
+        try await repository.save(snapshot)
+        conversation.handle(.runState(.completed))
+        let store = AssistantConversationStore()
+        store.restore(try await repository.loadConversations())
+        let restored = AssistantLibraryModel(store: store)
+        #expect(restored.pinnedConversations.map(\.id) == [conversation.id])
+        #expect(restored.pinnedConversations.first?.sortIndex == 0)
+        #expect(restored.activeConversations.map(\.id) == [peer.id])
+        #expect(restored.pinnedConversations.first?.messages.last?.text == response.text)
+        #expect(library.conversation(id: conversation.id) === conversation)
+    }
+
+    @Test
     func truncationRemovesTheTargetRunAndEverythingAfterIt() async throws {
         let configuration = localModelConfiguration(
             "AgentConversationTruncationTests", schema: HostPersistence.schema,

@@ -54,12 +54,111 @@ struct AssistantConversationOperationsTests {
         #expect(store.conversations.map(\.id) == [persistedID, live.id])
     }
 
-    @Test func activeRunCannotBeArchivedOrReordered() async throws {
+    @Test(arguments: [AgentRunState.running, .waitingForApproval, .idle], [false, true])
+    func activeRunOrCompactionCannotBeArchivedOrDeleted(state: AgentRunState, compacting: Bool) async throws {
         let (repository, conversation, operations) = try await fixture()
-        conversation.handle(.runState(.running))
+        guard state != .idle || compacting else { return }
+        conversation.handle(.runState(state))
+        if compacting { conversation.beginCompaction() }
         try await operations.setArchived(true, conversation: conversation)
+        let result = try await operations.delete(conversation)
         #expect(!conversation.isArchived)
+        #expect(!result.deleted)
+        #expect(conversation.runState == state)
+        #expect(conversation.isCompacting == compacting)
+        #expect(await repository.loadConversations().count == 1)
         #expect(await repository.loadConversations().first?.metadata.archivedAt == nil)
+    }
+
+    @Test(arguments: [AgentRunState.running, .waitingForApproval, .idle], [false, true])
+    func orderingDuringActivityPersistsWithoutChangingTheLiveConversation(
+        state: AgentRunState, compacting: Bool
+    ) async throws {
+        let (repository, conversation, operations) = try await fixture()
+        conversation.sortIndex = 2
+        let peer = ConversationModel(sortIndex: 0)
+        let pinned = ConversationModel(sortIndex: 0)
+        pinned.isPinned = true
+        for value in [peer, pinned] {
+            try await repository.createConversation(
+                .init(id: value.id, messages: [], lastRunState: .completed, metadata: value.metadata))
+        }
+        let library = AssistantLibraryModel(
+            store: AssistantConversationStore(conversations: [peer, pinned, conversation]))
+        library.select(conversation.id)
+        conversation.handle(.runState(state))
+        if state == .waitingForApproval {
+            let invocation = AgentToolInvocation(
+                runID: UUID(), call: AgentToolCall(id: "inspect", name: "inspect", arguments: .object([:])))
+            let descriptor = AgentToolDescriptor(
+                name: "inspect", summary: "Inspect", inputSchema: .object([:]),
+                target: .host, approvalPolicy: .ask)
+            conversation.handle(
+                .approvalRequested(
+                    AgentApprovalRequest(invocation: invocation, descriptor: descriptor, userIntent: "Inspect")))
+        }
+        if compacting { conversation.beginCompaction() }
+        let approvalIDs = conversation.pendingApprovals.map(\.id)
+        let originalTranscript = conversation.transcript
+        let originalMessages = conversation.messages.map(\.id)
+        let compactionID = conversation.compactionActivity?.id
+
+        try await operations.move(conversation, pinned: false, before: peer.id, library: library)
+        #expect(library.activeConversations.map(\.id) == [conversation.id, peer.id])
+        try await operations.move(conversation, pinned: true, before: pinned.id, library: library)
+        #expect(library.pinnedConversations.map(\.id) == [conversation.id, pinned.id])
+        #expect(library.activeConversations.map(\.id) == [peer.id])
+        let pinnedStore = AssistantConversationStore()
+        pinnedStore.restore(await repository.loadConversations())
+        let restoredPinned = AssistantLibraryModel(store: pinnedStore)
+        #expect(restoredPinned.pinnedConversations.map(\.id) == [conversation.id, pinned.id])
+
+        try await operations.move(conversation, pinned: false, before: nil, library: library)
+        #expect(library.activeConversations.map(\.id) == [peer.id, conversation.id])
+        #expect(library.selectedConversation === conversation)
+        #expect(conversation.runState == state)
+        #expect(conversation.isCompacting == compacting)
+        #expect(conversation.compactionActivity?.id == compactionID)
+        #expect(conversation.pendingApprovals.map(\.id) == approvalIDs)
+        #expect(conversation.transcript == originalTranscript)
+        #expect(conversation.messages.map(\.id) == originalMessages)
+        #expect(!conversation.isHistoryChanging)
+
+        conversation.updatedAt = .distantFuture
+        conversation.handle(.runState(.completed))
+        if compacting { conversation.endCompaction() }
+        #expect(library.activeConversations.map(\.id) == [peer.id, conversation.id])
+        let restoredStore = AssistantConversationStore()
+        restoredStore.restore(await repository.loadConversations())
+        let restored = AssistantLibraryModel(store: restoredStore)
+        #expect(restored.activeConversations.map(\.id) == [peer.id, conversation.id])
+        #expect(restored.pinnedConversations.map(\.id) == [pinned.id])
+    }
+
+    @Test func archivedConversationCannotBeMoved() async throws {
+        let (repository, conversation, operations) = try await fixture()
+        let library = AssistantLibraryModel(store: AssistantConversationStore(conversations: [conversation]))
+        try await operations.setArchived(true, conversation: conversation)
+        #expect(library.orderUpdates(moving: conversation.id, toPinned: true, before: nil) == nil)
+        try await operations.move(conversation, pinned: true, before: nil, library: library)
+        #expect(!conversation.isPinned)
+        #expect(library.archivedConversations.first === conversation)
+        #expect(await repository.loadConversations().first?.metadata.isPinned == false)
+    }
+
+    @Test func failedMovePreservesVisibleOrderAndActiveState() async throws {
+        let conversation = ConversationModel(runState: .running, sortIndex: 1)
+        let peer = ConversationModel(sortIndex: 0)
+        let library = AssistantLibraryModel(store: AssistantConversationStore(conversations: [peer, conversation]))
+        let operations = AssistantConversationOperations(repository: RejectingConversationRepository())
+        await #expect(throws: CocoaError.self) {
+            try await operations.move(conversation, pinned: true, before: nil, library: library)
+        }
+        #expect(library.activeConversations.map(\.id) == [peer.id, conversation.id])
+        #expect(library.pinnedConversations.isEmpty)
+        #expect(conversation.sortIndex == 1)
+        #expect(conversation.runState == .running)
+        #expect(!conversation.isHistoryChanging)
     }
 
     @Test func storageFailureDoesNotChangeMetadata() async throws {

@@ -1280,8 +1280,7 @@ struct AssistantConversationRow: View {
                 NativeMenuEntry(
                     title: conversation.isPinned
                         ? localized("Unpin") : localized("Pin"),
-                    symbol: conversation.isPinned ? MenuSymbol.unpin : MenuSymbol.pin,
-                    isEnabled: !managementDisabled
+                    symbol: conversation.isPinned ? MenuSymbol.unpin : MenuSymbol.pin
                 ) { window.toggleAssistantPin(conversation.id) }
             )
         }
@@ -1319,9 +1318,8 @@ struct AssistantConversationRow: View {
         return entries
     }
 
-    private var canDrag: Bool {
-        !conversation.isArchived && !conversation.isStreaming && !conversation.isCompacting
-            && !isRenaming
+    var canDrag: Bool {
+        !conversation.isArchived && !isRenaming
     }
 
     private var rowContent: some View {

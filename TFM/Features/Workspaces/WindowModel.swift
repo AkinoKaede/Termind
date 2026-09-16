@@ -630,7 +630,7 @@ final class WindowModel {
         if let assistantCommands {
             assistantCommands.togglePin(id)
         } else if let conversation = assistantLibrary.conversation(id: id),
-            !conversation.isArchived, !conversation.isStreaming, !conversation.isCompacting
+            !conversation.isArchived
         {
             let toPinned = !conversation.isPinned
             let nextID =

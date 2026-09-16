@@ -193,9 +193,7 @@ public final class AssistantLibraryModel {
         toPinned: Bool,
         before nextID: ConversationModel.ID?
     ) -> [StoredAgentConversationOrder]? {
-        guard let source = conversation(id: id), !source.isArchived,
-            !source.isStreaming, !source.isCompacting
-        else { return nil }
+        guard let source = conversation(id: id), !source.isArchived else { return nil }
 
         var pinned = pinnedConversations.filter { $0.id != id }
         var chats = activeConversations.filter { $0.id != id }

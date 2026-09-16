@@ -452,7 +452,6 @@ final class AppModel {
 
     private func togglePin(_ id: UUID, reportingTo window: WindowModel?) {
         guard let conversation = conversation(id), !conversation.isArchived,
-            !conversation.isStreaming, !conversation.isCompacting,
             let library = window?.assistantLibrary
         else { return }
         let toPinned = !conversation.isPinned

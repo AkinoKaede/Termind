@@ -62,6 +62,11 @@ cleanup is performed.
 - Assistant conversations are owned by `AssistantLibraryModel`; they are not
   Workspace panes. A Workspace owns SSH/SFTP/serial panes and any session-scoped
   conversation. A session owns live transports and terminal/browser state.
+- Assistant list ordering and pinning are metadata-only operations, independent
+  of running, approval-waiting, or compaction state. Desktop drag and pin commands
+  preserve the live conversation instance and commit ordering before publishing
+  it. Archived chats cannot move, rename editors cannot drag, and archive/delete
+  retain their active-run and compaction guards.
 - Settings data is app-wide but its navigation is window-scoped. Opening Settings
   remembers and later restores the replaced destination.
 - Feature-specific Application models expose narrow intent surfaces even when they

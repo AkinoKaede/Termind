@@ -272,8 +272,10 @@ struct WindowStateTests {
         #expect(store.nextForkTitle(for: source) == "Question (1)")
     }
 
-    @Test
-    func failedMetadataSaveKeepsConversationStateAndReportsTheError() async {
+    @Test(arguments: [AgentRunState.idle, .running, .waitingForApproval], [false, true])
+    func failedMetadataSaveKeepsConversationStateAndReportsTheError(
+        state: AgentRunState, compacting: Bool
+    ) async {
         let repository = FailingConversationOperationRepository()
         let hosts = HostLibraryModel()
         let dependencies = AppDependencies(
@@ -284,6 +286,8 @@ struct WindowStateTests {
         let window = WindowModel()
         app.registerWindow(window)
         let conversation = window.assistantLibrary.createConversation()
+        conversation.handle(.runState(state))
+        if compacting { conversation.beginCompaction() }
 
         window.toggleAssistantPin(conversation.id)
         for _ in 0..<100 {
@@ -293,6 +297,8 @@ struct WindowStateTests {
 
         #expect(!conversation.isPinned)
         #expect(window.assistantOperationError == "Storage unavailable")
+        #expect(conversation.runState == state)
+        #expect(conversation.isCompacting == compacting)
     }
 
     @Test
