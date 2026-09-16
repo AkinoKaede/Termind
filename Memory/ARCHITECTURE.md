@@ -237,6 +237,13 @@ conversation pickers, and unknown purpose values safely default to chat.
 Ordinary planning and acting runs have no turn or tool-call count ceiling; they end
 when the model finishes, the user stops, a hook terminates, or an error occurs.
 Guardian remains separately bounded so unavailable or inconclusive review fails closed.
+Compact, conversation titles, and Command Generator use AgentKit's buffered-result
+interface over streaming transport, not `stream: false` requests. They collect
+validated results before applying them and never expose intermediate fragments.
+Buffered SSE responses require a terminal marker and are capped at 16 MiB of raw
+response bytes; cancellation, malformed data, and premature EOF discard partial
+results. Ordinary agent streaming retains its existing execution policy, and
+providers returning complete JSON remain supported.
 Each ordinary model turn retries only transient provider transport/service failures
 five times at 1/2/4/8/16 seconds. A retry reuses the logical message and request,
 abandons its partial presentation, and cannot replay a tool because tool dispatch begins

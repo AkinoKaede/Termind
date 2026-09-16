@@ -1,9 +1,95 @@
 import AgentKit
 import Foundation
+import Synchronization
 import TermindDomain
 import Testing
 
 @testable import TermindApplication
+
+private nonisolated final class CommandGeneratorStreamingURLProtocol: URLProtocol, @unchecked Sendable {
+    struct State: Sendable {
+        var answer = ""
+        var requestCount = 0
+        var streamed = false
+    }
+
+    static let state = Mutex(State())
+
+    override class func canInit(with request: URLRequest) -> Bool {
+        request.url?.host == "command-generator.test"
+    }
+
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        var data = request.httpBody ?? Data()
+        if data.isEmpty, let stream = request.httpBodyStream {
+            stream.open()
+            defer { stream.close() }
+            var buffer = [UInt8](repeating: 0, count: 4096)
+            while stream.hasBytesAvailable {
+                let count = stream.read(&buffer, maxLength: buffer.count)
+                if count <= 0 { break }
+                data.append(contentsOf: buffer.prefix(count))
+            }
+        }
+        let body = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        let streamed = body?["stream"] as? Bool == true
+        let answer = Self.state.withLock {
+            $0.requestCount += 1
+            $0.streamed = streamed
+            return $0.answer
+        }
+        let response = HTTPURLResponse(
+            url: request.url!, statusCode: streamed ? 200 : 400, httpVersion: "HTTP/1.1",
+            headerFields: ["Content-Type": "text/event-stream"]
+        )!
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        if streamed {
+            for fragment in [String(answer.prefix(answer.count / 2)), String(answer.dropFirst(answer.count / 2))] {
+                let chunk = try! JSONSerialization.data(withJSONObject: ["choices": [["delta": ["content": fragment]]]])
+                client?.urlProtocol(self, didLoad: Data("data: \(String(decoding: chunk, as: UTF8.self))\n\n".utf8))
+            }
+            client?.urlProtocol(
+                self, didLoad: Data("data: {\"choices\":[{\"delta\":{},\"finish_reason\":\"stop\"}]}\n\n".utf8)
+            )
+        } else {
+            client?.urlProtocol(self, didLoad: Data(#"{"detail":"Stream must be set to true"}"#.utf8))
+        }
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
+}
+
+@Suite(.serialized)
+struct CommandGeneratorStreamingTests {
+    @Test(arguments: [#"{"command":"echo 你好"}"#, #"{"command":""}"#, "not JSON"])
+    func generatesAndValidatesACompleteCommandUsingStreamingTransport(_ answer: String) async throws {
+        CommandGeneratorStreamingURLProtocol.state.withLock { $0 = .init(answer: answer) }
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [CommandGeneratorStreamingURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let model = AgentProviderClient(
+            provider: ModelProvider(
+                name: "Streaming only", inferenceURL: "https://command-generator.test/v1/chat/completions"),
+            model: AIModel(id: "test"), secret: "test-secret", session: session
+        )
+        let context = CommandGeneratorContext(draft: "say hello", shell: "zsh", cwd: "/tmp")
+        if answer.contains("echo") {
+            let command = try await CommandGeneratorService().generate(context: context, model: model)
+            #expect(command == "echo 你好")
+        } else {
+            await #expect(throws: CommandGeneratorError.self) {
+                try await CommandGeneratorService().generate(context: context, model: model)
+            }
+        }
+        let state = CommandGeneratorStreamingURLProtocol.state.withLock { $0 }
+        #expect(state.streamed)
+        #expect(state.requestCount == 1)
+    }
+}
 
 private actor CommandGeneratorRequestRecorder {
     private(set) var requests: [AgentModelRequest] = []
