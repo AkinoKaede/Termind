@@ -51,7 +51,7 @@ struct MobileTransfersView: View {
                 MobileCardIcon(symbol: transfer.direction.symbol, tint: tint(for: transfer))
                 VStack(alignment: .leading, spacing: 4) {
                     Text(transfer.fileName).font(.headline).lineLimit(1)
-                    Text(status(for: transfer)).font(.caption).foregroundStyle(tint(for: transfer))
+                    Text(transfer.statusLabel).font(.caption).foregroundStyle(tint(for: transfer))
                 }
                 Spacer(minLength: 8)
                 if transfers.canPause(transfer.id) {
@@ -96,29 +96,6 @@ struct MobileTransfersView: View {
                     .frame(minHeight: 44)
                 }
             }
-        }
-    }
-
-    private func status(for transfer: SFTPTransfer) -> String {
-        switch (transfer.direction, transfer.state) {
-        case (.upload, .queued): String(localized: "Upload Queued")
-        case (.upload, .running): String(localized: "Uploading")
-        case (.upload, .paused): String(localized: "Upload Paused")
-        case (.upload, .completed): String(localized: "Uploaded")
-        case (.upload, .cancelled): String(localized: "Upload Cancelled")
-        case (.upload, .failed): String(localized: "Upload Failed")
-        case (.download, .queued): String(localized: "Download Queued")
-        case (.download, .running): String(localized: "Downloading")
-        case (.download, .paused): String(localized: "Download Paused")
-        case (.download, .completed): String(localized: "Downloaded")
-        case (.download, .cancelled): String(localized: "Download Cancelled")
-        case (.download, .failed): String(localized: "Download Failed")
-        case (.copy, .queued): String(localized: "Copy Queued")
-        case (.copy, .running): String(localized: "Copying")
-        case (.copy, .paused): String(localized: "Copy Paused")
-        case (.copy, .completed): String(localized: "Copied")
-        case (.copy, .cancelled): String(localized: "Copy Cancelled")
-        case (.copy, .failed): String(localized: "Copy Failed")
         }
     }
 

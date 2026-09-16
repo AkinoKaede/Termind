@@ -623,7 +623,9 @@ Remote Infrastructure `AgentHostServices` composition.
 
 Application derives flattened Host and Snippet sections once for both platforms.
 Presentation owns the shared command-history subtitle, Vault sync status label,
-and the exported SFTP drag type. App targets retain native card/list composition,
+SFTP transfer status labels, and the exported SFTP drag type. Transfer labels distinguish
+upload/download while running and upload/download/copy on completion; other states
+reuse the generic Domain label. App targets retain native card/list composition,
 selection, menus, and clipboard behavior.
 
 ### Assistant transcript presentation parity (2026-09-12)

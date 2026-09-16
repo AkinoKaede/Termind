@@ -581,7 +581,7 @@ private struct TransferCenterRow: View {
             let total = DataSizeFormat.bytes(transfer.byteCount)
             return "\(transferred) of \(total)"
         }
-        return transfer.state.label
+        return transfer.statusLabel
     }
 
     var body: some View {
@@ -601,7 +601,7 @@ private struct TransferCenterRow: View {
                         .font(.body.weight(.medium))
                         .lineLimit(1)
                     Spacer(minLength: Metrics.Space.s)
-                    Text(transfer.state.label)
+                    Text(transfer.statusLabel)
                         .font(.caption)
                         .foregroundStyle(stateStyle)
                         .lineLimit(1)
