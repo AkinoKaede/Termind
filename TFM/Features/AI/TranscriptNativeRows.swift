@@ -444,11 +444,12 @@ private enum NativeTranscriptFactory {
             }
             if message.isStreaming, message.text.isEmpty {
                 let retry = message.retryProgress
-                let title = retry.map {
-                    AgentWorkPresentation.reconnectingTitle(
-                        $0, locale: context.configuration.locale
-                    )
-                } ?? String(localized: "Working…")
+                let title =
+                    retry.map {
+                        AgentWorkPresentation.reconnectingTitle(
+                            $0, locale: context.configuration.locale
+                        )
+                    } ?? String(localized: "Working…")
                 let activity = NativeActivityLabel(
                     text: title,
                     alternatives: retry == nil
@@ -895,11 +896,12 @@ private enum NativeTranscriptFactory {
                     workItems.addArrangedSubview(reasoning)
                 case .message(let message):
                     if message.text.isEmpty, message.isStreaming {
-                        let title = group.retryProgress.map {
-                            AgentWorkPresentation.reconnectingTitle(
-                                $0, locale: context.configuration.locale
-                            )
-                        } ?? String(localized: "Working…")
+                        let title =
+                            group.retryProgress.map {
+                                AgentWorkPresentation.reconnectingTitle(
+                                    $0, locale: context.configuration.locale
+                                )
+                            } ?? String(localized: "Working…")
                         workItems.addArrangedSubview(
                             NativeActivityLabel(
                                 text: title,

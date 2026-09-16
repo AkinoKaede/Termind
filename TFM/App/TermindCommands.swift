@@ -128,6 +128,18 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(replacing: .saveItem) {
+            Button(
+                window?.selectedWorkspace?.sourceTemplateID == nil
+                    ? "Save Workspace Template" : "Update Workspace Template",
+                systemImage: "square.and.arrow.down"
+            ) {
+                window?.requestSaveWorkspaceTemplate()
+            }
+            .termindShortcut("s")
+            .disabled(!(window?.canSaveSelectedWorkspaceTemplate ?? false))
+
+            Divider()
+
             // Close Other Workspaces is the same verb one item down, so it goes
             // without an icon of its own.
             Button("Close Workspace", systemImage: MenuSymbol.closeWorkspace) {

@@ -19,6 +19,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public private(set) var portForwardings: [PortForwardingRule] = []
     public private(set) var sftpTransfers: [SFTPTransfer] = []
     public private(set) var knownHosts: [KnownHostEntry] = []
+    public private(set) var workspaceTemplates: [WorkspaceTemplate] = []
 
     /// The latest local persistence failure. Secret text is never included.
     public private(set) var storageError: String?
@@ -71,6 +72,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         portForwardings: [PortForwardingRule] = [],
         sftpTransfers: [SFTPTransfer] = [],
         knownHosts: [KnownHostEntry] = [],
+        workspaceTemplates: [WorkspaceTemplate] = [],
         persistence: (any VaultPersisting)? = nil,
         secrets: any SecretStoring = InMemorySecretStore()
     ) {
@@ -87,6 +89,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         self.portForwardings = portForwardings
         self.sftpTransfers = sftpTransfers
         self.knownHosts = knownHosts
+        self.workspaceTemplates = workspaceTemplates
         self.vault = VaultStore(persistence: persistence)
         self.keychain = secrets
         do {
@@ -94,7 +97,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 fallback: VaultSnapshot(
                     hosts: hosts, groups: groups, identities: identities, keys: keys,
                     knownHosts: knownHosts, snippets: snippets,
-                    snippetPackages: snippetPackages, portForwardings: portForwardings
+                    snippetPackages: snippetPackages, portForwardings: portForwardings,
+                    workspaceTemplates: workspaceTemplates
                 )
             )
             self.hosts = loaded.hosts
@@ -109,6 +113,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             self.snippets = loaded.snippets.sorted { $0.sortIndex < $1.sortIndex }
             self.snippetPackages = loaded.snippetPackages
             self.portForwardings = loaded.portForwardings
+            self.workspaceTemplates = loaded.workspaceTemplates
         } catch {
             storageError = error.localizedDescription
         }
@@ -219,6 +224,67 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func portForwarding(_ id: PortForwardingRule.ID) -> PortForwardingRule? {
         portForwardings.first { $0.id == id }
+    }
+
+    public var sortedWorkspaceTemplates: [WorkspaceTemplate] {
+        workspaceTemplates.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    public func workspaceTemplate(_ id: WorkspaceTemplate.ID) -> WorkspaceTemplate? {
+        workspaceTemplates.first { $0.id == id }
+    }
+
+    @discardableResult
+    public func saveWorkspaceTemplate(_ template: WorkspaceTemplate) -> Bool {
+        var template = template
+        template.name = template.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard template.isValid else {
+            storageError = String(localized: "The Workspace template is invalid.")
+            return false
+        }
+        guard
+            !workspaceTemplates.contains(where: {
+                $0.id != template.id
+                    && $0.name.compare(template.name, options: [.caseInsensitive, .diacriticInsensitive])
+                        == .orderedSame
+            })
+        else {
+            storageError = String(localized: "A Workspace template with this name already exists.")
+            return false
+        }
+
+        let previous = workspaceTemplates
+        if let index = workspaceTemplates.firstIndex(where: { $0.id == template.id }) {
+            workspaceTemplates[index] = template
+        } else {
+            workspaceTemplates.append(template)
+        }
+        guard persistCore() else {
+            workspaceTemplates = previous
+            return false
+        }
+        return true
+    }
+
+    @discardableResult
+    public func renameWorkspaceTemplate(_ id: WorkspaceTemplate.ID, to name: String) -> Bool {
+        guard var template = workspaceTemplate(id) else { return false }
+        template.name = name
+        return saveWorkspaceTemplate(template)
+    }
+
+    @discardableResult
+    public func deleteWorkspaceTemplate(_ id: WorkspaceTemplate.ID) -> Bool {
+        let previous = workspaceTemplates
+        workspaceTemplates.removeAll { $0.id == id }
+        guard workspaceTemplates.count != previous.count else { return false }
+        guard persistCore() else {
+            workspaceTemplates = previous
+            return false
+        }
+        return true
     }
 
     public func sftpTransfers(for host: Host.ID) -> [SFTPTransfer] {
@@ -1788,7 +1854,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 VaultSnapshot(
                     hosts: hosts, groups: groups, identities: identities,
                     keys: keys, knownHosts: knownHosts, snippets: snippets,
-                    snippetPackages: snippetPackages, portForwardings: portForwardings
+                    snippetPackages: snippetPackages, portForwardings: portForwardings,
+                    workspaceTemplates: workspaceTemplates
                 ))
             storageError = nil
             return true
@@ -1832,6 +1899,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         snippets = normalizedSnippetOrder(snapshot.snippets)
         snippetPackages = snapshot.snippetPackages
         portForwardings = snapshot.portForwardings
+        workspaceTemplates = snapshot.workspaceTemplates
         statuses = statuses.filter { id, _ in hosts.contains { $0.id == id } }
         connectionStatuses = connectionStatuses.filter { _, value in
             hosts.contains { $0.id == value.hostID }

@@ -57,6 +57,9 @@ extension VaultSnapshot {
         for value in portForwardings {
             result[VaultRecordKey(kind: .portForwarding, id: value.id)] = .portForwarding(value)
         }
+        for value in workspaceTemplates {
+            result[VaultRecordKey(kind: .workspaceTemplate, id: value.id)] = .workspaceTemplate(value)
+        }
         return result
     }
 
@@ -86,6 +89,7 @@ extension VaultSnapshot {
         case .snippet(let value): upsert(value, in: &snippets)
         case .snippetPackage(let value): upsert(value, in: &snippetPackages)
         case .portForwarding(let value): upsert(value, in: &portForwardings)
+        case .workspaceTemplate(let value): upsert(value, in: &workspaceTemplates)
         }
     }
 
@@ -99,6 +103,7 @@ extension VaultSnapshot {
         case .snippet: snippets.removeAll { $0.id == key.id }
         case .snippetPackage: snippetPackages.removeAll { $0.id == key.id }
         case .portForwarding: portForwardings.removeAll { $0.id == key.id }
+        case .workspaceTemplate: workspaceTemplates.removeAll { $0.id == key.id }
         }
     }
 

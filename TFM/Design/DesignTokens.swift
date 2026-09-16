@@ -138,6 +138,13 @@ nonisolated enum Metrics {
         static let iconSize: CGFloat = 28
     }
 
+    enum Welcome {
+        /// Templates, recent/saved hosts, and one-off connections share one
+        /// row rhythm even though some carry a second line of detail.
+        static let rowHeight: CGFloat = 52
+        static let leadingIconWidth: CGFloat = 16
+    }
+
     enum StatusBar {
         /// Taller than the docked strip it replaces: a floating capsule needs
         /// enough body to read as an object rather than as a seam.

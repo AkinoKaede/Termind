@@ -65,6 +65,29 @@ struct PersistenceCompatibilityTests {
         try first.mainContext.save()
         #expect(try second.mainContext.fetchCount(FetchDescriptor<PersistentHostGroup>()) == 0)
         #expect(Set(first.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
-        #expect(TermindMigrationPlan.schemas.count == 16)
+        #expect(TermindMigrationPlan.schemas.count == 17)
+    }
+
+    @Test
+    func version16StoreMigratesWithAnEmptyWorkspaceTemplateLibrary() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Termind.store")
+        let oldSchema = Schema(versionedSchema: TermindSchemaV16.self)
+        let oldConfiguration = ModelConfiguration("Termind", schema: oldSchema, url: url, cloudKitDatabase: .none)
+        var oldContainer: ModelContainer? = try ModelContainer(
+            for: oldSchema, configurations: [oldConfiguration])
+        oldContainer?.mainContext.insert(PersistentHostGroup(HostGroup(name: "Before templates")))
+        try oldContainer?.mainContext.save()
+        oldContainer = nil
+
+        let migrated = try TermindPersistence.makeContainer(url: url)
+
+        #expect(
+            try migrated.mainContext.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.name)
+                == ["Before templates"]
+        )
+        #expect(try migrated.mainContext.fetchCount(FetchDescriptor<PersistentWorkspaceTemplate>()) == 0)
     }
 }

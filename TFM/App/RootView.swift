@@ -112,6 +112,10 @@ struct RootView: View {
                 .environment(app)
                 .environment(window)
         }
+        .sheet(item: $presentations.workspaceTemplateName) { presentation in
+            WorkspaceTemplateNameSheet(presentation: presentation)
+                .environment(window)
+        }
         .overlay {
             if presentations.isQuickOpenPresented {
                 QuickOpenOverlay {
@@ -150,6 +154,17 @@ struct RootView: View {
             Button("OK") { window.assistantOperationError = nil }
         } message: {
             Text(window.assistantOperationError ?? "")
+        }
+        .alert(
+            "Workspace Template",
+            isPresented: Binding(
+                get: { window.workspaceTemplateNotice != nil },
+                set: { if !$0 { window.workspaceTemplateNotice = nil } }
+            )
+        ) {
+            Button("OK") { window.workspaceTemplateNotice = nil }
+        } message: {
+            Text(window.workspaceTemplateNotice ?? "")
         }
         // No ancestor drop target: pane and Navigator targets must own internal
         // layout drops without competing for the same text payload.

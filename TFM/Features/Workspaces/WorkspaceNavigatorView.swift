@@ -483,6 +483,19 @@ private struct WorkspaceNavigatorRow: View {
 
     private var contextMenu: [NativeMenuEntry] {
         var entries: [NativeMenuEntry] = []
+        entries.append(
+            NativeMenuEntry(
+                title: localized(
+                    workspace.sourceTemplateID == nil
+                        ? "Save Workspace Template" : "Update Workspace Template"
+                ),
+                symbol: "square.and.arrow.down",
+                isEnabled: workspace.workspaceTemplateLayout(in: app.hostLibrary) != nil
+            ) {
+                act { window.requestSaveWorkspaceTemplate(workspace.id) }
+            }
+        )
+        entries.append(.separator)
         if workspace.isRenameable {
             entries.append(
                 NativeMenuEntry(

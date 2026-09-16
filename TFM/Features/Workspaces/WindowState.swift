@@ -69,11 +69,13 @@ final class WindowPresentationState {
     enum PresentationRoute: Identifiable {
         case hostChooser(HostChooserPurpose)
         case quickOpen
+        case workspaceTemplateName(WorkspaceTemplateNamePresentation)
 
         var id: String {
             switch self {
             case .hostChooser(let purpose): "host-chooser-\(purpose.id)"
             case .quickOpen: "quick-open"
+            case .workspaceTemplateName(let presentation): presentation.id.uuidString
             }
         }
     }
@@ -102,6 +104,33 @@ final class WindowPresentationState {
                 route = nil
             }
         }
+    }
+
+    var workspaceTemplateName: WorkspaceTemplateNamePresentation? {
+        get {
+            guard case .workspaceTemplateName(let presentation) = route else { return nil }
+            return presentation
+        }
+        set {
+            if let newValue {
+                route = .workspaceTemplateName(newValue)
+            } else if case .workspaceTemplateName = route {
+                route = nil
+            }
+        }
+    }
+}
+
+@Observable
+final class WorkspaceTemplateNamePresentation: Identifiable {
+    let id = UUID()
+    let workspaceID: Workspace.ID
+    var name: String
+    var error: String?
+
+    init(workspaceID: Workspace.ID, name: String) {
+        self.workspaceID = workspaceID
+        self.name = name
     }
 }
 

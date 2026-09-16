@@ -65,6 +65,11 @@ empty.
 - Serial sessions are temporary and local. IOKit/termios objects remain in
   Infrastructure; serial paths and parameters are neither persisted nor exposed
   as Agent hosts.
+- Workspace templates are Vault-synced domain values. They preserve a named
+  SSH/SFTP/empty-pane split tree and divider fractions, while TFM alone maps
+  those values to live Workspace sessions and UI. TFI carries the records for
+  sync but exposes no template surface. Missing saved hosts restore as empty
+  panes so the stored layout is never collapsed.
 
 Known Hosts is independent of Host records: editing or deleting a Host does not
 change trust. Plain and OpenSSH `|1|` hashed endpoints share one matcher; hashed

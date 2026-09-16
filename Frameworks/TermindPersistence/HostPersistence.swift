@@ -452,6 +452,45 @@ public final class PersistentPortForwardingRule {
     }
 }
 
+@Model
+public final class PersistentWorkspaceTemplate {
+    @Attribute(.unique) public var id: UUID = UUID()
+    public var name = ""
+    public var layoutData = Data()
+
+    public init(_ value: WorkspaceTemplate) throws {
+        id = value.id
+        try apply(value)
+    }
+
+    public func apply(_ value: WorkspaceTemplate) throws {
+        guard value.isValid else { throw WorkspaceTemplatePersistenceError.invalidTemplate(value.id) }
+        name = value.name
+        layoutData = try JSONEncoder().encode(value.layout)
+    }
+
+    public func value() throws -> WorkspaceTemplate {
+        let value = WorkspaceTemplate(
+            id: id,
+            name: name,
+            layout: try JSONDecoder().decode(WorkspaceTemplateLayout.self, from: layoutData)
+        )
+        guard value.isValid else { throw WorkspaceTemplatePersistenceError.invalidTemplate(id) }
+        return value
+    }
+}
+
+public nonisolated enum WorkspaceTemplatePersistenceError: LocalizedError {
+    case invalidTemplate(UUID)
+
+    public var errorDescription: String? {
+        switch self {
+        case .invalidTemplate:
+            String(localized: "The Workspace template is invalid.")
+        }
+    }
+}
+
 public enum TermindSchemaV1: VersionedSchema {
     public static let versionIdentifier = Schema.Version(1, 0, 0)
 
@@ -633,6 +672,13 @@ public enum TermindSchemaV16: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV17: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(17, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV16.models + [PersistentWorkspaceTemplate.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -640,7 +686,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV4.self, TermindSchemaV5.self, TermindSchemaV6.self,
             TermindSchemaV7.self, TermindSchemaV8.self, TermindSchemaV9.self,
             TermindSchemaV10.self, TermindSchemaV11.self, TermindSchemaV12.self, TermindSchemaV13.self,
-            TermindSchemaV14.self, TermindSchemaV15.self, TermindSchemaV16.self,
+            TermindSchemaV14.self, TermindSchemaV15.self, TermindSchemaV16.self, TermindSchemaV17.self,
         ]
     }
 
@@ -698,6 +744,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
                 fromVersion: TermindSchemaV14.self, toVersion: TermindSchemaV15.self
             ),
             MigrationStage.lightweight(fromVersion: TermindSchemaV15.self, toVersion: TermindSchemaV16.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV16.self, toVersion: TermindSchemaV17.self),
         ]
     }
 }

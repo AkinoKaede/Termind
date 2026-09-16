@@ -27,6 +27,7 @@ protocol WorkspaceLifecycleRouting: AnyObject {
 @Observable
 final class Workspace: Identifiable {
     let id = UUID()
+    var sourceTemplateID: WorkspaceTemplate.ID?
     var layout: SplitNode {
         didSet {
             cancelCommandGeneration()

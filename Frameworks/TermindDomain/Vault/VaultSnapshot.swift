@@ -9,10 +9,11 @@ public nonisolated struct VaultSnapshot: Sendable {
     public var snippets: [Snippet] = []
     public var snippetPackages: [SnippetPackage] = []
     public var portForwardings: [PortForwardingRule] = []
+    public var workspaceTemplates: [WorkspaceTemplate] = []
     public init(
         hosts: [Host] = [], groups: [HostGroup] = [], identities: [Identity] = [], keys: [SSHKeyRef] = [],
         knownHosts: [KnownHostEntry] = [], snippets: [Snippet] = [], snippetPackages: [SnippetPackage] = [],
-        portForwardings: [PortForwardingRule] = []
+        portForwardings: [PortForwardingRule] = [], workspaceTemplates: [WorkspaceTemplate] = []
     ) {
         self.hosts = hosts
         self.groups = groups
@@ -22,6 +23,7 @@ public nonisolated struct VaultSnapshot: Sendable {
         self.snippets = snippets
         self.snippetPackages = snippetPackages
         self.portForwardings = portForwardings
+        self.workspaceTemplates = workspaceTemplates
     }
 
 }

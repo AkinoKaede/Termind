@@ -98,8 +98,11 @@ final class WindowModel {
     }
     var assistantCommands: AssistantConversationCommands?
     var assistantOperationError: String?
+    var workspaceTemplateNotice: String?
     var hostStore: HostLibraryModel? {
-        didSet { refreshSessionContext() }
+        didSet {
+            refreshSessionContext()
+        }
     }
 
     /// What is being dragged right now, from the workspace bar or from a pane.
@@ -1219,7 +1222,7 @@ final class WindowModel {
     /// Scoped to same kind *and* same host. An SSH session and an SFTP session
     /// on web-01 already have different symbols in Sessions, so numbering across
     /// them would answer a question nobody asked.
-    private func numberPane(_ pane: Pane) {
+    func numberPane(_ pane: Pane) {
         guard let hostID = pane.hostID else { return }
         let taken = Set(
             panes(ofKind: pane.kind)

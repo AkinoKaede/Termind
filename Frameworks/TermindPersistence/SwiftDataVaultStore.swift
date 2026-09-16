@@ -29,10 +29,14 @@ public final class HostPersistence {
         let snippets = try context.fetch(FetchDescriptor<PersistentSnippet>()).map(\.value)
         let snippetPackages = try context.fetch(FetchDescriptor<PersistentSnippetPackage>()).map(\.value)
         let portForwardings = try context.fetch(FetchDescriptor<PersistentPortForwardingRule>()).map(\.value)
+        let workspaceTemplates = try context.fetch(FetchDescriptor<PersistentWorkspaceTemplate>()).map {
+            try $0.value()
+        }
         return VaultSnapshot(
             hosts: hosts, groups: groups, identities: identities, keys: keys,
             knownHosts: knownHosts, snippets: snippets,
-            snippetPackages: snippetPackages, portForwardings: portForwardings
+            snippetPackages: snippetPackages, portForwardings: portForwardings,
+            workspaceTemplates: workspaceTemplates
         )
     }
 
@@ -138,12 +142,17 @@ public final class HostPersistence {
             with: snapshot.portForwardings, rowID: \.id, valueID: \.id,
             make: PersistentPortForwardingRule.init, apply: { $0.apply($1) }
         )
+        try reconcile(
+            try context.fetch(FetchDescriptor<PersistentWorkspaceTemplate>()),
+            with: snapshot.workspaceTemplates, rowID: \.id, valueID: \.id,
+            make: PersistentWorkspaceTemplate.init, apply: { try $0.apply($1) }
+        )
     }
 
     private func reconcile<Model: PersistentModel, Value>(
         _ rows: [Model], with values: [Value],
         rowID: (Model) -> UUID, valueID: (Value) -> UUID,
-        make: (Value) -> Model, apply: (Model, Value) -> Void
+        make: (Value) throws -> Model, apply: (Model, Value) throws -> Void
     ) throws {
         var byID: [UUID: Model] = [:]
         for row in rows {
@@ -153,7 +162,11 @@ public final class HostPersistence {
         let wanted = Set(values.map(valueID))
         for row in byID.values where !wanted.contains(rowID(row)) { context.delete(row) }
         for value in values {
-            if let row = byID[valueID(value)] { apply(row, value) } else { context.insert(make(value)) }
+            if let row = byID[valueID(value)] {
+                try apply(row, value)
+            } else {
+                context.insert(try make(value))
+            }
         }
     }
 }

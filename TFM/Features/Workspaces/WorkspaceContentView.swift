@@ -947,7 +947,7 @@ struct WelcomeView: View {
 
     private var searchField: some View {
         TermindSearchField(
-            text: $query, prompt: "Search hosts, or type user@host", density: .prominent
+            text: $query, prompt: "Search hosts or templates, or type user@host", density: .prominent
         )
         .focused($isSearchFocused)
         .onSubmit(submit)
@@ -957,18 +957,30 @@ struct WelcomeView: View {
         query.isEmpty ? [] : app.hostLibrary.searchHosts(query)
     }
 
+    private var matchingTemplates: [WorkspaceTemplate] {
+        guard !query.isEmpty else { return [] }
+        return app.hostLibrary.sortedWorkspaceTemplates.filter { template in
+            template.name.localizedCaseInsensitiveContains(query)
+                || template.layout.hostIDs.contains { hostID in
+                    app.hostLibrary.host(hostID)?.name.localizedCaseInsensitiveContains(query) == true
+                }
+        }
+    }
+
     /// An ad-hoc destination parsed from the field, offered only when nothing
-    /// saved matches — a saved host is always the better answer, since it carries
-    /// the key, the port, and the group.
+    /// saved destination or template matches — either is a better answer than
+    /// treating the same text as a one-off hostname.
     private var adHoc: QuickConnectTarget? {
-        guard matches.isEmpty else { return nil }
+        guard matches.isEmpty, matchingTemplates.isEmpty else { return nil }
         return app.parseQuickConnect(query)
     }
 
-    /// Return connects to the best interpretation of what was typed, so the
+    /// Return opens the best interpretation of what was typed, so the
     /// launcher can be driven without ever reaching for the mouse.
     private func submit() {
-        if let host = matches.first {
+        if let template = matchingTemplates.first {
+            window.openWorkspaceTemplate(template)
+        } else if let host = matches.first {
             app.open(host, as: .sshSession, in: window)
         } else if let adHoc {
             app.openQuickConnect(adHoc, in: window)
@@ -996,7 +1008,15 @@ struct WelcomeView: View {
     @ViewBuilder
     private var results: some View {
         if query.isEmpty {
-            let hosts = app.recentHosts(limit: 6)
+            let templates = app.hostLibrary.sortedWorkspaceTemplates
+            if !templates.isEmpty {
+                section("Workspace Templates") {
+                    ForEach(templates) { template in
+                        WelcomeWorkspaceTemplateRow(template: template)
+                    }
+                }
+            }
+            let hosts = app.recentHosts(limit: max(0, 6 - templates.count))
             if !hosts.isEmpty {
                 section("Recents") {
                     ForEach(hosts) { host in
@@ -1004,18 +1024,28 @@ struct WelcomeView: View {
                     }
                 }
             }
-        } else if let adHoc {
-            section("Connect Once") {
-                WelcomeQuickConnectRow(target: adHoc)
-            }
-        } else if matches.isEmpty {
-            Text("No hosts match “\(query)”.")
-                .foregroundStyle(.secondary)
         } else {
-            section("Hosts") {
-                ForEach(matches) { host in
-                    WelcomeHostRow(host: host)
+            if !matchingTemplates.isEmpty {
+                section("Workspace Templates") {
+                    ForEach(matchingTemplates) { template in
+                        WelcomeWorkspaceTemplateRow(template: template)
+                    }
                 }
+            }
+            if !matches.isEmpty {
+                section("Hosts") {
+                    ForEach(matches) { host in
+                        WelcomeHostRow(host: host)
+                    }
+                }
+            }
+            if let adHoc {
+                section("Connect Once") {
+                    WelcomeQuickConnectRow(target: adHoc)
+                }
+            } else if matchingTemplates.isEmpty, matches.isEmpty {
+                Text("No hosts or Workspace templates match “\(query)”.")
+                    .foregroundStyle(.secondary)
             }
         }
     }
@@ -1030,6 +1060,131 @@ struct WelcomeView: View {
                 .foregroundStyle(.secondary)
             content()
         }
+    }
+}
+
+private struct WelcomeWorkspaceTemplateRow: View {
+    let template: WorkspaceTemplate
+
+    @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+    @Environment(\.controlActiveState) private var controlActiveState
+    @State private var confirmsDeletion = false
+    @State private var isRenaming = false
+    @State private var renameTitle = ""
+
+    @ViewBuilder
+    var body: some View {
+        content
+            .contextMenu {
+                Button("Rename", systemImage: MenuSymbol.rename) { beginRename() }
+                Divider()
+                Button("Delete", systemImage: MenuSymbol.delete, role: .destructive) {
+                    confirmsDeletion = true
+                }
+            }
+            .confirmationDialog(
+                "Delete Workspace Template?",
+                isPresented: $confirmsDeletion,
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    if !app.hostLibrary.deleteWorkspaceTemplate(template.id) {
+                        window.workspaceTemplateNotice = app.hostLibrary.storageError
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("The template “\(template.name)” will be removed from the Vault.")
+            }
+    }
+
+    @ViewBuilder
+    private var content: some View {
+        if isRenaming {
+            row
+        } else {
+            Button {
+                window.openWorkspaceTemplate(template)
+            } label: {
+                row
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(TapGesture(count: 2).onEnded(beginRename))
+        }
+    }
+
+    private var row: some View {
+        HStack(spacing: Metrics.Space.m) {
+            Image(systemName: "rectangle.split.2x1")
+                .foregroundStyle(.secondary)
+                .frame(width: Metrics.Welcome.leadingIconWidth)
+            if isRenaming {
+                SidebarInlineRenameField(
+                    text: $renameTitle,
+                    prompt: String(localized: "Workspace Name"),
+                    isSelected: false,
+                    controlActiveState: controlActiveState,
+                    onSubmit: commitRename,
+                    onCancel: cancelRename
+                )
+                .frame(height: 18)
+            } else {
+                VStack(alignment: .leading, spacing: Metrics.Space.xs) {
+                    Text(template.name)
+                        .lineLimit(1)
+                    Text(summary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            Spacer(minLength: Metrics.Space.m)
+            Text("\(template.layout.paneCount) panes")
+                .font(.caption)
+                .foregroundStyle(.tertiary)
+        }
+        .font(.callout)
+        .padding(.horizontal, Metrics.Space.l)
+        .frame(
+            maxWidth: .infinity,
+            minHeight: Metrics.Welcome.rowHeight,
+            maxHeight: Metrics.Welcome.rowHeight,
+            alignment: .leading
+        )
+        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.medium))
+        .contentShape(.rect)
+    }
+
+    private func beginRename() {
+        renameTitle = template.name
+        isRenaming = true
+    }
+
+    private func commitRename() {
+        guard isRenaming else { return }
+        isRenaming = false
+        if !app.hostLibrary.renameWorkspaceTemplate(template.id, to: renameTitle) {
+            window.workspaceTemplateNotice = app.hostLibrary.storageError
+        }
+    }
+
+    private func cancelRename() {
+        isRenaming = false
+        renameTitle = ""
+    }
+
+    private var summary: String {
+        template.layout.panes.map { pane in
+            switch pane {
+            case .ssh(let hostID):
+                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: "Unavailable Host")) · SSH"
+            case .sftp(let hostID):
+                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: "Unavailable Host")) · SFTP"
+            case .empty:
+                String(localized: "Empty Pane")
+            }
+        }.joined(separator: ", ")
     }
 }
 
@@ -1049,20 +1204,28 @@ private struct WelcomeHostRow: View {
         } label: {
             HStack(spacing: Metrics.Space.m) {
                 StatusDot(status: app.hostLibrary.status(of: host.id))
-                Text(host.name)
-                    .lineLimit(1)
-                // Resolved through the store, so a quick-connect row that
-                // matched a saved identity shows the login it will actually use.
-                Text(app.hostLibrary.loginAddress(for: host))
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+                    .frame(width: Metrics.Welcome.leadingIconWidth)
+                VStack(alignment: .leading, spacing: Metrics.Space.xs) {
+                    Text(host.name)
+                        .lineLimit(1)
+                    // Resolved through the store, so a quick-connect row that
+                    // matched a saved identity shows the login it will actually use.
+                    Text(app.hostLibrary.loginAddress(for: host))
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
                 Spacer(minLength: Metrics.Space.m)
                 trailing
             }
             .font(.callout)
             .padding(.horizontal, Metrics.Space.l)
-            .padding(.vertical, Metrics.Space.m)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: Metrics.Welcome.rowHeight,
+                maxHeight: Metrics.Welcome.rowHeight,
+                alignment: .leading
+            )
             .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.medium))
             .contentShape(.rect)
         }
@@ -1097,6 +1260,7 @@ private struct WelcomeQuickConnectRow: View {
         HStack(spacing: Metrics.Space.m) {
             Image(systemName: "network")
                 .foregroundStyle(.secondary)
+                .frame(width: Metrics.Welcome.leadingIconWidth)
             VStack(alignment: .leading, spacing: 2) {
                 Text(target.loginAddress)
                     .font(.callout.monospaced())
@@ -1115,8 +1279,12 @@ private struct WelcomeQuickConnectRow: View {
             .buttonStyle(.borderedProminent)
         }
         .padding(.horizontal, Metrics.Space.l)
-        .padding(.vertical, Metrics.Space.m)
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .frame(
+            maxWidth: .infinity,
+            minHeight: Metrics.Welcome.rowHeight,
+            maxHeight: Metrics.Welcome.rowHeight,
+            alignment: .leading
+        )
         .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.medium))
     }
 }

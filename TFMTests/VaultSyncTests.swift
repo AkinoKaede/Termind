@@ -50,10 +50,19 @@ struct VaultSyncTests {
         let package = SnippetPackage(name: "Operations")
         let snippet = Snippet(title: "Uptime", body: "uptime", packageID: package.id)
         let forwarding = PortForwardingRule(hostID: host.id)
+        let workspaceTemplate = WorkspaceTemplate(
+            name: "Production",
+            layout: .split(
+                axis: .horizontal,
+                fraction: 0.4,
+                first: .pane(.ssh(hostID: host.id)),
+                second: .pane(.empty)
+            )
+        )
         let payloads: [VaultRecordPayload] = [
             .host(host), .hostGroup(group), .identity(identity), .sshKey(key),
             .knownHost(knownHost), .snippet(snippet), .snippetPackage(package),
-            .portForwarding(forwarding),
+            .portForwarding(forwarding), .workspaceTemplate(workspaceTemplate),
         ]
         let writer = UUID()
 

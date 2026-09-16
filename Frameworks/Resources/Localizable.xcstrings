@@ -1061,6 +1061,22 @@
         }
       }
     },
+    "%lld unavailable hosts were opened as empty panes." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld台不可用主机已作为空窗格打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld台無法使用的主機已作為空窗格開啟。"
+          }
+        }
+      }
+    },
     "%lld workspaces" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1813,6 +1829,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要使用者名稱和密碼。密碼會儲存在鑰匙圈中。"
+          }
+        }
+      }
+    },
+    "A Workspace template with this name already exists." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已存在同名的工作区模板。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已存在同名的工作區範本。"
           }
         }
       }
@@ -7352,6 +7385,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除片段？"
+          }
+        }
+      }
+    },
+    "Delete Workspace Template?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除工作区模板？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除工作區範本？"
           }
         }
       }
@@ -14372,6 +14421,7 @@
       }
     },
     "No hosts match “%@”." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -14383,6 +14433,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "沒有與「%@」匹配的主機。"
+          }
+        }
+      }
+    },
+    "No hosts or Workspace templates match “%@”." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有与“%@”匹配的主机或工作区模板。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有與「%@」相符的主機或工作區範本。"
           }
         }
       }
@@ -18394,6 +18460,23 @@
         }
       }
     },
+    "Rename Workspace Template" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重命名工作区模板"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新命名工作區範本"
+          }
+        }
+      }
+    },
     "Renews" : {
       "localizations" : {
         "zh-Hans" : {
@@ -19421,6 +19504,22 @@
         }
       }
     },
+    "Save Workspace Template" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "存储工作区模板"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存工作區範本"
+          }
+        }
+      }
+    },
     "scratch files" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -19538,7 +19637,24 @@
         }
       }
     },
+    "Search hosts or templates, or type user@host" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜索主机或模板，或输入user@host"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "搜尋主機或範本，或輸入user@host"
+          }
+        }
+      }
+    },
     "Search hosts, or type user@host" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -24011,6 +24127,22 @@
         }
       }
     },
+    "The template “%@” will be removed from the Vault." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模板“%@”将从保管库中移除。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "範本「%@」將從保管庫中移除。"
+          }
+        }
+      }
+    },
     "The upload destination is unavailable." : {
       "localizations" : {
         "zh-Hans" : {
@@ -24057,6 +24189,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "網路"
+          }
+        }
+      }
+    },
+    "The Workspace template is invalid." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作区模板无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作區範本無效。"
           }
         }
       }
@@ -24585,6 +24734,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此保管庫記錄需要同步格式%lld。"
+          }
+        }
+      }
+    },
+    "This Workspace can no longer be saved as a template." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此工作区已无法存储为模板。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此工作區已無法儲存為範本。"
           }
         }
       }
@@ -25356,6 +25521,22 @@
         }
       }
     },
+    "Unavailable Host" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主机不可用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "主機無法使用"
+          }
+        }
+      }
+    },
     "Ungrouped" : {
       "localizations" : {
         "zh-Hans" : {
@@ -25683,6 +25864,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "更改連接埠或權杖後，請更新使用者端設定；移動Termind後，還需更新Codex和Hermes的設定。"
+          }
+        }
+      }
+    },
+    "Update Workspace Template" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新工作区模板"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更新工作區範本"
           }
         }
       }
@@ -26866,6 +27063,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "工作區名稱"
+          }
+        }
+      }
+    },
+    "Workspace Template" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作区模板"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作區範本"
+          }
+        }
+      }
+    },
+    "Workspace Templates" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作区模板"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工作區範本"
           }
         }
       }

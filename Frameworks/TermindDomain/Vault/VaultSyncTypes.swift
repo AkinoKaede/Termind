@@ -9,6 +9,7 @@ public nonisolated enum VaultRecordKind: String, Codable, CaseIterable, Sendable
     case snippet
     case snippetPackage
     case portForwarding
+    case workspaceTemplate
 }
 
 public nonisolated struct VaultRecordKey: Codable, Hashable, Sendable {
@@ -79,6 +80,7 @@ public nonisolated enum VaultRecordPayload: Codable, Hashable, Sendable {
     case snippet(Snippet)
     case snippetPackage(SnippetPackage)
     case portForwarding(PortForwardingRule)
+    case workspaceTemplate(WorkspaceTemplate)
 
     public var key: VaultRecordKey {
         switch self {
@@ -90,6 +92,7 @@ public nonisolated enum VaultRecordPayload: Codable, Hashable, Sendable {
         case .snippet(let value): VaultRecordKey(kind: .snippet, id: value.id)
         case .snippetPackage(let value): VaultRecordKey(kind: .snippetPackage, id: value.id)
         case .portForwarding(let value): VaultRecordKey(kind: .portForwarding, id: value.id)
+        case .workspaceTemplate(let value): VaultRecordKey(kind: .workspaceTemplate, id: value.id)
         }
     }
 }
@@ -114,8 +117,11 @@ public nonisolated struct VaultEnvelope: Codable, Hashable, Sendable {
     }
 
     public var isValid: Bool {
-        formatVersion == Self.currentFormatVersion
-            && (isDeleted ? payload == nil : payload?.key == key)
+        guard formatVersion == Self.currentFormatVersion else { return false }
+        if isDeleted { return payload == nil }
+        guard let payload, payload.key == key else { return false }
+        if case .workspaceTemplate(let template) = payload { return template.isValid }
+        return true
     }
 }
 

@@ -949,6 +949,7 @@ struct ChatComposerStateTests {
             case .plan: "plan"
             case .compaction: "compaction"
             case .compactionActivity: "compaction-activity"
+            case .failure: "failure"
             }
         }
         #expect(kinds == ["user", "work", "assistant"])
