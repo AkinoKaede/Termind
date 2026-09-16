@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 import TermindRemoteInfrastructure
@@ -90,11 +91,15 @@ private struct HostForwardingRow: View {
 
     @Environment(AppModel.self) private var app
 
-    private var state: PortForwardingEditorState {
-        PortForwardingEditorState(
-            ruleID: rule.id, rule: PortForwardingEditorState.normalized(rule), host: host, app: app)
+    private var state: PortForwardingEditorPolicy {
+        PortForwardingEditorPolicy(
+            rule: PortForwardingEditorPolicy.normalized(rule),
+            savedRule: app.forwardings.portForwarding(rule.id),
+            savedHost: app.hostLibrary.host(host.id),
+            isEnabled: app.forwarding.isEnabled(rule.id),
+            isRuntimeActive: runtime.isActive)
     }
-    private var runtime: PortForwardingRuntimeState { state.runtime }
+    private var runtime: PortForwardingRuntimeState { app.forwarding.state(for: rule.id) }
     private var title: String { rule.label.isEmpty ? rule.kind.displayName : rule.label }
 
     var body: some View {
@@ -152,7 +157,7 @@ private struct HostForwardingRow: View {
 
     private var enabled: Binding<Bool> {
         Binding(
-            get: { state.isEnabled || state.runtime.isActive },
+            get: { state.isEnabled || state.isRuntimeActive },
             set: { value in
                 app.forwarding.setEnabled(value, for: rule.id)
             }
@@ -169,15 +174,19 @@ private struct HostForwardingContextMenu: View {
 
     @Environment(AppModel.self) private var app
 
-    private var state: PortForwardingEditorState {
-        PortForwardingEditorState(
-            ruleID: rule.id, rule: PortForwardingEditorState.normalized(rule), host: host, app: app)
+    private var state: PortForwardingEditorPolicy {
+        PortForwardingEditorPolicy(
+            rule: PortForwardingEditorPolicy.normalized(rule),
+            savedRule: app.forwardings.portForwarding(rule.id),
+            savedHost: app.hostLibrary.host(host.id),
+            isEnabled: app.forwarding.isEnabled(rule.id),
+            isRuntimeActive: app.forwarding.state(for: rule.id).isActive)
     }
     private var isActive: Bool { !state.canEdit }
     private var command: String? { app.forwardings.sshCommand(for: rule, host: host) }
 
     var body: some View {
-        let isRunning = state.isEnabled || state.runtime.isActive
+        let isRunning = state.isEnabled || state.isRuntimeActive
         Button(
             isRunning ? String(localized: "Disable") : String(localized: "Enable"),
             systemImage: isRunning ? MenuSymbol.stop : MenuSymbol.start,
@@ -198,7 +207,7 @@ private struct HostForwardingContextMenu: View {
     }
 
     private func toggle() {
-        if state.isEnabled || state.runtime.isActive {
+        if state.isEnabled || state.isRuntimeActive {
             app.forwarding.setEnabled(false, for: rule.id)
         } else {
             app.forwarding.setEnabled(true, for: rule.id)
@@ -245,7 +254,7 @@ struct PortForwardingEditorSheet: View {
                         .disabled(!state.canToggle)
                     LabeledContent(
                         "Status",
-                        value: state.isWaitingForSave ? String(localized: "Waiting for Save") : state.runtime.label
+                        value: state.isWaitingForSave ? String(localized: "Waiting for Save") : runtime.label
                     )
                     if state.isWaitingForSave {
                         Text("This forwarding will start after the host is saved.")
@@ -279,16 +288,23 @@ struct PortForwardingEditorSheet: View {
     }
 
     private var normalizedDraft: PortForwardingRule? {
-        PortForwardingEditorState.normalized(draft)
+        PortForwardingEditorPolicy.normalized(draft)
     }
 
-    private var state: PortForwardingEditorState {
-        PortForwardingEditorState(ruleID: draft.id, rule: normalizedDraft, host: host, app: app)
+    private var runtime: PortForwardingRuntimeState { app.forwarding.state(for: draft.id) }
+
+    private var state: PortForwardingEditorPolicy {
+        PortForwardingEditorPolicy(
+            rule: normalizedDraft,
+            savedRule: app.forwardings.portForwarding(draft.id),
+            savedHost: app.hostLibrary.host(host.id),
+            isEnabled: app.forwarding.isEnabled(draft.id),
+            isRuntimeActive: runtime.isActive)
     }
 
     private var enabled: Binding<Bool> {
         Binding(
-            get: { state.isEnabled || state.runtime.isActive },
+            get: { state.isEnabled || state.isRuntimeActive },
             set: { value in
                 app.forwarding.setEnabled(value, for: draft.id)
             })
