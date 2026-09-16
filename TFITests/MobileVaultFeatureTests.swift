@@ -281,16 +281,33 @@ struct MobileVaultFeatureTests {
 
     @Test func importRequiresAnExplicitUsernameWhenTheConfigurationOmitsIt() async throws {
         let app = try MobileAppModel(inMemory: true)
-        let item = SSHImportItem(
-            category: .hosts, name: "Remote", source: "config",
-            host: SSHImportedHost(alias: "remote", hostname: "example.invalid", username: ""))
-        let model = SSHImportModel(library: app.library, reader: MobileImportFixture(items: [item]))
-        await model.scan(URL(fileURLWithPath: "/fixture/.ssh"), knownHostsOnly: false)
+        let root = FileManager.default.temporaryDirectory.appending(
+            path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let configURL = root.appending(path: "config")
+        let config = "Host remote\n    HostName example.invalid\n"
+        try config.write(to: configURL, atomically: true, encoding: .utf8)
+        let model = SSHImportModel(library: app.library, reader: SSHImportReader(username: "", home: root))
+        await model.scan(root, knownHostsOnly: false)
+        #expect(model.error == nil)
+        #expect(model.selectedItems(.hosts).count == 1)
+        #expect(model.selectedItems(.identities).count == 1)
         #expect(!model.canImport)
-        model.items[0].host?.username = "deploy"
+        await model.commit()
+        #expect(!model.completed)
+        #expect(app.library.hosts.isEmpty && app.library.identities.isEmpty)
+
+        // Rescan the corrected source so both Host and Identity previews are rebuilt together.
+        try (config + "    User deploy\n").write(to: configURL, atomically: true, encoding: .utf8)
+        await model.scan(root, knownHostsOnly: false)
+        #expect(model.error == nil)
+        #expect(model.selectedItems(.identities).map { $0.identity?.username } == ["deploy"])
         #expect(model.canImport)
         await model.commit()
         #expect(model.completed)
+        #expect(model.error == nil)
+        #expect(app.library.hosts.count == 1 && app.library.identities.count == 1)
         let host = try #require(app.library.hosts.first)
         #expect(app.library.identity(for: host)?.username == "deploy")
     }
@@ -339,17 +356,6 @@ struct MobileVaultFeatureTests {
         #expect(!saved.hosts.contains(where: { $0.id == host.id }))
         #expect(saved.hosts.first(where: { $0.id == dependent.id })?.jumpHostID == nil)
     }
-}
-
-private actor MobileImportFixture: SSHImportReading {
-    let items: [SSHImportItem]
-    init(items: [SSHImportItem]) { self.items = items }
-    func scan(root: URL, knownHostsOnly: Bool, grants: [URL]) -> [SSHImportItem] { items }
-    func unlock(id: UUID, name: String, passphrase: String) throws -> [SSHImportItem] {
-        throw CocoaError(.coderInvalidValue)
-    }
-    func credentials(for ids: Set<UUID>) -> [UUID: StoredSSHKeyCredential] { [:] }
-    func discard() {}
 }
 
 private final class MobileStorageAwareSecretStore: SecretStoring, @unchecked Sendable {

@@ -189,9 +189,10 @@ struct MobileAssistantTests {
         #expect(assistant.library.conversations.map(\.id) == [draft.id])
         #expect(assistant.library.draftConversation !== draft)
         #expect(draft.composer.draft.isEmpty)
-        #expect(draft.messages.map(\.role) == [.user, .assistant])
+        #expect(draft.messages.map(\.role) == [.user])
         #expect(draft.messages.first?.text == "Why is the service unavailable?")
         #expect(draft.transcript.map(\.role) == [.user])
+        try expectMissingModelFailure(in: draft)
     }
 
     @Test func attachmentOnlyFirstSendPromotesTheConversation() throws {
@@ -204,10 +205,11 @@ struct MobileAssistantTests {
 
         #expect(assistant.library.selectedConversation === draft)
         #expect(assistant.library.conversations.map(\.id) == [draft.id])
-        #expect(draft.messages.map(\.role) == [.user, .assistant])
+        #expect(draft.messages.map(\.role) == [.user])
         #expect(draft.messages.first?.text.isEmpty == true)
         #expect(draft.messages.first?.contextChips.map(\.label) == ["service.log"])
         #expect(draft.transcript.first?.text.contains("connection refused") == true)
+        try expectMissingModelFailure(in: draft)
     }
 
     @Test func existingConversationSendStillUsesTheDraftExecutionPath() async throws {
@@ -222,12 +224,10 @@ struct MobileAssistantTests {
 
         #expect(conversation.composer.draft.isEmpty)
         #expect(conversation.messages.map(\.text).contains("Follow-up question"))
-        for _ in 0..<20 {
-            if conversation.messages.last?.role == .assistant { break }
-            await Task.yield()
-        }
-        #expect(conversation.messages.map(\.role) == [.user, .user, .assistant])
+        #expect(await eventually { conversation.runState == .failed })
+        #expect(conversation.messages.map(\.role) == [.user, .user])
         #expect(conversation.transcript.map(\.role) == [.user, .user])
+        try expectMissingModelFailure(in: conversation)
     }
 
     @Test func slashCatalogShowsAlphabetizedCompactPlanAndSkillCommandsOnMobile() throws {
@@ -343,22 +343,27 @@ struct MobileAssistantTests {
         model.abilities = [.toolCall]
         let provider = ModelProvider(name: "Test")
         let conversation = ConversationModel()
-        func registry(_ model: AIModel) -> AgentToolRegistry {
+        func registry(_ model: AIModel, includesTerminalSuggestion: Bool = false) -> AgentToolRegistry {
             AssistantToolRegistry.make(
                 conversation: conversation, model: model, provider: provider,
                 skills: app.skills.catalog, channel: channel, ai: app.ai, hosts: hosts, metrics: app.metrics.core,
-                connections: connections, authentication: authentication, background: background)
+                connections: connections, authentication: authentication, background: background,
+                includesTerminalSuggestion: includesTerminalSuggestion)
         }
-        let names = Set(registry(model).descriptors.map(\.name))
+        let mobileDescriptors = registry(model).descriptors
+        let names = Set(mobileDescriptors.map(\.name))
         for name in [
             "ssh_exec", "ssh_wait", "sftp_read", "sftp_write", "list_hosts", "get_metrics",
             "scratch_pull", "scratch_push", "present_plan", "manage_tasks", "request_user_input", "request_user_secret",
+            "terminal_suggest",
         ] {
             #expect(names.contains(name), "Missing tool: \(name)")
         }
-        #expect(!names.contains("terminal_suggest"))
+        // Surface availability is enforced at execution, not by changing the cached tool definitions.
+        #expect(mobileDescriptors == registry(model, includesTerminalSuggestion: true).descriptors)
         model.abilities = []
         #expect(registry(model).descriptors.isEmpty)
+        #expect(registry(model, includesTerminalSuggestion: true).descriptors.isEmpty)
     }
 
     @Test func backgroundExpirationBlocksNewRunsUntilCleanupCompletes() async throws {
@@ -394,6 +399,28 @@ struct MobileAssistantTests {
         }
         return false
     }
+}
+
+@MainActor
+private func expectMissingModelFailure(in conversation: ConversationModel) throws {
+    // In-memory apps have no Chat model. That must produce a failure row, not an authored answer.
+    #expect(conversation.runState == .failed)
+    #expect(conversation.runSummaries.count == 1)
+    let run = try #require(conversation.runSummaries.values.first)
+    #expect(run.state == .failed)
+    #expect(run.finishedAt != nil)
+    let reason = try #require(run.failure)
+    #expect(!reason.isEmpty)
+    let prompt = try #require(conversation.transcript.last)
+    #expect(conversation.messageRunIDs[prompt.id] == run.id)
+    let failures = conversation.timeline.compactMap { item -> AgentRunFailureNotice? in
+        guard case .failure(let failure) = item else { return nil }
+        return failure
+    }
+    #expect(failures.count == 1)
+    #expect(failures.first?.runID == run.id)
+    #expect(failures.first?.reason == reason)
+    #expect(AssistantExecutionController.titleContext(for: conversation) == nil)
 }
 
 nonisolated private final class SpeechTapInvocation: @unchecked Sendable {
