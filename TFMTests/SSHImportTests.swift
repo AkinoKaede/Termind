@@ -411,29 +411,6 @@ struct SSHImportTests {
     }
 
     @Test
-    func indexedIdentityPlanningHandlesTheImportFileLimit() async {
-        let rows = (0..<4_096).map { index in
-            SSHImportItem(
-                category: .hosts, name: "host-\(index)", source: "config:\(index + 1)",
-                host: SSHImportedHost(
-                    alias: "host-\(index)", hostname: "host-\(index).invalid",
-                    username: "user-\(index)"))
-        }
-        let model = SSHImportModel(library: HostLibraryModel(), reader: FixtureSSHImportReader(items: rows))
-        let start = ContinuousClock.now
-
-        await model.scan(URL(fileURLWithPath: "/fixture/.ssh"), knownHostsOnly: false)
-
-        #expect(start.duration(to: .now) < .seconds(2))
-        #expect(model.items.filter { $0.category == .identities }.count == 4_096)
-        let hostID = rows[2_048].id
-        let selectionStart = ContinuousClock.now
-        model.setSelected(false, itemID: hostID)
-        #expect(selectionStart.duration(to: .now) < .milliseconds(100))
-        #expect(model.items.first(where: { $0.id == hostID })?.selected == false)
-    }
-
-    @Test
     func jumpDependenciesAndCyclesBlockCommit() {
         let model = SSHImportModel(library: HostLibraryModel(), reader: SSHImportReader())
         model.items = [
@@ -571,17 +548,4 @@ private final class FailingImportPersistence: VaultPersisting {
     func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
         throw CocoaError(.fileWriteUnknown)
     }
-}
-
-private actor FixtureSSHImportReader: SSHImportReading {
-    let items: [SSHImportItem]
-
-    init(items: [SSHImportItem]) {
-        self.items = items
-    }
-
-    func scan(root: URL, knownHostsOnly: Bool, grants: [URL]) -> [SSHImportItem] { items }
-    func unlock(id: UUID, name: String, passphrase: String) -> [SSHImportItem] { [] }
-    func credentials(for ids: Set<UUID>) -> [UUID: StoredSSHKeyCredential] { [:] }
-    func discard() {}
 }

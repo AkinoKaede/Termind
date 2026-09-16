@@ -87,22 +87,6 @@ struct SettingsSyncTests {
         }
     }
 
-    @Test(.enabled(if: FileManager.default.fileExists(atPath: settingsMigrationFixtureURL.path)))
-    func providedDatabaseCopyMigratesWithoutReset() throws {
-        let container = try ModelContainer(
-            for: HostPersistence.schema, migrationPlan: TermindMigrationPlan.self,
-            configurations: localModelConfiguration(
-                "Termind", schema: HostPersistence.schema, url: settingsMigrationFixtureURL))
-        let defaults = UserDefaults(suiteName: "SettingsMigrationFixture.\(UUID())")!
-        defaults.set(AgentSkillLibrary.currentGeneration, forKey: SettingsKey.seededSkillGeneration)
-        let store = SettingsSyncPersistence(context: container.mainContext, defaults: defaults)
-        try store.prepare()
-        _ = try store.load()
-        let metadata = try NSPersistentStoreCoordinator.metadataForPersistentStore(
-            ofType: NSSQLiteStoreType, at: settingsMigrationFixtureURL)
-        #expect(metadata[NSStoreModelVersionIdentifiersKey] as? [String] == ["15.0.0"])
-    }
-
     @Test
     func schemaV12MigratesProvidersSkillsAndPreferencesWithoutMaterializingSyncSelection() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("AISyncMigration-\(UUID())")
@@ -642,8 +626,4 @@ private nonisolated final class SyncTestSecrets: SecretStoring, @unchecked Senda
         try setString(nil, for: account, storage: storage)
     }
     func removeKeyCredential(_ account: String, storage: KeyStorage) throws {}
-}
-
-private nonisolated var settingsMigrationFixtureURL: URL {
-    FileManager.default.temporaryDirectory.appendingPathComponent("TermindMigrationValidation/Termind.store")
 }

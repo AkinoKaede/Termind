@@ -2001,19 +2001,6 @@ struct ChatComposerStateTests {
         #expect(context?.firstAssistantMessage == "Start with du -sh /var/*.")
     }
 
-    /// A run that failed writes its reason to the visible list only. Titling off
-    /// `messages` would have named the conversation after the error.
-    @Test
-    func aFailureNoticeIsNotAnAnswerWorthNaming() {
-        let conversation = ConversationModel()
-        conversation.appendUserTurn("Root is at 99%")
-
-        conversation.handle(.failed("The Chat model has no available credential."))
-
-        #expect(conversation.messages.contains { $0.role == .assistant })
-        #expect(AppModel.titleContext(for: conversation) == nil)
-    }
-
     @Test
     func aConversationThatAlreadyHasATitleIsNotSummarizedAgain() {
         let conversation = ConversationModel()

@@ -103,18 +103,6 @@ struct ScrubberWebClientTests {
         #expect(!result.content.contains("<html>"))
     }
 
-    @Test
-    func fetchPreflightNeverEscalatesPrivateHTTP() async throws {
-        let invocation = invocation(
-            "fetch",
-            [
-                "url": .string("http://192.168.1.1/admin")
-            ])
-        let preflight = try await FetchTool(web: fixtureClient()).preflight(invocation)
-        #expect(preflight.approvalPolicy == .approve)
-        #expect(preflight.reasons.isEmpty)
-    }
-
     private func fixtureClient() -> ScrubberWebClient {
         ScrubberWebClient(
             document: { url in

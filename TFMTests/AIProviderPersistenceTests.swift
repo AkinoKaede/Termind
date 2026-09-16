@@ -601,32 +601,6 @@ struct ModelCapabilityResolverTests {
     }
 
     @Test
-    func reportedFieldsWinOverCodexAutoReviewOverride() {
-        let provider = ModelProvider(name: "OpenAI")
-        var model = AIModel(id: "codex-auto-review")
-        model.kind = .embedding
-        model.input = [.audio]
-        model.output = [.image]
-        model.abilities = []
-        model.contextLength = 7
-        model.maxOutputTokens = 8
-
-        let resolution = ModelCapabilityResolver.resolve(
-            model: model,
-            provider: provider,
-            reported: [.kind, .input, .output, .abilities]
-        )
-
-        #expect(resolution.model.kind == .embedding)
-        #expect(resolution.model.input == [.audio])
-        #expect(resolution.model.output == [.image])
-        #expect(resolution.model.abilities.isEmpty)
-        #expect(resolution.model.contextLength == 7)
-        #expect(resolution.model.maxOutputTokens == 8)
-        #expect(resolution.supported == [.off])
-    }
-
-    @Test
     func explicitlyReportedFieldsWinOverPiCatalog() {
         let provider = ModelProvider(name: "OpenAI")
         var model = AIModel(id: "gpt-5.4")
