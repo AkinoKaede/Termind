@@ -200,6 +200,14 @@ struct MobileWorkspaceListView: View {
                 Button("Delete", systemImage: "trash", role: .destructive) {
                     app.connectionHistory.delete(row.entry.id)
                 }
+                Button("SFTP", systemImage: "folder") {
+                    scene.open(hostID: row.host.id, kind: .sftp)
+                }
+                .tint(.orange)
+                Button("SSH", systemImage: "terminal") {
+                    scene.open(hostID: row.host.id, kind: .ssh)
+                }
+                .tint(.blue)
             }
         }
     }
