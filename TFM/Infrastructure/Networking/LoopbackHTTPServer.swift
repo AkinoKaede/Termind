@@ -1,6 +1,7 @@
 import Foundation
 import Network
 import TermindDomain
+import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
@@ -43,8 +44,17 @@ nonisolated struct HTTPResponse: Sendable {
     }
 }
 
+nonisolated enum HTTPStreamingDecision: Sendable {
+    case reject(HTTPResponse)
+    case accept(
+        @Sendable (@escaping SFTPStreamUploadOperation.ReadChunk) async -> HTTPResponse,
+        disconnected: @Sendable () -> Void
+    )
+}
+
 actor LoopbackHTTPServer {
     typealias Handler = @Sendable (HTTPRequest) async -> HTTPResponse
+    typealias StreamingHandler = @Sendable (HTTPRequest) async -> HTTPStreamingDecision
     typealias StateHandler = @Sendable (State) -> Void
 
     nonisolated enum State: Sendable, Equatable {
@@ -62,12 +72,14 @@ actor LoopbackHTTPServer {
     private var connections: [ObjectIdentifier: NWConnection] = [:]
     private var token = ""
     private var handler: Handler?
+    private var streamingHandler: StreamingHandler?
     private var stateHandler: StateHandler?
     private var readyListeners = 0
 
     func start(
         port: UInt16, token: String,
         stateHandler: @escaping StateHandler = { _ in },
+        streamingHandler: StreamingHandler? = nil,
         handler: @escaping Handler
     ) throws {
         stop()
@@ -76,6 +88,7 @@ actor LoopbackHTTPServer {
         }
         self.token = token
         self.handler = handler
+        self.streamingHandler = streamingHandler
         self.stateHandler = stateHandler
         stateHandler(.starting)
 
@@ -122,6 +135,7 @@ actor LoopbackHTTPServer {
         listeners.removeAll()
         connections.removeAll()
         handler = nil
+        streamingHandler = nil
         readyListeners = 0
         stateHandler?(.stopped)
         stateHandler = nil
@@ -159,7 +173,7 @@ actor LoopbackHTTPServer {
         while !Task.isCancelled {
             let parsed: (HTTPRequest, Data)
             do {
-                parsed = try await Self.readRequest(connection, initial: buffer)
+                parsed = try await Self.readRequestHead(connection, initial: buffer)
                 buffer = parsed.1
             } catch LoopbackHTTPServerError.endOfStream {
                 return
@@ -178,6 +192,47 @@ actor LoopbackHTTPServer {
             }
 
             let request = parsed.0
+            // Uploads use a scoped capability, not the long-lived MCP token. No body
+            // is drained before route-specific authorization and atomic claiming.
+            if request.target.hasPrefix("/uploads/") {
+                guard Self.allowedOrigin(request.header("origin")) else {
+                    try? await Self.send(.text(403, "The request Origin is not loopback."), on: connection)
+                    return
+                }
+                guard let streamingHandler else {
+                    try? await Self.send(.text(404, "Unknown upload route."), on: connection)
+                    return
+                }
+                switch await streamingHandler(request) {
+                case .reject(var response):
+                    response.headers["Connection"] = "close"
+                    try? await Self.send(response, on: connection)
+                case .accept(let consume, let disconnected):
+                    connection.stateUpdateHandler = { state in
+                        switch state {
+                        case .failed, .cancelled: disconnected()
+                        default: break
+                        }
+                    }
+                    if request.header("expect")?.lowercased() == "100-continue" {
+                        do { try await Self.send(Data("HTTP/1.1 100 Continue\r\n\r\n".utf8), on: connection) } catch {
+                            disconnected()
+                            return
+                        }
+                    }
+                    let reader = HTTPUploadBodyReader(
+                        connection: connection, initial: buffer,
+                        byteCount: Int64(request.header("content-length") ?? "") ?? 0
+                    )
+                    var response = await consume { try await reader.next() }
+                    response.headers["Connection"] = "close"
+                    // Do not turn a committed upload into a failure if its response
+                    // is lost. The disconnected callback only cancels live work.
+                    connection.stateUpdateHandler = nil
+                    try? await Self.send(response, on: connection)
+                }
+                return
+            }
             let response: HTTPResponse
             if !Self.authorized(request, token: token) {
                 response = .text(
@@ -187,11 +242,27 @@ actor LoopbackHTTPServer {
             } else if !Self.allowedOrigin(request.header("origin")) {
                 response = .text(403, "The request Origin is not loopback.")
             } else if let handler {
-                response = await handler(request)
+                do {
+                    var buffered = request
+                    let length = Int(request.header("content-length") ?? "0") ?? 0
+                    guard length <= Self.maximumBodyBytes else { throw LoopbackHTTPServerError.bodyTooLarge }
+                    while buffer.count < length { buffer.append(try await Self.receive(connection)) }
+                    buffered.body = Data(buffer.prefix(length))
+                    buffer.removeFirst(length)
+                    response = await handler(buffered)
+                } catch LoopbackHTTPServerError.bodyTooLarge {
+                    try? await Self.send(.text(413, "Request body is too large."), on: connection)
+                    return
+                } catch { return }
             } else {
                 response = .text(503, "The MCP server is stopping.")
             }
-            do { try await Self.send(response, on: connection) } catch { return }
+            // An unauthenticated body has not been consumed and cannot be treated
+            // as the next request on a persistent connection.
+            var outgoing = response
+            if response.status == 401 || response.status == 403 { outgoing.headers["Connection"] = "close" }
+            do { try await Self.send(outgoing, on: connection) } catch { return }
+            if response.status == 401 || response.status == 403 { return }
             if case .stream = response.body { return }
             let connectionHeader = request.header("connection")?.lowercased()
             let keepAlive =
@@ -237,7 +308,7 @@ actor LoopbackHTTPServer {
         return octets.count == 4 && octets[0] == 127
     }
 
-    private static func readRequest(
+    private static func readRequestHead(
         _ connection: NWConnection, initial: Data
     ) async throws -> (HTTPRequest, Data) {
         var buffer = initial
@@ -271,30 +342,26 @@ actor LoopbackHTTPServer {
             guard !name.isEmpty else { throw LoopbackHTTPServerError.malformed }
             headers[name] = headers[name].map { "\($0), \(value)" } ?? value
         }
-        if headers["transfer-encoding"] != nil {
+        if headers["transfer-encoding"] != nil && !String(requestLine[1]).hasPrefix("/uploads/") {
             throw LoopbackHTTPServerError.chunkedRequest
         }
-        let length: Int
         if let raw = headers["content-length"] {
-            guard let parsed = Int(raw), parsed >= 0 else { throw LoopbackHTTPServerError.malformed }
-            length = parsed
-        } else {
-            length = 0
+            if !String(requestLine[1]).hasPrefix("/uploads/") {
+                guard !raw.isEmpty, raw.utf8.allSatisfy({ (48...57).contains($0) }), Int(raw) != nil else {
+                    throw LoopbackHTTPServerError.malformed
+                }
+            }
         }
-        guard length <= maximumBodyBytes else { throw LoopbackHTTPServerError.bodyTooLarge }
-        var remainder = Data(buffer[range.upperBound...])
-        while remainder.count < length { remainder.append(try await receive(connection)) }
-        let body = Data(remainder.prefix(length))
-        remainder.removeFirst(length)
+        let remainder = Data(buffer[range.upperBound...])
         return (
             HTTPRequest(
                 method: String(requestLine[0]), target: String(requestLine[1]),
-                version: String(requestLine[2]), headers: headers, body: body
+                version: String(requestLine[2]), headers: headers, body: Data()
             ), remainder
         )
     }
 
-    private static func receive(_ connection: NWConnection) async throws -> Data {
+    fileprivate static func receive(_ connection: NWConnection) async throws -> Data {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Data, any Error>) in
             connection.receive(minimumIncompleteLength: 1, maximumLength: 64 * 1_024) {
                 data, _, complete, error in
@@ -358,13 +425,66 @@ actor LoopbackHTTPServer {
         case 403: "Forbidden"
         case 404: "Not Found"
         case 405: "Method Not Allowed"
+        case 409: "Conflict"
+        case 410: "Gone"
         case 411: "Length Required"
         case 413: "Content Too Large"
         case 415: "Unsupported Media Type"
+        case 417: "Expectation Failed"
+        case 422: "Unprocessable Content"
+        case 429: "Too Many Requests"
         case 431: "Request Header Fields Too Large"
         case 503: "Service Unavailable"
+        case 502: "Bad Gateway"
+        case 504: "Gateway Timeout"
         default: "Error"
         }
+    }
+}
+
+/// Keeps at most one network chunk plus the bounded remainder of the header read.
+private actor HTTPUploadBodyReader {
+    let connection: NWConnection
+    var buffer: Data
+    var remaining: Int64
+
+    init(connection: NWConnection, initial: Data, byteCount: Int64) {
+        self.connection = connection
+        buffer = initial
+        remaining = byteCount
+    }
+
+    func next() async throws -> Data? {
+        guard remaining > 0 else { return nil }
+        try Task.checkCancellation()
+        if buffer.isEmpty {
+            let connection = connection
+            let timedOut = TransferCancellationToken()
+            let timeout = Task {
+                do { try await Task.sleep(for: .seconds(60)) } catch { return }
+                timedOut.cancel()
+                connection.cancel()
+            }
+            defer { timeout.cancel() }
+            do {
+                buffer = try await withTaskCancellationHandler {
+                    try await LoopbackHTTPServer.receive(connection)
+                } onCancel: {
+                    connection.cancel()
+                }
+            } catch {
+                if timedOut.isCancelled { throw SFTPStreamUploadOperation.Failure.timedOut }
+                if case LoopbackHTTPServerError.endOfStream = error {
+                    throw SFTPStreamUploadOperation.Failure.invalidLength
+                }
+                throw error
+            }
+        }
+        let count = Int(min(remaining, Int64(min(buffer.count, SFTPStreamUploadOperation.chunkBytes))))
+        let chunk = Data(buffer.prefix(count))
+        buffer.removeFirst(count)
+        remaining -= Int64(count)
+        return chunk
     }
 }
 

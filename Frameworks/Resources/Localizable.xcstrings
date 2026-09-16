@@ -1,6 +1,34 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "The upload request is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "上传请求无效。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "上傳請求無效。" } }
+      }
+    },
+    "HTTP uploads are not available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "HTTP上传不可用。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "HTTP上傳無法使用。" } }
+      }
+    },
+    "Too many uploads are waiting." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "等待中的上传过多。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "等待中的上傳過多。" } }
+      }
+    },
+    "The upload is unknown or expired." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "上传不存在或已过期。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "上傳不存在或已過期。" } }
+      }
+    },
     "The SFTP copy source grew during transfer." : {
       "extractionState" : "manual",
       "localizations" : {

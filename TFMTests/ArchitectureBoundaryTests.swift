@@ -10,6 +10,29 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func httpUploadsStayOutsideScratchAndDoNotReadClientFilePaths() throws {
+        let root = sourceRoot.deletingLastPathComponent()
+        let coordinator = try String(
+            contentsOf: sourceRoot.appending(path: "Application/MCPServer/MCPUploadCoordinator.swift"), encoding: .utf8)
+        for forbidden in [
+            "AgentScratchWorkspace", "FileHandle", "FileManager", "localURL", "startAccessingSecurityScopedResource",
+        ] {
+            #expect(!coordinator.contains(forbidden))
+        }
+        let stream = try String(
+            contentsOf: root.appending(
+                path: "Frameworks/TermindRemoteInfrastructure/Transfers/SFTPStreamUploadOperation.swift"),
+            encoding: .utf8)
+        for forbidden in ["HTTPRequest", "HTTPResponse", "import Network", "AgentScratchWorkspace", "FileHandle"] {
+            #expect(!stream.contains(forbidden))
+        }
+        #expect(stream.contains("digestMismatch"))
+        #expect(stream.contains("relay.finishWriting()"))
+        let bridge = try String(contentsOf: root.appending(path: "TermindMCPBridge/main.swift"), encoding: .utf8)
+        #expect(!bridge.contains("/uploads/"))
+    }
+
+    @Test
     func singleLineEditingIsSharedButNativeFieldEditorsRemainAppOwned() throws {
         let root = sourceRoot.deletingLastPathComponent()
         let policy = try String(

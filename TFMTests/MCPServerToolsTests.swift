@@ -16,11 +16,51 @@ import struct TermindDomain.Host
 @MainActor
 struct MCPServerToolsTests {
     @Test
+    func externalUploadTicketAndStatusUseTheMCPExecutorWithoutOpeningFilesOrSSH() async throws {
+        let host = TermindDomain.Host(name: "Upload", host: "upload.example")
+        let server = makeMCPServerTools(hosts: [host])
+        server.uploads.configure(port: 7391)
+        let runID = UUID()
+        let broker = SecretBroker()
+        let result = try await server.call(
+            name: "sftp_upload",
+            arguments: .object([
+                "host_id": .string(host.id.uuidString), "remote_path": .string("/target/a.zip"),
+                "byte_count": .number(0),
+                "sha256": .string("e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"),
+            ]), runID: runID, clientName: "Tests", callID: "upload", secretBroker: broker
+        )
+        #expect(!result.isError)
+        let payload = try #require(result.untrustedPayload)
+        let ticket = try #require(try AgentJSONValue.decode(Data(payload.utf8)).objectValue)
+        let token = try #require(ticket["upload_token"]?.stringValue)
+        #expect(token.count == 43)
+        #expect(ticket["headers"]?.objectValue?["Authorization"] == .string("Bearer \(token)"))
+        #expect(ticket["upload_url"]?.stringValue?.hasPrefix("http://127.0.0.1:7391/uploads/") == true)
+        #expect(ticket["method"] == .string("PUT"))
+        let status = try await server.call(
+            name: "sftp_upload_status", arguments: .object(["upload_id": ticket["upload_id"]!]),
+            runID: runID, clientName: "Tests", callID: "status", secretBroker: broker
+        )
+        #expect(!status.isError)
+        #expect(status.untrustedPayload?.contains("waiting") == true)
+        let other = try await server.call(
+            name: "sftp_upload_status", arguments: .object(["upload_id": ticket["upload_id"]!]),
+            runID: UUID(), clientName: "Other", callID: "status-other", secretBroker: SecretBroker()
+        )
+        #expect(other.isError)
+        await server.endSession(runID: runID, secretBroker: broker)
+        #expect(throws: MCPUploadError.self) {
+            try server.uploads.status(id: UUID(uuidString: ticket["upload_id"]!.stringValue!)!, runID: runID)
+        }
+    }
+
+    @Test
     func exportsTheCompleteHostToolSet() {
         let server = makeMCPServerTools()
         let descriptors = server.descriptors
 
-        #expect(descriptors.count == 14)
+        #expect(descriptors.count == 16)
         #expect(Set(descriptors.map(\.name)) == MCPServerTools.exportedNames)
         for descriptor in descriptors {
             #expect(descriptor.inputSchema.objectValue?["type"]?.stringValue == "object")

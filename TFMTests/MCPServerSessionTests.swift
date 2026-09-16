@@ -56,15 +56,18 @@ struct MCPServerSessionTests {
         let tools = try #require(
             try responseObject(listed)["result"]?.objectValue?["tools"]?.arrayValue
         )
-        #expect(tools.count == 14)
+        #expect(tools.count == 16)
         let readOnly = Set([
             "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
-            "sftp_list", "sftp_stat", "sftp_read",
+            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status",
         ])
         for tool in tools {
             let name = try #require(tool.objectValue?["name"]?.stringValue)
             let hint = tool.objectValue?["annotations"]?.objectValue?["readOnlyHint"]
             #expect(hint == .bool(readOnly.contains(name)), "\(name)")
+            if name == "sftp_upload_status" {
+                #expect(tool.objectValue?["annotations"]?.objectValue?["openWorldHint"] == .bool(false))
+            }
             if name == "sftp_copy" {
                 let annotations = try #require(tool.objectValue?["annotations"]?.objectValue)
                 #expect(annotations["destructiveHint"] == .bool(true))

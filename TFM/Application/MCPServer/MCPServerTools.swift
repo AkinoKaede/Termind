@@ -8,7 +8,7 @@ final class MCPServerTools {
     static let exportedNames: Set<String> = [
         "list_hosts", "get_metrics", "request_user_secret", "ssh_exec", "ssh_wait",
         "sftp_list", "sftp_stat", "sftp_read", "sftp_write",
-        "sftp_mkdir", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete",
+        "sftp_mkdir", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete", "sftp_upload", "sftp_upload_status",
     ]
 
     private let channel: AgentEventChannel
@@ -17,6 +17,7 @@ final class MCPServerTools {
     private let approval: AgentApprovalBroker
     private var registry: AgentToolRegistry
     private var copies: [UUID: [UUID: Task<AgentToolResult, Never>]] = [:]
+    let uploads: MCPUploadCoordinator
 
     init(
         hosts: AgentHostResolver, metrics: any MetricsSnapshotReading,
@@ -30,6 +31,21 @@ final class MCPServerTools {
         channel = AgentEventChannel(repository: InMemoryAgentRunRepository())
         self.history = history
         self.externalAuthentication = externalAuthentication
+        uploads = MCPUploadCoordinator(hosts: hosts, history: history) {
+            request, runID, invocationID, client, read, token, report in
+            let handler = await externalAuthentication.handler(clientName: client, runID: runID)
+            return try await authentication.withDedicatedSFTP(
+                hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
+                pool: connections, cancellation: token
+            ) { client in
+                try await SFTPStreamUploadOperation.run(
+                    client: client, remotePath: request.remotePath, byteCount: request.byteCount,
+                    sha256: request.sha256, overwrite: request.overwrite,
+                    cancellation: token, read: read, progress: report
+                )
+            }
+        }
+        uploads.setEnabled(!disabledTools.contains("sftp_upload"))
         approval = AgentApprovalBroker(
             reviewer: nil,
             manualApproval: { _ in
@@ -39,7 +55,7 @@ final class MCPServerTools {
         )
         registry = Self.makeRegistry(
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
-            background: background, disabledTools: disabledTools
+            background: background, disabledTools: disabledTools, uploads: uploads
         )
         history.consume(channel)
     }
@@ -53,9 +69,10 @@ final class MCPServerTools {
         connections: AgentConnectionPool, authentication: AgentSSHAuthenticationRegistry,
         background: AgentBackgroundCommands
     ) {
+        uploads.setEnabled(!disabledTools.contains("sftp_upload"))
         registry = Self.makeRegistry(
             hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
-            background: background, disabledTools: disabledTools
+            background: background, disabledTools: disabledTools, uploads: uploads
         )
     }
 
@@ -65,6 +82,7 @@ final class MCPServerTools {
     ) async throws -> AgentToolResult {
         guard registry[name] != nil else { throw MCPServerToolsError.unknownTool(name) }
         history.register(runID: runID, clientName: clientName)
+        uploads.register(runID: runID, clientName: clientName)
         let handler = externalAuthentication.handler(clientName: clientName, runID: runID)
         let executor = AgentToolExecutor(
             tools: registry, approval: approval, hooks: AgentLoopHooks([]),
@@ -94,6 +112,7 @@ final class MCPServerTools {
     func endSession(runID: UUID, secretBroker: SecretBroker) async {
         let tasks = Array(copies.removeValue(forKey: runID)?.values ?? [:].values)
         for task in tasks { task.cancel() }
+        await uploads.endSession(runID: runID)
         externalAuthentication.cancel(runID: runID)
         for task in tasks { _ = await task.value }
         history.unregister(runID: runID)
@@ -103,11 +122,12 @@ final class MCPServerTools {
     private static func makeRegistry(
         hosts: AgentHostResolver, metrics: any MetricsSnapshotReading, connections: AgentConnectionPool,
         authentication: AgentSSHAuthenticationRegistry,
-        background: AgentBackgroundCommands, disabledTools: Set<String>
+        background: AgentBackgroundCommands, disabledTools: Set<String>, uploads: MCPUploadCoordinator
     ) -> AgentToolRegistry {
         AgentToolCatalog.registry(
             // `request_user_secret` is the only exported tool the runtime owns;
-            // every other name below is Termind's. The rest of the built-in
+            // every other name below is Termind's. HTTP uploads have their own
+            // one-use byte channel, not an AgentKit scratch workspace. The rest of the built-in
             // groups are left out rather than filtered out, so an external client
             // cannot reach a scratch workspace or a web fetch that no Termind
             // conversation is backing.
@@ -119,7 +139,9 @@ final class MCPServerTools {
                 in: TermindAgentToolEnvironment(
                     hosts: hosts, metrics: metrics, connections: connections, authentication: authentication,
                     background: background
-                ))
+                )) + [
+                    AnyAgentTool(MCPUploadTool(uploads: uploads)), AnyAgentTool(MCPUploadStatusTool(uploads: uploads)),
+                ]
         ).filtering {
             exportedNames.contains($0.name) && !disabledTools.contains($0.name)
         }

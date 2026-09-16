@@ -126,9 +126,21 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws
+    func uploadStream(
+        fromSocket socket: Int32, to remotePath: String, byteCount: Int64, overwrite: Bool,
+        cancellation: TransferCancellationToken, progress: @escaping @Sendable (SFTPProgress) -> Void,
+        sourceSucceeded: @escaping @Sendable () -> Bool
+    ) async throws
 }
 
 nonisolated extension SFTPClientProtocol {
+    public func uploadStream(
+        fromSocket socket: Int32, to remotePath: String, byteCount: Int64, overwrite: Bool,
+        cancellation: TransferCancellationToken, progress: @escaping @Sendable (SFTPProgress) -> Void,
+        sourceSucceeded: @escaping @Sendable () -> Bool
+    ) async throws {
+        throw SFTPError.operation("This SFTP client does not support streamed uploads.")
+    }
     public func connect(
         using request: SSHConnectionRequest,
         progress: SSHRouteProgressHandler?,
@@ -190,6 +202,16 @@ public nonisolated enum SFTPError: LocalizedError, Sendable {
         case .cancelled: String(localized: "Transfer cancelled.")
         case .localFile(let message), .operation(let message): message
         }
+    }
+}
+
+/// A failed transfer can leave its temporary remote file when cleanup also fails.
+public nonisolated struct SFTPTemporaryFileCleanupError: Error, Sendable {
+    public let path: String
+    public let cause: any Error
+    public init(path: String, cause: any Error) {
+        self.path = path
+        self.cause = cause
     }
 }
 
@@ -278,6 +300,17 @@ public actor SFTPClient: SFTPClientProtocol {
         try await worker.uploadFile(
             from: localURL, to: remotePath, overwrite: overwrite,
             cancellation: cancellation, progress: progress
+        )
+    }
+
+    public func uploadStream(
+        fromSocket socket: Int32, to remotePath: String, byteCount: Int64, overwrite: Bool,
+        cancellation: TransferCancellationToken, progress: @escaping @Sendable (SFTPProgress) -> Void,
+        sourceSucceeded: @escaping @Sendable () -> Bool
+    ) async throws {
+        try await worker.uploadFile(
+            fromSocket: socket, to: remotePath, byteCount: byteCount, overwrite: overwrite,
+            cancellation: cancellation, progress: progress, sourceSucceeded: sourceSucceeded
         )
     }
 
@@ -686,7 +719,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
             }
             defer { try? file.close() }
             try self.withAtomicRemoteWrite(
-                sftp: sftp, destination: remotePath, overwrite: overwrite
+                sftp: sftp, destination: remotePath, overwrite: overwrite,
+                validateCommit: { guard !cancellation.isCancelled else { throw SFTPError.cancelled } }
             ) { handle in
                 let total =
                     (try? localURL.resourceValues(forKeys: [.fileSizeKey]).fileSize)
@@ -813,7 +847,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         try await queue.perform {
             let sftp = try self.requireSFTP()
             try self.withAtomicRemoteWrite(
-                sftp: sftp, destination: remotePath, overwrite: overwrite
+                sftp: sftp, destination: remotePath, overwrite: overwrite,
+                validateCommit: { guard !cancellation.isCancelled else { throw SFTPError.cancelled } }
             ) { handle in
                 var meter = SFTPProgressMeter(total: byteCount, report: progress)
                 var buffer = [CChar](repeating: 0, count: 64 * 1024)
@@ -881,6 +916,7 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         destination: String,
         overwrite: Bool,
         temporaryTag: String = ".termind-part-",
+        validateCommit: () throws -> Void = {},
         write: (OpaquePointer) throws -> Void
     ) throws {
         let temporary = destination + temporaryTag + UUID().uuidString
@@ -895,20 +931,32 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         else {
             throw error("Unable to create \(destination)")
         }
-        var succeeded = false
-        defer {
-            _ = libssh2_sftp_close_handle(handle)
-            if !succeeded {
-                _ = temporary.withCString {
-                    libssh2_sftp_unlink_ex(sftp, $0, UInt32(temporary.utf8.count))
-                }
+        var handleOpen = true
+        do {
+            try write(handle)
+            let closed = libssh2_sftp_close_handle(handle)
+            handleOpen = false
+            guard closed == 0 else { throw error("Unable to close \(temporary)") }
+            try validateCommit()
+            // Do not turn an upload into destructive directory replacement.
+            var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+            let exists =
+                destination.withCString {
+                    libssh2_sftp_stat_ex(
+                        sftp, $0, UInt32(destination.utf8.count), Int32(LIBSSH2_SFTP_LSTAT), &attributes)
+                } == 0
+            if exists && (!overwrite || (attributes.permissions & 0o170000) == 0o040000) {
+                throw SFTPStreamUploadOperation.Failure.targetConflict
             }
+            try renameOnQueue(sftp: sftp, from: temporary, to: destination, overwrite: overwrite)
+        } catch {
+            if handleOpen { _ = libssh2_sftp_close_handle(handle) }
+            let removed = temporary.withCString {
+                libssh2_sftp_unlink_ex(sftp, $0, UInt32(temporary.utf8.count))
+            }
+            if removed != 0 { throw SFTPTemporaryFileCleanupError(path: temporary, cause: error) }
+            throw error
         }
-        try write(handle)
-        try renameOnQueue(
-            sftp: sftp, from: temporary, to: destination, overwrite: overwrite
-        )
-        succeeded = true
     }
 
     private func renameOnQueue(sftp: OpaquePointer, from source: String, to destination: String, overwrite: Bool) throws

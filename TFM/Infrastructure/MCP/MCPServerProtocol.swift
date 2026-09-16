@@ -344,6 +344,7 @@ actor MCPServerProtocol {
         let now = ContinuousClock.now
         let expired = sessions.filter { now - $0.value.lastUsedAt >= Self.idleTimeout }
         for (id, session) in expired {
+            if await tools.uploads.hasUploadActivity(runID: session.runID) { continue }
             session.legacyContinuation?.finish()
             sessions[id] = nil
             await tools.endSession(runID: session.runID, secretBroker: session.secretBroker)
@@ -367,11 +368,13 @@ actor MCPServerProtocol {
     private static func toolJSON(_ descriptor: AgentToolDescriptor) -> AgentJSONValue {
         let readOnly = [
             "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
-            "sftp_list", "sftp_stat", "sftp_read",
+            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status",
         ].contains(descriptor.name)
-        let destructive = ["ssh_exec", "sftp_write", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete"]
-            .contains(descriptor.name)
-        let openWorld = !["list_hosts", "ssh_wait", "request_user_secret"]
+        let destructive = [
+            "ssh_exec", "sftp_write", "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete", "sftp_upload",
+        ]
+        .contains(descriptor.name)
+        let openWorld = !["list_hosts", "ssh_wait", "request_user_secret", "sftp_upload_status"]
             .contains(descriptor.name)
         return .object([
             "name": .string(descriptor.name),

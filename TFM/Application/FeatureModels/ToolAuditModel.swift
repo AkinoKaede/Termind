@@ -50,6 +50,27 @@ final class ToolAuditModel {
 
     func unregister(runID: UUID) { clients[runID] = nil }
 
+    func beginUpload(runID: UUID, clientName: String, hostID: UUID, remotePath: String, overwrite: Bool) -> UUID {
+        let row = ExternalToolCall(
+            runID: runID, clientName: clientName, toolName: "http_sftp_upload", hostID: hostID,
+            hostDisplayName: hostName(hostID), summary: "\(remotePath) [overwrite=\(overwrite)]",
+            risk: overwrite ? .destructive : .modifiesState, bytesWritten: 0, startedAt: .now
+        )
+        insert(row)
+        return row.id
+    }
+
+    func updateUpload(id: UUID, bytes: Int64, succeeded: Bool? = nil) {
+        guard var row = value(id: id) else { return }
+        row.bytesRead = Int(bytes)
+        row.bytesWritten = Int(bytes)
+        if let succeeded {
+            row.status = succeeded ? .ok : .error
+            row.finishedAt = .now
+        }
+        update(row)
+    }
+
     func entries(
         matching query: String = "", tool: String? = nil, hostID: Host.ID? = nil
     ) -> [ExternalToolCall] {
@@ -198,6 +219,11 @@ final class ToolAuditModel {
                 .replacingOccurrences(of: "\n", with: "\\n")
         }
         switch call.name {
+        case "sftp_upload":
+            return "\(oneLine(arguments["remote_path"]?.stringValue ?? "")) "
+                + "[bytes=\(arguments["byte_count"]?.integerValue ?? 0), "
+                + "overwrite=\(arguments["overwrite"]?.boolValue ?? false)]"
+        case "sftp_upload_status": return "Upload \(arguments["upload_id"]?.stringValue ?? "")"
         case "ssh_exec": return oneLine(arguments["command"]?.stringValue ?? "")
         case "ssh_wait": return "Handle \(arguments["handle"]?.stringValue ?? "")"
         case "sftp_move":
@@ -238,7 +264,7 @@ final class ToolAuditModel {
         }
         if [
             "list_hosts", "get_metrics", "request_user_secret", "ssh_wait",
-            "sftp_list", "sftp_stat", "sftp_read",
+            "sftp_list", "sftp_stat", "sftp_read", "sftp_upload_status",
         ].contains(call.name) {
             return .readOnly
         }

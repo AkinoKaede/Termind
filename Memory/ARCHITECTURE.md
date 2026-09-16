@@ -194,6 +194,28 @@ active copies. Audit consumes byte progress and final counts only, never file bo
 the summary records both endpoints and the conflict policy. The stdio bridge remains
 a protocol-only forwarder. Mobile exposes Assistant tools but no local MCP listener.
 
+The macOS MCP server also owns a separate HTTP-to-SFTP byte channel. `sftp_upload`
+issues a ten-minute, one-use 256-bit capability bound to its MCP session, host,
+full remote path, size, SHA-256, and overwrite intent. `sftp_upload_status` reads
+only that session's bounded in-memory state. Upload PUTs authenticate their own
+capability before consuming the body; ordinary MCP retains its 4 MiB body limit
+and long-lived Bearer authentication. Both routes remain loopback-only. Capabilities
+are headers, never query parameters, durable audit data, or long-lived credentials.
+
+HTTP bodies are consumed in bounded chunks with socket-relay backpressure and no
+local file staging or scratch access. Remote Infrastructure owns the HTTP-agnostic
+stream operation and dedicated SFTP lease. Exact byte count and incrementally
+verified SHA-256 authorize source EOF; only then may the remote temporary file be
+closed and committed. Existing directories cannot be overwritten. Failed cleanup
+reports the potentially remaining remote temporary path. Started writes are never
+retried. Session retirement, host deletion, tool disablement, server shutdown, and
+token rotation cancel live work; active uploads prevent idle session expiry.
+A completed remote commit stays successful even when its HTTP response is lost.
+Retained upload completions also keep an otherwise idle session queryable for
+thirty minutes; terminal records are globally bounded to 256 entries.
+Metadata-only HTTP upload audit rows are independent of ticket-creation audit rows.
+No sandbox entitlement, persistence schema, or AgentKit dependency change is needed.
+
 ## Callback isolation
 
 Speech services and coordinator state are MainActor-isolated, but authorization
