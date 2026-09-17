@@ -2,6 +2,7 @@ import StoreKit
 import SwiftUI
 import TermindDomain
 import TermindInfrastructure
+import TermindPresentation
 
 struct MobileProView: View {
     @Bindable var pro: ProAccessController
@@ -102,13 +103,17 @@ struct MobileProView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 if pro.status.canPurchase {
-                    planPicker
+                    let offer = ProOfferPresentation(
+                        plan: selectedPlan, annualPrice: pro.annualDisplayPrice,
+                        billingPeriod: pro.annualBillingPeriod, trialDuration: pro.annualIntroOfferDuration,
+                        canStartTrial: pro.canStartTrial, locale: locale)
+                    planPicker(offer)
                     Button(action: purchaseSelectedPlan) {
-                        Text(purchaseButtonTitle).frame(maxWidth: .infinity)
+                        Text(offer.purchaseButtonTitle).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent).controlSize(.large)
                     .disabled(!pro.canPurchase(selectedPlan))
-                    if let detail = selectedPlanDetail {
+                    if let detail = offer.selectedPlanDetail {
                         Text(detail)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -149,14 +154,14 @@ struct MobileProView: View {
         pro.isProcessing || pro.message != nil || pro.status.canPurchase
     }
 
-    private var planPicker: some View {
+    private func planPicker(_ offer: ProOfferPresentation) -> some View {
         HStack(spacing: 8) {
             planCard(
                 .annual,
                 title: "Annual",
                 price: pro.annualDisplayPrice,
-                detail: annualBillingUnit.map { String(localized: "per \($0)") },
-                badge: trialBadge)
+                detail: offer.annualBillingUnit.map { String(localized: "per \($0)") },
+                badge: offer.trialBadge)
             planCard(
                 .lifetime,
                 title: "Lifetime",
@@ -209,43 +214,6 @@ struct MobileProView: View {
         .opacity(isAvailable ? 1 : 0.55)
     }
 
-    private var purchaseButtonTitle: String {
-        switch selectedPlan {
-        case .annual:
-            return pro.canStartTrial ? String(localized: "Start Free Trial") : String(localized: "Subscribe Annually")
-        case .lifetime:
-            return String(localized: "Buy Lifetime Access")
-        }
-    }
-
-    private var selectedPlanDetail: String? {
-        switch selectedPlan {
-        case .annual:
-            guard let price = pro.annualDisplayPrice, let billingUnit = annualBillingUnit else { return nil }
-            if pro.canStartTrial, let duration = formatted(pro.annualIntroOfferDuration) {
-                return String(
-                    localized: "\(duration) free, then \(price) per \(billingUnit). Auto-renews until canceled.")
-            }
-            return String(localized: "\(price) per \(billingUnit). Auto-renews until canceled.")
-        case .lifetime:
-            return String(localized: "One payment. No subscription or automatic renewal.")
-        }
-    }
-
-    private var trialBadge: String? {
-        guard pro.canStartTrial, let duration = formatted(pro.annualIntroOfferDuration) else { return nil }
-        return String(localized: "\(duration) free")
-    }
-
-    private var annualBillingUnit: String? {
-        guard let components = pro.annualBillingPeriod else { return nil }
-        if components.year == 1 { return String(localized: "year") }
-        if components.month == 1 { return String(localized: "month") }
-        if components.weekOfYear == 1 { return String(localized: "week") }
-        if components.day == 1 { return String(localized: "day") }
-        return formatted(components)
-    }
-
     private func purchaseSelectedPlan() {
         switch selectedPlan {
         case .annual:
@@ -285,17 +253,6 @@ struct MobileProView: View {
         case .revoked:
             statusCard("Subscription Revoked", symbol: "xmark.seal", tint: .red, detail: detail)
         }
-    }
-
-    private func formatted(_ components: DateComponents?) -> String? {
-        guard let components else { return nil }
-        let formatter = DateComponentsFormatter()
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = locale
-        formatter.calendar = calendar
-        formatter.unitsStyle = .full
-        formatter.maximumUnitCount = 1
-        return formatter.string(from: components)
     }
 
     private func statusCard(

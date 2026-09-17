@@ -88,6 +88,27 @@ struct AppLanguageTests {
         #expect(AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hant")) == "設定")
     }
 
+    @Test(
+        arguments: [AppLanguage.english, .simplifiedChinese, .traditionalChinese],
+        [ProPurchasePlan.annual, .lifetime])
+    func proOfferUsesTheExplicitAppLanguage(language: AppLanguage, plan: ProPurchasePlan) throws {
+        let locale = language.locale
+        let price = "$12.34"
+        let offer = ProOfferPresentation(
+            plan: plan, annualPrice: price, billingPeriod: DateComponents(year: 1),
+            trialDuration: DateComponents(day: 7), canStartTrial: true, locale: locale
+        ) { AppLocalization.string($0, locale: locale) }
+        let title: String.LocalizationValue = plan == .annual ? "Start Free Trial" : "Buy Lifetime Access"
+        #expect(offer.purchaseButtonTitle == AppLocalization.string(title, locale: locale))
+        #expect(offer.annualBillingUnit == AppLocalization.string("year", locale: locale))
+        #expect(!(try #require(offer.trialBadge)).isEmpty)
+        #expect(!(try #require(offer.selectedPlanDetail)).isEmpty)
+        if plan == .annual { #expect(offer.selectedPlanDetail?.contains(price) == true) }
+        if language != .english {
+            #expect(offer.purchaseButtonTitle != AppLocalization.string(title, locale: AppLanguage.english.locale))
+        }
+    }
+
     @Test
     func followSystemRemovesAppleLanguageOverride() throws {
         let suiteName = "AppLanguageTests.\(UUID().uuidString)"

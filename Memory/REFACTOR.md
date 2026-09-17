@@ -185,3 +185,249 @@ Verification audit (2026-09-16 UTC):
 - Estimated reduction: roughly 200 production lines from retired runbooks, duplicated seeding and Reset UI, excluding the new installer capability and migration tests.
 - Status: implemented. AgentKit 0.13.0 is signed and published; 213 package tests passed. Existing skills remain user-owned and the Chinese memory label is 持久化记忆 / 持久化記憶.
 - Verification: the final iOS run passed all 452 tests. The macOS app run passed 1,183 tests; AppLanguageTests passed again independently. The refreshed shared-framework run passed 231 of 232 tests, with the existing `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable` PNG byte-equality failure remaining. New skill/library/sync tests passed, bilingual native screenshots were reviewed, and strict formatting, Chinese localization and whitespace checks passed.
+
+## Reuse and Architecture Scan (2026-09-17)
+
+**Status: discovery only; all six candidates below are pending.** Baseline: clean `main` at `8509ddd5`.
+The inventory and normalized-block scan covered 516 tracked first-party production Swift files (113,165 lines)
+under `Frameworks/`, `TFM/`, `TFI/`, and `TermindMCPBridge/`. Candidate bodies, consumers, and relevant tests
+were then inspected directly; this is not a claim that every file received a behavioral audit. A source import
+check across the 273 shared-framework Swift files found no disallowed first-party dependency edge relative to
+`ARCHITECTURE.md`. The source graph was stale and Swift structural navigation was unavailable, so neither was
+used as proof of reachability or dead code. The website's localized home routes already reuse one page.
+AgentKit and other third-party sources were not included.
+
+Estimates below are prospective **net production Swift reductions**, allowing for a narrow shared implementation
+and caller changes but excluding regression tests. They are not measured patch outcomes. Implement and verify
+one independent item at a time; abandon a reduction claim if the new abstraction costs more than it removes.
+No production, test, dependency, localization, or architecture-invariant change is made by this scan.
+
+### R1. Share CloudKit record transport coding — first implementation candidate
+
+- **Evidence:** `VaultSyncCoordinator.swift:475-548`, `SettingsSyncCoordinator.swift:519-594`, and
+  `MetricsSyncCoordinator.swift:424-498`, all under `Frameworks/TermindInfrastructure/Cloud/`, repeat CKRecord
+  restoration, metadata assignment, SHA-256 payload hashing, inline-versus-CKAsset storage, secure system-field
+  archiving, and cache-file construction. Confirm with
+  `rg -n 'static func (makeRecord|envelope|payloadData|systemFields|record|assetURL)' Frameworks/TermindInfrastructure/Cloud`.
+- **Action:** introduce an internal record-coding helper in the same Infrastructure layer. Share transport
+  mechanics, not the three envelope codecs or their semantic validation. Keep existing public entry points,
+  record/zone names, record-name casing, the 700,000-byte threshold, separate asset directories, error mapping,
+  and Settings' legacy Guardian canonicalization. Do not change persistence entities or sync engine ownership.
+- **Estimated reduction:** 70–110 lines. **Risk:** low-to-medium; wire compatibility matters even without a migration.
+- **Required verification:** retain `VaultSyncTests.cloudRecordUsesAssetForLargePayloadAndRejectsCorruption`,
+  Settings record round trips and legacy Guardian tests, and `MetricsSyncTests.recordsRoundTripAndRemoteChangesMergePerHost`.
+  Add shared boundary cases for payload sizes at/above the threshold, corrupt or missing payloads, system-field
+  restoration, and asset namespace separation; run both pinned app test actions. This estimate excludes R5.
+
+### R2. Share the remaining upload/copy remote-conflict helpers
+
+- **Evidence:** `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift:178-310` repeats
+  preflight, subtree skip/remapping, conflict resolution, Keep Both naming, and recursive deletion from
+  `SFTPRemoteTransferPlanner.swift:311-439`. Copy helpers also serve `SFTPRemoteCopyOperation.swift:108,126`.
+  Confirm with
+  `rg -n 'remoteConflictPreflight|resolveRemoteDirectories|resolveRemoteConflict|deleteRecursively|SFTPRemoteCopyPlanner\.(resolveDirectories|resolveConflict)' Frameworks/TermindRemoteInfrastructure/Transfers`.
+  This freshly verifies the upload-helper follow-up left open in the 2026-09-16 remote-copy entry; it is not
+  another claim that desktop planner adoption remains unfinished.
+- **Action:** extract a focused Remote Infrastructure helper using the existing `RemoteFileSystem` port where
+  sufficient. Keep local upload traversal, remote manifests, their different job values/enqueue operations,
+  browser pending-state ownership, and interactive deletion separate. Preserve both directory-mutation reporting
+  and the copy operation's created-directory accounting.
+- **Behavioral caveat:** copy helpers check cancellation and validate recursive child names/paths; upload helpers
+  do not contain equivalent checks. Copy preflight uses self-or-descendant containment while upload preflight
+  checks descendants. Characterize these differences before sharing; do not weaken the copy checks or describe
+  any deliberate upload hardening as a byte-equivalent refactor. No failure or vulnerability was reproduced here.
+- **Estimated reduction:** 100–140 lines. **Risk:** medium because Replace may delete remote directories.
+- **Required verification:** extend `SFTPFeatureTests` upload preflight/subtree tests and retain copy conflict,
+  empty-directory, pending-cancellation, and `SFTPCopyToolTests` coverage. Parameterize all three conflict policies,
+  file/directory type collisions, nested path mappings, cancellation, and invalid child paths for both callers.
+  Retain mobile upload tests, including scoped symlink exclusion and directory-only uploads, and run both pinned suites.
+
+### R3. Share Pro offer presentation calculations without merging the paywalls
+
+- **Evidence:** `TFM/Features/Commerce/ProPaywallView.swift:179-219,238-248` and
+  `TFI/Features/Commerce/MobileProView.swift:212-247,290-300` independently compute purchase titles, annual/trial
+  disclosures, trial badges, billing units, and localized duration formatting. Confirm with
+  `rg -n 'purchaseButtonTitle|selectedPlanDetail|trialBadge|annualBillingUnit|func formatted' TFM/Features/Commerce TFI/Features/Commerce`.
+- **Action:** add a small value-based projection in `TermindPresentation`, receiving the selected plan, live
+  StoreKit-derived price/period/offer values, eligibility, and effective locale. Do not import
+  `TermindInfrastructure` or pass `ProAccessController` into Presentation. Both app views keep their own cards,
+  feature lists, sheet/navigation state, purchase tasks, and native subscription-management action.
+- **Estimated reduction:** 20–40 lines after projection construction at both call sites. **Risk:** low.
+- **Required verification:** cover annual versus lifetime, eligible versus unavailable trial, missing product data,
+  singular versus composite periods, and locale selection without full-copy snapshots. Retain `ProAccessTests`
+  and `StoreKitTrialTests`, run `AppLanguageTests` and both pinned suites, and review English/Chinese paywalls.
+  macOS must retain its explicit app-language choice; mobile must keep Apple's per-app language behavior.
+
+### R4. Complete the existing architectural guards — explicitly structural
+
+- **Evidence:** `TFMTests/ArchitectureBoundaryTests.swift:29-42,81-148,157-167` checks the AgentKit-owned type list
+  only under `TFM`; its SwiftData ownership scan omits Remote Infrastructure, Presentation, and the bridge.
+  The shared Application import guard does not include the full UI/native-I/O prohibition, and Presentation's
+  guard does not reject `TermindInfrastructure`. Import checks compare entire lines, so annotated or qualified
+  imports are not recognized. Confirm with
+  `rg -n 'applicationDoesNotImport|typesOwnedByTheAgentPackage|sharedFrameworksCannot|sharedPresentation|swiftDataModels|swiftFiles|text.split' TFMTests/ArchitectureBoundaryTests.swift`.
+- **Action:** centralize the production-root/dependency rules and a bounded import recognizer. Apply existing
+  ownership rules across all appropriate production roots; recognize ordinary, annotated, and symbol-qualified
+  imports. Retain fail-closed behavior for missing/empty roots and the native-list allowlist.
+- **Benefit and estimate:** no production reduction is claimed; allow approximately 20–60 net test lines if needed
+  for complete coverage. This closes test coverage gaps, not an observed production dependency violation.
+  Do not reintroduce source snapshots of UI copy, layouts, retired paths, or shared-component wiring.
+- **Required verification:** fixture-based behavioral checks must reject forbidden annotated/qualified imports
+  and out-of-owner declarations while allowing valid imports and removal of an allowed native-list importer.
+  Run `ArchitectureBoundaryTests` and both pinned suites; do not mutate production files to exercise negative cases.
+
+### R5. Reuse CloudKit engine lifecycle implementation — staged architecture follow-up
+
+- **Evidence:** the same three Cloud coordinators independently own `operationID`, operation serialization,
+  account preparation, engine creation, fetch-before-send readiness, delegate forwarding, and account/zone reset.
+  Examples: Vault `127-246,291-357`, Settings `134-247,327-393`, Metrics `129-240,275-334`.
+  Confirm with
+  `rg -n 'operationID|prepareAndSynchronize|synchronizeNow|isReadyToSend|stopEngineForAccountChange|handleZoneDeletion' Frameworks/TermindInfrastructure/Cloud`.
+  Existing sync tests primarily exercise codecs, journals, merge behavior, and preference switches rather than
+  a deterministic asynchronous engine/account lifecycle.
+- **Action:** after R1, investigate a composed, typed Infrastructure driver with per-category persistence/event
+  adapters. Share implementation, **not instances**: all three zones, journals, account bindings, subscriptions,
+  category switches, and independent coordinator lifetimes must remain. Settings retains secret migration and
+  upload authorization at the current fetch/account boundary, plus its legacy-record handling. Avoid an untyped
+  universal sync framework or changing the frozen SwiftData models to satisfy a generic protocol.
+- **Estimated reduction:** 200–350 additional lines, excluding R1's record coding. **Risk:** high; design and
+  characterization must precede migration. Update the architecture ownership record only when implemented.
+- **Required verification:** first add deterministic coverage for pause/retry and stale callbacks, account
+  switching/confirmation, zone and environment reset, failed fetch, readiness before sends, and Settings secret
+  authorization/revocation. Migrate one category at a time, retaining quarantine, tombstones, and versioned-upload
+  acknowledgement tests. Record codec round trips alone are not sufficient proof for this change.
+
+### R6. Share MCP transfer ticket policy, not transfer execution
+
+- **Evidence:** `TFM/Application/MCPServer/MCPUploadCoordinator.swift:42-135,224-246,374-409` and
+  `MCPDownloadCoordinator.swift:36-128,364-403` duplicate session/host ticket bookkeeping, ten-minute expiry,
+  64 unfinished tickets per direction, thirty-minute retention, 256 terminal records per direction, and activity
+  eligibility. Download also references `MCPUploadRequest.maximumBytes` at line 243 despite the limit applying
+  to both directions. Confirm with
+  `rg -n 'has.*Activity|count < 64|addingTimeInterval\(600\)|maximumBytes|func (endSession|revokeSession|sweep)|1_800|count - 256' TFM/Application/MCPServer/MCP{Upload,Download}Coordinator.swift`.
+- **Action:** extract only common metadata/retention/limit policy within the macOS MCP implementation, reusing
+  the existing shared `MCPTransferBudget`. Keep protocol-specific claim checks, response/error payloads, attempt
+  generations, read/write loops, cleanup, and cancellation tasks separate. Do not move the local listener into
+  a mobile/shared framework or AgentKit, and do not introduce a broad generic ticket base class merely to rename fields.
+- **Behavioral caveat:** expired uploads may need asynchronous partial-file cleanup; downloads can re-serve a
+  Range after success and retain revocation independently. The two `cancelAndWait` methods capture tasks at
+  different times, and upload cancellation can create cleanup work. These paths must not be mechanically merged.
+- **Estimated reduction:** 30–70 lines if a narrow metadata/policy extraction pays for itself. **Risk:** medium-to-high;
+  authorization, retention, and capacity release remain security/lifecycle boundaries.
+- **Required verification:** retain `MCPUploadTests`, `MCPDownloadTests`, and session teardown tests. Add shared
+  clock-boundary/retention cases while retaining the distinct range-after-success, acknowledged upload-offset,
+  late-disconnect, session/host revocation, and four-slot-until-cleanup behaviors. Preserve public protocol strings
+  and metadata-only audit behavior.
+
+### Scan disposition and verification scope
+
+- Start with **R1**, then consider R2 or the smaller R3; address R4 before expanding dependency/lifecycle ownership.
+  R5 and R6 need separate characterization/design work, not one large combined refactor.
+- Retain frozen persistence shapes, responsibility-named Vault facades, native transcript/list renderers, platform
+  terminal/session teardown, and platform-local runtime-version adapters. Large files alone are not evidence for
+  a code-reducing extraction. The small pixel-inspection duplicate does not justify merging native renderers.
+- Discovery used source reads, fresh `rg` references, normalized-block signals, and an import-direction audit.
+  No Xcode tests, application builds, or visual checks were run by this documentation-only scan; prior results
+  above are not reused as verification of these pending candidates.
+- Documentation verification passed: the previous backlog is preserved byte-for-byte, the addition is English-only,
+  referenced source paths were checked, and `git diff --check` plus `Scripts/check-zh-localization.sh` passed.
+  Only this backlog file changed; all six candidates remain unimplemented and unverified at runtime.
+
+## Ordered Implementation Follow-up (2026-09-17)
+
+The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this implementation pass.
+
+### R1: CloudKit transport coding — implemented, affected checks passed
+
+- Added internal `CloudSyncRecordCoding` and adopted it in Vault, Settings, and Metrics. Record restoration,
+  secure system-field archiving, lowercase SHA-256, raw/quarantine versus validated payload reads, the exact
+  inline threshold, lazy asset creation, and namespaced asset paths now have one implementation.
+- Per-envelope metadata assignment deliberately remains at each coordinator, alongside semantic validation and
+  Settings' legacy Guardian canonicalization. This avoids a large generic metadata API. Public entry points,
+  error mapping, record/zone names, cleanup, persistence models, and independent sync lifetimes are unchanged.
+- Measured production change: **40 fewer lines**, including the new helper (1,741 to 1,701 lines across the four
+  production files), rather than the discovery estimate of 70–110. Added eight focused test functions with
+  twelve parameter-expanded cases for boundaries, hash compatibility, storage transitions, corruption/raw
+  quarantine access, missing payloads, asset I/O errors, system fields, and asset namespace isolation.
+- Pinned Xcode focused actions passed: **macOS 61/61**, **iOS 13/13**; both actually executed the new suite, and
+  source snapshots were unchanged throughout each action. Existing Vault/Settings/legacy Guardian, Metrics,
+  and architectural tests in the selected actions passed. Evidence: `/tmp/termind-refactor-three.7kUsqP/r1-focused-*`
+  contains commands, logs, `.xcresult` bundles, test trees, summaries, and source snapshots. Strict formatting
+  and whitespace checks passed. Standalone SourceKit cannot resolve Xcode test/framework imports; actual
+  Xcode compilation succeeded. Pre-existing coordinator-size advisories are not a reason to implement R5.
+- Full-suite baseline was captured before any production edit: macOS **1,502/1,505** and iOS **502/503**.
+  Failures were the parallel approval cancellation, runtime tool cancellation, metrics worker lifecycle, and
+  mobile knowledge-row expansion tests. These are separate baseline issues, not verification passes; final
+  full-suite comparison remains pending. No AgentKit dependency or unrelated production/test repair was made.
+
+### R2: Remote conflict resolution — implemented, affected checks passed
+
+- Before changing Remote Infrastructure, new mobile upload cases reproduced the two guard gaps with a fake
+  backend: a cancelled directory-only enqueue still created a directory, and Replace accepted a child outside
+  the conflicting directory. Existing copy/SFTP feature checks passed **65/65** on macOS; mobile upload checks
+  passed **5/7**, failing only the two new cases. Both action source snapshots were unchanged. Evidence:
+  `/tmp/termind-refactor-three.7kUsqP/r2-before-*` (commands, logs, result bundles, test trees, snapshots).
+- Added `SFTPRemoteConflictResolver` against the existing `RemoteFileSystem` port, retaining both preflight
+  counting modes: upload blocks strict descendants, while copy also blocks the conflicting root itself.
+  Upload deliberately gains the existing copy cancellation and recursive-entry checks; this is characterized
+  hardening, not identical old behavior. Manifests, scoped local traversal, enqueue lifetimes, created-directory
+  accounting, and existing error/context reporting remain separate. The legacy copy-source error moved to its
+  own file without changing its type or localized text.
+- Measured production change: **139 fewer lines**, including both new files (906 to 767 lines across the five
+  production files). Seven new shared test functions cover seventeen parameter-expanded cases for both preflight
+  modes, all conflict policies, subtree boundaries/mapping, overwrite flags, directory accounting, deletion order,
+  invalid child entries, and existing cancellation checkpoints. `FrameworkTests` now links Remote Infrastructure
+  to exercise the helper on both platforms; the production dependency graph and package pins did not change.
+- Post-change pinned actions passed **macOS 81/81** and **iOS 23/23**, including the two previously failing mobile
+  upload cases and the new shared suite on both platforms. Sources were unchanged throughout each action.
+  Evidence: `/tmp/termind-refactor-three.7kUsqP/r2-focused-*`. Strict formatting, project plist validation,
+  localization, and whitespace checks passed. The architecture record now documents the shared resolver and
+  retained counting rules. The unrelated full-suite baseline failures remain tracked for final comparison.
+
+### R3: Pro offer presentation — implemented, affected checks passed
+
+- Added the value-only `ProOfferPresentation` from StoreKit-derived price/period/offer data, eligibility, and
+  the selected plan. No StoreKit controller, native purchase task, layout, or navigation state moved layers.
+- The two localization policies remain separate: macOS supplies its explicit `AppLocalization` lookup; mobile
+  uses the initializer's Foundation/Apple-selected bundle lookup. Both retain their effective locale for Gregorian
+  duration formatting, full unit names, and one displayed component. Each purchase section computes the projection
+  once. The existing History duration formatter remains separate (abbreviated/two units).
+- Measured production change: **32 fewer lines**, including the new projection (602 to 570 across three files).
+  Nine new shared test functions exercise twenty parameter-expanded cases for purchase/trial branches, missing
+  product data, lifetime behavior, singular/composite periods, unit priority, and independent formatting/lookup
+  policies. An additional six-case `AppLanguageTests` check uses the app's real English, zh-Hans, and zh-Hant
+  catalogs for both plans. No catalog entries or translations changed.
+- Pinned focused actions passed **macOS 41/41** and **iOS 11/11**, including the new suite on both platforms,
+  explicit app-language cases, access/trial policies, architectural guards, and mobile language preference tests.
+  Both actions retained unchanged source snapshots. Evidence: `/tmp/termind-refactor-three.7kUsqP/r3-focused-*`.
+  Native layout/action wiring was reviewed in the diff; no interactive storefront or screenshot check is claimed.
+- Repository-wide strict Swift formatting, Chinese localization, whitespace, and project plist checks passed.
+  All three changes total **211 fewer production Swift lines**, excluding added tests/docs and the unrelated
+  worktree deletion of `.TermindPresentationQA.xcodeproj`. Full-suite results and their limitations follow below.
+
+### Final verification — full-suite gate remains blocked
+
+- The final pinned full actions built successfully and reported **macOS 1,527/1,530** and **iOS 528/529**, with
+  no skipped tests and unchanged source snapshots throughout both actions. All three new shared suites passed
+  on both platforms. Full evidence: `/tmp/termind-refactor-three.7kUsqP/final-*`.
+- Three failures repeat the immutable initial baseline: `AgentApprovalQueueTests.cancellingAParallelBatchStillAnswersEveryCall`,
+  `ServerMetricsLifecycleTests.oneWorkerSurvivesWindowsAndStopsOnPauseSleepAndRemoval`, and
+  `MobileKnowledgeToolRenderingTests.knowledgeRowsStayCompactAtPhoneWidthAndExpandOnDemand`.
+  The initial `AgentRuntimeTests.stoppingARunCancelsTheToolsItIsWaitingOn` failure did not recur; no fix is claimed.
+- The final macOS run also failed `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable`.
+  This did not fail in this pass's initial baseline, although three earlier entries record the same assertion.
+  Both its production source and test are byte-identical to `HEAD`. A minimal Swift package containing only
+  those two unchanged HEAD files passed all two tests in three independent processes; that smaller harness
+  is not equivalent to the complete Xcode target. Current Xcode isolation reproduced the macOS assertion
+  (1/2 passed), while iOS passed 2/2. Evidence: `waveform-baseline-*`, `waveform-current-*`, and the source manifest
+  under `/tmp/termind-refactor-three.7kUsqP/`.
+- A clean export of `8509ddd5` was then built with pinned dependencies and a separate DerivedData directory.
+  A framework-only diagnostic scheme passed 2/2, but the **original TFM scheme reproduced the same waveform
+  assertion (1/2 passed)** with unchanged baseline sources and without any of these refactors. Evidence:
+  `/tmp/termind-refactor-three.7kUsqP/waveform-head-tfm.*`; the passing framework-only comparison is
+  `waveform-head-xcode.*`. The failure is sensitive to the scheme/harness; its underlying cause was not repaired
+  or fully diagnosed. All four final failing cases now have pre-change evidence; a smaller harness alone
+  would have been insufficient to establish that.
+- No unrelated failing implementation/test, AgentKit source, package pin, or user's QA-project deletion was
+  changed to force a green result. The three requested implementations have passing affected checks, but this
+  is not an all-green full-suite result and the outstanding test gate remains unresolved.

@@ -105,7 +105,7 @@ public nonisolated enum SFTPRemoteCopyOperation {
                 try checkCancellation()
                 let existing = try await destination.attributes(at: target)
                 if entry.isDirectory {
-                    let resolution = try await SFTPRemoteCopyPlanner.resolveDirectories(
+                    let resolution = try await SFTPRemoteConflictResolver.resolveDirectories(
                         [target], conflicts: existing != nil && existing?.isDirectory != true ? [target] : [],
                         policy: policy, client: destination
                     )
@@ -123,7 +123,7 @@ public nonisolated enum SFTPRemoteCopyOperation {
                     var overwrite = false
                     if let existing {
                         guard
-                            let resolution = try await SFTPRemoteCopyPlanner.resolveConflict(
+                            let resolution = try await SFTPRemoteConflictResolver.resolveConflict(
                                 path: target, conflictingTargetIsDirectory: existing.isDirectory,
                                 policy: policy, client: destination
                             )

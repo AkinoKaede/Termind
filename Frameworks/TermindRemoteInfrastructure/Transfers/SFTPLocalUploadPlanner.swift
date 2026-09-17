@@ -30,13 +30,6 @@ public nonisolated struct SFTPLocalUploadEnqueueResult: Equatable, Sendable {
 }
 
 public enum SFTPLocalUploadPlanner {
-    private struct RemoteConflictPreflight {
-        var directories: [String]
-        var directoryConflicts: Set<String>
-        var targetKinds: [Bool?]
-        var conflictCount: Int
-    }
-
     @MainActor
     public static func prepare(
         _ urls: [URL],
@@ -92,11 +85,9 @@ public enum SFTPLocalUploadPlanner {
             }
         }
 
-        let preflight = try await remoteConflictPreflight(
-            directories: directories,
-            targets: jobs.map(\.remotePath),
-            client: client
-        )
+        let preflight = try await SFTPRemoteConflictResolver.preflight(
+            directories: directories, targets: jobs.map(\.remotePath),
+            includeConflictingRoot: false, client: client)
         for (index, kind) in zip(jobs.indices, preflight.targetKinds) {
             guard let kind else { continue }
             jobs[index].hasConflict = true
@@ -123,7 +114,7 @@ public enum SFTPLocalUploadPlanner {
         coordinator: SFTPTransferCoordinator,
         completion: ((SFTPTransfer.State) -> Void)? = nil
     ) async throws -> SFTPLocalUploadEnqueueResult {
-        let remoteResolution = try await resolveRemoteDirectories(
+        let remoteResolution = try await SFTPRemoteConflictResolver.resolveDirectories(
             batch.remoteDirectories,
             conflicts: batch.remoteDirectoryConflicts,
             policy: policy,
@@ -131,19 +122,12 @@ public enum SFTPLocalUploadPlanner {
         )
         var transferCount = 0
         for var job in batch.jobs {
-            if remoteResolution.skipped.contains(where: {
-                job.remotePath == $0 || job.remotePath.hasPrefix($0 + "/")
-            }) {
-                continue
-            }
-            for mapping in remoteResolution.mappings
-            where job.remotePath == mapping.0 || job.remotePath.hasPrefix(mapping.0 + "/") {
-                job.remotePath = mapping.1 + job.remotePath.dropFirst(mapping.0.count)
-                job.hasConflict = false
-            }
+            guard let destination = remoteResolution.destination(for: job.remotePath) else { continue }
+            if destination != job.remotePath { job.hasConflict = false }
+            job.remotePath = destination
             if job.hasConflict {
                 guard
-                    let resolved = try await resolveRemoteConflict(
+                    let resolved = try await SFTPRemoteConflictResolver.resolveConflict(
                         path: job.remotePath,
                         conflictingTargetIsDirectory: job.conflictingTargetIsDirectory,
                         policy: policy,
@@ -174,137 +158,4 @@ public enum SFTPLocalUploadPlanner {
         )
     }
 
-    @MainActor
-    private static func remoteConflictPreflight(
-        directories: [String],
-        targets: [String],
-        client: any SFTPClientProtocol
-    ) async throws -> RemoteConflictPreflight {
-        let directories = directories.sorted { $0.count < $1.count }
-        var directoryConflicts: Set<String> = []
-        var targetKinds: [Bool?] = []
-        var conflictCount = 0
-
-        for directory in directories {
-            guard !directoryConflicts.contains(where: { directory.hasPrefix($0 + "/") }) else {
-                continue
-            }
-            if let existing = try await client.attributes(at: directory), !existing.isDirectory {
-                directoryConflicts.insert(directory)
-                conflictCount += 1
-            }
-        }
-        for target in targets {
-            if directoryConflicts.contains(where: { target.hasPrefix($0 + "/") }) {
-                targetKinds.append(nil)
-                continue
-            }
-            let existing = try await client.attributes(at: target)
-            targetKinds.append(existing?.isDirectory)
-            if existing != nil { conflictCount += 1 }
-        }
-        return RemoteConflictPreflight(
-            directories: directories,
-            directoryConflicts: directoryConflicts,
-            targetKinds: targetKinds,
-            conflictCount: conflictCount
-        )
-    }
-
-    private struct RemoteDirectoryResolution {
-        var skipped: [String] = []
-        var mappings: [(String, String)] = []
-        var changed = false
-    }
-
-    @MainActor
-    private static func resolveRemoteDirectories(
-        _ directories: [String],
-        conflicts: Set<String>,
-        policy: TransferConflictPolicy,
-        client: any SFTPClientProtocol
-    ) async throws -> RemoteDirectoryResolution {
-        var result = RemoteDirectoryResolution()
-        for original in directories {
-            if result.skipped.contains(where: {
-                original == $0 || original.hasPrefix($0 + "/")
-            }) {
-                continue
-            }
-            var destination = original
-            for mapping in result.mappings
-            where destination == mapping.0 || destination.hasPrefix(mapping.0 + "/") {
-                destination = mapping.1 + destination.dropFirst(mapping.0.count)
-            }
-            if conflicts.contains(original) {
-                switch policy {
-                case .skip:
-                    result.skipped.append(original)
-                    continue
-                case .replace:
-                    try await client.removeFile(at: original)
-                    result.changed = true
-                case .keepBoth:
-                    destination = try await availableRemotePath(for: original, client: client)
-                    result.mappings.append((original, destination))
-                }
-            }
-            if try await client.attributes(at: destination) == nil {
-                try await client.createDirectory(at: destination)
-                result.changed = true
-            }
-        }
-        return result
-    }
-
-    @MainActor
-    private static func resolveRemoteConflict(
-        path: String,
-        conflictingTargetIsDirectory: Bool,
-        policy: TransferConflictPolicy,
-        client: any SFTPClientProtocol
-    ) async throws -> (path: String, overwrite: Bool)? {
-        switch policy {
-        case .skip:
-            return nil
-        case .replace:
-            if conflictingTargetIsDirectory,
-                let existing = try await client.attributes(at: path)
-            {
-                try await deleteRecursively(existing, client: client)
-            }
-            return (path, true)
-        case .keepBoth:
-            return (try await availableRemotePath(for: path, client: client), false)
-        }
-    }
-
-    @MainActor
-    private static func availableRemotePath(
-        for path: String,
-        client: any SFTPClientProtocol
-    ) async throws -> String {
-        var index = 2
-        var candidate = RemotePath.keepBothCandidate(for: path, index: index)
-        while try await client.attributes(at: candidate) != nil {
-            index += 1
-            candidate = RemotePath.keepBothCandidate(for: path, index: index)
-        }
-        return candidate
-    }
-
-    @MainActor
-    private static func deleteRecursively(
-        _ file: RemoteFile,
-        client: any SFTPClientProtocol
-    ) async throws {
-        if file.isDirectory {
-            for child in try await client.listDirectory(at: file.path) {
-                try await deleteRecursively(child, client: client)
-            }
-            try await client.removeDirectory(at: file.path)
-        } else {
-            try await client.removeFile(at: file.path)
-        }
-    }
 }

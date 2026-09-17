@@ -196,6 +196,11 @@ of file jobs, so directory-only selections still create their empty directory tr
 Remote-copy enqueueing reports directory mutations so desktop refreshes also cover
 copies without file jobs. App sessions retain pending-batch presentation, cancellation,
 error handling, and completion refresh; interactive browser deletion stays app-owned.
+Upload and remote-copy conflict resolution share one Remote Infrastructure resolver
+over `RemoteFileSystem`. Upload retains strict-descendant preflight counting while
+copy also suppresses the conflicting root itself. Both use the same subtree mapping,
+Keep Both naming, cancellation checkpoints, and recursive child-name/path validation;
+created-directory accounting remains available to awaited copy outcomes.
 
 SFTP external edits have one process-local Application model per app, independent of
 browser/workspace lifetime. Remote Infrastructure owns managed local copies, streamed
@@ -580,7 +585,10 @@ localized price, expiration, and renewal state come from StoreKit. Permanent acc
 wins over subscription access. Subscribed, introductory-trial, and
 verified grace-period states grant Pro; billing retry without grace, expiration,
 refund, and revocation do not. Product metadata failure never replaces verified
-access.
+access. `ProOfferPresentation` derives purchase labels, disclosures, and period text
+from value inputs, never from a StoreKit controller. Native paywalls retain purchase
+and navigation state. macOS supplies explicit app-language lookup; mobile retains
+Apple's bundle lookup, independently of the locale used for duration formatting.
 
 The retired standalone trial product and its historical transactions are not recognized.
 Entitlement expiration is checked on activation and at most minutely while active.

@@ -690,6 +690,61 @@ struct MobileUploadBatchTests {
         #expect(coordinator.sftpTransfers.isEmpty)
     }
 
+    @Test func sharedUploadReplaceRejectsAChildOutsideTheConflictingDirectory() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let local = root.appending(path: "payload.txt")
+        try Data("replacement".utf8).write(to: local)
+        let target = RemoteFile(
+            path: "/incoming/payload.txt", name: "payload.txt", kind: .directory, size: 0,
+            permissions: 0o755, ownerUID: 501, ownerGID: 20)
+        let escaped = RemoteFile(
+            path: "/outside/untouched.txt", name: "untouched.txt", kind: .file, size: 1,
+            permissions: 0o644, ownerUID: 501, ownerGID: 20)
+        let client = MobileUploadSFTPClient(attributes: [target.path: target], children: [target.path: [escaped]])
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
+        let hostID = UUID()
+        let configuration = SSHConnectionConfiguration(
+            hostID: hostID, host: "example.invalid", port: 22, username: "deploy",
+            credentials: [], expectedHostKeys: [])
+        let batch = try await SFTPLocalUploadPlanner.prepare([local], destination: "/incoming", client: client)
+        #expect(batch.conflictCount == 1)
+
+        await #expect(throws: (any Error).self) {
+            try await SFTPLocalUploadPlanner.enqueue(
+                batch, policy: .replace, hostID: hostID, connection: .saved(configuration),
+                client: client, coordinator: coordinator)
+        }
+        #expect(await client.listedDirectories == [target.path])
+        #expect(await client.removedPaths.isEmpty)
+        #expect(coordinator.sftpTransfers.isEmpty)
+    }
+
+    @Test func cancelledUploadDoesNotCreateRemoteDirectories() async throws {
+        let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        let folder = root.appending(path: "empty", directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        let client = MobileUploadSFTPClient()
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
+        let hostID = UUID()
+        let configuration = SSHConnectionConfiguration(
+            hostID: hostID, host: "example.invalid", port: 22, username: "deploy",
+            credentials: [], expectedHostKeys: [])
+        let batch = try await SFTPLocalUploadPlanner.prepare([folder], destination: "/incoming", client: client)
+        let task = Task { @MainActor in
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await SFTPLocalUploadPlanner.enqueue(
+                batch, policy: .replace, hostID: hostID, connection: .saved(configuration),
+                client: client, coordinator: coordinator)
+        }
+
+        await #expect(throws: CancellationError.self) { try await task.value }
+        #expect(await client.createdDirectories.isEmpty)
+        #expect(coordinator.sftpTransfers.isEmpty)
+    }
+
     private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
         for _ in 0..<100 {
             if condition() { return true }
@@ -710,28 +765,36 @@ struct MobileUploadBatchTests {
 private actor MobileUploadSFTPClient: SFTPClientProtocol {
     private(set) var uploadedData: [String: Data] = [:]
     private(set) var createdDirectories: [String] = []
+    private(set) var listedDirectories: [String] = []
+    private(set) var removedPaths: [String] = []
     private(set) var disconnectCount = 0
     private let attributes: [String: RemoteFile]
     private let failedDownloadPaths: Set<String>
+    private let children: [String: [RemoteFile]]
 
     init(
         attributes: [String: RemoteFile] = [:],
-        failedDownloadPaths: Set<String> = []
+        failedDownloadPaths: Set<String> = [],
+        children: [String: [RemoteFile]] = [:]
     ) {
         self.attributes = attributes
         self.failedDownloadPaths = failedDownloadPaths
+        self.children = children
     }
 
     func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {}
     func disconnect() async { disconnectCount += 1 }
     func homeDirectory() async throws -> String { "/home/test" }
-    func listDirectory(at path: String) async throws -> [RemoteFile] { [] }
+    func listDirectory(at path: String) async throws -> [RemoteFile] {
+        listedDirectories.append(path)
+        return children[path, default: []]
+    }
     func attributes(at path: String) async throws -> RemoteFile? { attributes[path] }
     func setPermissions(at path: String, to permissions: UInt32) async throws {}
     func createDirectory(at path: String) async throws { createdDirectories.append(path) }
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
-    func removeFile(at path: String) async throws {}
-    func removeDirectory(at path: String) async throws {}
+    func removeFile(at path: String) async throws { removedPaths.append(path) }
+    func removeDirectory(at path: String) async throws { removedPaths.append(path) }
     func uploadFile(
         from localURL: URL,
         to remotePath: String,

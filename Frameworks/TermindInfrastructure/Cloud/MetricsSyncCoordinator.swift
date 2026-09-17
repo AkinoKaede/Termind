@@ -1,5 +1,4 @@
 import CloudKit
-import CryptoKit
 import Foundation
 import SwiftData
 import TermindApplication
@@ -15,7 +14,7 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     public nonisolated static let zoneName = "TermindMetricsV1"
     public nonisolated static let recordType = "MetricsItem"
     public nonisolated static let subscriptionID = "termind-metrics-v1-changes"
-    public nonisolated static let inlinePayloadLimit = 700_000
+    public nonisolated static let inlinePayloadLimit = CloudSyncRecordCoding.inlinePayloadLimit
 
     private let context: ModelContext
     private let persistence: MetricsSyncPersistence
@@ -425,12 +424,8 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         _ outgoing: MetricsOutgoingEntry, recordID: CKRecord.ID
     ) throws -> CKRecord {
         let envelope = outgoing.envelope
-        let record: CKRecord
-        if let data = outgoing.systemFieldsData, let restored = try Self.record(fromSystemFields: data) {
-            record = restored
-        } else {
-            record = CKRecord(recordType: recordType, recordID: recordID)
-        }
+        let record = try CloudSyncRecordCoding.makeRecord(
+            type: recordType, id: recordID, systemFields: outgoing.systemFieldsData)
         let payload = try MetricsSyncCodec.encode(envelope)
         record["formatVersion"] = NSNumber(value: envelope.formatVersion)
         record["kind"] = envelope.key.kind.rawValue as NSString
@@ -439,24 +434,13 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         record["counter"] = NSNumber(value: Int64(clamping: envelope.version.counter))
         record["writerID"] = envelope.version.writerID.uuidString.lowercased() as NSString
         record["isDeleted"] = NSNumber(value: envelope.isDeleted)
-        record["payloadHash"] = hash(payload) as NSString
-        if payload.count > inlinePayloadLimit {
-            let url = try assetURL(for: envelope.key)
-            try payload.write(to: url, options: .atomic)
-            record["payload"] = nil
-            record["payloadAsset"] = CKAsset(fileURL: url)
-        } else {
-            record["payload"] = payload as NSData
-            record["payloadAsset"] = nil
-        }
+        try CloudSyncRecordCoding.setPayload(payload, on: record, assetURL: assetURL(for: envelope.key))
         return record
     }
 
     public nonisolated static func envelope(from record: CKRecord) throws -> MetricsEnvelope {
-        let data = try payloadData(from: record)
-        guard record["payloadHash"] as? String == hash(data) else {
-            throw MetricsSyncPersistenceError.invalidEnvelope(record.recordID.recordName)
-        }
+        let data = try CloudSyncRecordCoding.validatedPayloadData(
+            from: record, invalidEnvelope: MetricsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
         let envelope = try MetricsSyncCodec.decode(data)
         guard envelope.key.recordName == record.recordID.recordName, envelope.isValid else {
             throw MetricsSyncPersistenceError.invalidEnvelope(record.recordID.recordName)
@@ -465,36 +449,16 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
     }
 
     public nonisolated static func payloadData(from record: CKRecord) throws -> Data {
-        if let inline = record["payload"] as? Data { return inline }
-        if let asset = record["payloadAsset"] as? CKAsset, let url = asset.fileURL {
-            return try Data(contentsOf: url)
-        }
-        throw MetricsSyncPersistenceError.invalidEnvelope(record.recordID.recordName)
+        try CloudSyncRecordCoding.payloadData(
+            from: record, invalidEnvelope: MetricsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
     }
 
     public nonisolated static func systemFields(of record: CKRecord) throws -> Data {
-        let archiver = NSKeyedArchiver(requiringSecureCoding: true)
-        record.encodeSystemFields(with: archiver)
-        archiver.finishEncoding()
-        return archiver.encodedData
-    }
-
-    private nonisolated static func record(fromSystemFields data: Data) throws -> CKRecord? {
-        let unarchiver = try NSKeyedUnarchiver(forReadingFrom: data)
-        unarchiver.requiresSecureCoding = true
-        defer { unarchiver.finishDecoding() }
-        return CKRecord(coder: unarchiver)
+        try CloudSyncRecordCoding.systemFields(of: record)
     }
 
     private nonisolated static func assetURL(for key: MetricsRecordKey) throws -> URL {
-        let directory = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
-            .appending(path: "Termind/MetricsSyncAssets", directoryHint: .isDirectory)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        return directory.appending(path: key.recordName.replacingOccurrences(of: "/", with: "-"))
-    }
-
-    private nonisolated static func hash(_ data: Data) -> String {
-        SHA256.hash(data: data).map { String(format: "%02x", $0) }.joined()
+        try CloudSyncRecordCoding.assetURL(recordName: key.recordName, directoryName: "Termind/MetricsSyncAssets")
     }
 
     private nonisolated static func isRetryable(_ error: CKError) -> Bool {

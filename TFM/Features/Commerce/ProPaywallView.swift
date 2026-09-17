@@ -2,6 +2,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
+import TermindPresentation
 
 struct ProPaywallView: View {
     @Environment(AppModel.self) private var app
@@ -51,15 +52,20 @@ struct ProPaywallView: View {
 
             VStack(spacing: 8) {
                 if pro.status.canPurchase {
-                    planPicker
+                    let offer = ProOfferPresentation(
+                        plan: selectedPlan, annualPrice: pro.annualDisplayPrice,
+                        billingPeriod: pro.annualBillingPeriod, trialDuration: pro.annualIntroOfferDuration,
+                        canStartTrial: pro.canStartTrial, locale: locale
+                    ) { AppLocalization.string($0, locale: locale) }
+                    planPicker(offer)
                     Button(action: purchaseSelectedPlan) {
-                        Text(purchaseButtonTitle).frame(maxWidth: .infinity)
+                        Text(offer.purchaseButtonTitle).frame(maxWidth: .infinity)
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                     .frame(maxWidth: 420)
                     .disabled(!canPurchaseSelectedPlan)
-                    if let detail = selectedPlanDetail {
+                    if let detail = offer.selectedPlanDetail {
                         Text(detail)
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -109,14 +115,14 @@ struct ProPaywallView: View {
         }
     }
 
-    private var planPicker: some View {
+    private func planPicker(_ offer: ProOfferPresentation) -> some View {
         HStack(spacing: Metrics.Space.s) {
             planCard(
                 .annual,
                 title: "Annual",
                 price: pro.annualDisplayPrice,
-                detail: annualBillingUnit.map { AppLocalization.string("per \($0)", locale: locale) },
-                badge: trialBadge)
+                detail: offer.annualBillingUnit.map { AppLocalization.string("per \($0)", locale: locale) },
+                badge: offer.trialBadge)
             planCard(
                 .lifetime,
                 title: "Lifetime",
@@ -176,47 +182,6 @@ struct ProPaywallView: View {
         .opacity(isAvailable ? 1 : 0.55)
     }
 
-    private var purchaseButtonTitle: String {
-        switch selectedPlan {
-        case .annual:
-            return pro.canStartTrial
-                ? AppLocalization.string("Start Free Trial", locale: locale)
-                : AppLocalization.string("Subscribe Annually", locale: locale)
-        case .lifetime:
-            return AppLocalization.string("Buy Lifetime Access", locale: locale)
-        }
-    }
-
-    private var selectedPlanDetail: String? {
-        switch selectedPlan {
-        case .annual:
-            guard let price = pro.annualDisplayPrice, let billingUnit = annualBillingUnit else { return nil }
-            if pro.canStartTrial, let duration = formatted(pro.annualIntroOfferDuration) {
-                return AppLocalization.string(
-                    "\(duration) free, then \(price) per \(billingUnit). Auto-renews until canceled.",
-                    locale: locale)
-            }
-            return AppLocalization.string(
-                "\(price) per \(billingUnit). Auto-renews until canceled.", locale: locale)
-        case .lifetime:
-            return AppLocalization.string("One payment. No subscription or automatic renewal.", locale: locale)
-        }
-    }
-
-    private var trialBadge: String? {
-        guard pro.canStartTrial, let duration = formatted(pro.annualIntroOfferDuration) else { return nil }
-        return AppLocalization.string("\(duration) free", locale: locale)
-    }
-
-    private var annualBillingUnit: String? {
-        guard let components = pro.annualBillingPeriod else { return nil }
-        if components.year == 1 { return AppLocalization.string("year", locale: locale) }
-        if components.month == 1 { return AppLocalization.string("month", locale: locale) }
-        if components.weekOfYear == 1 { return AppLocalization.string("week", locale: locale) }
-        if components.day == 1 { return AppLocalization.string("day", locale: locale) }
-        return formatted(components)
-    }
-
     private var canPurchaseSelectedPlan: Bool {
         pro.canPurchase(selectedPlan)
     }
@@ -233,17 +198,6 @@ struct ProPaywallView: View {
     private var canManageSubscription: Bool {
         guard case .subscription(let subscription) = pro.status else { return false }
         return subscription.ownership == .purchased
-    }
-
-    private func formatted(_ components: DateComponents?) -> String? {
-        guard let components else { return nil }
-        let formatter = DateComponentsFormatter()
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.locale = locale
-        formatter.calendar = calendar
-        formatter.unitsStyle = .full
-        formatter.maximumUnitCount = 1
-        return formatter.string(from: components)
     }
 
     private func feature(_ title: LocalizedStringKey, _ symbol: String) -> some View {
