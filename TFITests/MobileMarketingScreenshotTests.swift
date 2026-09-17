@@ -25,13 +25,7 @@ struct MobileMarketingScreenshotTests {
             let app = try makeApp(language: language)
             if includes("vault") {
                 try await capture("vault", language: language) {
-                    NavigationStack {
-                        MobileVaultView(
-                            app: app, editingHost: .constant(nil), activateHost: { _ in },
-                            open: { _, _ in }
-                        )
-                        .toolbar { marketingSidebarButton(language: language) }
-                    }
+                    MarketingVaultScene(app: app)
                 }
             }
 
@@ -74,7 +68,13 @@ struct MobileMarketingScreenshotTests {
             if includes("metrics") {
                 let metrics = makeMetrics(language: language)
                 try await capture("metrics", language: language) {
-                    NavigationStack { MarketingMetricsScene(servers: metrics, language: language) }
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        NavigationStack { MarketingMetricsScene(servers: metrics, language: language) }
+                    } else {
+                        MarketingPhoneTabShell(selected: .vault) {
+                            MarketingPhoneMetricsNavigation(app: app, servers: metrics, language: language)
+                        }
+                    }
                 }
             }
 
@@ -83,9 +83,17 @@ struct MobileMarketingScreenshotTests {
                 let conversation = ConversationModel.demo(language: try #require(AppLanguage(rawValue: language)))
                 assistant.library.insertAndSelect(conversation)
                 try await capture("assistant", language: language) {
-                    NavigationStack {
-                        MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
-                            .toolbar { marketingBackButton(language: language) }
+                    if UIDevice.current.userInterfaceIdiom == .pad {
+                        NavigationStack {
+                            MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
+                                .toolbar { marketingBackButton(language: language) }
+                        }
+                    } else {
+                        MarketingPhoneTabShell(selected: .assistant) {
+                            NavigationStack {
+                                MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
+                            }
+                        }
                     }
                 }
             }
@@ -164,8 +172,12 @@ struct MobileMarketingScreenshotTests {
         _ name: String, language: String, @ViewBuilder view: () -> V
     ) async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
-        if UIDevice.current.userInterfaceIdiom == .pad, scene.interfaceOrientation.isPortrait {
-            scene.requestGeometryUpdate(.iOS(interfaceOrientations: .landscapeLeft)) { error in
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+        let targetOrientation: UIInterfaceOrientationMask = isPad ? .landscapeLeft : .portrait
+        let hasTargetOrientation =
+            isPad ? scene.interfaceOrientation == .landscapeLeft : scene.interfaceOrientation == .portrait
+        if !hasTargetOrientation {
+            scene.requestGeometryUpdate(.iOS(interfaceOrientations: targetOrientation)) { error in
                 print("Unable to rotate the marketing scene: \(error.localizedDescription)")
             }
             try await Task.sleep(for: .milliseconds(800))
@@ -247,14 +259,6 @@ struct MobileMarketingScreenshotTests {
         }
     }
 
-    @ToolbarContentBuilder
-    private func marketingSidebarButton(language: String) -> some ToolbarContent {
-        ToolbarItem(placement: .navigationBarLeading) {
-            Button(text(language, "Sidebar", "侧边栏", "側邊欄"), systemImage: "sidebar.left") {}
-                .labelStyle(.iconOnly)
-        }
-    }
-
     private func text(_ language: String, _ english: String, _ simplified: String, _ traditional: String) -> String {
         switch language {
         case "zh-Hans": simplified
@@ -266,6 +270,94 @@ struct MobileMarketingScreenshotTests {
 
 private enum MarketingCaptureError: Error {
     case systemCaptureTimedOut(String)
+}
+
+private struct MarketingVaultScene: View {
+    let app: MobileAppModel
+    private let features = MobileFeatureRegistry.standard()
+    @State private var selectedDestination: MobileDestination? = .vault
+
+    var body: some View {
+        if UIDevice.current.userInterfaceIdiom == .pad {
+            NavigationSplitView(columnVisibility: .constant(.all)) {
+                List(selection: $selectedDestination) {
+                    ForEach(features.registrations(on: .padSidebar)) { feature in
+                        NavigationLink(value: feature.id) {
+                            Label(feature.title, systemImage: feature.symbol)
+                        }
+                    }
+                }
+                .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 320)
+            } detail: {
+                NavigationStack {
+                    MobileVaultView(
+                        app: app, editingHost: .constant(nil), activateHost: { _ in },
+                        open: { _, _ in }, showsMetrics: false
+                    )
+                }
+            }
+        } else {
+            MarketingPhoneTabShell(selected: .vault) {
+                NavigationStack {
+                    MobileVaultView(
+                        app: app, editingHost: .constant(nil), activateHost: { _ in },
+                        open: { _, _ in }
+                    )
+                }
+            }
+        }
+    }
+}
+
+private struct MarketingPhoneTabShell<Content: View>: View {
+    let selected: MobileDestination
+    let content: Content
+    private let features = MobileFeatureRegistry.standard()
+
+    init(selected: MobileDestination, @ViewBuilder content: () -> Content) {
+        self.selected = selected
+        self.content = content()
+    }
+
+    var body: some View {
+        TabView(selection: .constant(selected)) {
+            ForEach(features.registrations(on: .phoneTab)) { feature in
+                Group {
+                    if feature.id == selected {
+                        content
+                    } else {
+                        NavigationStack { Color.clear }
+                    }
+                }
+                .tabItem { Label(feature.title, systemImage: feature.symbol) }
+                .tag(feature.id)
+            }
+        }
+        .toolbar(.visible, for: .tabBar)
+    }
+}
+
+private struct MarketingPhoneMetricsNavigation: View {
+    private enum Route: Hashable {
+        case metrics
+    }
+
+    let app: MobileAppModel
+    let servers: [ServerMetric]
+    let language: String
+    @State private var path: [Route] = [.metrics]
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            MobileVaultView(
+                app: app, editingHost: .constant(nil), activateHost: { _ in },
+                open: { _, _ in }
+            )
+            .navigationDestination(for: Route.self) { _ in
+                MarketingMetricsScene(servers: servers, language: language, showsSidebarButton: false)
+            }
+        }
+    }
 }
 
 private struct MarketingTerminalScene: View {
@@ -301,6 +393,7 @@ private struct MarketingTerminalScene: View {
 private struct MarketingMetricsScene: View {
     let servers: [ServerMetric]
     let language: String
+    var showsSidebarButton = true
 
     var body: some View {
         MobileCardPage {
@@ -319,8 +412,10 @@ private struct MarketingMetricsScene: View {
         }
         .navigationTitle("Metrics")
         .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button("Sidebar", systemImage: "sidebar.left") {}.labelStyle(.iconOnly)
+            if showsSidebarButton {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Sidebar", systemImage: "sidebar.left") {}.labelStyle(.iconOnly)
+                }
             }
             ToolbarItem(placement: .primaryAction) {
                 Button("Add Server", systemImage: "plus") {}.labelStyle(.iconOnly)

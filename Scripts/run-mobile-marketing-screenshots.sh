@@ -65,10 +65,12 @@ run_capture() {
 
     xcrun simctl boot "$device_id" 2>/dev/null || true
     xcrun simctl bootstatus "$device_id" -b
-    if [[ "$name" == iPad* ]]; then
-        set_simulator_orientation "$name" "Landscape Right"
-    else
-        set_simulator_orientation "$name" "Portrait"
+    if pgrep -x Simulator >/dev/null; then
+        if [[ "$name" == iPad* ]]; then
+            set_simulator_orientation "$name" "Landscape Right"
+        else
+            set_simulator_orientation "$name" "Portrait"
+        fi
     fi
     xcrun simctl status_bar "$device_id" override \
         --time '9:41' --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
@@ -94,7 +96,18 @@ run_capture() {
                 mkdir -p "${destination:h}"
                 xcrun simctl io "$device_id" screenshot --type=png "$destination" >/dev/null
                 if [[ "$device" == "ipad" ]]; then
-                    sips -r 90 "$destination" >/dev/null
+                    local width height
+                    width="$(sips -g pixelWidth "$destination" | awk '/pixelWidth/ { print $2 }')"
+                    height="$(sips -g pixelHeight "$destination" | awk '/pixelHeight/ { print $2 }')"
+                    if [[ "$width" == "2064" && "$height" == "2752" ]]; then
+                        sips -r 90 "$destination" >/dev/null
+                    elif [[ "$width" != "2752" || "$height" != "2064" ]]; then
+                        print -u2 "Unexpected iPad screenshot dimensions: ${width}x${height}"
+                        kill "$test_pid" 2>/dev/null || true
+                        wait "$test_pid" 2>/dev/null || true
+                        xcrun simctl status_bar "$device_id" clear
+                        exit 70
+                    fi
                 fi
                 touch "$app_container/Documents/marketing-capture-control/ack-$token"
                 last_token="$token"
