@@ -60,18 +60,32 @@ public struct MemorySettingsSection: View {
                     }
                 }
                 .navigationTitle(editing == .memory ? "Memory Notes" : "User Profile")
+                #if os(iOS)
+                    .navigationBarTitleDisplayMode(.inline)
+                #endif
                 .toolbar {
-                    ToolbarItem(placement: .cancellationAction) { Button("Cancel") { editing = nil } }
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel", systemImage: "xmark") { editing = nil }
+                    }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Save") {
+                        Button("Save", systemImage: "checkmark") {
                             guard let target = editing else { return }
                             Task {
                                 await memory.edit(target, text: draft)
                                 if memory.error == nil { editing = nil }
                             }
-                        }.disabled(draft.unicodeScalars.count > (editing?.characterLimit ?? 0) || memory.isBusy)
+                        }
+                        .disabled(draft.unicodeScalars.count > (editing?.characterLimit ?? 0) || memory.isBusy)
+                        #if os(iOS)
+                            .tint(.blue)
+                        #endif
                     }
                 }
+                #if os(iOS)
+                    .labelStyle(.iconOnly)
+                #else
+                    .labelStyle(.titleOnly)
+                #endif
             }.frame(minWidth: 320, minHeight: 360)
         }
         .fileExporter(
