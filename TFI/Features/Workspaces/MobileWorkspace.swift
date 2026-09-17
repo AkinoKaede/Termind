@@ -1352,6 +1352,19 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
+    func importEditedCopy(_ source: URL, for id: UUID) async {
+        guard let edits = sftpEdits, let file = edits.model.file(id), file.hostID == descriptor.hostID else { return }
+        do {
+            let copy = try await MobileSFTPEditedCopyImporter().stage(source, matching: file.localURL)
+            defer { try? FileManager.default.removeItem(at: copy.deletingLastPathComponent()) }
+            guard let current = edits.model.file(id), !current.isInvalidated,
+                !current.isPreparing, current.transferID == nil
+            else { throw SFTPEditFailure.unavailable }
+            _ = try FileManager.default.replaceItemAt(current.localURL, withItemAt: copy)
+            await edits.recheck()
+        } catch { operationError = error.localizedDescription }
+    }
+
     func reopenHistoryFile(at path: String, completion: @escaping (URL) -> Void = { _ in }) async -> Bool {
         guard let sftp, connected else {
             operationError = String(localized: "The SFTP connection is not available.")

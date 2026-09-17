@@ -228,6 +228,16 @@ and takes ownership of temporary edited copies. Different-format copies are expo
 separately instead of overwriting the original remote format. Shared Presentation owns
 the dirty-file card; AppKit/UIKit and their lifecycle adapters stay in their apps.
 
+Open With uses the same managed edit copy as ordinary Open. macOS discovers applications
+by UTType and launches the one selected for that invocation without changing defaults.
+iOS retains Quick Look as its primary action and uses a workspace-owned document
+interaction controller for Open With; retired/background presentation requests cannot
+surface a late download in another workspace. The controller survives scene deactivation
+until an in-progress document handoff finishes. Receiving apps may edit an independent
+copy, so mobile offers explicit same-format edited-copy import into an existing record.
+Import preserves the original remote identity and baseline, rejects invalidated/busy
+records, and only marks local changes; the existing explicit upload/conflict flow commits them.
+
 `sftp_copy` is Termind-owned and acting-only in Assistant, with Ask/sequential
 policy. It copies regular files and directory trees into an existing directory;
 unsupported descendants fail before writes. Its awaited operation shares browser

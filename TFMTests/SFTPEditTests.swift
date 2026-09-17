@@ -4,10 +4,37 @@ import TermindApplication
 import TermindDomain
 import Testing
 
+@testable import Termind
 @testable import TermindRemoteInfrastructure
 
 @Suite @MainActor
 struct SFTPEditTests {
+    @Test func browserOpenReusesTheTrackedCopyAndRetainsEditUploadSupport() async throws {
+        let fixture = Fixture()
+        let configuration = SSHConnectionConfiguration(
+            hostID: fixture.hostID, host: "example.invalid", port: 22, username: "test", credentials: [],
+            expectedHostKeys: [])
+        let session = SFTPSessionModel(hostID: fixture.hostID, client: fixture.client, configuration: configuration)
+        let file = await fixture.client.file
+        var opened: URL?
+        session.open(file, coordinator: fixture.transfers, edits: fixture.service) { opened = $0 }
+        try await wait { opened != nil }
+        let url = try #require(opened)
+        defer { fixture.clean(url) }
+        let id = try #require(fixture.service.model.files.first?.id)
+        try Data([7, 6, 5]).write(to: url, options: .atomic)
+        opened = nil
+        session.open(file, coordinator: fixture.transfers, edits: fixture.service) { opened = $0 }
+        try await wait { opened != nil }
+        #expect(opened == url)
+        #expect(await fixture.client.downloads == 1)
+        await fixture.service.recheck()
+        #expect(fixture.service.model.file(id)?.isModified == true)
+        #expect(await session.uploadEdit(id, using: fixture.service, replacing: false) == false)
+        try await wait { fixture.service.model.file(id)?.transferID == nil }
+        #expect(await fixture.client.data == Data([7, 6, 5]))
+    }
+
     @Test(arguments: ["config", "file.txt", "image.png", "archive.zip", "data.sqlite", "document.pdf"])
     func arbitraryBinaryContentsAndAtomicSavesAreDetected(_ name: String) async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
@@ -256,7 +283,8 @@ struct SFTPEditTests {
         let service: SFTPEditService
         var connection: SFTPTransferConnection { .borrowed(id: hostID, client: client) }
         init() {
-            transfers = SFTPTransferCoordinator(store: HostLibraryModel(), clientFactory: { EditClient() })
+            let client = client
+            transfers = SFTPTransferCoordinator(store: HostLibraryModel(), clientFactory: { client })
             service = SFTPEditService(transfers: transfers)
             service.setMonitoring(false)
         }

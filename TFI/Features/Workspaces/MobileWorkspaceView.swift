@@ -42,6 +42,9 @@ struct MobileWorkspaceView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var downloadTarget: RemoteFile?
     @State private var previewURL: URL?
+    @State private var openWithPresenter = MobileSFTPOpenWithPresenter()
+    @State private var importingEditedCopy = false
+    @State private var editedCopyTarget: UUID?
     @State private var exportedEditURL: URL?
     @State private var showsExportedEdit = false
     @ScaledMetric private var editRowHeight = 76.0
@@ -58,6 +61,12 @@ struct MobileWorkspaceView: View {
                 }
             }
             .background {
+                MobileSFTPOpenWithAnchor(
+                    presenter: openWithPresenter,
+                    isEnabled: workspaceIsVisible && scenePhase == .active,
+                    failed: { [workspace] in workspace.operationError = $0 },
+                    finished: { [edits = workspace.sftpEdits] in Task { await edits?.recheck() } }
+                )
                 MobileWindowDropTarget(
                     isTargeted: $uploadDropTargeted,
                     isEnabled: workspaceIsVisible && scenePhase == .active,
@@ -68,15 +77,20 @@ struct MobileWorkspaceView: View {
             }
             .onAppear { workspaceIsVisible = true }
             .onDisappear {
+                openWithPresenter.isEnabled = false
                 workspaceIsVisible = false
                 uploadDropTargeted = false
                 cancelDropLoading()
             }
             .onChange(of: workspace.id) { _, _ in
+                openWithPresenter.invalidate()
                 uploadDropTargeted = false
                 cancelDropLoading()
             }
             .onChange(of: workspace.uploadDestination) { _, _ in cancelDropLoading() }
+            .onChange(of: scenePhase) { _, phase in
+                if phase != .active { openWithPresenter.isEnabled = false }
+            }
     }
 
     private var workspaceChrome: some View {
@@ -252,6 +266,19 @@ struct MobileWorkspaceView: View {
                 }
             }
             .fileImporter(
+                isPresented: $importingEditedCopy, allowedContentTypes: [.data], allowsMultipleSelection: false
+            ) { result in
+                let target = editedCopyTarget
+                editedCopyTarget = nil
+                switch result {
+                case .success(let urls):
+                    if let target, let source = urls.first {
+                        Task { await workspace.importEditedCopy(source, for: target) }
+                    }
+                case .failure(let error): workspace.operationError = error.localizedDescription
+                }
+            }
+            .fileImporter(
                 isPresented: $importing,
                 allowedContentTypes: [.data, .folder],
                 allowsMultipleSelection: true
@@ -371,6 +398,19 @@ struct MobileWorkspaceView: View {
                 session: workspace.sftpSession,
                 connected: workspace.connected,
                 open: open,
+                openWith: openWith,
+                canImportEditedCopy: { file in
+                    guard
+                        let edit = workspace.sftpEdits?.model.file(hostID: workspace.descriptor.hostID, path: file.path)
+                    else { return false }
+                    return !edit.isInvalidated && !edit.isPreparing && edit.transferID == nil
+                },
+                importEditedCopy: { file in
+                    editedCopyTarget =
+                        workspace.sftpEdits?.model.file(
+                            hostID: workspace.descriptor.hostID, path: file.path)?.id
+                    importingEditedCopy = editedCopyTarget != nil
+                },
                 download: { downloadTarget = $0 },
                 copy: copyRemoteItem,
                 paste: pasteRemoteItems,
@@ -409,6 +449,19 @@ struct MobileWorkspaceView: View {
             _ = workspace.preview(file) { url in
                 Task { @MainActor in presentPreview(url) }
             }
+        }
+    }
+
+    private func openWith(_ file: RemoteFile) {
+        guard !file.isDirectory, workspace.connected, let request = openWithPresenter.begin() else { return }
+        // preview prepares the same managed edit copy used by Quick Look and the upload overlay.
+        if !workspace.preview(
+            file,
+            completion: { [openWithPresenter] url in
+                openWithPresenter.downloaded(url, request: request)
+            })
+        {
+            openWithPresenter.invalidate()
         }
     }
 

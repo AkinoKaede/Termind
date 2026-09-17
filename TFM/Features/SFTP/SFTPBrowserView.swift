@@ -962,6 +962,12 @@ struct SFTPBrowserView: View {
         let targets = menuTargets(for: file)
         if targets.count == 1 {
             Button("Open", systemImage: MenuSymbol.open) { primaryAction(file) }
+            if !file.isDirectory {
+                SFTPOpenWithMenu(filename: file.name) { application in
+                    open(file, with: application)
+                }
+                .disabled(sftpSession.status != .connected)
+            }
         }
         Button(
             targets.count == 1 ? "Download" : "Download \(targets.count) Items",
@@ -1021,6 +1027,17 @@ struct SFTPBrowserView: View {
                 if NSWorkspace.shared.open(localURL) {
                     sftpSession.recordOpenedFile(at: file.path)
                 }
+            }
+        }
+    }
+
+    private func open(_ file: RemoteFile, with application: URL) {
+        sftpSession.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) { localURL in
+            Task {
+                do {
+                    try await SFTPApplicationOpener.open(localURL, with: application)
+                    sftpSession.recordOpenedFile(at: file.path)
+                } catch { sftpSession.operationError = error.localizedDescription }
             }
         }
     }

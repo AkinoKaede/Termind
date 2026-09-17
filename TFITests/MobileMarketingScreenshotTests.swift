@@ -43,7 +43,9 @@ struct MobileMarketingScreenshotTests {
                 try await capture("sftp", language: language) {
                     NavigationStack {
                         MobileSFTPBrowser(
-                            session: sftp, connected: true, open: { _ in }, download: { _ in }, copy: { _ in },
+                            session: sftp, connected: true, open: { _ in }, openWith: { _ in },
+                            canImportEditedCopy: { _ in false }, importEditedCopy: { _ in },
+                            download: { _ in }, copy: { _ in },
                             paste: {}, rename: { _ in }, editPermissions: { _ in }, delete: { _ in }
                         )
                         .navigationTitle(text(language, "Production files", "生产文件", "正式環境檔案"))

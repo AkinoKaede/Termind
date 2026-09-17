@@ -27,6 +27,9 @@ struct MobileSFTPBrowser: View {
     @Bindable var session: MobileSFTPSessionModel
     let connected: Bool
     let open: (RemoteFile) -> Void
+    let openWith: (RemoteFile) -> Void
+    let canImportEditedCopy: (RemoteFile) -> Bool
+    let importEditedCopy: (RemoteFile) -> Void
     let download: (RemoteFile) -> Void
     let copy: (RemoteFile) -> Void
     let paste: () -> Void
@@ -130,6 +133,13 @@ struct MobileSFTPBrowser: View {
         .contentShape(.rect)
         .contextMenu {
             Button("Open", systemImage: "arrow.up.right") { open(file) }
+            if !file.isDirectory {
+                Button("Open With…", systemImage: "arrow.up.forward.app") { openWith(file) }
+                    .disabled(!connected)
+                if canImportEditedCopy(file) {
+                    Button("Import Edited Copy…", systemImage: "square.and.arrow.down") { importEditedCopy(file) }
+                }
+            }
             Button("Download", systemImage: "square.and.arrow.down") { download(file) }
             Divider()
             Button("Copy", systemImage: "doc.on.doc") { copy(file) }

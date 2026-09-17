@@ -1,6 +1,13 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Import Edited Copy…" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"导入已编辑副本…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"輸入已編輯副本…"}}}},
+    "Choose an edited copy with the same file format as the original." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"请选择与原文件格式相同的已编辑副本。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請選擇與原始檔案格式相同的已編輯副本。"}}}},
+    "Open With" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"打开方式"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"打開方式"}}}},
+    "Open With…" : {"extractionState":"extracted","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"打开方式…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"打開方式…"}}}},
+    "Other…" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"其他…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"其他…"}}}},
+    "%@ (default)" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%@（默认）"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"%@（預設）"}}}},
+    "No installed app can open this file." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"没有已安装的应用可以打开此文件。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"沒有已安裝的App可以打開此檔案。"}}}},
     "Error Details" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"错误详情"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"錯誤詳細資訊"}}}},
     "The remote file changed. Review it before uploading again." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"远端文件已更改。请检查后再上传。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"遠端檔案已變更。請檢查後再上傳。"}}}},
     "The original connection is no longer available." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"原连接已不可用。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"原連線已無法使用。"}}}},
