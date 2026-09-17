@@ -33,6 +33,24 @@ nonisolated enum StatusBarPresentation {
     }
 }
 
+/// The direction worth showing inside the active transfer progress ring.
+///
+/// Only work that is actually moving bytes participates. Queued and historical
+/// transfers still contribute to the transfer center's existing counts and
+/// state, but they must not make a running upload or download look mixed.
+nonisolated enum StatusBarTransferPresentation {
+    static func runningDirectionSymbol(for transfers: [SFTPTransfer]) -> String {
+        let directions = Set(
+            transfers.lazy
+                .filter { $0.state == .running }
+                .map(\.direction)
+        )
+        if directions == [.upload] { return "arrow.up" }
+        if directions == [.download] { return "arrow.down" }
+        return "arrow.up.arrow.down"
+    }
+}
+
 /// Focused-session context and app-wide transfers, as one floating capsule.
 ///
 /// It used to be a docked strip with a hairline above it, which read as a piece
@@ -179,8 +197,11 @@ struct StatusBarView: View {
                             height: Metrics.Sidebar.statusDot
                         )
                 case .transfers:
-                    TransferGlyph(summary: app.sftpTransfers.summary)
-                        .frame(width: 18, height: 18)
+                    TransferGlyph(
+                        summary: app.sftpTransfers.summary,
+                        transfers: app.sftpTransfers.sftpTransfers
+                    )
+                    .frame(width: 18, height: 18)
                 }
             }
             .frame(
@@ -372,6 +393,7 @@ private struct StatusBarPathLabel: View {
 /// front of it.
 private struct TransferGlyph: View {
     let summary: SFTPTransferSummary
+    let transfers: [SFTPTransfer]
 
     @ViewBuilder
     var body: some View {
@@ -389,7 +411,7 @@ private struct TransferGlyph: View {
                 } else {
                     ProgressView().controlSize(.mini)
                 }
-                Image(systemName: "arrow.up")
+                Image(systemName: StatusBarTransferPresentation.runningDirectionSymbol(for: transfers))
                     .font(.system(size: 8, weight: .bold))
             }
         } else if summary.failedCount > 0 {
@@ -414,7 +436,8 @@ private struct TransferCenterButton: View {
             isPresented.toggle()
         } label: {
             HStack(spacing: Metrics.Space.xs) {
-                TransferGlyph(summary: summaryValue).frame(width: 18, height: 18)
+                TransferGlyph(summary: summaryValue, transfers: coordinator.sftpTransfers)
+                    .frame(width: 18, height: 18)
                 if summaryValue.activeCount > 0 {
                     Text(summaryValue.activeCount, format: .number)
                         .monospacedDigit()

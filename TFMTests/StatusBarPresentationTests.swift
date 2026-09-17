@@ -82,4 +82,72 @@ struct StatusBarPresentationTests {
         )
         #expect(Metrics.StatusBar.overlayClearance > Metrics.StatusBar.height)
     }
+
+    @Test
+    func runningUploadsUseTheUploadSymbol() {
+        let transfers = [
+            transfer(direction: .upload, state: .running),
+            transfer(direction: .upload, state: .running),
+        ]
+
+        #expect(StatusBarTransferPresentation.runningDirectionSymbol(for: transfers) == "arrow.up")
+    }
+
+    @Test
+    func runningDownloadsUseTheDownloadSymbol() {
+        let transfers = [
+            transfer(direction: .download, state: .running),
+            transfer(direction: .download, state: .running),
+        ]
+
+        #expect(StatusBarTransferPresentation.runningDirectionSymbol(for: transfers) == "arrow.down")
+    }
+
+    @Test
+    func copiesAndMixedDirectionsUseTheBidirectionalSymbol() {
+        #expect(
+            StatusBarTransferPresentation.runningDirectionSymbol(
+                for: [transfer(direction: .copy, state: .running)]
+            ) == "arrow.up.arrow.down"
+        )
+        #expect(
+            StatusBarTransferPresentation.runningDirectionSymbol(
+                for: [
+                    transfer(direction: .upload, state: .running),
+                    transfer(direction: .download, state: .running),
+                ]
+            ) == "arrow.up.arrow.down"
+        )
+    }
+
+    @Test
+    func onlyRunningTransfersChooseTheDirectionSymbol() {
+        let transfers = [
+            transfer(direction: .upload, state: .running),
+            transfer(direction: .download, state: .queued),
+            transfer(direction: .download, state: .paused),
+            transfer(direction: .download, state: .completed),
+            transfer(direction: .download, state: .cancelled),
+            transfer(direction: .download, state: .failed("Offline")),
+        ]
+
+        #expect(StatusBarTransferPresentation.runningDirectionSymbol(for: transfers) == "arrow.up")
+        #expect(
+            StatusBarTransferPresentation.runningDirectionSymbol(
+                for: [transfer(direction: .download, state: .queued)]
+            ) == "arrow.up.arrow.down"
+        )
+    }
+
+    private func transfer(
+        direction: SFTPTransfer.Direction,
+        state: SFTPTransfer.State
+    ) -> SFTPTransfer {
+        SFTPTransfer(
+            direction: direction,
+            localPath: "/tmp/file.txt",
+            remotePath: "/srv/file.txt",
+            state: state
+        )
+    }
 }
