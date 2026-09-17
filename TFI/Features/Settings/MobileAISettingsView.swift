@@ -38,8 +38,8 @@ struct MobileAISettingsView: View {
 enum MobileAISettingsDestination: String, CaseIterable, Identifiable {
     case models
     case skills
-    case memory
     case mcp
+    case memory
 
     var id: Self { self }
 

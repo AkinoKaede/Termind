@@ -108,7 +108,7 @@ struct AISettingsIntegrationTests {
         #expect(throws: (any Error).self) { try SkillImporter.read(file) }
     }
 
-    @Test func syncedLibrarySeedsOnceAndPreservesOtherSettings() throws {
+    @Test func syncedLibraryKeepsBuiltInsOutOfPersistenceAndPreservesOtherSettings() throws {
         let container = try TermindPersistence.makeContainer(inMemory: true)
         let domain = "AISettingsIntegrationTests.\(UUID())"
         let defaults = UserDefaults(suiteName: domain)!
@@ -116,11 +116,10 @@ struct AISettingsIntegrationTests {
         let persistence = SettingsSyncPersistence(context: container.mainContext, defaults: defaults)
         try persistence.prepare()
         let library = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(persistence))
-        let initial = library.skills
-        #expect(!initial.isEmpty)
-        library.delete(id: initial[0].id)
+        #expect(library.skills.isEmpty)
+        #expect(library.catalog.names == ["skill-creator", "skill-installer"])
         try persistence.prepare()
-        #expect(try persistence.load().skills.allSatisfy { $0.id != initial[0].id })
+        #expect(try persistence.load().skills.isEmpty)
         let ai = AIConfigurationModel(persistence: SyncedAIConfigurationPersistence(persistence))
         let server = MCPServer(name: "Preserved")
         ai.upsert(server)
@@ -128,9 +127,12 @@ struct AISettingsIntegrationTests {
         library.upsert(custom)
         #expect(try persistence.load().configuration.mcpServers == [server])
         #expect(try persistence.load().skills.contains { $0.id == custom.id })
-        library.resetToBuiltInSkills()
-        #expect(!library.skills.contains { $0.id == custom.id })
-        #expect(library.skills.count == AgentSkillLibrary.builtIns(after: 0).count)
+        #expect(library.skills.map(\.id) == [custom.id])
+        #expect(
+            try persistence.journal.pendingEnvelopes().allSatisfy {
+                guard case .skill(let skill, _) = $0.payload else { return true }
+                return !AgentSkillLibrary.reservedNames.contains(skill.name)
+            })
     }
 
     @Test func failedProviderTransactionKeepsModelsAndAssignmentsTogether() {

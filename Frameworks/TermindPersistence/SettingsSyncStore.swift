@@ -60,34 +60,12 @@ public final class SettingsSyncPersistence {
     }
 
     public func prepare() throws {
-        let seeded = defaults.integer(forKey: SettingsKey.seededSkillGeneration)
         var mutations = SettingsMutationSet.empty
         try context.commit {
             mutations.keys.formUnion(try journal.migrateLegacyGuardianRole().keys)
             try journal.discardInactiveEntries()
-            if try !journal.state().bootstrapCompleted {
-                let installed = try skills.load()
-                let normalized = Self.normalizeBuiltIns(installed, seededGeneration: seeded)
-                try skills.replace(normalized.skills)
-                let snapshot = try load()
-                try journal.bootstrapIfNeeded(snapshot)
-                let writer = try journal.state().installationID
-                for id in normalized.deleted {
-                    let key = SettingsRecordKey(kind: .skill, id: id.uuidString.lowercased())
-                    let envelope = SettingsEnvelope(
-                        key: key, version: .baseline(writerID: writer), isDeleted: true)
-                    context.insert(try PersistentAIConfigurationSyncEntry(envelope: envelope, needsUpload: true))
-                }
-            } else if seeded < AgentSkillLibrary.currentGeneration {
-                let previous = try load()
-                var installed = previous.skills
-                for skill in AgentSkillLibrary.builtIns(after: seeded) {
-                    let key = SettingsRecordKey(kind: .skill, id: skill.id.uuidString.lowercased())
-                    if try journal.envelope(for: key) == nil { installed.append(skill) }
-                }
-                try skills.replace(installed)
-                mutations.keys.formUnion(try journal.recordLocalChanges(from: previous, to: load()).keys)
-            }
+            let previous = try load()
+            mutations.keys.formUnion(try journal.bootstrapIfNeeded(previous).keys)
             // V14 adds Terminal preferences to stores whose V13 bootstrap is already complete.
             let terminal = SettingsRecordPayload.terminal(try terminalPreferences().load())
             if try journal.envelope(for: terminal.key) == nil {
@@ -97,35 +75,10 @@ public final class SettingsSyncPersistence {
                 mutations.keys.insert(terminal.key)
             }
         }
-        defaults.set(AgentSkillLibrary.currentGeneration, forKey: SettingsKey.seededSkillGeneration)
         let snapshot = try load()
         mirror(snapshot.webSearch)
         snapshot.terminal.mirror(to: defaults)
         didRecordChanges?(mutations)
-    }
-
-    public static func normalizeBuiltIns(_ installed: [AgentSkill], seededGeneration: Int)
-        -> (skills: [AgentSkill], deleted: Set<UUID>)
-    {
-        var result = installed
-        var deleted = Set<UUID>()
-        let newIDs = Set(AgentSkillLibrary.builtIns(after: seededGeneration).map(\.id))
-        for builtIn in AgentSkillLibrary.builtIns(after: 0) {
-            let matching = result.indices.filter {
-                result[$0].id == builtIn.id
-                    || (result[$0].name == builtIn.name && result[$0].title == builtIn.title
-                        && result[$0].summary == builtIn.summary && result[$0].body == builtIn.body)
-            }
-            if let first = matching.first {
-                result[first].id = builtIn.id
-                for index in matching.dropFirst().reversed() { result.remove(at: index) }
-            } else if newIDs.contains(builtIn.id) {
-                result.append(builtIn)
-            } else {
-                deleted.insert(builtIn.id)
-            }
-        }
-        return (result, deleted)
     }
 
     public func load() throws -> SettingsSyncSnapshot {

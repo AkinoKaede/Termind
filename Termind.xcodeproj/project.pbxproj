@@ -58,6 +58,12 @@
 		B08DD88AB7C2444E5AEC19BC /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		B1821FD31E7D009C900B5557 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		B616FF213FC31346E6BB3817 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
+		BAAD00000000000000000003 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
+		BAAD00000000000000000010 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
+		BAAD00000000000000000011 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
+		BAAD00000000000000000012 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
+		BAAD00000000000000000013 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
+		BAAD00000000000000000014 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
 		C2D4B372BA5A040DDBCEFC85 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		C4AD00000000000000000001 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100015 /* ZIPFoundation */; };
 		C4AD00000000000000000002 /* MarkdownView in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100017 /* MarkdownView */; };
@@ -82,12 +88,6 @@
 		TRMD0000000000000010000D /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		TRMD0000000000000010000E /* AgentKitScrubber in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001C /* AgentKitScrubber */; };
 		TRMD0000000000000010000F /* AgentKitScrubber in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001C /* AgentKitScrubber */; };
-		BAAD00000000000000000003 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
-		BAAD00000000000000000010 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
-		BAAD00000000000000000011 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
-		BAAD00000000000000000012 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
-		BAAD00000000000000000013 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
-		BAAD00000000000000000014 /* GRDB in Frameworks */ = {isa = PBXBuildFile; productRef = BAAD00000000000000000002 /* GRDB */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -2553,6 +2553,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/groue/GRDB.swift.git";
+			requirement = {
+				kind = exactVersion;
+				version = 7.11.1;
+			};
+		};
 		TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Lakr233/libssh2-spm.git";
@@ -2614,17 +2622,17 @@
 			repositoryURL = "https://github.com/AkinoKaede/AgentKit.git";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 0.12.3;
+				minimumVersion = 0.13.0;
 			};
-		};
-		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/groue/GRDB.swift.git";
-			requirement = { kind = exactVersion; version = 7.11.1; };
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BAAD00000000000000000002 /* GRDB */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
+			productName = GRDB;
+		};
 		TRMD00000000000000100011 /* CSSH2 */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */;
@@ -2679,11 +2687,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */;
 			productName = AgentKitScrubber;
-		};
-		BAAD00000000000000000002 /* GRDB */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
-			productName = GRDB;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

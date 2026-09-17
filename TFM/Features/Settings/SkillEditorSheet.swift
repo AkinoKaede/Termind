@@ -18,6 +18,7 @@ import UniformTypeIdentifiers
 struct SkillEditorPage: View {
     let skillID: AgentSkill.ID
     let deleted: () -> Void
+    @State private var replacementName = ""
 
     @Environment(AppModel.self) private var app
 
@@ -105,6 +106,11 @@ struct SkillEditorPage: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             } else if hasNameConflict {
+                TextField("Name", text: $replacementName.singleLineText).singleLinePaste()
+                Button("Rename") { app.skills.renameConflictingSkill(skillID, to: replacementName) }
+                    .disabled(
+                        !AgentSkillNaming.isValid(replacementName)
+                            || app.skills.hasNameConflict(replacementName, excluding: skillID))
                 Label("Another skill already uses this name.", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)

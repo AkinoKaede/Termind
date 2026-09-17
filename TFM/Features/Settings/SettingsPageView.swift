@@ -167,7 +167,6 @@ struct SettingsPageView: View {
                 }
                 ModelRoleSettings()
                 WebSearchSettings()
-                MemorySettingsSection(memory: app.memory, ai: app.aiConfiguration)
                 SkillSettings(
                     edit: { id, isNew in navigate(to: .skill(id, isNew: isNew)) }
                 )
@@ -175,6 +174,7 @@ struct SettingsPageView: View {
                     edit: { id, isNew in navigate(to: .mcpServer(id, isNew: isNew)) },
                     openServer: { navigate(to: .localMCPServer) }
                 )
+                MemorySettingsSection(memory: app.memory, ai: app.aiConfiguration)
             }
         case .sync:
             SettingsFormPage {

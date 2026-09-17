@@ -16,7 +16,6 @@ struct SkillSettings: View {
 
     @State private var importError: String?
     @State private var importWarnings: [String] = []
-    @State private var isConfirmingReset = false
 
     var body: some View {
         Section {
@@ -37,27 +36,7 @@ struct SkillSettings: View {
                 edit(skill.id, true)
             }
 
-            HStack {
-                Button("Import Skill") { importSkill() }
-                Spacer(minLength: Metrics.Space.m)
-                Button("Reset") { isConfirmingReset = true }
-            }
-            .confirmationDialog(
-                "Replace every skill with the ones Termind ships with?",
-                isPresented: $isConfirmingReset,
-                titleVisibility: .visible
-            ) {
-                Button("Reset", role: .destructive) {
-                    importError = nil
-                    importWarnings = []
-                    app.skills.resetToBuiltInSkills()
-                }
-                Button("Cancel", role: .cancel) { isConfirmingReset = false }
-            } message: {
-                Text(
-                    "Skills you wrote, imported or edited are deleted. This cannot be undone — export anything you want to keep first."
-                )
-            }
+            Button("Import Skill") { importSkill() }
 
             Text(
                 "A skill is a procedure the assistant loads when a task matches its description, and then follows. It never approves an action: commands, writes and transfers still ask exactly as they would otherwise."

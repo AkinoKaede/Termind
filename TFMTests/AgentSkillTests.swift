@@ -453,10 +453,10 @@ struct SkillLibraryModelTests {
         let library = SkillLibraryModel()
         let skill = AgentSkill(name: "disk-triage", summary: "s", body: "b")
         library.upsert(skill)
-        #expect(library.catalog.names == ["disk-triage"])
+        #expect(Set(library.catalog.names) == AgentSkillLibrary.reservedNames.union(["disk-triage"]))
 
         library.setEnabled(false, for: skill.id)
-        #expect(library.catalog.isEmpty)
+        #expect(library.catalog.names == AgentSkillLibrary.builtIns.map(\.name))
     }
 
     @Test
@@ -507,91 +507,14 @@ struct SkillLibraryModelTests {
         #expect(library.skills.count == 2)
     }
 
-    // MARK: - Starter skills
-
-    /// A built-in that never reaches the catalog is a built-in nobody can use.
-    @Test
-    func everyStarterSkillIsUsableAsShipped() throws {
-        let built = AgentSkillLibrary.builtIns(after: 0)
-        #expect(!built.isEmpty)
-        for skill in built {
-            #expect(AgentSkillNaming.isValid(skill.name), "bad name: \(skill.name)")
-            #expect(skill.isComplete, "incomplete: \(skill.name)")
-            #expect(skill.isEnabled)
-            #expect(skill.summary.count <= AgentSkill.maximumSummaryCharacters)
-            #expect(skill.body.utf8.count <= AgentSkill.maximumBodyBytes)
-        }
-        #expect(Set(built.map(\.name)).count == built.count)
-        #expect(AgentSkillCatalog(built).names.count == built.count)
-    }
-
-    @Test
-    func starterSkillsAreCopiedInOnceAndDeletingOneIsPermanent() throws {
-        let defaults = try makeDefaults()
+    @Test func builtInSkillsAreUsableWithoutBeingStored() throws {
         let persistence = FailingSkillPersistence()
-
-        let first = SkillLibraryModel(persistence: persistence, seedDefaults: defaults)
-        let seeded = AgentSkillLibrary.builtIns(after: 0)
-        #expect(first.skills.count == seeded.count)
-        #expect(
-            defaults.integer(forKey: SettingsKey.seededSkillGeneration)
-                == AgentSkillLibrary.currentGeneration
-        )
-
-        let removed = try #require(first.skills.first)
-        first.delete(id: removed.id)
-
-        // A second launch against the same store and the same defaults.
-        let second = SkillLibraryModel(persistence: persistence, seedDefaults: defaults)
-        #expect(second.skills.count == seeded.count - 1)
-        #expect(!second.skills.contains { $0.id == removed.id })
-    }
-
-    @Test
-    func aLibraryWithNoDefaultsIsSeededWithNothing() {
-        let library = SkillLibraryModel(persistence: FailingSkillPersistence())
+        let library = SkillLibraryModel(persistence: persistence)
         #expect(library.skills.isEmpty)
-    }
-
-    /// Reset is a replacement, and the confirmation says so: whatever the
-    /// library had become, what is left afterwards is the starter set exactly.
-    @Test
-    func resetReplacesTheWholeLibraryWithTheStarterSkills() throws {
-        let defaults = try makeDefaults()
-        let library = SkillLibraryModel(
-            persistence: FailingSkillPersistence(), seedDefaults: defaults
-        )
-        let shipped = AgentSkillLibrary.builtIns(after: 0)
-        library.upsert(AgentSkill(name: "my-runbook", summary: "Mine.", body: "Mine."))
-
-        // One deleted, one edited and switched off.
-        let deleted = try #require(library.skill(named: shipped[0].name))
-        library.delete(id: deleted.id)
-        var edited = try #require(library.skill(named: shipped[1].name))
-        edited.body = "gutted"
-        library.upsert(edited)
-        library.setEnabled(false, for: edited.id)
-
-        #expect(library.resetToBuiltInSkills() == shipped.count)
-
-        #expect(library.skills.map(\.name) == shipped.map(\.name))
-        #expect(library.skills.map(\.body) == shipped.map(\.body))
-        #expect(library.skills.allSatisfy { $0.isEnabled })
-        #expect(library.skill(named: "my-runbook") == nil)
-        #expect(library.catalog.names == shipped.map(\.name))
-    }
-
-    /// Reset marks the store as fully seeded, so the next launch does not add
-    /// the starter skills a second time.
-    @Test
-    func resetLeavesNothingForSeedingToAdd() throws {
-        let defaults = try makeDefaults()
-        let persistence = FailingSkillPersistence()
-        let library = SkillLibraryModel(persistence: persistence, seedDefaults: defaults)
-        library.resetToBuiltInSkills()
-
-        let relaunched = SkillLibraryModel(persistence: persistence, seedDefaults: defaults)
-        #expect(relaunched.skills.count == AgentSkillLibrary.builtIns(after: 0).count)
+        #expect(library.catalog.names == ["skill-creator", "skill-installer"])
+        #expect(library.snapshot.revision == library.snapshot.revision)
+        for skill in AgentSkillLibrary.builtIns { try skill.validateForInstallation() }
+        #expect(library.snapshot.readOnlyNames == AgentSkillLibrary.reservedNames)
     }
 
     /// The migration an existing install actually performs. Additive and

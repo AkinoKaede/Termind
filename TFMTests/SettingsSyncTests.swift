@@ -113,7 +113,6 @@ struct SettingsSyncTests {
         defaults.set(false, forKey: SettingsKey.webSearchEnabled)
         defaults.set(17.0, forKey: SettingsKey.terminalFontSize)
         defaults.set("font-family = Menlo", forKey: SettingsKey.terminalCustomConfigurationDark)
-        defaults.set(1, forKey: SettingsKey.seededSkillGeneration)
         let store = SettingsSyncPersistence(context: migrated.mainContext, defaults: defaults)
         try store.prepare()
         let snapshot = try store.load()
@@ -451,6 +450,7 @@ struct SettingsSyncTests {
     func environmentResetRetainsDeletesButAccountMergeDoesNotUploadOldAccountDeletes() throws {
         let (container, store, _) = try fixture()
         defer { withExtendedLifetime(container) {} }
+        try store.saveSkills([AgentSkill(name: "deleted", summary: "s", body: "b")])
         try store.saveSkills([])
         try store.journal.markAllEntriesNeedsUploadAfterEnvironmentChange()
         #expect(try store.journal.pendingEnvelopes().contains(where: \.isDeleted))
@@ -458,19 +458,33 @@ struct SettingsSyncTests {
         #expect(try !store.journal.pendingEnvelopes().contains(where: \.isDeleted))
     }
 
-    @Test
-    func legacyBuiltInsGetStableIDsWithoutDiscardingCustomizations() {
-        let shipped = AgentSkillLibrary.builtIns(after: 0)
-        var unchanged = shipped[0]
-        unchanged.id = UUID()
-        var edited = shipped[1]
-        edited.id = UUID()
-        edited.body += "\nMy edits"
-        let result = SettingsSyncPersistence.normalizeBuiltIns([unchanged, edited], seededGeneration: 1)
-        #expect(result.skills.first?.id == shipped[0].id)
-        #expect(result.skills.contains { $0 == edited })
-        #expect(result.deleted == [shipped[1].id, shipped[2].id])
-        #expect(Set(shipped.map(\.id)) == Set(AgentSkillLibrary.builtIns(after: 0).map(\.id)))
+    @Test func existingSkillsRemainUserOwnedAcrossPreparationAndSync() throws {
+        let (container, store, _) = try fixture()
+        defer { withExtendedLifetime(container) {} }
+        let existing = AgentSkill(
+            name: "existing-procedure", title: "My Procedure", summary: "Keep the installed procedure.",
+            body: "Read the existing instructions.", isEnabled: false,
+            package: .init(files: ["notes.md": Data("My notes".utf8)]))
+        try store.saveSkills([existing])
+        let key = SettingsRecordKey(kind: .skill, id: existing.id.uuidString.lowercased())
+        let original = try #require(try store.journal.envelope(for: key))
+        try store.prepare()
+        try store.prepare()
+        #expect(try store.load().skills == [existing])
+        #expect(try store.journal.envelope(for: key) == original)
+        var updated = existing
+        updated.body = "Instructions edited on another device."
+        let incoming = SettingsEnvelope(
+            key: key, version: .next(after: original.version, writerID: UUID(), now: .now),
+            payload: .skill(updated, sortIndex: 0))
+        let result = try store.applyRemote([incoming])
+        #expect(result.snapshot.skills == [updated])
+        #expect(try store.journal.envelope(for: key)?.isDeleted == false)
+        let library = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(store))
+        #expect(library.skills == [updated])
+        library.delete(id: updated.id)
+        try store.prepare()
+        #expect(try store.load().skills.isEmpty)
     }
 
     @Test
@@ -486,7 +500,7 @@ struct SettingsSyncTests {
             AgentSkill(id: high, name: "shared", title: "Second", summary: "Procedure", body: "Second"),
             AgentSkill(id: low, name: "shared", title: "First", summary: "Procedure", body: "First"),
         ])
-        #expect(library.enabledSkills.map(\.id) == [low])
+        #expect(library.enabledSkills.map(\.id) == AgentSkillLibrary.builtIns.map(\.id) + [low])
     }
 
     @Test

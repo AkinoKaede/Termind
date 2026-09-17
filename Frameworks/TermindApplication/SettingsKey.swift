@@ -22,7 +22,6 @@ public nonisolated enum SettingsKey {
     /// Device-local forwarding intent. It is deliberately excluded from Settings and Vault sync.
     public static let portForwardingEnabledRuleIDs = "portForwarding.enabledRuleIDs"
     public static let remoteWindowTitleInMenuBar = "terminal.remoteWindowTitleInMenuBar"
-    public static let seededSkillGeneration = "assistant.skills.seededGeneration"
     public static let settingsSyncEnabled = "settings.sync.enabled"
     public static let settingsSyncEnvironment = "settings.sync.environment"
     public static let shellIntegration = "terminal.shellIntegration"

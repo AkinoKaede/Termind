@@ -85,7 +85,7 @@ public struct MemorySettingsSection: View {
     private var section: some View {
         Section {
             Toggle(
-                "Enable Memory",
+                "Enabled",
                 isOn: Binding(
                     get: { memory.isEnabled },
                     set: { enabled in

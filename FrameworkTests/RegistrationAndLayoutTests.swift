@@ -31,8 +31,8 @@ struct RegistrationAndLayoutTests {
             newConversation: {}
         )
 
-        #expect(Set(registry.commands(in: desktop).map(\.id)) == ["archive", "compact", "new", "plan"])
-        #expect(Set(registry.commands(in: mobile).map(\.id)) == ["compact", "plan"])
+        #expect(Set(registry.commands(in: desktop).map(\.id)) == ["archive", "compact", "new", "plan", "skill"])
+        #expect(Set(registry.commands(in: mobile).map(\.id)) == ["compact", "plan", "skill"])
         #expect(registry.commands(in: mobile).allSatisfy { $0.platforms.contains(.mobile) })
     }
 

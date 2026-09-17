@@ -210,7 +210,9 @@ public final class AssistantExecutionController {
             conversation, chat.model, chat.provider, skillCatalog, channel, includesTerminalSuggestion)
         let skillRegistry = AgentToolCatalog.registry(
             builtIn: .init(
-                groups: [.skills, .memory], skills: skillCatalog, skillInventory: skills.skills, skillLibrary: skills,
+                groups: [.skills, .memory], skills: skillCatalog, skillInventory: skills.inventory,
+                readOnlySkillNames: AgentSkillLibrary.reservedNames,
+                skillPackageResolver: GitHubSkillPackageResolver(), skillLibrary: skills,
                 memory: memorySession?.access))
         let registry =
             chat.model.abilities.contains(.toolCall)

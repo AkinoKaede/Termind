@@ -10,7 +10,6 @@ struct MobileSkillSettings: View {
     @State private var editing: AgentSkill?
     @State private var deleting: AgentSkill?
     @State private var importing = false
-    @State private var reset = false
     @State private var warnings: [String] = []
     @State private var error: String?
     private let markdown = UTType(filenameExtension: "md") ?? .plainText
@@ -68,8 +67,6 @@ struct MobileSkillSettings: View {
                     .labelStyle(.iconOnly)
                 Menu {
                     Button("Import Skill", systemImage: "square.and.arrow.down") { importing = true }
-                    Divider()
-                    Button("Reset", systemImage: "arrow.counterclockwise", role: .destructive) { reset = true }
                 } label: {
                     MobileOverflowMenuLabel("More")
                 }
@@ -100,15 +97,7 @@ struct MobileSkillSettings: View {
                 deleting = nil
             }
         }
-        .confirmationDialog(
-            "Replace every skill with the ones Termind ships with?", isPresented: $reset, titleVisibility: .visible
-        ) {
-            Button("Reset", role: .destructive) { skills.resetToBuiltInSkills() }
-        } message: {
-            Text(
-                "Skills you wrote, imported or edited are deleted. This cannot be undone — export anything you want to keep first."
-            )
-        }
+
     }
 }
 
@@ -136,6 +125,10 @@ struct MobileSkillEditor: View {
                         TextField("Title", text: $model.draft.title.singleLineText, axis: .horizontal).singleLinePaste()
                             .lineLimit(1)
                             .multilineTextAlignment(.trailing)
+                    }
+                    if library.conflictingSkillIDs.contains(model.original.id) {
+                        TextField("Name", text: $model.draft.name.singleLineText).singleLinePaste()
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
                     }
                     LabeledContent("Name") {
                         Text(

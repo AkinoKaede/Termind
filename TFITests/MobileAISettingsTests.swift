@@ -147,6 +147,10 @@ struct MobileAISettingsTests {
         #expect(!probes.running)
     }
 
+    @Test func memoryFollowsMCPInAISettings() {
+        #expect(MobileAISettingsDestination.allCases == [.models, .skills, .mcp, .memory])
+    }
+
     @Test func skillsSaveAsDraftsThenLockNamesWithoutChangingRemoteFields() throws {
         let library = SkillLibraryModel()
         let new = MobileSkillEditorModel(library: library, skill: AgentSkill(name: ""))
@@ -154,7 +158,7 @@ struct MobileAISettingsTests {
         try new.save()
         var saved = try #require(library.skill(new.original.id))
         #expect(saved.name == "disk-check")
-        #expect(library.enabledSkills.isEmpty)
+        #expect(library.enabledSkills == AgentSkillLibrary.builtIns)
         let editor = MobileSkillEditorModel(library: library, skill: saved)
         editor.draft.title = "A different title"
         editor.draft.body = "Read disk usage."

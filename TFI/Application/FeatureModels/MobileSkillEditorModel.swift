@@ -28,6 +28,14 @@ final class MobileSkillEditorModel {
                 throw MobileEditorError.message(String(localized: "Skill Deleted"))
             }
             var fields = SettingsFields(original, draft, current)
+            if draft.name != original.name {
+                guard library.conflictingSkillIDs.contains(original.id), AgentSkillNaming.isValid(draft.name),
+                    !library.hasNameConflict(draft.name, excluding: draft.id)
+                else {
+                    throw MobileEditorError.message(String(localized: "Another skill already uses this name."))
+                }
+                try fields.merge(\.name)
+            }
             try fields.merge(\.isEnabled)
             try fields.merge(\.title)
             try fields.merge(\.summary)

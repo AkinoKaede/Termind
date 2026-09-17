@@ -399,7 +399,24 @@ Every call has an approval policy before the run's permission mode is consulted:
 - MCP tools follow Deny, Ask, or Approve in both acting and planning runs.
 
 Skills are global, app-managed packages. Settings imports and approved `skill_manage`
-transactions use the same library and Settings sync journal. `skills_list` snapshots
+transactions use the same user library and Settings sync journal. Skill Creator and
+Skill Installer are immutable application instructions merged into runtime snapshots;
+they appear in the catalog, `/skill`, and read tools, but never in Settings, persistence,
+or sync. Their reserved names cannot be shadowed or mutated. Existing user collisions
+remain visible and paused until renamed. There is no starter seeding or Skills Reset.
+Previously installed starter skills remain ordinary user-owned records, including
+unchanged or disabled copies. Their identities, contents, resources, and sync behavior
+are preserved without migration or special recognition; new installations start with
+an empty user library. The old starter definitions and fixtures are not shipped.
+
+`skill_install` is acting-only and uses the existing Ask/Guardian/Full Access boundary.
+AgentKit resolves public GitHub skill directories to one commit, bounds and verifies
+all downloaded bytes, and rejects redirects, symlinks, submodules and incomplete packages.
+A run-owned in-memory staging area binds reviewed source, files and installation name
+to the invocation; execution commits only those bytes against the reviewed library revision.
+Termind alone persists the complete package and Settings sync intent in one transaction.
+Installation executes no scripts, never overwrites an existing name, and becomes
+available on the next run. `skills_list` snapshots
 inventory, and `skill_read_file` reads bounded SKILL.md instructions or paged supporting
 resources. Only SKILL.md is an instructional result; supporting files remain reference
 data and no frontmatter grants permission. Mutations are acting-only, Ask, atomic, and
@@ -409,7 +426,7 @@ name has historical presentation/replay support only. V18 adds independent packa
 backing while V1-V17 models remain frozen. Complete packages sync with existing skills;
 legacy records without package fields cannot erase supporting files.
 
-Hermes Memory is a device-local, default-off feature. AgentKit owns generic memory
+Hermes Memory (持久化记忆 / 持久化記憶 in Chinese) is a device-local, default-off feature. AgentKit owns generic memory
 values, content screening, tools, learning, and revocable prompt snapshots; Application
 owns lifecycle and UI state; Persistence alone imports GRDB. Its dedicated Application
 Support database stores bounded global `memory` (2200 Unicode scalars) and `user`
@@ -554,8 +571,8 @@ Keychain delivery from reviving cleared values. Custom MCP headers and terminal 
 are ordinary synchronized settings, but explicit credentials never enter CloudKit.
 
 Journals retain tombstones and unresolved references across partial fetches. Baseline
-defaults yield to cloud records. Built-in skills keep stable IDs; customizations and
-deletions survive migration. Duplicate skill names/MCP namespaces retain data, but
+defaults yield to cloud records. Application skills stay outside synchronized records; previously installed starters
+remain user-owned, and user deletions survive migration. Duplicate skill names/MCP namespaces retain data, but
 only the lowest UUID executes until resolved. Metrics keeps one versioned record per
 host; records whose Vault host is absent remain hidden, and samples, prompts, secrets,
 and UI preferences never enter its zone.
@@ -586,7 +603,7 @@ foreground updates.
 
 Mobile Settings exposes App, Terminal, SFTP, AI, and Sync. The macOS window-title
 preference stays synchronized but has no mobile control; there is no Live Activities
-settings page. AI manages Models, Skills, and MCP with explicit-save drafts. Network
+settings page. AI lists Models, Skills, MCP, then Hermes Memory; user skills and MCP use explicit-save drafts. Network
 tests/discovery use ephemeral snapshots, cancel on editor/config changes, and cannot
 repopulate discarded drafts. Secrets remain in memory until atomic save and roll back
 on metadata failure. Mobile does not start the local MCP listener.

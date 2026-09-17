@@ -176,3 +176,12 @@ Verification audit (2026-09-16 UTC):
 - Action: remove the executable `LoadSkillTool` and register `skill_read_file`; retain only the historical presenter ID and replay compatibility.
 - Estimated reduction: remove roughly 100 lines of the superseded loader; package management is an additive feature, not a net code-reduction claim.
 - Status: implemented. AgentKit tests pass; application skill, migration, memory lifecycle, and mobile suites have been exercised.
+
+
+## 2026-09-17 — Replace seeded runbooks with immutable skill helpers
+
+- Evidence: `AgentSkillLibrary` shipped three editable runbooks; `SkillLibraryModel` and `SettingsSyncPersistence` both seeded them, and both apps exposed a destructive library-wide Reset.
+- Action: replace the seeds with two runtime-only skills and remove generation seeding, Reset, and old runbook definitions/fixtures. Previously installed starters remain ordinary user-owned records without content rewriting or automatic deletion. Keep conflict repair in native editors and use the existing atomic skill/sync persistence boundary for package installation.
+- Estimated reduction: roughly 200 production lines from retired runbooks, duplicated seeding and Reset UI, excluding the new installer capability and migration tests.
+- Status: implemented. AgentKit 0.13.0 is signed and published; 213 package tests passed. Existing skills remain user-owned and the Chinese memory label is 持久化记忆 / 持久化記憶.
+- Verification: the final iOS run passed all 452 tests. The macOS app run passed 1,183 tests; AppLanguageTests passed again independently. The refreshed shared-framework run passed 231 of 232 tests, with the existing `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable` PNG byte-equality failure remaining. New skill/library/sync tests passed, bilingual native screenshots were reviewed, and strict formatting, Chinese localization and whitespace checks passed.
