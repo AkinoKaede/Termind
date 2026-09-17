@@ -1755,7 +1755,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				GENERATE_INFOPLIST_FILE = YES;
 				ICLOUD_CONTAINER_ENVIRONMENT = Development;
 				INFOPLIST_FILE = TFI/Info.plist;
@@ -1763,6 +1763,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Termind uses the camera to attach photos to your chat.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Authenticate to use your SSH keys.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Termind connects to servers and model providers on your local network.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Termind uses the microphone to transcribe speech into your chat draft.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -1776,7 +1777,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.8.2;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_MODULE_NAME = TermindIOS;
 				PRODUCT_NAME = Termind;
@@ -2027,7 +2028,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = TFI/TFI.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 15;
+				CURRENT_PROJECT_VERSION = 16;
 				GENERATE_INFOPLIST_FILE = YES;
 				ICLOUD_CONTAINER_ENVIRONMENT = Production;
 				INFOPLIST_FILE = TFI/Info.plist;
@@ -2035,6 +2036,7 @@
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "Termind uses the camera to attach photos to your chat.";
 				INFOPLIST_KEY_NSFaceIDUsageDescription = "Authenticate to use your SSH keys.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Termind connects to servers and model providers on your local network.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Termind uses the microphone to transcribe speech into your chat draft.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Termind uses Apple Speech Recognition to turn your recording into text. Depending on system settings and language support, Apple may process the audio online.";
 				INFOPLIST_KEY_NSSupportsLiveActivities = YES;
@@ -2048,7 +2050,7 @@
 					"@executable_path/Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.8.2;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_MODULE_NAME = TermindIOS;
 				PRODUCT_NAME = Termind;
@@ -2265,7 +2267,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_APP_SANDBOX = YES;
@@ -2282,7 +2284,7 @@
 				);
 				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.8.3;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_MODULE_NAME = Termind;
 				PRODUCT_NAME = Termind;
@@ -2302,7 +2304,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 24;
+				CURRENT_PROJECT_VERSION = 25;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "";
 				ENABLE_APP_SANDBOX = YES;
@@ -2323,7 +2325,7 @@
 				);
 				LM_SKIP_METADATA_EXTRACTION = YES;
 				MACOSX_DEPLOYMENT_TARGET = 15.0;
-				MARKETING_VERSION = 1.8.3;
+				MARKETING_VERSION = 1.9.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.akinokaede.termind;
 				PRODUCT_MODULE_NAME = Termind;
 				PRODUCT_NAME = Termind;
