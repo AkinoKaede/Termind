@@ -43,12 +43,16 @@ public struct SkillPackageEditor: View {
                     }
                 }
             }
-            Button("Add Text File") {
-                path = "references/notes.md"
-                text = ""
-                editing = true
-            }
-            Button("Import Resource") { importing = true }
+            #if os(macOS)
+                HStack(spacing: 8) {
+                    addFileButtons
+                    Spacer()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            #else
+                addFileButtons
+            #endif
             if let error { Text(error).font(.caption).foregroundStyle(.red) }
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.data]) { result in
@@ -87,6 +91,16 @@ public struct SkillPackageEditor: View {
             }.frame(minWidth: 320, minHeight: 360)
         }
     }
+    @ViewBuilder
+    private var addFileButtons: some View {
+        Button("Add Text File") {
+            path = "references/notes.md"
+            text = ""
+            editing = true
+        }
+        Button("Import Resource") { importing = true }
+    }
+
     private func save(_ data: Data, at path: String) throws {
         var updated = package ?? AgentSkillPackage()
         updated.files[path] = data

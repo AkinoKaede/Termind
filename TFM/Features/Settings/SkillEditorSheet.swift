@@ -49,13 +49,15 @@ struct SkillEditorPage: View {
                         // equals and Delete sits directly under the pointer
                         // after an Export.
                         HStack {
-                            Button("Export Skill Package") { export(skill) }
+                            Button("Export") { export(skill) }
                             Spacer(minLength: Metrics.Space.m)
-                            Button("Delete Skill", role: .destructive) {
+                            Button("Delete", role: .destructive) {
                                 app.skills.delete(id: skillID)
                                 deleted()
                             }
                         }
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
                     }
                 }
                 .formStyle(.grouped)

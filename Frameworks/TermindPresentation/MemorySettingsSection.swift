@@ -4,71 +4,43 @@ import TermindApplication
 import UniformTypeIdentifiers
 
 public struct MemorySettingsSection: View {
+    /// A section embeds its actions; a page owns its form and navigation toolbar.
+    public enum Layout { case section, page }
+
     @Bindable private var memory: MemoryModel
     private let ai: AIConfigurationModel
+    private let layout: Layout
     @State private var confirmDestroy = false
     @State private var editing: AgentMemoryTarget?
     @State private var draft = ""
     @State private var exporting = false
     @State private var exportError: String?
-    public init(memory: MemoryModel, ai: AIConfigurationModel) {
+    public init(memory: MemoryModel, ai: AIConfigurationModel, layout: Layout = .section) {
         self.memory = memory
         self.ai = ai
+        self.layout = layout
     }
     public var body: some View {
-        Section {
-            Toggle(
-                "Enable Memory",
-                isOn: Binding(
-                    get: { memory.isEnabled },
-                    set: { enabled in
-                        Task { await memory.setEnabled(enabled) }
-                    })
-            ).disabled(memory.isBusy)
-            Text(
-                "Memory is saved on this device. New conversations receive a fixed snapshot of your notes and profile."
-            )
-            .font(.caption).foregroundStyle(.secondary)
-            if memory.isEnabled {
-                Toggle("Automatic Learning", isOn: $memory.reviewEnabled)
-                Picker("Learning Model", selection: $memory.reviewModel) {
-                    Text("Same as Chat").tag(AIModelRef?.none)
-                    ForEach(ai.enabledModelProviders) { provider in
-                        Section(provider.name) {
-                            ForEach(provider.chatModels) { model in
-                                Text(model.label).tag(
-                                    AIModelRef?.some(.init(modelProviderID: provider.id, modelID: model.id)))
+        Group {
+            if layout == .page {
+                Form { section }
+                    .toolbar {
+                        ToolbarItem(placement: .primaryAction) {
+                            Menu {
+                                if memory.isEnabled {
+                                    exportButton
+                                    rebuildButton
+                                    Divider()
+                                }
+                                destroyButton
+                            } label: {
+                                Image(systemName: "ellipsis").accessibilityLabel(Text("More"))
                             }
                         }
                     }
-                }
-                Text("Automatic learning uses your configured model and may incur API charges.")
-                    .font(.caption).foregroundStyle(.secondary)
-                ForEach(AgentMemoryTarget.allCases, id: \.self) { target in
-                    Button {
-                        draft = memory.state.text(target)
-                        editing = target
-                    } label: {
-                        HStack {
-                            Text(target == .memory ? "Memory Notes" : "User Profile")
-                            Spacer()
-                            Text("\(memory.state.usage(target))/\(target.characterLimit)")
-                                .monospacedDigit().foregroundStyle(.secondary)
-                        }
-                    }
-                }
-                Button("Export Memory") { exporting = true }
-                Button("Rebuild History Index") { Task { await memory.rebuildHistoryIndex() } }.disabled(
-                    memory.isIndexing)
-                if memory.isIndexing { ProgressView("Indexing History") }
+            } else {
+                section
             }
-            if let error = exportError ?? memory.error {
-                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
-            }
-            Button("Destroy", role: .destructive) { confirmDestroy = true }.disabled(memory.isBusy)
-            if memory.isBusy { ProgressView() }
-        } header: {
-            Text("Hermes Memory")
         }
         .task { await memory.refresh() }
         .confirmationDialog("Destroy Memory?", isPresented: $confirmDestroy, titleVisibility: .visible) {
@@ -108,6 +80,114 @@ public struct MemorySettingsSection: View {
         ) { result in
             if case .failure(let error) = result { exportError = error.localizedDescription }
         }
+    }
+
+    private var section: some View {
+        Section {
+            Toggle(
+                "Enable Memory",
+                isOn: Binding(
+                    get: { memory.isEnabled },
+                    set: { enabled in
+                        Task { await memory.setEnabled(enabled) }
+                    })
+            ).disabled(memory.isBusy)
+            Text(
+                "Memory is saved on this device. New conversations receive a fixed snapshot of your notes and profile."
+            )
+            .font(.caption).foregroundStyle(.secondary)
+            if memory.isEnabled {
+                Toggle("Automatic Learning", isOn: $memory.reviewEnabled)
+                Picker("Learning Model", selection: $memory.reviewModel) {
+                    Text("Same as Chat").tag(AIModelRef?.none)
+                    ForEach(ai.enabledModelProviders) { provider in
+                        Section(provider.name) {
+                            ForEach(provider.chatModels) { model in
+                                Text(model.label).tag(
+                                    AIModelRef?.some(.init(modelProviderID: provider.id, modelID: model.id)))
+                            }
+                        }
+                    }
+                }
+                Text("Automatic learning uses your configured model and may incur API charges.")
+                    .font(.caption).foregroundStyle(.secondary)
+                ForEach(AgentMemoryTarget.allCases, id: \.self) { target in
+                    let usage = memory.state.usage(target)
+                    let fraction = min(1, max(0, Double(usage) / Double(target.characterLimit)))
+                    Button {
+                        draft = memory.state.text(target)
+                        editing = target
+                    } label: {
+                        HStack {
+                            Text(target == .memory ? "Memory Notes" : "User Profile")
+                            Spacer()
+                            Text("\(usage)/\(target.characterLimit)")
+                                .monospacedDigit().foregroundStyle(.secondary)
+                            #if os(macOS)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                            #endif
+                        }
+                        #if os(macOS)
+                            .padding(8)
+                            .background {
+                                GeometryReader { geometry in
+                                    Rectangle()
+                                    .fill(Color.accentColor.opacity(0.16))
+                                    .frame(width: geometry.size.width * fraction)
+                                }
+                            }
+                            .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 6))
+                            .clipShape(.rect(cornerRadius: 6))
+                        #endif
+                        .contentShape(.rect)
+                    }
+                    #if os(macOS)
+                        .buttonStyle(.plain)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(Text(target == .memory ? "Memory Notes" : "User Profile"))
+                        .accessibilityValue(Text("\(usage)/\(target.characterLimit)"))
+                    #endif
+                }
+            }
+            if let error = exportError ?? memory.error {
+                Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
+            }
+            if layout == .section {
+                HStack(spacing: 8) {
+                    if memory.isEnabled {
+                        exportButton
+                        rebuildButton
+                    }
+                    Spacer(minLength: 16)
+                    destroyButton
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+                .labelStyle(.titleOnly)
+            }
+            if memory.isEnabled && memory.isIndexing { ProgressView("Indexing History") }
+            if memory.isBusy { ProgressView() }
+        } header: {
+            if layout == .section { Text("Hermes Memory") }
+        }
+    }
+
+    private var exportButton: some View {
+        Button("Export", systemImage: "square.and.arrow.up") {
+            exporting = true
+        }
+    }
+
+    private var rebuildButton: some View {
+        Button("Rebuild", systemImage: "arrow.clockwise") {
+            Task { await memory.rebuildHistoryIndex() }
+        }
+        .disabled(memory.isIndexing)
+    }
+
+    private var destroyButton: some View {
+        Button("Destroy", systemImage: "trash", role: .destructive) { confirmDestroy = true }.disabled(memory.isBusy)
     }
 }
 

@@ -26,7 +26,7 @@ struct MobileAISettingsView: View {
         case .models:
             MobileModelsSettingsView(ai: app.ai)
         case .memory:
-            Form { MemorySettingsSection(memory: app.memory, ai: app.ai) }.navigationTitle("Hermes Memory")
+            MemorySettingsSection(memory: app.memory, ai: app.ai, layout: .page).navigationTitle("Hermes Memory")
         case .skills:
             MobileSkillSettings(skills: app.skills)
         case .mcp:

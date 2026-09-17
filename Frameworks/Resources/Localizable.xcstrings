@@ -291,6 +291,22 @@
         }
       }
     },
+    "Rebuild" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重建"
+          }
+        }
+      }
+    },
     "Rebuild History Index" : {
       "extractionState": "manual",
       "localizations": {
