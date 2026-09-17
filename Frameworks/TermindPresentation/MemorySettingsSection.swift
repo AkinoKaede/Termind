@@ -111,44 +111,11 @@ public struct MemorySettingsSection: View {
                 }
                 Text("Automatic learning uses your configured model and may incur API charges.")
                     .font(.caption).foregroundStyle(.secondary)
-                ForEach(AgentMemoryTarget.allCases, id: \.self) { target in
-                    let usage = memory.state.usage(target)
-                    let fraction = min(1, max(0, Double(usage) / Double(target.characterLimit)))
-                    Button {
-                        draft = memory.state.text(target)
-                        editing = target
-                    } label: {
-                        HStack {
-                            Text(target == .memory ? "Memory Notes" : "User Profile")
-                            Spacer()
-                            Text("\(usage)/\(target.characterLimit)")
-                                .monospacedDigit().foregroundStyle(.secondary)
-                            #if os(macOS)
-                                Image(systemName: "chevron.right")
-                                    .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
-                            #endif
-                        }
-                        #if os(macOS)
-                            .padding(8)
-                            .background {
-                                GeometryReader { geometry in
-                                    Rectangle()
-                                    .fill(Color.accentColor.opacity(0.16))
-                                    .frame(width: geometry.size.width * fraction)
-                                }
-                            }
-                            .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 6))
-                            .clipShape(.rect(cornerRadius: 6))
-                        #endif
-                        .contentShape(.rect)
-                    }
-                    #if os(macOS)
-                        .buttonStyle(.plain)
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(Text(target == .memory ? "Memory Notes" : "User Profile"))
-                        .accessibilityValue(Text("\(usage)/\(target.characterLimit)"))
-                    #endif
-                }
+                #if os(macOS)
+                    VStack(spacing: 8) { memoryRows }
+                #else
+                    memoryRows
+                #endif
             }
             if let error = exportError ?? memory.error {
                 Text(error).font(.caption).foregroundStyle(.red).textSelection(.enabled)
@@ -170,6 +137,47 @@ public struct MemorySettingsSection: View {
             if memory.isBusy { ProgressView() }
         } header: {
             if layout == .section { Text("Hermes Memory") }
+        }
+    }
+
+    private var memoryRows: some View {
+        ForEach(AgentMemoryTarget.allCases, id: \.self) { target in
+            let usage = memory.state.usage(target)
+            let fraction = min(1, max(0, Double(usage) / Double(target.characterLimit)))
+            Button {
+                draft = memory.state.text(target)
+                editing = target
+            } label: {
+                HStack {
+                    Text(target == .memory ? "Memory Notes" : "User Profile")
+                    Spacer()
+                    Text("\(usage)/\(target.characterLimit)")
+                        .monospacedDigit().foregroundStyle(.secondary)
+                    #if os(macOS)
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+                    #endif
+                }
+                #if os(macOS)
+                    .padding(8)
+                    .background {
+                        GeometryReader { geometry in
+                            Rectangle()
+                            .fill(Color.accentColor.opacity(0.16))
+                            .frame(width: geometry.size.width * fraction)
+                        }
+                    }
+                    .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: 6))
+                    .clipShape(.rect(cornerRadius: 6))
+                #endif
+                .contentShape(.rect)
+            }
+            #if os(macOS)
+                .buttonStyle(.plain)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(target == .memory ? "Memory Notes" : "User Profile"))
+                .accessibilityValue(Text("\(usage)/\(target.characterLimit)"))
+            #endif
         }
     }
 
