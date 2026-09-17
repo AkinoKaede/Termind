@@ -36,6 +36,8 @@ public nonisolated enum SettingsKey {
     public static let terminalCustomConfigurationLightEnabled = "terminal.customConfiguration.light.enabled"
     public static let terminalFontFollowTheme = "terminal.font.followTheme"
     public static let terminalFontSize = "terminal.fontSize"
+    public static let terminalCopyOnSelect = "terminal.copyOnSelect"
+    public static let terminalPasteOnRightClick = "terminal.pasteOnRightClick"
     public static let terminalThemeDark = "terminal.theme.dark"
     public static let terminalThemeLight = "terminal.theme.light"
     public static let vaultSyncEnabled = "vault.sync.enabled"

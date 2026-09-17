@@ -52,7 +52,7 @@ final class SerialSessionModel: Identifiable {
         let relay = SerialSessionRelay()
         let backend = InMemoryTerminalSession(
             write: { data in
-                let interactive = relay.inputCapture.classifyWrite()
+                let interactive = relay.inputCapture.classifyWrite(data)
                 Task { @MainActor in relay.owner?.handleTerminalWrite(data, interactive: interactive) }
             },
             resize: { _ in },

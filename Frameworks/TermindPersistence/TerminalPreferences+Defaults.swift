@@ -20,6 +20,8 @@ extension TerminalPreferences {
         remoteWindowTitleInMenuBar =
             defaults.object(forKey: SettingsKey.remoteWindowTitleInMenuBar) as? Bool
             ?? remoteWindowTitleInMenuBar
+        copyOnSelect = defaults.bool(forKey: SettingsKey.terminalCopyOnSelect)
+        pasteOnRightClick = defaults.bool(forKey: SettingsKey.terminalPasteOnRightClick)
     }
 
     public nonisolated func mirror(to defaults: UserDefaults) {
@@ -33,5 +35,7 @@ extension TerminalPreferences {
         defaults.set(lightCustomConfiguration, forKey: SettingsKey.terminalCustomConfigurationLight)
         defaults.set(shellIntegration, forKey: SettingsKey.shellIntegration)
         defaults.set(remoteWindowTitleInMenuBar, forKey: SettingsKey.remoteWindowTitleInMenuBar)
+        defaults.set(copyOnSelect, forKey: SettingsKey.terminalCopyOnSelect)
+        defaults.set(pasteOnRightClick, forKey: SettingsKey.terminalPasteOnRightClick)
     }
 }

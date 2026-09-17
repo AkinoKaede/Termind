@@ -22,6 +22,9 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
     private var depth = 0
     private var writeGeneration: UInt64 = 0
     private var deferredWriteDeadline: UInt64?
+    private var bracketedPaste: (tail: Data, deadline: UInt64)?
+    private static let pasteStart = Data("\u{1B}[200~".utf8)
+    private static let pasteEnd = Data("\u{1B}[201~".utf8)
 
     var isActive: Bool {
         lock.withLock { depth > 0 }
@@ -49,23 +52,40 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
 
     /// Classifies the backend callback while it still has the input event's
     /// provenance. Ordinarily Ghostty writes synchronously. The short-lived
-    /// deferred ticket covers callbacks it schedules just after AppKit returns;
-    /// it is consumed once and expires before unrelated terminal replies can be
-    /// mistaken for user input.
-    func classifyWrite() -> Bool {
+    /// deferred ticket covers callbacks it schedules just after AppKit returns.
+    /// A bracketed paste can arrive as separate opening, body, and closing writes;
+    /// retain its provenance through the closing marker, even across callbacks.
+    /// Both the initial ticket and an interrupted paste expire promptly.
+    func classifyWrite(_ data: Data = Data()) -> Bool {
         lock.withLock {
             writeGeneration &+= 1
-            if depth > 0 {
-                deferredWriteDeadline = nil
+            let now = DispatchTime.now().uptimeNanoseconds
+            if let paste = bracketedPaste, now > paste.deadline {
+                bracketedPaste = nil
+            }
+            let isInteractive =
+                depth > 0 || bracketedPaste != nil
+                || deferredWriteDeadline.map { now <= $0 } == true
+            deferredWriteDeadline = nil
+            guard isInteractive else { return false }
+
+            let pasteBytes: Data
+            if let paste = bracketedPaste {
+                pasteBytes = paste.tail + data
+            } else if data.starts(with: Self.pasteStart) {
+                pasteBytes = Data(data.dropFirst(Self.pasteStart.count))
+            } else {
                 return true
             }
-            guard let deadline = deferredWriteDeadline,
-                DispatchTime.now().uptimeNanoseconds <= deadline
-            else {
-                deferredWriteDeadline = nil
-                return false
+            if pasteBytes.range(of: Self.pasteEnd) != nil {
+                bracketedPaste = nil
+            } else {
+                // Keep a bounded tail to recognize a split closing marker.
+                bracketedPaste = (
+                    Data(pasteBytes.suffix(Self.pasteEnd.count - 1)),
+                    now &+ Self.deferredWriteWindowNanoseconds
+                )
             }
-            deferredWriteDeadline = nil
             return true
         }
     }
@@ -289,7 +309,7 @@ final class SSHSessionModel: Identifiable {
         let relay = SSHSessionRelay()
         let backend = InMemoryTerminalSession(
             write: { data in
-                let isInteractiveInput = relay.inputCapture.classifyWrite()
+                let isInteractiveInput = relay.inputCapture.classifyWrite(data)
                 Task { @MainActor in
                     relay.owner?.handleTerminalWrite(
                         data, isInteractiveInput: isInteractiveInput

@@ -160,6 +160,8 @@ struct SettingsSyncTests {
         preferences.lightCustomConfiguration = "background = #ffffff"
         preferences.shellIntegration = false
         preferences.remoteWindowTitleInMenuBar = false
+        preferences.copyOnSelect = true
+        preferences.pasteOnRightClick = true
         try source.saveTerminal(preferences)
         #expect(sourceDefaults.double(forKey: SettingsKey.terminalFontSize) == 18)
         let records = try source.journal.pendingEnvelopes().filter { $0.key.kind == .terminal }
@@ -168,6 +170,8 @@ struct SettingsSyncTests {
         #expect(
             defaults.string(forKey: SettingsKey.terminalCustomConfigurationDark) == preferences.darkCustomConfiguration)
         #expect(!defaults.bool(forKey: SettingsKey.shellIntegration))
+        #expect(defaults.bool(forKey: SettingsKey.terminalCopyOnSelect))
+        #expect(defaults.bool(forKey: SettingsKey.terminalPasteOnRightClick))
         #expect(try !destination.journal.pendingEnvelopes().contains { $0.key.kind == .terminal })
         let model = TerminalSettingsModel(persistence: destination)
         var changes: [Bool] = []

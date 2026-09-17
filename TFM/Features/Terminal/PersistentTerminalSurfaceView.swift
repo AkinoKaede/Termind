@@ -2,6 +2,7 @@
     import AppKit
     import GhosttyTerminal
     import SwiftUI
+    import TermindApplication
 
     /// Mounts one long-lived Ghostty view into whichever pane currently owns it.
     ///
@@ -20,6 +21,8 @@
         let owner: PersistentTerminalViewOwner
         let isVisible: Bool
         let requestsFocus: Bool
+        @AppStorage(SettingsKey.terminalCopyOnSelect) private var copyOnSelect = false
+        @AppStorage(SettingsKey.terminalPasteOnRightClick) private var pasteOnRightClick = false
 
         final class Coordinator {
             let owner: PersistentTerminalViewOwner
@@ -39,7 +42,9 @@
                 in: container,
                 state: state,
                 isVisible: isVisible,
-                requestsFocus: requestsFocus
+                requestsFocus: requestsFocus,
+                copyOnSelect: copyOnSelect,
+                pasteOnRightClick: pasteOnRightClick
             )
             return container
         }
@@ -49,7 +54,9 @@
                 in: container,
                 state: state,
                 isVisible: isVisible,
-                requestsFocus: requestsFocus
+                requestsFocus: requestsFocus,
+                copyOnSelect: copyOnSelect,
+                pasteOnRightClick: pasteOnRightClick
             )
         }
 
@@ -76,14 +83,76 @@
         override var isOpaque: Bool { false }
     }
 
-    /// Keeps application-owned shortcuts in AppKit's menu command chain.
+    /// Adds desktop mouse preferences and keeps application-owned shortcuts in
+    /// AppKit's menu command chain.
     ///
     /// Ghostty recognizes several application commands while the terminal is
     /// first responder. Returning `true` prevents SwiftUI's command owner from
     /// seeing the event. Registered Termind shortcuts fall through; every other
     /// key still uses Ghostty's input path.
-    private final class TermindTerminalView: TerminalView {
+    final class TermindTerminalView: TerminalView {
         var inputCapture: TerminalInteractiveInputCapture?
+        var copyOnSelect = false
+        var pasteOnRightClick = false
+        private var isSelectingWithMouse = false
+        private var rightClickPastes: Bool?
+
+        override func mouseDown(with event: NSEvent) {
+            // Remote mouse reports must never copy an unrelated retained selection.
+            isSelectingWithMouse = !isMouseCaptured
+            super.mouseDown(with: event)
+        }
+
+        override func mouseUp(with event: NSEvent) {
+            let shouldCopy = isSelectingWithMouse && copyOnSelect
+            isSelectingWithMouse = false
+            super.mouseUp(with: event)
+            if shouldCopy { _ = copySelectedTextToPasteboard() }
+        }
+
+        override func rightMouseDown(with event: NSEvent) {
+            let pastes = shouldPasteOnRightClick(event)
+            rightClickPastes = pastes
+            if pastes {
+                acquireProgrammaticFocus()
+            } else {
+                super.rightMouseDown(with: event)
+            }
+        }
+
+        override func rightMouseDragged(with event: NSEvent) {
+            if rightClickPastes == false { super.rightMouseDragged(with: event) }
+        }
+
+        override func rightMouseUp(with event: NSEvent) {
+            guard let pastes = rightClickPastes else { return }
+            rightClickPastes = nil
+            if pastes {
+                // An empty paste must not arm a deferred broadcast ticket that
+                // could consume the next unrelated mouse or protocol report.
+                let pasteboard = NSPasteboard.general
+                guard
+                    pasteboard.string(forType: .string)?.isEmpty == false
+                        || pasteboard.canReadObject(forClasses: [NSURL.self], options: nil)
+                else { return }
+                captureInteraction { _ = performBindingAction("paste_from_clipboard") }
+            } else {
+                super.rightMouseUp(with: event)
+            }
+        }
+
+        override func menu(for event: NSEvent) -> NSMenu? {
+            if event.type == .rightMouseDown || event.type == .rightMouseUp,
+                rightClickPastes ?? shouldPasteOnRightClick(event)
+            {
+                return nil
+            }
+            return super.menu(for: event)
+        }
+
+        private func shouldPasteOnRightClick(_ event: NSEvent) -> Bool {
+            pasteOnRightClick && !isMouseCaptured && !event.modifierFlags.contains(.option)
+        }
 
         override func keyDown(with event: NSEvent) {
             captureInteraction { super.keyDown(with: event) }
@@ -167,7 +236,9 @@
             in newContainer: TerminalMountView,
             state: TerminalViewState,
             isVisible: Bool,
-            requestsFocus: Bool
+            requestsFocus: Bool,
+            copyOnSelect: Bool = false,
+            pasteOnRightClick: Bool = false
         ) {
             var didReparent = false
             if container !== newContainer || terminalView.superview !== newContainer {
@@ -201,6 +272,8 @@
             if terminalView.controller !== state.controller {
                 terminalView.controller = state.controller
             }
+            terminalView.copyOnSelect = copyOnSelect
+            terminalView.pasteOnRightClick = pasteOnRightClick
             if appliedVisibility != isVisible {
                 appliedVisibility = isVisible
                 terminalView.setSurfaceVisible(isVisible)

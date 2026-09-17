@@ -736,6 +736,26 @@ private struct TerminalSettings: View {
                     }
                 }
             }
+            Section("Mouse") {
+                Toggle(isOn: binding(\.copyOnSelect)) {
+                    VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                        Text("Copy on Selection")
+                        Text("Copies selected terminal text to the clipboard when you release the mouse button.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Toggle(isOn: binding(\.pasteOnRightClick)) {
+                    VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
+                        Text("Paste on Right-Click")
+                        Text(
+                            "Right-click to paste. Hold Option to keep the usual right-click behavior. Applications that capture the mouse keep their mouse controls."
+                        )
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    }
+                }
+            }
             Section("Integration") {
                 Toggle(isOn: binding(\.shellIntegration)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {

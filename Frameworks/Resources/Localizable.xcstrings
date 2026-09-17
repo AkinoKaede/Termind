@@ -6355,6 +6355,22 @@
         }
       }
     },
+    "Copies selected terminal text to the clipboard when you release the mouse button." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "松开鼠标按键时，将选中的终端文本复制到剪贴板。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放開滑鼠按鍵時，將選取的終端機文字複製到剪貼簿。"
+          }
+        }
+      }
+    },
     "Copy" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6595,6 +6611,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "複製SSH指令"
+          }
+        }
+      }
+    },
+    "Copy on Selection" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选中后自动复制"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選取後自動複製"
           }
         }
       }
@@ -14083,6 +14115,22 @@
         }
       }
     },
+    "Mouse" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鼠标"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑鼠"
+          }
+        }
+      }
+    },
     "Move this conversation to Archive" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -16859,6 +16907,22 @@
         }
       }
     },
+    "Paste on Right-Click" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "右键直接粘贴"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按右鍵直接貼上"
+          }
+        }
+      }
+    },
     "Pasted image" : {
       "localizations" : {
         "zh-Hans" : {
@@ -19578,6 +19642,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "右箭頭"
+          }
+        }
+      }
+    },
+    "Right-click to paste. Hold Option to keep the usual right-click behavior. Applications that capture the mouse keep their mouse controls." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单击右键即可粘贴。按住Option键可保留原有右键行为。接管鼠标的应用仍使用原有鼠标操作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "按右鍵即可貼上。按住Option鍵可保留原有右鍵行為。擷取滑鼠的應用程式仍使用原有滑鼠操作。"
           }
         }
       }

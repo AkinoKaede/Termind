@@ -42,6 +42,46 @@ private final class WorkspaceCommandGeneratorStub: CommandGenerating {
 @MainActor
 struct BroadcastInputTests {
     @Test
+    func deferredBracketedPasteKeepsEveryChunkInteractiveUntilItsClosingMarker() {
+        let capture = TerminalInteractiveInputCapture()
+        capture.withInteraction {}
+        #expect(capture.classifyWrite(Data("\u{1B}[200~".utf8)))
+        #expect(capture.classifyWrite(Data("echo 中文\necho next".utf8)))
+        #expect(capture.classifyWrite(Data("\u{1B}[20".utf8)))
+        #expect(capture.classifyWrite(Data("1~".utf8)))
+        #expect(!capture.classifyWrite(Data("\u{1B}[<2;1;1M".utf8)))
+    }
+
+    @Test
+    func synchronousPasteStartKeepsItsDeferredBodyInteractive() {
+        let capture = TerminalInteractiveInputCapture()
+        capture.withInteraction {
+            #expect(capture.classifyWrite(Data("\u{1B}[200~".utf8)))
+        }
+        #expect(capture.classifyWrite(Data("body\u{1B}[201~".utf8)))
+        #expect(!capture.classifyWrite(Data("\u{1B}[?1;2c".utf8)))
+    }
+
+    @Test
+    func completePasteDoesNotCaptureALaterReportAndUnsolicitedMarkersDoNotStartCapture() {
+        let capture = TerminalInteractiveInputCapture()
+        capture.withInteraction {
+            #expect(capture.classifyWrite(Data("\u{1B}[200~body\u{1B}[201~".utf8)))
+        }
+        #expect(!capture.classifyWrite(Data("\u{1B}[200~".utf8)))
+        #expect(!capture.classifyWrite(Data("body\u{1B}[201~".utf8)))
+    }
+
+    @Test
+    func interruptedPasteExpiresBeforeUnrelatedReportsArrive() async throws {
+        let capture = TerminalInteractiveInputCapture()
+        capture.withInteraction {}
+        #expect(capture.classifyWrite(Data("\u{1B}[200~".utf8)))
+        try await Task.sleep(for: .milliseconds(150))
+        #expect(!capture.classifyWrite(Data("\u{1B}[<2;1;1M".utf8)))
+    }
+
+    @Test
     func routesInteractiveBytesOnlyWhenBroadcastIsEnabled() {
         let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
         var firstWrites: [Data] = []

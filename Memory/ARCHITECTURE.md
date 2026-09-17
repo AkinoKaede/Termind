@@ -149,6 +149,20 @@ snapshot freshness, and presentation state. Platforms provide live context,
 validity, and insertion only; generated commands are inserted but never submitted.
 `TerminalFindController` is shared by desktop SSH/Serial and mobile SSH.
 
+macOS SSH and serial terminals share two default-off mouse preferences: copy a
+completed mouse selection and paste on right-click. They use the existing terminal
+Settings sync record and UserDefaults mirror; missing fields in older records decode
+as false. Mobile preserves the values without exposing or applying them. Preference
+changes update the persistent native view without rebuilding its Ghostty surface.
+Only a local mouse selection completion triggers automatic copying. A right-click
+chooses its route on press and pastes once on release through Ghostty's clipboard
+binding inside interactive input capture, preserving bracketed paste and broadcast
+routing. Remote mouse capture and Option-right-click retain Ghostty's original
+handling, and mouse reports never enter the broadcast input capture scope.
+Empty clipboard pastes do not arm deferred input capture. A captured bracketed paste
+retains its classification across callback chunks until its closing marker; an
+interrupted sequence expires with the existing short-lived input ticket window.
+
 Mobile SSH sends shell-integration and transport-exit callbacks through one ordered,
 session-scoped MainActor consumer. Close, reconnect, or background expiration ends
 it. Authenticated installation and command completion establish prompt readiness;
