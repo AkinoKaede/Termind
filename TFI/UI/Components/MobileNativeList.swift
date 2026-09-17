@@ -59,6 +59,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     let onSelect: ((Item) -> Void)?
     let onRefresh: (() async -> Void)?
     let followsBottom: Bool
+    let bottomContentInset: CGFloat
     let surface: MobileNativeListSurface
     let rowRevision: ((Item) -> UInt64)?
     let prepareUpdate: (([Item], [Item], Set<Item.ID>) -> Void)?
@@ -78,6 +79,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         onSelect: ((Item) -> Void)? = nil,
         onRefresh: (() async -> Void)? = nil,
         followsBottom: Bool = false,
+        bottomContentInset: CGFloat = 0,
         surface: MobileNativeListSurface = .grouped,
         rowRevision: ((Item) -> UInt64)? = nil,
         prepareUpdate: (([Item], [Item], Set<Item.ID>) -> Void)? = nil,
@@ -91,6 +93,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         self.onSelect = onSelect
         self.onRefresh = onRefresh
         self.followsBottom = followsBottom
+        self.bottomContentInset = bottomContentInset
         self.surface = surface
         self.rowRevision = rowRevision
         self.prepareUpdate = prepareUpdate
@@ -124,6 +127,9 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
     }
 
     func updateUIView(_ listView: ListView<Item>, context: Context) {
+        if listView.contentInset.bottom != bottomContentInset {
+            listView.contentInset.bottom = bottomContentInset
+        }
         context.coordinator.update(
             listView: listView,
             items: items,

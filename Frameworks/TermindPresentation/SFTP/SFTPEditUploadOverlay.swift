@@ -11,6 +11,7 @@ public struct SFTPEditUploadOverlay: View {
     let resume: (UUID) -> Void
     let open: (URL) -> Void
     let discard: (UUID) async -> Void
+    let keepLocalCopy: ((URL) -> Void)?
     @State private var conflictID: UUID?
     @State private var errorDetails: String?
     @ScaledMetric private var rowHeight = 76.0
@@ -19,7 +20,8 @@ public struct SFTPEditUploadOverlay: View {
         files: [SFTPEditedFile], transfers: [SFTPTransfer], connected: Bool,
         upload: @escaping (UUID, Bool) async -> Bool,
         resume: @escaping (UUID) -> Void, open: @escaping (URL) -> Void,
-        discard: @escaping (UUID) async -> Void
+        discard: @escaping (UUID) async -> Void,
+        keepLocalCopy: ((URL) -> Void)? = nil
     ) {
         self.files = files
         self.transfers = transfers
@@ -28,6 +30,7 @@ public struct SFTPEditUploadOverlay: View {
         self.resume = resume
         self.open = open
         self.discard = discard
+        self.keepLocalCopy = keepLocalCopy
     }
 
     public var body: some View {
@@ -35,11 +38,7 @@ public struct SFTPEditUploadOverlay: View {
             rows
                 .frame(height: rowHeight * Double(min(files.count, 3)) + Double(min(files.count, 3) - 1))
                 .frame(maxWidth: 540)
-                .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
-                .overlay {
-                    RoundedRectangle(cornerRadius: 16).strokeBorder(.primary.opacity(0.08), lineWidth: 0.5)
-                }
-                .shadow(color: .black.opacity(0.12), radius: 10, y: 3)
+                .modifier(SFTPEditGlassSurface())
                 .confirmationDialog(
                     "The remote file has changed",
                     isPresented: Binding(get: { conflictID != nil }, set: { if !$0 { conflictID = nil } }),
@@ -82,8 +81,8 @@ public struct SFTPEditUploadOverlay: View {
             }
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
+            .background(Color.clear)
             .environment(\.defaultMinListRowHeight, rowHeight)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
         #else
             ScrollView {
                 VStack(spacing: 0) {
@@ -93,6 +92,8 @@ public struct SFTPEditUploadOverlay: View {
                     }
                 }
             }
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
         #endif
     }
 
@@ -151,7 +152,14 @@ public struct SFTPEditUploadOverlay: View {
             Divider()
         }
         Button("Open Local Copy", systemImage: "arrow.up.right") { open(file.localURL) }
-        ShareLink(item: file.localURL) { Label("Keep Local Copy", systemImage: "square.and.arrow.up") }
+        #if os(macOS)
+            // ShareLink installs a hosted sharing control in NSMenu. Mixing it with ordinary
+            // menu items can offset the native selection highlight on subsequent items.
+            Button("Keep Local Copy", systemImage: "square.and.arrow.up") { keepLocalCopy?(file.localURL) }
+                .disabled(keepLocalCopy == nil)
+        #else
+            ShareLink(item: file.localURL) { Label("Keep Local Copy", systemImage: "square.and.arrow.up") }
+        #endif
         Divider()
         Button("Discard", systemImage: "xmark", role: .destructive) { Task { await discard(file.id) } }
             .disabled(!canDiscard(file))
@@ -187,6 +195,35 @@ public struct SFTPEditUploadOverlay: View {
         conflictID = nil
         Task {
             if await upload(id, replacing) { conflictID = id }
+        }
+    }
+}
+
+private struct SFTPEditGlassSurface: ViewModifier {
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 20)
+
+        return
+            content
+            .background { SFTPEditGlassBackground(shape: shape) }
+            .clipShape(shape)
+            .overlay {
+                shape
+                    .strokeBorder(.primary.opacity(0.10), lineWidth: 1)
+                    .allowsHitTesting(false)
+            }
+            .shadow(color: .black.opacity(0.16), radius: 16, y: 6)
+    }
+}
+
+private struct SFTPEditGlassBackground: View {
+    let shape: RoundedRectangle
+
+    @ViewBuilder var body: some View {
+        if #available(macOS 26.0, iOS 26.0, *) {
+            Color.clear.glassEffect(.regular, in: shape)
+        } else {
+            shape.fill(.regularMaterial)
         }
     }
 }

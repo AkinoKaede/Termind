@@ -397,6 +397,8 @@ struct MobileWorkspaceView: View {
             MobileSFTPBrowser(
                 session: workspace.sftpSession,
                 connected: workspace.connected,
+                bottomContentInset: editedFiles.isEmpty
+                    ? 0 : (editRowHeight + 1) * Double(min(3, editedFiles.count)) + 24,
                 open: open,
                 openWith: openWith,
                 canImportEditedCopy: { file in
@@ -418,11 +420,6 @@ struct MobileWorkspaceView: View {
                 editPermissions: { editingPermissions = $0 },
                 delete: { deleting = $0 }
             )
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if !editedFiles.isEmpty {
-                    Color.clear.frame(height: (editRowHeight + 1) * Double(min(3, editedFiles.count)) + 24)
-                }
-            }
             .overlay(alignment: .bottom) {
                 SFTPEditUploadOverlay(
                     files: editedFiles, transfers: workspace.transfers?.sftpTransfers ?? [],

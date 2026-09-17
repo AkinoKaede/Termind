@@ -40,12 +40,13 @@ nonisolated struct SFTPFileScrollRequest: Equatable, Sendable {
     let position: Position
 }
 
-private struct SFTPFileNativeList: NSViewRepresentable {
+struct SFTPFileNativeList: NSViewRepresentable {
     typealias NSViewType = ListView<SFTPFileListItem>
     typealias Renderer = @MainActor (SFTPFileListItem) -> AnyView
 
     let items: [SFTPFileListItem]
     let scrollRequest: SFTPFileScrollRequest?
+    let bottomContentInset: CGFloat
     let onBackgroundClick: @MainActor () -> Void
     let renderer: Renderer
 
@@ -55,11 +56,13 @@ private struct SFTPFileNativeList: NSViewRepresentable {
     init(
         items: [SFTPFileListItem],
         scrollRequest: SFTPFileScrollRequest?,
+        bottomContentInset: CGFloat = 0,
         onBackgroundClick: @escaping @MainActor () -> Void,
         @ViewBuilder renderer: @escaping @MainActor (SFTPFileListItem) -> some View
     ) {
         self.items = items
         self.scrollRequest = scrollRequest
+        self.bottomContentInset = bottomContentInset
         self.onBackgroundClick = onBackgroundClick
         self.renderer = { AnyView(renderer($0)) }
     }
@@ -71,6 +74,9 @@ private struct SFTPFileNativeList: NSViewRepresentable {
     }
 
     func updateNSView(_ listView: NSViewType, context: Context) {
+        if listView.contentInsets.bottom != bottomContentInset {
+            listView.contentInsets.bottom = bottomContentInset
+        }
         context.coordinator.update(
             listView: listView,
             items: items,
@@ -206,6 +212,26 @@ struct SFTPBrowserView: View {
     private var editedFiles: [SFTPEditedFile] { app.sftpEdits.model.modifiedFiles(for: sftpSession.hostID) }
     private var editOverlayHeight: CGFloat { (editRowHeight + 1) * Double(min(3, editedFiles.count)) }
 
+    private var editUploadOverlay: some View {
+        SFTPEditUploadOverlay(
+            files: editedFiles, transfers: app.sftpTransfers.sftpTransfers,
+            connected: sftpSession.status == .connected,
+            upload: { id, replacing in
+                await sftpSession.uploadEdit(id, using: app.sftpEdits, replacing: replacing)
+            },
+            resume: { app.sftpTransfers.resume($0) },
+            open: { NSWorkspace.shared.open($0) },
+            discard: { await app.sftpEdits.discard($0) },
+            keepLocalCopy: { source in
+                SFTPLocalCopyExporter.present(for: source) {
+                    sftpSession.operationError = $0.localizedDescription
+                }
+            }
+        )
+        .padding(.horizontal, 12)
+        .padding(.bottom, Metrics.StatusBar.overlayClearance)
+    }
+
     private var deleteConfirmationMessage: String {
         let paths = deleteTargets.prefix(6).map { sftpSession.displayPath($0.path) }
             .joined(separator: "\n")
@@ -270,11 +296,7 @@ struct SFTPBrowserView: View {
                 .background(TermindColor.windowSurface)
 
                 browserContent(layout: layout)
-                    .safeAreaInset(edge: .bottom, spacing: 0) {
-                        if !editedFiles.isEmpty {
-                            Color.clear.frame(height: editOverlayHeight + Metrics.StatusBar.overlayClearance)
-                        }
-                    }
+                    .overlay(alignment: .bottom) { editUploadOverlay }
             }
 
             if sftpSession.connectionJourney.isPresented {
@@ -304,20 +326,6 @@ struct SFTPBrowserView: View {
                 )
                 .zIndex(10)
             }
-        }
-        .overlay(alignment: .bottom) {
-            SFTPEditUploadOverlay(
-                files: editedFiles, transfers: app.sftpTransfers.sftpTransfers,
-                connected: sftpSession.status == .connected,
-                upload: { id, replacing in
-                    await sftpSession.uploadEdit(id, using: app.sftpEdits, replacing: replacing)
-                },
-                resume: { app.sftpTransfers.resume($0) },
-                open: { NSWorkspace.shared.open($0) },
-                discard: { await app.sftpEdits.discard($0) }
-            )
-            .padding(.horizontal, 12)
-            .padding(.bottom, Metrics.StatusBar.overlayClearance)
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             Task { await app.sftpEdits.recheck() }
@@ -659,6 +667,7 @@ struct SFTPBrowserView: View {
         SFTPFileNativeList(
             items: fileListItems(layout: layout),
             scrollRequest: fileScrollRequest,
+            bottomContentInset: editedFiles.isEmpty ? 0 : editOverlayHeight + Metrics.StatusBar.overlayClearance + 12,
             onBackgroundClick: clearFileSelection
         ) { item in
             fileListRow(item, layout: layout)

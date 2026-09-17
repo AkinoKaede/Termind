@@ -204,11 +204,19 @@ immutable upload snapshots. Snapshots are an edit-specific exception to ordinary
 transfers' no-staging rule; paused uploads retain them and terminal completion removes
 them. Editing never automatically uploads. Only changed records appear in the floating
 bottom overlay; clean records remain internal so repeated opens reuse their local copy.
+The edit card overlays the full-height file viewport with native Liquid Glass on OS 26
+and later, and native material on older systems. Its row container stays transparent and
+the rounded glass is a separate backdrop, so file rows remain visible around and through
+the floating card. Only the scroll content gets a bottom inset, so files scroll behind the
+glass while the last row can still clear it; no blank safe-area region is reserved for the
+card.
 Discard stops tracking and preserves the local copy for any external editor; the next
 remote open downloads a fresh copy. iOS exposes Discard through native trailing swipe
 actions, and both platforms expose it in the row menu. Running/preparing uploads cannot
 be discarded; paused uploads are cancelled and cleaned up before their record is removed.
 Hosts own activation, background, termination and native preview/open adapters.
+The macOS edit menu uses ordinary menu actions; Keep Local Copy delegates to an app-owned
+save panel and coordinated file copy instead of embedding ShareLink in the native menu.
 macOS checks edits before quitting; iOS cannot promise a quit warning or recovery after
 process termination. Background expiration still pauses uploads, with explicit resume.
 

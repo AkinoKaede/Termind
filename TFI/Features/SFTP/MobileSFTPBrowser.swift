@@ -26,6 +26,7 @@ nonisolated func mobileSFTPListItems(path: String, files: [RemoteFile]) -> [Mobi
 struct MobileSFTPBrowser: View {
     @Bindable var session: MobileSFTPSessionModel
     let connected: Bool
+    var bottomContentInset: CGFloat = 0
     let open: (RemoteFile) -> Void
     let openWith: (RemoteFile) -> Void
     let canImportEditedCopy: (RemoteFile) -> Bool
@@ -57,7 +58,8 @@ struct MobileSFTPBrowser: View {
                         case .file(let file): open(file)
                         }
                     },
-                    onRefresh: { await session.reload() }
+                    onRefresh: { await session.reload() },
+                    bottomContentInset: bottomContentInset
                 ) { item in
                     switch item {
                     case .parent:
