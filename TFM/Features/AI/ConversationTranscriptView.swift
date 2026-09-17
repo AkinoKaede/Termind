@@ -532,6 +532,7 @@ struct AgentTaskCapsuleView: View {
 /// transcript that is waiting on a person, and the de-emphasis the rest of this
 /// view got would make it read like history.
 private struct AgentApprovalCard: View {
+    @ScaledMetric(relativeTo: .caption) private var approvalHeight: CGFloat = 240
     let request: AgentApprovalRequest
     let conversation: ConversationModel
 
@@ -571,6 +572,7 @@ private struct AgentApprovalCard: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
+            .frame(maxHeight: AgentToolPresentation.usesCompactDetails(for: request.descriptor) ? approvalHeight : nil)
 
             HStack {
                 Button("Deny", role: .destructive) {

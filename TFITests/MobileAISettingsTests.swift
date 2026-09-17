@@ -41,7 +41,7 @@ struct MobileAISettingsTests {
         #expect(probes.results["test"] == "OK")
     }
 
-    @Test(arguments: ["", "file:///tmp/model", "ftp://example.com/model", "http:///", "example.com/v1"])
+    @Test(arguments: ["file:///tmp/model", "ftp://example.com/model", "http:///", "example.com/v1"])
     func invalidProviderAddressesCannotBeSaved(_ url: String) {
         let editor = MobileProviderEditorModel(ai: AIConfigurationModel(), provider: ModelProvider(name: "Invalid"))
         editor.endpoint.url = url

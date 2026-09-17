@@ -12,6 +12,7 @@ final class MobileProviderEditorModel {
     var draft: ModelProvider
     var endpoint: ProviderEndpoint
     let key = MobileSecretDraft()
+    let serviceAccount = MobileSecretDraft()
     var keyAction: KeyAction {
         get { key.action }
         set { key.action = newValue }
@@ -25,43 +26,71 @@ final class MobileProviderEditorModel {
 
     init(ai: AIConfigurationModel, provider: ModelProvider) {
         self.ai = ai
-        original = provider
-        draft = provider
         wasPersisted = ai.modelProvider(provider.id) != nil
+        var initial = provider
+        if !wasPersisted && provider.vertex == VertexConfig() { initial.vertex.location = "" }
+        original = initial
+        draft = initial
         originalEndpoint = wasPersisted ? ai.endpoint(for: provider.id) : ProviderEndpoint(url: provider.inferenceURL)
         endpoint = originalEndpoint
         key.begin(in: ai, reference: provider.credentialRef)
+        serviceAccount.begin(in: ai, reference: provider.vertex.credentialRef)
     }
 
     var hasExistingKey: Bool { wasPersisted && !original.credentialRef.isEmpty }
-    var isDirty: Bool { draft != original || endpoint != originalEndpoint || key.isDirty }
+    var isDirty: Bool { draft != original || endpoint != originalEndpoint || key.isDirty || serviceAccount.isDirty }
+    var hasServiceAccount: Bool {
+        serviceAccount.action == .replace || (serviceAccount.action == .preserve && !draft.vertex.credentialRef.isEmpty)
+    }
     var canSave: Bool {
-        let url = URL(string: endpoint.requestURL)
-        return !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && ["http", "https"].contains(url?.scheme?.lowercased() ?? "")
-            && url?.host?.isEmpty == false && key.isValid
+        ModelProviderForm.hasValidAddress(requestProvider) && key.isValid && serviceAccount.isValid
+    }
+
+    func importServiceAccount(_ json: String) throws {
+        let account = try ModelProviderServiceAccount(json: json)
+        serviceAccount.text = account.json
+        serviceAccount.action = .replace
+        draft.vertex.clientEmail = account.clientEmail
+        if draft.vertex.projectID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            draft.vertex.projectID = account.projectID
+        }
+    }
+
+    func removeServiceAccount() {
+        serviceAccount.text = ""
+        serviceAccount.action = .clear
+        draft.vertex.clientEmail = ""
+    }
+
+    func discardPlaintext() {
+        key.discardPlaintext()
+        serviceAccount.discardPlaintext()
     }
 
     var requestProvider: ModelProvider {
-        var provider = draft
-        provider.inferenceURL = endpoint.requestURL
-        provider.baseURL = endpoint.baseURL
-        provider.apiFormat = endpoint.format
-        return provider
+        ModelProviderForm.normalized(draft, endpoint: endpoint).provider
     }
 
     func requestSecret() throws -> String {
         guard !wasPersisted || ai.modelProvider(original.id) != nil else {
             throw MobileEditorError.message(String(localized: "Provider Deleted"))
         }
-        if key.action == .preserve {
-            guard let secret = ai.modelSecret(for: ai.modelProvider(original.id) ?? requestProvider) else {
-                throw MobileEditorError.message(
-                    ai.secretStorageError ?? String(localized: "The provider's credential is unavailable."))
-            }
-            return secret
+        let provider = requestProvider
+        guard ModelProviderForm.hasValidAddress(provider) else {
+            throw MobileEditorError.message(
+                String(localized: "Enter a valid provider URL, or a Vertex project and location."))
         }
-        return try key.effective(in: ai, reference: draft.effectiveCredentialRef)
+        let credential = provider.usesVertexEndpoint ? serviceAccount : key
+        let reference = provider.effectiveCredentialRef
+        let secret = try credential.effective(in: ai, reference: reference)
+        guard
+            !secret.isEmpty || (!provider.usesVertexEndpoint && reference.isEmpty && credential.action != .replace)
+                || (!provider.usesVertexEndpoint && credential.action == .clear)
+        else {
+            throw MobileEditorError.message(
+                String(localized: "The provider's credential is unavailable."))
+        }
+        return secret
     }
 
     func add(_ models: [AIModel]) {
@@ -93,6 +122,10 @@ final class MobileProviderEditorModel {
             var fields = SettingsFields(original, draft, current)
             try fields.merge(\.name)
             try fields.merge(\.isEnabled)
+            try fields.merge(\.usesVertex)
+            try fields.merge(\.vertex.projectID)
+            try fields.merge(\.vertex.location)
+            try fields.merge(\.vertex.clientEmail)
             value = fields.result
             value.models = try SettingsDraftMerge.collection(
                 original.models, draft.models, current.models, merge: Self.mergeModel)
@@ -103,11 +136,17 @@ final class MobileProviderEditorModel {
             try connection.merge(\.apiType)
             savedEndpoint = connection.result
         }
-        value.name = value.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        try key.commit(in: ai, reference: value.credentialRef) { reference in
-            value.credentialRef = reference
-            return ai.saveProvider(value, endpoint: savedEndpoint)
+        guard ModelProviderForm.hasValidAddress(ModelProviderForm.normalized(value, endpoint: savedEndpoint).provider)
+        else {
+            throw MobileEditorError.message(
+                String(localized: "Enter a valid provider URL, or a Vertex project and location."))
         }
+        let edits = try [
+            key.providerEdit(reference: value.credentialRef, kind: .apiKey),
+            serviceAccount.providerEdit(reference: value.vertex.credentialRef, kind: .serviceAccount),
+        ].compactMap { $0 }
+        try ai.saveProvider(value, endpoint: savedEndpoint, credentials: edits)
+        discardPlaintext()
     }
 
     static func mergeModel(_ original: AIModel, _ draft: AIModel, _ current: AIModel) throws -> AIModel {

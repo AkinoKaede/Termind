@@ -18,7 +18,7 @@ struct MobileTerminalSettingsView: View {
             }
             themeSection(dark: false)
             themeSection(dark: true)
-            Section { Toggle("Shell Integration", isOn: binding(\.shellIntegration)) }
+            Section("Integration") { Toggle("Shell Integration", isOn: binding(\.shellIntegration)) }
             if let error = model.storageError { Text(error).foregroundStyle(.red) }
         }
         .navigationTitle("Terminal")

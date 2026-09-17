@@ -108,7 +108,7 @@ struct MobileAssistantToolRow: View {
                     )
                 )
                 .foregroundStyle(card.state == .running ? Color.secondary : .primary)
-                .lineLimit(expanded ? nil : 1)
+                .lineLimit(AgentToolPresentation.usesCompactDetails(for: card.descriptor) ? 1 : (expanded ? nil : 1))
                 .modifier(MobileAssistantScanning(active: card.state == .running))
                 if card.state == .reviewing {
                     Image(systemName: "checkmark.shield").foregroundStyle(.orange)
@@ -125,8 +125,22 @@ struct MobileAssistantToolRow: View {
                 if let detail = AgentToolPresentation.detail(
                     for: card, presenter: TermindAgentTools.presenter(for: card.descriptor), locale: locale
                 ) {
-                    AssistantToolDetails(items: detail.items, isError: card.result?.isError == true) {
-                        UIPasteboard.general.string = $0
+                    if AgentToolPresentation.usesCompactDetails(for: card.descriptor) {
+                        AssistantCompactToolDetails(
+                            detail: detail, isError: card.result?.isError == true,
+                            expanded: Binding(
+                                get: { presentation.isExpanded(.toolDetail(card.id)) },
+                                set: { value in
+                                    if value != presentation.isExpanded(.toolDetail(card.id)) {
+                                        presentation.toggleDisclosure(.toolDetail(card.id))
+                                    }
+                                }
+                            )
+                        ) { UIPasteboard.general.string = $0 }
+                    } else {
+                        AssistantToolDetails(items: detail.items, isError: card.result?.isError == true) {
+                            UIPasteboard.general.string = $0
+                        }
                     }
                 }
                 if card.result?.isTruncated == true {

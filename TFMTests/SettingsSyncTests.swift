@@ -100,9 +100,10 @@ struct SettingsSyncTests {
         var legacy: ModelContainer? = try ModelContainer(
             for: oldSchema,
             configurations: localModelConfiguration("Migration", schema: oldSchema, url: url))
-        try AIPersistence(context: legacy!.mainContext).save(
-            AIConfigurationSnapshot(
-                providers: [provider], endpoints: [provider.id: endpoint], roles: [:]))
+        legacy!.mainContext.insert(PersistentModelProvider(provider, endpoint: endpoint, sortIndex: 0))
+        for (index, model) in provider.models.enumerated() {
+            legacy!.mainContext.insert(PersistentAIModel(model, providerID: provider.id, sortIndex: index))
+        }
         legacy!.mainContext.insert(PersistentAgentSkill(skill, sortIndex: 0))
         try legacy!.mainContext.save()
         legacy = nil

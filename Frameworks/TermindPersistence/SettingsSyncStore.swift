@@ -132,8 +132,25 @@ public final class SettingsSyncPersistence {
                 uniqueKeysWithValues: try skills.load().compactMap { skill in
                     skill.package.map { (skill.id, $0) }
                 })
+            let existingProviders = Dictionary(
+                uniqueKeysWithValues: snapshot.configuration.providers.map { ($0.id, $0) })
+            let legacyProviderIDs = Set(
+                try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncEntry>()).compactMap {
+                    row -> UUID? in
+                    guard let envelope = row.envelope, !envelope.isDeleted,
+                        case .provider(let value) = envelope.payload, value.vertex == nil
+                    else { return nil }
+                    return value.id
+                })
             snapshot = try materialize()
             let remoteSnapshot = snapshot
+            for index in snapshot.configuration.providers.indices {
+                let id = snapshot.configuration.providers[index].id
+                if legacyProviderIDs.contains(id), let old = existingProviders[id] {
+                    snapshot.configuration.providers[index].usesVertex = old.usesVertex
+                    snapshot.configuration.providers[index].vertex = old.vertex
+                }
+            }
             for index in snapshot.skills.indices where snapshot.skills[index].package == nil {
                 snapshot.skills[index].package = existingPackages[snapshot.skills[index].id]
             }

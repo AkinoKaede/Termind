@@ -250,7 +250,10 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
 
     private func migrateSecrets() throws {
         let config = try persistence.load().configuration
-        try secrets.migrate(Set(config.providers.map(\.credentialRef) + config.mcpServers.map(\.credentialRef)))
+        try secrets.migrate(
+            Set(
+                config.providers.flatMap { [$0.credentialRef, $0.vertex.credentialRef] }
+                    + config.mcpServers.map(\.credentialRef)))
     }
 
     private func applyRemote(_ envelopes: [SettingsEnvelope]) throws
@@ -260,11 +263,11 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         )
     {
         let result = try persistence.applyRemote(envelopes)
-        let references = envelopes.filter { result.acceptedKeys.contains($0.key) }.compactMap { envelope -> String? in
+        let references = envelopes.filter { result.acceptedKeys.contains($0.key) }.flatMap { envelope -> [String] in
             switch envelope.payload {
-            case .provider(let value): value.credentialRef
-            case .mcpServer(let value): value.credentialRef
-            default: nil
+            case .provider(let value): [value.credentialRef, value.vertex?.credentialRef ?? ""]
+            case .mcpServer(let value): [value.credentialRef]
+            default: []
             }
         }
         try secrets.acceptRemoteReferences(Set(references))

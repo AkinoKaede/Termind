@@ -19,6 +19,11 @@ nonisolated public enum AgentToolPresentation {
         public let omittedCharacters: Int
     }
 
+    public static func usesCompactDetails(for descriptor: AgentToolDescriptor) -> Bool {
+        guard let kind = AgentKnowledgeToolPresentation.kind(for: descriptor) else { return false }
+        return kind != .legacySkill
+    }
+
     public static func symbol(for card: AgentToolCard) -> String {
         return card.descriptor.presentation?.symbol ?? "wrench.and.screwdriver"
     }
@@ -59,6 +64,15 @@ nonisolated public enum AgentToolPresentation {
         hostName: String?,
         locale: Locale
     ) -> String {
+        if let operation = AgentKnowledgeToolPresentation.operation(for: card, locale: locale, approval: true) {
+            let action = localizedActionVerb(operation.action, locale: locale)
+            let title =
+                isChinese(locale)
+                ? localized("Approval tool action: \(action) \(operation.activity)", locale: locale)
+                : uppercaseFirst(actionName(operation.action, form: .infinitive, locale: locale)) + " "
+                    + operation.activity
+            return AgentKnowledgeToolPresentation.title(title)
+        }
         let activity = approvalActivity(for: card, locale: locale)
         guard let kind = actionKind(for: card) else {
             let action = localized("Run \(activity)", locale: locale)
@@ -147,6 +161,12 @@ nonisolated public enum AgentToolPresentation {
         hostName: String? = nil,
         locale: Locale = .current
     ) -> String {
+        if let operation = AgentKnowledgeToolPresentation.operation(for: card, locale: locale) {
+            return AgentKnowledgeToolPresentation.title(
+                actionSummary(
+                    operation.action, state: card.state, activity: operation.activity,
+                    isArgumentValue: operation.isArgument, target: nil, locale: locale))
+        }
         let operation = operation(for: card, locale: locale)
         let phase: String
         if card.state == .running {
@@ -215,12 +235,15 @@ nonisolated public enum AgentToolPresentation {
         struct Key: Hashable {
             let name: String
             let state: AgentToolCard.State
+            let knowledgeAction: AgentToolDescriptor.Presentation.ActionKind?
         }
 
         var order: [Key] = []
         var grouped: [Key: [AgentToolCard]] = [:]
         for card in cards {
-            let key = Key(name: card.descriptor.qualifiedName, state: card.state)
+            let key = Key(
+                name: card.descriptor.qualifiedName, state: card.state,
+                knowledgeAction: AgentKnowledgeToolPresentation.operation(for: card, locale: locale)?.action)
             if grouped[key] == nil { order.append(key) }
             grouped[key, default: []].append(card)
         }
@@ -292,6 +315,16 @@ nonisolated public enum AgentToolPresentation {
             ])
         }
 
+        // A failed/denied historical result may still contain success-shaped fields.
+        // Only successful execution is allowed to select a knowledge success presenter.
+        if usesCompactDetails(for: card.descriptor),
+            result.isError || card.state == .failed || card.state == .denied || card.state == .interrupted
+        {
+            if detailOutput(from: result, presentation: card.descriptor.presentation, review: card.review) == nil {
+                return nil
+            }
+            return AgentToolDetail(items: AgentToolDetailFormatting.genericItems(value, locale: locale))
+        }
         guard let presenter else {
             return AgentToolDetail(
                 items: AgentToolDetailFormatting.genericItems(value, locale: locale)
@@ -609,6 +642,14 @@ nonisolated public enum AgentToolPresentation {
         _ cards: [AgentToolCard], locale: Locale
     ) -> String {
         guard let first = cards.first else { return "" }
+        if let operation = AgentKnowledgeToolPresentation.operation(for: first, locale: locale) {
+            if cards.count == 1 { return summary(for: first, locale: locale) }
+            let activity = operation.batchActivity + " · " + toolCallCount(cards.count, locale: locale)
+            return AgentKnowledgeToolPresentation.title(
+                actionSummary(
+                    operation.action, state: first.state, activity: activity,
+                    isArgumentValue: false, target: nil, locale: locale))
+        }
         guard let presentation = first.descriptor.presentation else {
             let activity =
                 cards.count == 1
@@ -1012,6 +1053,7 @@ nonisolated public enum AgentToolPresentation {
             case .edit: .init(infinitive: "edit", progressive: "Editing", past: "Edited")
             case .fetch: .init(infinitive: "fetch", progressive: "Fetching", past: "Fetched")
             case .inspect: .init(infinitive: "inspect", progressive: "Inspecting", past: "Inspected")
+            case .install: .init(infinitive: "install", progressive: "Installing", past: "Installed")
             case .list: .init(infinitive: "list", progressive: "Listing", past: "Listed")
             case .move: .init(infinitive: "move", progressive: "Moving", past: "Moved")
             case .present: .init(infinitive: "present", progressive: "Writing", past: "Presented")
@@ -1056,6 +1098,7 @@ nonisolated public enum AgentToolPresentation {
         case .edit: localized("edit", locale: locale)
         case .fetch: localized("fetch", locale: locale)
         case .inspect: localized("inspect", locale: locale)
+        case .install: localized("install", locale: locale)
         case .list: localized("list", locale: locale)
         case .move: localized("move", locale: locale)
         case .present: localized("present", locale: locale)
@@ -1096,6 +1139,9 @@ nonisolated public enum AgentToolPresentation {
         case .scratchWorkspace: localized("the scratch workspace", locale: locale)
         case .secret: localized("a secret", locale: locale)
         case .skill: localized("a skill", locale: locale)
+        case .skills: localized("skills", locale: locale)
+        case .memory: localized("persistent memory", locale: locale)
+        case .sessions: localized("saved conversations", locale: locale)
         case .sshCommand: localized("the SSH command", locale: locale)
         case .taskList: localized("the task list", locale: locale)
         case .url: localized("a URL", locale: locale)

@@ -2,6 +2,7 @@ import AgentKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindInfrastructure
 import TermindPresentation
 
 struct MobileAISettingsView: View {
@@ -86,7 +87,7 @@ struct MobileModelsSettingsView: View {
                                 Image(systemName: "brain").foregroundStyle(.secondary).accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(provider.name).foregroundStyle(.primary)
-                                    Text(provider.inferenceURL).font(.caption).foregroundStyle(.secondary)
+                                    Text(provider.requestURL()).font(.caption).foregroundStyle(.secondary)
                                         .lineLimit(1).truncationMode(.middle)
                                     Text("\(provider.models.count) Models").font(.caption).foregroundStyle(.secondary)
                                     if !provider.isEnabled {
@@ -120,11 +121,11 @@ struct MobileModelsSettingsView: View {
         }
         .sheet(item: $editing) { provider in MobileProviderEditor(ai: ai, provider: provider) }
         .confirmationDialog(
-            "Delete Provider",
+            "Delete",
             isPresented: Binding(
                 get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible
         ) {
-            Button("Delete Provider", role: .destructive) {
+            Button("Delete", role: .destructive) {
                 if let deleting { ai.delete(modelProviderID: deleting.id) }
                 deleting = nil
             }
@@ -206,16 +207,27 @@ struct MobileProviderEditor: View {
     var body: some View {
         MobileEditorSheet(
             title: String(localized: "Model Provider"), isDirty: model.isDirty, canSave: model.canSave,
+            onCancel: { model.discardPlaintext() },
             save: { try model.save() },
             content: {
                 ModelProviderConnectionFields(
-                    name: $model.draft.name, endpoint: $model.endpoint, isEnabled: $model.draft.isEnabled
+                    name: $model.draft.name, endpoint: $model.endpoint, isEnabled: $model.draft.isEnabled,
+                    showsEndpoint: !model.requestProvider.usesVertexEndpoint
                 )
                 .textInputAutocapitalization(.never)
-                MobileSecretFields(
-                    key: model.key,
-                    hasExistingCredential: model.hasExistingKey
-                )
+                if !model.requestProvider.usesVertexEndpoint {
+                    MobileSecretFields(key: model.key, hasExistingCredential: model.hasExistingKey)
+                }
+                if model.endpoint.apiType == .generateContent {
+                    ModelProviderVertexFields(
+                        isEnabled: $model.draft.usesVertex, projectID: $model.draft.vertex.projectID,
+                        location: $model.draft.vertex.location, clientEmail: model.draft.vertex.clientEmail,
+                        hasCredential: model.hasServiceAccount,
+                        requestURL: ModelProviderForm.hasValidAddress(model.requestProvider)
+                            ? model.requestProvider.requestURL() : nil,
+                        readFile: { try await ModelProviderServiceAccountFile.read($0) },
+                        importJSON: model.importServiceAccount, remove: model.removeServiceAccount)
+                }
                 modelSection.buttonStyle(.borderless)
                 if let error { Text(error).foregroundStyle(.red) }
             }
@@ -237,6 +249,11 @@ struct MobileProviderEditor: View {
         .onChange(of: model.requestProvider) { _, _ in cancelRequests() }
         .onChange(of: model.key.action) { _, _ in cancelRequests() }
         .onChange(of: model.key.text) { _, _ in cancelRequests() }
+        .onChange(of: model.serviceAccount.action) { _, _ in cancelRequests() }
+        .onChange(of: model.serviceAccount.text) { _, _ in cancelRequests() }
+        .onChange(of: model.endpoint.apiType) { _, type in
+            if type != .generateContent { model.draft.usesVertex = false }
+        }
         .onChange(of: ai.modelProvider(model.original.id)) { _, _ in cancelRequests() }
         .onDisappear { cancelRequests() }
     }
@@ -284,7 +301,7 @@ struct MobileProviderEditor: View {
                     presentedSheet = .fetch
                 } label: {
                     Label("Fetch", systemImage: "arrow.down.circle").frame(maxWidth: .infinity, minHeight: 44)
-                }.disabled(!model.canSave)
+                }.disabled(!model.canSave || !model.requestProvider.canFetchModels)
                 Button {
                     presentedSheet = .add
                 } label: {

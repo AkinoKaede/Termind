@@ -2,6 +2,7 @@ import AgentKit
 import AppKit
 import SwiftUI
 import TermindApplication
+import TermindDomain
 import Testing
 
 @testable import Termind
@@ -24,6 +25,43 @@ struct ModelProviderRenderingTests {
         try await capture(
             Form { ModelProviderSettings(edit: { _, _ in }) }.formStyle(.grouped).environment(app),
             language: language, name: "provider-list")
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func newProviderHintsAndVertexFieldsRender(_ language: String) async throws {
+        let ai = AIConfigurationModel(persistsSecrets: false)
+        let provider = ModelProvider(name: "")
+        #expect(ai.saveProvider(provider, endpoint: .init()))
+        let app = AppModel(hosts: HostLibraryModel(), ai: ai)
+        defer { app.shutdownForTermination() }
+        try await capture(
+            ModelProviderEditorPage(modelProviderID: provider.id, isNew: true, showModels: {}, deleted: {}).environment(
+                app),
+            language: language, name: "new-hints")
+        var vertex = ModelProvider(name: "Google", usesVertex: true)
+        vertex.vertex = VertexConfig(
+            projectID: "fixture-project", location: "global",
+            credentialRef: "fixture-reference", clientEmail: "fixture@example.invalid")
+        #expect(ai.saveProvider(vertex, endpoint: .init(apiType: .generateContent)))
+        try await capture(
+            ModelProviderEditorPage(modelProviderID: vertex.id, showModels: {}, deleted: {}).environment(app),
+            language: language, name: "vertex")
+    }
+
+    @Test func newEditorKeepsEmptyBuffersWhileReopeningReadsSavedDefaults() throws {
+        let ai = AIConfigurationModel(persistsSecrets: false)
+        let provider = ModelProvider(name: "")
+        #expect(ai.saveProvider(provider, endpoint: .init()))
+        let saved = try #require(ai.modelProvider(provider.id))
+        let newSession = ModelProviderEditorSession()
+        newSession.begin(with: saved, in: ai, isNew: true)
+        #expect(newSession.name.isEmpty)
+        #expect(newSession.endpoint.url.isEmpty)
+        let reopened = ModelProviderEditorSession()
+        reopened.begin(with: saved, in: ai)
+        #expect(reopened.name == "OpenAI")
+        #expect(reopened.endpoint.url == ModelAPIType.automatic.defaultURL)
+        #expect(!SettingsDraftPolicy.shouldDiscard(saved))
     }
 
     private func capture(_ view: some View, language: String, name: String) async throws {

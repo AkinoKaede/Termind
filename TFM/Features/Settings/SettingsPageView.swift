@@ -93,12 +93,14 @@ enum SettingsRoute: Hashable {
 struct SettingsPageView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @State private var newlyCreatedProviderID: ModelProvider.ID?
 
     var body: some View {
         detail.frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(TermindColor.windowSurface)
             .onChange(of: window.settingsRoute) { oldRoute, newRoute in
                 cleanUpDraft(from: oldRoute, movingTo: newRoute)
+                if case .modelProvider = oldRoute { newlyCreatedProviderID = nil }
             }
             .onDisappear {
                 cleanUpDraft(from: window.settingsRoute, movingTo: .index)
@@ -118,6 +120,7 @@ struct SettingsPageView: View {
         case .modelProvider(let id):
             ModelProviderEditorPage(
                 modelProviderID: id,
+                isNew: newlyCreatedProviderID == id,
                 showModels: { navigate(to: .providerModels(id)) },
                 deleted: { navigate(to: .category(.ai)) }
             )
@@ -162,7 +165,8 @@ struct SettingsPageView: View {
             SettingsFormPage { SFTPSettings() }
         case .ai:
             SettingsFormPage {
-                ModelProviderSettings { id, _ in
+                ModelProviderSettings { id, isNew in
+                    newlyCreatedProviderID = isNew ? id : nil
                     navigate(to: .modelProvider(id))
                 }
                 ModelRoleSettings()

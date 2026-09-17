@@ -44,6 +44,7 @@ struct ModelProviderCredentialTests {
             name: "Vertex", apiFormat: .generateContent, credentialRef: "ordinary", usesVertex: true)
         secrets.values["ordinary"] = "wrong-key"
         #expect(ai.modelSecret(for: provider) == nil)
+        provider.vertex.projectID = "test-project"
         provider.vertex.credentialRef = "service-account"
         #expect(ai.modelSecret(for: provider) == nil)
         secrets.values["service-account"] = "service-account-json"

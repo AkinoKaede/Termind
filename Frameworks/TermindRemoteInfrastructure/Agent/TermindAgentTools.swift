@@ -157,6 +157,6 @@ nonisolated public enum TermindAgentTools {
         "sftp_move", "sftp_chmod", "sftp_delete", "fetch", "web_search",
         "request_user_input", "request_user_secret", "scratch_list", "scratch_read",
         "scratch_write", "scratch_edit", "scratch_diff", "scratch_delete",
-        "scratch_pull", "scratch_push", "present_plan", "manage_tasks",
+        "scratch_pull", "scratch_push", "present_plan", "manage_tasks", "load_skill",
     ]
 }

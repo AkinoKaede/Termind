@@ -789,7 +789,7 @@ private enum NativeTranscriptFactory {
             reviewing: card.state == .reviewing,
             reduceMotion: context.configuration.reduceMotion,
             measurement: context.measurement,
-            lineLimit: expanded ? 0 : 1
+            lineLimit: AgentToolPresentation.usesCompactDetails(for: card.descriptor) ? 1 : (expanded ? 0 : 1)
         )
         header.alphaValue = card.state == .interrupted ? 0.5 : 1
         header.toolTip = expanded ? String(localized: "Hide details") : String(localized: "Show details")
@@ -819,10 +819,12 @@ private enum NativeTranscriptFactory {
                 for: card, presenter: TermindAgentTools.presenter(for: card.descriptor),
                 locale: context.configuration.locale
             ) {
-                for item in projected.items {
-                    detail.addArrangedSubview(
-                        toolDetail(item, isError: card.result?.isError == true)
-                    )
+                if AgentToolPresentation.usesCompactDetails(for: card.descriptor) {
+                    detail.addArrangedSubview(compactToolDetail(projected, card: card, context: context))
+                } else {
+                    for item in projected.items {
+                        detail.addArrangedSubview(toolDetail(item, isError: card.result?.isError == true))
+                    }
                 }
             }
             if card.result?.isTruncated == true {
@@ -1390,6 +1392,46 @@ private enum NativeTranscriptFactory {
         actions.addArrangedSubview(NativeCopyButton(text: command.command))
         stack.addArrangedSubview(actions)
         return card
+    }
+
+    private static func compactToolDetail(
+        _ detail: AgentToolDetail, card: AgentToolCard, context: NativeTranscriptContext
+    ) -> NSView {
+        let preview = AgentToolDetailPreview(detail)
+        let id = AssistantTranscriptDisclosureID.toolDetail(card.id)
+        let expanded = context.presentation.disclosures.isExpanded(id)
+        let body = NativeStack.vertical()
+        for item in expanded ? preview.fullItems : preview.items {
+            body.addArrangedSubview(toolDetail(item, isError: card.result?.isError == true))
+        }
+        let scale = max(1, NSFont.preferredFont(forTextStyle: .caption1).pointSize / NSFont.smallSystemFontSize)
+        let height = 180 * scale
+        let width = body.widthAnchor.constraint(equalToConstant: max(1, context.contentWidth - 48))
+        width.isActive = true
+        body.layoutSubtreeIfNeeded()
+        let needsMore = preview.isShortened || body.fittingSize.height > height
+        width.isActive = false
+        let clipped = NativePlanPreview(content: body, expanded: expanded, previewHeight: height)
+        let toggle = {
+            context.presentation.disclosures.toggleDisclosure(id)
+            context.invalidate(context.entryID, false)
+        }
+        clipped.handler = needsMore ? toggle : nil
+        let stack = NativeStack.vertical()
+        stack.addArrangedSubview(clipped)
+        if expanded || needsMore {
+            let actions = NativeStack.horizontal()
+            let more = NativeButton(
+                title: AppLocalization.string(
+                    expanded ? "Show less" : "Show more", locale: context.configuration.locale))
+            more.identifier = NSUserInterfaceItemIdentifier("AssistantTool.More")
+            more.handler = toggle
+            actions.addArrangedSubview(more)
+            actions.addArrangedSubview(NativeCopyButton(text: preview.fullText))
+            stack.addArrangedSubview(actions)
+        }
+        stack.identifier = NSUserInterfaceItemIdentifier("AssistantTool.CompactDetails")
+        return stack
     }
 
     private static func toolDetail(_ item: AgentToolDetail.Item, isError: Bool) -> NSView {
@@ -2138,10 +2180,12 @@ private final class NativePlanPreview: NSControl {
     var handler: (() -> Void)?
     private let content: NSView
     private let expanded: Bool
+    private let previewHeight: CGFloat
 
-    init(content: NSView, expanded: Bool) {
+    init(content: NSView, expanded: Bool, previewHeight: CGFloat = Metrics.Chat.planPreviewHeight) {
         self.content = content
         self.expanded = expanded
+        self.previewHeight = previewHeight
         super.init(frame: .zero)
         wantsLayer = true
         layer?.masksToBounds = true
@@ -2155,7 +2199,7 @@ private final class NativePlanPreview: NSControl {
         if expanded {
             content.bottomAnchor.constraint(equalTo: bottomAnchor).isActive = true
         } else {
-            heightAnchor.constraint(lessThanOrEqualToConstant: Metrics.Chat.planPreviewHeight).isActive = true
+            heightAnchor.constraint(lessThanOrEqualToConstant: previewHeight).isActive = true
         }
     }
 
@@ -2164,15 +2208,16 @@ private final class NativePlanPreview: NSControl {
 
     override func layout() {
         super.layout()
-        guard !expanded else {
+        guard !expanded, content.fittingSize.height > previewHeight else {
             layer?.mask = nil
             return
         }
         let mask = CAGradientLayer()
         mask.colors = [NSColor.black.cgColor, NSColor.black.cgColor, NSColor.clear.cgColor]
         mask.locations = [0, 0.72, 1]
-        mask.startPoint = CGPoint(x: 0.5, y: 0)
-        mask.endPoint = CGPoint(x: 0.5, y: 1)
+        // AppKit layer coordinates run upwards even though the transcript view is flipped.
+        mask.startPoint = CGPoint(x: 0.5, y: 1)
+        mask.endPoint = CGPoint(x: 0.5, y: 0)
         mask.frame = bounds
         layer?.mask = mask
     }
@@ -2185,7 +2230,7 @@ private final class NativePlanPreview: NSControl {
         let size = content.fittingSize
         return NSSize(
             width: NSView.noIntrinsicMetric,
-            height: expanded ? size.height : min(size.height, Metrics.Chat.planPreviewHeight)
+            height: expanded ? size.height : min(size.height, previewHeight)
         )
     }
 }
@@ -2339,6 +2384,9 @@ private final class NativeBadge: NSView {
             font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
             color: .secondaryLabelColor
         )
+        label.maximumNumberOfLines = 1
+        label.lineBreakMode = .byTruncatingTail
+        label.setContentCompressionResistancePriority(.required, for: .horizontal)
         label.translatesAutoresizingMaskIntoConstraints = false
         addSubview(label)
         NSLayoutConstraint.activate([

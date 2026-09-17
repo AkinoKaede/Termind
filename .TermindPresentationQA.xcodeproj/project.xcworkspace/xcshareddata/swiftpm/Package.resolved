@@ -1,0 +1,195 @@
+{
+  "originHash" : "6aeb5447857612da7b6960feb17ce0fc14e8688afe3bd4e0b56c885ecc186b9f",
+  "pins" : [
+    {
+      "identity" : "agentkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/AkinoKaede/AgentKit.git",
+      "state" : {
+        "revision" : "bbc233cf6cf4dc28c3f6e7d9b7b06d096f7b27f7",
+        "version" : "0.13.1"
+      }
+    },
+    {
+      "identity" : "choreographer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/unixzii/Choreographer",
+      "state" : {
+        "revision" : "04dc84bfe380b8c5910ed7d0607765fddedd0460",
+        "version" : "0.2.0"
+      }
+    },
+    {
+      "identity" : "glyphixtextfx",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/GlyphixTextFx.git",
+      "state" : {
+        "revision" : "e1d0aa71c1849363a1bbef061d3d92f10481e62c",
+        "version" : "2.3.6"
+      }
+    },
+    {
+      "identity" : "grdb.swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/groue/GRDB.swift.git",
+      "state" : {
+        "revision" : "b83108d10f42680d78f23fe4d4d80fc88dab3212",
+        "version" : "7.11.1"
+      }
+    },
+    {
+      "identity" : "highlightr",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/raspu/Highlightr",
+      "state" : {
+        "revision" : "05e7fcc63b33925cd0c1faaa205cdd5681e7bbef",
+        "version" : "2.3.0"
+      }
+    },
+    {
+      "identity" : "libghostty-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/libghostty-spm",
+      "state" : {
+        "revision" : "7e45d27160f9b34aca9ca5c9820e9207482f9f04",
+        "version" : "1.6.20260909"
+      }
+    },
+    {
+      "identity" : "libssh2-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/libssh2-spm.git",
+      "state" : {
+        "revision" : "d211fdf8587532cd952927d9f9f3f5167ce6a77f",
+        "version" : "2.0.3"
+      }
+    },
+    {
+      "identity" : "listviewkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/ListViewKit",
+      "state" : {
+        "revision" : "c6a067ba837758a50612f88dd1d6bb025175df6c",
+        "version" : "4.3.2"
+      }
+    },
+    {
+      "identity" : "litext",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/Litext",
+      "state" : {
+        "revision" : "130b4eef642d76a3d2dcf07ab966f32f08e14b90",
+        "version" : "2.2.1"
+      }
+    },
+    {
+      "identity" : "lrucache",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nicklockwood/LRUCache",
+      "state" : {
+        "revision" : "f0570e943ea4445d258113ba73f50cb2b7e564ac",
+        "version" : "1.3.0"
+      }
+    },
+    {
+      "identity" : "markdownview",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/MarkdownView",
+      "state" : {
+        "revision" : "4abc4817fa5211f05e25fbf7a6295fb8e9fcfd90",
+        "version" : "4.3.2"
+      }
+    },
+    {
+      "identity" : "msdisplaylink",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/MSDisplayLink.git",
+      "state" : {
+        "revision" : "87eb0af130744c8cbe2e31b6e1a5bcd659f1c220",
+        "version" : "2.2.0"
+      }
+    },
+    {
+      "identity" : "openssl-spm",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/openssl-spm.git",
+      "state" : {
+        "revision" : "9f3b525d960fe71e534482310e96cd9c4f2faa17",
+        "version" : "3.6.2"
+      }
+    },
+    {
+      "identity" : "respring",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ktiays/Respring",
+      "state" : {
+        "revision" : "2148e8fce312b4dcf76b8f909226b19f3ae38186",
+        "version" : "1.1.0"
+      }
+    },
+    {
+      "identity" : "scrubberkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Lakr233/ScrubberKit.git",
+      "state" : {
+        "revision" : "b69932dc44461dd4a73aafeb78d514222f68d3e1",
+        "version" : "0.2.0"
+      }
+    },
+    {
+      "identity" : "swift-cmark",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/swiftlang/swift-cmark",
+      "state" : {
+        "revision" : "924936d0427cb25a61169739a7660230bffa6ea6",
+        "version" : "0.8.0"
+      }
+    },
+    {
+      "identity" : "swift-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-collections",
+      "state" : {
+        "revision" : "a0cb0954ecb21e4e31b0070e6ed5674e8556685a",
+        "version" : "1.6.0"
+      }
+    },
+    {
+      "identity" : "swiftmath",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/mgriebling/SwiftMath",
+      "state" : {
+        "revision" : "fa8244ed032f4a1ade4cb0571bf87d2f1a9fd2d7",
+        "version" : "1.7.3"
+      }
+    },
+    {
+      "identity" : "swiftsoup",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/scinfu/SwiftSoup",
+      "state" : {
+        "revision" : "18b80329749eca5ea29fc50211dca5c7eff5bfec",
+        "version" : "2.13.9"
+      }
+    },
+    {
+      "identity" : "with",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/ktiays/With",
+      "state" : {
+        "revision" : "98edf55b91436b2c13a76fc2b66dc3b34627d8d4",
+        "version" : "2.1.5"
+      }
+    },
+    {
+      "identity" : "zipfoundation",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/weichsel/ZIPFoundation.git",
+      "state" : {
+        "revision" : "22787ffb59de99e5dc1fbfe80b19c97a904ad48d",
+        "version" : "0.9.20"
+      }
+    }
+  ],
+  "version" : 3
+}

@@ -27,8 +27,9 @@ struct ModelProviderSettings: View {
                 // provider living in a view's `@State`. Cancelling takes it back
                 // out again — which is what `isNew` below is for.
                 let provider = ModelProvider(name: "")
-                app.aiConfiguration.upsert(provider)
-                edit(provider.id, true)
+                if app.aiConfiguration.saveProvider(provider, endpoint: ProviderEndpoint()) {
+                    edit(provider.id, true)
+                }
             }
 
             Text(
@@ -70,7 +71,9 @@ private struct ModelProviderRow: View {
                 Text(provider.name)
                     .lineLimit(1)
                 Group {
-                    if endpoint.isConfigured {
+                    if provider.usesVertexEndpoint {
+                        Text(ModelProviderForm.hasValidAddress(provider) ? provider.requestURL() : "Vertex AI")
+                    } else if endpoint.isConfigured {
                         Text(endpoint.url)
                     } else {
                         Text("Needs a URL")

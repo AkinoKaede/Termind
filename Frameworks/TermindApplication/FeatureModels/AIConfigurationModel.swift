@@ -376,6 +376,7 @@ public final class AIConfigurationModel {
     /// a configured credential is unavailable; callers must not send anonymously.
     /// Vertex always requires a service account, even without a stored reference.
     public func modelSecret(for provider: ModelProvider) -> String? {
+        if provider.usesVertexEndpoint && !ModelProviderForm.hasValidAddress(provider) { return nil }
         let reference = provider.effectiveCredentialRef
         if reference.isEmpty { return provider.usesVertexEndpoint ? nil : "" }
         guard let value = secret(for: reference), !value.isEmpty else { return nil }
@@ -451,10 +452,7 @@ public final class AIConfigurationModel {
     @discardableResult
     public func saveProvider(_ draft: ModelProvider, endpoint: ProviderEndpoint) -> Bool {
         mutatePersistedState {
-            var value = draft
-            value.inferenceURL = endpoint.requestURL
-            value.baseURL = endpoint.baseURL
-            value.apiFormat = endpoint.format
+            let (value, endpoint) = ModelProviderForm.normalized(draft, endpoint: endpoint)
             let removed = Set((modelProvider(value.id)?.models ?? []).map(\.id)).subtracting(value.models.map(\.id))
             for role in AIRole.allCases {
                 if let ref = roles[role], ref.modelProviderID == value.id, removed.contains(ref.modelID) {
@@ -500,7 +498,12 @@ public final class AIConfigurationModel {
             endpoints[modelProviderID] = nil
         }
         guard deleted else { return }
-        setSecret(nil, for: provider.credentialRef)
+        var failures: [String] = []
+        for reference in Set([provider.credentialRef, provider.vertex.credentialRef]) where !reference.isEmpty {
+            setSecret(nil, for: reference)
+            if let error = secretStorageError { failures.append(error) }
+        }
+        secretStorageError = failures.isEmpty ? nil : failures.joined(separator: "\n")
     }
 
     public func setModelProviderEnabled(_ enabled: Bool, for id: ModelProvider.ID) {

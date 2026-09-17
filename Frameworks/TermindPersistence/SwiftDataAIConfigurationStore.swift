@@ -24,6 +24,9 @@ public final class AIPersistence {
         let providerRows = try context.fetch(
             FetchDescriptor<PersistentModelProvider>(sortBy: [SortDescriptor(\.sortIndex)])
         )
+        let vertexRows = try context.fetch(FetchDescriptor<PersistentModelProviderVertexConfiguration>())
+        let vertexByProvider = Dictionary(
+            vertexRows.map { ($0.providerID, $0) }, uniquingKeysWith: { first, _ in first })
         var seenProviders: Set<UUID> = []
         var endpoints: [ModelProvider.ID: ProviderEndpoint] = [:]
         let providers = providerRows.compactMap { row -> ModelProvider? in
@@ -34,7 +37,9 @@ public final class AIPersistence {
                 return modelRow.value
             }
             endpoints[row.id] = row.endpoint
-            return row.value(models: models)
+            var provider = row.value(models: models)
+            vertexByProvider[row.id]?.apply(to: &provider)
+            return provider
         }
 
         func valid(_ ref: AIModelRef) -> Bool {
@@ -84,6 +89,7 @@ public final class AIPersistence {
     public func replace(_ snapshot: AIConfigurationSnapshot) throws {
         try context.delete(model: PersistentAIModel.self)
         try context.delete(model: PersistentModelProvider.self)
+        try context.delete(model: PersistentModelProviderVertexConfiguration.self)
         try context.delete(model: PersistentAIRoleAssignment.self)
         try context.delete(model: PersistentAISelection.self)
         try context.delete(model: PersistentMCPServer.self)
@@ -97,6 +103,7 @@ public final class AIPersistence {
             context.insert(
                 PersistentModelProvider(provider, endpoint: endpoint, sortIndex: providerIndex)
             )
+            context.insert(PersistentModelProviderVertexConfiguration(provider))
             for (modelIndex, model) in provider.models.enumerated() {
                 context.insert(
                     PersistentAIModel(model, providerID: provider.id, sortIndex: modelIndex)

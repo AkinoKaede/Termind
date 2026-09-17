@@ -2,10 +2,9 @@ import AgentKit
 import Foundation
 import SwiftUI
 import TermindApplication
+import TermindDomain
 import Testing
 import UIKit
-
-import struct TermindDomain.Host
 
 @testable import TermindIOS
 
@@ -20,6 +19,25 @@ struct MobileAISettingsRenderingTests {
         try await capture(
             "anonymous-provider", language: language,
             view: MobileProviderEditor(ai: ai, provider: provider).environment(\.locale, Locale(identifier: language)))
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func newHintsAndVertexEditorRender(_ language: String) async throws {
+        let ai = AIConfigurationModel(persistsSecrets: false)
+        try await capture(
+            "provider-hints", language: language,
+            view: MobileProviderEditor(ai: ai, provider: ModelProvider(name: ""))
+                .environment(\.locale, Locale(identifier: language)))
+        let provider = ModelProvider(
+            name: "Google", usesVertex: true,
+            vertex: VertexConfig(
+                projectID: "fixture-project", credentialRef: "fixture-reference",
+                clientEmail: "fixture@example.invalid"))
+        #expect(ai.saveProvider(provider, endpoint: .init(apiType: .generateContent)))
+        try await capture(
+            "provider-vertex", language: language,
+            view: MobileProviderEditor(ai: ai, provider: try #require(ai.modelProvider(provider.id)))
+                .environment(\.locale, Locale(identifier: language)))
     }
 
     @Test func renderSettingsEditors() async throws {
@@ -207,6 +225,9 @@ struct MobileAISettingsRenderingTests {
         let directory = FileManager.default.temporaryDirectory.appending(path: "ai-settings-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"
+        if ["provider-hints", "provider-vertex"].contains(name) {
+            Attachment.record([UInt8](data), named: "\(device)-\(language)-\(name).png")
+        }
         try data.write(to: directory.appending(path: "\(device)-\(language)-\(name).png"))
         print("AI settings snapshot: \(directory.path)/\(device)-\(language)-\(name).png")
     }

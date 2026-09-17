@@ -1,23 +1,25 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "This skill name is reserved for a built-in skill.": {
-      "extractionState": "manual",
-      "localizations": {
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "此名称保留给内置技能使用。"
-          }
-        },
-        "zh-Hant": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "此名稱保留給內建技能使用。"
-          }
-        }
-      }
-    },
+    "Google Vertex AI" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"Google Vertex AI"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"Google Vertex AI"}}}},
+    "Vertex AI" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"Vertex AI"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"Vertex AI"}}}},
+    "Project ID" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"项目ID"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"專案ID"}}}},
+    "Location" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"区域"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"區域"}}}},
+    "Service Account" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"服务账号"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"服務帳戶"}}}},
+    "Remove Service Account" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"移除服务账号"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"移除服務帳戶"}}}},
+    "Paste Service Account JSON" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"粘贴服务账号JSON"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"貼上服務帳戶JSON"}}}},
+    "Enter a valid project and location to configure Vertex AI." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"输入有效的项目和区域以配置Vertex AI。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"輸入有效的專案與區域以設定Vertex AI。"}}}},
+    "Vertex AI requires a service account. Add model IDs manually; model discovery is unavailable." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"Vertex AI需要服务账号。不支持模型发现，请手动添加模型ID。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"Vertex AI需要服務帳戶。不支援模型探索，請手動新增模型ID。"}}}},
+    "Enter a valid provider URL, or a Vertex project and location." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"请输入有效的提供方URL，或Vertex项目和区域。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請輸入有效的供應商URL，或Vertex專案與區域。"}}}},
+    "Choose a valid Google service account JSON file smaller than 1 MiB." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"请选择小于1 MiB的有效Google服务账号JSON文件。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請選擇小於1 MiB的有效Google服務帳戶JSON檔案。"}}}},
+    "Show more" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"显示更多"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"顯示更多"}}}},
+    "Show less" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"收起"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"收合"}}}},
+    "install" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"安装"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"安裝"}}}},
+    "skills" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"技能"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"技能"}}}},
+    "persistent memory" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"持久化记忆"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"持久化記憶"}}}},
+    "saved conversations" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"历史会话"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"歷史對話"}}}},
+    "skill files" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"技能文件"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"技能檔案"}}}},
+    "%@ (%lld operations)" : {"extractionState":"manual","localizations":{"en":{"variations":{"plural":{"one":{"stringUnit":{"state":"translated","value":"%1$@ (%2$lld operation)"}},"other":{"stringUnit":{"state":"translated","value":"%1$@ (%2$lld operations)"}}}}},"zh-Hans":{"variations":{"plural":{"other":{"stringUnit":{"state":"translated","value":"%1$@（%2$lld项操作）"}}}}},"zh-Hant":{"variations":{"plural":{"other":{"stringUnit":{"state":"translated","value":"%1$@（%2$lld項操作）"}}}}}}},
     "" : {
       "localizations" : {
         "zh-Hans" : {
@@ -2100,6 +2102,7 @@
       }
     },
     "Add a key first. This endpoint requires one to list models." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -2116,6 +2119,7 @@
       }
     },
     "Add a key, then press Fetch" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -7462,22 +7466,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除包和片段"
-          }
-        }
-      }
-    },
-    "Delete Provider" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除提供商"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刪除供應商"
           }
         }
       }
@@ -18403,6 +18391,7 @@
       }
     },
     "Rebuild" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -19179,7 +19168,6 @@
         }
       }
     },
-
     "Replace Key" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -19413,6 +19401,7 @@
     },
     "Reset" : {
       "comment" : "A button that deletes all skills.",
+      "extractionState" : "stale",
       "isCommentAutoGenerated" : true,
       "localizations" : {
         "zh-Hans" : {
@@ -21593,7 +21582,6 @@
         }
       }
     },
-
     "Skip" : {
       "localizations" : {
         "zh-Hans" : {
@@ -25650,6 +25638,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此設定記錄需要同步格式%lld。"
+          }
+        }
+      }
+    },
+    "This skill name is reserved for a built-in skill." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此名称保留给内置技能使用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此名稱保留給內建技能使用。"
           }
         }
       }

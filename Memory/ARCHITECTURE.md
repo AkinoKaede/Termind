@@ -21,7 +21,7 @@ The agent runtime is the separately versioned `AgentKit` package.
 - `TermindPresentation` owns reusable SwiftUI content, presentation policy,
   Ghostty themes, and the `TerminalPreferences` bridge. It depends only on
   Application and Domain; native surfaces, transports, and lifetimes stay in apps.
-- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V17
+- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V18
   schema, migration plan, and container factory. It never depends on an app target.
 - `TFM` and `TFI` own platform UI, adapters, and lifecycle orchestration. Both use
   `App`, `Application`, `Design`, `DesignSystem`, `Features`, `Infrastructure`,
@@ -301,8 +301,31 @@ empty, or unreadable remains an error. `AIConfigurationModel.modelSecret(for:)`
 shares this distinction across discovery, probes, Chat, Guardian, titles, compact,
 Command Generator, and Memory review. Anonymous resolution never reads secret
 storage or inherits another provider's storage error. Vertex still requires its
-service account. AgentKit omits empty authentication headers for ordinary providers.
-No authentication mode or persistence schema is added.
+service account and a valid project/location. AgentKit omits empty authentication headers for ordinary providers.
+
+Model-provider forms show protocol-specific Name and URL hints, not prefilled input.
+A shared Domain policy materializes blank/whitespace fields at the Application save
+boundary: Automatic stores OpenAI's full Responses URL; explicit protocols store
+OpenAI/Anthropic v1 or Google v1beta bases. Nonempty input never falls back or changes
+on a type switch. Runtime reads never infer public destinations for legacy empty rows.
+Desktop keeps page-owned input buffers while saving concrete defaults immediately;
+mobile previews a normalized copy and normalizes again after conflict merging at Save.
+Reopening shows saved values. Merely viewing or editing a form does not contact a provider.
+
+Explicit generateContent offers a Vertex AI toggle. Project, location (blank saves
+as global), and service-account identity are independent of the retained ordinary
+URL/API key. Leaving that type disables Vertex without deleting its configuration.
+Missing Vertex credentials never fall back to an API key or anonymous access; Vertex
+models are manually added. AgentKit owns address derivation and OAuth token exchange.
+File/paste import validates bounded service-account JSON and trusted Google token URLs;
+plaintext stays in transient drafts and AISecretStore. Two-reference credential edits
+compare their original values and roll back all changed secrets on metadata failure.
+Deletion removes both references; disabling Vertex removes neither.
+V19 adds independent PersistentModelProviderVertexConfiguration backing without changing
+V1-V18 entities. Settings sync carries only metadata/references, preserves existing
+Vertex metadata when an older payload omits it, and respects explicit clears and deletes.
+The existing Keychain migration covers both references; no private key enters CloudKit
+configuration. Vertex data already discarded by V12 is not reconstructed.
 
 Both apps accept user-selected HTTP and HTTPS model endpoints. Their ATS arbitrary
 loads exception supports unknown user-configured domains, including local servers;
@@ -701,7 +724,7 @@ selection, menus, and clipboard behavior.
 TermindPresentation owns tool summaries, batch status semantics, bounded result previews, timestamp formatting,
 Markdown sanitization/soft-break policy and the shared disclosure/deadline state. Hosts inject a resolved
 AgentToolDetailPresenter from TermindRemoteInfrastructure; Presentation never imports the registry's transport
-module. Tool protocol results, AgentKit versions and persisted schemas are unchanged.
+module. Tool protocol results and persisted schemas are unchanged.
 
 TFM retains native AppKit rows, Markdown caches and message editing state. TFI retains SwiftUI content inside
 its UIKit ListViewKit bridge. A row's presentation revision can change without its data changing: the mobile
@@ -714,3 +737,12 @@ after the whole row leaves the viewport, unless the reader has already chosen it
 The direct approval callback stages a tool card idempotently before accepting a response. Queued tool-proposed
 and approval-requested notifications update that identity without erasing an already recorded denial. This keeps
 UI state independent of whether the event channel or the direct interaction reaches MainActor first.
+
+Skill and memory tools own their UI-neutral result and approval projections in AgentKit.
+Presentation repairs their historical summary semantics only for recognized local tool/presenter
+identities. Their compact result preview shares a 600-character/five-row budget across the entire
+card and a scaled 180-point viewport. Full-detail expansion is independent, window-owned transcript
+state and survives row reuse; Copy retains the full already-sanitized projection. Unknown presenter
+IDs and MCP tools never opt into this policy by name. Long approvals instead retain all live
+arguments in a scaled 240-point scroll region with actions outside it. Neither preview path reads
+live skill/memory storage or changes the original protocol result, authorization, or persisted data.

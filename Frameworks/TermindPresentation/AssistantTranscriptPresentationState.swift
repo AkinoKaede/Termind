@@ -5,6 +5,7 @@ import TermindApplication
 nonisolated public enum AssistantTranscriptDisclosureID: Hashable, Sendable {
     case work(UUID)
     case tool(UUID)
+    case toolDetail(UUID)
     case toolBatch(UUID)
     case reasoning(UUID)
     case plan(UUID)
@@ -13,7 +14,7 @@ nonisolated public enum AssistantTranscriptDisclosureID: Hashable, Sendable {
 
     fileprivate var sourceID: UUID {
         switch self {
-        case .work(let id), .tool(let id), .toolBatch(let id), .reasoning(let id), .plan(let id),
+        case .work(let id), .tool(let id), .toolDetail(let id), .toolBatch(let id), .reasoning(let id), .plan(let id),
             .compactionActivity(let id), .failure(let id):
             id
         }

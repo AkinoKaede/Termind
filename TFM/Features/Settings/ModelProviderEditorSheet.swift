@@ -2,16 +2,26 @@ import AgentKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindInfrastructure
 import TermindPresentation
 
 @Observable
 final class ModelProviderEditorSession {
     var secret = ""
+    var name = ""
+    var endpoint = ProviderEndpoint()
+    var projectID = ""
+    var location = ""
+    var error: String?
     private var didBegin = false
 
-    func begin(with provider: ModelProvider, in store: AIConfigurationModel) {
+    func begin(with provider: ModelProvider, in store: AIConfigurationModel, isNew: Bool = false) {
         guard !didBegin else { return }
         didBegin = true
+        name = isNew ? "" : provider.name
+        endpoint = isNew ? ProviderEndpoint() : store.endpoint(for: provider.id)
+        projectID = provider.vertex.projectID
+        location = isNew ? "" : provider.vertex.location
         secret = store.secret(for: provider.credentialRef) ?? ""
     }
 }
@@ -24,6 +34,7 @@ final class ModelProviderEditorSession {
 struct ModelProviderEditorPage: View {
     @Environment(\.locale) private var locale
     let modelProviderID: ModelProvider.ID
+    var isNew = false
     let showModels: () -> Void
     let deleted: () -> Void
 
@@ -66,13 +77,15 @@ struct ModelProviderEditorPage: View {
     private func settings(_ provider: ModelProvider) -> some View {
         Form {
             ModelProviderConnectionFields(
-                name: binding(\.name),
-                endpoint: Binding(
-                    get: { endpoint }, set: { app.aiConfiguration.setEndpoint($0, for: modelProviderID) }),
+                name: Binding(get: { session.name }, set: saveName),
+                endpoint: Binding(get: { session.endpoint }, set: saveEndpoint),
                 isEnabled: Binding(
                     get: { app.aiConfiguration.modelProvider(modelProviderID)?.isEnabled ?? false },
-                    set: { app.aiConfiguration.setModelProviderEnabled($0, for: modelProviderID) }))
-            credentialSection
+                    set: { value in updateProvider { $0.isEnabled = value } }),
+                showsEndpoint: !provider.usesVertexEndpoint)
+            if !provider.usesVertexEndpoint { credentialSection }
+            if session.endpoint.apiType == .generateContent { vertexSection(provider) }
+            if let error = session.error { Text(error).foregroundStyle(.red) }
 
             Section("Models") {
                 Button(action: showModels) {
@@ -92,7 +105,7 @@ struct ModelProviderEditorPage: View {
             }
 
             Section {
-                Button("Delete Provider", role: .destructive) {
+                Button("Delete", role: .destructive) {
                     app.aiConfiguration.delete(modelProviderID: modelProviderID)
                     deleted()
                 }
@@ -115,11 +128,14 @@ struct ModelProviderEditorPage: View {
             SecureField(
                 "API Key",
                 text: Binding(
-                    get: { session.secret }, set: { session.secret = $0 }
+                    get: { session.secret },
+                    set: {
+                        session.secret = $0
+                        store(secret: $0)
+                    }
                 ),
                 prompt: Text("Optional")
             )
-            .onChange(of: session.secret) { _, value in store(secret: value) }
 
             Text(
                 "The key is stored in this Mac's Data Protection Keychain."
@@ -134,7 +150,7 @@ struct ModelProviderEditorPage: View {
 
     private func loadSecrets() {
         guard let provider else { return }
-        session.begin(with: provider, in: app.aiConfiguration)
+        session.begin(with: provider, in: app.aiConfiguration, isNew: isNew)
     }
 
     /// Mints a reference the first time something is typed, and clears the
@@ -145,41 +161,82 @@ struct ModelProviderEditorPage: View {
     /// entry that holds nothing is not credentialled, and it should not look
     /// like it is.
     private func store(secret value: String) {
+        guard let provider else { return }
+        do {
+            try saveCredential(provider, kind: .apiKey, replacement: value.isEmpty ? nil : value)
+            session.error = nil
+        } catch { session.error = error.localizedDescription }
+    }
+
+    private func saveName(_ value: String) {
+        session.name = value
         guard var provider else { return }
-        if value.isEmpty {
-            app.aiConfiguration.setSecret(nil, for: provider.credentialRef)
-            provider.credentialRef = ""
-        } else {
-            if provider.credentialRef.isEmpty {
-                provider.credentialRef = AIConfigurationModel.makeCredentialRef()
-            }
-            app.aiConfiguration.setSecret(value, for: provider.credentialRef)
-        }
-        app.aiConfiguration.upsert(provider)
+        provider.name = value
+        app.aiConfiguration.saveProvider(provider, endpoint: app.aiConfiguration.endpoint(for: modelProviderID))
     }
 
-    private var endpoint: ProviderEndpoint {
-        app.aiConfiguration.endpoint(for: modelProviderID)
+    private func saveEndpoint(_ value: ProviderEndpoint) {
+        session.endpoint = value
+        guard var provider else { return }
+        if session.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { provider.name = "" }
+        app.aiConfiguration.saveProvider(provider, endpoint: value)
     }
 
-    /// A two-way binding into the stored provider.
-    ///
-    /// Reads and writes go through `AIConfigurationModel` rather than through a local copy,
-    /// so the row behind the sheet updates as you type and there is no "apply"
-    /// step that could be skipped. The `?? ModelProvider(name: "")` is unreachable
-    /// while the sheet is up — the `if let` in `body` has already established
-    /// the provider exists.
-    private func binding<Value>(_ keyPath: WritableKeyPath<ModelProvider, Value>) -> Binding<Value> {
-        Binding(
-            get: {
-                app.aiConfiguration.modelProvider(modelProviderID)?[keyPath: keyPath]
-                    ?? ModelProvider(name: "")[keyPath: keyPath]
+    private func vertexSection(_ provider: ModelProvider) -> some View {
+        ModelProviderVertexFields(
+            isEnabled: Binding(
+                get: { provider.usesVertex },
+                set: { value in
+                    updateProvider { $0.usesVertex = value }
+                }),
+            projectID: Binding(
+                get: { session.projectID },
+                set: { value in
+                    session.projectID = value
+                    updateProvider { $0.vertex.projectID = value }
+                }),
+            location: Binding(
+                get: { session.location },
+                set: { value in
+                    session.location = value
+                    updateProvider { $0.vertex.location = value }
+                }),
+            clientEmail: provider.vertex.clientEmail, hasCredential: !provider.vertex.credentialRef.isEmpty,
+            requestURL: ModelProviderForm.hasValidAddress(provider) ? provider.requestURL() : nil,
+            readFile: { try await ModelProviderServiceAccountFile.read($0) },
+            importJSON: { json in
+                let account = try ModelProviderServiceAccount(json: json)
+                guard var current = self.provider else { return }
+                current.vertex.clientEmail = account.clientEmail
+                if current.vertex.projectID.isEmpty { current.vertex.projectID = account.projectID }
+                try saveCredential(current, kind: .serviceAccount, replacement: account.json)
+                session.projectID = current.vertex.projectID
             },
-            set: { newValue in
-                guard var provider = app.aiConfiguration.modelProvider(modelProviderID) else { return }
-                provider[keyPath: keyPath] = newValue
-                app.aiConfiguration.upsert(provider)
-            }
-        )
+            remove: {
+                guard var current = self.provider else { return }
+                current.vertex.clientEmail = ""
+                try saveCredential(current, kind: .serviceAccount, replacement: nil)
+            })
+    }
+
+    private func updateProvider(_ change: (inout ModelProvider) -> Void) {
+        guard var provider else { return }
+        change(&provider)
+        app.aiConfiguration.saveProvider(provider, endpoint: app.aiConfiguration.endpoint(for: modelProviderID))
+    }
+
+    private func saveCredential(_ value: ModelProvider, kind: ModelProviderCredentialKind, replacement: String?) throws
+    {
+        let ai = app.aiConfiguration
+        let reference = kind.reference(in: value)
+        let previous = ai.secret(for: reference)
+        if !reference.isEmpty, let error = ai.secretStorageError {
+            throw AIConfigurationModel.CredentialError.message(error)
+        }
+        try ai.saveProvider(
+            value, endpoint: ai.endpoint(for: value.id),
+            credentials: [
+                .init(kind: kind, reference: reference, previous: previous, replacement: replacement)
+            ])
     }
 }

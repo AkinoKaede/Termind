@@ -5,6 +5,7 @@ import TermindPresentation
 import TermindRemoteInfrastructure
 
 struct MobileAssistantInteraction: View {
+    @ScaledMetric(relativeTo: .caption) private var approvalHeight: CGFloat = 240
     @Bindable var conversation: ConversationModel
     let hosts: HostLibraryModel
     @FocusState private var focusedInput: InputFocus?
@@ -84,6 +85,7 @@ struct MobileAssistantInteraction: View {
                 }
                 .scrollBounceBehavior(.basedOnSize)
             }
+            .frame(maxHeight: AgentToolPresentation.usesCompactDetails(for: approval.descriptor) ? approvalHeight : nil)
 
             HStack {
                 Button("Deny", systemImage: "xmark", role: .destructive) {

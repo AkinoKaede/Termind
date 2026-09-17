@@ -60,12 +60,34 @@ public nonisolated struct SyncedAIModel: Codable, Hashable, Sendable {
     }
 }
 
+public nonisolated struct SyncedProviderVertex: Codable, Hashable, Sendable {
+    public var isEnabled: Bool
+    public var projectID: String
+    public var location: String
+    public var credentialRef: String
+    public var clientEmail: String
+
+    public init(_ provider: ModelProvider) {
+        isEnabled = provider.usesVertex
+        projectID = provider.vertex.projectID
+        location = provider.vertex.location
+        credentialRef = provider.vertex.credentialRef
+        clientEmail = provider.vertex.clientEmail
+    }
+
+    public var configuration: VertexConfig {
+        VertexConfig(projectID: projectID, location: location, credentialRef: credentialRef, clientEmail: clientEmail)
+    }
+}
+
 public nonisolated struct SyncedModelProvider: Codable, Hashable, Sendable {
     public var id: UUID
     public var name: String
     public var endpoint: ProviderEndpoint
     public var isEnabled: Bool
     public var credentialRef: String
+    /// Absence identifies an older writer, not an explicit removal.
+    public var vertex: SyncedProviderVertex?
     public var models: [SyncedAIModel]
     public var modelsFetchedAt: Date?
     public var sortIndex: Int
@@ -76,6 +98,7 @@ public nonisolated struct SyncedModelProvider: Codable, Hashable, Sendable {
         self.endpoint = endpoint
         isEnabled = provider.isEnabled
         credentialRef = provider.credentialRef
+        vertex = SyncedProviderVertex(provider)
         models = provider.models.map(SyncedAIModel.init)
         modelsFetchedAt = provider.modelsFetchedAt
         self.sortIndex = sortIndex
@@ -85,7 +108,9 @@ public nonisolated struct SyncedModelProvider: Codable, Hashable, Sendable {
         ModelProvider(
             id: id, name: name, apiFormat: endpoint.format, isEnabled: isEnabled,
             inferenceURL: endpoint.requestURL, baseURL: endpoint.baseURL,
-            credentialRef: credentialRef, models: models.map(\.value), modelsFetchedAt: modelsFetchedAt)
+            credentialRef: credentialRef, usesVertex: vertex?.isEnabled ?? false,
+            vertex: vertex?.configuration ?? VertexConfig(),
+            models: models.map(\.value), modelsFetchedAt: modelsFetchedAt)
     }
 }
 

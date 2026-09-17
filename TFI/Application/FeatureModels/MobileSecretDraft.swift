@@ -35,6 +35,19 @@ final class MobileSecretDraft {
         }
     }
 
+    func providerEdit(reference: String, kind: ModelProviderCredentialKind) throws -> ModelProviderCredentialEdit? {
+        guard action != .preserve else { return nil }
+        if let readError { throw MobileEditorError.message(readError) }
+        guard reference == originalReference else { throw SettingsDraftMerge.Conflict.changed }
+        return .init(
+            kind: kind, reference: reference, previous: originalSecret, replacement: action == .clear ? nil : text)
+    }
+
+    func discardPlaintext() {
+        text = ""
+        originalSecret = nil
+    }
+
     func commit(in ai: AIConfigurationModel, reference: String, kind: String = "key", save: (String) -> Bool) throws {
         if action != .preserve {
             if let readError { throw MobileEditorError.message(readError) }
