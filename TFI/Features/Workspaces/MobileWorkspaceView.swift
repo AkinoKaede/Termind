@@ -197,6 +197,7 @@ struct MobileWorkspaceView: View {
                 } label: {
                     MobileOverflowMenuLabel("More")
                 }
+                .menuOrder(.fixed)
             }
         }
     }

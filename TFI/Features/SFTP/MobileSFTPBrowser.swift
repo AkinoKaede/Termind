@@ -152,6 +152,7 @@ struct MobileSFTPBrowser: View {
             Button("Paste", systemImage: "doc.on.clipboard") { paste() }
             Button("Rename", systemImage: "pencil") { rename(file) }
             Button("Edit Permissions", systemImage: "lock.shield") { editPermissions(file) }
+            Divider()
             Button("Delete", systemImage: "trash", role: .destructive) { delete(file) }
         }
         .accessibilityHint(file.isDirectory ? Text("Open") : Text("Download"))

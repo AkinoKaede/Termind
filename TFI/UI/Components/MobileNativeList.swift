@@ -367,6 +367,8 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
     private let contentContainer = UIView()
     private var hostedView: UIView?
     private var onSelect: (() -> Void)?
+    private weak var selectionTapRecognizer: UITapGestureRecognizer?
+    private weak var highlightPressRecognizer: UILongPressGestureRecognizer?
     private var pressOrigin: CGPoint?
     private var restingBackgroundColor = UIColor.clear
 
@@ -389,12 +391,14 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         tap.cancelsTouchesInView = false
         tap.delegate = self
         contentContainer.addGestureRecognizer(tap)
+        selectionTapRecognizer = tap
 
         let press = UILongPressGestureRecognizer(target: self, action: #selector(rowPressed(_:)))
         press.minimumPressDuration = 0
         press.cancelsTouchesInView = false
         press.delegate = self
         contentContainer.addGestureRecognizer(press)
+        highlightPressRecognizer = press
     }
 
     override func prepareForReuse() {
@@ -441,10 +445,27 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
     }
 
     func gestureRecognizer(
-        _: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith _: UIGestureRecognizer
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        true
+        guard
+            gestureRecognizer === selectionTapRecognizer
+                || otherGestureRecognizer === selectionTapRecognizer
+        else { return true }
+        let counterpart =
+            gestureRecognizer === selectionTapRecognizer
+            ? otherGestureRecognizer : gestureRecognizer
+        if counterpart === highlightPressRecognizer { return true }
+        return !(counterpart is UILongPressGestureRecognizer)
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        gestureRecognizer === selectionTapRecognizer
+            && otherGestureRecognizer !== highlightPressRecognizer
+            && otherGestureRecognizer is UILongPressGestureRecognizer
     }
 
     @objc private func rowTapped() { onSelect?() }
