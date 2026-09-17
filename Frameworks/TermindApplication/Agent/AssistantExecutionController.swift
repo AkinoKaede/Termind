@@ -167,7 +167,7 @@ public final class AssistantExecutionController {
             )
             return
         }
-        guard let secret = ai.secret(for: chat.provider.effectiveCredentialRef), !secret.isEmpty else {
+        guard let secret = ai.modelSecret(for: chat.provider) else {
             recordFailedRun(
                 conversation,
                 promptID: promptID ?? lastUserTurn?.id ?? UUID(),
@@ -224,8 +224,7 @@ public final class AssistantExecutionController {
             .setting(AgentSSHInteraction.unavailable, for: .sshInteraction)
         let reviewer: (any GuardianReviewing)? = {
             guard mode == .approveForMe, let review = ai.resolve(.guardian) else { return nil }
-            guard let reviewSecret = ai.secret(for: review.provider.effectiveCredentialRef),
-                !reviewSecret.isEmpty
+            guard let reviewSecret = ai.modelSecret(for: review.provider)
             else { return nil }
             let reasoning = GuardianClient.preferredReasoning(
                 model: review.model, provider: review.provider
@@ -482,7 +481,7 @@ public final class AssistantExecutionController {
     /// expensive.
     private func compactionModel() -> (any AgentModelCompleting)? {
         guard let resolved = ai.resolve(.chat) else { return nil }
-        guard let secret = ai.secret(for: resolved.provider.effectiveCredentialRef), !secret.isEmpty
+        guard let secret = ai.modelSecret(for: resolved.provider)
         else { return nil }
         let reasoning = ModelCapabilityResolver.reasoning(
             model: resolved.model, provider: resolved.provider
@@ -540,7 +539,7 @@ public final class AssistantExecutionController {
     private func memoryReviewModel(_ conversation: ConversationModel) -> (any AgentModelCompleting)? {
         guard memory?.isEnabled == true else { return nil }
         guard let resolved = ai.resolve(conversation: memory?.reviewModel ?? conversation.model),
-            let secret = ai.secret(for: resolved.provider.effectiveCredentialRef), !secret.isEmpty
+            let secret = ai.modelSecret(for: resolved.provider)
         else { return nil }
         return AgentProviderClient(
             provider: resolved.provider, model: resolved.model, secret: secret,

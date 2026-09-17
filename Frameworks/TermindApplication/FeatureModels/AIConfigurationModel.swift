@@ -6,7 +6,7 @@ import TermindDomain
 /// what, and the MCP servers.
 ///
 /// Its own store rather than more fields on `HostLibraryModel`: that one is about
-/// machines you connect to, this one is about endpoints you spend a key at.
+/// machines you connect to, this one is about model endpoints.
 /// Provider and MCP configuration are projected from SwiftData in production
 /// while previews can still construct an in-memory store.
 @Observable
@@ -371,6 +371,16 @@ public final class AIConfigurationModel {
     }
 
     // MARK: - Secrets
+
+    /// An empty result explicitly means no authentication. A missing result means
+    /// a configured credential is unavailable; callers must not send anonymously.
+    /// Vertex always requires a service account, even without a stored reference.
+    public func modelSecret(for provider: ModelProvider) -> String? {
+        let reference = provider.effectiveCredentialRef
+        if reference.isEmpty { return provider.usesVertexEndpoint ? nil : "" }
+        guard let value = secret(for: reference), !value.isEmpty else { return nil }
+        return value
+    }
 
     /// The secret behind a `credentialRef`, loaded from the Termind Data
     /// Protection Keychain and cached only for this process.

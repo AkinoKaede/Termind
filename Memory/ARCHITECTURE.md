@@ -281,6 +281,22 @@ inherited task isolation; remote I/O stays behind asynchronous/detached boundari
 
 ## Agent runtime and security
 
+Model-provider credentials are optional on macOS and mobile. An empty credential
+reference means anonymous requests; a nonempty reference whose secret is missing,
+empty, or unreadable remains an error. `AIConfigurationModel.modelSecret(for:)`
+shares this distinction across discovery, probes, Chat, Guardian, titles, compact,
+Command Generator, and Memory review. Anonymous resolution never reads secret
+storage or inherits another provider's storage error. Vertex still requires its
+service account. AgentKit omits empty authentication headers for ordinary providers.
+No authentication mode or persistence schema is added.
+
+Both apps accept user-selected HTTP and HTTPS model endpoints. Their ATS arbitrary
+loads exception supports unknown user-configured domains, including local servers;
+HTTPS keeps default certificate trust evaluation. No local-network ATS exception
+may override that setting. Local-network usage descriptions are localized. App Store
+review notes must explain that users configure arbitrary self-hosted model servers,
+including HTTP endpoints which the app does not own and cannot upgrade to HTTPS.
+
 `AgentKit` owns the provider adapters, loop, approval gate, MCP client, and built-in
 host-agnostic tools. Termind owns everything that reaches its machines or people:
 SSH/SFTP tools, connection pools, Vault resolution, persistence, policy, and UI.

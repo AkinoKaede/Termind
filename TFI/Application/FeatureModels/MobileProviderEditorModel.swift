@@ -31,16 +31,15 @@ final class MobileProviderEditorModel {
         originalEndpoint = wasPersisted ? ai.endpoint(for: provider.id) : ProviderEndpoint(url: provider.inferenceURL)
         endpoint = originalEndpoint
         key.begin(in: ai, reference: provider.credentialRef)
-        if requiresKey { key.action = .replace }
     }
 
     var hasExistingKey: Bool { wasPersisted && !original.credentialRef.isEmpty }
-    var requiresKey: Bool { !wasPersisted }
     var isDirty: Bool { draft != original || endpoint != originalEndpoint || key.isDirty }
     var canSave: Bool {
         let url = URL(string: endpoint.requestURL)
         return !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            && url?.scheme == "https" && url?.host != nil && key.isValid
+            && ["http", "https"].contains(url?.scheme?.lowercased() ?? "")
+            && url?.host?.isEmpty == false && key.isValid
     }
 
     var requestProvider: ModelProvider {
@@ -55,8 +54,14 @@ final class MobileProviderEditorModel {
         guard !wasPersisted || ai.modelProvider(original.id) != nil else {
             throw MobileEditorError.message(String(localized: "Provider Deleted"))
         }
-        return try key.effective(
-            in: ai, reference: ai.modelProvider(original.id)?.effectiveCredentialRef ?? draft.effectiveCredentialRef)
+        if key.action == .preserve {
+            guard let secret = ai.modelSecret(for: ai.modelProvider(original.id) ?? requestProvider) else {
+                throw MobileEditorError.message(
+                    ai.secretStorageError ?? String(localized: "The provider's credential is unavailable."))
+            }
+            return secret
+        }
+        return try key.effective(in: ai, reference: draft.effectiveCredentialRef)
     }
 
     func add(_ models: [AIModel]) {

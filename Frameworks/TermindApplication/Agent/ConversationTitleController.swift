@@ -21,7 +21,7 @@ public final class ConversationTitleController: ConversationTitling {
         guard let resolved = ai.resolve(.chat) else {
             throw ConversationTitleError.missingModel
         }
-        guard let secret = ai.secret(for: resolved.provider.effectiveCredentialRef), !secret.isEmpty else {
+        guard let secret = ai.modelSecret(for: resolved.provider) else {
             throw ConversationTitleError.missingCredential
         }
         // `.off`, not `.low`. The shared clamp walks *upward* first, which is

@@ -24200,6 +24200,29 @@
         }
       }
     },
+    "The provider's credential is unavailable." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The provider's credential is unavailable."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "提供商的凭据不可用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "供應商的憑證無法使用。"
+          }
+        }
+      }
+    },
     "The proxy configuration is incomplete." : {
       "extractionState" : "stale",
       "localizations" : {

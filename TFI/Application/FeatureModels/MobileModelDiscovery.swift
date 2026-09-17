@@ -21,8 +21,10 @@ final class MobileModelDiscovery {
     func start(ai: AIConfigurationModel, provider: ModelProvider) {
         cancel()
         do {
-            let secret = ai.secret(for: provider.effectiveCredentialRef) ?? ""
-            if let error = ai.secretStorageError { throw MobileEditorError.message(error) }
+            guard let secret = ai.modelSecret(for: provider) else {
+                throw MobileEditorError.message(
+                    ai.secretStorageError ?? String(localized: "The provider's credential is unavailable."))
+            }
             start(provider: provider, secret: secret, isCurrent: { ai.modelProvider(provider.id) == provider })
         } catch { self.error = error.localizedDescription }
     }

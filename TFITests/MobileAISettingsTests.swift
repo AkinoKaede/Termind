@@ -8,6 +8,57 @@ import Testing
 
 @Suite @MainActor
 struct MobileAISettingsTests {
+    @Test(arguments: [
+        "http://localhost:11434/v1", "http://192.168.1.10:8080/v1", "http://llm.example.com/v1",
+        "https://example.com/v1",
+    ])
+    func newProvidersCanSaveAndDiscoverWithoutAKey(_ url: String) async throws {
+        let ai = AIConfigurationModel()
+        let editor = MobileProviderEditorModel(ai: ai, provider: ModelProvider(name: "Anonymous"))
+        editor.endpoint.url = url
+        #expect(editor.canSave)
+        #expect(try editor.requestSecret() == "")
+        let discovery = MobileModelDiscovery(fetch: { _, secret in
+            #expect(secret == "")
+            return [AIModel(id: "test")]
+        })
+        discovery.start(provider: editor.requestProvider, secret: try editor.requestSecret())
+        while discovery.running { await Task.yield() }
+        editor.add(discovery.candidates)
+        try editor.save()
+        let saved = try #require(ai.modelProvider(editor.original.id))
+        #expect(saved.credentialRef.isEmpty)
+        #expect(saved.models.map(\.id) == ["test"])
+        let reopened = MobileProviderEditorModel(ai: ai, provider: saved)
+        #expect(reopened.canSave)
+        #expect(try reopened.requestSecret() == "")
+        let probes = MobileModelTests(probe: { _, _, secret in
+            #expect(secret == "")
+            return "OK"
+        })
+        probes.start(models: saved.models, provider: saved, secret: try reopened.requestSecret())
+        while probes.running { await Task.yield() }
+        #expect(probes.results["test"] == "OK")
+    }
+
+    @Test(arguments: ["", "file:///tmp/model", "ftp://example.com/model", "http:///", "example.com/v1"])
+    func invalidProviderAddressesCannotBeSaved(_ url: String) {
+        let editor = MobileProviderEditorModel(ai: AIConfigurationModel(), provider: ModelProvider(name: "Invalid"))
+        editor.endpoint.url = url
+        #expect(!editor.canSave)
+    }
+
+    @Test func missingStoredKeyRequiresExplicitClearBeforeAnonymousPreview() throws {
+        let provider = ModelProvider(name: "Missing", inferenceURL: "http://localhost/v1", credentialRef: "missing")
+        let ai = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
+        let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+        #expect(throws: (any Error).self) { try editor.requestSecret() }
+        editor.keyAction = .clear
+        #expect(try editor.requestSecret() == "")
+        try editor.save()
+        #expect(ai.modelProvider(provider.id)?.credentialRef == "")
+    }
+
     private func provider() -> ModelProvider {
         var value = ModelProvider(name: "Gateway", inferenceURL: "https://example.invalid/v1/responses")
         value.models = [AIModel(id: "one"), AIModel(id: "two")]
@@ -22,7 +73,6 @@ struct MobileAISettingsTests {
         ai.select(ref)
         let editor = MobileProviderEditorModel(ai: ai, provider: provider)
         #expect(!editor.hasExistingKey)
-        #expect(!editor.requiresKey)
         #expect(editor.keyAction == .preserve)
         editor.remove(["one"])
         editor.add(id: "new-model")
@@ -91,11 +141,12 @@ struct MobileAISettingsTests {
         let ai = AIConfigurationModel()
         let editor = MobileProviderEditorModel(ai: ai, provider: provider())
         #expect(!editor.hasExistingKey)
-        #expect(editor.requiresKey)
-        #expect(editor.keyAction == .replace)
-        #expect(!editor.canSave)
+        #expect(editor.keyAction == .preserve)
+        #expect(editor.canSave)
+        #expect(try editor.requestSecret() == "")
         editor.endpoint.url = "https://draft.invalid/v1"
         editor.endpoint.apiType = .responses
+        editor.keyAction = .replace
         editor.secret = "draft-key"
         #expect(editor.requestProvider.inferenceURL == "https://draft.invalid/v1/responses")
         #expect(try editor.requestSecret() == "draft-key")

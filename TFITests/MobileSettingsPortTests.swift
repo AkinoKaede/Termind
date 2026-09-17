@@ -62,6 +62,7 @@ struct MobileSettingsPortTests {
         let editor = MobileProviderEditorModel(ai: ai, provider: ModelProvider(name: "Gateway"))
         editor.endpoint.url = "https://example.invalid/v1"
         editor.endpoint.apiType = .responses
+        editor.keyAction = .replace
         editor.secret = "test-key"
         try editor.save()
         let saved = try #require(ai.modelProvider(editor.original.id))

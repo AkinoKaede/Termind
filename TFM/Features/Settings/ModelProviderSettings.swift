@@ -118,18 +118,12 @@ private struct ModelProviderRow: View {
         )
     }
 
-    /// The two facts that decide whether this row can do anything: does it have
-    /// a credential, and does it know any models.
-    ///
-    /// "No Key" is orange rather than red — an unfinished provider is a normal
-    /// state on the way to a finished one, not an error.
+    /// Credentials are optional, so model availability determines the status.
     @ViewBuilder
     private var chips: some View {
         CardChip(text: provider.apiFormat.displayName)
 
-        if !provider.hasCredential {
-            CardChip(text: String(localized: "No Key"), symbol: "exclamationmark.circle", tint: .orange)
-        } else if provider.models.isEmpty {
+        if provider.models.isEmpty {
             CardChip(text: String(localized: "No Models"), symbol: "questionmark.circle")
         } else {
             CardChip(text: "\(provider.models.count)", symbol: "cube")

@@ -102,7 +102,6 @@ struct ModelListEditor: View {
                 Button("Test", action: testChecked)
                     .disabled(
                         state.checked.isEmpty || state.isTesting
-                            || provider?.hasCredential != true
                     )
                     .help(Text("Sends each selected model a short prompt and shows the response."))
 
@@ -211,9 +210,6 @@ struct ModelListEditor: View {
         if provider.resolvedModelsURL == nil {
             return Text("Add a URL first. Models are listed from the endpoint's own address.")
         }
-        if !provider.hasCredential {
-            return Text("Add a key first. This endpoint requires one to list models.")
-        }
         return Text("Fetch available models from the endpoint.")
     }
 
@@ -273,7 +269,7 @@ struct ModelListEditor: View {
                             isSelected: state.selection == model.id,
                             isChecked: state.checked.contains(model.id),
                             result: state.results[model.id],
-                            canTest: provider?.hasCredential == true && !state.isTesting,
+                            canTest: !state.isTesting,
                             select: { state.selection = model.id },
                             check: { toggleCheck(model.id) },
                             edit: { state.selection = model.id },
@@ -290,7 +286,7 @@ struct ModelListEditor: View {
     private var emptyHint: LocalizedStringKey {
         guard let provider else { return "" }
         if provider.resolvedModelsURL == nil { return "Add a URL, then press Fetch" }
-        return provider.hasCredential ? "Press Fetch" : "Add a key, then press Fetch"
+        return "Press Fetch"
     }
 
     // MARK: - Detail
@@ -600,7 +596,12 @@ struct ModelListEditor: View {
     private func fetchModels() {
         guard let provider else { return }
         state.fetch = .running
-        let secret = app.aiConfiguration.secret(for: provider.credentialRef) ?? ""
+        guard let secret = app.aiConfiguration.modelSecret(for: provider) else {
+            state.fetch = .failed(
+                app.aiConfiguration.secretStorageError ?? String(localized: "The provider's credential is unavailable.")
+            )
+            return
+        }
         Task {
             do {
                 state.candidates = try await ModelCatalogClient().models(
@@ -625,10 +626,17 @@ struct ModelListEditor: View {
     }
 
     private func testModels(_ targets: [AIModel]) {
-        guard let provider, provider.hasCredential, !state.isTesting, !targets.isEmpty else {
+        guard let provider, !state.isTesting, !targets.isEmpty else {
             return
         }
-        let credential = app.aiConfiguration.secret(for: provider.effectiveCredentialRef) ?? ""
+        guard let credential = app.aiConfiguration.modelSecret(for: provider) else {
+            for model in targets {
+                state.results[model.id] = .failed(
+                    app.aiConfiguration.secretStorageError
+                        ?? String(localized: "The provider's credential is unavailable."))
+            }
+            return
+        }
 
         state.isTesting = true
         for model in targets {

@@ -28,6 +28,7 @@ final class MobileSecretDraft {
         case .clear: return ""
         case .replace: return text
         case .preserve:
+            guard !reference.isEmpty else { return "" }
             let value = ai.secret(for: reference) ?? ""
             if let error = ai.secretStorageError { throw MobileEditorError.message(error) }
             return value

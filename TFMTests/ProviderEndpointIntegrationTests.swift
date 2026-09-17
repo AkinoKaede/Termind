@@ -12,6 +12,23 @@ import Testing
 
 @Suite @MainActor
 struct ProviderEndpointIntegrationTests {
+    @Test func anonymousHTTPProviderSurvivesPersistenceReload() throws {
+        let container = try ModelContainer(
+            for: HostPersistence.schema,
+            configurations: [ModelConfiguration(isStoredInMemoryOnly: true, cloudKitDatabase: .none)])
+        let provider = ModelProvider(name: "Local", models: [AIModel(id: "local-model")])
+        let store = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
+        #expect(store.saveProvider(provider, endpoint: ProviderEndpoint(url: "http://localhost:11434/v1")))
+        let reloaded = AIConfigurationModel(modelContext: container.mainContext, persistsSecrets: false)
+        let saved = try #require(reloaded.modelProvider(provider.id))
+        #expect(saved.credentialRef.isEmpty)
+        #expect(saved.inferenceURL == "http://localhost:11434/v1/chat/completions")
+        #expect(saved.models.map(\.id) == ["local-model"])
+        #expect(saved.canFetchModels)
+        #expect(reloaded.modelSecret(for: saved) == "")
+        #expect(CommandGeneratorController(ai: reloaded).isLocallyAvailable)
+    }
+
     /// The round trip the editor depends on: what was typed comes back, and so
     /// does the difference between `Automatic` and picking the same format.
     @Test

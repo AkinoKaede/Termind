@@ -117,7 +117,7 @@ struct ModelProviderEditorPage: View {
                 text: Binding(
                     get: { session.secret }, set: { session.secret = $0 }
                 ),
-                prompt: Text("Required")
+                prompt: Text("Optional")
             )
             .onChange(of: session.secret) { _, value in store(secret: value) }
 

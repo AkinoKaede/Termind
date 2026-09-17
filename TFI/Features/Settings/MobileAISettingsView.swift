@@ -214,8 +214,7 @@ struct MobileProviderEditor: View {
                 .textInputAutocapitalization(.never)
                 MobileSecretFields(
                     key: model.key,
-                    hasExistingCredential: model.hasExistingKey,
-                    requiresCredential: model.requiresKey
+                    hasExistingCredential: model.hasExistingKey
                 )
                 modelSection.buttonStyle(.borderless)
                 if let error { Text(error).foregroundStyle(.red) }

@@ -13,6 +13,15 @@ import struct TermindDomain.Host
 /// Uses the shipping views and a disposable in-memory app, without accounts or network requests.
 @Suite(.serialized) @MainActor
 struct MobileAISettingsRenderingTests {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func anonymousProviderEditorShowsOptionalKey(_ language: String) async throws {
+        let ai = AIConfigurationModel()
+        let provider = ModelProvider(name: "Local Model", inferenceURL: "http://localhost:11434/v1")
+        try await capture(
+            "anonymous-provider", language: language,
+            view: MobileProviderEditor(ai: ai, provider: provider).environment(\.locale, Locale(identifier: language)))
+    }
+
     @Test func renderSettingsEditors() async throws {
         guard let language = ProcessInfo.processInfo.environment["TERMIND_AI_SCREENSHOTS"] else { return }
         let app = try MobileAppModel(inMemory: true)
