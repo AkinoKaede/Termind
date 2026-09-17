@@ -274,28 +274,10 @@ private enum MarketingCaptureError: Error {
 
 private struct MarketingVaultScene: View {
     let app: MobileAppModel
-    private let features = MobileFeatureRegistry.standard()
-    @State private var selectedDestination: MobileDestination? = .vault
 
     var body: some View {
         if UIDevice.current.userInterfaceIdiom == .pad {
-            NavigationSplitView(columnVisibility: .constant(.all)) {
-                List(selection: $selectedDestination) {
-                    ForEach(features.registrations(on: .padSidebar)) { feature in
-                        NavigationLink(value: feature.id) {
-                            Label(feature.title, systemImage: feature.symbol)
-                        }
-                    }
-                }
-                .navigationSplitViewColumnWidth(min: 240, ideal: 280, max: 320)
-            } detail: {
-                NavigationStack {
-                    MobileVaultView(
-                        app: app, editingHost: .constant(nil), activateHost: { _ in },
-                        open: { _, _ in }, showsMetrics: false
-                    )
-                }
-            }
+            MobileRootView(app: app)
         } else {
             MarketingPhoneTabShell(selected: .vault) {
                 NavigationStack {
