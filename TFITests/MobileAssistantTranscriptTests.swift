@@ -220,6 +220,16 @@ struct MobileAssistantTranscriptTests {
         #expect(tapCount == 1)
     }
 
+    @Test func hostedRowsLeaveSelectionAndContextMenuTapCoordinationToSwiftUI() throws {
+        let row = MobileHostingListRow()
+        row.configure(rootView: AnyView(Text("File")), selectable: true, backgroundColor: .systemBackground)
+
+        let contentContainer = try #require(row.subviews.first)
+        let gestures = contentContainer.gestureRecognizers ?? []
+        #expect(!gestures.contains { $0 is UITapGestureRecognizer })
+        #expect(gestures.contains { $0 is UILongPressGestureRecognizer })
+    }
+
     private func message(_ text: String) -> ChatMessage { .init(role: .assistant, text: text, isStreaming: true) }
 
     private final class Harness {

@@ -336,19 +336,20 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
         func configure(_ row: MobileHostingListRow, item: Item, surface: MobileNativeListSurface) {
             row.configure(
                 rootView: rootView(for: item),
-                onSelect: onSelect.map { action in { action(item) } },
+                selectable: onSelect != nil,
                 backgroundColor: surface.rowBackground
             )
         }
 
         func configurePrototype(_ row: MobileHostingListRow, item: Item, surface: MobileNativeListSurface) {
             row.configure(
-                rootView: rootView(for: item, displayed: false), onSelect: nil, backgroundColor: surface.rowBackground)
+                rootView: rootView(for: item, displayed: false), selectable: false,
+                backgroundColor: surface.rowBackground)
         }
 
         private func rootView(for item: Item, displayed: Bool = true) -> AnyView {
             guard let renderer else { return AnyView(EmptyView()) }
-            return AnyView(
+            let content = AnyView(
                 renderer(item)
                     .environment(\.locale, locale)
                     .environment(\.colorScheme, colorScheme)
@@ -358,6 +359,8 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
                     .environment(\.mobileListRowIsDisplayed, displayed)
                     .id(item.id)
             )
+            guard displayed, let onSelect else { return content }
+            return AnyView(content.onTapGesture { onSelect(item) })
         }
     }
 }
@@ -366,9 +369,7 @@ where Item: Identifiable & Hashable & SendableMetatype, RowContent: View {
 final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
     private let contentContainer = UIView()
     private var hostedView: UIView?
-    private var onSelect: (() -> Void)?
-    private weak var selectionTapRecognizer: UITapGestureRecognizer?
-    private weak var highlightPressRecognizer: UILongPressGestureRecognizer?
+    private var selectable = false
     private var pressOrigin: CGPoint?
     private var restingBackgroundColor = UIColor.clear
 
@@ -387,32 +388,25 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
             contentContainer.bottomAnchor.constraint(equalTo: bottomAnchor),
         ])
 
-        let tap = UITapGestureRecognizer(target: self, action: #selector(rowTapped))
-        tap.cancelsTouchesInView = false
-        tap.delegate = self
-        contentContainer.addGestureRecognizer(tap)
-        selectionTapRecognizer = tap
-
         let press = UILongPressGestureRecognizer(target: self, action: #selector(rowPressed(_:)))
         press.minimumPressDuration = 0
         press.cancelsTouchesInView = false
         press.delegate = self
         contentContainer.addGestureRecognizer(press)
-        highlightPressRecognizer = press
     }
 
     override func prepareForReuse() {
         super.prepareForReuse()
         hostedView?.removeFromSuperview()
         hostedView = nil
-        onSelect = nil
+        selectable = false
         pressOrigin = nil
         restingBackgroundColor = .clear
         backgroundColor = .clear
         contentContainer.backgroundColor = .clear
     }
 
-    func configure(rootView: AnyView, onSelect: (() -> Void)?, backgroundColor: UIColor) {
+    func configure(rootView: AnyView, selectable: Bool, backgroundColor: UIColor) {
         restingBackgroundColor = backgroundColor
         self.backgroundColor = backgroundColor
         contentContainer.backgroundColor = backgroundColor
@@ -423,7 +417,7 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
         .background(.clear)
         if let contentView = hostedView as? any UIContentView {
             contentView.configuration = configuration
-            self.onSelect = onSelect
+            self.selectable = selectable
             return
         }
         let hostedView = configuration.makeContentView()
@@ -436,39 +430,20 @@ final class MobileHostingListRow: ListRowView, UIGestureRecognizerDelegate {
             hostedView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor),
         ])
         self.hostedView = hostedView
-        self.onSelect = onSelect
+        self.selectable = selectable
     }
 
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        if gestureRecognizer is UILongPressGestureRecognizer { return onSelect != nil }
+        if gestureRecognizer is UILongPressGestureRecognizer { return selectable }
         return true
     }
 
     func gestureRecognizer(
-        _ gestureRecognizer: UIGestureRecognizer,
-        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        _: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith _: UIGestureRecognizer
     ) -> Bool {
-        guard
-            gestureRecognizer === selectionTapRecognizer
-                || otherGestureRecognizer === selectionTapRecognizer
-        else { return true }
-        let counterpart =
-            gestureRecognizer === selectionTapRecognizer
-            ? otherGestureRecognizer : gestureRecognizer
-        if counterpart === highlightPressRecognizer { return true }
-        return !(counterpart is UILongPressGestureRecognizer)
+        true
     }
-
-    func gestureRecognizer(
-        _ gestureRecognizer: UIGestureRecognizer,
-        shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
-    ) -> Bool {
-        gestureRecognizer === selectionTapRecognizer
-            && otherGestureRecognizer !== highlightPressRecognizer
-            && otherGestureRecognizer is UILongPressGestureRecognizer
-    }
-
-    @objc private func rowTapped() { onSelect?() }
 
     @objc private func rowPressed(_ recognizer: UILongPressGestureRecognizer) {
         let isPressed: Bool
