@@ -1,10 +1,14 @@
 import CryptoKit
 import Foundation
+import TermindApplication
 
 /// Process-local state only. The digest covers acknowledged destination writes,
 /// never bytes merely read from the source or queued on a socket.
 public nonisolated final class SFTPResumeState: @unchecked Sendable {
     public struct Snapshot: Sendable {
+        public var capturesFileVersion = false
+        public var editPolicy: SFTPEditUploadPolicy?
+        public var committedVersion: SFTPFileVersion?
         public var temporaryPath: String?
         public var offset: Int64 = 0
         public var digest = SHA256()
@@ -17,7 +21,10 @@ public nonisolated final class SFTPResumeState: @unchecked Sendable {
 
     private let lock = NSLock()
     private var value = Snapshot()
-    public init() {}
+    public init(editPolicy: SFTPEditUploadPolicy? = nil, capturesFileVersion: Bool = false) {
+        value.editPolicy = editPolicy
+        value.capturesFileVersion = capturesFileVersion
+    }
     public var snapshot: Snapshot { lock.withLock { value } }
 
     func temporaryPath(for destination: String) -> String {
@@ -58,6 +65,10 @@ public nonisolated final class SFTPResumeState: @unchecked Sendable {
         do {
             if try await client.attributes(at: path) != nil { try await client.removeFile(at: path) }
         } catch { throw SFTPTemporaryFileCleanupError(path: path, cause: error) }
+    }
+
+    func recordCommittedVersion(_ version: SFTPFileVersion) {
+        lock.withLock { value.committedVersion = version }
     }
 
     func willCommit() { lock.withLock { value.committing = true } }

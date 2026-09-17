@@ -42,6 +42,13 @@ struct MobileWorkspaceView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var downloadTarget: RemoteFile?
     @State private var previewURL: URL?
+    @State private var exportedEditURL: URL?
+    @State private var showsExportedEdit = false
+    @ScaledMetric private var editRowHeight = 76.0
+
+    private var editedFiles: [SFTPEditedFile] {
+        workspace.sftpEdits?.model.modifiedFiles(for: workspace.descriptor.hostID) ?? []
+    }
 
     var body: some View {
         workspaceAlerts
@@ -213,7 +220,37 @@ struct MobileWorkspaceView: View {
                     }
                 }.mobileSheetPresentation(compact: true)
             }
-            .quickLookPreview($previewURL)
+            .sheet(
+                isPresented: Binding(get: { previewURL != nil }, set: { if !$0 { previewURL = nil } }),
+                onDismiss: {
+                    Task { await workspace.sftpEdits?.recheck() }
+                    showsExportedEdit = exportedEditURL != nil
+                }
+            ) {
+                if let previewURL {
+                    MobileSFTPEditPreview(
+                        url: previewURL,
+                        allowsEditing: workspace.sftpEdits?.model.files.contains { $0.localURL == previewURL } == true,
+                        changed: { Task { await workspace.sftpEdits?.recheck() } },
+                        export: { exportedEditURL = $0 },
+                        failed: { workspace.operationError = $0 },
+                        dismiss: { self.previewURL = nil }
+                    )
+                }
+            }
+            .sheet(isPresented: $showsExportedEdit) {
+                if let exportedEditURL {
+                    VStack(spacing: 20) {
+                        Text("The edited copy uses a different format").font(.headline)
+                        Text("Save this copy separately to keep the original remote file format.")
+                        ShareLink(item: exportedEditURL) {
+                            Label("Keep Local Copy", systemImage: "square.and.arrow.up")
+                        }
+                    }
+                    .padding()
+                    .mobileSheetPresentation(compact: true)
+                }
+            }
             .fileImporter(
                 isPresented: $importing,
                 allowedContentTypes: [.data, .folder],
@@ -341,7 +378,28 @@ struct MobileWorkspaceView: View {
                 editPermissions: { editingPermissions = $0 },
                 delete: { deleting = $0 }
             )
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                if !editedFiles.isEmpty {
+                    Color.clear.frame(height: (editRowHeight + 1) * Double(min(3, editedFiles.count)) + 24)
+                }
+            }
+            .overlay(alignment: .bottom) {
+                SFTPEditUploadOverlay(
+                    files: editedFiles, transfers: workspace.transfers?.sftpTransfers ?? [],
+                    connected: workspace.connected,
+                    upload: { await workspace.uploadEdit($0, replacing: $1) },
+                    resume: { workspace.transfers?.resume($0) },
+                    open: presentPreview,
+                    discard: { await workspace.sftpEdits?.discard($0) }
+                )
+                .padding(12)
+            }
         }
+    }
+
+    private func presentPreview(_ url: URL) {
+        exportedEditURL = nil
+        previewURL = url
     }
 
     private func open(_ file: RemoteFile) {
@@ -349,7 +407,7 @@ struct MobileWorkspaceView: View {
             Task { await workspace.sftpSession.openDirectory(file.path) }
         } else {
             _ = workspace.preview(file) { url in
-                Task { @MainActor in previewURL = url }
+                Task { @MainActor in presentPreview(url) }
             }
         }
     }
@@ -361,7 +419,7 @@ struct MobileWorkspaceView: View {
         case .file:
             Task {
                 _ = await workspace.reopenHistoryFile(at: entry.path) { url in
-                    Task { @MainActor in previewURL = url }
+                    Task { @MainActor in presentPreview(url) }
                 }
             }
         }

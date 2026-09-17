@@ -39,7 +39,7 @@ public nonisolated struct VaultRemoteChangePlan: Sendable {
 }
 
 extension Host {
-    fileprivate nonisolated func hasSameConnectionRoute(as other: Host) -> Bool {
+    public nonisolated func hasSameConnectionRoute(as other: Host) -> Bool {
         host == other.host
             && port == other.port
             && identityID == other.identityID

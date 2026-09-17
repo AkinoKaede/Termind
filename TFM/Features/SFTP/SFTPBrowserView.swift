@@ -1,5 +1,6 @@
 import ListViewKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 import TermindRemoteInfrastructure
@@ -201,6 +202,10 @@ struct SFTPBrowserView: View {
     @FocusState private var listFocused: Bool
     @FocusState private var pathFocused: Bool
 
+    @ScaledMetric private var editRowHeight = 76.0
+    private var editedFiles: [SFTPEditedFile] { app.sftpEdits.model.modifiedFiles(for: sftpSession.hostID) }
+    private var editOverlayHeight: CGFloat { (editRowHeight + 1) * Double(min(3, editedFiles.count)) }
+
     private var deleteConfirmationMessage: String {
         let paths = deleteTargets.prefix(6).map { sftpSession.displayPath($0.path) }
             .joined(separator: "\n")
@@ -265,6 +270,11 @@ struct SFTPBrowserView: View {
                 .background(TermindColor.windowSurface)
 
                 browserContent(layout: layout)
+                    .safeAreaInset(edge: .bottom, spacing: 0) {
+                        if !editedFiles.isEmpty {
+                            Color.clear.frame(height: editOverlayHeight + Metrics.StatusBar.overlayClearance)
+                        }
+                    }
             }
 
             if sftpSession.connectionJourney.isPresented {
@@ -294,6 +304,23 @@ struct SFTPBrowserView: View {
                 )
                 .zIndex(10)
             }
+        }
+        .overlay(alignment: .bottom) {
+            SFTPEditUploadOverlay(
+                files: editedFiles, transfers: app.sftpTransfers.sftpTransfers,
+                connected: sftpSession.status == .connected,
+                upload: { id, replacing in
+                    await sftpSession.uploadEdit(id, using: app.sftpEdits, replacing: replacing)
+                },
+                resume: { app.sftpTransfers.resume($0) },
+                open: { NSWorkspace.shared.open($0) },
+                discard: { await app.sftpEdits.discard($0) }
+            )
+            .padding(.horizontal, 12)
+            .padding(.bottom, Metrics.StatusBar.overlayClearance)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            Task { await app.sftpEdits.recheck() }
         }
         .contextMenu { browserLocationMenu }
         .background(TermindColor.windowSurface)
@@ -990,7 +1017,7 @@ struct SFTPBrowserView: View {
         if file.isDirectory {
             sftpSession.navigate(to: file.path)
         } else {
-            sftpSession.open(file, coordinator: app.sftpTransfers) { localURL in
+            sftpSession.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) { localURL in
                 if NSWorkspace.shared.open(localURL) {
                     sftpSession.recordOpenedFile(at: file.path)
                 }

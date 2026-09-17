@@ -1105,7 +1105,7 @@ private struct SFTPBrowseHistorySidebar: View {
         case .directory:
             session.navigate(to: entry.path)
         case .file:
-            session.reopenHistoryFile(at: entry.path, coordinator: app.sftpTransfers) {
+            session.reopenHistoryFile(at: entry.path, coordinator: app.sftpTransfers, edits: app.sftpEdits) {
                 if NSWorkspace.shared.open($0) {
                     session.recordOpenedFile(at: entry.path)
                 }

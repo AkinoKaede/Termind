@@ -161,6 +161,7 @@ nonisolated extension SFTPClientProtocol {
         cancellation: TransferCancellationToken, resume: SFTPResumeState,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
+        guard resume.snapshot.editPolicy == nil else { throw SFTPEditFailure.unsupported }
         guard resume.snapshot.offset == 0 else { throw SFTPResumeFailure.unsupported }
         try await uploadFile(
             from: localURL, to: remotePath, overwrite: overwrite,
@@ -1031,6 +1032,17 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                 guard meter.completed == identity.byteCount, try self.remoteIdentity(handle) == identity else {
                     throw SFTPResumeFailure.sourceChanged
                 }
+                if resume?.snapshot.capturesFileVersion == true {
+                    var downloaded = LIBSSH2_SFTP_ATTRIBUTES()
+                    guard libssh2_sftp_fstat_ex(handle, &downloaded, 0) == 0 else {
+                        throw self.error(String(localized: "Unable to inspect edited file"))
+                    }
+                    resume?.recordCommittedVersion(
+                        SFTPFileVersion(
+                            Self.remoteFile(
+                                path: remotePath, name: (remotePath as NSString).lastPathComponent,
+                                attributes: downloaded)))
+                }
                 guard !cancellation.isCancelled else { throw SFTPError.cancelled }
                 try file.synchronize()
                 meter.finish()
@@ -1243,6 +1255,9 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                     }
                     try verifyRemotePrefix(handle, snapshot: resume.snapshot, cancellation: cancellation)
                 }
+                if let file = try editTarget(sftp: sftp, path: destination) {
+                    resume.recordCommittedVersion(SFTPFileVersion(file))
+                }
                 resume.didCommit()
                 return
             }
@@ -1250,6 +1265,8 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                 attributes.permissions & 0o170000 == 0o100000
             else { throw SFTPResumeFailure.partialChanged }
         }
+        let editPolicy = resume?.snapshot.editPolicy
+        if let editPolicy { try editPolicy.validate(try editTarget(sftp: sftp, path: destination)) }
         let flags =
             resume == nil
             ? UInt(LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC)
@@ -1287,10 +1304,28 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                     throw SFTPResumeFailure.partialChanged
                 }
             }
+            if let editPolicy {
+                var mode = LIBSSH2_SFTP_ATTRIBUTES()
+                mode.flags = UInt(LIBSSH2_SFTP_ATTR_PERMISSIONS)
+                mode.permissions = UInt(editPolicy.permissions & 0o7777)
+                guard libssh2_sftp_fstat_ex(handle, &mode, 1) == 0 else {
+                    throw self.error(String(localized: "Unable to preserve remote file permissions"))
+                }
+                var committed = LIBSSH2_SFTP_ATTRIBUTES()
+                guard libssh2_sftp_fstat_ex(handle, &committed, 0) == 0 else {
+                    throw self.error(String(localized: "Unable to inspect edited file"))
+                }
+                resume?.recordCommittedVersion(
+                    SFTPFileVersion(
+                        Self.remoteFile(
+                            path: destination, name: (destination as NSString).lastPathComponent, attributes: committed)
+                    ))
+            }
             let closed = libssh2_sftp_close_handle(handle)
             handleOpen = false
             guard closed == 0 else { throw error("Unable to close \(temporary)") }
             try validateCommit()
+            if let editPolicy { try editPolicy.validate(try editTarget(sftp: sftp, path: destination)) }
             // Do not turn an upload into destructive directory replacement.
             var attributes = LIBSSH2_SFTP_ATTRIBUTES()
             let exists =
@@ -1315,17 +1350,41 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         }
     }
 
+    private func editTarget(sftp: OpaquePointer, path: String) throws -> RemoteFile? {
+        var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+        let result = path.withCString {
+            libssh2_sftp_stat_ex(sftp, $0, UInt32(path.utf8.count), Int32(LIBSSH2_SFTP_LSTAT), &attributes)
+        }
+        if result != 0 {
+            if libssh2_sftp_last_error(sftp) == LIBSSH2_FX_NO_SUCH_FILE { return nil }
+            throw error(String(localized: "Unable to inspect remote edit destination"))
+        }
+        return Self.remoteFile(path: path, name: (path as NSString).lastPathComponent, attributes: attributes)
+    }
+
     private func renameOnQueue(sftp: OpaquePointer, from source: String, to destination: String, overwrite: Bool) throws
     {
         let flags = overwrite ? Int(LIBSSH2_SFTP_RENAME_OVERWRITE) : 0
-        let result = source.withCString { sourceBuffer in
-            destination.withCString { destinationBuffer in
-                libssh2_sftp_rename_ex(
-                    sftp, sourceBuffer, UInt32(source.utf8.count),
-                    destinationBuffer, UInt32(destination.utf8.count), flags
-                )
-            }
-        }
+        let result = SFTPRenameOperation.perform(
+            overwrite: overwrite,
+            posixRename: {
+                source.withCString { sourceBuffer in
+                    destination.withCString { destinationBuffer in
+                        libssh2_sftp_posix_rename_ex(
+                            sftp, sourceBuffer, source.utf8.count, destinationBuffer, destination.utf8.count)
+                    }
+                }
+            },
+            standardRename: {
+                source.withCString { sourceBuffer in
+                    destination.withCString { destinationBuffer in
+                        libssh2_sftp_rename_ex(
+                            sftp, sourceBuffer, UInt32(source.utf8.count),
+                            destinationBuffer, UInt32(destination.utf8.count), flags)
+                    }
+                }
+            },
+            lastStatus: { libssh2_sftp_last_error(sftp) })
         guard result == 0 else { throw error("Unable to finish \(destination)") }
     }
 

@@ -841,10 +841,21 @@ final class SFTPSessionModel: Identifiable {
 
     func open(
         _ file: RemoteFile, coordinator: SFTPTransferCoordinator,
-        completion: @escaping (URL) -> Void
+        edits: SFTPEditService? = nil, completion: @escaping (URL) -> Void
     ) {
         bindTransfers(to: coordinator)
         guard !file.isDirectory, let connection = transferConnection else { return }
+        if let edits, let client {
+            Task {
+                do {
+                    let url = try await edits.open(
+                        file, hostID: hostID, connection: connection, client: client,
+                        homeDirectory: homeResolution.resolvedDirectory, configuration: configuration)
+                    completion(url)
+                } catch { operationError = error.localizedDescription }
+            }
+            return
+        }
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("Termind", isDirectory: true)
             .appendingPathComponent("Open", isDirectory: true)
@@ -865,13 +876,21 @@ final class SFTPSessionModel: Identifiable {
         } catch { operationError = error.localizedDescription }
     }
 
+    func uploadEdit(_ id: UUID, using edits: SFTPEditService, replacing: Bool) async -> Bool {
+        guard status == .connected, let connection = transferConnection, let client else { return false }
+        return await edits.upload(
+            id, connection: connection, client: client,
+            homeDirectory: homeResolution.resolvedDirectory, replacing: replacing, configuration: configuration
+        ) { [weak self] in self?.scheduleSilentRefresh() }
+    }
+
     func recordOpenedFile(at path: String) {
         historyStore?.record(kind: .file, path: path, for: hostID)
     }
 
     func reopenHistoryFile(
         at path: String, coordinator: SFTPTransferCoordinator,
-        completion: @escaping (URL) -> Void
+        edits: SFTPEditService? = nil, completion: @escaping (URL) -> Void
     ) {
         guard let client, status == .connected else {
             operationError = String(localized: "The SFTP connection is not available.")
@@ -883,7 +902,7 @@ final class SFTPSessionModel: Identifiable {
                     operationError = String(localized: "The remote file is no longer available.")
                     return
                 }
-                open(file, coordinator: coordinator, completion: completion)
+                open(file, coordinator: coordinator, edits: edits, completion: completion)
             } catch {
                 operationError = error.localizedDescription
             }

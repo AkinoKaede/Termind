@@ -59,6 +59,12 @@ public nonisolated struct SFTPTransferSummary: Equatable, Sendable {
     public var aggregateProgress: Double?
 }
 
+@MainActor
+public final class SFTPEditTransferReceipt {
+    public internal(set) var version: SFTPFileVersion?
+    public init() {}
+}
+
 @Observable
 public final class SFTPTransferCoordinator {
     public typealias ClientFactory = @Sendable () -> any SFTPClientProtocol
@@ -72,6 +78,7 @@ public final class SFTPTransferCoordinator {
         var cancellation: TransferCancellationToken
         var completion: ((SFTPTransfer.State) -> Void)?
         var resume = SFTPResumeState()
+        var editReceipt: SFTPEditTransferReceipt?
         var pauseRequested = false
         var cancelRequested = false
         var generation = UUID()
@@ -209,14 +216,17 @@ public final class SFTPTransferCoordinator {
         }
     }
 
+    @discardableResult
     public func enqueue(
         direction: SFTPTransfer.Direction, batchID: UUID,
         localURL: URL, remotePath: String, byteCount: Int64,
         hostID: Host.ID, connection: SFTPTransferConnection,
         scopedRoot: URL, overwrite: Bool,
         homeDirectory: String? = nil,
+        editPolicy: SFTPEditUploadPolicy? = nil,
+        editReceipt: SFTPEditTransferReceipt? = nil,
         completion: ((SFTPTransfer.State) -> Void)? = nil
-    ) {
+    ) -> SFTPTransfer.ID {
         let sftpTransfer = SFTPTransfer(
             batchID: batchID, hostID: hostID,
             sourceHostID: direction == .download ? hostID : nil,
@@ -232,9 +242,12 @@ public final class SFTPTransferCoordinator {
             connection: connection, localURL: localURL,
             remotePath: remotePath, overwrite: overwrite,
             scopedRoot: scopedRoot, cancellation: TransferCancellationToken(),
-            completion: completion
+            completion: completion,
+            resume: SFTPResumeState(editPolicy: editPolicy, capturesFileVersion: editReceipt != nil),
+            editReceipt: editReceipt
         )
         schedule()
+        return sftpTransfer.id
     }
 
     public func enqueue(
@@ -511,6 +524,7 @@ public final class SFTPTransferCoordinator {
                     throw SFTPError.operation("Invalid copy transfer runtime.")
                 }
                 result = .completed
+                runtime.editReceipt?.version = runtime.resume.snapshot.committedVersion
             } catch {
                 let current = runtimes[sftpTransfer.id]
                 if current?.cancelRequested == true {

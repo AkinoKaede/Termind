@@ -80,6 +80,7 @@ final class MobileWorkspace: Identifiable {
     }
     private var submissions: [UUID: SSHAuthenticationSubmission] = [:]
     let sftpSession: MobileSFTPSessionModel
+    let sftpEdits: SFTPEditService?
     let transfers: SFTPTransferCoordinator?
     private var transferConfiguration: SSHConnectionConfiguration?
     private(set) var uploadNotice: WorkspaceUploadNotice?
@@ -197,6 +198,7 @@ final class MobileWorkspace: Identifiable {
     init(
         descriptor: MobileWorkspaceDescriptor, hosts: any RemoteSessionHostStore,
         transfers: SFTPTransferCoordinator? = nil,
+        sftpEdits: SFTPEditService? = nil,
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
@@ -211,6 +213,7 @@ final class MobileWorkspace: Identifiable {
         self.sftpHistory = sftpHistory
         sftpSession = MobileSFTPSessionModel(hostID: descriptor.hostID, history: sftpHistory)
         self.transfers = transfers
+        self.sftpEdits = sftpEdits
         self.descriptor = descriptor
         self.hosts = hosts
         activitySession = WorkspaceActivityAttributes.Session(
@@ -1306,6 +1309,17 @@ final class MobileWorkspace: Identifiable {
         guard let transfers, let configuration = transferConfiguration, connected, !file.isDirectory else {
             return false
         }
+        if let sftpEdits, let sftp {
+            Task {
+                do {
+                    let url = try await sftpEdits.open(
+                        file, hostID: descriptor.hostID, connection: .saved(configuration), client: sftp)
+                    sftpHistory.record(kind: .file, path: file.path, for: descriptor.hostID)
+                    completion(url)
+                } catch { operationError = error.localizedDescription }
+            }
+            return true
+        }
         do {
             guard RemoteFileName.isValid(file.name) else { throw CocoaError(.fileWriteInvalidFileName) }
             let directory = FileManager.default.temporaryDirectory.appending(
@@ -1327,6 +1341,14 @@ final class MobileWorkspace: Identifiable {
         } catch {
             operationError = error.localizedDescription
             return false
+        }
+    }
+
+    func uploadEdit(_ id: UUID, replacing: Bool) async -> Bool {
+        guard connected, let sftpEdits, let sftp, let configuration = transferConfiguration else { return false }
+        return await sftpEdits.upload(id, connection: .saved(configuration), client: sftp, replacing: replacing) {
+            [weak self] in
+            Task { await self?.sftpSession.reload() }
         }
     }
 

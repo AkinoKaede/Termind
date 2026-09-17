@@ -84,6 +84,7 @@ final class AppModel {
     let metricsSync: MetricsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
     let forwarding: PortForwardingController
+    let sftpEdits: SFTPEditService
     let sftpTransfers: SFTPTransferCoordinator
     /// Providers, models, role assignments, MCP servers.
     ///
@@ -184,6 +185,7 @@ final class AppModel {
             store: hosts,
             clientFactory: { connectionCoordinator.makeSFTPClient() }
         )
+        sftpEdits = SFTPEditService(transfers: sftpTransfers, host: { [weak hosts] in hosts?.host($0) })
         self.ai = ai
         self.skills = skills
         self.memory = memory
@@ -211,7 +213,8 @@ final class AppModel {
             }
         )
         hosts.willDeleteHost = {
-            [weak forwarding, weak serverMetrics, weak mcpServer, agentConnections] hostID, ruleIDs in
+            [weak forwarding, weak serverMetrics, weak mcpServer, agentConnections, weak sftpEdits] hostID, ruleIDs in
+            sftpEdits?.invalidate(hostID: hostID)
             mcpServer?.tools.revokeHost(hostID)
             serverMetrics?.remove(hostID)
             forwarding?.suspend(ruleIDs)
@@ -244,6 +247,7 @@ final class AppModel {
                     self?.closeWorkspaces(for: deletion.hostID)
                 },
                 cancelTransfers: { [weak self] deletion in
+                    self?.sftpEdits.invalidate(hostID: deletion.hostID)
                     self?.sftpTransfers.cancelAll(for: deletion.hostID)
                     self?.mcpServer.tools.revokeHost(deletion.hostID)
                     if let self { Task { await self.mcpServer.tools.cancelHostTransfers(deletion.hostID) } }
@@ -305,6 +309,7 @@ final class AppModel {
             }
             if change.isRemoved {
                 closeWorkspaces(for: change.id)
+                sftpEdits.invalidate(hostID: change.id)
                 sftpTransfers.cancelAll(for: change.id)
                 mcpServer.tools.revokeHost(change.id)
                 commandHistory.clear(for: change.id)
@@ -597,6 +602,7 @@ final class AppModel {
     @discardableResult
     func shutdownForTermination() -> Task<Void, Never> {
         memory.suspend()
+        sftpEdits.setMonitoring(false)
         if let terminationTask { return terminationTask }
         serverMetrics.shutdown()
         speechTranscription.cancelAll()

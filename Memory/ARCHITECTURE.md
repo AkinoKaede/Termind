@@ -184,7 +184,7 @@ Transfers own dedicated connections and outlive browser closure. Upload/download
 checkpoints, file references, acknowledged offsets and incremental digests live only
 in memory. Pause and connection loss retain the destination partial file and release
 the connection; explicit resume verifies the source and partial prefix before seeking.
-No source staging, bookmark persistence, or restart recovery is added. Cancellation
+Ordinary transfers add no source staging, bookmark persistence, or restart recovery. Cancellation
 and host deletion remove partial files, reporting a path if cleanup fails. Mobile
 background expiration pauses uploads/downloads and cancels remote copies; borrowed
 session retirement still cancels its transfers. macOS termination gives asynchronous
@@ -196,6 +196,37 @@ of file jobs, so directory-only selections still create their empty directory tr
 Remote-copy enqueueing reports directory mutations so desktop refreshes also cover
 copies without file jobs. App sessions retain pending-batch presentation, cancellation,
 error handling, and completion refresh; interactive browser deletion stays app-owned.
+
+SFTP external edits have one process-local Application model per app, independent of
+browser/workspace lifetime. Remote Infrastructure owns managed local copies, streamed
+SHA-256 checks, file/directory observation (including atomic-save replacement), and
+immutable upload snapshots. Snapshots are an edit-specific exception to ordinary
+transfers' no-staging rule; paused uploads retain them and terminal completion removes
+them. Editing never automatically uploads. Only changed records appear in the floating
+bottom overlay; clean records remain internal so repeated opens reuse their local copy.
+Discard stops tracking and preserves the local copy for any external editor; the next
+remote open downloads a fresh copy. iOS exposes Discard through native trailing swipe
+actions, and both platforms expose it in the row menu. Running/preparing uploads cannot
+be discarded; paused uploads are cancelled and cleaned up before their record is removed.
+Hosts own activation, background, termination and native preview/open adapters.
+macOS checks edits before quitting; iOS cannot promise a quit warning or recovery after
+process termination. Background expiration still pauses uploads, with explicit resume.
+
+Edit upload policy validates the original destination's kind, size, modification time
+and mode both before writing and immediately before remote rename, preserving its
+permission bits on the temporary file. Overwriting commits use the OpenSSH POSIX rename
+extension; standard rename is used only when the extension is unsupported. Ordinary
+non-overwriting renames never use that extension, and failures never unlink the original
+as a replacement workaround. This is a best-effort metadata guard, not atomic
+compare-and-swap against unrelated remote writers. Missing metadata or changed/missing
+files require explicit confirmation; nonregular destinations fail closed. Successful
+commit acknowledges only the snapshot digest, so later saves remain dirty. Host removal
+or route changes invalidate old records without deleting their editable local copies.
+There are no extension allowlists: SHA-256 compares all regular-file contents. The iOS
+Quick Look delegate enables native editing where supported, receives in-place updates
+and takes ownership of temporary edited copies. Different-format copies are exported
+separately instead of overwriting the original remote format. Shared Presentation owns
+the dirty-file card; AppKit/UIKit and their lifecycle adapters stay in their apps.
 
 `sftp_copy` is Termind-owned and acting-only in Assistant, with Ask/sequential
 policy. It copies regular files and directory trees into an existing directory;

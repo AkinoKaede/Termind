@@ -43,6 +43,7 @@ final class MobileAppModel {
     let knownHosts: KnownHostsLibraryModel
     let forwardingLibrary: ForwardingLibraryModel
     let forwardings: PortForwardingController
+    let sftpEdits: SFTPEditService
     let transfers: SFTPTransferCoordinator
     private(set) var workspaces: [MobileWorkspace] = []
     var error: String?
@@ -177,6 +178,8 @@ final class MobileAppModel {
         forwardingLibrary = ForwardingLibraryModel(library: library)
         forwardings = PortForwardingController(hosts: library, defaults: dependencies.forwardingDefaults)
         transfers = SFTPTransferCoordinator(store: library, clientFactory: { SFTPClient() })
+        sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
+        library.willDeleteHost = { [weak sftpEdits] hostID, _ in sftpEdits?.invalidate(hostID: hostID) }
         library.willDeletePortForwardings = { [weak forwardings] ids in forwardings?.suspend(ids) }
         library.didReplacePortForwardings = { [weak forwardings] ids in forwardings?.resumeEnabled(ids) }
         let visibleHostIDs = Set(try self.hosts.snapshot().value.hosts.map(\.id))
@@ -192,6 +195,7 @@ final class MobileAppModel {
             },
             cancelTransfers: { [weak self] payload in
                 guard let self else { return }
+                sftpEdits.invalidate(hostID: payload.hostID)
                 transfers.cancelAll(for: payload.hostID)
             },
             stopForwardings: { [weak forwardings] payload in
@@ -276,6 +280,7 @@ final class MobileAppModel {
         do {
             assistant.disconnectHost(id)
             for workspace in workspaces.filter({ $0.descriptor.hostID == id }) { close(workspace.id) }
+            sftpEdits.invalidate(hostID: id)
             transfers.cancelAll(for: id)
             forwardings.remove(library.portForwardings(for: id).map(\.id))
             metrics.remove(id)
@@ -299,6 +304,7 @@ final class MobileAppModel {
         scenePhases[id] = phase
         let isBackground = scenePhases.values.allSatisfy { $0 == .background }
         if isBackground && !wasBackground {
+            sftpEdits.setMonitoring(false)
             memory.suspend()
             vaultSync?.pause()
             metricsSync?.pause()
@@ -315,6 +321,8 @@ final class MobileAppModel {
             }
             liveActivities.update(workspaceActivitySessions)
         } else if phase == .active {
+            sftpEdits.setMonitoring(true)
+            Task { await sftpEdits.recheck() }
             Task { [weak self] in await self?.pro.refresh() }
             background.finish()
             for workspace in workspaces { workspace.resumeAfterBackground() }
@@ -358,6 +366,7 @@ final class MobileAppModel {
         )
         for change in plan.hosts {
             if change.routeChanged {
+                sftpEdits.invalidate(hostID: change.id)
                 for workspace in workspaces.filter({ $0.descriptor.hostID == change.id }) {
                     if change.isRemoved { close(workspace.id) } else { workspace.disconnect() }
                 }
@@ -415,7 +424,7 @@ final class MobileAppModel {
         return MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(
                 hostID: host.id, title: title, kind: kind, duplicateIndex: duplicateIndex),
-            hosts: library, transfers: transfers, terminalSettings: terminalSettings,
+            hosts: library, transfers: transfers, sftpEdits: sftpEdits, terminalSettings: terminalSettings,
             commandHistory: commandHistory, sftpHistory: sftpHistory,
             connectionServices: workspaceConnectionServices,
             initialCommand: initialCommand,

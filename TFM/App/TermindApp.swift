@@ -318,6 +318,29 @@ struct TermindApp: App {
             guard let app else { return .terminateNow }
             if awaitingTermination { return .terminateLater }
             awaitingTermination = true
+            Task { @MainActor [weak self] in
+                await app.sftpEdits.recheck()
+                if app.sftpEdits.model.hasPendingChanges {
+                    let alert = NSAlert()
+                    alert.messageText = String(localized: "Quit with unuploaded changes?")
+                    alert.informativeText = String(
+                        localized:
+                            "Your edited files have not all been uploaded. Pending edits will not be restored next time."
+                    )
+                    alert.addButton(withTitle: String(localized: "Cancel"))
+                    alert.addButton(withTitle: String(localized: "Quit Anyway"))
+                    guard alert.runModal() == .alertSecondButtonReturn else {
+                        self?.awaitingTermination = false
+                        NSApp.reply(toApplicationShouldTerminate: false)
+                        return
+                    }
+                }
+                self?.beginTermination(app)
+            }
+            return .terminateLater
+        }
+
+        private func beginTermination(_ app: AppModel) {
             let cleanup = app.shutdownForTermination()
             Task { @MainActor [weak self] in
                 await cleanup.value
@@ -327,7 +350,6 @@ struct TermindApp: App {
                 try? await Task.sleep(for: .seconds(3))
                 self?.finishTermination()
             }
-            return .terminateLater
         }
 
         private func finishTermination() {
