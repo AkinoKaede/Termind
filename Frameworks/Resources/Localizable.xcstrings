@@ -6,6 +6,7 @@
     "Open With" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"打开方式"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"打開方式"}}}},
     "Open With…" : {"extractionState":"extracted","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"打开方式…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"打開方式…"}}}},
     "Other…" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"其他…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"其他…"}}}},
+    "App Store…" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"App Store…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"App Store…"}}}},
     "%@ (default)" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%@（默认）"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"%@（預設）"}}}},
     "No installed app can open this file." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"没有已安装的应用可以打开此文件。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"沒有已安裝的App可以打開此檔案。"}}}},
     "Error Details" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"错误详情"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"錯誤詳細資訊"}}}},
