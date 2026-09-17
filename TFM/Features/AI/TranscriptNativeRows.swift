@@ -1847,11 +1847,17 @@ private final class NativeMarkdownView: NSView {
 }
 
 @MainActor
-private final class NativeMarkdownSegment: NSView {
+final class NativeMarkdownSegment: NSView {
     private let markdown = MarkdownTextView()
     private var content: MarkdownContent?
     private var measuredSize = NSSize(width: 1, height: 1)
     private var heightConstraint: NSLayoutConstraint!
+    private var horizontalScrollViews: [NSScrollView] = []
+    private var horizontalTrackingAreas: [ObjectIdentifier: NSTrackingArea] = [:]
+    private var horizontalScrollerVisibility: [ObjectIdentifier: Bool] = [:]
+    private var horizontalScrollerAnimationGenerations: [ObjectIdentifier: Int] = [:]
+    private var pendingHorizontalScrollerFadeOuts: [ObjectIdentifier: Int] = [:]
+    private weak var hoveredHorizontalScrollView: NSScrollView?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -1912,11 +1918,234 @@ private final class NativeMarkdownSegment: NSView {
         let measuredHeight = max(1, ceil(markdown.boundingSize(for: measuredWidth).height))
         measuredSize = NSSize(width: measuredWidth, height: measuredHeight)
         heightConstraint.constant = measuredHeight
+        markdown.layoutSubtreeIfNeeded()
+        synchronizeHorizontalScrollViews()
         invalidateIntrinsicContentSize()
+    }
+
+    override func layout() {
+        super.layout()
+        markdown.layoutSubtreeIfNeeded()
+        synchronizeHorizontalScrollViews()
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if window == nil { setHoveredHorizontalScrollView(nil, animated: false) }
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        guard let scrollView = horizontalScrollView(for: event.trackingArea) else {
+            super.mouseEntered(with: event)
+            return
+        }
+        setHoveredHorizontalScrollView(scrollView)
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        guard let scrollView = horizontalScrollView(for: event.trackingArea) else {
+            super.mouseExited(with: event)
+            return
+        }
+        if hoveredHorizontalScrollView === scrollView {
+            setHoveredHorizontalScrollView(nil)
+        }
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        let localPoint = superview.map { convert(point, from: $0) } ?? point
+        if let scroller = visibleHorizontalScroller(at: localPoint) {
+            return scroller
+        }
+        return super.hitTest(point)
     }
 
     override var intrinsicContentSize: NSSize {
         measuredSize
+    }
+
+    func updateHorizontalScrollerHover(at point: NSPoint?) {
+        setHoveredHorizontalScrollView(point.flatMap(horizontalScrollView(at:)))
+    }
+
+    private func setHoveredHorizontalScrollView(
+        _ hovered: NSScrollView?,
+        animated: Bool = true
+    ) {
+        hoveredHorizontalScrollView = hovered
+        for scrollView in horizontalScrollViews {
+            let visible = horizontalOverflow(in: scrollView) && scrollView === hovered
+            updateHorizontalScrollerVisibility(
+                visible,
+                in: scrollView,
+                animated: animated && window != nil
+            )
+        }
+    }
+
+    private func updateHorizontalScrollerVisibility(
+        _ visible: Bool,
+        in scrollView: NSScrollView,
+        animated: Bool
+    ) {
+        guard let scroller = scrollView.horizontalScroller else { return }
+        let identifier = ObjectIdentifier(scrollView)
+        guard horizontalScrollerVisibility[identifier] != visible else {
+            if visible, scroller.isHidden {
+                scroller.isHidden = false
+                scroller.alphaValue = 1
+            } else if !visible, pendingHorizontalScrollerFadeOuts[identifier] == nil {
+                scroller.alphaValue = 0
+                scroller.isHidden = true
+            }
+            return
+        }
+        horizontalScrollerVisibility[identifier] = visible
+        let generation = horizontalScrollerAnimationGenerations[identifier, default: 0] + 1
+        horizontalScrollerAnimationGenerations[identifier] = generation
+
+        if visible {
+            pendingHorizontalScrollerFadeOuts.removeValue(forKey: identifier)
+            scroller.isHidden = false
+        }
+        guard animated else {
+            pendingHorizontalScrollerFadeOuts.removeValue(forKey: identifier)
+            scroller.alphaValue = visible ? 1 : 0
+            scroller.isHidden = !visible
+            return
+        }
+
+        if visible {
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.12
+                context.allowsImplicitAnimation = true
+                scroller.animator().alphaValue = 1
+            }
+        } else {
+            pendingHorizontalScrollerFadeOuts[identifier] = generation
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.16
+                context.allowsImplicitAnimation = true
+                scroller.animator().alphaValue = 0
+            } completionHandler: { [weak self, weak scroller] in
+                Task { @MainActor in
+                    guard let self, let scroller,
+                        self.horizontalScrollerVisibility[identifier] == false,
+                        self.pendingHorizontalScrollerFadeOuts[identifier] == generation
+                    else { return }
+                    self.pendingHorizontalScrollerFadeOuts.removeValue(forKey: identifier)
+                    scroller.isHidden = true
+                }
+            }
+        }
+    }
+
+    private func synchronizeHorizontalScrollViews() {
+        let previous = horizontalScrollViews
+        let candidates = descendantScrollViews(in: markdown).filter {
+            !$0.hasVerticalScroller && $0.documentView != nil
+        }
+        horizontalScrollViews = candidates
+
+        for scrollView in previous where !candidates.contains(where: { $0 === scrollView }) {
+            removeHorizontalTrackingArea(from: scrollView)
+            updateHorizontalScrollerVisibility(false, in: scrollView, animated: false)
+            horizontalScrollerVisibility.removeValue(forKey: ObjectIdentifier(scrollView))
+            horizontalScrollerAnimationGenerations.removeValue(forKey: ObjectIdentifier(scrollView))
+            pendingHorizontalScrollerFadeOuts.removeValue(forKey: ObjectIdentifier(scrollView))
+        }
+
+        for scrollView in candidates {
+            scrollView.scrollerStyle = .overlay
+            scrollView.hasHorizontalScroller = true
+            scrollView.autohidesScrollers = false
+            scrollView.horizontalScroller?.controlSize = .mini
+            scrollView.tile()
+
+            let overflows = horizontalOverflow(in: scrollView)
+            let scroller = scrollView.horizontalScroller
+            scroller?.scrollerStyle = .legacy
+            scroller?.isEnabled = overflows
+            if overflows {
+                installHorizontalTrackingAreaIfNeeded(on: scrollView)
+                if horizontalScrollerVisibility[ObjectIdentifier(scrollView)] == nil {
+                    updateHorizontalScrollerVisibility(false, in: scrollView, animated: false)
+                }
+            } else {
+                removeHorizontalTrackingArea(from: scrollView)
+                updateHorizontalScrollerVisibility(false, in: scrollView, animated: false)
+            }
+        }
+
+        if let hoveredHorizontalScrollView,
+            !candidates.contains(where: { $0 === hoveredHorizontalScrollView })
+                || !horizontalOverflow(in: hoveredHorizontalScrollView)
+        {
+            self.hoveredHorizontalScrollView = nil
+        }
+        setHoveredHorizontalScrollView(hoveredHorizontalScrollView, animated: false)
+    }
+
+    private func installHorizontalTrackingAreaIfNeeded(on scrollView: NSScrollView) {
+        let identifier = ObjectIdentifier(scrollView)
+        guard horizontalTrackingAreas[identifier] == nil else { return }
+        let area = NSTrackingArea(
+            rect: .zero,
+            options: [.activeInKeyWindow, .inVisibleRect, .mouseEnteredAndExited],
+            owner: self,
+            userInfo: nil
+        )
+        scrollView.addTrackingArea(area)
+        horizontalTrackingAreas[identifier] = area
+    }
+
+    private func removeHorizontalTrackingArea(from scrollView: NSScrollView) {
+        guard let area = horizontalTrackingAreas.removeValue(forKey: ObjectIdentifier(scrollView)) else {
+            return
+        }
+        scrollView.removeTrackingArea(area)
+    }
+
+    private func horizontalScrollView(for trackingArea: NSTrackingArea?) -> NSScrollView? {
+        guard let trackingArea else { return nil }
+        return horizontalScrollViews.first { scrollView in
+            horizontalTrackingAreas[ObjectIdentifier(scrollView)] === trackingArea
+        }
+    }
+
+    private func horizontalScrollView(at point: NSPoint) -> NSScrollView? {
+        horizontalScrollViews.last { scrollView in
+            horizontalOverflow(in: scrollView)
+                && convert(scrollView.bounds, from: scrollView).contains(point)
+        }
+    }
+
+    private func visibleHorizontalScroller(at point: NSPoint) -> NSScroller? {
+        for scrollView in horizontalScrollViews.reversed() {
+            guard horizontalOverflow(in: scrollView),
+                let scroller = scrollView.horizontalScroller,
+                !scroller.isHidden,
+                scroller.alphaValue > 0.01
+            else { continue }
+            let scrollerPoint = scroller.convert(point, from: self)
+            if scroller.bounds.contains(scrollerPoint) { return scroller }
+        }
+        return nil
+    }
+
+    private func horizontalOverflow(in scrollView: NSScrollView) -> Bool {
+        guard let documentView = scrollView.documentView else { return false }
+        return documentView.frame.width > scrollView.contentView.bounds.width + 1
+    }
+
+    private func descendantScrollViews(in root: NSView) -> [NSScrollView] {
+        var result: [NSScrollView] = []
+        var pending = root.subviews
+        while let view = pending.popLast() {
+            if let scrollView = view as? NSScrollView { result.append(scrollView) }
+            pending.append(contentsOf: view.subviews)
+        }
+        return result
     }
 }
 

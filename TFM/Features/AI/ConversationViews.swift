@@ -609,6 +609,10 @@ struct ComposerView: View {
         TextEditor(text: draft)
             .font(.body)
             .scrollContentBackground(.hidden)
+            .scrollIndicators(
+                draftHeight > maximumDraftHeight ? .automatic : .hidden,
+                axes: .vertical
+            )
             .focused($isFocused)
             .overlay(alignment: .topLeading) {
                 if draft.wrappedValue.isEmpty, !hasMarkedText {

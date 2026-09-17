@@ -1,53 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Import Edited Copy…" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"导入已编辑副本…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"輸入已編輯副本…"}}}},
-    "Choose an edited copy with the same file format as the original." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"请选择与原文件格式相同的已编辑副本。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請選擇與原始檔案格式相同的已編輯副本。"}}}},
-    "Open With" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"打开方式"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"打開方式"}}}},
-    "Open With…" : {"extractionState":"extracted","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"打开方式…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"打開方式…"}}}},
-    "Other…" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"其他…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"其他…"}}}},
-    "App Store…" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"App Store…"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"App Store…"}}}},
-    "%@ (default)" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"%@（默认）"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"%@（預設）"}}}},
-    "No installed app can open this file." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"没有已安装的应用可以打开此文件。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"沒有已安裝的App可以打開此檔案。"}}}},
-    "Error Details" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"错误详情"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"錯誤詳細資訊"}}}},
-    "The remote file changed. Review it before uploading again." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"远端文件已更改。请检查后再上传。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"遠端檔案已變更。請檢查後再上傳。"}}}},
-    "The original connection is no longer available." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"原连接已不可用。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"原連線已無法使用。"}}}},
-    "The local file changed while preparing the upload. Try again." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"准备上传时本地文件发生了更改。请重试。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"準備上傳時本機檔案發生了變更。請重試。"}}}},
-    "This file cannot be uploaded back to its original path." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"无法将此文件上传回原路径。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"無法將此檔案上傳回原路徑。"}}}},
-    "The remote file has changed" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"远端文件已更改"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"遠端檔案已變更"}}}},
-    "Overwrite Remote File" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"覆盖远端文件"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"覆寫遠端檔案"}}}},
-    "The remote file changed or could not be verified. Replace it with your saved local changes?" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"远端文件已更改或无法验证。要用已保存的本地修改替换它吗？"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"遠端檔案已變更或無法驗證。要用已儲存的本機修改取代它嗎？"}}}},
-    "Uploading changes" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"正在上传修改"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"正在上傳修改"}}}},
-    "Reconnect to upload changes" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"重新连接以上传修改"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"重新連線以上傳修改"}}}},
-    "Open Local Copy" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"打开本地副本"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"打開本機副本"}}}},
-    "Keep Local Copy" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"保留本地副本"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"保留本機副本"}}}},
-    "Quit with unuploaded changes?" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"仍有修改未上传，确定退出吗？"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"仍有修改未上傳，確定結束嗎？"}}}},
-    "Your edited files have not all been uploaded. Pending edits will not be restored next time." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"编辑过的文件尚未全部上传。下次启动时不会恢复待上传记录。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"編輯過的檔案尚未全部上傳。下次啟動時不會還原待上傳記錄。"}}}},
-    "Quit Anyway" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"仍然退出"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"仍然結束"}}}},
-    "The edited copy uses a different format" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"编辑后的副本使用了不同格式"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"編輯後的副本使用了不同格式"}}}},
-    "Save this copy separately to keep the original remote file format." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"请单独保存此副本，以保留远端文件的原始格式。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請另外儲存此副本，以保留遠端檔案的原始格式。"}}}},
-    "Unable to preserve remote file permissions" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"无法保留远端文件权限"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"無法保留遠端檔案權限"}}}},
-    "Unable to inspect edited file" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"无法检查编辑后的文件"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"無法檢查編輯後的檔案"}}}},
-    "Unable to inspect remote edit destination" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"无法检查远端编辑目标"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"無法檢查遠端編輯目標"}}}},
-    "Google Vertex AI" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"Google Vertex AI"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"Google Vertex AI"}}}},
-    "Vertex AI" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"Vertex AI"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"Vertex AI"}}}},
-    "Project ID" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"项目ID"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"專案ID"}}}},
-    "Location" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"区域"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"區域"}}}},
-    "Service Account" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"服务账号"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"服務帳戶"}}}},
-    "Remove Service Account" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"移除服务账号"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"移除服務帳戶"}}}},
-    "Paste Service Account JSON" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"粘贴服务账号JSON"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"貼上服務帳戶JSON"}}}},
-    "Enter a valid project and location to configure Vertex AI." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"输入有效的项目和区域以配置Vertex AI。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"輸入有效的專案與區域以設定Vertex AI。"}}}},
-    "Vertex AI requires a service account. Add model IDs manually; model discovery is unavailable." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"Vertex AI需要服务账号。不支持模型发现，请手动添加模型ID。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"Vertex AI需要服務帳戶。不支援模型探索，請手動新增模型ID。"}}}},
-    "Enter a valid provider URL, or a Vertex project and location." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"请输入有效的提供方URL，或Vertex项目和区域。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請輸入有效的供應商URL，或Vertex專案與區域。"}}}},
-    "Choose a valid Google service account JSON file smaller than 1 MiB." : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"请选择小于1 MiB的有效Google服务账号JSON文件。"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"請選擇小於1 MiB的有效Google服務帳戶JSON檔案。"}}}},
-    "Show more" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"显示更多"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"顯示更多"}}}},
-    "Show less" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"收起"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"收合"}}}},
-    "install" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"安装"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"安裝"}}}},
-    "skills" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"技能"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"技能"}}}},
-    "persistent memory" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"持久化记忆"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"持久化記憶"}}}},
-    "saved conversations" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"历史会话"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"歷史對話"}}}},
-    "skill files" : {"extractionState":"manual","localizations":{"zh-Hans":{"stringUnit":{"state":"translated","value":"技能文件"}},"zh-Hant":{"stringUnit":{"state":"translated","value":"技能檔案"}}}},
-    "%@ (%lld operations)" : {"extractionState":"manual","localizations":{"en":{"variations":{"plural":{"one":{"stringUnit":{"state":"translated","value":"%1$@ (%2$lld operation)"}},"other":{"stringUnit":{"state":"translated","value":"%1$@ (%2$lld operations)"}}}}},"zh-Hans":{"variations":{"plural":{"other":{"stringUnit":{"state":"translated","value":"%1$@（%2$lld项操作）"}}}}},"zh-Hant":{"variations":{"plural":{"other":{"stringUnit":{"state":"translated","value":"%1$@（%2$lld項操作）"}}}}}}},
     "" : {
       "localizations" : {
         "zh-Hans" : {
@@ -203,6 +156,70 @@
         }
       }
     },
+    "%@ (%lld operations)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$@ (%2$lld operation)"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$@ (%2$lld operations)"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$@（%2$lld项操作）"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hant" : {
+          "variations" : {
+            "plural" : {
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%1$@（%2$lld項操作）"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "%@ (default)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（默认）"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@（預設）"
+          }
+        }
+      }
+    },
     "%@ connected · %@ workspaces" : {
       "comment" : "A label that shows the number of connected workspaces and the total count of workspaces.",
       "isCommentAutoGenerated" : true,
@@ -278,6 +295,7 @@
       }
     },
     "%@ free" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -294,6 +312,7 @@
       }
     },
     "%@ free, then %@ per %@. Auto-renews until canceled." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -333,6 +352,7 @@
       }
     },
     "%@ per %@. Auto-renews until canceled." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -3067,6 +3087,23 @@
         }
       }
     },
+    "App Store…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "App Store…"
+          }
+        }
+      }
+    },
     "Appearance" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4049,6 +4086,7 @@
       }
     },
     "Buy Lifetime Access" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -4629,6 +4667,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請選擇SKILL.md檔案，或包含它的資料夾。"
+          }
+        }
+      }
+    },
+    "Choose a valid Google service account JSON file smaller than 1 MiB." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择小于1 MiB的有效Google服务账号JSON文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇小於1 MiB的有效Google服務帳戶JSON檔案。"
+          }
+        }
+      }
+    },
+    "Choose an edited copy with the same file format as the original." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请选择与原文件格式相同的已编辑副本。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請選擇與原始檔案格式相同的已編輯副本。"
           }
         }
       }
@@ -6370,6 +6442,22 @@
         }
       }
     },
+    "Copies selected terminal text to the clipboard when you release the mouse button." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "松开鼠标按键时，将选中的终端文本复制到剪贴板。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "放開滑鼠按鍵時，將選取的終端機文字複製到剪貼簿。"
+          }
+        }
+      }
+    },
     "copy" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -6383,22 +6471,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "複製"
-          }
-        }
-      }
-    },
-    "Copies selected terminal text to the clipboard when you release the mouse button." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "松开鼠标按键时，将选中的终端文本复制到剪贴板。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "放開滑鼠按鍵時，將選取的終端機文字複製到剪貼簿。"
           }
         }
       }
@@ -6565,6 +6637,22 @@
         }
       }
     },
+    "Copy on Selection" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选中后自动复制"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選取後自動複製"
+          }
+        }
+      }
+    },
     "Copy Path" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6643,22 +6731,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "複製SSH指令"
-          }
-        }
-      }
-    },
-    "Copy on Selection" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选中后自动复制"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選取後自動複製"
           }
         }
       }
@@ -7138,6 +7210,7 @@
       }
     },
     "day" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -9345,6 +9418,40 @@
         }
       }
     },
+    "Enter a valid project and location to configure Vertex AI." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "输入有效的项目和区域以配置Vertex AI。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入有效的專案與區域以設定Vertex AI。"
+          }
+        }
+      }
+    },
+    "Enter a valid provider URL, or a Vertex project and location." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请输入有效的提供方URL，或Vertex项目和区域。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請輸入有效的供應商URL，或Vertex專案與區域。"
+          }
+        }
+      }
+    },
     "Enter an absolute device path and a valid baud rate." : {
       "localizations" : {
         "zh-Hans" : {
@@ -9423,6 +9530,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輸入所選金鑰的金鑰密碼。"
+          }
+        }
+      }
+    },
+    "Error Details" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "错误详情"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "錯誤詳細資訊"
           }
         }
       }
@@ -10888,6 +11012,23 @@
         }
       }
     },
+    "Google Vertex AI" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Vertex AI"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Google Vertex AI"
+          }
+        }
+      }
+    },
     "Got It" : {
       "comment" : "A button that dismisses the onboarding flow.",
       "isCommentAutoGenerated" : true,
@@ -12031,6 +12172,23 @@
         }
       }
     },
+    "Import Edited Copy…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "导入已编辑副本…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "輸入已編輯副本…"
+          }
+        }
+      }
+    },
     "Import failed." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12398,6 +12556,23 @@
         }
       }
     },
+    "install" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝"
+          }
+        }
+      }
+    },
     "Instructions" : {
       "comment" : "A label for the instructions of a skill.",
       "isCommentAutoGenerated" : true,
@@ -12653,6 +12828,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "保留主機"
+          }
+        }
+      }
+    },
+    "Keep Local Copy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留本地副本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保留本機副本"
           }
         }
       }
@@ -13454,6 +13646,23 @@
         }
       }
     },
+    "Location" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "区域"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "區域"
+          }
+        }
+      }
+    },
     "Locked" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14083,6 +14292,7 @@
       }
     },
     "month" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -14114,6 +14324,22 @@
         }
       }
     },
+    "Mouse" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鼠标"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滑鼠"
+          }
+        }
+      }
+    },
     "move" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -14127,22 +14353,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移動"
-          }
-        }
-      }
-    },
-    "Mouse" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "鼠标"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "滑鼠"
           }
         }
       }
@@ -15022,6 +15232,23 @@
         }
       }
     },
+    "No installed app can open this file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有已安装的应用可以打开此文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有已安裝的App可以打開此檔案。"
+          }
+        }
+      }
+    },
     "No Key" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15862,6 +16089,7 @@
       }
     },
     "One payment. No subscription or automatic renewal." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -16193,6 +16421,23 @@
         }
       }
     },
+    "Open Local Copy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开本地副本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開本機副本"
+          }
+        }
+      }
+    },
     "Open Login Items Settings" : {
       "localizations" : {
         "zh-Hans" : {
@@ -16292,6 +16537,23 @@
         }
       }
     },
+    "Open With" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开方式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開方式"
+          }
+        }
+      }
+    },
     "Open with SFTP" : {
       "localizations" : {
         "zh-Hans" : {
@@ -16320,6 +16582,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用SSH開啟"
+          }
+        }
+      }
+    },
+    "Open With…" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打开方式…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "打開方式…"
           }
         }
       }
@@ -16490,6 +16768,23 @@
         }
       }
     },
+    "Other…" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "其他…"
+          }
+        }
+      }
+    },
     "Others" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16552,6 +16847,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "覆寫可能刪除衝突的目標目錄。"
+          }
+        }
+      }
+    },
+    "Overwrite Remote File" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "覆盖远端文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "覆寫遠端檔案"
           }
         }
       }
@@ -16939,6 +17251,23 @@
         }
       }
     },
+    "Paste Service Account JSON" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "粘贴服务账号JSON"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "貼上服務帳戶JSON"
+          }
+        }
+      }
+    },
     "Pasted image" : {
       "localizations" : {
         "zh-Hans" : {
@@ -17233,6 +17562,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "權限"
+          }
+        }
+      }
+    },
+    "persistent memory" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "持久化记忆"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "持久化記憶"
           }
         }
       }
@@ -17833,6 +18179,23 @@
         }
       }
     },
+    "Project ID" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "项目ID"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "專案ID"
+          }
+        }
+      }
+    },
     "Provider default" : {
       "localizations" : {
         "zh-Hans" : {
@@ -18201,6 +18564,23 @@
         }
       }
     },
+    "Quit Anyway" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍然退出"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍然結束"
+          }
+        }
+      }
+    },
     "Quit Termind" : {
       "localizations" : {
         "zh-Hans" : {
@@ -18213,6 +18593,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出Termind"
+          }
+        }
+      }
+    },
+    "Quit with unuploaded changes?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍有修改未上传，确定退出吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仍有修改未上傳，確定結束嗎？"
           }
         }
       }
@@ -18559,6 +18956,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重新連線嘗試%lld…"
+          }
+        }
+      }
+    },
+    "Reconnect to upload changes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新连接以上传修改"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重新連線以上傳修改"
           }
         }
       }
@@ -18996,6 +19410,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "移除密碼"
+          }
+        }
+      }
+    },
+    "Remove Service Account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除服务账号"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除服務帳戶"
           }
         }
       }
@@ -20174,6 +20605,23 @@
         }
       }
     },
+    "Save this copy separately to keep the original remote file format." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请单独保存此副本，以保留远端文件的原始格式。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請另外儲存此副本，以保留遠端檔案的原始格式。"
+          }
+        }
+      }
+    },
     "Save Workspace Template" : {
       "localizations" : {
         "zh-Hans" : {
@@ -20186,6 +20634,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "儲存工作區範本"
+          }
+        }
+      }
+    },
+    "saved conversations" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "历史会话"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "歷史對話"
           }
         }
       }
@@ -20959,6 +21424,23 @@
         }
       }
     },
+    "Service Account" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服务账号"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "服務帳戶"
+          }
+        }
+      }
+    },
     "Set baud rate" : {
       "localizations" : {
         "zh-Hans" : {
@@ -21252,6 +21734,23 @@
         }
       }
     },
+    "Show less" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收合"
+          }
+        }
+      }
+    },
     "Show Logs" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -21265,6 +21764,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示日誌"
+          }
+        }
+      }
+    },
+    "Show more" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示更多"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示更多"
           }
         }
       }
@@ -21588,6 +22104,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "技能已刪除"
+          }
+        }
+      }
+    },
+    "skill files" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技能文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技能檔案"
+          }
+        }
+      }
+    },
+    "skills" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "技能"
           }
         }
       }
@@ -22167,6 +22717,7 @@
       }
     },
     "Start Free Trial" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -22617,6 +23168,7 @@
       }
     },
     "Subscribe Annually" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -23591,6 +24143,23 @@
         }
       }
     },
+    "The edited copy uses a different format" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑后的副本使用了不同格式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯後的副本使用了不同格式"
+          }
+        }
+      }
+    },
     "The extracted text is longer than 200,000 characters." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -24100,6 +24669,23 @@
         }
       }
     },
+    "The local file changed while preparing the upload. Try again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "准备上传时本地文件发生了更改。请重试。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "準備上傳時本機檔案發生了變更。請重試。"
+          }
+        }
+      }
+    },
     "The metrics response is incomplete or too large." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -24178,6 +24764,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法從此雜湊值還原原始位址和連接埠。"
+          }
+        }
+      }
+    },
+    "The original connection is no longer available." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原连接已不可用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "原連線已無法使用。"
           }
         }
       }
@@ -24402,6 +25005,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "遠端指令"
+          }
+        }
+      }
+    },
+    "The remote file changed or could not be verified. Replace it with your saved local changes?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "远端文件已更改或无法验证。要用已保存的本地修改替换它吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遠端檔案已變更或無法驗證。要用已儲存的本機修改取代它嗎？"
+          }
+        }
+      }
+    },
+    "The remote file changed. Review it before uploading again." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "远端文件已更改。请检查后再上传。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遠端檔案已變更。請檢查後再上傳。"
+          }
+        }
+      }
+    },
+    "The remote file has changed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "远端文件已更改"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遠端檔案已變更"
           }
         }
       }
@@ -25343,6 +25997,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此裝置→SSH主機→目標"
+          }
+        }
+      }
+    },
+    "This file cannot be uploaded back to its original path." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法将此文件上传回原路径。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法將此檔案上傳回原路徑。"
           }
         }
       }
@@ -26456,6 +27127,40 @@
         }
       }
     },
+    "Unable to inspect edited file" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法检查编辑后的文件"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法檢查編輯後的檔案"
+          }
+        }
+      }
+    },
+    "Unable to inspect remote edit destination" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法检查远端编辑目标"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法檢查遠端編輯目標"
+          }
+        }
+      }
+    },
     "Unable to listen on %@: %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26485,6 +27190,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法開啟Termind"
+          }
+        }
+      }
+    },
+    "Unable to preserve remote file permissions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法保留远端文件权限"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法保留遠端檔案權限"
           }
         }
       }
@@ -27120,6 +27842,23 @@
         }
       }
     },
+    "Uploading changes" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在上传修改"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在上傳修改"
+          }
+        }
+      }
+    },
     "Uptime" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -27487,6 +28226,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "版本"
+          }
+        }
+      }
+    },
+    "Vertex AI" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertex AI"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertex AI"
+          }
+        }
+      }
+    },
+    "Vertex AI requires a service account. Add model IDs manually; model discovery is unavailable." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertex AI需要服务账号。不支持模型发现，请手动添加模型ID。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vertex AI需要服務帳戶。不支援模型探索，請手動新增模型ID。"
           }
         }
       }
@@ -27878,6 +28651,7 @@
       }
     },
     "week" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -28377,6 +29151,7 @@
       }
     },
     "year" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -28440,6 +29215,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目前路徑也可以點選"
+          }
+        }
+      }
+    },
+    "Your edited files have not all been uploaded. Pending edits will not be restored next time." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "编辑过的文件尚未全部上传。下次启动时不会恢复待上传记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "編輯過的檔案尚未全部上傳。下次啟動時不會還原待上傳記錄。"
           }
         }
       }
