@@ -93,12 +93,16 @@ struct RootView: View {
             WindowTitleCatalog.standard(hosts: app.hostLibrary)
                 .title(in: window, locale: locale)
         )
+        .toolbar(removing: window.showsCompactMetricsDetail ? .title : nil)
         // The window's only toolbar. Creation on the left, one Find on the
         // right, both following the content in front rather than the sidebar —
         // see `WindowToolbarLeadingActions` and `WindowModel.findKind`.
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
                 WindowToolbarLeadingActions()
+            }
+            ToolbarItem(placement: .principal) {
+                MetricsDetailPagePicker()
             }
             ToolbarItem(placement: .primaryAction) {
                 WindowToolbarSearchSlot()

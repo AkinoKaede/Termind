@@ -17,6 +17,74 @@ import struct TermindDomain.Host
 @MainActor
 struct MetricsInteractionTests {
     @Test
+    func compactMetricsPagesFollowSearchAndRemainWindowLocal() throws {
+        let configuration = ScreenshotDemoConfiguration(scene: .metricsDetail, language: .english)
+        let model = configuration.makeMetricsModel(hosts: .demo())
+        defer { model.shutdown() }
+        let server = try #require(model.servers.first)
+        let window = WindowModel()
+        let otherWindow = WindowModel()
+        for state in [window, otherWindow] {
+            state.selectedDestination = .metrics
+            state.metricsModel = model
+            state.metricsHostID = server.id
+            state.metricsDetailWidth = 360
+            #expect(state.showsCompactMetricsDetail)
+            #expect(state.metricsDetailPage == .status)
+        }
+
+        window.focusToolbarFind()
+        #expect(window.metricsDetailPage == .processes)
+        #expect(otherWindow.metricsDetailPage == .status)
+        try #require(window.findContext()).query.wrappedValue = "node"
+        window.isToolbarFindFocused = false
+        #expect(window.metricsDetailPage == .processes)
+        #expect(window.metricsProcessQuery == "node")
+
+        window.metricsDetailPage = .status
+        window.isToolbarFindFocused = true  // Native search activation, including a mouse click.
+        #expect(window.metricsDetailPage == .processes)
+        window.metricsDetailPage = .status
+        window.focusToolbarFind()  // Repeated Command-F while the search is already presented.
+        #expect(window.metricsDetailPage == .processes)
+
+        window.metricsDetailWidth = 900
+        window.metricsDetailPage = .status
+        window.metricsDetailWidth = 700
+        #expect(!window.showsCompactMetricsDetail)
+        #expect(window.metricsDetailPage == .status)
+        window.metricsDetailWidth = 699
+        #expect(window.showsCompactMetricsDetail)
+        #expect(window.metricsDetailPage == .processes)
+
+        window.isToolbarFindFocused = false
+        window.metricsDetailPage = .status
+        window.metricsDetailWidth = 900
+        window.metricsDetailWidth = 360
+        #expect(window.metricsDetailPage == .status)
+        window.metricsDetailPage = .processes
+        window.metricsHostID = server.id
+        #expect(window.metricsDetailPage == .processes)
+        window.metricsHostID = UUID()
+        #expect(window.metricsDetailPage == .status)
+        #expect(!window.showsCompactMetricsDetail)
+        window.metricsHostID = nil
+        #expect(!window.showsCompactMetricsDetail)
+        window.metricsHostID = server.id
+        #expect(window.metricsDetailPage == .status)
+
+        server.point = nil
+        server.isConnecting = true
+        server.journey.fail("Fixture connection failure")
+        #expect(server.showsConnectionJourney)
+        #expect(!window.showsCompactMetricsDetail)
+        window.focusToolbarFind()
+        #expect(window.metricsDetailPage == .status)
+        window.selectedDestination = .assistant
+        #expect(!window.showsCompactMetricsDetail)
+    }
+
+    @Test
     func toolbarSearchKeepsOverviewAndProcessQueriesIndependent() throws {
         let window = WindowModel()
         window.selectedDestination = .metrics

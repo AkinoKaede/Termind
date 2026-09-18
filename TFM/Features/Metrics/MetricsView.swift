@@ -62,32 +62,38 @@ struct ServerMetricsView: View {
 struct MetricsDetailView: View {
     let server: ServerMetric
     let model: ServerMetricsModel
-
-    static let splitMinWidth: CGFloat = 630
-    static let compactProcessHeight: CGFloat = 360
+    @Environment(WindowModel.self) private var window
 
     var body: some View {
         GeometryReader { geometry in
-            let compact = geometry.size.width < Self.splitMinWidth
-            let layout =
-                compact
-                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
-                : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+            let split = MetricsDetailPage.showsBothColumns(width: geometry.size.width)
+            let showsStatus = split || window.metricsDetailPage == .status
+            let showsProcesses = split || window.metricsDetailPage == .processes
 
-            ScrollView {
-                layout {
+            MetricsDetailLayout(split: split, page: window.metricsDetailPage) {
+                ScrollView {
                     MetricsServerDetails(server: server, model: model)
                         .padding(1)
-                        .frame(width: compact ? nil : min(340, max(270, geometry.size.width * 0.38)))
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    MetricsProcessList(server: server)
-                        .frame(height: compact ? Self.compactProcessHeight : max(0, geometry.size.height - 32))
-                        .frame(maxWidth: .infinity)
                 }
-                .padding(16)
+                .metricsPlainScrollEdges()
+                .opacity(showsStatus ? 1 : 0)
+                .allowsHitTesting(showsStatus)
+                .disabled(!showsStatus)
+                .accessibilityHidden(!showsStatus)
+
+                MetricsProcessList(server: server)
+                    .opacity(showsProcesses ? 1 : 0)
+                    .allowsHitTesting(showsProcesses)
+                    .disabled(!showsProcesses)
+                    .accessibilityHidden(!showsProcesses)
             }
-            .metricsPlainScrollEdges()
+            .padding(16)
+            .clipped()
+        }
+        .onGeometryChange(for: CGFloat.self) {
+            $0.size.width
+        } action: {
+            window.metricsDetailWidth = $0
         }
     }
 }

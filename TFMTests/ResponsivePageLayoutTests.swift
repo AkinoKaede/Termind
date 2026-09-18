@@ -9,11 +9,13 @@ import Testing
 @Suite(.serialized)
 struct ResponsivePageLayoutTests {
     @Test
-    func metricsResizeKeepsTheProcessTableAndMakesAllDetailsScrollable() async throws {
+    func metricsPagesAndResizeKeepTheProcessTableAndBothScrollPositions() async throws {
         let configuration = ScreenshotDemoConfiguration(scene: .metricsDetail, language: .english)
         let model = configuration.makeMetricsModel(hosts: .demo())
         let server = try #require(model.servers.first)
         let state = WindowModel()
+        state.selectedDestination = .metrics
+        state.metricsModel = model
         state.metricsHostID = server.id
         let hosting = NSHostingView(rootView: MetricsDetailView(server: server, model: model).environment(state))
         let window = NSWindow(
@@ -28,6 +30,8 @@ struct ResponsivePageLayoutTests {
         await layout(hosting)
         let table = try #require(descendant(in: hosting, ofType: NSTableView.self))
         let processScroll = try #require(table.enclosingScrollView)
+        let statusScroll = try #require(descendant(in: hosting, ofType: NSScrollView.self))
+        #expect(statusScroll !== processScroll)
         let reversedSort = try #require(table.sortDescriptors.first?.reversedSortDescriptor as? NSSortDescriptor)
         table.sortDescriptors = [reversedSort]
         await layout(hosting)
@@ -35,21 +39,46 @@ struct ResponsivePageLayoutTests {
         #expect(sort == [reversedSort])
         processScroll.contentView.scroll(to: CGPoint(x: 0, y: 40))
         processScroll.reflectScrolledClipView(processScroll.contentView)
+        let wideProcessSize = processScroll.frame.size
 
         window.setContentSize(CGSize(width: 360, height: 600))
         await layout(hosting)
-        let outerScroll = try #require(descendant(in: hosting, ofType: NSScrollView.self))
-        #expect(outerScroll !== processScroll)
-        #expect((outerScroll.documentView?.frame.height ?? 0) > outerScroll.contentView.bounds.height)
-        #expect(processScroll.frame.height > 200)
+        #expect(state.showsCompactMetricsDetail)
+        #expect(state.metricsDetailPage == .status)
+        #expect((statusScroll.documentView?.frame.height ?? 0) > statusScroll.contentView.bounds.height)
+        #expect(processScroll.frame.size == wideProcessSize)
         #expect(processScroll.contentView.bounds.minY > 0)
         #expect(descendant(in: hosting, ofType: NSTableView.self) === table)
         #expect(table.sortDescriptors == sort)
+        statusScroll.contentView.scroll(to: CGPoint(x: 0, y: 20))
+        statusScroll.reflectScrolledClipView(statusScroll.contentView)
+        let statusSize = statusScroll.frame.size
 
+        state.metricsDetailPage = .processes
+        await layout(hosting)
+        #expect(processScroll.frame.height > 480)
+        #expect(processScroll.frame.width > 280)
+        #expect(statusScroll.frame.size == statusSize)
+        #expect(statusScroll.contentView.bounds.minY == 20)
+        #expect(processScroll.contentView.bounds.minY > 0)
+
+        for width in [699.0, 700.0, 900.0, 360.0] {
+            window.setContentSize(CGSize(width: width, height: 600))
+            await layout(hosting)
+            #expect(state.showsCompactMetricsDetail == (width < 700))
+            #expect(state.metricsDetailPage == .processes)
+            #expect(descendant(in: hosting, ofType: NSTableView.self) === table)
+            #expect(table.sortDescriptors == sort)
+            #expect(processScroll.contentView.bounds.minY > 0)
+        }
+        state.metricsDetailPage = .status
+        await layout(hosting)
+        #expect(statusScroll.contentView.bounds.minY == 20)
+        state.metricsDetailPage = .processes
         state.metricsProcessQuery = "node"
         await layout(hosting)
         #expect(table.numberOfRows == 2)
-        window.setContentSize(CGSize(width: 630, height: 600))
+        window.setContentSize(CGSize(width: 700, height: 600))
         await layout(hosting)
         #expect(descendant(in: hosting, ofType: NSTableView.self) === table)
         #expect(table.numberOfRows == 2)

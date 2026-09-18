@@ -51,9 +51,30 @@ final class WindowModel {
     private var settingsReturnDestination: WindowDestination = .vault
     weak var metricsModel: ServerMetricsModel?
     var pendingMetricsHostIDs: [UUID] = []
-    var metricsHostID: UUID?
+    var metricsHostID: UUID? {
+        didSet {
+            if metricsHostID != oldValue { metricsDetailPage = .status }
+        }
+    }
+    var metricsDetailPage = MetricsDetailPage.status
+    var metricsDetailWidth: CGFloat = 0 {
+        didSet {
+            if isToolbarFindFocused { revealMetricsProcessesForFind() }
+        }
+    }
+    var showsCompactMetricsDetail: Bool {
+        guard selectedDestination == .metrics, metricsDetailWidth > 0,
+            !MetricsDetailPage.showsBothColumns(width: metricsDetailWidth),
+            let server = metricsModel?.servers.first(where: { $0.id == metricsHostID })
+        else { return false }
+        return !server.showsConnectionJourney
+    }
     var metricsQuery = ""
-    var metricsProcessQuery = ""
+    var metricsProcessQuery = "" {
+        didSet {
+            if isToolbarFindFocused { revealMetricsProcessesForFind() }
+        }
+    }
     var metricsSelection: Set<UUID> = []
     var settingsRoute: SettingsRoute = .index
     var vaultDestination: VaultDestination = .welcome
@@ -351,7 +372,15 @@ final class WindowModel {
     /// Level, not edge. A pane has to consult it every time it is about to hold
     /// focus, not only when this flips: the caret is lost on *each* keystroke,
     /// and a stand-down that fires once cannot answer the second one.
-    var isToolbarFindFocused = false
+    var isToolbarFindFocused = false {
+        didSet {
+            if isToolbarFindFocused { revealMetricsProcessesForFind() }
+        }
+    }
+
+    private func revealMetricsProcessesForFind() {
+        if showsCompactMetricsDetail { metricsDetailPage = .processes }
+    }
 
     /// Focuses the titlebar Find field. Installed by the field itself while it
     /// is mounted, and left pointing at a field that has gone away otherwise —

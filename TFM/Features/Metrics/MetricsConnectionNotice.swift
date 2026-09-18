@@ -16,6 +16,24 @@ struct MetricsConnectionNotice: View {
     }
 }
 
+struct MetricsDetailPagePicker: View {
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        @Bindable var window = window
+        if window.showsCompactMetricsDetail {
+            Picker("Details", selection: $window.metricsDetailPage) {
+                Image(systemName: "gauge.with.dots.needle.33percent")
+                    .accessibilityLabel("Status").help("Status").tag(MetricsDetailPage.status)
+                Image(systemName: "list.bullet.rectangle")
+                    .accessibilityLabel("Processes").help("Processes").tag(MetricsDetailPage.processes)
+            }
+            .pickerStyle(.segmented)
+            .frame(width: 104)
+        }
+    }
+}
+
 struct MetricsDetailToolbar: View {
     let server: ServerMetric
     let model: ServerMetricsModel
@@ -23,16 +41,12 @@ struct MetricsDetailToolbar: View {
     @State private var configuring = false
 
     var body: some View {
-        Button {
-            model.setEnabled(!server.selection.enabled, for: server)
-        } label: {
-            Label(
-                server.selection.enabled ? "Pause" : "Resume", systemImage: server.selection.enabled ? "pause" : "play"
-            )
-            .labelStyle(.iconOnly)
+        if !window.showsCompactMetricsDetail {
+            pauseButton.labelStyle(.iconOnly)
+                .help(server.selection.enabled ? Text("Pause") : Text("Resume"))
         }
-        .help(server.selection.enabled ? Text("Pause") : Text("Resume"))
         Menu {
+            if window.showsCompactMetricsDetail { pauseButton }
             Button("Retry", systemImage: MenuSymbol.refresh) { model.retry(server) }
             Button("Select Devices", systemImage: MenuSymbol.selectDevices) { configuring = true }
             Divider()
@@ -44,5 +58,14 @@ struct MetricsDetailToolbar: View {
             Image(systemName: "ellipsis")
         }
         .sheet(isPresented: $configuring) { MetricsDevicePicker(server: server, model: model) }
+    }
+
+    private var pauseButton: some View {
+        Button {
+            model.setEnabled(!server.selection.enabled, for: server)
+        } label: {
+            Label(
+                server.selection.enabled ? "Pause" : "Resume", systemImage: server.selection.enabled ? "pause" : "play")
+        }
     }
 }

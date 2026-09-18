@@ -466,14 +466,59 @@ struct WindowToolbarSearchSlot: View {
         if #available(macOS 26.0, *) {
             Color.clear.frame(width: 0, height: Metrics.Toolbar.height)
         } else {
+            WindowToolbarLegacySearch()
+        }
+    }
+}
+
+/// Older macOS versions need an explicit compact search affordance. Keep the
+/// popover inside the toolbar item so changing width never reparents page content.
+struct WindowToolbarLegacySearch: View {
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        if window.showsCompactMetricsDetail {
+            WindowToolbarCompactFind()
+        } else {
             WindowToolbarFindField()
         }
+    }
+}
+
+private struct WindowToolbarCompactFind: View {
+    @Environment(WindowModel.self) private var window
+    @State private var isPresented = false
+
+    var body: some View {
+        let presentation = $isPresented
+        Button("Search", systemImage: "magnifyingglass") { window.focusToolbarFind() }
+            .labelStyle(.iconOnly)
+            .help("Search")
+            .frame(height: Metrics.Toolbar.height)
+            .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+                WindowToolbarFindField(installFocusHandler: { focus in
+                    window.focusToolbarFindField = {
+                        presentation.wrappedValue = true
+                        focus()
+                    }
+                })
+                .padding(12)
+                .onExitCommand { isPresented = false }
+            }
+            .onAppear {
+                window.focusToolbarFindField = { presentation.wrappedValue = true }
+                if window.isToolbarFindFocused { isPresented = true }
+            }
+            .onChange(of: isPresented) { _, presented in
+                if !presented { window.isToolbarFindFocused = false }
+            }
     }
 }
 
 /// The trailing half of the titlebar: one Find field, or nothing at all on
 /// Welcome and on a workspace that has no searchable pane in front.
 struct WindowToolbarFindField: View {
+    var installFocusHandler: ((@escaping () -> Void) -> Void)? = nil
     @Environment(WindowModel.self) private var window
     @Environment(\.locale) private var locale
     @State private var searchFieldOwner = NativeSearchFieldOwner()
@@ -489,7 +534,7 @@ struct WindowToolbarFindField: View {
                     maintainsKeyboardFocus: window.isToolbarFindFocused,
                     navigate: context.navigate,
                     cancel: context.cancel,
-                    installFocusHandler: { window.focusToolbarFindField = $0 },
+                    installFocusHandler: installFocusHandler ?? { window.focusToolbarFindField = $0 },
                     onFocusChange: { window.isToolbarFindFocused = $0 }
                 ).singleLinePaste()
                     .frame(width: Metrics.Toolbar.searchFieldWidth)

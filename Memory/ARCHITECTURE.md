@@ -108,8 +108,15 @@ cleanup is performed.
 - Desktop main pages share a 360-point detail minimum, independent of the
   Assistant's 840-point reading maximum. Opening the Navigator grows the window
   when necessary. Vault overlays its existing editor below 721 points and keeps
-  the covered list mounted at its last visible size; Metrics stacks its existing
-  detail and process views below 630 points. Resizing changes layout, never route,
+  the covered list mounted at its last visible size. Below 700 points Metrics uses
+  a titlebar Status/Processes picker with the toolbar title hidden; at larger
+  widths both panels and the title are visible.
+  Covered Metrics panels retain their last visible size, table identity, sorting,
+  and scroll position. Page selection and measured detail width are window-local;
+  selecting another server resets to Status. Focusing search or narrowing while
+  search is focused reveals Processes. Compact actions group Pause/Resume into
+  More, and macOS 15 presents its search field in a toolbar popover.
+  Resizing changes layout, never route,
   editor identity, Workspace composition, or monitoring ownership.
 - Assistant conversations are owned by `AssistantLibraryModel`; they are not
   Workspace panes. A Workspace owns SSH/SFTP/serial panes and any session-scoped
