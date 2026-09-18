@@ -391,6 +391,8 @@ struct BroadcastInputTests {
             let shortcuts: [AppShortcutRegistration] = [
                 AppShortcutRegistration("t"),
                 AppShortcutRegistration("t", modifiers: [.command, .shift]),
+                AppShortcutRegistration("w"),
+                AppShortcutRegistration("w", modifiers: [.command, .shift]),
                 AppShortcutRegistration("d", modifiers: [.command, .shift]),
                 AppShortcutRegistration(.rightArrow, modifiers: [.command, .option]),
                 AppShortcutRegistration(.downArrow, modifiers: [.command, .option]),

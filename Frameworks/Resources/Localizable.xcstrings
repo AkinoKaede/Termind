@@ -5217,6 +5217,38 @@
         }
       }
     },
+    "Close Pane" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭窗格"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉窗格"
+          }
+        }
+      }
+    },
+    "Close this window?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭此窗口？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉此視窗？"
+          }
+        }
+      }
+    },
     "Close Window" : {
       "localizations" : {
         "zh-Hans" : {
@@ -26508,6 +26540,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此保管庫記錄需要同步格式%lld。"
+          }
+        }
+      }
+    },
+    "This window still has open Workspaces. Closing it will close them and disconnect their sessions." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此窗口中仍有打开的工作区。关闭窗口将关闭这些工作区并断开其中的会话连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此視窗中仍有開啟的工作區。關閉視窗將關閉這些工作區並中斷其中的工作階段連線。"
           }
         }
       }

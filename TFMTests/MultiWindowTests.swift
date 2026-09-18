@@ -280,6 +280,148 @@ struct MultiWindowTests {
         #expect(model.selectedWorkspace === workspace)
     }
 
+    @Test
+    func closeCommandConsumesOnePaneAtATimeBeforeClosingTheEmptyWindow() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let workspace = Workspace.sshSession(host: host)
+        let secondPane = Pane.sshSession(host: host)
+        workspace.layout = .split(
+            SplitNode.Branch(axis: .horizontal, first: workspace.layout, second: .leaf(secondPane)))
+        workspace.focusedPaneID = secondPane.id
+        let firstSession = try #require(workspace.layout.firstPane.sshSession)
+        let secondSession = try #require(secondPane.sshSession)
+        firstSession.status = .connected
+        secondSession.status = .connected
+        let model = WindowModel(workspaces: [workspace])
+        let native = nativeWindow()
+        defer { native.close() }
+        app.mainWindows.register(native, model: model, requestID: nil)
+
+        app.mainWindows.closeSelectionOrWindow(in: model)
+
+        #expect(model.selectedWorkspace === workspace)
+        #expect(workspace.panes.count == 1)
+        #expect(firstSession.status == .connected)
+        #expect(secondSession.status == .disconnected)
+        #expect(!model.isClosed)
+
+        app.mainWindows.closeSelectionOrWindow(in: model)
+
+        #expect(model.workspaces.isEmpty)
+        #expect(model.canReopen)
+        #expect(firstSession.status == .disconnected)
+        #expect(!model.isClosed)
+
+        app.mainWindows.closeSelectionOrWindow(in: model)
+
+        #expect(model.isClosed)
+        #expect(!model.canReopen)
+    }
+
+    @Test(arguments: [WindowDestination.vault, .settings, .assistant, .metrics])
+    func closeCommandFromAPinnedPageRespectsNativeCancellation(destination: WindowDestination) throws {
+        let host = Host(name: "Server", host: "server.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let workspace = Workspace.sshSession(host: host)
+        let session = try #require(workspace.focusedPane.sshSession)
+        session.status = .connected
+        let model = WindowModel(workspaces: [workspace])
+        model.selectedDestination = destination
+        let native = nativeWindow()
+        let approval = CloseApproval()
+        native.delegate = approval
+        defer { native.close() }
+        app.mainWindows.register(native, model: model, requestID: nil)
+
+        app.mainWindows.closeSelectionOrWindow(in: model)
+
+        #expect(approval.requests == 1)
+        #expect(!model.isClosed)
+        #expect(model.selectedDestination == destination)
+        #expect(model.workspaces.first === workspace)
+        #expect(session.status == .connected)
+        #expect(!model.canReopen)
+    }
+
+    @Test(arguments: [false, true])
+    func approvedWindowCloseOnlyDisconnectsTheRequestedWindowsSessions(directClose: Bool) throws {
+        let host = Host(name: "Server", host: "server.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let firstWorkspace = Workspace.sshSession(host: host)
+        let secondWorkspace = Workspace.sshSession(host: host)
+        let firstSession = try #require(firstWorkspace.focusedPane.sshSession)
+        let secondSession = try #require(secondWorkspace.focusedPane.sshSession)
+        firstSession.status = .connected
+        secondSession.status = .connected
+        let firstModel = WindowModel(workspaces: [firstWorkspace])
+        let secondModel = WindowModel(workspaces: [secondWorkspace])
+        if !directClose { firstModel.openSettings() }
+        let first = nativeWindow()
+        let second = nativeWindow()
+        let approval = CloseApproval()
+        approval.allowsClose = true
+        first.delegate = approval
+        defer {
+            first.close()
+            second.close()
+        }
+        app.mainWindows.register(first, model: firstModel, requestID: nil)
+        app.mainWindows.register(second, model: secondModel, requestID: nil)
+
+        if directClose {
+            app.mainWindows.closeWindow(in: firstModel)
+        } else {
+            app.mainWindows.closeSelectionOrWindow(in: firstModel)
+        }
+
+        #expect(approval.requests == 1)
+        #expect(firstModel.isClosed)
+        #expect(firstSession.status == .disconnected)
+        #expect(!secondModel.isClosed)
+        #expect(secondModel.selectedWorkspace === secondWorkspace)
+        #expect(secondSession.status == .connected)
+    }
+
+    @Test(arguments: [WindowDestination.vault, .settings, .assistant, .metrics])
+    func closeCommandClosesAnEmptyWindowFromAnyPinnedPage(destination: WindowDestination) {
+        let app = AppModel(hosts: HostLibraryModel())
+        let model = WindowModel()
+        model.selectedDestination = destination
+        let native = nativeWindow()
+        defer { native.close() }
+        app.mainWindows.register(native, model: model, requestID: nil)
+
+        app.mainWindows.closeSelectionOrWindow(in: model)
+
+        #expect(model.isClosed)
+    }
+
+    @Test
+    func unregisteredWindowFallbackCannotCloseAnotherWindow() {
+        let app = AppModel(hosts: HostLibraryModel())
+        let registered = WindowModel()
+        let unregistered = WindowModel()
+        let native = nativeWindow()
+        defer { native.close() }
+        app.mainWindows.register(native, model: registered, requestID: nil)
+
+        app.mainWindows.closeSelectionOrWindow(in: unregistered)
+
+        #expect(!registered.isClosed)
+        #expect(!unregistered.isClosed)
+    }
+
+    private final class CloseApproval: NSObject, NSWindowDelegate {
+        var allowsClose = false
+        var requests = 0
+
+        func windowShouldClose(_ sender: NSWindow) -> Bool {
+            requests += 1
+            return allowsClose
+        }
+    }
+
     private func nativeWindow() -> NSWindow {
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 800, height: 600),

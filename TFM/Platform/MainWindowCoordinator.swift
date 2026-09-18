@@ -126,6 +126,22 @@ final class MainWindowCoordinator {
         synchronizePaywall()
     }
 
+    /// A selected pane consumes the command, even when it was the last one.
+    /// Window fallback uses the native dismissal path so confirmation can veto it.
+    func closeSelectionOrWindow(in model: WindowModel) {
+        guard !model.isClosed else { return }
+        if model.selectedWorkspace != nil {
+            model.closeSelected()
+        } else {
+            closeWindow(in: model)
+        }
+    }
+
+    func closeWindow(in model: WindowModel) {
+        guard !model.isClosed else { return }
+        entries.first(where: { $0.model === model })?.window?.performClose(nil)
+    }
+
     func close(_ native: NSWindow) {
         guard let model = entries.first(where: { $0.window === native })?.model else { return }
         entries.removeAll { $0.window === native || $0.window == nil || $0.model == nil }

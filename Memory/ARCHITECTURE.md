@@ -64,6 +64,13 @@ cleanup is performed.
   windows. Creating a window starts on Welcome; Dock reopening preserves the
   existing destination, while the Metrics entry explicitly selects Metrics.
   Restoring a scene never restores or reconnects live Workspaces.
+- Desktop Command-W closes the selected Workspace's focused pane first. Closing
+  the last pane removes its Workspace but keeps the window open. Without a selected
+  Workspace it requests native window dismissal. All user window-close paths share
+  SwiftUI's dismissal confirmation whenever that window owns any Workspaces,
+  including disconnected or hidden ones; cancellation preserves them. Closing a
+  different window never participates in that decision. Shift-Command-W remains
+  direct window dismissal, and the existing last-window background policy applies.
 - A Workspace can move intact to a new window through commands or a Navigator
   drag released outside visible app windows. Native drag cancellation and accepted
   internal drops never tear off. Private drag data carries no text/file export.

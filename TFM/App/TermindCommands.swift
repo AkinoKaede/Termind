@@ -20,6 +20,11 @@ struct TermindCommands: Commands {
     @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.window) private var window
 
+    private var closeTitle: LocalizedStringKey {
+        guard let workspace = window?.selectedWorkspace else { return "Close Window" }
+        return workspace.isSplit ? "Close Pane" : "Close Workspace"
+    }
+
     var body: some Commands {
         let _ = app.mainWindows.registerWindowCreation { [openWindow] id in
             openWindow(id: "main", value: id)
@@ -147,11 +152,18 @@ struct TermindCommands: Commands {
 
             // Close Other Workspaces is the same verb one item down, so it goes
             // without an icon of its own.
-            Button("Close Workspace", systemImage: MenuSymbol.closeWorkspace) {
-                window?.closeSelected()
+            Button(closeTitle, systemImage: MenuSymbol.closeWorkspace) {
+                guard let window else { return }
+                app.mainWindows.closeSelectionOrWindow(in: window)
             }
             .termindShortcut("w")
-            .disabled(window?.selectedWorkspace == nil)
+            .disabled(window == nil)
+            Button("Close Window") {
+                guard let window else { return }
+                app.mainWindows.closeWindow(in: window)
+            }
+            .termindShortcut("w", modifiers: [.command, .shift])
+            .disabled(window == nil)
             Button("Close Other Workspaces") {
                 guard let window, let id = window.selectedWorkspaceID else { return }
                 window.closeOthers(than: id)

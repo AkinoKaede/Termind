@@ -178,12 +178,7 @@ struct TermindApp: App {
 }
 
 #if canImport(AppKit)
-    /// Exists for one reason: ⌘W.
-    ///
-    /// AppKit installs "Close" ⌘W in the File menu, which closes the whole *window*.
-    /// Here that is the wrong default — ⌘W should close the active Workspace, and
-    /// people lose a screen of work discovering otherwise. SwiftUI has no placement
-    /// for that item, so we retarget it here to ⇧⌘W and leave ⌘W to `TermindCommands`.
+    /// Owns native application lifecycle; window and pane commands live in `TermindCommands`.
     final class AppDelegate: NSObject, NSApplicationDelegate {
         weak var app: AppModel? {
             didSet {
@@ -220,16 +215,6 @@ struct TermindApp: App {
             LoginLaunch.capture()
             openHiddenIfLaunchedAtLogin()
             AppShortcutRegistry.shared.register(AppShortcutRegistration("q"))
-            if let items = NSApp.mainMenu?.items {
-                for menuItem in items {
-                    guard let submenu = menuItem.submenu else { continue }
-                    for item in submenu.items
-                    where item.action == #selector(NSWindow.performClose(_:)) {
-                        item.title = String(localized: "Close Window")
-                        item.setTermindShortcut("w", modifiers: [.command, .shift])
-                    }
-                }
-            }
 
             // Product screenshots must not inherit a developer's last window
             // frame from macOS state restoration. Each demo owns its capture
