@@ -10,6 +10,7 @@ derived_data="$repository_directory/.build/mobile-marketing-screenshots"
 marketing_xctestrun="$derived_data/Build/Products/Marketing-TFI.xctestrun"
 marketing_scenes="${TERMIND_MARKETING_SCENES:-}"
 marketing_devices="${TERMIND_MARKETING_DEVICES:-iphone,ipad}"
+marketing_runtime="${TERMIND_MARKETING_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-5}"
 
 expected_capture_count() {
     if [[ -z "$marketing_scenes" ]]; then
@@ -25,7 +26,8 @@ expected_capture_count() {
 find_device() {
     local name="$1"
     xcrun simctl list devices available -j \
-        | jq -r --arg name "$name" '.devices[][] | select(.name == $name) | .udid' \
+        | jq -r --arg name "$name" --arg runtime "$marketing_runtime" \
+            '.devices[$runtime][]? | select(.name == $name) | .udid' \
         | head -n 1
 }
 
@@ -59,7 +61,7 @@ run_capture() {
     local device_id
     device_id="$(find_device "$name")"
     if [[ -z "$device_id" ]]; then
-        print -u2 "Required simulator is unavailable: $name"
+        print -u2 "Required simulator is unavailable: $name ($marketing_runtime)"
         exit 69
     fi
 
@@ -135,7 +137,7 @@ run_capture() {
 mkdir -p "$output_directory"
 build_device_id="$(find_device "iPhone 17 Pro Max")"
 if [[ -z "$build_device_id" ]]; then
-    print -u2 "Required simulator is unavailable: iPhone 17 Pro Max"
+    print -u2 "Required simulator is unavailable: iPhone 17 Pro Max ($marketing_runtime)"
     exit 69
 fi
 xcodebuild \

@@ -68,13 +68,9 @@ struct MobileMarketingScreenshotTests {
             if includes("metrics") {
                 let metrics = makeMetrics(language: language)
                 try await capture("metrics", language: language) {
-                    if UIDevice.current.userInterfaceIdiom == .pad {
-                        NavigationStack { MarketingMetricsScene(servers: metrics, language: language) }
-                    } else {
-                        MarketingPhoneTabShell(selected: .metrics) {
-                            NavigationStack {
-                                MarketingMetricsScene(servers: metrics, language: language, showsSidebarButton: false)
-                            }
+                    MarketingTabShell(selected: .metrics) {
+                        NavigationStack {
+                            MarketingMetricsScene(servers: metrics)
                         }
                     }
                 }
@@ -85,16 +81,9 @@ struct MobileMarketingScreenshotTests {
                 let conversation = ConversationModel.demo(language: try #require(AppLanguage(rawValue: language)))
                 assistant.library.insertAndSelect(conversation)
                 try await capture("assistant", language: language) {
-                    if UIDevice.current.userInterfaceIdiom == .pad {
+                    MarketingTabShell(selected: .assistant) {
                         NavigationStack {
                             MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
-                                .toolbar { marketingBackButton(language: language) }
-                        }
-                    } else {
-                        MarketingPhoneTabShell(selected: .assistant) {
-                            NavigationStack {
-                                MobileAssistantView(app: app, model: assistant, libraryRoute: .constant(nil))
-                            }
                         }
                     }
                 }
@@ -207,6 +196,12 @@ struct MobileMarketingScreenshotTests {
         controller.view.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(900))
 
+        if isPad, let tabs = tabController(in: controller) {
+            // Keep each scene's navigation presentation independent of restored simulator state.
+            tabs.sidebar.isHidden = name == "metrics"
+            try await Task.sleep(for: .milliseconds(900))
+        }
+
         if ProcessInfo.processInfo.environment["TERMIND_MARKETING_SYSTEM_CAPTURE"] == "1" {
             try await waitForSystemCapture(name, language: language)
             return
@@ -231,6 +226,11 @@ struct MobileMarketingScreenshotTests {
         let output = featureDirectory.appending(path: "\(device)-\(locale).png")
         try data.write(to: output, options: .atomic)
         print("Marketing snapshot: \(output.path)")
+    }
+
+    private func tabController(in controller: UIViewController) -> UITabBarController? {
+        if let tabs = controller as? UITabBarController { return tabs }
+        return controller.children.lazy.compactMap { tabController(in: $0) }.first
     }
 
     private func waitForSystemCapture(_ name: String, language: String) async throws {
@@ -281,22 +281,18 @@ private struct MarketingVaultScene: View {
     let app: MobileAppModel
 
     var body: some View {
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            MobileRootView(app: app)
-        } else {
-            MarketingPhoneTabShell(selected: .vault) {
-                NavigationStack {
-                    MobileVaultView(
-                        app: app, editingHost: .constant(nil), activateHost: { _ in },
-                        open: { _, _ in }
-                    )
-                }
+        MarketingTabShell(selected: .vault) {
+            NavigationStack {
+                MobileVaultView(
+                    app: app, editingHost: .constant(nil), activateHost: { _ in },
+                    open: { _, _ in }
+                )
             }
         }
     }
 }
 
-private struct MarketingPhoneTabShell<Content: View>: View {
+private struct MarketingTabShell<Content: View>: View {
     let selected: MobileDestination
     let content: Content
     private let features = MobileFeatureRegistry.standard()
@@ -355,8 +351,6 @@ private struct MarketingTerminalScene: View {
 
 private struct MarketingMetricsScene: View {
     let servers: [ServerMetric]
-    let language: String
-    var showsSidebarButton = true
 
     var body: some View {
         MobileCardPage {
@@ -375,11 +369,6 @@ private struct MarketingMetricsScene: View {
         }
         .navigationTitle("Metrics")
         .toolbar {
-            if showsSidebarButton {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Sidebar", systemImage: "sidebar.left") {}.labelStyle(.iconOnly)
-                }
-            }
             ToolbarItem(placement: .primaryAction) {
                 Button("Add Server", systemImage: "plus") {}.labelStyle(.iconOnly)
             }

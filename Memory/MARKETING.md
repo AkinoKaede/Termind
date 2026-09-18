@@ -68,6 +68,11 @@ The required devices and outputs are:
 - Five scenes per locale: `vault`, `sftp`, `ssh`, `metrics`, and `assistant`.
 - Three locales, producing 15 screenshots per device and 30 total.
 
+The runner defaults to the iOS/iPadOS 26.5 simulator runtime so installing a newer
+runtime cannot silently change the marketing UI or select another same-name
+device. Set `TERMIND_MARKETING_RUNTIME` to a full CoreSimulator runtime identifier
+only when intentionally updating the runtime used for a capture set.
+
 For a targeted recapture, set both filters. This example refreshes only the three
 localized iPad Assistant sources:
 
@@ -77,7 +82,7 @@ TERMIND_MARKETING_DEVICES=ipad \
 Scripts/run-mobile-marketing-screenshots.sh
 ```
 
-The iPhone Vault, Metrics and Assistant fixtures use the same native `Tab` API,
+The iPhone and iPad Vault, Metrics and Assistant fixtures use the same native `Tab` API,
 sidebar-adaptable style and feature registration order as the production shell:
 Vault, Metrics, Workspaces, Assistant, Settings. Metrics is its own selected tab;
 Vault no longer contains the former Metrics navigation row. Refresh all nine
@@ -93,10 +98,25 @@ Regenerate only their matching device frames, replace the corresponding Figma
 iPhone boards 04-06, and export those nine boards again. The three-device first
 boards use iPhone SSH and therefore do not change for this navigation refresh.
 
+For the matching nine iPad sources, run:
+
+```sh
+TERMIND_MARKETING_SCENES=vault,metrics,assistant \
+TERMIND_MARKETING_DEVICES=ipad \
+Scripts/run-mobile-marketing-screenshots.sh
+```
+
+The iPad fixtures use the native adaptive tab container: Metrics shows the top
+tab bar, while Assistant and Vault show the expanded sidebar. Each capture fixes
+that presentation independently of restored simulator state. They do not add
+simulated sidebar or back buttons to the top-level Metrics and Assistant pages.
+Regenerate only the matching nine iPad device frames and App Store boards 04-06;
+first boards use iPad SFTP and remain unchanged.
+
 The runner sets a deterministic `9:41` status bar, charged battery, Wi-Fi, and
-cellular state. iPad framebuffer output is rotated after capture because `simctl`
-keeps portrait pixel orientation for a landscape display. Confirm the final file
-dimensions rather than trusting Simulator orientation alone.
+cellular state. It sets the iPad orientation and captures its landscape display
+with `devicectl`, verifying `2752x2064` before acknowledging each capture. The
+iPhone uses `simctl` screenshots. No post-capture rotation is required.
 
 Whenever SFTP, Metrics, Assistant navigation, or system chrome changes, recapture
 the affected device and every locale. A marketing fixture may be updated to expose
@@ -352,3 +372,12 @@ images changed; the other 108 marketing files, including SSH/SFTP, first boards,
 iPad and Mac assets, stayed unchanged. The nine Figma image fills match the local
 device-frame PNGs byte for byte, and the nine final JPGs are full-size
 `1284x2778` opaque sRGB exports. The App Store directory still contains 54 JPGs.
+
+The subsequent 2026-09-18 iPad refresh updated the same three scenes and locales:
+Metrics uses native top tabs; Assistant and Vault use the expanded native sidebar.
+Raw captures and final App Store exports are `2752x2064`, with `2960x2290` device
+frames. Figwright readback confirmed matching original image bytes and unchanged
+copy, fonts, layout, geometry and FIT mode. SHA-256 comparison against the completed
+iPhone baseline found exactly 27 changed iPad images and 108 unchanged marketing
+files, including iPhone, Mac, SSH/SFTP and the first boards. All 54 App Store JPGs
+remain opaque three-channel sRGB.
