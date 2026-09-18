@@ -12,15 +12,25 @@ struct MobileTerminalSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Font") {
-                TerminalFontPicker(family: $font.family, families: TerminalFontCatalog.shared.families)
-                Toggle("Font Size Follows Theme", isOn: $font.sizeFollowsTheme)
-                Stepper(value: $font.size, in: 8...36, step: 1) {
-                    LabeledContent("Font Size", value: font.size.formatted())
-                }.disabled(font.sizeFollowsTheme)
-            }
             themeSection(dark: false)
             themeSection(dark: true)
+            Section("Font") {
+                TerminalFontPicker(family: $font.family, families: TerminalFontCatalog.shared.families)
+                VStack(alignment: .leading, spacing: 8) {
+                    Picker("Font Size", selection: $font.sizeFollowsTheme) {
+                        Text("Follow Theme").tag(true)
+                        Text("Custom").tag(false)
+                    }
+                    .pickerStyle(.menu)
+                    if !font.sizeFollowsTheme {
+                        Stepper(value: $font.size, in: 8...36, step: 1) {
+                            Text(font.size, format: .number.precision(.fractionLength(0))).monospacedDigit()
+                        }
+                        .accessibilityLabel("Font Size")
+                        .accessibilityValue(font.size.formatted())
+                    }
+                }
+            }
             Section("Integration") { Toggle("Shell Integration", isOn: binding(\.shellIntegration)) }
             if let error = model.storageError { Text(error).foregroundStyle(.red) }
         }

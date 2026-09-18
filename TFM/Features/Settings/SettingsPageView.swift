@@ -710,7 +710,7 @@ private struct TerminalSettings: View {
             if let error = app.terminalSettings.storageError {
                 Text(error).foregroundStyle(.orange)
             }
-            Section("Light Configuration") {
+            Section("Light") {
                 Picker("Theme", selection: binding(\.lightTheme)) {
                     ForEach(lightThemes) { Text($0.name).tag($0.name) }
                 }
@@ -728,19 +728,24 @@ private struct TerminalSettings: View {
                     editConfiguration(.dark)
                 }
             } header: {
-                Text("Dark Configuration")
+                Text("Dark")
             } footer: {
                 Text(
                     "Termind uses [Ghostty](https://ghostty.org) as its terminal engine. Custom configuration uses [Ghostty's configuration format](https://ghostty.org/docs/config/reference)."
                 )
             }
-            Section("Font Configuration") {
+            Section("Font") {
                 TerminalFontPicker(family: $font.family, families: TerminalFontCatalog.shared.families)
-                Toggle("Font Size Follows Theme", isOn: $font.sizeFollowsTheme)
-                if !font.sizeFollowsTheme {
-                    LabeledContent("Font Size") {
+                VStack(alignment: .leading, spacing: Metrics.Space.m) {
+                    Picker("Font Size", selection: $font.sizeFollowsTheme) {
+                        Text("Follow Theme").tag(true)
+                        Text("Custom").tag(false)
+                    }
+                    .pickerStyle(.menu)
+                    if !font.sizeFollowsTheme {
                         HStack {
                             Slider(value: $font.size, in: 9...24, step: 1)
+                                .labelsHidden().accessibilityLabel("Font Size")
                             Text(font.size, format: .number.precision(.fractionLength(0)))
                                 .monospacedDigit().frame(width: 24, alignment: .trailing)
                         }

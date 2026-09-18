@@ -1,70 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "Invalid authentication challenge." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "认证质询无效。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "驗證詢問無效。"
-          }
-        }
-      }
-    },
-    "Invalid authentication response." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "认证响应无效。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "驗證回應無效。"
-          }
-        }
-      }
-    },
-    "This server requires interactive authentication." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此服务器需要交互式认证。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此伺服器需要互動式驗證。"
-          }
-        }
-      }
-    },
-    "Interactive authentication" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "交互式认证"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "互動式驗證"
-          }
-        }
-      }
-    },
     "" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7063,7 +6999,7 @@
       }
     },
     "Custom" : {
-      "extractionState" : "stale",
+      "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -7187,22 +7123,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "深色"
-          }
-        }
-      }
-    },
-    "Dark Configuration" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "深色配置"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "深色設定"
           }
         }
       }
@@ -10660,6 +10580,7 @@
       }
     },
     "Follow Theme" : {
+      "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -10688,22 +10609,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "字型"
-          }
-        }
-      }
-    },
-    "Font Configuration" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "字体配置"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "字型設定"
           }
         }
       }
@@ -10737,23 +10642,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "字型大小"
-          }
-        }
-      }
-    },
-    "Font Size Follows Theme" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "字号跟随主题"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "字級跟隨主題"
           }
         }
       }
@@ -12707,6 +12595,23 @@
         }
       }
     },
+    "Interactive authentication" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "交互式认证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "互動式驗證"
+          }
+        }
+      }
+    },
     "Interactive partition editor." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -12737,6 +12642,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "中斷%@"
+          }
+        }
+      }
+    },
+    "Invalid authentication challenge." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "认证质询无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "驗證詢問無效。"
+          }
+        }
+      }
+    },
+    "Invalid authentication response." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "认证响应无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "驗證回應無效。"
           }
         }
       }
@@ -13495,22 +13434,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "淺色"
-          }
-        }
-      }
-    },
-    "Light Configuration" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "浅色配置"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "淺色設定"
           }
         }
       }
@@ -20785,6 +20708,23 @@
         }
       }
     },
+    "Saved workspaces could not be restored. The saved data has been kept." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法恢复已保存的工作区。已保留原有保存数据。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法回復已儲存的工作區。已保留原有儲存資料。"
+          }
+        }
+      }
+    },
     "scratch files" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -20848,23 +20788,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "搜尋"
-          }
-        }
-      }
-    },
-    "Saved workspaces could not be restored. The saved data has been kept." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "无法恢复已保存的工作区。已保留原有保存数据。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "無法回復已儲存的工作區。已保留原有儲存資料。"
           }
         }
       }
@@ -26027,23 +25950,6 @@
         }
       }
     },
-    "This font is unavailable on this device. Following the theme instead." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此设备上无法使用该字体，已改为跟随主题。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此裝置上無法使用此字型，已改為跟隨主題。"
-          }
-        }
-      }
-    },
     "This address already has a different trusted fingerprint. Confirm adding this key." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26227,6 +26133,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此資料夾為空"
+          }
+        }
+      }
+    },
+    "This font is unavailable on this device. Following the theme instead." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备上无法使用该字体，已改为跟随主题。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此裝置上無法使用此字型，已改為跟隨主題。"
           }
         }
       }
@@ -26484,6 +26407,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此次執行已中斷，且未恢復。"
+          }
+        }
+      }
+    },
+    "This server requires interactive authentication." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此服务器需要交互式认证。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此伺服器需要互動式驗證。"
           }
         }
       }

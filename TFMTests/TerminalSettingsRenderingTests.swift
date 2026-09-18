@@ -14,7 +14,7 @@ struct TerminalSettingsRenderingTests {
         let defaults = try #require(UserDefaults(suiteName: domain))
         defer { defaults.removePersistentDomain(forName: domain) }
         defaults.set(family, forKey: SettingsKey.terminalFontFamily)
-        defaults.set(family.isEmpty, forKey: SettingsKey.terminalFontFollowTheme)
+        defaults.set(18.0, forKey: SettingsKey.terminalFontSize)
         let app = AppModel(hosts: HostLibraryModel())
         let model = WindowModel(workspaces: [])
         model.openSettings(route: .category(.terminal))
@@ -23,9 +23,16 @@ struct TerminalSettingsRenderingTests {
             .defaultAppStorage(defaults)
             .environment(\.locale, Locale(identifier: language))
             .frame(width: 640, height: 1100)
-        try await capture(
-            view, name: "terminal-settings-\(language)-\(family.isEmpty ? "theme" : family)",
-            size: NSSize(width: 640, height: 1100))
+        let name = "terminal-settings-\(language)-\(family.isEmpty ? "theme" : family)"
+        try await withWindow(view, size: NSSize(width: 640, height: 1100)) { hostedView in
+            for (index, followsTheme) in [false, true, false].enumerated() {
+                defaults.set(followsTheme, forKey: SettingsKey.terminalFontFollowTheme)
+                try await capture(
+                    hostedView, name: "\(name)-\(followsTheme ? "theme-size" : "custom-size")-\(index)")
+                #expect(defaults.double(forKey: SettingsKey.terminalFontSize) == 18)
+                #expect(defaults.string(forKey: SettingsKey.terminalFontFamily) == family)
+            }
+        }
     }
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
@@ -36,10 +43,12 @@ struct TerminalSettingsRenderingTests {
         .environment(\.locale, Locale(identifier: language))
         .frame(width: 280, height: 320)
         .background(.background)
-        try await capture(view, name: "terminal-font-options-\(language)", size: NSSize(width: 280, height: 320))
+        try await withWindow(view, size: NSSize(width: 280, height: 320)) { hostedView in
+            try await capture(hostedView, name: "terminal-font-options-\(language)")
+        }
     }
 
-    private func capture(_ view: some View, name: String, size: NSSize) async throws {
+    private func withWindow(_ view: some View, size: NSSize, perform: (NSView) async throws -> Void) async rethrows {
         let controller = NSHostingController(rootView: view)
         let window = NSWindow(
             contentRect: NSRect(origin: .zero, size: size),
@@ -52,10 +61,14 @@ struct TerminalSettingsRenderingTests {
             window.contentViewController = nil
             window.close()
         }
+        try await perform(controller.view)
+    }
+
+    private func capture(_ view: NSView, name: String) async throws {
         try await Task.sleep(for: .milliseconds(500))
-        controller.view.layoutSubtreeIfNeeded()
-        let bitmap = try #require(controller.view.bitmapImageRepForCachingDisplay(in: controller.view.bounds))
-        controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
+        view.layoutSubtreeIfNeeded()
+        let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        view.cacheDisplay(in: view.bounds, to: bitmap)
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
         Attachment.record(data, named: "\(name).png")
         #expect(data.count > 5_000)

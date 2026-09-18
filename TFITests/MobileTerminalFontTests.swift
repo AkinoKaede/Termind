@@ -29,7 +29,9 @@ struct MobileTerminalFontTests {
         .environment(\.locale, Locale(identifier: language))
         .frame(width: 280, height: 320)
         .background(.background)
-        try await capture(view, name: "mobile-terminal-font-options-\(language)")
+        try await withWindow(view) { window in
+            try await capture(window, name: "mobile-terminal-font-options-\(language)")
+        }
     }
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo"])
@@ -38,16 +40,24 @@ struct MobileTerminalFontTests {
         let defaults = try #require(UserDefaults(suiteName: domain))
         defer { defaults.removePersistentDomain(forName: domain) }
         defaults.set(family, forKey: SettingsKey.terminalFontFamily)
-        defaults.set(family.isEmpty, forKey: SettingsKey.terminalFontFollowTheme)
+        defaults.set(18.0, forKey: SettingsKey.terminalFontSize)
         let view = NavigationStack {
             MobileTerminalSettingsView(model: TerminalSettingsModel())
         }
         .defaultAppStorage(defaults)
         .environment(\.locale, Locale(identifier: language))
-        try await capture(view, name: "mobile-terminal-settings-\(language)-\(family.isEmpty ? "theme" : family)")
+        let name = "mobile-terminal-settings-\(language)-\(family.isEmpty ? "theme" : family)"
+        try await withWindow(view) { window in
+            for (index, followsTheme) in [false, true, false].enumerated() {
+                defaults.set(followsTheme, forKey: SettingsKey.terminalFontFollowTheme)
+                try await capture(window, name: "\(name)-\(followsTheme ? "theme-size" : "custom-size")-\(index)")
+                #expect(defaults.double(forKey: SettingsKey.terminalFontSize) == 18)
+                #expect(defaults.string(forKey: SettingsKey.terminalFontFamily) == family)
+            }
+        }
     }
 
-    private func capture(_ view: some View, name: String) async throws {
+    private func withWindow(_ view: some View, perform: (UIWindow) async throws -> Void) async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previousWindow = scene.keyWindow
         let window = UIWindow(windowScene: scene)
@@ -60,7 +70,11 @@ struct MobileTerminalFontTests {
             window.rootViewController = nil
             previousWindow?.makeKey()
         }
-        controller.view.layoutIfNeeded()
+        try await perform(window)
+    }
+
+    private func capture(_ window: UIWindow, name: String) async throws {
+        window.layoutIfNeeded()
         try await Task.sleep(for: .milliseconds(500))
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
