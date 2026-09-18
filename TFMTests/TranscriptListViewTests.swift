@@ -276,6 +276,42 @@ struct TranscriptListCacheTests {
         #expect(window.transcriptCache.count == 0)
     }
 
+    @Test
+    func remountAtANewWidthReflowsWithoutReplacingTheListOrLeavingHistory() async throws {
+        let owner = PersistentTranscriptListOwner(key: .init(conversationID: UUID(), surface: .fullScreen))
+        let first = TranscriptMountView(frame: CGRect(x: 0, y: 0, width: 900, height: 220))
+        owner.mount(in: first)
+        first.layoutSubtreeIfNeeded()
+        let entries = (0..<8).map { _ in
+            let message = ChatMessage(
+                id: UUID(), role: .assistant,
+                text: String(repeating: "Keep the reader on this conversation while its width changes. ", count: 12)
+            )
+            return TranscriptEntry(id: message.id, content: .assistant(message, canFork: false))
+        }
+        update(owner, entries: entries)
+        owner.listView.setContentOffset(CGPoint(x: 0, y: 60), animated: false)
+        owner.listView.layoutSubtreeIfNeeded()
+        let nativeList = owner.listView
+        owner.unmount(from: first)
+
+        let second = TranscriptMountView(frame: CGRect(x: 0, y: 0, width: 360, height: 220))
+        owner.mount(in: second)
+        second.layoutSubtreeIfNeeded()
+        update(owner, entries: entries)
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async { continuation.resume() }
+        }
+        second.layoutSubtreeIfNeeded()
+
+        #expect(owner.listView === nativeList)
+        #expect(!nativeList.isScrolledToBottom(tolerance: Metrics.Space.l))
+        #expect(nativeList.contentOffset.y > 0)
+        let row = try #require(nativeList.rowView(for: entries[0].id))
+        #expect(abs(row.bounds.width - 360) <= 1)
+        #expect(nativeList.rectForRow(with: entries[0].id).height > 200)
+    }
+
     private func update(
         _ owner: PersistentTranscriptListOwner,
         entries: [TranscriptEntry]
@@ -300,6 +336,138 @@ struct TranscriptListCacheTests {
 @MainActor
 @Suite
 struct TranscriptListViewBridgeTests {
+    @Test
+    func resizingUnchangedMessagesReflowsMountedContentAndMeasuredHeights() async throws {
+        for isCompact in [false, true] {
+            let coordinator = TranscriptListView.Coordinator()
+            let presentation = TranscriptPresentationState()
+            let listView = coordinator.makeListView()
+            let id = UUID()
+            let entry = assistant(
+                id: id, text: String(repeating: "A transcript paragraph must wrap at the current width. ", count: 16)
+            )
+            listView.frame = CGRect(x: 0, y: 0, width: 900, height: 1_200)
+            update(coordinator, listView, entries: [entry], presentation: presentation, isCompact: isCompact)
+            await settleResize(listView)
+            let row = try #require(listView.rowView(for: id))
+            let markdown = try #require(descendant(in: row, identifier: "Transcript.AssistantMarkdown"))
+            let segment = try #require(descendant(in: row, ofType: NativeMarkdownSegment.self))
+            let wideHeight = listView.rectForRow(with: id).height
+            let wideWidth = markdown.bounds.width
+
+            listView.frame.size.width = 360
+            await settleResize(listView)
+
+            #expect(listView.rowView(for: id) === row)
+            #expect(descendant(in: row, ofType: NativeMarkdownSegment.self) === segment)
+            #expect(abs(markdown.bounds.width - (360 - (isCompact ? 24 : 32))) <= 1)
+            #expect(listView.rectForRow(with: id).height > wideHeight)
+            #expect(segment.bounds.height > 1)
+
+            listView.frame.size.width = 900
+            await settleResize(listView)
+
+            #expect(abs(markdown.bounds.width - wideWidth) <= 1)
+            #expect(abs(listView.rectForRow(with: id).height - wideHeight) <= 1)
+        }
+    }
+
+    @Test
+    func resizingUserBubblesAndStreamingMessagesDoesNotRequireANewSnapshot() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let presentation = TranscriptPresentationState()
+        let listView = coordinator.makeListView()
+        let userID = UUID()
+        let assistantID = UUID()
+        let entries = [
+            user(id: userID, text: String(repeating: "A long user message. ", count: 20)),
+            streamingAssistant(id: assistantID, text: String(repeating: "Streaming prose reflows. ", count: 20)),
+        ]
+        listView.frame = CGRect(x: 0, y: 0, width: 900, height: 1_200)
+        update(coordinator, listView, entries: entries, presentation: presentation, isCompact: false)
+        await settleResize(listView)
+        let wideHeight = listView.rectForRow(with: assistantID).height
+
+        listView.frame.size.width = 360
+        await settleResize(listView)
+
+        let userRow = try #require(listView.rowView(for: userID))
+        let bubble = try #require(descendant(in: userRow, identifier: "Transcript.UserBubble"))
+        #expect(bubble.bounds.width <= 360 - 32 - Metrics.Chat.gutter + 1)
+        #expect(listView.rectForRow(with: assistantID).height > wideHeight)
+        #expect(listView.rectForRow(with: assistantID).minY == listView.rectForRow(with: userID).maxY)
+    }
+
+    private func settleResize(_ listView: TranscriptListView.NativeListView) async {
+        listView.layoutSubtreeIfNeeded()
+        await withCheckedContinuation { continuation in
+            DispatchQueue.main.async { continuation.resume() }
+        }
+        listView.layoutSubtreeIfNeeded()
+    }
+
+    @Test
+    func ordinaryScrollingDoesNotReconfigureMessageWidths() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let listView = coordinator.makeListView()
+        let id = UUID()
+        let entries =
+            [user(id: id, text: "Keep this visible bubble mounted.")]
+            + (0..<12).map { _ in TranscriptEntry(id: UUID(), content: .empty) }
+        listView.frame = CGRect(x: 0, y: 0, width: 360, height: 220)
+        update(coordinator, listView, entries: entries)
+        listView.setContentOffset(.zero, animated: false)
+        await settleResize(listView)
+        let row = try #require(listView.rowView(for: id))
+        let bubble = try #require(descendant(in: row, identifier: "Transcript.UserBubble"))
+
+        listView.setContentOffset(CGPoint(x: 0, y: 12), animated: false)
+        await settleResize(listView)
+
+        #expect(descendant(in: row, identifier: "Transcript.UserBubble") === bubble)
+    }
+
+    @Test
+    func resizingMarkdownRecomputesCodeAndTableOverflow() async throws {
+        let coordinator = TranscriptListView.Coordinator()
+        let presentation = TranscriptPresentationState()
+        let listView = coordinator.makeListView()
+        let id = UUID()
+        let text = """
+            | Key | Value | Previous value |
+            | --- | --- | --- |
+            | result | \(String(repeating: "W", count: 64)) | \(String(repeating: "W", count: 64)) |
+
+            ```swift
+            let result = "\(String(repeating: "w", count: 80))"
+            ```
+            """
+        listView.frame = CGRect(x: 0, y: 0, width: 900, height: 800)
+        update(
+            coordinator, listView, entries: [assistant(id: id, text: text)], presentation: presentation,
+            isCompact: false)
+        await settleResize(listView)
+        let row = try #require(listView.rowView(for: id))
+        let segment = try #require(descendant(in: row, ofType: NativeMarkdownSegment.self))
+
+        listView.frame.size.width = 360
+        await settleResize(listView)
+        let narrowScrollers = descendants(in: segment, ofType: NSScrollView.self)
+        #expect(narrowScrollers.count == 2)
+        #expect(narrowScrollers.allSatisfy { $0.contentView.bounds.width <= 328 })
+        for scroller in narrowScrollers {
+            #expect((scroller.documentView?.frame.width ?? 0) > scroller.contentView.bounds.width)
+        }
+
+        listView.frame.size.width = 900
+        await settleResize(listView)
+        #expect(descendant(in: row, ofType: NativeMarkdownSegment.self) === segment)
+        #expect(
+            descendants(in: segment, ofType: NSScrollView.self).allSatisfy {
+                $0.contentView.bounds.width > 328
+            })
+    }
+
     @Test
     func richTranscriptDoesNotInstallAPerFrameRowAnimator() {
         let listView = TranscriptListView.Coordinator().makeListView()

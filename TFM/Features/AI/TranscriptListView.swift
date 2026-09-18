@@ -336,6 +336,8 @@ struct TranscriptListView: NSViewRepresentable {
         private var invalidationScheduled = false
         private var invalidationMayFollow = false
         private var autoCollapseCheckScheduled = false
+        private var widthRefreshScheduled = false
+        private var displayedWidth: CGFloat?
 
         init(mountOwner: PersistentTranscriptListOwner? = nil) {
             self.mountOwner = mountOwner
@@ -354,10 +356,17 @@ struct TranscriptListView: NSViewRepresentable {
             view.bottomInset = Metrics.Space.xl
             view.rowAnimator = nil
             view.postsBoundsChangedNotifications = true
+            view.postsFrameChangedNotifications = true
             NotificationCenter.default.addObserver(
                 self,
                 selector: #selector(viewportDidChange),
                 name: NSView.boundsDidChangeNotification,
+                object: view
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(viewportDidChange),
+                name: NSView.frameDidChangeNotification,
                 object: view
             )
             view.rows {
@@ -571,7 +580,30 @@ struct TranscriptListView: NSViewRepresentable {
         }
 
         @objc private func viewportDidChange() {
+            scheduleWidthRefresh()
             schedulePendingAutoCollapseCheck()
+        }
+
+        private func scheduleWidthRefresh() {
+            guard let view = listView, view.bounds.width > 0,
+                view.bounds.width != displayedWidth, !widthRefreshScheduled
+            else { return }
+            widthRefreshScheduled = true
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                widthRefreshScheduled = false
+                guard let view = listView, view.bounds.width > 0,
+                    view.bounds.width != displayedWidth
+                else { return }
+                displayedWidth = view.bounds.width
+                // ListViewKit remeasures heights on resize, but mounted rows
+                // keep their configuration. Refresh those rows without replacing
+                // the list or treating the resize as new conversation content.
+                for entry in content where view.rowView(for: entry.id) != nil {
+                    refreshDisplayedRow(entry.id, in: view)
+                }
+                view.layoutSubtreeIfNeeded()
+            }
         }
 
         private func schedulePendingAutoCollapseCheck() {

@@ -272,20 +272,21 @@ nonisolated enum Metrics {
     }
 
     enum VaultContent {
-        static let min: CGFloat = 420
+        static let min: CGFloat = 360
         static let ideal: CGFloat = 680
+        static let splitMinWidth: CGFloat = min + 1 + Metrics.VaultDetail.min
     }
 
     enum VaultDetail {
-        static let min: CGFloat = 340
+        static let min: CGFloat = 360
         static let ideal: CGFloat = 460
         static let max: CGFloat = 720
     }
 
     enum Window {
-        /// Keep the complete Assistant surface, including its composer, at
-        /// least as wide as the transcript's reading column.
-        static let detailMin: CGFloat = Metrics.Chat.contentMaxWidth
+        /// Every main page can use this width; multi-column pages adapt their
+        /// layout instead of raising the window's minimum when navigating.
+        static let detailMin: CGFloat = 360
         static let detailMinHeight: CGFloat = 440
 
         /// The native sidebar has an outer inset on Liquid Glass; older

@@ -34,6 +34,7 @@ struct QuickOpenOverlay: View {
                     y: 12
                 )
                 .contentShape(.rect)
+                .padding(Metrics.Space.xl)
         }
         .onExitCommand(perform: close)
         .accessibilityElement(children: .contain)
@@ -78,7 +79,7 @@ struct QuickOpenView: View {
 
             shortcutFooter
         }
-        .frame(width: Metrics.QuickOpen.width, height: Metrics.QuickOpen.height)
+        .frame(maxWidth: Metrics.QuickOpen.width, maxHeight: Metrics.QuickOpen.height)
         .onAppear {
             searchFocused = true
             selectedID = results.commands.first?.id

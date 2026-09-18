@@ -160,6 +160,7 @@ final class TranscriptRowSizingPool {
 class TranscriptNativeRow: ListRowView {
     private let root = NativeStack.vertical(spacing: Metrics.Space.s)
     private var widthConstraint: NSLayoutConstraint?
+    private var contentWidthConstraint: NSLayoutConstraint?
     private var configuration: TranscriptListConfiguration?
     private var topInset: CGFloat = 0
     private var representedID: UUID?
@@ -199,6 +200,8 @@ class TranscriptNativeRow: ListRowView {
     override func prepareForReuse() {
         super.prepareForReuse()
         resetHoverState()
+        contentWidthConstraint?.isActive = false
+        contentWidthConstraint = nil
         root.removeAllArrangedSubviews()
         representedID = nil
         activeContent = nil
@@ -247,6 +250,7 @@ class TranscriptNativeRow: ListRowView {
             }
         )
         if representedID == entry.id, let activeContent {
+            contentWidthConstraint?.constant = contentWidth
             hoverViews.removeAll()
             if NativeTranscriptFactory.update(activeContent, for: entry, context: context) {
                 synchronizeHoverWithPointer()
@@ -256,17 +260,20 @@ class TranscriptNativeRow: ListRowView {
         let content = NativeTranscriptFactory.view(for: entry, context: context)
         representedID = entry.id
         activeContent = content
+        contentWidthConstraint?.isActive = false
         root.removeAllArrangedSubviews()
         if topInset > 0 { root.addArrangedSubview(NativeSpacer(height: topInset)) }
         let centered = NSView()
         centered.translatesAutoresizingMaskIntoConstraints = false
         centered.addSubview(content)
         content.translatesAutoresizingMaskIntoConstraints = false
+        let contentWidthConstraint = content.widthAnchor.constraint(equalToConstant: contentWidth)
+        self.contentWidthConstraint = contentWidthConstraint
         NSLayoutConstraint.activate([
             content.topAnchor.constraint(equalTo: centered.topAnchor),
             content.bottomAnchor.constraint(equalTo: centered.bottomAnchor),
             content.centerXAnchor.constraint(equalTo: centered.centerXAnchor),
-            content.widthAnchor.constraint(equalToConstant: contentWidth),
+            contentWidthConstraint,
         ])
         root.addArrangedSubview(centered)
         centered.widthAnchor.constraint(equalTo: root.widthAnchor).isActive = true
@@ -1851,6 +1858,8 @@ final class NativeMarkdownSegment: NSView {
     private let markdown = MarkdownTextView()
     private var content: MarkdownContent?
     private var measuredSize = NSSize(width: 1, height: 1)
+    private var lastProposedWidth: CGFloat?
+    private var lastFillsWidth: Bool?
     private var heightConstraint: NSLayoutConstraint!
     private var horizontalScrollViews: [NSScrollView] = []
     private var horizontalTrackingAreas: [ObjectIdentifier: NSTrackingArea] = [:]
@@ -1898,17 +1907,22 @@ final class NativeMarkdownSegment: NSView {
         fillsWidth: Bool,
         immediate: Bool
     ) {
-        guard self.content !== content else { return }
+        let contentChanged = self.content !== content
+        let availableWidth = max(1, proposedWidth)
+        guard contentChanged || lastProposedWidth != availableWidth || lastFillsWidth != fillsWidth else { return }
         let hadContent = self.content != nil
         self.content = content
-        let availableWidth = max(1, proposedWidth)
+        lastProposedWidth = availableWidth
+        lastFillsWidth = fillsWidth
         frame.size.width = availableWidth
         markdown.frame.size.width = availableWidth
-        if immediate || !hadContent {
-            markdown.setContentImmediately(content, theme: theme)
-        } else {
-            markdown.theme = theme
-            markdown.setContent(content)
+        if contentChanged {
+            if immediate || !hadContent {
+                markdown.setContentImmediately(content, theme: theme)
+            } else {
+                markdown.theme = theme
+                markdown.setContent(content)
+            }
         }
         let bounded = markdown.boundingSize(for: availableWidth)
         let measuredWidth =

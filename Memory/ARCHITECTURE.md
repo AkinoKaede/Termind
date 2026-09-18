@@ -62,6 +62,12 @@ cleanup is performed.
 - Desktop navigation starts with Vault and Assistant, places Metrics above Vault
   libraries, appends dynamic SSH/SFTP Workspaces, and ends with Settings. Vault
   owns Hosts, Keychain, Snippets, Known Hosts, Welcome, and Host Editor routes.
+- Desktop main pages share a 360-point detail minimum, independent of the
+  Assistant's 840-point reading maximum. Opening the Navigator grows the window
+  when necessary. Vault overlays its existing editor below 721 points and keeps
+  the covered list mounted at its last visible size; Metrics stacks its existing
+  detail and process views below 630 points. Resizing changes layout, never route,
+  editor identity, Workspace composition, or monitoring ownership.
 - Assistant conversations are owned by `AssistantLibraryModel`; they are not
   Workspace panes. A Workspace owns SSH/SFTP/serial panes and any session-scoped
   conversation. A session owns live transports and terminal/browser state.
@@ -803,3 +809,8 @@ state and survives row reuse; Copy retains the full already-sanitized projection
 IDs and MCP tools never opt into this policy by name. Long approvals instead retain all live
 arguments in a scaled 240-point scroll region with actions outside it. Neither preview path reads
 live skill/memory storage or changes the original protocol result, authorization, or persisted data.
+
+Desktop transcript width changes reconfigure mounted rows without replacing the
+cached list or following the tail. Reused row constraints and Markdown geometry
+track the current content width even when message identity and text are unchanged;
+parsed Markdown remains reusable independently of width-dependent measurements.

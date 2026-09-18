@@ -54,22 +54,42 @@ struct ServerMetricsView: View {
     }
 
     private func detail(_ server: ServerMetric) -> some View {
-        GeometryReader { geometry in
-            HStack(alignment: .top, spacing: 16) {
-                ScrollView {
-                    MetricsServerDetails(server: server, model: app.serverMetrics)
-                        .padding(1)
-                }
-                .frame(width: min(340, max(270, geometry.size.width * 0.38)))
-                .metricsPlainScrollEdges()
-                MetricsProcessList(server: server)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-            .padding(16)
-        }
-        .frame(minWidth: 630)
+        MetricsDetailView(server: server, model: app.serverMetrics)
     }
 
+}
+
+struct MetricsDetailView: View {
+    let server: ServerMetric
+    let model: ServerMetricsModel
+
+    static let splitMinWidth: CGFloat = 630
+    static let compactProcessHeight: CGFloat = 360
+
+    var body: some View {
+        GeometryReader { geometry in
+            let compact = geometry.size.width < Self.splitMinWidth
+            let layout =
+                compact
+                ? AnyLayout(VStackLayout(alignment: .leading, spacing: 16))
+                : AnyLayout(HStackLayout(alignment: .top, spacing: 16))
+
+            ScrollView {
+                layout {
+                    MetricsServerDetails(server: server, model: model)
+                        .padding(1)
+                        .frame(width: compact ? nil : min(340, max(270, geometry.size.width * 0.38)))
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    MetricsProcessList(server: server)
+                        .frame(height: compact ? Self.compactProcessHeight : max(0, geometry.size.height - 32))
+                        .frame(maxWidth: .infinity)
+                }
+                .padding(16)
+            }
+            .metricsPlainScrollEdges()
+        }
+    }
 }
 
 struct ServerMetricsCard: View {

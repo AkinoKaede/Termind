@@ -59,7 +59,7 @@ struct RootView: View {
                 )
                 .navigationSplitViewColumnWidth(
                     min: Metrics.Window.detailMin,
-                    ideal: Metrics.Window.detailMin
+                    ideal: Metrics.Chat.contentMaxWidth
                 )
         }
         .navigationSplitViewStyle(.balanced)
@@ -330,47 +330,7 @@ struct RootView: View {
     }
 
     private var vaultWorkspace: some View {
-        let showsWorkDetail = window.vaultWorkRoute != nil
-
-        return HStack(spacing: 0) {
-            VaultView(pages: window.vaultPages)
-                .frame(
-                    minWidth: Metrics.VaultContent.min,
-                    idealWidth: Metrics.VaultContent.ideal,
-                    maxWidth: .infinity
-                )
-                .layoutPriority(1)
-
-            Divider()
-                .frame(width: showsWorkDetail ? 1 : 0)
-                .opacity(showsWorkDetail ? 1 : 0)
-
-            ZStack {
-                if let route = window.vaultWorkRoute {
-                    VaultWorkDetailView(route: route)
-                        .id(route)
-                        .transition(.move(edge: .trailing).combined(with: .opacity))
-                }
-            }
-            .frame(
-                minWidth: showsWorkDetail ? Metrics.VaultDetail.min : 0,
-                idealWidth: showsWorkDetail ? Metrics.VaultDetail.ideal : 0,
-                maxWidth: showsWorkDetail ? Metrics.VaultDetail.max : 0
-            )
-            .clipped()
-            .opacity(showsWorkDetail ? 1 : 0)
-            .allowsHitTesting(showsWorkDetail)
-            .accessibilityHidden(!showsWorkDetail)
-        }
-        .animation(
-            Motion.panel(reduceMotion: reduceMotion),
-            value: window.vaultWorkRoute
-        )
-        .frame(
-            minWidth: Metrics.VaultContent.min,
-            maxWidth: .infinity,
-            maxHeight: .infinity
-        )
+        VaultWorkspaceView()
     }
 
     @ViewBuilder
