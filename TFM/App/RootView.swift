@@ -83,7 +83,6 @@ struct RootView: View {
             minHeight: Metrics.Window.minHeight,
             maxHeight: .infinity
         )
-        .background { FullHeightWindowContent() }
         .onGeometryChange(for: CGFloat.self) {
             $0.size.width
         } action: {
@@ -386,18 +385,6 @@ struct RootView: View {
     }
 }
 
-/// Extends the split view's material behind the titlebar while retaining the
-/// native toolbar chrome.
-private struct FullHeightWindowContent: NSViewRepresentable {
-    func makeNSView(context: Context) -> WindowContentBridgeView {
-        WindowContentBridgeView()
-    }
-
-    func updateNSView(_ view: WindowContentBridgeView, context: Context) {
-        view.configureWindow()
-    }
-}
-
 /// Owns window-scoped AppKit integration: key-window onboarding and the remote
 /// title report. Keeping both on this persistent bridge avoids routing title
 /// changes through whichever Workspace or pane SwiftUI currently renders.
@@ -511,23 +498,6 @@ private final class WindowActivityBridgeView: NSView, WindowRemoteTitleSink {
             await Task.yield()
             guard !Task.isCancelled, let self else { return }
             self.reportRemoteTitle(self.showsRemoteTitle ? title : nil)
-        }
-    }
-}
-
-private final class WindowContentBridgeView: NSView {
-    override func viewDidMoveToWindow() {
-        super.viewDidMoveToWindow()
-        configureWindow()
-    }
-
-    func configureWindow() {
-        guard let window else { return }
-        if !window.styleMask.contains(.fullSizeContentView) {
-            window.styleMask.insert(.fullSizeContentView)
-        }
-        if !window.titlebarAppearsTransparent {
-            window.titlebarAppearsTransparent = true
         }
     }
 }

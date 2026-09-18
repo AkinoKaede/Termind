@@ -10,6 +10,9 @@ final class MainWindowCoordinator {
     private final class Entry {
         weak var window: NSWindow?
         weak var model: WindowModel?
+        var normalSize: CGSize?
+        var isTransitioningFullScreen = false
+        var isReady = false
         init(window: NSWindow, model: WindowModel) {
             self.window = window
             self.model = model
@@ -21,11 +24,13 @@ final class MainWindowCoordinator {
         let workspaceID: UUID?
         let showsMetrics: Bool
         let dropPoint: CGPoint?
-        let sourceSize: CGSize?
+        /// AppKit content coordinates, including the titlebar for the main
+        /// window's full-size content view. Never a fullscreen frame.
+        let sourceSize: CGSize
 
         init(
             source: WindowModel? = nil, workspaceID: UUID? = nil,
-            showsMetrics: Bool = false, dropPoint: CGPoint? = nil, sourceSize: CGSize? = nil
+            showsMetrics: Bool = false, dropPoint: CGPoint? = nil, sourceSize: CGSize
         ) {
             self.source = source
             self.workspaceID = workspaceID
@@ -36,30 +41,95 @@ final class MainWindowCoordinator {
     }
 
     @ObservationIgnored private weak var app: AppModel?
+    @ObservationIgnored private let sizes: MainWindowSizeStore
     @ObservationIgnored private var entries: [Entry] = []
     @ObservationIgnored private var requests: [UUID: Request] = [:]
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
     @ObservationIgnored var activeWorkspaceDrag: WorkspaceWindowDragSession?
     @ObservationIgnored var createScene: ((UUID) -> Void)?
+    @ObservationIgnored private var isTerminating = false
     private(set) var paywallOwnerID: ObjectIdentifier?
+    private var fullScreenWindows: Set<ObjectIdentifier> = []
 
-    init(app: AppModel) {
+    init(app: AppModel, sizes: MainWindowSizeStore) {
         self.app = app
-        for name in [NSWindow.willCloseNotification, NSWindow.didBecomeKeyNotification] {
+        self.sizes = sizes
+        for name in [
+            NSWindow.willCloseNotification, NSWindow.didBecomeKeyNotification,
+            NSWindow.didResizeNotification, NSWindow.didEndLiveResizeNotification,
+            NSWindow.willEnterFullScreenNotification, NSWindow.didEnterFullScreenNotification,
+            NSWindow.willExitFullScreenNotification, NSWindow.didExitFullScreenNotification,
+        ] {
             observers.append(
                 NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) {
                     [weak self] notification in
                     guard let window = notification.object as? NSWindow else { return }
                     MainActor.assumeIsolated {
-                        guard let self else { return }
-                        if name == NSWindow.willCloseNotification {
-                            self.close(window)
-                        } else {
-                            self.becameKey(window)
-                        }
+                        self?.handle(name, for: window)
                     }
                 })
         }
+    }
+
+    private func handle(_ notification: Notification.Name, for native: NSWindow) {
+        guard let entry = entries.first(where: { $0.window === native }), let model = entry.model else { return }
+        switch notification {
+        case NSWindow.willCloseNotification:
+            close(native)
+        case NSWindow.didBecomeKeyNotification:
+            becameKey(native)
+        case NSWindow.willEnterFullScreenNotification:
+            recordSize(entry)
+            entry.isTransitioningFullScreen = true
+            fullScreenWindows.insert(ObjectIdentifier(model))
+        case NSWindow.didEnterFullScreenNotification:
+            entry.isTransitioningFullScreen = false
+            fullScreenWindows.insert(ObjectIdentifier(model))
+        case NSWindow.willExitFullScreenNotification:
+            entry.isTransitioningFullScreen = true
+        case NSWindow.didExitFullScreenNotification:
+            entry.isTransitioningFullScreen = false
+            fullScreenWindows.remove(ObjectIdentifier(model))
+            recordSize(entry)
+        default:
+            recordSize(entry)
+        }
+    }
+
+    /// Track every window's ordinary size, but only the most recently used
+    /// main window updates the fallback. Auxiliary windows never register here.
+    private func recordSize(_ entry: Entry) {
+        guard entry.isReady, !isTerminating, !entry.isTransitioningFullScreen,
+            let native = entry.window, let model = entry.model,
+            !native.styleMask.contains(.fullScreen), !isFullScreen(model)
+        else { return }
+        let size = native.contentRect(forFrameRect: native.frame).size
+        guard MainWindowSizeStore.isValid(size) else { return }
+        entry.normalSize = size
+        if entries.last === entry { sizes.save(size) }
+    }
+
+    func isFullScreen(_ model: WindowModel?) -> Bool {
+        guard let model else { return false }
+        return fullScreenWindows.contains(ObjectIdentifier(model))
+    }
+
+    func performNewWindowCommand(from source: WindowModel?) {
+        if let source, isFullScreen(source) {
+            app?.connect(in: source)
+        } else {
+            newWindow(from: source)
+        }
+    }
+
+    func saveSizeForTermination() {
+        guard !isTerminating else { return }
+        if let entry = entries.last {
+            recordSize(entry)
+            if let size = entry.normalSize { sizes.save(size) }
+        }
+        // Shutdown may close windows in a different order from their focus order.
+        isTerminating = true
     }
 
     isolated deinit {
@@ -71,8 +141,8 @@ final class MainWindowCoordinator {
     }
 
     @discardableResult
-    func newWindow(showsMetrics: Bool = false) -> UUID? {
-        request(Request(showsMetrics: showsMetrics))
+    func newWindow(from source: WindowModel? = nil, showsMetrics: Bool = false) -> UUID? {
+        request(Request(showsMetrics: showsMetrics, sourceSize: sourceSize(from: source)))
     }
 
     @discardableResult
@@ -82,9 +152,17 @@ final class MainWindowCoordinator {
             createScene?(existing.key)
             return existing.key
         }
-        let native = entries.first(where: { $0.model === source })?.window
-        let size = native.flatMap { $0.styleMask.contains(.fullScreen) ? nil : $0.frame.size }
-        return request(Request(source: source, workspaceID: id, dropPoint: point, sourceSize: size))
+        return request(
+            Request(source: source, workspaceID: id, dropPoint: point, sourceSize: sourceSize(from: source)))
+    }
+
+    private func sourceSize(from source: WindowModel?) -> CGSize {
+        let entry = source.flatMap { source in entries.first(where: { $0.model === source }) } ?? entries.last
+        if let entry {
+            recordSize(entry)
+            if let size = entry.normalSize { return size }
+        }
+        return sizes.defaultSize
     }
 
     private func request(_ request: Request) -> UUID? {
@@ -99,9 +177,10 @@ final class MainWindowCoordinator {
         guard !model.isClosed else { return }
         native.tabbingMode = .disallowed
         entries.removeAll { $0.window == nil || $0.model == nil }
-        if !entries.contains(where: { $0.window === native && $0.model === model }) {
-            entries.append(Entry(window: native, model: model))
-        }
+        guard !entries.contains(where: { $0.window === native && $0.model === model }) else { return }
+        let entry = Entry(window: native, model: model)
+        entries.append(entry)
+        if native.styleMask.contains(.fullScreen) { fullScreenWindows.insert(ObjectIdentifier(model)) }
         app?.registerWindow(model)
         if let requestID, let request = requests.removeValue(forKey: requestID) {
             if let workspaceID = request.workspaceID, let source = request.source,
@@ -113,17 +192,35 @@ final class MainWindowCoordinator {
             } else if request.showsMetrics {
                 model.selectedDestination = .metrics
             }
-            if let point = request.dropPoint,
-                let screen = NSScreen.screens.first(where: { $0.frame.contains(point) }) ?? native.screen
-            {
-                let size =
-                    request.sourceSize
-                    ?? CGSize(
-                        width: Metrics.Window.defaultWidth, height: Metrics.Window.defaultHeight)
-                native.setFrame(Self.frame(at: point, size: size, within: screen.visibleFrame), display: true)
+            applySize(request.sourceSize, to: native, model: model, dropPoint: request.dropPoint)
+        }
+        // A restored scene has no pending request. Its system-restored frame
+        // must not be replaced with another window's shared fallback.
+        entry.isReady = true
+        recordSize(entry)
+        synchronizePaywall()
+    }
+
+    private func applySize(_ size: CGSize, to native: NSWindow, model: WindowModel, dropPoint: CGPoint?) {
+        let contentSize = CGSize(
+            width: max(
+                size.width, native.contentMinSize.width, Metrics.Window.minWidth(showsSidebar: model.showsSidebar)),
+            height: max(size.height, native.contentMinSize.height, Metrics.Window.minHeight))
+        let frameSize = native.frameRect(forContentRect: CGRect(origin: .zero, size: contentSize)).size
+        let screen =
+            dropPoint.flatMap { point in NSScreen.screens.first(where: { $0.frame.contains(point) }) }
+            ?? native.screen ?? NSScreen.main
+        var frame = CGRect(
+            x: native.frame.minX, y: native.frame.maxY - frameSize.height,
+            width: frameSize.width, height: frameSize.height)
+        if let screen {
+            if let dropPoint {
+                frame = Self.frame(at: dropPoint, size: frameSize, within: screen.visibleFrame)
+            } else {
+                frame = Self.fittingFrame(frame, within: screen.visibleFrame)
             }
         }
-        synchronizePaywall()
+        native.setFrame(frame, display: true)
     }
 
     /// A selected pane consumes the command, even when it was the last one.
@@ -143,7 +240,10 @@ final class MainWindowCoordinator {
     }
 
     func close(_ native: NSWindow) {
-        guard let model = entries.first(where: { $0.window === native })?.model else { return }
+        guard let entry = entries.first(where: { $0.window === native }), let model = entry.model else { return }
+        recordSize(entry)
+        if entries.last === entry, !isTerminating, let size = entry.normalSize { sizes.save(size) }
+        fullScreenWindows.remove(ObjectIdentifier(model))
         entries.removeAll { $0.window === native || $0.window == nil || $0.model == nil }
         requests = requests.filter { $0.value.source !== model }
         if paywallOwnerID == ObjectIdentifier(model) {
@@ -157,6 +257,10 @@ final class MainWindowCoordinator {
     private func becameKey(_ native: NSWindow) {
         guard let index = entries.firstIndex(where: { $0.window === native }) else { return }
         entries.append(entries.remove(at: index))
+        if let entry = entries.last {
+            recordSize(entry)
+            if !isTerminating, let size = entry.normalSize { sizes.save(size) }
+        }
         synchronizePaywall()
     }
 
@@ -205,9 +309,16 @@ final class MainWindowCoordinator {
     static func frame(at point: CGPoint, size: CGSize, within available: CGRect) -> CGRect {
         let width = min(size.width, available.width)
         let height = min(size.height, available.height)
+        return fittingFrame(
+            CGRect(x: point.x - width / 2, y: point.y - height + 20, width: width, height: height), within: available)
+    }
+
+    static func fittingFrame(_ frame: CGRect, within available: CGRect) -> CGRect {
+        let width = min(frame.width, available.width)
+        let height = min(frame.height, available.height)
         return CGRect(
-            x: min(max(point.x - width / 2, available.minX), available.maxX - width),
-            y: min(max(point.y - height + 20, available.minY), available.maxY - height),
+            x: min(max(frame.minX, available.minX), available.maxX - width),
+            y: min(max(frame.maxY - height, available.minY), available.maxY - height),
             width: width, height: height)
     }
 }
@@ -247,6 +358,11 @@ final class MainWindowRegistrationView: NSView {
     }
 
     func register() {
-        if let window { coordinator.register(window, model: model, requestID: requestID) }
+        guard let window else { return }
+        // Establish the content coordinate system before reading or applying a
+        // size. A separate bridge could otherwise register before this style.
+        if !window.styleMask.contains(.fullSizeContentView) { window.styleMask.insert(.fullSizeContentView) }
+        if !window.titlebarAppearsTransparent { window.titlebarAppearsTransparent = true }
+        coordinator.register(window, model: model, requestID: requestID)
     }
 }

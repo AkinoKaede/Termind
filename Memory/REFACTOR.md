@@ -468,3 +468,15 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
   changed to hide these failures. The macOS full run has the previously documented
   `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable`
   failure; its source and test remain unchanged.
+
+## Consolidate Main Window Registration and Content Style (2026-09-18)
+
+- Evidence: `rg` found `RootView` mounting both `MainWindowRegistration` and
+  `FullHeightWindowContent`; the latter existed only to set two native window
+  properties. Separate attachment callbacks could size a window before its
+  full-size content coordinate system was established.
+- Action: set the style and titlebar transparency in the existing registration
+  bridge before registering, and remove the redundant representable and NSView.
+  Both operations remain in the macOS platform layer.
+- Reduction: remove 30 lines of bridge plumbing, adding 5 lines at registration.
+- Status: implemented; focused and full-suite verification pending.

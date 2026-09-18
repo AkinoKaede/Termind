@@ -25,6 +25,9 @@ struct TermindCommands: Commands {
         return workspace.isSplit ? "Close Pane" : "Close Workspace"
     }
 
+    private var newWindowConnects: Bool { app.mainWindows.isFullScreen(window) }
+    private var newWindowTitle: LocalizedStringKey { newWindowConnects ? "Connect" : "New Window" }
+
     var body: some Commands {
         let _ = app.mainWindows.registerWindowCreation { [openWindow] id in
             openWindow(id: "main", value: id)
@@ -37,8 +40,13 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(replacing: .newItem) {
-            Button("New Window", systemImage: MenuSymbol.newWindow) { app.mainWindows.newWindow() }
-                .termindShortcut("n")
+            Button(
+                newWindowTitle,
+                systemImage: newWindowConnects ? MenuSymbol.ssh : MenuSymbol.newWindow
+            ) {
+                app.mainWindows.performNewWindowCommand(from: window)
+            }
+            .termindShortcut("n")
 
             Divider()
 

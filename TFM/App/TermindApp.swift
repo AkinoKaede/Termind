@@ -118,7 +118,8 @@ struct TermindApp: App {
                         forwardingDefaults: .standard, mcpServerSecrets: secrets
                     ),
                     proAccess: proAccess,
-                    appReview: .live()
+                    appReview: .live(),
+                    windowSizeStore: MainWindowSizeStore(defaults: isRunningTests ? nil : .standard)
                 )
             )
         } catch {
@@ -154,7 +155,7 @@ struct TermindApp: App {
         #if DEBUG
             .restorationBehavior(ScreenshotDemoConfiguration.active == nil ? .automatic : .disabled)
         #endif
-        .defaultSize(width: Metrics.Window.defaultWidth, height: Metrics.Window.defaultHeight)
+        .defaultSize(app.windowSizeStore.defaultSize)
         // All main pages share one content floor. Opening the sidebar lets
         // the native split view grow a window that cannot fit both columns.
         .windowResizability(.contentMinSize)
@@ -331,6 +332,7 @@ struct TermindApp: App {
         }
 
         private func beginTermination(_ app: AppModel) {
+            app.mainWindows.saveSizeForTermination()
             let cleanup = app.shutdownForTermination()
             Task { @MainActor [weak self] in
                 await cleanup.value

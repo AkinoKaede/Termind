@@ -87,7 +87,7 @@ final class AppCommandRegistry {
             guard let host = app.hostLibrary.host(id) else { return }
             app.open(host, as: target, in: window)
         case .newWindow:
-            app.mainWindows.newWindow()
+            app.mainWindows.newWindow(from: window)
         case .moveWorkspaceToNewWindow(let id):
             app.mainWindows.moveWorkspace(id, from: window)
         case .newChat:

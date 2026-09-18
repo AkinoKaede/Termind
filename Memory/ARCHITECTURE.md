@@ -64,6 +64,18 @@ cleanup is performed.
   windows. Creating a window starts on Welcome; Dock reopening preserves the
   existing destination, while the Metrics entry explicitly selects Metrics.
   Restoring a scene never restores or reconnects live Workspaces.
+- Desktop new-window requests snapshot their source's ordinary content size;
+  repeated registration cannot reapply it. The native registration bridge sets
+  the full-size content style before sizing, so titlebar height never accumulates
+  across copies. Command-N opens Connect in a fullscreen source; explicit Quick
+  Open New Window still creates a window using its pre-fullscreen size.
+  The last-used main window's ordinary size is device-local UserDefaults state,
+  excluded from sync. Fullscreen transitions and auxiliary windows cannot replace
+  it, and termination freezes it before window teardown. A cold scene uses this
+  default only when macOS has no individual restored frame; restoring multiple
+  scenes never applies the shared size over their frames. Tests and screenshot
+  demos use an in-memory size store. Window positions remain system-owned except
+  for the existing workspace tear-off placement.
 - Desktop Command-W closes the selected Workspace's focused pane first. Closing
   the last pane removes its Workspace but keeps the window open. Without a selected
   Workspace it requests native window dismissal. All user window-close paths share

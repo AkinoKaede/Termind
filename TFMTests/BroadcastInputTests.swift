@@ -389,6 +389,7 @@ struct BroadcastInputTests {
             let host = Host(name: "host", host: "host.example")
             let sshSession = Workspace.sshSession(host: host).focusedPane.sshSession!
             let shortcuts: [AppShortcutRegistration] = [
+                AppShortcutRegistration("n"),
                 AppShortcutRegistration("t"),
                 AppShortcutRegistration("t", modifiers: [.command, .shift]),
                 AppShortcutRegistration("w"),

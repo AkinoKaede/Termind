@@ -11,6 +11,8 @@ nonisolated enum DesktopSettingsKey {
     static let showMetricsInMenuBar = "metrics.showInMenuBar"
     /// App-wide appearance. `system` inherits changes from macOS.
     static let appAppearance = "app.appearance"
+    /// Last ordinary main-window content size, local to this Mac.
+    static let mainWindowSize = "window.main.contentSize"
 
     // Built-in MCP listener preferences are device-local and never enter Settings sync.
     static let mcpServerEnabled = "mcpServer.enabled"

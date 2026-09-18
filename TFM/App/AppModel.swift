@@ -76,7 +76,8 @@ final class AppModel {
     let onboarding: OnboardingController
     let appReview: AppReviewController
     let serverMetrics: ServerMetricsModel
-    @ObservationIgnored lazy var mainWindows = MainWindowCoordinator(app: self)
+    let windowSizeStore: MainWindowSizeStore
+    @ObservationIgnored lazy var mainWindows = MainWindowCoordinator(app: self, sizes: windowSizeStore)
     let connections: RemoteConnectionCoordinator
     let serialPorts: any SerialPortServing
     let hostRepository: any HostRepository
@@ -141,8 +142,10 @@ final class AppModel {
         proAccess: ProAccessController = .unrestrictedForTesting(),
         onboarding: OnboardingController = OnboardingController(),
         appReview: AppReviewController = AppReviewController(),
-        serverMetrics suppliedMetrics: ServerMetricsModel? = nil
+        serverMetrics suppliedMetrics: ServerMetricsModel? = nil,
+        windowSizeStore: MainWindowSizeStore = MainWindowSizeStore()
     ) {
+        self.windowSizeStore = windowSizeStore
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         let externalAuthentication = ExternalAuthCoordinator()
         self.externalAuthentication = externalAuthentication
