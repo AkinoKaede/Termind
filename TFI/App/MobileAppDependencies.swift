@@ -1,4 +1,5 @@
 import Foundation
+import SwiftData
 import TermindApplication
 
 @MainActor
@@ -11,6 +12,9 @@ struct MobileAppDependencies {
     var workspaceConnections: MobileWorkspaceConnectionServices
     var metrics: MobileMetricsServices
     var appReview: AppReviewController
+    var container: ModelContainer? = nil
+    var workspaceStore: MobileWorkspaceStore? = nil
+    var liveActivities: MobileLiveActivityController? = nil
 
     static func live() -> MobileAppDependencies {
         MobileAppDependencies(

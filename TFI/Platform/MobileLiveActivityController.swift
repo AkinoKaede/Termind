@@ -1,25 +1,28 @@
 @preconcurrency import ActivityKit
 import Foundation
 import Observation
-import UIKit
 
 @MainActor
 @Observable
 final class MobileLiveActivityController {
     private(set) var error: String?
-    private var activity: Activity<WorkspaceActivityAttributes>?
+    private var activity: (any MobileWorkspaceActivity)?
     private var updates: Task<Void, Never>?
     private let enabled: Bool
+    private let services: MobileLiveActivityServices
     private var focusedWorkspaceID: UUID?
 
-    init(enabled: Bool = true) {
+    init(enabled: Bool = true, services: MobileLiveActivityServices = .live) {
         self.enabled = enabled
+        self.services = services
         if enabled {
-            let restored = Activity<WorkspaceActivityAttributes>.activities
-            activity = restored.first
+            let restored = services.activities()
+            activity = restored.first { $0.state == .active || $0.state == .stale }
+            focusedWorkspaceID = activity?.focusedWorkspaceID
+            let retainedID = activity?.id
             updates = Task {
-                for duplicate in restored.dropFirst() {
-                    await duplicate.end(nil, dismissalPolicy: .immediate)
+                for duplicate in restored where duplicate.id != retainedID {
+                    await duplicate.end()
                 }
             }
         }
@@ -44,22 +47,18 @@ final class MobileLiveActivityController {
             await previous?.value
             guard let self else { return }
             guard state.workspaceCount > 0 else {
-                if let activity { await activity.end(nil, dismissalPolicy: .immediate) }
+                if let activity { await activity.end() }
                 activity = nil
                 return
             }
-            let content = ActivityContent(state: state, staleDate: Date.now.addingTimeInterval(60))
-            if let activity, activity.activityState == .active || activity.activityState == .stale {
-                await activity.update(content)
+            if let activity, activity.state == .active || activity.state == .stale {
+                await activity.update(state)
                 return
             }
             // Updates do not restart a dismissed activity. Requests require the foreground.
-            guard mayStart, UIApplication.shared.applicationState == .active,
-                ActivityAuthorizationInfo().areActivitiesEnabled
-            else { return }
+            guard mayStart, services.canStart() else { return }
             do {
-                activity = try Activity.request(
-                    attributes: WorkspaceActivityAttributes(), content: content, pushType: nil)
+                activity = try services.request(state)
                 error = nil
             } catch { self.error = error.localizedDescription }
         }

@@ -743,13 +743,19 @@ Device idiom is not a production layout input. These states are memory-only.
 
 Neither layout shows Welcome. Each Workspace owns exactly one SSH or SFTP session; mobile never composes
 panes, even with Pro. Assistant is independent. The title menu switches open peers
-without connecting/focusing; More owns Rename/Close and cross-opening SSH/SFTP when a
-live path exists. Explicit close never retries.
+without reconnecting existing sessions; a restored entry connects on its first selection.
+More owns Rename/Close and cross-opening SSH/SFTP when a live path exists. Explicit close never retries.
 
 Initial connection failure and recovery stay in Connection Journey. Background-task
 expiration closes transports but retains intent; foreground resumes existing
-workspaces. Workspaces exist only for the current app process and are never restored
-after relaunch. Within that process, Workspace titles hold the lowest free index for
+workspaces. Mobile saves device-local Workspace descriptors (stable ID, Host ID, kind,
+title, duplicate index and list order) under a versioned UserDefaults key. Relaunch
+restores disconnected entries after loading Hosts; selecting an entry consumes its
+first-open intent once across scenes and starts a fresh connection. Restoration itself
+never connects or records history. Commands, credentials, paths, terminal contents and
+transfers are excluded. Missing Hosts are pruned; unreadable snapshots are retained
+and cannot be overwritten during that process. Close, normal SSH exit and Host deletion
+remove saved entries. Workspace titles hold the lowest free index for
 their Host and connection kind; manual names retain the allocation, and closing the
 Workspace releases it without renumbering peers. Host deletion runs the shared outbox
 saga and cancels sessions, transfers, forwarding, and local history.
@@ -759,7 +765,9 @@ distribution icons. Validated links open a Workspace or list and carry no secret
 commands. It starts only in foreground, ends with the last Workspace, and cannot keep
 SSH or Agent runs alive. Immutable activity snapshots are separate from observable
 Workspace/Vault state; a user-dismissed activity is not resurrected by ordinary
-foreground updates.
+foreground updates or descriptor restoration. Startup reconciles an existing activity
+only after descriptors have loaded, preserving its focused ID when available. A stale
+link with no matching entry opens the Workspace list with an unavailable explanation.
 
 Mobile Settings exposes App, Terminal, SFTP, AI, and Sync. The macOS window-title
 preference stays synchronized but has no mobile control; there is no Live Activities

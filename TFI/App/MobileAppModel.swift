@@ -68,6 +68,9 @@ final class MobileAppModel {
     private let snippetTimestampFallback: Date
     private let background: any MobileBackgroundTaskManaging
     private let workspaceConnectionServices: MobileWorkspaceConnectionServices
+    private let workspaceStore: MobileWorkspaceStore
+    private var workspacesAwaitingFirstOpen: Set<UUID> = []
+    private var hasOpenedWorkspace = false
     let outbox: OutboxRunner
     private var hasActivated = false
     private var scenePhases: [UUID: ScenePhase] = [:]
@@ -100,6 +103,9 @@ final class MobileAppModel {
         let workspaceConnectionServices = dependencies.workspaceConnections
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
+        workspaceStore =
+            dependencies.workspaceStore
+            ?? MobileWorkspaceStore(defaults: inMemory || hosts != nil ? nil : defaults)
         appReview = dependencies.appReview
         let memoryOnly = inMemory || hosts != nil
         let storeURL = URL.applicationSupportDirectory.appending(path: "Termind.store")
@@ -107,13 +113,15 @@ final class MobileAppModel {
             try FileManager.default.createDirectory(
                 at: storeURL.deletingLastPathComponent(), withIntermediateDirectories: true)
         }
-        container = try TermindPersistence.makeContainer(inMemory: memoryOnly, url: memoryOnly ? nil : storeURL)
+        container =
+            try dependencies.container
+            ?? TermindPersistence.makeContainer(inMemory: memoryOnly, url: memoryOnly ? nil : storeURL)
         let vaultContext = ModelContext(container)
         self.hosts = hosts ?? SwiftDataHostRepository(context: vaultContext)
         outbox = OutboxRunner(store: SwiftDataOutboxStore(context: ModelContext(container)))
         self.defaults = inMemory || hosts != nil ? nil : defaults
         snippetTimestampFallback = MobileSnippetTimestamp.fallback(in: self.defaults)
-        liveActivities = MobileLiveActivityController(enabled: !inMemory && hosts == nil)
+        liveActivities = dependencies.liveActivities ?? MobileLiveActivityController(enabled: !inMemory && hosts == nil)
         pro = inMemory || hosts != nil ? .unrestrictedForTesting() : .live()
         let persistence = HostPersistence(context: vaultContext)
         _ = try persistence.load()
@@ -215,6 +223,7 @@ final class MobileAppModel {
         metricsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
+        restoreWorkspaces()
     }
 
     func open(
@@ -250,6 +259,7 @@ final class MobileAppModel {
         guard let workspace = workspaces.first(where: { $0.id == id }), workspace.rename(to: title) else {
             return false
         }
+        saveWorkspaces()
         return true
     }
 
@@ -259,6 +269,8 @@ final class MobileAppModel {
         workspace.didRequestClose = nil
         workspace.disconnect()
         workspaces.removeAll { $0.id == id }
+        workspacesAwaitingFirstOpen.remove(id)
+        saveWorkspaces()
         workspaceActivitySessions.removeAll { $0.id == id }
         liveActivities.update(workspaceActivitySessions)
     }
@@ -267,6 +279,8 @@ final class MobileAppModel {
         guard !workspaces.isEmpty else { return }
         let closing = workspaces
         workspaces.removeAll()
+        workspacesAwaitingFirstOpen.removeAll()
+        saveWorkspaces()
         workspaceActivitySessions.removeAll()
         for workspace in closing {
             workspace.didChangeState = nil
@@ -329,12 +343,12 @@ final class MobileAppModel {
             forwardings.resumeEnabled()
             reconcileSync()
             outbox.start()
-            if hasActivated {
-                liveActivities.update(workspaceActivitySessions)
-            } else {
-                hasActivated = true
+            if !hasActivated && hasOpenedWorkspace {
                 liveActivities.start(workspaceActivitySessions)
+            } else {
+                liveActivities.update(workspaceActivitySessions)
             }
+            hasActivated = true
             metrics.start()
         }
     }
@@ -392,6 +406,43 @@ final class MobileAppModel {
 
     func focusWorkspaceActivity(_ id: UUID) {
         liveActivities.focus(id, in: workspaceActivitySessions)
+    }
+
+    /// Consume restored intent before connecting so all scenes share one first attempt.
+    func activateWorkspace(_ id: UUID) {
+        guard let workspace = workspaces.first(where: { $0.id == id }),
+            workspacesAwaitingFirstOpen.remove(id) != nil
+        else { return }
+        connectionHistory.record(kind: workspace.descriptor.kind, for: workspace.descriptor.hostID)
+        workspace.connect()
+    }
+
+    private func restoreWorkspaces() {
+        do {
+            let descriptors = try workspaceStore.load()
+            workspaces = descriptors.filter { library.host($0.hostID) != nil }.map {
+                MobileWorkspace(
+                    descriptor: $0, hosts: library, transfers: transfers, sftpEdits: sftpEdits,
+                    terminalSettings: terminalSettings, commandHistory: commandHistory, sftpHistory: sftpHistory,
+                    connectionServices: workspaceConnectionServices)
+            }
+            workspacesAwaitingFirstOpen = Set(workspaces.map(\.id))
+            for workspace in workspaces { observeActivityState(of: workspace) }
+            workspaceActivitySessions = workspaces.map(\.activitySession)
+            if workspaces.count != descriptors.count { saveWorkspaces() }
+        } catch {
+            self.error = String(localized: "Saved workspaces could not be restored. The saved data has been kept.")
+        }
+        // Reconcile only after restoration. Never resurrect a dismissed activity on cold launch.
+        liveActivities.update(workspaceActivitySessions)
+    }
+
+    private func saveWorkspaces() {
+        do {
+            try workspaceStore.save(workspaces.map(\.descriptor))
+        } catch {
+            self.error = String(localized: "Workspace changes could not be saved for the next launch.")
+        }
     }
 
     private func makeWorkspace(
@@ -452,6 +503,8 @@ final class MobileAppModel {
         guard !added.isEmpty else { return }
         for workspace in added { observeActivityState(of: workspace) }
         workspaces.append(contentsOf: added)
+        hasOpenedWorkspace = true
+        saveWorkspaces()
         workspaceActivitySessions.append(contentsOf: added.map(\.activitySession))
         liveActivities.start(workspaceActivitySessions)
         for workspace in added { workspace.connect() }

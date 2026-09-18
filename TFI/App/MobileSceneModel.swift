@@ -203,10 +203,12 @@ final class MobileSceneModel {
 
     private func presentWorkspace(_ id: MobileWorkspace.ID) {
         guard app.workspaces.contains(where: { $0.id == id }) else { return }
+        pendingWorkspaceID = nil
         selectedDestination = .workspaces
         workspaceID = id
         recentWorkspaceIDs.removeAll { $0 == id }
         recentWorkspaceIDs.insert(id, at: 0)
+        app.activateWorkspace(id)
         app.focusWorkspaceActivity(id)
     }
 
@@ -292,15 +294,20 @@ final class MobileSceneModel {
 
     func open(_ url: URL) {
         if WorkspaceActivityAttributes.accepts(url) {
+            pendingWorkspaceID = nil
             selectedDestination = .workspaces
             workspaceID = nil
             return
         }
         guard let id = WorkspaceActivityAttributes.workspaceID(from: url) else { return }
         guard let workspace = app.workspaces.first(where: { $0.id == id }) else {
+            pendingWorkspaceID = nil
+            selectedDestination = .workspaces
+            workspaceID = nil
             isWorkspaceUnavailable = true
             return
         }
+        isWorkspaceUnavailable = false
         selectWorkspace(id)
         workspace.terminal.requestFocus()
     }

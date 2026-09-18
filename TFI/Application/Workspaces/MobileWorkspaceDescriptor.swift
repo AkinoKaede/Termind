@@ -1,7 +1,7 @@
 import Foundation
 import TermindDomain
 
-nonisolated struct MobileWorkspaceDescriptor: Hashable, Identifiable, Sendable {
+nonisolated struct MobileWorkspaceDescriptor: Codable, Hashable, Identifiable, Sendable {
     var id = UUID()
     var hostID: UUID
     var title: String

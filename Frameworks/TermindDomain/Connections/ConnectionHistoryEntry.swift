@@ -5,7 +5,7 @@ import Foundation
 /// Every attempt is retained as its own event so the History sidebar can show
 /// repeated visits to the same destination.
 public nonisolated struct ConnectionHistoryEntry: Identifiable, Hashable, Sendable {
-    public nonisolated enum Kind: String, CaseIterable, Hashable, Sendable {
+    public nonisolated enum Kind: String, Codable, CaseIterable, Hashable, Sendable {
         case ssh
         case sftp
 
