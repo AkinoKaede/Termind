@@ -58,23 +58,33 @@ final class MobileKeyEditorModel: Identifiable {
             || curveBits != 256 || rsaBits != 3072 || cipher != .aes256 || rounds != 100 || !confirmation.isEmpty
     }
     var canSave: Bool {
-        let nameIsValid = mode == .generate || !label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let encryptionIsValid =
             mode != .generate || storage == .secureEnclave || passphrase.isEmpty
             || (passphrase == confirmation && rounds > 0)
         let privateKeyIsValid =
             mode == .generate || storage == .secureEnclave
             || (!privateKey.isEmpty && (mode != .edit || didLoadPrivateKey))
-        return nameIsValid && encryptionIsValid && privateKeyIsValid && !isLoadingPrivateKey
-            && (storage != .secureEnclave || canUseEnclave)
+        return encryptionIsValid && privateKeyIsValid && !isLoadingPrivateKey
+            && (storage != .secureEnclave || isEnclave || canUseEnclave)
     }
     var defaultName: String {
-        if storage == .secureEnclave { return "Secure Enclave" }
-        return original?.algorithm.typeName ?? inspectedMaterial?.algorithm.typeName ?? algorithm.rawValue
+        let selectedAlgorithm: SSHKeyAlgorithm =
+            switch algorithm {
+            case .ed25519: .ed25519
+            case .ecdsa: .ecdsa256
+            case .rsa: .rsa
+            }
+        if mode == .generate || storage == .secureEnclave {
+            return SSHKeyRef.defaultName(algorithm: selectedAlgorithm, storage: storage)
+        }
+        let algorithm =
+            inspectedMaterial?.privateKey == privateKey
+            ? inspectedMaterial?.algorithm : privateKey == originalPrivateKey ? original?.algorithm : nil
+        guard let algorithm else { return "" }
+        return SSHKeyRef.defaultName(algorithm: algorithm, storage: storage)
     }
     var resolvedLabel: String {
-        label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            ? defaultName : label.trimmingCharacters(in: .whitespacesAndNewlines)
+        SavedName.resolve(label.trimmingCharacters(in: .whitespacesAndNewlines), default: defaultName)
     }
     var certificateWarning: String? {
         guard !certificate.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
@@ -173,7 +183,7 @@ final class MobileKeyEditorModel: Identifiable {
         guard canSave else { throw CocoaError(.coderInvalidValue) }
         if var key = original {
             if key.storage == .secureEnclave {
-                key.label = resolvedLabel
+                key.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
                 key.colorTag = colorTag
                 try credentials.upsert(key)
                 return
@@ -200,9 +210,7 @@ final class MobileKeyEditorModel: Identifiable {
             if !normalizedCertificate.isEmpty {
                 _ = try SSHUserCertificate.parse(normalizedCertificate, matching: material.publicKey)
             }
-            key.label =
-                label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                ? material.algorithm.typeName : resolvedLabel
+            key.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
             key.colorTag = colorTag
             key.storage = storage
             key.algorithm = material.algorithm
@@ -227,7 +235,8 @@ final class MobileKeyEditorModel: Identifiable {
             }.value
             try Task.checkCancellation()
             key = SSHKeyRef(
-                label: resolvedLabel, algorithm: .ecdsa256, publicKey: material.publicKey,
+                label: label.trimmingCharacters(in: .whitespacesAndNewlines), algorithm: .ecdsa256,
+                publicKey: material.publicKey,
                 fingerprint: material.fingerprint, credentialRef: "termind.key.\(UUID())", storage: .secureEnclave,
                 keySize: 256, requiresUserPresence: presence, createdAt: .now, colorTag: colorTag)
             secret = .secureEnclave(material.credential)
@@ -251,8 +260,7 @@ final class MobileKeyEditorModel: Identifiable {
                 _ = try SSHUserCertificate.parse(normalizedCertificate, matching: material.publicKey)
             }
             key = SSHKeyRef(
-                label: label.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    ? material.algorithm.typeName : resolvedLabel,
+                label: label.trimmingCharacters(in: .whitespacesAndNewlines),
                 algorithm: material.algorithm, publicKey: material.publicKey,
                 certificate: normalizedCertificate, fingerprint: material.fingerprint,
                 credentialRef: "termind.key.\(UUID())", storage: storage, keySize: material.keySize,

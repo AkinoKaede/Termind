@@ -829,6 +829,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     @discardableResult
     public func saveHost(_ host: Host) -> Bool {
+        var host = host
+        host.name = SavedName.resolve(host.name, default: host.defaultName)
         guard validatedRoute(for: host) != nil else {
             storageError = String(localized: "The selected jump host creates a routing loop or exceeds 8 hops.")
             return false
@@ -994,6 +996,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// is sorted by name wherever it is shown, so there is no order to keep.
     @discardableResult
     public func upsert(_ identity: Identity) -> Bool {
+        var identity = identity
+        identity.name = SavedName.resolve(identity.name, default: identity.defaultName)
+        let identitySnapshot = identities
+        let hostSnapshot = hosts
         var resetsCredentialAccess = false
         if let index = identities.firstIndex(where: { $0.id == identity.id }) {
             let previous = identities[index]
@@ -1018,6 +1024,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             }
         }
         let saved = persistCore()
+        if !saved {
+            identities = identitySnapshot
+            hosts = hostSnapshot
+        }
         if saved, resetsCredentialAccess { recordedIdentityCredentialAccesses.remove(identity.id) }
         return saved
     }
@@ -1199,6 +1209,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func upsert(_ key: SSHKeyRef, credential: StoredSSHKeyCredential? = nil) throws {
+        var key = key
+        key.label = SavedName.resolve(key.label, default: key.defaultName)
         let previousKey = self.key(key.id)
         let resetsCredentialAccess =
             credential != nil || previousKey.map { Self.keyConnectionFieldsChanged($0, key) } == true
@@ -1462,10 +1474,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     @discardableResult
     public func upsert(_ forwarding: PortForwardingRule) -> Bool {
-        guard let normalized = PortForwardingEditorPolicy.normalized(forwarding), host(forwarding.hostID) != nil else {
+        guard var normalized = PortForwardingEditorPolicy.normalized(forwarding), let host = host(forwarding.hostID)
+        else {
             storageError = String(localized: "The forwarding rule is incomplete.")
             return false
         }
+        normalized.label = SavedName.resolve(
+            normalized.label,
+            default: normalized.defaultName(hostName: SavedName.resolve(host.name, default: host.defaultName)))
         let previous = portForwardings
         if let index = portForwardings.firstIndex(where: { $0.id == normalized.id }) {
             if portForwardings[index] == normalized { return true }

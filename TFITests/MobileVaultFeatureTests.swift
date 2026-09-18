@@ -10,6 +10,66 @@ import Testing
 
 @Suite @MainActor
 struct MobileVaultFeatureTests {
+    @Test func blankKeyNamesUseTheCurrentAlgorithmForGenerationImportAndReplacement() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
+        generator.algorithm = .ecdsa
+        generator.label = " \n"
+        #expect(generator.defaultName == "ECDSA")
+        #expect(generator.canSave)
+        try await generator.save()
+        let generated = try #require(app.credentials.keys.first)
+        #expect(generated.label == "ECDSA")
+
+        let replacement = try SSHKeyMaterial.generate(.ed25519, comment: "fixture", passphrase: nil)
+        let importer = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
+        #expect(!importer.canSave)
+        #expect(importer.defaultName == "")
+        importer.privateKey = replacement.privateKey
+        await importer.derivePublicMaterial()
+        #expect(importer.defaultName == "Ed25519")
+        #expect(importer.canSave)
+        try await importer.save()
+        let imported = try #require(app.credentials.keys.first { $0.id != generated.id })
+        #expect(imported.label == "Ed25519")
+
+        let editor = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: generated)
+        await editor.loadPrivateKey()
+        editor.label = ""
+        editor.privateKey = replacement.privateKey
+        #expect(editor.defaultName == "")
+        await editor.derivePublicMaterial()
+        #expect(editor.defaultName == "Ed25519")
+        #expect(editor.canSave)
+        try await editor.save()
+        let edited = try #require(app.credentials.key(generated.id))
+        #expect(edited.label == "Ed25519")
+        #expect(edited.algorithm == .ed25519)
+        let reopened = MobileKeyEditorModel(mode: .edit, credentials: app.credentials, key: edited)
+        #expect(reopened.label == "Ed25519")
+        await reopened.loadPrivateKey()
+        reopened.privateKey = "invalid replacement"
+        #expect(reopened.defaultName == "")
+        await reopened.derivePublicMaterial()
+        #expect(reopened.defaultName == "")
+        reopened.privateKey = ""
+        #expect(reopened.defaultName == "")
+        #expect(!reopened.canSave)
+    }
+
+    @Test func enclaveMetadataCanSaveABlankNameWithoutGeneratingAKey() async throws {
+        let original = SSHKeyRef(label: "Custom", algorithm: .ecdsa256, storage: .secureEnclave)
+        let library = HostLibraryModel(keys: [original])
+        let credentials = CredentialLibraryModel(library: library)
+        let editor = MobileKeyEditorModel(mode: .edit, credentials: credentials, key: original)
+        editor.label = " \t"
+        #expect(editor.defaultName == "Secure Enclave")
+        #expect(editor.canSave)
+        try await editor.save()
+        #expect(credentials.key(original.id)?.label == "Secure Enclave")
+        #expect(credentials.key(original.id)?.publicKey == original.publicKey)
+    }
+
     @Test func hostProxyEditorAppliesDefaultsPreservesCustomPortsAndValidatesAuthentication() {
         var host = TermindDomain.Host(name: "Remote", host: "example.invalid")
         #expect(MobileHostEditorPolicy.canSave(host))

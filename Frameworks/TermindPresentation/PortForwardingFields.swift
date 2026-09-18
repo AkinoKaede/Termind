@@ -1,13 +1,28 @@
 import SwiftUI
 import TermindDomain
 
+import struct TermindDomain.Host
+
 public struct PortForwardingFields: View {
     @Binding private var rule: PortForwardingRule
-    public init(rule: Binding<PortForwardingRule>) { _rule = rule }
+    private let host: Host?
+
+    public init(rule: Binding<PortForwardingRule>, host: Host?) {
+        _rule = rule
+        self.host = host
+    }
+
+    private var namePrompt: Text {
+        guard let host else { return Text(verbatim: "") }
+        let name = SavedName.resolve(host.name, default: host.defaultName)
+        guard !name.isEmpty else { return Text(verbatim: "") }
+        return Text(verbatim: rule.defaultName(hostName: name))
+    }
 
     public var body: some View {
         Section("Port Forwarding") {
-            TextField("Name", text: $rule.label.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+            TextField("Name", text: $rule.label.singleLineText, prompt: namePrompt, axis: .horizontal)
+                .singleLinePaste().lineLimit(1)
                 .textFieldStyle(
                     .automatic
                 ).multilineTextAlignment(.leading)

@@ -57,6 +57,20 @@ before native controls flatten individual line breaks. Multiline content and sec
 are excluded. Existing validation is unchanged. No persistence migration or bulk
 cleanup is performed.
 
+Optional display names share Domain defaults across form hints and Application
+save boundaries. Blank or whitespace-only names become concrete Host addresses,
+Identity usernames, key algorithm names (`Secure Enclave` for enclave keys),
+Host-plus-SSH-argument forwarding names, protocol provider names, or model IDs.
+Name hints stay empty when the required source is unavailable: forwarding waits for
+a selected Host, and key imports/replacements wait for the current key's algorithm.
+Nonempty names, including previously generated ones, remain ordinary stored values;
+only explicitly clearing a name requests a fresh default. Key generation, import,
+and editing all permit blank names on both platforms. Desktop autosave keeps a
+page-owned name buffer so saving a default never interrupts text entry. Reopening
+reads the saved value. Legacy blank records and incoming replicas are not backfilled
+on load; their next local record save materializes the name in the existing transaction.
+No schema or synchronization payload change is required.
+
 - Repository snapshots and preference models are application-wide. A window owns
   its shell, quick-open, search, navigation, and context-panel state.
 - Desktop main scenes each own a distinct `WindowModel`. The process-owned main
@@ -201,8 +215,10 @@ Cancellation interrupts opening, and temporary-file cleanup must also
 remain silent. Cleanup requiring new interaction retains the existing failure report.
 Port Forwarding is an independent Vault card library between Keychain and Snippets
 on both platforms. Its cards share Hosts' two-row height and show the same name,
-address, type, Host and runtime state. An unnamed rule uses the Host name and SSH
-argument, such as `AWS (-L)`, including its detail title. Desktop Journey lives in
+address, type, Host and runtime state. A blank forwarding Name previews and saves
+the Host name and SSH argument, such as `AWS (-L)`; legacy blank records retain that
+display fallback until saved. Renaming the Host does not rewrite a saved rule name.
+Desktop Journey lives in
 the same Vault detail column and follows its sizing and opening/closing animation.
 Its embedded presentation uses 16-point horizontal margins, an icon-only log
 button, and vertical scrolling for short windows. Switching between the editor

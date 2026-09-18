@@ -3,21 +3,11 @@ import TermindDomain
 
 extension PortForwardingRule {
     public nonisolated func displayName(hostName: String?) -> String {
-        let name = label.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard name.isEmpty else { return name }
-        return "\(hostName ?? String(localized: "Host Unavailable")) (\(kind.sshArgument))"
+        SavedName.resolve(label, default: defaultName(hostName: hostName ?? String(localized: "Host Unavailable")))
     }
 }
 
 extension PortForwardingRule.Kind {
-    public nonisolated var sshArgument: String {
-        switch self {
-        case .local: "-L"
-        case .remote: "-R"
-        case .dynamic: "-D"
-        }
-    }
-
     public nonisolated var shortDisplayName: String {
         switch self {
         case .local: String(localized: "Local")

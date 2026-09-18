@@ -108,8 +108,7 @@ struct MobileForwardingView: View {
         copy.id = UUID()
         if !copy.label.isEmpty { copy.label += String(localized: " Copy") }
         do {
-            try app.forwardingLibrary.save(copy)
-            editing = copy
+            editing = try app.forwardingLibrary.save(copy)
         } catch { self.error = error.localizedDescription }
     }
 }

@@ -48,6 +48,31 @@ struct MobileProviderDefaultsTests {
         #expect(explicit.endpoint.url == ModelAPIType.messages.defaultURL)
     }
 
+    @Test func modelNamesAreMaterializedAfterMergingTheProviderDraft() throws {
+        let model = AIModel(id: "private-model", displayName: "Original")
+        let provider = ModelProvider(name: "Gateway", models: [model])
+        let ai = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
+        let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+        editor.draft.models[0].displayName = " \n"
+        var remote = model
+        remote.contextLength = 1234
+        ai.updateModel(remote, in: provider.id)
+        try editor.save()
+        let saved = try #require(ai.modelProvider(provider.id))
+        #expect(saved.models[0].displayName == model.id)
+        #expect(saved.models[0].contextLength == 1234)
+        let reopened = MobileProviderEditorModel(ai: ai, provider: saved)
+        #expect(reopened.draft.models[0].displayName == model.id)
+        #expect(!reopened.isDirty)
+        let conflict = MobileProviderEditorModel(ai: ai, provider: saved)
+        conflict.draft.models[0].displayName = ""
+        remote = saved.models[0]
+        remote.displayName = "Remote Name"
+        ai.updateModel(remote, in: provider.id)
+        #expect(throws: SettingsDraftMerge.Conflict.self) { try conflict.save() }
+        #expect(ai.modelProvider(provider.id)?.models[0].displayName == "Remote Name")
+    }
+
     @Test func vertexPreviewSelectsItsOwnCredentialAndCanSaveAfterClearingIt() throws {
         let ai = AIConfigurationModel(persistsSecrets: false)
         let provider = ModelProvider(name: "Google", credentialRef: "key")

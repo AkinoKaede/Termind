@@ -1,7 +1,28 @@
 import AgentKit
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
+
+@Observable
+final class ModelNameEditorSession {
+    private(set) var modelID: String?
+    private(set) var name = ""
+
+    func begin(with model: AIModel?) {
+        guard modelID != model?.id else { return }
+        modelID = model?.id
+        name = model?.displayName ?? ""
+    }
+
+    func save(_ name: String, model: AIModel, providerID: ModelProvider.ID, in store: AIConfigurationModel) {
+        guard var current = store.modelProvider(providerID)?.model(model.id) else { return }
+        begin(with: current)
+        self.name = name
+        current.displayName = name
+        store.updateModel(current, in: providerID)
+    }
+}
 
 /// A provider's full-width models page: a checkable list and details for the
 /// selected row.
@@ -39,6 +60,7 @@ struct ModelListEditor: View {
     @Environment(AppModel.self) private var app
 
     @State private var state = EditorState()
+    @State private var nameSession = ModelNameEditorSession()
 
     private var provider: ModelProvider? { app.aiConfiguration.modelProvider(modelProviderID) }
 
@@ -66,6 +88,11 @@ struct ModelListEditor: View {
             }
         }
         .background(TermindColor.windowSurface)
+        .onChange(of: state.selection, initial: true) { nameSession.begin(with: selected) }
+        .onChange(of: modelProviderID) {
+            nameSession.begin(with: nil)
+            nameSession.begin(with: selected)
+        }
     }
 
     // MARK: - Toolbar
@@ -335,7 +362,13 @@ struct ModelListEditor: View {
                     }
 
                     TextField(
-                        "Name", text: field(model, \.displayName).singleLineText, prompt: Text(model.id),
+                        "Name",
+                        text: Binding(
+                            get: { nameSession.modelID == model.id ? nameSession.name : model.displayName },
+                            set: {
+                                nameSession.save($0, model: model, providerID: modelProviderID, in: app.aiConfiguration)
+                            }
+                        ).singleLineText, prompt: Text(verbatim: model.id),
                         axis: .horizontal
                     ).singleLinePaste().lineLimit(1)
                         .textFieldStyle(.roundedBorder)
@@ -559,19 +592,6 @@ struct ModelListEditor: View {
                 .labelsHidden()
                 .textFieldStyle(.roundedBorder)
         }
-    }
-
-    private func field(
-        _ model: AIModel, _ keyPath: WritableKeyPath<AIModel, String>
-    ) -> Binding<String> {
-        Binding(
-            get: { app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id)?[keyPath: keyPath] ?? "" },
-            set: { newValue in
-                guard var updated = app.aiConfiguration.modelProvider(modelProviderID)?.model(model.id) else { return }
-                updated[keyPath: keyPath] = newValue
-                app.aiConfiguration.updateModel(updated, in: modelProviderID)
-            }
-        )
     }
 
     private func field<Value>(

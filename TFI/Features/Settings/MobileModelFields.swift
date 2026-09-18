@@ -10,7 +10,9 @@ struct MobileModelFields: View {
     var body: some View {
         Section {
             LabeledContent("Name") {
-                TextField("Name", text: $model.displayName.singleLineText, axis: .horizontal).singleLinePaste()
+                TextField(
+                    "Name", text: $model.displayName.singleLineText, prompt: Text(verbatim: model.id), axis: .horizontal
+                ).singleLinePaste()
                     .lineLimit(1)
                     .multilineTextAlignment(.trailing)
             }

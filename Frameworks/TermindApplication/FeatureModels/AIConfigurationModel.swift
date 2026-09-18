@@ -439,6 +439,10 @@ public final class AIConfigurationModel {
     // MARK: - Model provider writes
 
     public func upsert(_ provider: ModelProvider) {
+        var provider = provider
+        let apiType = endpoints[provider.id]?.apiType ?? ModelAPIType(provider.apiFormat)
+        provider.name = SavedName.resolve(provider.name, default: apiType.defaultProviderName)
+        provider.models = provider.models.map(\.savingName)
         mutatePersistedState {
             if let index = modelProviders.firstIndex(where: { $0.id == provider.id }) {
                 modelProviders[index] = provider
@@ -520,7 +524,7 @@ public final class AIConfigurationModel {
     /// Hand-added models are kept and merged rather than wiped: someone who
     /// typed a model the endpoint does not advertise — a private deployment, a
     /// preview id — should not lose it. A fetched row wins on conflict, since
-    /// the server is better informed than a guess.
+    /// the server is better informed than a guess. Saved names remain user-owned.
     ///
     /// Not what the Fetch button calls. A fetch offers a list and the user picks
     /// from it (see `ModelListEditor`), so the additions arrive one at a time
@@ -535,15 +539,16 @@ public final class AIConfigurationModel {
             let fetchedIDs = Set(fetched.map(\.id))
             let merged = fetched.map { fresh in
                 var fresh = fresh
+                fresh.displayName = SavedName.resolve(previous[fresh.id]?.displayName ?? "", default: fresh.displayName)
                 fresh.reasoningProfile = previous[fresh.id]?.reasoningProfile
                 fresh.isShownInAssistant =
                     previous[fresh.id]?.isShownInAssistant ?? fresh.isShownInAssistant
-                return fresh
+                return fresh.savingName
             }
             let kept = modelProviders[index].models.filter {
                 $0.origin == .manual && !fetchedIDs.contains($0.id)
             }
-            modelProviders[index].models = merged + kept
+            modelProviders[index].models = merged + kept.map(\.savingName)
             modelProviders[index].modelsFetchedAt = Date()
         }
     }
@@ -564,7 +569,7 @@ public final class AIConfigurationModel {
         mutatePersistedState {
             guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
             guard !modelProviders[index].models.contains(where: { $0.id == model.id }) else { return }
-            modelProviders[index].models.append(model)
+            modelProviders[index].models.append(model.savingName)
         }
     }
 
@@ -572,7 +577,7 @@ public final class AIConfigurationModel {
         mutatePersistedState {
             guard let index = modelProviders.firstIndex(where: { $0.id == id }) else { return }
             guard let slot = modelProviders[index].models.firstIndex(where: { $0.id == model.id }) else { return }
-            modelProviders[index].models[slot] = model
+            modelProviders[index].models[slot] = model.savingName
         }
     }
 

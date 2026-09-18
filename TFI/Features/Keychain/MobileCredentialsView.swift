@@ -297,7 +297,6 @@ private struct MobileIdentityEditor: View {
             save: {
                 draft.username = draft.username.trimmingCharacters(in: .whitespacesAndNewlines)
                 draft.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                if draft.name.isEmpty { draft.name = draft.username }
                 try app.library.upsert(
                     draft, passwordUpdate: removePassword ? .remove : password.isEmpty ? .keep : .replace(password))
             },
@@ -305,7 +304,8 @@ private struct MobileIdentityEditor: View {
                 Section("Identity") {
                     LabeledContent("Name") {
                         TextField(
-                            "Name", text: $draft.name.singleLineText, prompt: Text(draft.username), axis: .horizontal
+                            "Name", text: $draft.name.singleLineText, prompt: Text(verbatim: draft.defaultName),
+                            axis: .horizontal
                         ).singleLinePaste().lineLimit(1)
                             .multilineTextAlignment(.trailing)
                     }

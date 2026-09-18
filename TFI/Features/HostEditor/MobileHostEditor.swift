@@ -22,7 +22,6 @@ struct MobileHostEditor: View {
             title: String(localized: "Host"), isDirty: draft != original,
             canSave: MobileHostEditorPolicy.canSave(draft),
             save: {
-                if draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { draft.name = draft.host }
                 library.upsert(draft)
                 if let error = library.storageError { throw MobileEditorError.message(error) }
             },

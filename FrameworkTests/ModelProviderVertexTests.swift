@@ -15,7 +15,8 @@ struct ModelProviderVertexTests {
             name: "Google", apiFormat: .generateContent, credentialRef: "api-key", usesVertex: true,
             vertex: VertexConfig(
                 projectID: "test-project", location: "us-central1", credentialRef: "service-account",
-                clientEmail: "fixture@example.invalid"), models: [AIModel(id: "gemini-test")])
+                clientEmail: "fixture@example.invalid"),
+            models: [AIModel(id: "gemini-test", displayName: "Gemini Test")])
     }
 
     @Test func vertexPersistsAlongsideTheFrozenProviderRowAndDeletesWithIt() throws {

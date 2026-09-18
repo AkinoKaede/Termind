@@ -3,12 +3,35 @@ import AppKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 
 @testable import Termind
 
 @Suite(.serialized) @MainActor
 struct ModelProviderRenderingTests {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func blankNameFormsPreviewTheSavedDefaults(_ language: String) async throws {
+        let host = TermindDomain.Host(name: "AWS", host: "example.invalid")
+        let enclave = SSHKeyRef(label: "", algorithm: .ecdsa256, storage: .secureEnclave)
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host], keys: [enclave]))
+        defer { app.shutdownForTermination() }
+        try await capture(
+            Form {
+                HostConnectionFields(host: .constant(.init(name: "", host: "example.invalid")))
+                PortForwardingFields(rule: .constant(.init(hostID: host.id)), host: host)
+            }.formStyle(.grouped), language: language, name: "name-hints")
+        try await capture(
+            NewIdentitySheet(identity: Identity(name: "", username: "deploy")) { _, _ in }.environment(app),
+            language: language, name: "identity-name-hint")
+        try await capture(
+            KeychainGenerateDetail().environment(app).environment(WindowModel()),
+            language: language, name: "key-name-hint")
+        try await capture(
+            KeychainEditDetail(keyID: enclave.id).environment(app).environment(WindowModel()),
+            language: language, name: "enclave-name-hint")
+    }
+
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func anonymousProviderSettingsAndModelsRender(_ language: String) async throws {
         let provider = ModelProvider(
@@ -62,6 +85,31 @@ struct ModelProviderRenderingTests {
         #expect(reopened.name == "OpenAI")
         #expect(reopened.endpoint.url == ModelAPIType.automatic.defaultURL)
         #expect(!SettingsDraftPolicy.shouldDiscard(saved))
+    }
+
+    @Test func modelAutosaveKeepsTheEmptyInputAndReopeningShowsTheSavedName() throws {
+        let first = AIModel(id: "first", displayName: "Custom")
+        let second = AIModel(id: "second", displayName: "Catalog Name")
+        let provider = ModelProvider(name: "Gateway", models: [first, second])
+        let ai = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
+        let session = ModelNameEditorSession()
+        session.begin(with: first)
+        session.save("", model: first, providerID: provider.id, in: ai)
+        #expect(session.name == "")
+        #expect(ai.modelProvider(provider.id)?.model(first.id)?.displayName == first.id)
+        session.begin(with: ai.modelProvider(provider.id)?.model(first.id))
+        #expect(session.name == "")
+        session.save("Renamed", model: first, providerID: provider.id, in: ai)
+        #expect(ai.modelProvider(provider.id)?.model(first.id)?.displayName == "Renamed")
+        session.save(" \t", model: first, providerID: provider.id, in: ai)
+        #expect(session.name == " \t")
+        session.begin(with: second)
+        #expect(session.name == "Catalog Name")
+        session.begin(with: ai.modelProvider(provider.id)?.model(first.id))
+        #expect(session.name == first.id)
+        let reopened = ModelNameEditorSession()
+        reopened.begin(with: ai.modelProvider(provider.id)?.model(first.id))
+        #expect(reopened.name == first.id)
     }
 
     private func capture(_ view: some View, language: String, name: String) async throws {

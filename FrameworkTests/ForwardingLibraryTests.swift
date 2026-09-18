@@ -50,7 +50,9 @@ struct ForwardingLibraryTests {
         #expect(throws: (any Error).self) { try model.save(new) }
         #expect(model.rules == [rule])
         persistence.fails = false
-        try model.save(changed)
+        let saved = try model.save(changed)
+        #expect(saved.label == "Other (-L)")
+        changed.label = saved.label
         #expect(model.rules == [changed])
     }
 

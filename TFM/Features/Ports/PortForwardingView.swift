@@ -148,8 +148,7 @@ struct PortForwardingPageView: ManagedCardPage {
         copy.id = UUID()
         if !copy.label.isEmpty { copy.label += String(localized: " Copy") }
         do {
-            try app.forwardings.save(copy)
-            open(copy)
+            open(try app.forwardings.save(copy))
         } catch { state.error = error.localizedDescription }
     }
 }
@@ -220,7 +219,8 @@ struct PortForwardingDetailView: View {
                         }
                         PortForwardingHostPicker(rule: $draft, hosts: app.forwardings.hosts)
                             .disabled(runtime.isActive)
-                        PortForwardingFields(rule: $draft).disabled(runtime.isActive)
+                        PortForwardingFields(rule: $draft, host: app.hostLibrary.host(draft.hostID))
+                            .disabled(runtime.isActive)
                         if let error { Text(error).foregroundStyle(.red) }
                         if ruleID != nil && saved == nil {
                             Text("The forwarding rule is unavailable.").foregroundStyle(.secondary)
@@ -279,10 +279,10 @@ struct PortForwardingDetailView: View {
     private func save() {
         guard canSave, let normalized else { return }
         do {
-            try app.forwardings.save(normalized)
+            let saved = try app.forwardings.save(normalized)
             window.selectVaultItem(.forwarding(normalized.id), on: .portForwarding)
             window.openVaultWork(.forwardingEditor(normalized.id), on: .portForwarding)
-            draft = normalized
+            draft = saved
             error = nil
         } catch { self.error = error.localizedDescription }
     }

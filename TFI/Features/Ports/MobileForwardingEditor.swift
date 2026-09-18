@@ -28,12 +28,13 @@ struct MobileForwardingEditor: View {
             isDirty: draft != original, canSave: canSave,
             save: {
                 guard canSave, let rule = PortForwardingEditorPolicy.normalized(draft) else { return }
-                try app.forwardingLibrary.save(rule)
+                draft = try app.forwardingLibrary.save(rule)
             },
             content: {
                 PortForwardingHostPicker(rule: $draft, hosts: app.forwardingLibrary.hosts)
                     .disabled(app.forwardings.state(for: draft.id).isActive)
-                PortForwardingFields(rule: $draft).disabled(app.forwardings.state(for: draft.id).isActive)
+                PortForwardingFields(rule: $draft, host: app.library.host(draft.hostID))
+                    .disabled(app.forwardings.state(for: draft.id).isActive)
             })
     }
 }

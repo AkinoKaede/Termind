@@ -89,9 +89,12 @@ struct PortForwardingRenderingTests {
                     Notification(name: NSControl.textDidChangeNotification, object: field))
             }
             let scroll = try #require(field.enclosingScrollView)
-            #expect(scroll.documentView!.frame.height > scroll.contentView.bounds.height)
-            scroll.contentView.scroll(to: CGPoint(x: 0, y: scroll.documentView!.frame.height))
+            let document = try #require(scroll.documentView)
+            #expect(document.frame.height > scroll.contentView.bounds.height)
+            scroll.contentView.scroll(
+                to: CGPoint(x: 0, y: max(0, document.frame.height - scroll.contentView.bounds.height)))
             scroll.reflectScrolledClipView(scroll.contentView)
+            try await Task.sleep(for: .milliseconds(30))
             try capture(controller.view, name: "macos-forwarding-journey-\(language)-\(Int(width))")
         }
         navigation.closeVaultWork()
@@ -189,6 +192,8 @@ struct PortForwardingRenderingTests {
                 #expect(abs(controller.view.bounds.width - width) <= 1)
                 let scroll = try #require(descendants(in: controller.view).compactMap { $0 as? NSScrollView }.first)
                 #expect(abs(scroll.bounds.width - width) <= 1)
+                scroll.contentView.scroll(to: .zero)
+                scroll.reflectScrolledClipView(scroll.contentView)
                 if state == "keyboard" {
                     let currentFields = descendants(in: controller.view).compactMap { $0 as? NSTextField }.filter(
                         \.isEditable)
@@ -202,13 +207,64 @@ struct PortForwardingRenderingTests {
                 }
                 try capture(controller.view, name: "macos-forwarding-\(state)-\(language)-\(Int(width))-top")
                 if let document = scroll.documentView {
-                    scroll.contentView.scroll(to: CGPoint(x: 0, y: document.frame.height))
+                    scroll.contentView.scroll(
+                        to: CGPoint(x: 0, y: max(0, document.frame.height - scroll.contentView.bounds.height)))
                     scroll.reflectScrolledClipView(scroll.contentView)
+                    try await Task.sleep(for: .milliseconds(30))
                     try capture(controller.view, name: "macos-forwarding-\(state)-\(language)-\(Int(width))-bottom")
                 }
                 #expect(actions == 0)
             }
         }
+    }
+
+    @Test(arguments: [false, true])
+    func closingJourneyRetainsItsExitViewButDisablesAuthentication(_ reduceMotion: Bool) async throws {
+        let host = Host(name: "Server", host: "server.example.invalid")
+        let rule = PortForwardingRule(hostID: host.id)
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host], portForwardings: [rule]))
+        let navigation = WindowModel()
+        navigation.openPage(.portForwarding)
+        let controller = NSHostingController(
+            rootView: VaultWorkspaceView().environment(app).environment(navigation)
+                .environment(\.accessibilityReduceMotion, reduceMotion))
+        let window = NSWindow(
+            contentRect: CGRect(x: 0, y: 0, width: 900, height: 600),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        controller.sizingOptions = []
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        defer {
+            app.shutdownForTermination()
+            window.orderOut(nil)
+            window.contentViewController = nil
+            window.close()
+        }
+        app.forwarding.start(rule.id)
+        for _ in 0..<400 where app.forwarding.connection(for: rule.id)?.authenticationPrompt == nil {
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        let context = try #require(app.forwarding.connection(for: rule.id))
+        let prompt = try #require(context.authenticationPrompt)
+        navigation.openVaultWork(.forwardingEditor(rule.id), on: .portForwarding)
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(descendants(in: controller.view).contains { $0 is NSSecureTextField })
+        navigation.closeVaultWork()
+        try await Task.sleep(for: .milliseconds(40))
+        controller.view.layoutSubtreeIfNeeded()
+        let exitingFields = descendants(in: controller.view).compactMap { $0 as? NSSecureTextField }
+        if reduceMotion {
+            #expect(exitingFields.isEmpty)
+        } else {
+            #expect(!exitingFields.isEmpty)
+            #expect(exitingFields.allSatisfy { !$0.isEnabled })
+        }
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(!descendants(in: controller.view).contains { $0 is NSSecureTextField })
+        #expect(context.authenticationPrompt?.id == prompt.id)
+        #expect(app.forwarding.connection(for: rule.id) === context)
+        #expect(app.forwarding.state(for: rule.id) == .awaitingAuthentication)
     }
 
     private func descendants(in view: NSView) -> [NSView] {

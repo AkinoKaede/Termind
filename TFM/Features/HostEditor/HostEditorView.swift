@@ -436,9 +436,6 @@ struct HostEditorView: View {
     /// No tag bookkeeping here: `TagField` writes chips straight into
     /// `draft.tags`, so there is never a half-typed word left to flush.
     private func save() {
-        if draft.name.trimmingCharacters(in: .whitespaces).isEmpty {
-            draft.name = draft.host
-        }
         let initialPath = draft.sftpSessionInitialPath.trimmingCharacters(in: .whitespacesAndNewlines)
         draft.sftpSessionInitialPath = initialPath.isEmpty ? "" : RemotePath.normalized(initialPath)
         if app.hostLibrary.saveHost(draft) {

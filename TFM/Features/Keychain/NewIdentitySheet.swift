@@ -110,7 +110,10 @@ struct NewIdentitySheet: View {
         Form {
             Section {
                 if configuration.showsName {
-                    TextField("Name", text: $name.singleLineText, prompt: Text(username), axis: .horizontal).lineLimit(
+                    TextField(
+                        "Name", text: $name.singleLineText,
+                        prompt: Text(verbatim: Identity.defaultName(username: username)), axis: .horizontal
+                    ).lineLimit(
                         1)
                 }
                 TextField("Username", text: $username.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
@@ -258,10 +261,10 @@ struct NewIdentitySheet: View {
     /// Keychain reference. `HostLibraryModel` owns that transaction so clearing an
     /// existing password cannot strand its old Keychain item.
     private func add() {
-        let trimmedName = name.trimmingCharacters(in: .whitespaces)
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let identity = Identity(
             id: existing?.id ?? UUID(),
-            name: trimmedName.isEmpty ? trimmedUsername : trimmedName,
+            name: trimmedName,
             username: trimmedUsername,
             credentialRef: existing?.credentialRef ?? "",
             passwordStorage: passwordStorage,

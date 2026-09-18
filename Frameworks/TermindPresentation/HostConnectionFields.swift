@@ -12,10 +12,12 @@ public struct HostConnectionFields: View {
     public var body: some View {
         Section("Connection") {
             LabeledContent("Name") {
-                TextField("Name", text: $host.name.singleLineText, prompt: Text(host.host), axis: .horizontal)
-                    .singleLinePaste()
-                    .lineLimit(1).labelsHidden().multilineTextAlignment(
-                        .trailing)
+                TextField(
+                    "Name", text: $host.name.singleLineText, prompt: Text(verbatim: host.defaultName), axis: .horizontal
+                )
+                .singleLinePaste()
+                .lineLimit(1).labelsHidden().multilineTextAlignment(
+                    .trailing)
             }
             LabeledContent("Host") {
                 TextField(

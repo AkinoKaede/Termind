@@ -38,7 +38,8 @@ public nonisolated enum ModelProviderForm {
         var provider = provider
         let endpoint = endpoint.withDefaultURL
         provider.name = provider.name.trimmingCharacters(in: .whitespacesAndNewlines)
-        if provider.name.isEmpty { provider.name = endpoint.apiType.defaultProviderName }
+        provider.name = SavedName.resolve(provider.name, default: endpoint.apiType.defaultProviderName)
+        provider.models = provider.models.map(\.savingName)
         provider.inferenceURL = endpoint.requestURL
         provider.baseURL = endpoint.baseURL
         provider.apiFormat = endpoint.format

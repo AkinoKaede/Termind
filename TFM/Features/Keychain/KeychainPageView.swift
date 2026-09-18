@@ -333,7 +333,7 @@ struct KeychainImportDetail: View {
         passphrase: String?, certificate: String, material: SSHKeyMaterial
     ) async throws -> SSHKeyRef {
         let key = SSHKeyRef(
-            label: name.isEmpty ? material.algorithm.typeName : name,
+            label: name,
             algorithm: material.algorithm, publicKey: material.publicKey,
             certificate: certificate, fingerprint: material.fingerprint,
             credentialRef: "termind.key.\(UUID().uuidString)", storage: storage,
@@ -422,7 +422,10 @@ private struct SoftwareKeyEditor: View {
                     }
 
                     Section("Key") {
-                        TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                        TextField(
+                            "Name", text: $name.singleLineText, prompt: Text(verbatim: defaultName), axis: .horizontal
+                        )
+                        .singleLinePaste().lineLimit(1)
                         Picker("Store in", selection: $storage) {
                             Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
                             Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
@@ -608,6 +611,14 @@ private struct SoftwareKeyEditor: View {
     }
 
     private var validationToken: String { privateKey + "\u{0}" + passphrase }
+
+    private var defaultName: String {
+        let algorithm =
+            material?.privateKey == privateKey
+            ? material?.algorithm : privateKey == originalPrivateKey ? existing?.algorithm : nil
+        guard let algorithm else { return "" }
+        return SSHKeyRef.defaultName(algorithm: algorithm, storage: storage)
+    }
 
     private var dropPresentation: DropTargetPresentation {
         DropTargetPresentation(
@@ -920,7 +931,7 @@ private struct GenerateKeySheet: View {
         errorMessage = nil
         do {
             _ = try await generate(
-                resolvedLabel, colorTag, generation,
+                label.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, generation,
                 storage == .secureEnclave || passphrase.isEmpty ? nil : passphrase,
                 cipher, rounds, storage,
                 storage == .secureEnclave && requiresUserPresence
@@ -932,13 +943,14 @@ private struct GenerateKeySheet: View {
         }
     }
 
-    private var resolvedLabel: String {
-        let trimmed = label.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? defaultName : trimmed
-    }
-
     private var defaultName: String {
-        storage == .secureEnclave ? "Secure Enclave" : kind.rawValue
+        let algorithm: SSHKeyAlgorithm =
+            switch kind {
+            case .ed25519: .ed25519
+            case .ecdsa: .ecdsa256
+            case .rsa: .rsa
+            }
+        return SSHKeyRef.defaultName(algorithm: algorithm, storage: storage)
     }
 }
 
@@ -993,7 +1005,7 @@ struct KeychainEditDetail: View {
         material: SSHKeyMaterial
     ) async throws -> SSHKeyRef {
         var updated = original
-        updated.label = name.isEmpty ? material.algorithm.typeName : name
+        updated.label = name
         updated.colorTag = colorTag
         updated.storage = storage
         updated.algorithm = material.algorithm
@@ -1048,7 +1060,10 @@ private struct SecureEnclaveKeyEditor: View {
         VaultDetailScaffold(title: "Edit Key", symbol: "pencil", close: close) {
             Form {
                 Section("Key") {
-                    TextField("Name", text: $name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                    TextField(
+                        "Name", text: $name.singleLineText, prompt: Text(verbatim: key.defaultName), axis: .horizontal
+                    )
+                    .singleLinePaste().lineLimit(1)
                     LabeledContent("Color") {
                         ColorTagPicker(selection: $colorTag, layout: .compact)
                     }
@@ -1083,7 +1098,6 @@ private struct SecureEnclaveKeyEditor: View {
                     } catch { errorMessage = error.localizedDescription }
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
             .padding()
         }

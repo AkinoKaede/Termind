@@ -15,10 +15,12 @@ public final class ForwardingLibraryModel {
     public var hosts: [Host] { library.hosts }
     public var rules: [PortForwardingRule] { library.portForwardings }
 
-    public func save(_ rule: PortForwardingRule) throws {
-        guard library.upsert(rule) else {
+    @discardableResult
+    public func save(_ rule: PortForwardingRule) throws -> PortForwardingRule {
+        guard library.upsert(rule), let saved = library.portForwarding(rule.id) else {
             throw TermindSSHError.library(library.storageError ?? String(localized: "Unable to Save"))
         }
+        return saved
     }
 
     public func delete(_ id: UUID) throws { try delete([id]) }
