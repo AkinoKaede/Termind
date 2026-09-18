@@ -305,6 +305,7 @@ public final class SFTPEditService {
     ) -> Destination? {
         if let configuration { return Destination(configuration) }
         if case .saved(let saved) = connection { return Destination(saved) }
+        if case .session(let session) = connection { return Destination(session.configuration) }
         return nil
     }
 

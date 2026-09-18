@@ -150,6 +150,7 @@ final class SFTPSessionModel: Identifiable {
     private(set) var canCancelOperation = false
 
     private var client: (any SFTPClientProtocol)?
+    private var transferSession: SFTPTransferSession?
     private var configuration: SSHConnectionConfiguration?
     private var usesEphemeralCredentials = false
     private var connectionTask: Task<Void, Never>?
@@ -177,6 +178,7 @@ final class SFTPSessionModel: Identifiable {
         initialPath: String = "",
         client: (any SFTPClientProtocol)? = nil,
         configuration: SSHConnectionConfiguration? = nil,
+        wasOpenedSilently: Bool = false,
         homeResolution: RemoteHomeResolutionState = .pending,
         automaticRefreshInterval: Duration = .seconds(15)
     ) {
@@ -189,6 +191,10 @@ final class SFTPSessionModel: Identifiable {
         self.client = client
         startsOnMount = client == nil
         self.configuration = configuration
+        if let client, let configuration {
+            transferSession = SFTPTransferSession(
+                configuration: configuration, client: client, wasOpenedSilently: wasOpenedSilently)
+        }
         self.homeResolution = homeResolution
         self.automaticRefreshInterval = automaticRefreshInterval
         if client != nil { status = .connected }
@@ -262,10 +268,7 @@ final class SFTPSessionModel: Identifiable {
     }
 
     private var transferConnection: SFTPTransferConnection? {
-        if usesEphemeralCredentials, let client {
-            return .borrowed(id: id, client: client)
-        }
-        return configuration.map(SFTPTransferConnection.saved)
+        transferSession.map(SFTPTransferConnection.session)
     }
 
     func prepareForReopen() {
@@ -412,8 +415,9 @@ final class SFTPSessionModel: Identifiable {
                 }
                 self.connectionJourney.receive(.connected(host.id))
                 self.client = client
-                self.transferCoordinator?.replaceBorrowedConnection(self.id, with: client)
-                self.configuration = self.usesEphemeralCredentials ? nil : configuration
+                let transferConfiguration = store.configurationForAdditionalConnection(from: configuration)
+                self.transferSession = SFTPTransferSession(configuration: transferConfiguration, client: client)
+                self.configuration = transferConfiguration
                 self.suppliedAuthentications.removeAll()
                 self.temporaryHostKeys.removeAll()
                 self.pendingAuthentication = nil
@@ -500,16 +504,16 @@ final class SFTPSessionModel: Identifiable {
         uploadRefreshTask?.cancel()
         uploadRefreshTask = nil
         let client = client
-        let transferCoordinator = transferCoordinator
+        let transferSession = transferSession
+        self.transferSession = nil
         self.client = nil
         configuration = nil
         usesEphemeralCredentials = false
         status = .disconnected
         homeResolution = .unavailable
         replaceDirectoryContents(with: [])
-        Task { [id] in
-            await transferCoordinator?.cancelTransfers(usingBorrowedConnection: id)
-            await client?.disconnect()
+        Task {
+            if let transferSession { await transferSession.releaseOwner() } else { await client?.disconnect() }
         }
     }
 
@@ -526,13 +530,17 @@ final class SFTPSessionModel: Identifiable {
         automaticRefreshTask?.cancel()
         automaticRefreshTask = nil
         let client = client
+        let transferSession = transferSession
+        self.transferSession = nil
         self.client = nil
         configuration = nil
         status = .failed(reconnectState.lastError)
         homeResolution = .unavailable
         hint = reconnectState.lastError
         connectionJourney.fail(reconnectState.lastError)
-        Task { await client?.disconnect() }
+        Task {
+            if let transferSession { await transferSession.retire() } else { await client?.disconnect() }
+        }
     }
 
     func resolveInitialPathIfNeeded(using client: any SFTPClientProtocol) async throws {
@@ -1096,6 +1104,8 @@ final class SFTPSessionModel: Identifiable {
         uploadRefreshTask?.cancel()
         uploadRefreshTask = nil
         let client = client
+        let transferSession = transferSession
+        self.transferSession = nil
         self.client = nil
         configuration = nil
         status = .reconnecting
@@ -1109,7 +1119,9 @@ final class SFTPSessionModel: Identifiable {
             guard let self, let store else { return }
             self.startConnection(using: store)
         }
-        Task { await client?.disconnect() }
+        Task {
+            if let transferSession { await transferSession.retire() } else { await client?.disconnect() }
+        }
     }
 
     private func deleteRecursively(

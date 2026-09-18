@@ -741,6 +741,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         timeout: TimeInterval,
         progress: SSHRouteProgressHandler? = nil
     ) async throws -> SSHOpenedSession {
+        let request = request.enforcingInteractionPolicy()
         let configuration = request.configuration
         let transport = try await SSHRoutedSocket.open(
             host: configuration.host, port: configuration.port,

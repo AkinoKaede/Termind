@@ -20,16 +20,83 @@ import threading
 import paramiko
 
 
+class MemoryFile(paramiko.SFTPHandle):
+    def __init__(self, data):
+        super().__init__()
+        self.data = data
+
+    def read(self, offset, length):
+        return bytes(self.data[offset:offset + length])
+
+    def write(self, offset, data):
+        self.data[offset:offset + len(data)] = data
+        return paramiko.SFTP_OK
+
+    def stat(self):
+        return Files.attributes(self.data)
+
+
 class Files(paramiko.SFTPServerInterface):
+    # Per-connection test data; never touches the local file system.
+    def __init__(self, server, *args, **kwargs):
+        super().__init__(server, *args, **kwargs)
+        self.files = {"/fixture.txt": bytearray(b"fixture\n")}
+
+    @staticmethod
+    def attributes(data):
+        item = paramiko.SFTPAttributes()
+        item.st_mode = 0o100644
+        item.st_size = len(data)
+        return item
+
     def canonicalize(self, path):
-        return "/"
+        return "/" if path == "." else path
 
     def list_folder(self, path):
-        item = paramiko.SFTPAttributes()
-        item.filename = "fixture.txt"
-        item.st_mode = 0o100644
-        item.st_size = 8
-        return [item]
+        result = []
+        for name, data in self.files.items():
+            item = self.attributes(data)
+            item.filename = name.rsplit("/", 1)[-1]
+            result.append(item)
+        return result
+
+    def stat(self, path):
+        if path not in self.files:
+            return paramiko.SFTP_NO_SUCH_FILE
+        return self.attributes(self.files[path])
+
+    lstat = stat
+
+    def open(self, path, flags, attr):
+        if path not in self.files:
+            if not flags & os.O_CREAT:
+                return paramiko.SFTP_NO_SUCH_FILE
+            self.files[path] = bytearray()
+        elif flags & os.O_EXCL:
+            return paramiko.SFTP_FAILURE
+        if flags & os.O_TRUNC:
+            self.files[path].clear()
+        return MemoryFile(self.files[path])
+
+    def remove(self, path):
+        if path not in self.files:
+            return paramiko.SFTP_NO_SUCH_FILE
+        del self.files[path]
+        return paramiko.SFTP_OK
+
+    def rename(self, source, destination):
+        if source not in self.files:
+            return paramiko.SFTP_NO_SUCH_FILE
+        if destination in self.files:
+            return paramiko.SFTP_FAILURE
+        self.files[destination] = self.files.pop(source)
+        return paramiko.SFTP_OK
+
+    def posix_rename(self, source, destination):
+        if source not in self.files:
+            return paramiko.SFTP_NO_SUCH_FILE
+        self.files[destination] = self.files.pop(source)
+        return paramiko.SFTP_OK
 
 
 class Authentication(paramiko.ServerInterface):
@@ -46,6 +113,7 @@ class Authentication(paramiko.ServerInterface):
             return "password" if username == "kbd-password" else "keyboard-interactive"
         return {
             "password": "password", "password-mfa": "password",
+            "publickey": "publickey", "encrypted-key": "publickey",
             "publickey-mfa": "publickey", "reject": "password",
         }.get(username, "keyboard-interactive")
 
@@ -63,6 +131,8 @@ class Authentication(paramiko.ServerInterface):
         return paramiko.AUTH_SUCCESSFUL if accepted else paramiko.AUTH_FAILED
 
     def check_auth_publickey(self, username, key):
+        if username in ("publickey", "encrypted-key") and key == self.client_key:
+            return paramiko.AUTH_SUCCESSFUL
         if username == "publickey-mfa" and key == self.client_key:
             self.factor = True
             return paramiko.AUTH_PARTIALLY_SUCCESSFUL
@@ -164,6 +234,8 @@ def main():
     client_key = paramiko.RSAKey.generate(2048)
     private = io.StringIO()
     client_key.write_private_key(private)
+    encrypted_private = io.StringIO()
+    client_key.write_private_key(encrypted_private, password="fixture-passphrase")
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         listener.listen()
@@ -172,6 +244,7 @@ def main():
         metadata = {
             "port": port,
             "privateKey": private.getvalue(),
+            "encryptedPrivateKey": encrypted_private.getvalue(),
             "hostFingerprint": "SHA256:" + fingerprint,
         }
         # Ephemeral test material only, never a user credential.

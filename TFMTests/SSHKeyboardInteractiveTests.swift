@@ -114,7 +114,7 @@ struct SSHKeyboardInteractiveWireTests {
         await session.disconnect()
     }
 
-    @Test @MainActor func transferCancellationDismissesPendingAuthentication() async throws {
+    @Test @MainActor func aTransferWithoutAnAuthenticatedPrimaryCannotOpenAnAuthenticationForm() async throws {
         let fixture = try fixture()
         let queue = SSHKeyboardInteractiveQueue()
         let coordinator = SFTPTransferCoordinator(
@@ -126,12 +126,12 @@ struct SSHKeyboardInteractiveWireTests {
             direction: .download, batchID: UUID(), localURL: root.appending(path: UUID().uuidString),
             remotePath: "/fixture.txt", byteCount: 8, hostID: configuration.hostID,
             configuration: configuration, scopedRoot: root, overwrite: true)
-        for _ in 0..<500 where queue.current == nil { try await Task.sleep(for: .milliseconds(10)) }
-        #expect(queue.current != nil)
-        coordinator.cancelAll()
         await coordinator.waitForCancellation()
         #expect(queue.current == nil)
-        #expect(coordinator.sftpTransfers.first?.state == .cancelled)
+        guard case .failed = coordinator.sftpTransfers.first?.state else {
+            Issue.record("An interactive-only route must fail without opening a form")
+            return
+        }
     }
 
     @Test func rejectedChallengeRetainsAuthenticationFailureClassification() async throws {
@@ -146,9 +146,84 @@ struct SSHKeyboardInteractiveWireTests {
         await session.disconnect()
     }
 
+    @Test(arguments: ["none", "password", "push", "publickey", "encrypted-key"])
+    func silentSFTPConnectsWithoutApplicationForms(_ mode: String) async throws {
+        let fixture = try fixture()
+        let recorder = WireChallengeRecorder()
+        let coordinator = RemoteConnectionCoordinator(keyboardInteractive: recorder.handler)
+        var request = request(mode: mode, fixture: fixture, handler: recorder.handler)
+        request.configuration.expectedHostKeys = [.init(algorithm: .rsa, fingerprint: fixture.hostFingerprint)]
+        request.interactionPolicy = .forbidden
+        let client = try await coordinator.connectSFTP(using: request)
+        #expect(await recorder.challenges.isEmpty)
+        await client.disconnect()
+    }
+
+    @Test(arguments: ["kbd", "multi", "password-mfa", "publickey-mfa"])
+    func silentSFTPRejectsMFAWithoutUsingAnExplicitOrFallbackResponder(_ mode: String) async throws {
+        let fixture = try fixture()
+        let recorder = WireChallengeRecorder()
+        let coordinator = RemoteConnectionCoordinator(keyboardInteractive: recorder.handler)
+        var request = request(mode: mode, fixture: fixture, handler: recorder.handler)
+        request.configuration.expectedHostKeys = [.init(algorithm: .rsa, fingerprint: fixture.hostFingerprint)]
+        request.interactionPolicy = .forbidden
+        await #expect(throws: SSHInteractionRequired.self) {
+            _ = try await coordinator.connectSFTP(using: request)
+        }
+        #expect(await recorder.challenges.isEmpty)
+    }
+
+    @Test func silentPolicyAlsoAppliesToJumpAuthenticationAndUnknownHostKeys() async throws {
+        let fixture = try fixture()
+        let recorder = WireChallengeRecorder()
+        let coordinator = RemoteConnectionCoordinator(keyboardInteractive: recorder.handler)
+        var request = request(mode: "none", fixture: fixture, handler: recorder.handler)
+        request.interactionPolicy = .forbidden
+        await #expect(throws: SSHInteractionRequired.self) {
+            _ = try await coordinator.connectSFTP(using: request)
+        }
+        let key = SSHHostKeyIdentity(algorithm: .rsa, fingerprint: fixture.hostFingerprint)
+        request.configuration.expectedHostKeys = [key]
+        request.configuration.jumps = [
+            SSHRouteHopConfiguration(
+                id: UUID(), name: "Jump", host: "127.0.0.1", port: fixture.port,
+                username: "kbd", credentials: [], expectedHostKeys: [key])
+        ]
+        await #expect(throws: SSHInteractionRequired.self) {
+            _ = try await coordinator.connectSFTP(using: request)
+        }
+        #expect(await recorder.challenges.isEmpty)
+    }
+
+    @Test func singleConnectionCopyDoesNotDeadlockAndChecksTheSourceSize() async throws {
+        let fixture = try fixture()
+        let coordinator = RemoteConnectionCoordinator()
+        var request = request(mode: "none", fixture: fixture, handler: nil)
+        request.configuration.expectedHostKeys = [.init(algorithm: .rsa, fingerprint: fixture.hostFingerprint)]
+        request.interactionPolicy = .forbidden
+        let client = try await coordinator.connectSFTP(using: request)
+        do {
+            try await client.copyFile(
+                from: "/fixture.txt", to: "/copy.txt", on: client, byteCount: 8,
+                overwrite: false, cancellation: TransferCancellationToken(), progress: { _ in })
+            #expect(try await client.readFile(at: "/copy.txt", maximumBytes: 100) == Data("fixture\n".utf8))
+            await #expect(throws: SFTPResumeFailure.self) {
+                try await client.copyFile(
+                    from: "/fixture.txt", to: "/wrong-size.txt", on: client, byteCount: 9,
+                    overwrite: false, cancellation: TransferCancellationToken(), progress: { _ in })
+            }
+            #expect(try await client.attributes(at: "/wrong-size.txt") == nil)
+        } catch {
+            await client.disconnect()
+            throw error
+        }
+        await client.disconnect()
+    }
+
     private struct Fixture: Decodable {
         var port: Int
         var privateKey: String
+        var encryptedPrivateKey: String
         var hostFingerprint: String
     }
 
@@ -164,8 +239,14 @@ struct SSHKeyboardInteractiveWireTests {
         if ["password", "password-mfa", "kbd-password"].contains(mode) {
             credentials = [.password("fixture-password")]
         }
-        if mode == "publickey-mfa" {
+        if mode == "publickey-mfa" || mode == "publickey" {
             credentials = [.privateKey(privateKey: fixture.privateKey, publicKey: nil, passphrase: nil)]
+        }
+        if mode == "encrypted-key" {
+            credentials = [
+                .privateKey(
+                    privateKey: fixture.encryptedPrivateKey, publicKey: nil, passphrase: "fixture-passphrase")
+            ]
         }
         return SSHConnectionRequest(
             configuration: SSHConnectionConfiguration(

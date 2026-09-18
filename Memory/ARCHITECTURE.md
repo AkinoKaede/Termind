@@ -188,10 +188,15 @@ User connections own their challenge queues. Agent runs reuse their application
 interaction queue; macOS background operations and MCP share the native authentication
 window with independently cancellable origins. Stopping MCP preserves app-owned
 requests. Mobile background operations use an app-owned queue presented by one active
-scene. Cancelling a transfer interrupts pending authentication; subsequent temporary-file
-cleanup may use noninteractive credentials but must not reopen an MFA prompt. A cleanup
-that requires new interaction retains the existing temporary-file cleanup failure report. Forwarding rules sharing a host session share authentication; a new connection
-must answer fresh challenges. An Identity may contain only a username: preparation
+scene. Terminal file drops and all additional transfer connections forbid Termind
+credential, passphrase, MFA and host-key forms, including fallback responders on jump
+hosts. System key authorization such as Touch ID remains allowed. Username-only and
+SSH `none` authentication remain eligible; actual connection success decides availability.
+No upload-specific mobile sheet exists; the app-owned MFA sheet still serves Metrics
+and forwarding. Cancellation interrupts opening, and temporary-file cleanup must also
+remain silent. Cleanup requiring new interaction retains the existing failure report.
+Forwarding rules sharing a host session share authentication; a new connection must
+answer fresh challenges. An Identity may contain only a username: preparation
 permits an empty credential list, SSH tries `none`, then advertised methods. Missing
 configured secrets and existing authentication failure/retry behavior stay unchanged.
 
@@ -272,14 +277,29 @@ capped at 1,000 rows per host.
 SFTP History is device-local persisted truth shared across apps. Directories are
 recorded only after a fresh successful listing and files only after download.
 Failed, cancelled, stale, missing, or type-changed operations do not update it.
-Transfers own dedicated connections and outlive browser closure. Upload/download
-checkpoints, file references, acknowledged offsets and incremental digests live only
+Transfers retain generation-scoped `SFTPTransferSession` ownership independently of
+browser panes. The first additional connection probes the complete SFTP route silently;
+success supplies a worker and enables concurrent silent opens within the existing limits.
+Failure selects serial reuse of the authenticated browser connection. Later silent failures
+degrade pending work without replaying active file operations. Probe results are in-memory,
+shared within that generation, and cancellation does not cache a negative result. Terminal
+uploads use their successful silent preflight connection for the first transfer. Durable
+host trust is refreshed after initial authentication, but once-only approval is not promoted
+to trust for additional connections. No credential presence or persistence flag gates
+transfer eligibility or parallelism.
+Closing a pane releases only its ownership. Queued jobs retain the primary connection until
+completion/cancellation; paused jobs retain their configuration/checkpoint but release their
+connection ownership. Retired browser generations never replace transfer snapshots. Copies
+whose endpoints share one connection alternate bounded reads and writes on that worker,
+checking source size/metadata and EOF before the existing atomic temporary-file commit.
+Terminal preflight and batch preparation are cancellable and scoped to the terminal
+generation; late results cannot enqueue files after invalidation.
+Upload/download checkpoints, file references, acknowledged offsets and incremental digests live only
 in memory. Pause and connection loss retain the destination partial file and release
 the connection; explicit resume verifies the source and partial prefix before seeking.
 Ordinary transfers add no source staging, bookmark persistence, or restart recovery. Cancellation
 and host deletion remove partial files, reporting a path if cleanup fails. Mobile
-background expiration pauses uploads/downloads and cancels remote copies; borrowed
-session retirement still cancels its transfers. macOS termination gives asynchronous
+background expiration pauses uploads/downloads and cancels remote copies. macOS termination gives asynchronous
 cleanup at most three seconds, so an unreachable server cannot hold up quitting.
 Nothing is silently replayed.
 Desktop and mobile upload/download and remote-copy preparation and enqueueing use

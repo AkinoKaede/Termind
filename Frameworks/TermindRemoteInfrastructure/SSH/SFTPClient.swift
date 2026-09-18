@@ -437,6 +437,12 @@ public actor SFTPClient: SFTPClientProtocol {
         guard let destination = destination as? SFTPClient else {
             throw SFTPError.operation("The destination cannot receive a streamed SFTP copy.")
         }
+        if self === destination {
+            try await worker.copyFile(
+                from: sourcePath, to: destinationPath, byteCount: byteCount,
+                overwrite: overwrite, cancellation: cancellation, progress: progress)
+            return
+        }
         let relay = try SFTPSocketRelay()
         let observer = cancellation.observeCancellation { relay.stop() }
         defer {
@@ -930,6 +936,55 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                 }) == 0
             else {
                 throw self.error("Unable to delete \(path)")
+            }
+        }
+    }
+
+    /// Alternating reads and writes on one worker avoids a socket-relay deadlock
+    /// when a serial fallback uses the same connection for both endpoints.
+    public func copyFile(
+        from source: String, to destination: String, byteCount: Int64, overwrite: Bool,
+        cancellation: TransferCancellationToken,
+        progress: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {
+        try await queue.perform {
+            let sftp = try self.requireSFTP()
+            try self.withRemoteReadHandle(at: source) { input in
+                let identity = try self.remoteIdentity(input)
+                guard identity.byteCount == byteCount else { throw SFTPResumeFailure.sourceChanged }
+                try self.withAtomicRemoteWrite(
+                    sftp: sftp, destination: destination, overwrite: overwrite, cancellation: cancellation,
+                    validateCommit: {
+                        guard !cancellation.isCancelled else { throw SFTPError.cancelled }
+                        guard try self.remoteIdentity(input) == identity else {
+                            throw SFTPResumeFailure.sourceChanged
+                        }
+                    }
+                ) { output in
+                    var meter = SFTPProgressMeter(total: byteCount, report: progress)
+                    var buffer = [CChar](repeating: 0, count: 64 * 1024)
+                    while true {
+                        guard !cancellation.isCancelled else { throw SFTPError.cancelled }
+                        let count = libssh2_sftp_read(input, &buffer, buffer.count)
+                        guard count >= 0 else { throw self.error("Unable to read \(source)") }
+                        if count == 0 { break }
+                        guard Int64(count) <= byteCount - meter.completed else {
+                            throw SFTPResumeFailure.sourceChanged
+                        }
+                        try buffer.withUnsafeBufferPointer { bytes in
+                            var offset = 0
+                            while offset < count {
+                                guard !cancellation.isCancelled else { throw SFTPError.cancelled }
+                                let written = libssh2_sftp_write(output, bytes.baseAddress! + offset, count - offset)
+                                guard written > 0 else { throw self.error("Unable to upload \(destination)") }
+                                offset += written
+                                meter.add(written)
+                            }
+                        }
+                    }
+                    guard meter.completed == byteCount else { throw SFTPResumeFailure.sourceChanged }
+                    meter.finish()
+                }
             }
         }
     }

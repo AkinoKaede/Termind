@@ -178,7 +178,9 @@ private actor ResumeQueueClient: SFTPClientProtocol {
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
         connections += 1
-        guard connections > 1, let handler = request.keyboardInteractive ?? cleanupAuthentication else { return }
+        guard connections > 1, cleanupAuthentication != nil,
+            let handler = request.keyboardInteractive ?? cleanupAuthentication
+        else { return }
         let configuration = request.configuration
         _ = try await handler(
             SSHKeyboardInteractiveChallenge(

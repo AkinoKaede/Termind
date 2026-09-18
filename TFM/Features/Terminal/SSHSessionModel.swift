@@ -222,7 +222,7 @@ final class SSHSessionModel: Identifiable {
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
     private var startsOnMount = true
-    private var connectionAttemptID: UUID?
+    private(set) var connectionAttemptID: UUID?
     private var reconnectController: SessionReconnectController { connection.reconnect }
     private var workingDirectoryObservation: AnyCancellable?
     private var remoteWindowTitleObservation: AnyCancellable?
@@ -868,7 +868,9 @@ final class SSHSessionModel: Identifiable {
             )
             try Task.checkCancellation()
             guard connectionAttemptID == attemptID else { throw CancellationError() }
-            transferConfiguration = configuration
+            transferConfiguration =
+                statusStore?.configurationForAdditionalConnection(from: configuration)
+                ?? configuration
             suppliedAuthentications.removeAll()
             temporaryHostKeys.removeAll()
             _ = connection.markConnected()

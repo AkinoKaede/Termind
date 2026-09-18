@@ -48,6 +48,20 @@ public nonisolated enum SSHHostTrustPolicy: Equatable, Sendable {
     case allowChallenge
 }
 
+/// Controls Termind authentication forms. System key authorization (Touch ID) remains allowed.
+public nonisolated enum SSHInteractionPolicy: Equatable, Sendable {
+    case allowed
+    case forbidden
+}
+
+/// A capability probe could not finish without user interaction. This is not cancellation.
+public nonisolated struct SSHInteractionRequired: LocalizedError, Sendable {
+    public init() {}
+    public var errorDescription: String? {
+        String(localized: "This server requires interactive authentication.")
+    }
+}
+
 /// A connection configuration plus the optional interaction that may authorize
 /// an unknown or changed host key. A nil authorizer preserves strict behavior:
 /// the connection must already contain a matching expected key.
@@ -55,20 +69,37 @@ public nonisolated struct SSHConnectionRequest: Sendable {
     public var configuration: SSHConnectionConfiguration
     public var authorizeHostKey: SSHHostKeyAuthorizer?
     public var keyboardInteractive: SSHKeyboardInteractiveHandler?
+    public var interactionPolicy: SSHInteractionPolicy
 
     public init(
         configuration: SSHConnectionConfiguration,
         authorizeHostKey: SSHHostKeyAuthorizer? = nil,
-        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        interactionPolicy: SSHInteractionPolicy = .allowed
     ) {
         self.configuration = configuration
         self.authorizeHostKey = authorizeHostKey
         self.keyboardInteractive = keyboardInteractive
+        self.interactionPolicy = interactionPolicy
     }
 
     public func withKeyboardInteractiveFallback(_ handler: SSHKeyboardInteractiveHandler?) -> Self {
         var request = self
-        if request.keyboardInteractive == nil { request.keyboardInteractive = handler }
+        if request.interactionPolicy == .allowed, request.keyboardInteractive == nil {
+            request.keyboardInteractive = handler
+        }
+        return request
+    }
+
+    /// Enforced at the transport boundary as well as by application adapters.
+    public func enforcingInteractionPolicy() -> Self {
+        guard interactionPolicy == .forbidden else { return self }
+        var request = self
+        request.authorizeHostKey = { _ in throw SSHInteractionRequired() }
+        request.keyboardInteractive = { challenge in
+            guard challenge.prompts.isEmpty else { throw SSHInteractionRequired() }
+            return []
+        }
         return request
     }
 }

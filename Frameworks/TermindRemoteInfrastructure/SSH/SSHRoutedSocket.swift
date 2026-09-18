@@ -163,6 +163,8 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                         }
                     } catch is CancellationError {
                         throw CancellationError()
+                    } catch let error as SSHInteractionRequired {
+                        throw error
                     } catch {
                         throw routeFailure(error, hop: hop, level: index + 1)
                     }

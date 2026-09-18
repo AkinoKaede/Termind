@@ -122,6 +122,7 @@ public enum SFTPLocalUploadPlanner {
         )
         var transferCount = 0
         for var job in batch.jobs {
+            try Task.checkCancellation()
             guard let destination = remoteResolution.destination(for: job.remotePath) else { continue }
             if destination != job.remotePath { job.hasConflict = false }
             job.remotePath = destination
@@ -137,6 +138,7 @@ public enum SFTPLocalUploadPlanner {
                 job.remotePath = resolved.path
                 job.hasConflict = resolved.overwrite
             }
+            try Task.checkCancellation()
             coordinator.enqueue(
                 direction: .upload,
                 batchID: batch.id,

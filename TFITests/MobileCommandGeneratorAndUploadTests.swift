@@ -422,6 +422,69 @@ struct MobileCommandGeneratorTests {
 
 @Suite @MainActor
 struct MobileUploadBatchTests {
+    @Test func usernameOnlyTerminalUploadRejectsInteractionWithoutOpeningASheet() async throws {
+        let identity = Identity(name: "OTP", username: "user")
+        let host = Host(name: "OTP", host: "example.invalid", identityID: identity.id)
+        let library = HostLibraryModel(hosts: [host], identities: [identity])
+        let queue = SSHKeyboardInteractiveQueue()
+        let client = MobileUploadSFTPClient()
+        let transfers = SFTPTransferCoordinator(store: library) { client }
+        let services = MobileWorkspaceConnectionServices(
+            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            connectSSH: { _, _, _, _, _, _ in },
+            connectSFTP: { request, _, _ in
+                #expect(request.interactionPolicy == .forbidden)
+                #expect(request.configuration.credentials.isEmpty)
+                let handler = try #require(request.enforcingInteractionPolicy().keyboardInteractive)
+                _ = try await handler(
+                    SSHKeyboardInteractiveChallenge(
+                        connectionID: UUID(), hostID: host.id, hostname: host.host, port: 22,
+                        username: "user", round: 1, name: "OTP", instruction: "",
+                        prompts: [.init(text: "Code", echo: false)]))
+                return client
+            }, writeSSH: { _, _ in }
+        ).withKeyboardInteractive(queue.handler)
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library, transfers: transfers, connectionServices: services)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        workspace.receiveWorkingDirectory("/srv/current")
+        #expect(workspace.uploadTargetProblem == nil)
+        #expect(workspace.prepareUpload([URL(fileURLWithPath: "/tmp/termind-test-upload")]))
+        #expect(await eventually { workspace.operationError != nil })
+        #expect(queue.current == nil)
+        #expect(transfers.sftpTransfers.isEmpty)
+    }
+
+    @Test func serialUploadSurvivesClosingTheSFTPWorkspace() async throws {
+        let identity = Identity(name: "OTP", username: "user")
+        let host = Host(name: "OTP", host: "example.invalid", identityID: identity.id)
+        let library = HostLibraryModel(hosts: [host], identities: [identity])
+        let primary = MobileUploadSFTPClient(blocksUpload: true)
+        let extra = MobileUploadSFTPClient(requiresInteraction: true)
+        let transfers = SFTPTransferCoordinator(store: library) { extra }
+        let services = MobileWorkspaceConnectionServices(
+            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            connectSSH: { _, _, _, _, _, _ in }, connectSFTP: { _, _, _ in primary }, writeSSH: { _, _ in })
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
+            hosts: library, transfers: transfers, connectionServices: services)
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data("test".utf8).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        #expect(workspace.prepareUpload([file]))
+        #expect(await eventuallyAsync { await primary.startedUploads == 1 })
+        workspace.disconnect()
+        #expect(await primary.disconnectCount == 0)
+        await primary.finishUploads()
+        #expect(await eventually { transfers.sftpTransfers.allSatisfy { $0.state == .completed } })
+        #expect(await eventuallyAsync { await primary.disconnectCount == 1 })
+    }
+
     @Test func sshUploadUsesTheReportedWorkingDirectoryAndReleasesPreflightClient() async throws {
         let identity = Identity(name: "Deploy", username: "deploy")
         var host = Host(name: "Example", host: "example.invalid")
@@ -445,7 +508,10 @@ struct MobileUploadBatchTests {
         let services = MobileWorkspaceConnectionServices(
             makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
-            connectSFTP: { _, _, _ in preflightClient },
+            connectSFTP: { request, _, _ in
+                #expect(request.interactionPolicy == .forbidden)
+                return preflightClient
+            },
             writeSSH: { _, _ in }
         )
         let workspace = MobileWorkspace(
@@ -768,6 +834,10 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
     private(set) var listedDirectories: [String] = []
     private(set) var removedPaths: [String] = []
     private(set) var disconnectCount = 0
+    private(set) var startedUploads = 0
+    private let blocksUpload: Bool
+    private let requiresInteraction: Bool
+    private var uploadWaiters: [CheckedContinuation<Void, Never>] = []
     private let attributes: [String: RemoteFile]
     private let failedDownloadPaths: Set<String>
     private let children: [String: [RemoteFile]]
@@ -775,14 +845,24 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
     init(
         attributes: [String: RemoteFile] = [:],
         failedDownloadPaths: Set<String> = [],
-        children: [String: [RemoteFile]] = [:]
+        children: [String: [RemoteFile]] = [:],
+        blocksUpload: Bool = false, requiresInteraction: Bool = false
     ) {
+        self.blocksUpload = blocksUpload
+        self.requiresInteraction = requiresInteraction
         self.attributes = attributes
         self.failedDownloadPaths = failedDownloadPaths
         self.children = children
     }
 
-    func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {}
+    func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {
+        if requiresInteraction { throw SSHInteractionRequired() }
+    }
+    func finishUploads() {
+        let pending = uploadWaiters
+        uploadWaiters.removeAll()
+        for waiter in pending { waiter.resume() }
+    }
     func disconnect() async { disconnectCount += 1 }
     func homeDirectory() async throws -> String { "/home/test" }
     func listDirectory(at path: String) async throws -> [RemoteFile] {
@@ -802,6 +882,8 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
+        startedUploads += 1
+        if blocksUpload { await withCheckedContinuation { uploadWaiters.append($0) } }
         uploadedData[remotePath] = try Data(contentsOf: localURL)
     }
     func downloadFile(

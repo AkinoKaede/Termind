@@ -31,6 +31,8 @@ struct TerminalPlaceholderView: View {
     @State private var uploadNotice: WorkspaceUploadNotice?
     @State private var uploadNoticeTask: Task<Void, Never>?
     @State private var uploadPreparationTask: Task<Void, Never>?
+    @State private var uploadPreparationID: UUID?
+    @State private var uploadEnqueueTask: Task<Void, Never>?
     @State private var uploadError: String?
 
     /// The surface decides the pane's size; everything else is an overlay.
@@ -70,6 +72,7 @@ struct TerminalPlaceholderView: View {
                 guard let externalFileDrop else { return }
                 _ = receiveDroppedURLs(externalFileDrop.urls)
             }
+            .onChange(of: sshSession.connectionAttemptID) { cancelPendingUpload() }
             .onDisappear {
                 terminalFocused = false
                 uploadNoticeTask?.cancel()
@@ -192,28 +195,41 @@ struct TerminalPlaceholderView: View {
         }
 
         let destination = RemotePath.normalized(workingDirectory)
+        cancelPendingUpload()
+        let generation = sshSession.connectionAttemptID
+        let preparationID = UUID()
+        uploadPreparationID = preparationID
         pendingUploadItemCount = files.count
         uploadNoticeTask?.cancel()
-        uploadPreparationTask?.cancel()
         uploadNotice = .preparing(destination)
 
         uploadPreparationTask = Task {
+            defer {
+                if uploadPreparationID == preparationID {
+                    uploadPreparationTask = nil
+                    uploadPreparationID = nil
+                }
+            }
             var connectedClient: (any SFTPClientProtocol)?
             do {
                 let client = try await app.connections.connectSFTP(
-                    using: configuration, progress: nil
+                    using: SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden),
+                    progress: nil
                 )
                 connectedClient = client
                 try Task.checkCancellation()
+                guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
                 let uploadSession = SFTPSessionModel(
                     hostID: sshSession.hostID,
                     initialPath: destination,
                     client: client,
                     configuration: configuration,
+                    wasOpenedSilently: true,
                     homeResolution: sshSession.homeResolution
                 )
                 await uploadSession.prepareUpload(files)
                 try Task.checkCancellation()
+                guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
                 if let error = uploadSession.operationError {
                     uploadSession.disconnect()
                     uploadNotice = nil
@@ -234,16 +250,15 @@ struct TerminalPlaceholderView: View {
                 } else {
                     enqueuePendingUpload(.replace)
                 }
-                uploadPreparationTask = nil
             } catch is CancellationError {
                 await connectedClient?.disconnect()
+                guard uploadPreparationID == preparationID else { return }
                 uploadNotice = nil
-                uploadPreparationTask = nil
             } catch {
                 await connectedClient?.disconnect()
+                guard uploadPreparationID == preparationID else { return }
                 uploadNotice = nil
                 uploadError = error.localizedDescription
-                uploadPreparationTask = nil
             }
         }
         return true
@@ -254,13 +269,15 @@ struct TerminalPlaceholderView: View {
         let itemCount = pendingUploadItemCount
         let destination = uploadSession.path
         uploadConflictPresented = false
-        Task {
+        uploadEnqueueTask = Task {
             await uploadSession.enqueuePending(
                 policy: policy,
                 coordinator: app.sftpTransfers
             )
             let error = uploadSession.operationError
             uploadSession.disconnect()
+            guard pendingUploadSession === uploadSession else { return }
+            uploadEnqueueTask = nil
             pendingUploadSession = nil
             pendingUploadItemCount = 0
             if let error {
@@ -275,6 +292,10 @@ struct TerminalPlaceholderView: View {
     private func cancelPendingUpload() {
         uploadPreparationTask?.cancel()
         uploadPreparationTask = nil
+        uploadPreparationID = nil
+        uploadEnqueueTask?.cancel()
+        uploadEnqueueTask = nil
+        uploadNotice = nil
         guard let uploadSession = pendingUploadSession else { return }
         uploadConflictPresented = false
         uploadSession.cancelPendingBatch()

@@ -25,19 +25,17 @@ private struct MobilePendingUpload {
     var destination: String
     var client: any SFTPClientProtocol
     var ownsClient: Bool
-    var configuration: SSHConnectionConfiguration
+    var session: SFTPTransferSession
     var connectionGeneration: UUID
 }
 
 private struct MobilePendingDownload {
     var batch: SFTPRemoteDownloadBatch
-    var configuration: SSHConnectionConfiguration
     var connectionGeneration: UUID
 }
 
 private struct MobilePendingRemoteCopy {
     var batch: SFTPRemoteCopyBatch
-    var configuration: SSHConnectionConfiguration
     var connectionGeneration: UUID
 }
 
@@ -82,6 +80,7 @@ final class MobileWorkspace: Identifiable {
     let sftpSession: MobileSFTPSessionModel
     let sftpEdits: SFTPEditService?
     let transfers: SFTPTransferCoordinator?
+    private var transferSession: SFTPTransferSession?
     private var transferConfiguration: SSHConnectionConfiguration?
     private(set) var uploadNotice: WorkspaceUploadNotice?
     private var pendingUpload: MobilePendingUpload?
@@ -635,7 +634,11 @@ final class MobileWorkspace: Identifiable {
                     journey.receive(.connected(host.id))
                 }
                 guard generation == token, !Task.isCancelled else { return }
-                transferConfiguration = config
+                let additionalConfiguration = hosts.configurationForAdditionalConnection(from: config)
+                transferConfiguration = additionalConfiguration
+                if let sftp {
+                    transferSession = SFTPTransferSession(configuration: additionalConfiguration, client: sftp)
+                }
                 submissions.removeAll()
                 let wasReconnecting = connection.markConnected()
                 connected = true
@@ -705,7 +708,8 @@ final class MobileWorkspace: Identifiable {
                     }
                 }
                 await ssh?.disconnect()
-                await sftp?.disconnect()
+                if let transferSession { await transferSession.retire() } else { await sftp?.disconnect() }
+                transferSession = nil
                 ssh = nil
                 sftp = nil
                 sftpSession.detach()
@@ -753,6 +757,8 @@ final class MobileWorkspace: Identifiable {
         attempt = nil
         let oldSSH = ssh
         let oldSFTP = sftp
+        let oldTransferSession = transferSession
+        transferSession = nil
         ssh = nil
         sftp = nil
         sftpSession.detach()
@@ -764,7 +770,7 @@ final class MobileWorkspace: Identifiable {
         journey.fail(reconnectState.lastError)
         Task {
             await oldSSH?.disconnect()
-            await oldSFTP?.disconnect()
+            if let oldTransferSession { await oldTransferSession.retire() } else { await oldSFTP?.disconnect() }
         }
     }
 
@@ -780,6 +786,8 @@ final class MobileWorkspace: Identifiable {
         attempt = nil
         let oldSSH = ssh
         let oldSFTP = sftp
+        let oldTransferSession = transferSession
+        transferSession = nil
         ssh = nil
         sftp = nil
         sftpSession.detach()
@@ -799,7 +807,7 @@ final class MobileWorkspace: Identifiable {
         presentConnectionJourney(mode: reconnecting ? .reconnection : .connection)
         Task {
             await oldSSH?.disconnect()
-            await oldSFTP?.disconnect()
+            if let oldTransferSession { await oldTransferSession.retire() } else { await oldSFTP?.disconnect() }
         }
     }
 
@@ -846,6 +854,8 @@ final class MobileWorkspace: Identifiable {
         attempt = nil
         let oldSSH = ssh
         let oldSFTP = sftp
+        let oldTransferSession = transferSession
+        transferSession = nil
         ssh = nil
         sftp = nil
         sftpSession.detach()
@@ -864,7 +874,7 @@ final class MobileWorkspace: Identifiable {
         }
         Task {
             await oldSSH?.disconnect()
-            await oldSFTP?.disconnect()
+            if let oldTransferSession { await oldTransferSession.retire() } else { await oldSFTP?.disconnect() }
         }
     }
 
@@ -903,12 +913,14 @@ final class MobileWorkspace: Identifiable {
         transferConfiguration = nil
         let oldSSH = ssh
         let oldSFTP = sftp
+        let oldTransferSession = transferSession
+        transferSession = nil
         ssh = nil
         sftp = nil
         sftpSession.detach()
         Task {
             await oldSSH?.disconnect()
-            await oldSFTP?.disconnect()
+            if let oldTransferSession { await oldTransferSession.releaseOwner() } else { await oldSFTP?.disconnect() }
         }
         busy = false
         connected = false
@@ -1024,7 +1036,8 @@ final class MobileWorkspace: Identifiable {
                     client = sftp
                 } else {
                     client = try await connectionServices.connectSFTP(
-                        SSHConnectionRequest(configuration: configuration),
+                        SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden)
+                            .enforcingInteractionPolicy(),
                         nil,
                         nil
                     )
@@ -1049,12 +1062,19 @@ final class MobileWorkspace: Identifiable {
                 guard !batch.isEmpty else {
                     throw SFTPError.localFile(String(localized: "No uploadable files were found."))
                 }
+                let session: SFTPTransferSession
+                if ownsClient {
+                    session = SFTPTransferSession(configuration: configuration, client: client, wasOpenedSilently: true)
+                } else {
+                    guard let existing = transferSession else { throw SFTPError.notConnected }
+                    session = existing
+                }
                 pendingUpload = MobilePendingUpload(
                     batch: batch,
                     destination: destination,
                     client: client,
                     ownsClient: ownsClient,
-                    configuration: configuration,
+                    session: session,
                     connectionGeneration: connectionGeneration
                 )
                 if batch.conflictCount > 0 {
@@ -1076,18 +1096,18 @@ final class MobileWorkspace: Identifiable {
     }
 
     func remoteCopySource(for file: RemoteFile) -> SFTPRemoteCopySource? {
-        guard descriptor.kind == .sftp, connected, let configuration = transferConfiguration else {
+        guard descriptor.kind == .sftp, connected, let transferSession else {
             return nil
         }
         return SFTPRemoteCopySource(
             hostID: descriptor.hostID,
-            connection: .saved(configuration),
+            connection: .session(transferSession),
             files: [file]
         )
     }
 
     func prepareRemoteCopy(_ payload: SFTPRemoteItemsPayload) {
-        guard let transfers, let configuration = transferConfiguration,
+        guard let transfers, transferConfiguration != nil,
             let sftp, connected
         else {
             operationError = String(localized: "The SFTP connection is not available.")
@@ -1115,7 +1135,7 @@ final class MobileWorkspace: Identifiable {
                     generation == connectionGeneration
                 else { return }
                 pendingRemoteCopy = MobilePendingRemoteCopy(
-                    batch: batch, configuration: configuration,
+                    batch: batch,
                     connectionGeneration: connectionGeneration
                 )
                 if batch.conflictCount == 0 { enqueuePendingTransfer(.replace) }
@@ -1128,7 +1148,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func prepareDownload(_ file: RemoteFile, to destination: URL) {
-        guard transfers != nil, let configuration = transferConfiguration,
+        guard transfers != nil, transferConfiguration != nil,
             let sftp, connected
         else {
             operationError = String(localized: "The SFTP connection is not available.")
@@ -1155,7 +1175,7 @@ final class MobileWorkspace: Identifiable {
                     generation == connectionGeneration
                 else { return }
                 pendingDownload = MobilePendingDownload(
-                    batch: batch, configuration: configuration,
+                    batch: batch,
                     connectionGeneration: connectionGeneration
                 )
                 if batch.conflictCount == 0 { enqueuePendingTransfer(.replace) }
@@ -1170,7 +1190,7 @@ final class MobileWorkspace: Identifiable {
     func enqueuePendingTransfer(_ policy: TransferConflictPolicy) {
         if let pendingRemoteCopy, let transfers, let sftp {
             self.pendingRemoteCopy = nil
-            guard generation == pendingRemoteCopy.connectionGeneration else { return }
+            guard generation == pendingRemoteCopy.connectionGeneration, let transferSession else { return }
             let generation = pendingRemoteCopy.connectionGeneration
             Task { [weak self] in
                 guard let self else { return }
@@ -1178,7 +1198,7 @@ final class MobileWorkspace: Identifiable {
                     try await SFTPRemoteCopyPlanner.enqueue(
                         pendingRemoteCopy.batch, policy: policy,
                         destinationHostID: descriptor.hostID,
-                        destinationConnection: .saved(pendingRemoteCopy.configuration),
+                        destinationConnection: .session(transferSession),
                         client: sftp, coordinator: transfers
                     ) { [weak self] state in
                         guard state == .completed else { return }
@@ -1193,12 +1213,12 @@ final class MobileWorkspace: Identifiable {
         }
         if let pendingDownload, let transfers {
             self.pendingDownload = nil
-            guard generation == pendingDownload.connectionGeneration else { return }
+            guard generation == pendingDownload.connectionGeneration, let transferSession else { return }
             do {
                 try SFTPRemoteDownloadPlanner.enqueue(
                     pendingDownload.batch, policy: policy,
                     hostID: descriptor.hostID,
-                    connection: .saved(pendingDownload.configuration),
+                    connection: .session(transferSession),
                     coordinator: transfers
                 ) { [sftpHistory, hostID = descriptor.hostID] path, state in
                     guard state == .completed else { return }
@@ -1238,7 +1258,7 @@ final class MobileWorkspace: Identifiable {
                     pendingUpload.batch,
                     policy: policy,
                     hostID: descriptor.hostID,
-                    connection: .saved(pendingUpload.configuration),
+                    connection: .session(pendingUpload.session),
                     client: pendingUpload.client,
                     coordinator: transfers
                 ) { [weak self] state in
@@ -1251,7 +1271,7 @@ final class MobileWorkspace: Identifiable {
                         await self.sftpSession.openDirectory(self.sftpSession.path)
                     }
                 }
-                if pendingUpload.ownsClient { await pendingUpload.client.disconnect() }
+                if pendingUpload.ownsClient { await pendingUpload.session.releaseOwner() }
                 guard uploadEnqueueID == enqueueID,
                     generation == pendingUpload.connectionGeneration
                 else { return }
@@ -1262,10 +1282,10 @@ final class MobileWorkspace: Identifiable {
                     .queued(pendingUpload.batch.rootCount, pendingUpload.destination)
                 )
             } catch is CancellationError {
-                if pendingUpload.ownsClient { await pendingUpload.client.disconnect() }
+                if pendingUpload.ownsClient { await pendingUpload.session.releaseOwner() }
                 if uploadEnqueueID == enqueueID { uploadNotice = nil }
             } catch {
-                if pendingUpload.ownsClient { await pendingUpload.client.disconnect() }
+                if pendingUpload.ownsClient { await pendingUpload.session.releaseOwner() }
                 guard uploadEnqueueID == enqueueID else { return }
                 uploadNotice = nil
                 operationError = error.localizedDescription
@@ -1288,7 +1308,7 @@ final class MobileWorkspace: Identifiable {
         guard let pendingUpload else { return }
         self.pendingUpload = nil
         if pendingUpload.ownsClient {
-            Task { await pendingUpload.client.disconnect() }
+            Task { await pendingUpload.session.releaseOwner() }
         }
     }
 
@@ -1311,14 +1331,14 @@ final class MobileWorkspace: Identifiable {
 
     @discardableResult
     func preview(_ file: RemoteFile, completion: @escaping (URL) -> Void) -> Bool {
-        guard let transfers, let configuration = transferConfiguration, connected, !file.isDirectory else {
+        guard let transfers, let transferSession, connected, !file.isDirectory else {
             return false
         }
         if let sftpEdits, let sftp {
             Task {
                 do {
                     let url = try await sftpEdits.open(
-                        file, hostID: descriptor.hostID, connection: .saved(configuration), client: sftp)
+                        file, hostID: descriptor.hostID, connection: .session(transferSession), client: sftp)
                     sftpHistory.record(kind: .file, path: file.path, for: descriptor.hostID)
                     completion(url)
                 } catch { operationError = error.localizedDescription }
@@ -1336,7 +1356,7 @@ final class MobileWorkspace: Identifiable {
             transfers.enqueue(
                 direction: .download, batchID: UUID(), localURL: localURL,
                 remotePath: file.path, byteCount: file.size, hostID: descriptor.hostID,
-                configuration: configuration, scopedRoot: directory, overwrite: false
+                connection: .session(transferSession), scopedRoot: directory, overwrite: false
             ) { [sftpHistory, hostID = descriptor.hostID, path = file.path] state in
                 guard state == .completed else { return }
                 sftpHistory.record(kind: .file, path: path, for: hostID)
@@ -1350,8 +1370,8 @@ final class MobileWorkspace: Identifiable {
     }
 
     func uploadEdit(_ id: UUID, replacing: Bool) async -> Bool {
-        guard connected, let sftpEdits, let sftp, let configuration = transferConfiguration else { return false }
-        return await sftpEdits.upload(id, connection: .saved(configuration), client: sftp, replacing: replacing) {
+        guard connected, let sftpEdits, let sftp, let transferSession else { return false }
+        return await sftpEdits.upload(id, connection: .session(transferSession), client: sftp, replacing: replacing) {
             [weak self] in
             Task { await self?.sftpSession.reload() }
         }

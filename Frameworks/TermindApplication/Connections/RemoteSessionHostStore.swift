@@ -46,6 +46,24 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    /// Refresh only durable trust after a successful handshake. The connection may
+    /// have prompted before its configuration was captured; once-only approval is
+    /// deliberately not promoted into permission for additional connections.
+    public func configurationForAdditionalConnection(
+        from configuration: SSHConnectionConfiguration
+    ) -> SSHConnectionConfiguration {
+        func keys(id: UUID, hostname: String, port: Int) -> Set<SSHHostKeyIdentity> {
+            Set(knownHosts(for: Host(id: id, name: hostname, host: hostname, port: port)).map(\.identity))
+        }
+        var result = configuration
+        result.expectedHostKeys = keys(id: result.hostID, hostname: result.host, port: result.port)
+        for index in result.jumps.indices {
+            let hop = result.jumps[index]
+            result.jumps[index].expectedHostKeys = keys(id: hop.id, hostname: hop.host, port: hop.port)
+        }
+        return result
+    }
+
     public func connectionPasswordCredential(for identity: Identity) throws -> String? {
         let password = try passwordCredential(for: identity)
         if password != nil {

@@ -202,7 +202,7 @@ final class MobileAppModel {
             hosts: library, defaults: dependencies.forwardingDefaults,
             keyboardInteractive: keyboardAuthentication.handler)
         transfers = SFTPTransferCoordinator(
-            store: library, clientFactory: { SFTPClient(keyboardInteractive: keyboardAuthentication.handler) })
+            store: library, clientFactory: { SFTPClient() })
         sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
         library.willDeleteHost = { [weak sftpEdits] hostID, _ in sftpEdits?.invalidate(hostID: hostID) }
         library.willDeletePortForwardings = { [weak forwardings] ids in forwardings?.suspend(ids) }
