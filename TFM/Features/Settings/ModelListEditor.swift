@@ -1004,12 +1004,12 @@ private struct ModelBadges: View {
 
     var body: some View {
         HStack(spacing: Metrics.Space.xxs) {
-            ForEach(model.input.sorted { $0.rawValue < $1.rawValue }) { modality in
+            ForEach(AIModel.Modality.allCases.filter { model.input.contains($0) }) { modality in
                 if modality != .text {
                     Image(systemName: modality.symbol)
                 }
             }
-            ForEach(model.abilities.sorted { $0.rawValue < $1.rawValue }) { ability in
+            ForEach(AIModel.Ability.allCases.filter { model.abilities.contains($0) }) { ability in
                 Image(systemName: ability.symbol)
             }
             if model.kind != .chat {
