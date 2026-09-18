@@ -57,6 +57,10 @@ struct RootView: View {
                     minHeight: Metrics.Window.detailMinHeight,
                     maxHeight: .infinity
                 )
+                .navigationSplitViewColumnWidth(
+                    min: Metrics.Window.detailMin,
+                    ideal: Metrics.Window.detailMin
+                )
         }
         .navigationSplitViewStyle(.balanced)
         .environment(\.singleLinePasteAction, { SingleLineFieldEditing.paste() })
@@ -73,7 +77,7 @@ struct RootView: View {
         }
         .overlay { ExternalAuthWindowPresenter() }
         .frame(
-            minWidth: Metrics.Window.minWidth,
+            minWidth: Metrics.Window.minWidth(showsSidebar: window.showsSidebar),
             maxWidth: .infinity,
             minHeight: Metrics.Window.minHeight,
             maxHeight: .infinity

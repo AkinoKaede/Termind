@@ -283,35 +283,31 @@ nonisolated enum Metrics {
     }
 
     enum Window {
-        /// The detail column's own floors. The window-level values below add
-        /// the chrome that sits beside or above it; keeping the two concepts
-        /// separate prevents layout floors from being counted twice.
-        static let detailMin: CGFloat = 320
+        /// Keep the complete Assistant surface, including its composer, at
+        /// least as wide as the transcript's reading column.
+        static let detailMin: CGFloat = Metrics.Chat.contentMaxWidth
         static let detailMinHeight: CGFloat = 440
 
-        /// Space to the right of the navigation sidebar in Vault's complete
-        /// working layout: two dividers, the main surface, and an Edit/New
-        /// detail panel.
-        static let trailingContentMinWidth: CGFloat =
-            1
-            + Metrics.VaultContent.min
-            + 1
-            + Metrics.VaultDetail.min
+        /// The native sidebar has an outer inset on Liquid Glass; older
+        /// systems separate it from the detail column with a one-point divider.
+        private static var sidebarSpacing: CGFloat {
+            if #available(macOS 26.0, *) { Metrics.Space.m } else { 1 }
+        }
 
-        /// Vault's complete working layout sets the application floor: the
-        /// navigation sidebar, main surface, and an Edit/New detail panel, plus
-        /// the two dividers between them. Reserving the third column even while
-        /// it is closed prevents opening an editor inside an already-too-narrow
-        /// window and keeps every host form usable from the moment it appears.
-        static let minWidth: CGFloat = Metrics.Sidebar.min + trailingContentMinWidth
+        /// Publish the full minimum to the window as well as the detail column.
+        /// A detail-only frame constraint can otherwise overflow a narrow window
+        /// when the native sidebar reopens.
+        static func minWidth(showsSidebar: Bool) -> CGFloat {
+            detailMin + (showsSidebar ? Metrics.Sidebar.min + sidebarSpacing : 0)
+        }
 
-        /// The sidebar may use only width left after the complete Vault work
-        /// area has been reserved. It grows with the window, but never outside
-        /// its own usability bounds.
+        /// Preserve a complete reading column beside the sidebar. If its
+        /// minimum width no longer fits, the native split view grows the window
+        /// when the sidebar opens instead of compressing the Assistant.
         static func sidebarMaxWidth(for availableWidth: CGFloat) -> CGFloat {
             min(
                 Metrics.Sidebar.max,
-                max(Metrics.Sidebar.min, availableWidth - trailingContentMinWidth)
+                max(Metrics.Sidebar.min, availableWidth - detailMin - sidebarSpacing)
             )
         }
 

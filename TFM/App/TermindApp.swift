@@ -151,8 +151,8 @@ struct TermindApp: App {
             .restorationBehavior(ScreenshotDemoConfiguration.active == nil ? .automatic : .disabled)
         #endif
         .defaultSize(width: Metrics.Window.defaultWidth, height: Metrics.Window.defaultHeight)
-        // RootView publishes the calculated two-column floor. Active optional
-        // panes may raise it, but the window can never shrink below the base UI.
+        // The Assistant reading column sets the floor. Opening the sidebar
+        // lets the native split view grow a window that cannot fit both columns.
         .windowResizability(.contentMinSize)
         .commands { TermindCommands(app: app) }
 
