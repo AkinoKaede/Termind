@@ -107,8 +107,11 @@ cleanup is performed.
   owns Hosts, Keychain, Port Forwarding, Snippets, Known Hosts, Welcome, and their editor routes.
 - Desktop main pages share a 360-point detail minimum, independent of the
   Assistant's 840-point reading maximum. Opening the Navigator grows the window
-  when necessary. Vault overlays its existing editor below 721 points and keeps
-  the covered list mounted at its last visible size. Below 700 points Metrics uses
+  when necessary. Vault reserves a 280-point list and a 360–400-point editor,
+  overlaying the existing editor below 641 points of content width. The covered
+  list stays mounted at its last visible size. Opening and closing animate the
+  reserved space and editor position over 0.22 seconds without squeezing its
+  contents, respecting Reduce Motion. Below 700 points Metrics uses
   a titlebar Status/Processes picker with the toolbar title hidden; at larger
   widths both panels and the title are visible.
   Covered Metrics panels retain their last visible size, table identity, sorting,
@@ -200,7 +203,12 @@ Port Forwarding is an independent Vault card library between Keychain and Snippe
 on both platforms. Its cards share Hosts' two-row height and show the same name,
 address, type, Host and runtime state. An unnamed rule uses the Host name and SSH
 argument, such as `AWS (-L)`, including its detail title. Desktop Journey lives in
-the Vault detail column, and double-clicking a desktop card starts/stops it without
+the same Vault detail column and follows its sizing and opening/closing animation.
+Its embedded presentation uses 16-point horizontal margins, an icon-only log
+button, and vertical scrolling for short windows. Switching between the editor
+and Journey fades within that column without replacing the connection or pending
+challenge. Other Journey surfaces retain their default presentation.
+Double-clicking a desktop card starts/stops it without
 an inline action button. Desktop cards use Vault's window-owned multiple and marquee
 selection; the multi-selection context menu offers Stop (disabled without active rules)
 and transactional Delete. Starting and retrying always target one rule; neither platform

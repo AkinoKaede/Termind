@@ -33,11 +33,13 @@ nonisolated enum ActiveFormKeyDecision: Equatable, Sendable {
 /// monitor lets the visible form consume exactly one unmodified key press while
 /// still yielding to an IME composition or a menu in another key window.
 private struct ActiveFormKeyboardBridge: NSViewRepresentable {
+    @Environment(\.isEnabled) private var isEnabled
     var isDefaultEnabled: Bool
     var onDefault: () -> Void
     var onCancel: () -> Void
 
     final class HandlerView: NSView {
+        var isEnabled = true
         var isDefaultEnabled = false
         var onDefault: () -> Void = {}
         var onCancel: () -> Void = {}
@@ -60,7 +62,7 @@ private struct ActiveFormKeyboardBridge: NSViewRepresentable {
         func stop() { removeMonitor() }
 
         private func handle(_ event: NSEvent) -> NSEvent? {
-            guard let window, event.window === window, NSApp.keyWindow === window else {
+            guard isEnabled, let window, event.window === window, NSApp.keyWindow === window else {
                 return event
             }
             // Caps Lock and the numeric-pad flag do not turn Return/Escape
@@ -103,6 +105,7 @@ private struct ActiveFormKeyboardBridge: NSViewRepresentable {
     }
 
     private func update(_ view: HandlerView) {
+        view.isEnabled = isEnabled
         view.isDefaultEnabled = isDefaultEnabled
         view.onDefault = onDefault
         view.onCancel = onCancel
@@ -159,15 +162,31 @@ struct ConnectionJourneyView: View {
     var compactFailureActions = false
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
     var cancelKeyboardAuthentication: (() -> Void)? = nil
+    var isEmbedded = false
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
+        Group {
+            if isEmbedded {
+                ScrollView { journeyContent }
+            } else {
+                journeyContent
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background { ConnectionJourneyBackground() }
+        .transition(.opacity)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var journeyContent: some View {
         VStack(spacing: 0) {
             ConnectionJourneyHeader(
                 journey: journey,
                 selectedForeground: TermindColor.selectedForeground,
-                adaptsLogButtonForAccessibility: false
+                adaptsLogButtonForAccessibility: false,
+                isEmbedded: isEmbedded
             ) {
                 withAnimation(Motion.panel(reduceMotion: reduceMotion)) {
                     journey.showsLogs.toggle()
@@ -178,14 +197,11 @@ struct ConnectionJourneyView: View {
 
             content
                 .frame(maxWidth: 660)
-                .padding(.horizontal, 28)
+                .padding(.horizontal, isEmbedded ? 16 : 28)
+                .fixedSize(horizontal: false, vertical: isEmbedded)
 
             Spacer(minLength: 24)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background { ConnectionJourneyBackground() }
-        .transition(.opacity)
-        .accessibilityElement(children: .contain)
     }
 
     @ViewBuilder
@@ -228,7 +244,8 @@ struct ConnectionJourneyView: View {
                 copyLogs: copyLogs, askAI: askAI,
                 cancelLabel: failureCancelLabel,
                 retryLabel: failureRetryLabel,
-                compactActions: compactFailureActions
+                compactActions: compactFailureActions,
+                adaptsActions: isEmbedded
             )
         } else if journey.mode == .reconnection, let reconnectState {
             ConnectionJourneyReconnectStatus(
@@ -258,19 +275,34 @@ struct ConnectionJourneyView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 8) {
                     ForEach(journey.logs) { entry in
-                        HStack(alignment: .firstTextBaseline, spacing: 10) {
-                            Text(entry.date, format: .dateTime.hour().minute().second())
-                                .foregroundStyle(.tertiary)
-                            Text(entry.endpoint).foregroundStyle(.secondary)
-                            Text(entry.message)
+                        if isEmbedded {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                    Text(entry.date, format: .dateTime.hour().minute().second())
+                                        .foregroundStyle(.tertiary)
+                                    Text(entry.endpoint).foregroundStyle(.secondary)
+                                }
+                                Text(entry.message)
+                            }
+                            .fixedSize(horizontal: false, vertical: true)
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
+                        } else {
+                            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                                Text(entry.date, format: .dateTime.hour().minute().second())
+                                    .foregroundStyle(.tertiary)
+                                Text(entry.endpoint).foregroundStyle(.secondary)
+                                Text(entry.message)
+                            }
+                            .font(.caption.monospaced())
+                            .textSelection(.enabled)
                         }
-                        .font(.caption.monospaced())
-                        .textSelection(.enabled)
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(14)
             }
+            .frame(height: isEmbedded ? 210 : nil)
             .frame(maxHeight: 210)
         }
         .termindGlassSurface(cornerRadius: 12)
@@ -347,6 +379,7 @@ private struct JourneyFailureCard: View {
     let cancelLabel: LocalizedStringKey
     let retryLabel: LocalizedStringKey
     let compactActions: Bool
+    let adaptsActions: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -367,15 +400,16 @@ private struct JourneyFailureCard: View {
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                 }
-            } else {
-                HStack {
-                    Button(cancelLabel, action: cancel).keyboardShortcut(.cancelAction)
-                    Button("Copy Logs", action: copyLogs)
-                    if let askAI { Button("Ask AI", action: askAI) }
-                    Spacer()
-                    Button(retryLabel, action: retry)
-                        .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
+            } else if adaptsActions {
+                ViewThatFits(in: .horizontal) {
+                    actions
+                    VStack(alignment: .leading, spacing: 10) {
+                        secondaryActions
+                        retryButton.frame(maxWidth: .infinity, alignment: .trailing)
+                    }
                 }
+            } else {
+                actions
             }
         }
         .padding(compactActions ? 14 : 18)
@@ -385,5 +419,25 @@ private struct JourneyFailureCard: View {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(TermindColor.danger.opacity(0.3))
         }
+    }
+
+    private var actions: some View {
+        HStack {
+            secondaryActions
+            Spacer()
+            retryButton
+        }
+    }
+
+    @ViewBuilder
+    private var secondaryActions: some View {
+        Button(cancelLabel, action: cancel).keyboardShortcut(.cancelAction)
+        Button("Copy Logs", action: copyLogs)
+        if let askAI { Button("Ask AI", action: askAI) }
+    }
+
+    private var retryButton: some View {
+        Button(retryLabel, action: retry)
+            .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction)
     }
 }

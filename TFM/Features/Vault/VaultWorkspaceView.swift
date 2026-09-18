@@ -2,6 +2,7 @@ import SwiftUI
 
 struct VaultWorkspaceView: View {
     @Environment(WindowModel.self) private var window
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         GeometryReader { geometry in
@@ -22,13 +23,17 @@ struct VaultWorkspaceView: View {
                     if let route = window.vaultWorkRoute {
                         VaultWorkDetailView(route: route)
                             .id(route)
+                            .transition(.opacity)
                     }
                 }
                 .clipped()
                 .opacity(showsDetail ? 1 : 0)
                 .allowsHitTesting(showsDetail)
+                .disabled(!showsDetail)
                 .accessibilityHidden(!showsDetail)
             }
+            .clipped()
+            .animation(Motion.panel(reduceMotion: reduceMotion), value: window.vaultWorkRoute)
         }
     }
 }
@@ -37,6 +42,17 @@ struct VaultWorkspaceView: View {
 /// its last visible size so returning from an editor also keeps its scroll position.
 struct VaultWorkspaceLayout: Layout {
     var showsDetail: Bool
+    private var expansion: CGFloat
+
+    init(showsDetail: Bool) {
+        self.showsDetail = showsDetail
+        expansion = showsDetail ? 1 : 0
+    }
+
+    var animatableData: CGFloat {
+        get { expansion }
+        set { expansion = newValue }
+    }
 
     struct Cache {
         var listSize: CGSize?
@@ -52,12 +68,13 @@ struct VaultWorkspaceLayout: Layout {
 
     func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout Cache) {
         guard subviews.count == 3 else { return }
-        let split = showsDetail && bounds.width >= Metrics.VaultContent.splitMinWidth
+        let split = bounds.width >= Metrics.VaultContent.splitMinWidth
+        let progress = min(1, max(0, expansion))
+        // Keep the editor at its open width even while it leaves. Only its
+        // position and the list's reserved space animate, never the form's width.
         let detailWidth =
-            showsDetail
-            ? (split ? min(Metrics.VaultDetail.ideal, bounds.width - Metrics.VaultContent.min - 1) : bounds.width)
-            : 0
-        let listWidth = split ? bounds.width - detailWidth - 1 : bounds.width
+            split ? min(Metrics.VaultDetail.ideal, bounds.width - Metrics.VaultContent.min - 1) : bounds.width
+        let listWidth = split ? bounds.width - (detailWidth + 1) * progress : bounds.width
         let listIsVisible = !showsDetail || split
         let listSize = listIsVisible ? CGSize(width: listWidth, height: bounds.height) : cache.listSize ?? bounds.size
         if listIsVisible { cache.listSize = listSize }
@@ -68,7 +85,7 @@ struct VaultWorkspaceLayout: Layout {
             proposal: ProposedViewSize(width: split ? 1 : 0, height: bounds.height)
         )
         subviews[2].place(
-            at: CGPoint(x: split ? bounds.minX + listWidth + 1 : bounds.minX, y: bounds.minY), anchor: .topLeading,
+            at: CGPoint(x: bounds.maxX - detailWidth * progress, y: bounds.minY), anchor: .topLeading,
             proposal: ProposedViewSize(width: detailWidth, height: bounds.height)
         )
     }

@@ -182,6 +182,7 @@ struct PortForwardingDetailView: View {
     let ruleID: UUID?
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var draft = PortForwardingRule(hostID: UUID())
     @State private var loaded = false
     @State private var error: String?
@@ -200,30 +201,35 @@ struct PortForwardingDetailView: View {
                 ? "New Forwarding" : "\(draft.displayName(hostName: app.hostLibrary.host(draft.hostID)?.name))",
             symbol: "arrow.left.arrow.right", close: window.closeVaultWork
         ) {
-            if let context = app.forwarding.connection(for: draft.id), context.journey.isPresented {
-                journey(context)
-            } else {
-                Form {
-                    if ruleID != nil {
-                        Section {
-                            LabeledContent("Status", value: runtime.label)
-                            if runtime.isActive {
-                                Button("Stop") { app.forwarding.stop(draft.id) }
-                            } else {
-                                Button(runtime.isFailed ? "Retry" : "Start") { app.forwarding.start(draft.id) }
-                                    .disabled(saved == nil || normalized != saved || !canSave)
+            let context = app.forwarding.connection(for: draft.id)
+            ZStack {
+                if let context, context.journey.isPresented {
+                    journey(context)
+                } else {
+                    Form {
+                        if ruleID != nil {
+                            Section {
+                                LabeledContent("Status", value: runtime.label)
+                                if runtime.isActive {
+                                    Button("Stop") { app.forwarding.stop(draft.id) }
+                                } else {
+                                    Button(runtime.isFailed ? "Retry" : "Start") { app.forwarding.start(draft.id) }
+                                        .disabled(saved == nil || normalized != saved || !canSave)
+                                }
                             }
                         }
-                    }
-                    PortForwardingHostPicker(rule: $draft, hosts: app.forwardings.hosts)
-                        .disabled(runtime.isActive)
-                    PortForwardingFields(rule: $draft).disabled(runtime.isActive)
-                    if let error { Text(error).foregroundStyle(.red) }
-                    if ruleID != nil && saved == nil {
-                        Text("The forwarding rule is unavailable.").foregroundStyle(.secondary)
-                    }
-                }.formStyle(.grouped)
+                        PortForwardingHostPicker(rule: $draft, hosts: app.forwardings.hosts)
+                            .disabled(runtime.isActive)
+                        PortForwardingFields(rule: $draft).disabled(runtime.isActive)
+                        if let error { Text(error).foregroundStyle(.red) }
+                        if ruleID != nil && saved == nil {
+                            Text("The forwarding rule is unavailable.").foregroundStyle(.secondary)
+                        }
+                    }.formStyle(.grouped)
+                        .transition(.opacity)
+                }
             }
+            .animation(Motion.panel(reduceMotion: reduceMotion), value: context?.journey.isPresented ?? false)
         } footer: {
             HStack {
                 if runtime.isActive { Button("Stop") { app.forwarding.stop(draft.id) } }
@@ -263,7 +269,8 @@ struct PortForwardingDetailView: View {
                     for: draft.id, requestID: hostKeyRequestID, observation: $0, remember: true)
             },
             denyHostKey: cancel, retry: { app.forwarding.retry(draft.id) }, cancel: cancel,
-            keyboardAuthentication: context.connection.keyboardAuthentication, cancelKeyboardAuthentication: cancel)
+            keyboardAuthentication: context.connection.keyboardAuthentication, cancelKeyboardAuthentication: cancel,
+            isEmbedded: true)
     }
     private func cancel() {
         app.forwarding.stop(draft.id)

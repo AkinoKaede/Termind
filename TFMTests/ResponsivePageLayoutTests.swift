@@ -97,20 +97,31 @@ struct ResponsivePageLayoutTests {
         let listView = try #require(list.view)
         let editorView = try #require(editor.view)
         editorView.stringValue = "Unsaved host name"
+        #expect(abs(editorView.bounds.width - 400) <= 1)
         let listSize = listView.bounds.size
 
-        host.frame.size.width = 360
-        await layout(host)
-        #expect(editor.view === editorView)
-        #expect(editorView.stringValue == "Unsaved host name")
-        #expect(abs(editorView.bounds.width - 360) <= 1)
-        #expect(listView.bounds.size == listSize)
+        for width in [360.0, 640.0] {
+            host.frame.size.width = width
+            await layout(host)
+            #expect(editor.view === editorView)
+            #expect(editorView.stringValue == "Unsaved host name")
+            #expect(abs(editorView.bounds.width - width) <= 1)
+            #expect(listView.bounds.size == listSize)
+        }
 
-        host.frame.size.width = 721
+        host.frame.size.width = 641
         await layout(host)
         #expect(editorView.stringValue == "Unsaved host name")
         #expect(abs(editorView.bounds.width - 360) <= 1)
-        #expect(abs(listView.bounds.width - 360) <= 1)
+        #expect(abs(listView.bounds.width - 280) <= 1)
+
+        for width in [681.0, 900.0] {
+            host.frame.size.width = width
+            await layout(host)
+            #expect(abs(editorView.bounds.width - 400) <= 1)
+            #expect(abs(listView.bounds.width - (width - 401)) <= 1)
+            #expect(editorView.stringValue == "Unsaved host name")
+        }
 
         host.frame.size.width = 360
         await layout(host)
@@ -120,6 +131,40 @@ struct ResponsivePageLayoutTests {
         #expect(abs(listView.bounds.width - 360) <= 1)
         #expect(list.creations == 1)
         #expect(editor.creations == 1)
+    }
+
+    @Test(arguments: [360.0, 900.0])
+    func vaultOpeningAndClosingSlideWithoutSqueezingTheEditor(_ width: CGFloat) async throws {
+        let list = Probe()
+        let editor = Probe()
+        let host = NSHostingView(rootView: Harness(list: list, editor: editor, showsDetail: false))
+        host.frame = CGRect(x: 0, y: 0, width: width, height: 600)
+        await layout(host)
+        let editorView = try #require(editor.view)
+        let listView = try #require(list.view)
+        let editorWidth = editorView.bounds.width
+        editorView.stringValue = "Keep this draft"
+
+        for progress in [0.5, 1.0, 0.5, 0.0] {
+            host.rootView = Harness(list: list, editor: editor, showsDetail: progress > 0, expansion: progress)
+            await layout(host)
+            #expect(editor.view === editorView)
+            #expect(editorView.bounds.width == editorWidth)
+            #expect(editorView.stringValue == "Keep this draft")
+            let frame = editorView.convert(editorView.bounds, to: host)
+            if progress == 0.5 {
+                #expect(frame.minX > width - editorWidth && frame.minX < width)
+                if width == 900 {
+                    #expect(listView.bounds.width > 499 && listView.bounds.width < 900)
+                }
+            } else if progress == 1 {
+                #expect(abs(frame.maxX - width) <= 1)
+            } else {
+                #expect(abs(frame.minX - width) <= 1)
+                #expect(abs(listView.bounds.width - width) <= 1)
+            }
+        }
+        #expect(list.creations == 1 && editor.creations == 1)
     }
 
     private func layout(_ view: NSView) async {
@@ -158,9 +203,12 @@ struct ResponsivePageLayoutTests {
         let list: Probe
         let editor: Probe
         let showsDetail: Bool
+        var expansion: CGFloat? = nil
 
         var body: some View {
-            VaultWorkspaceLayout(showsDetail: showsDetail) {
+            var layout = VaultWorkspaceLayout(showsDetail: showsDetail)
+            if let expansion { layout.animatableData = expansion }
+            return layout {
                 ProbeView(probe: list).frame(maxWidth: .infinity, maxHeight: .infinity)
                 Divider()
                 ProbeView(probe: editor).frame(maxWidth: .infinity, maxHeight: .infinity)

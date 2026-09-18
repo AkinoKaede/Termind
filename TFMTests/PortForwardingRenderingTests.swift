@@ -68,14 +68,30 @@ struct PortForwardingRenderingTests {
         let context = try #require(app.forwarding.connection(for: rules[0].id))
         let prompt = try #require(context.authenticationPrompt)
         navigation.openVaultWork(.forwardingEditor(rules[0].id), on: .portForwarding)
-        for width in [420.0, 960.0] {
-            window.setContentSize(NSSize(width: width, height: 740))
-            controller.view.frame = NSRect(x: 0, y: 0, width: width, height: 740)
+        var passwordField: NSSecureTextField?
+        for width in [960.0, 360.0, 640.0, 641.0, 681.0, 960.0] {
+            window.setContentSize(NSSize(width: width, height: 440))
+            controller.view.frame = NSRect(x: 0, y: 0, width: width, height: 440)
             try await Task.sleep(for: .milliseconds(300))
             controller.view.layoutSubtreeIfNeeded()
             #expect(context.authenticationPrompt?.id == prompt.id)
+            #expect(app.forwarding.connection(for: rules[0].id) === context)
             #expect(window.attachedSheet == nil)
             #expect(app.externalAuthentication.pending.isEmpty)
+            let field = try #require(descendants(in: controller.view).compactMap { $0 as? NSSecureTextField }.first)
+            if let passwordField {
+                #expect(field === passwordField)
+                #expect(field.stringValue == "Unsaved test credential")
+            } else {
+                passwordField = field
+                field.stringValue = "Unsaved test credential"
+                field.delegate?.controlTextDidChange?(
+                    Notification(name: NSControl.textDidChangeNotification, object: field))
+            }
+            let scroll = try #require(field.enclosingScrollView)
+            #expect(scroll.documentView!.frame.height > scroll.contentView.bounds.height)
+            scroll.contentView.scroll(to: CGPoint(x: 0, y: scroll.documentView!.frame.height))
+            scroll.reflectScrolledClipView(scroll.contentView)
             try capture(controller.view, name: "macos-forwarding-journey-\(language)-\(Int(width))")
         }
         navigation.closeVaultWork()
@@ -83,9 +99,116 @@ struct PortForwardingRenderingTests {
         #expect(context.authenticationPrompt?.id == prompt.id)
         navigation.openVaultWork(.forwardingEditor(rules[0].id), on: .portForwarding)
         #expect(app.forwarding.connection(for: rules[0].id) === context)
+        for _ in 0..<3 {
+            navigation.closeVaultWork()
+            await Task.yield()
+            navigation.openVaultWork(.forwardingEditor(rules[0].id), on: .portForwarding)
+            await Task.yield()
+        }
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(context.authenticationPrompt?.id == prompt.id)
+        #expect(app.forwarding.connection(for: rules[0].id) === context)
         app.forwarding.stop(rules[0].id)
         #expect(context.authenticationPrompt == nil)
         #expect(app.forwarding.state(for: rules[0].id) == .stopped)
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func embeddedJourneyDecisionsAndLogsFitShortNarrowColumns(_ language: String) async throws {
+        let host = Host(name: "Production Database Gateway with a Long Name", host: "gateway.example.invalid")
+        let jump = Host(name: "Jump Host", host: "jump.example.invalid")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host, jump]))
+        defer { app.shutdownForTermination() }
+
+        for state in ["host-key", "keyboard", "failure", "logs"] {
+            let journey = ConnectionJourney()
+            journey.begin(host: host, route: [jump, host], purpose: .portForwarding, username: "deploy")
+            let queue = SSHKeyboardInteractiveQueue()
+            var request: Task<[String], any Error>?
+            var hostKey: SSHHostKeyPrompt?
+            var actions = 0
+            let challenge = SSHKeyboardInteractiveChallenge(
+                connectionID: UUID(), hostID: host.id, hostname: host.host, port: 22,
+                username: "deploy", round: 1, name: "PAM", instruction: "Enter your account and verification code.",
+                prompts: [.init(text: "Account", echo: true), .init(text: "Verification code", echo: false)])
+            switch state {
+            case "host-key":
+                let observation = SSHHostKeyObservation(
+                    hostname: host.host, port: 22, algorithm: .ed25519,
+                    fingerprint: "SHA256:abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG")
+                hostKey = SSHHostKeyPrompt(observation: observation, kind: .firstUse)
+                journey.waitForHostKey(at: host.id, fingerprint: observation.fingerprint)
+            case "keyboard":
+                journey.waitForAuthentication(at: host.id)
+                request = Task { try await queue.request(challenge) }
+                for _ in 0..<100 where queue.current == nil { await Task.yield() }
+                #expect(queue.current?.id == challenge.id)
+            case "failure":
+                journey.fail("The forwarding listener could not bind to 127.0.0.1:8080 because the port is in use.")
+            default:
+                journey.log(
+                    endpoint: host.name, message: "Negotiating encryption and authenticating the forwarding route.")
+                journey.showsLogs = true
+            }
+            let controller = NSHostingController(
+                rootView: VaultDetailScaffold(title: "Port Forwarding", symbol: "arrow.left.arrow.right", close: {}) {
+                    ConnectionJourneyView(
+                        journey: journey, hostKey: hostKey,
+                        submitAuthentication: { _, _, _, _, _, _ in actions += 1 },
+                        continueHostKey: { _ in actions += 1 }, trustHostKey: { _ in actions += 1 },
+                        denyHostKey: { actions += 1 }, retry: { actions += 1 }, cancel: { actions += 1 },
+                        keyboardAuthentication: queue, isEmbedded: true)
+                } footer: {
+                    HStack {
+                        Spacer()
+                        Button("Close") {}
+                    }.padding(12)
+                }
+                .environment(app)
+                .environment(\.locale, Locale(identifier: language)))
+            let window = NSWindow(
+                contentRect: NSRect(x: 0, y: 0, width: 400, height: 440),
+                styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            controller.sizingOptions = []
+            window.contentViewController = controller
+            window.makeKeyAndOrderFront(nil)
+            defer {
+                queue.cancel(challenge.id)
+                request?.cancel()
+                window.orderOut(nil)
+                window.contentViewController = nil
+                window.close()
+            }
+            var fields: [NSTextField]?
+            for width in [400.0, 360.0, 400.0] {
+                window.setContentSize(NSSize(width: width, height: 440))
+                controller.view.frame = NSRect(x: 0, y: 0, width: width, height: 440)
+                try await Task.sleep(for: .milliseconds(100))
+                controller.view.layoutSubtreeIfNeeded()
+                #expect(abs(controller.view.bounds.width - width) <= 1)
+                let scroll = try #require(descendants(in: controller.view).compactMap { $0 as? NSScrollView }.first)
+                #expect(abs(scroll.bounds.width - width) <= 1)
+                if state == "keyboard" {
+                    let currentFields = descendants(in: controller.view).compactMap { $0 as? NSTextField }.filter(
+                        \.isEditable)
+                    #expect(currentFields.count == 2)
+                    if let fields {
+                        #expect(zip(fields, currentFields).allSatisfy { $0 === $1 })
+                    } else {
+                        fields = currentFields
+                    }
+                    #expect(queue.current?.id == challenge.id)
+                }
+                try capture(controller.view, name: "macos-forwarding-\(state)-\(language)-\(Int(width))-top")
+                if let document = scroll.documentView {
+                    scroll.contentView.scroll(to: CGPoint(x: 0, y: document.frame.height))
+                    scroll.reflectScrolledClipView(scroll.contentView)
+                    try capture(controller.view, name: "macos-forwarding-\(state)-\(language)-\(Int(width))-bottom")
+                }
+                #expect(actions == 0)
+            }
+        }
     }
 
     private func descendants(in view: NSView) -> [NSView] {

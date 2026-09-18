@@ -5,6 +5,7 @@ public struct ConnectionJourneyHeader: View {
     let journey: ConnectionJourney
     let selectedForeground: Color
     let adaptsLogButtonForAccessibility: Bool
+    let isEmbedded: Bool
     let toggleLogs: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -12,11 +13,13 @@ public struct ConnectionJourneyHeader: View {
         journey: ConnectionJourney,
         selectedForeground: Color = .white,
         adaptsLogButtonForAccessibility: Bool = true,
+        isEmbedded: Bool = false,
         toggleLogs: @escaping () -> Void
     ) {
         self.journey = journey
         self.selectedForeground = selectedForeground
         self.adaptsLogButtonForAccessibility = adaptsLogButtonForAccessibility
+        self.isEmbedded = isEmbedded
         self.toggleLogs = toggleLogs
     }
 
@@ -44,7 +47,7 @@ public struct ConnectionJourneyHeader: View {
             Spacer(minLength: 6)
 
             Button(action: toggleLogs) {
-                if adaptsLogButtonForAccessibility, dynamicTypeSize.isAccessibilitySize {
+                if isEmbedded || (adaptsLogButtonForAccessibility && dynamicTypeSize.isAccessibilitySize) {
                     Image(systemName: journey.showsLogs ? "eye.slash" : "list.bullet.rectangle")
                         .accessibilityLabel(journey.showsLogs ? Text("Hide Logs") : Text("Show Logs"))
                 } else {
@@ -56,8 +59,8 @@ public struct ConnectionJourneyHeader: View {
             .buttonStyle(.bordered)
             .controlSize(.large)
         }
-        .padding(.top, 30)
-        .padding(.horizontal, 34)
+        .padding(.top, isEmbedded ? 16 : 30)
+        .padding(.horizontal, isEmbedded ? 16 : 34)
     }
 
     private var detail: String {

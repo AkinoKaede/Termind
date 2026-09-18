@@ -272,14 +272,14 @@ nonisolated enum Metrics {
     }
 
     enum VaultContent {
-        static let min: CGFloat = 360
+        static let min: CGFloat = 280
         static let ideal: CGFloat = 680
         static let splitMinWidth: CGFloat = min + 1 + Metrics.VaultDetail.min
     }
 
     enum VaultDetail {
         static let min: CGFloat = 360
-        static let ideal: CGFloat = 460
+        static let ideal: CGFloat = 400
         static let max: CGFloat = 720
     }
 
