@@ -6,15 +6,18 @@ public struct AssistantToolDetails: View {
     private let isError: Bool
     private let copy: ((String) -> Void)?
     private let shortensText: Bool
+    private let textColor: Color
     public init(
         items: [AgentToolDetail.Item],
         isError: Bool = false,
         shortensText: Bool = true,
+        textColor: Color = .secondary,
         copy: ((String) -> Void)? = nil
     ) {
         self.items = items
         self.isError = isError
         self.shortensText = shortensText
+        self.textColor = textColor
         self.copy = copy
     }
     public var body: some View {
@@ -42,7 +45,7 @@ public struct AssistantToolDetails: View {
             ScrollView(.horizontal) {
                 Text(preview?.displayed ?? block.text)
                     .font(block.style == .monospaced ? .caption.monospaced() : .caption)
-                    .foregroundStyle(isError ? Color.red : .secondary)
+                    .foregroundStyle(isError ? Color.red : textColor)
             }
             if let preview, preview.isShortened {
                 HStack {
@@ -118,7 +121,7 @@ public struct AssistantApprovalDetails: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            AssistantToolDetails(items: detail.items, shortensText: false)
+            AssistantToolDetails(items: detail.items, shortensText: false, textColor: .primary)
             if !reasons.isEmpty {
                 DisclosureGroup(isExpanded: $showsSafetyDetails) {
                     VStack(alignment: .leading, spacing: 4) {

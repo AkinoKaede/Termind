@@ -28,32 +28,9 @@ public struct SSHKeyboardInteractiveForm: View {
         VStack(alignment: .leading, spacing: 14) {
             Text("Interactive authentication").font(.headline)
             Text(verbatim: challenge.address).font(.caption.monospaced()).foregroundStyle(.secondary)
-            ScrollView {
-                VStack(alignment: .leading, spacing: 12) {
-                    if !challenge.name.isEmpty { Text(verbatim: challenge.name).font(.headline) }
-                    if !challenge.instruction.isEmpty {
-                        Text(verbatim: challenge.instruction).textSelection(.enabled)
-                    }
-                    ForEach(challenge.prompts.indices, id: \.self) { index in
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text(verbatim: challenge.prompts[index].text)
-                            Group {
-                                if challenge.prompts[index].echo {
-                                    TextField("", text: $answers[index])
-                                } else {
-                                    SecureField("", text: $answers[index])
-                                }
-                            }
-                            .focused($focus, equals: index)
-                            .accessibilityLabel(Text(verbatim: challenge.prompts[index].text))
-                            .onSubmit {
-                                if index + 1 < answers.count { focus = index + 1 } else { commit() }
-                            }
-                        }
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.vertical, 4)
+            ViewThatFits(in: .vertical) {
+                fields.fixedSize(horizontal: false, vertical: true)
+                ScrollView { fields }
             }
             .frame(maxHeight: 360)
             .fixedSize(horizontal: false, vertical: true)
@@ -85,6 +62,34 @@ public struct SSHKeyboardInteractiveForm: View {
             if challenge.prompts.isEmpty { commit() }
         }
         .onDisappear { answers = Array(repeating: "", count: answers.count) }
+    }
+
+    private var fields: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if !challenge.name.isEmpty { Text(verbatim: challenge.name).font(.headline) }
+            if !challenge.instruction.isEmpty {
+                Text(verbatim: challenge.instruction).textSelection(.enabled)
+            }
+            ForEach(challenge.prompts.indices, id: \.self) { index in
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(verbatim: challenge.prompts[index].text)
+                    Group {
+                        if challenge.prompts[index].echo {
+                            TextField("", text: $answers[index])
+                        } else {
+                            SecureField("", text: $answers[index])
+                        }
+                    }
+                    .focused($focus, equals: index)
+                    .accessibilityLabel(Text(verbatim: challenge.prompts[index].text))
+                    .onSubmit {
+                        if index + 1 < answers.count { focus = index + 1 } else { commit() }
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 4)
     }
 
     private func commit() {

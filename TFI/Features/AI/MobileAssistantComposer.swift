@@ -10,7 +10,12 @@ private struct MobileAssistantInteractionSurface: ViewModifier {
     func body(content: Content) -> some View {
         content
             .padding(12)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+            .background {
+                // Keep the material in its own view. Applying it as a background style
+                // gives descendants a vibrant foreground that can hide secondary text.
+                RoundedRectangle(cornerRadius: 26, style: .continuous).fill(.regularMaterial)
+                    .ignoresSafeArea(.keyboard)
+            }
             .overlay {
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .stroke(.primary.opacity(0.08), lineWidth: 1)
