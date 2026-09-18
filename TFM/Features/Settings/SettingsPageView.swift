@@ -720,13 +720,19 @@ private struct TerminalSettings: View {
                     editConfiguration(.light)
                 }
             }
-            Section("Dark Configuration") {
+            Section {
                 Picker("Theme", selection: binding(\.darkTheme)) { ForEach(darkThemes) { Text($0.name).tag($0.name) } }
                     .disabled(darkCustomEnabled)
                 Toggle("Custom Configuration", isOn: binding(\.darkCustomEnabled))
                 FormNavigationAction(title: "Edit Custom Configuration") {
                     editConfiguration(.dark)
                 }
+            } header: {
+                Text("Dark Configuration")
+            } footer: {
+                Text(
+                    "Termind uses [Ghostty](https://ghostty.org) as its terminal engine. Custom configuration uses [Ghostty's configuration format](https://ghostty.org/docs/config/reference)."
+                )
             }
             Section("Font Configuration") {
                 TerminalFontPicker(family: $font.family, families: TerminalFontCatalog.shared.families)

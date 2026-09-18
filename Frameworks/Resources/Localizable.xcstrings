@@ -23890,6 +23890,22 @@
         }
       }
     },
+    "Termind uses [Ghostty](https://ghostty.org) as its terminal engine. Custom configuration uses [Ghostty's configuration format](https://ghostty.org/docs/config/reference)." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind使用[Ghostty](https://ghostty.org)作为终端引擎。自定义配置采用[Ghostty配置格式](https://ghostty.org/docs/config/reference)。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Termind使用[Ghostty](https://ghostty.org)作為終端引擎。自訂設定採用[Ghostty設定格式](https://ghostty.org/docs/config/reference)。"
+          }
+        }
+      }
+    },
     "Terms of Use" : {
       "localizations" : {
         "zh-Hans" : {

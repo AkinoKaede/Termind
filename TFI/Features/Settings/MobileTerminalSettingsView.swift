@@ -53,7 +53,7 @@ struct MobileTerminalSettingsView: View {
     }
 
     private func themeSection(dark: Bool) -> some View {
-        Section(dark ? String(localized: "Dark") : String(localized: "Light")) {
+        Section {
             Picker("Theme", selection: binding(dark ? \.darkTheme : \.lightTheme)) {
                 ForEach(TermindTerminalThemeCatalog.allThemes.filter { $0.isDark == dark }, id: \.name) {
                     Text(verbatim: $0.name).tag($0.name)
@@ -64,6 +64,14 @@ struct MobileTerminalSettingsView: View {
                 customText =
                     dark ? model.preferences.darkCustomConfiguration : model.preferences.lightCustomConfiguration
                 editingDark = dark
+            }
+        } header: {
+            Text(dark ? String(localized: "Dark") : String(localized: "Light"))
+        } footer: {
+            if dark {
+                Text(
+                    "Termind uses [Ghostty](https://ghostty.org) as its terminal engine. Custom configuration uses [Ghostty's configuration format](https://ghostty.org/docs/config/reference)."
+                )
             }
         }
     }
