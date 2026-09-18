@@ -537,13 +537,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@%2$@令牌"
+            "value" : "%1$@%2$@词元"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%1$@%2$@權杖"
+            "value" : "%1$@%2$@符元"
           }
         }
       }

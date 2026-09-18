@@ -88,6 +88,17 @@ struct AppLanguageTests {
         #expect(AppLocalization.string("Settings", locale: Locale(identifier: "zh-Hant")) == "設定")
     }
 
+    @Test(arguments: [("zh-Hans", "词元"), ("zh-Hant", "符元")])
+    func assistantTokenCountsUseModelTerminology(language: String, unit: String) {
+        let locale = Locale(identifier: language)
+        let prefix = "≈"
+        let count = "1.2k"
+        #expect(AppLocalization.string("\(prefix)\(count) tokens", locale: locale) == "≈1.2k\(unit)")
+        for key: String.LocalizationValue in ["Token", "Bearer Token", "Clear Token", "Generate Token"] {
+            #expect(!AppLocalization.string(key, locale: locale).contains(unit))
+        }
+    }
+
     @Test(
         arguments: [AppLanguage.english, .simplifiedChinese, .traditionalChinese],
         [ProPurchasePlan.annual, .lifetime])
