@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import Testing
 import UIKit
@@ -99,6 +100,139 @@ struct MobileAdaptiveLayoutTests {
             try await settle()
             #expect(navigation(titled: "Metrics", in: controller) === metrics)
             #expect(metrics.topViewController === page)
+        }
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func assistantTitleAdaptsWithoutLosingItsConversationMenuOrDrafts(language: String) async throws {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app)
+        scene.selectedDestination = .assistant
+        await scene.assistant.load()
+        let first = ConversationModel()
+        first.appendUserTurn("Investigate the production database latency")
+        first.customTitle = language == "en" ? "Investigate the production database latency" : "排查生产数据库延迟与连接问题"
+        first.isPinned = true
+        first.composer.draft = "Keep the first draft"
+        let second = ConversationModel()
+        second.appendUserTurn("Review the deployment")
+        second.composer.draft = "Keep the second draft"
+        scene.assistant.library.insertAndSelect(second)
+        scene.assistant.library.insertAndSelect(first)
+        try await withRoot(app: app, scene: scene, language: language) { controller in
+            let tabs = try #require(find(UITabBarController.self, in: controller))
+            let navigation = try #require(navigation(titled: first.derivedTitle, in: controller))
+            let page = try #require(navigation.topViewController)
+            for (sizeClass, sidebar): (UIUserInterfaceSizeClass, Bool) in [
+                (.regular, false), (.regular, true), (.compact, false), (.regular, false),
+            ] {
+                resize(controller, to: sizeClass, width: sizeClass == .regular ? 1366 : 430)
+                tabs.sidebar.isHidden = !sidebar
+                try await settle()
+                let topBar = sizeClass == .regular && !sidebar
+                capture(controller, name: "assistant-title-\(sizeClass.rawValue)-\(sidebar)-\(language)")
+                #expect(navigation.topViewController === page)
+                #expect(scene.assistant.conversation === first)
+                #expect(first.composer.draft == "Keep the first draft")
+                #expect(
+                    visibleLabels(in: navigation.navigationBar).contains { $0.text == first.derivedTitle } == !topBar)
+                let switcher = toolbarButton(namedOneOf: ["Conversations", "对话", "對話"], in: navigation)
+                #expect((switcher != nil) == topBar)
+                if let switcher {
+                    let trailingButtons =
+                        page.navigationItem.trailingItemGroups.flatMap(\.barButtonItems)
+                        + (page.navigationItem.rightBarButtonItems ?? [])
+                    // New Conversation and More, without a second overflow for the hidden title menu.
+                    #expect(Set(trailingButtons.map(ObjectIdentifier.init)).count == 2)
+                    let menu = try #require(switcher.menu)
+                    let actions = try await resolvedMenuActions(menu, in: page.view)
+                    #expect(actions.map(\.title).contains(first.derivedTitle))
+                    let selectSecond = try #require(actions.first { $0.title == second.derivedTitle })
+                    UIButton(primaryAction: selectSecond).sendActions(for: .primaryActionTriggered)
+                    try await settle()
+                    #expect(scene.assistant.conversation === second)
+                    #expect(second.composer.draft == "Keep the second draft")
+                    let updatedSwitcher = try #require(
+                        toolbarButton(namedOneOf: ["Conversations", "对话", "對話"], in: navigation))
+                    let updatedMenu = try #require(updatedSwitcher.menu)
+                    let updatedActions = try await resolvedMenuActions(updatedMenu, in: page.view)
+                    let selectFirst = try #require(updatedActions.first { $0.title == first.derivedTitle })
+                    UIButton(primaryAction: selectFirst).sendActions(for: .primaryActionTriggered)
+                    try await settle()
+                    #expect(scene.assistant.conversation === first)
+                }
+            }
+            for route in [MobileAssistantLibraryRoute.conversations, .archived] {
+                scene.assistantLibraryRoute = route
+                try await settle()
+                let title = try #require(navigation.topViewController?.navigationItem.title)
+                #expect(!title.isEmpty && title != first.derivedTitle)
+                #expect(visibleLabels(in: navigation.navigationBar).contains { $0.text == title })
+                capture(controller, name: "assistant-library-\(route.rawValue)-\(language)")
+                scene.assistantLibraryRoute = nil
+                try await settle()
+                #expect(navigation.topViewController === page)
+                #expect(!visibleLabels(in: navigation.navigationBar).contains { $0.text == first.derivedTitle })
+            }
+        }
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func metricsDetailTitleAdaptsWhileItsPickerAndNavigationSurvive(language: String) async throws {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app)
+        scene.selectedDestination = .metrics
+        let server = ServerMetric(
+            selection: MetricsSelection(id: UUID(), enabled: false),
+            name: language == "en" ? "Production database server in Singapore" : "新加坡生产环境数据库服务器")
+        var features = MobileFeatureRegistry()
+        for feature in MobileFeatureRegistry.standard().registrations {
+            features.register(
+                feature.id == .metrics
+                    ? MobileFeatureRegistration(id: .metrics, title: "Metrics", symbol: "waveform.path.ecg") { app, _ in
+                        AnyView(MetricsDetailFeature(app: app, server: server))
+                    } : feature)
+        }
+        try await withRoot(app: app, scene: scene, language: language, features: features) { controller in
+            let tabs = try #require(find(UITabBarController.self, in: controller))
+            let navigation = try #require(navigation(titled: server.name, in: controller))
+            let page = try #require(navigation.topViewController)
+            var selectedProcesses = false
+            for (sizeClass, width, sidebar): (UIUserInterfaceSizeClass, CGFloat, Bool) in [
+                (.regular, 1024, false), (.regular, 600, false), (.regular, 1366, true),
+                (.compact, 430, false), (.regular, 1024, false), (.compact, 430, false),
+            ] {
+                resize(controller, to: sizeClass, width: width)
+                tabs.sidebar.isHidden = !sidebar
+                try await settle()
+                capture(controller, name: "metrics-title-\(Int(width))-\(sidebar)-\(language)")
+                #expect(navigation.topViewController === page)
+                #expect(navigation.viewControllers.count == 2)
+                #expect(page.navigationItem.title == server.name)
+                #expect(toolbarButton(namedOneOf: ["Metrics", "监控", "監控"], in: navigation) != nil)
+                if sidebar {
+                    #expect(visibleLabels(in: navigation.navigationBar).contains { $0.text == server.name })
+                } else if sizeClass == .regular {
+                    #expect(!visibleLabels(in: navigation.navigationBar).contains { $0.text == server.name })
+                }
+                // The bottom bar leaves the principal toolbar slot available for the existing picker.
+                if sizeClass == .compact {
+                    let picker = try #require(find(UISegmentedControl.self, in: controller.view))
+                    #expect(picker.numberOfSegments == 2)
+                    #expect(picker.selectedSegmentIndex == (selectedProcesses ? 1 : 0))
+                    picker.selectedSegmentIndex = 1
+                    picker.sendActions(for: .valueChanged)
+                    selectedProcesses = true
+                    try await settle()
+                    #expect(find(UICollectionView.self, in: page.view) != nil)
+                }
+            }
+            navigation.popViewController(animated: false)
+            try await settle()
+            #expect(navigation.viewControllers.count == 1)
+            #expect(scene.selectedDestination == .metrics)
         }
     }
 
@@ -398,6 +532,47 @@ struct MobileAdaptiveLayoutTests {
         return (view as? UILabel).map { [$0] } ?? view.subviews.flatMap { visibleLabels(in: $0) }
     }
 
+    private func toolbarButton(namedOneOf names: Set<String>, in navigation: UINavigationController) -> UIBarButtonItem?
+    {
+        guard let item = navigation.topViewController?.navigationItem else { return nil }
+        let buttons =
+            item.leadingItemGroups.flatMap(\.barButtonItems)
+            + item.trailingItemGroups.flatMap(\.barButtonItems)
+            + (item.leftBarButtonItems ?? []) + (item.rightBarButtonItems ?? [])
+        return buttons.first { button in
+            (button.accessibilityLabel ?? button.title ?? button.customView?.accessibilityLabel).map(names.contains)
+                == true
+        }
+    }
+
+    private func menuActions(_ menu: UIMenu) -> [UIAction] {
+        menu.children.flatMap { element -> [UIAction] in
+            if let action = element as? UIAction { return [action] }
+            if let submenu = element as? UIMenu { return menuActions(submenu) }
+            return []
+        }
+    }
+
+    private func resolvedMenuActions(_ menu: UIMenu, in view: UIView) async throws -> [UIAction] {
+        // SwiftUI supplies deferred menu elements. Present the native menu to ask UIKit to resolve them.
+        let button = UIButton(frame: CGRect(x: 20, y: 100, width: 44, height: 44))
+        button.menu = menu
+        button.showsMenuAsPrimaryAction = true
+        view.addSubview(button)
+        defer { button.removeFromSuperview() }
+        button.performPrimaryAction()
+        try await settle()
+        let interaction = try #require(button.contextMenuInteraction)
+        var actions: [UIAction] = []
+        interaction.updateVisibleMenu { resolved in
+            actions = menuActions(resolved)
+            return resolved
+        }
+        interaction.dismissMenu()
+        try await settle()
+        return actions
+    }
+
     private func settle() async throws { try await Task.sleep(for: .milliseconds(500)) }
 
     private func capture(_ controller: UIViewController, name: String) {
@@ -405,6 +580,20 @@ struct MobileAdaptiveLayoutTests {
             controller.view.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
         }
         Attachment.record(data, named: "\(name).png")
+    }
+}
+
+private struct MetricsDetailFeature: View {
+    let app: MobileAppModel
+    let server: ServerMetric
+    @State private var showsDetail = true
+
+    var body: some View {
+        Text("Metrics")
+            .navigationTitle("Metrics")
+            .navigationDestination(isPresented: $showsDetail) {
+                MobileMetricsDetailView(app: app, server: server)
+            }
     }
 }
 

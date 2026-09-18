@@ -21,6 +21,7 @@ struct MobileAssistantView: View {
     let app: MobileAppModel
     @Bindable var model: MobileAssistantSceneModel
     @Binding var libraryRoute: MobileAssistantLibraryRoute?
+    @Environment(\.tabBarPlacement) private var tabBarPlacement
     @State private var restoreComposerFocusAfterLibrary = false
     @State private var nextComposerFocusRequest = 0
     @State private var composerFocusRequest: Int?
@@ -41,11 +42,24 @@ struct MobileAssistantView: View {
 
     var body: some View {
         detail
-            .navigationTitle(
-                model.conversation.isEmpty ? String(localized: "Assistant") : model.conversation.derivedTitle
-            )
+            .navigationTitle(conversationTitle)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarTitleMenu { conversationTitleMenu }
+            .toolbar(removing: usesConversationIcon ? .title : nil)
+            .toolbar {
+                if usesConversationIcon {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Menu {
+                            conversationTitleMenu
+                        } label: {
+                            Label("Conversations", systemImage: "bubble.left.and.bubble.right")
+                        }
+                        .labelStyle(.iconOnly)
+                        .accessibilityValue(conversationTitle)
+                    }
+                } else if libraryRoute == nil {
+                    ToolbarTitleMenu { conversationTitleMenu }
+                }
+            }
             .toolbar {
                 Button("New Conversation", systemImage: "plus.bubble", action: newConversation)
                     .labelStyle(.iconOnly)
@@ -131,6 +145,14 @@ struct MobileAssistantView: View {
             } message: {
                 Text(model.error ?? "")
             }
+    }
+
+    private var conversationTitle: String {
+        model.conversation.isEmpty ? String(localized: "Assistant") : model.conversation.derivedTitle
+    }
+
+    private var usesConversationIcon: Bool {
+        tabBarPlacement == .topBar && libraryRoute == nil
     }
 
     private var detail: some View {

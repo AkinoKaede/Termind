@@ -806,6 +806,11 @@ unsaved forms. Metrics has one independent stack in all widths; Vault search sho
 select that destination rather than constructing another Metrics page. Resizing never
 restarts live connections, transfers or Agent runs, or creates a new conversation.
 
+Metrics detail and Assistant use the actual tab-bar placement to hide their toolbar
+titles only beside the top tab bar. Assistant retains its conversation switcher as
+an icon menu there; sidebar and bottom-bar layouts retain the original titles and
+title menus. Assistant library pages retain their titles in every placement.
+
 Editor saves do not gate layout changes. Their tasks, duplicate-submit protection,
 unsaved-dismiss confirmation and error feedback survive width changes. Sheets follow
 the presenting window's width using stable presentation modifiers. Cards use container

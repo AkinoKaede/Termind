@@ -71,10 +71,11 @@ struct MobileMetricsView: View {
     }
 }
 
-private struct MobileMetricsDetailView: View {
+struct MobileMetricsDetailView: View {
     let app: MobileAppModel
     let server: ServerMetric
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.tabBarPlacement) private var tabBarPlacement
     @State private var page = MobileMetricsDetailPage.status
     @State private var observer = UUID()
     @State private var availableWidth: CGFloat = 0
@@ -124,6 +125,7 @@ private struct MobileMetricsDetailView: View {
         }
         .navigationTitle(server.name)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(removing: tabBarPlacement == .topBar ? .title : nil)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 if !MobileMetricsDetailPage.showsBothColumns(width: availableWidth) {
