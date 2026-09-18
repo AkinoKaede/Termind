@@ -522,6 +522,7 @@ struct MobileWorkspaceView: View {
     private func receiveUploadProviders(_ providers: [NSItemProvider]) -> Bool {
         guard MobileDropPayloadLoader.acceptsUpload(providers) else { return false }
         uploadDropTask?.cancel()
+        workspace.cancelPendingUpload()
         let destination = workspace.uploadDestination
         uploadDropTask = Task {
             let payload = await MobileDropPayloadLoader.load(
@@ -540,7 +541,7 @@ struct MobileWorkspaceView: View {
                 }
             }
             if let error = payload.failures.first {
-                workspace.operationError = error
+                workspace.reportUploadFailure(error)
             }
         }
         return true
@@ -755,10 +756,10 @@ private struct MobileUploadNoticeOverlay: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(notice.title).font(.headline)
                 Text(notice.detail)
-                    .font(.caption.monospaced())
+                    .font(notice.isRejected ? .caption : .caption.monospaced())
                     .foregroundStyle(.secondary)
                     .lineLimit(2)
-                    .truncationMode(.middle)
+                    .truncationMode(notice.isRejected ? .tail : .middle)
             }
         }
         .accessibilityElement(children: .combine)

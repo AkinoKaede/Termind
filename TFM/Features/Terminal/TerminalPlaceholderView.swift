@@ -33,7 +33,6 @@ struct TerminalPlaceholderView: View {
     @State private var uploadPreparationTask: Task<Void, Never>?
     @State private var uploadPreparationID: UUID?
     @State private var uploadEnqueueTask: Task<Void, Never>?
-    @State private var uploadError: String?
 
     /// The surface decides the pane's size; everything else is an overlay.
     ///
@@ -75,8 +74,6 @@ struct TerminalPlaceholderView: View {
             .onChange(of: sshSession.connectionAttemptID) { cancelPendingUpload() }
             .onDisappear {
                 terminalFocused = false
-                uploadNoticeTask?.cancel()
-                uploadPreparationTask?.cancel()
                 cancelPendingUpload()
             }
             .onChange(of: terminalAppearance) { _, appearance in
@@ -96,17 +93,6 @@ struct TerminalPlaceholderView: View {
                 Button("Cancel", role: .cancel) { cancelPendingUpload() }
             } message: {
                 Text("Use this choice for all conflicts in this batch.")
-            }
-            .alert(
-                "Upload Failed",
-                isPresented: Binding(
-                    get: { uploadError != nil },
-                    set: { if !$0 { uploadError = nil } }
-                )
-            ) {
-                Button("OK") { uploadError = nil }
-            } message: {
-                Text(uploadError ?? "")
             }
     }
 
@@ -181,6 +167,7 @@ struct TerminalPlaceholderView: View {
         guard app.proAccess.require(.terminalFileUpload) else { return false }
         let files = urls.filter(\.isFileURL)
         guard !files.isEmpty else { return false }
+        cancelPendingUpload()
         guard uploadTargetProblem == nil,
             let configuration = sshSession.transferConfiguration,
             let workingDirectory = sshSession.workingDirectory
@@ -195,12 +182,10 @@ struct TerminalPlaceholderView: View {
         }
 
         let destination = RemotePath.normalized(workingDirectory)
-        cancelPendingUpload()
         let generation = sshSession.connectionAttemptID
         let preparationID = UUID()
         uploadPreparationID = preparationID
         pendingUploadItemCount = files.count
-        uploadNoticeTask?.cancel()
         uploadNotice = .preparing(destination)
 
         uploadPreparationTask = Task {
@@ -232,14 +217,12 @@ struct TerminalPlaceholderView: View {
                 guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
                 if let error = uploadSession.operationError {
                     uploadSession.disconnect()
-                    uploadNotice = nil
-                    uploadError = error
+                    showUploadNotice(.rejected(error))
                     return
                 }
                 guard uploadSession.hasPendingBatch else {
                     uploadSession.disconnect()
-                    uploadNotice = nil
-                    uploadError = String(localized: "No uploadable files were found.")
+                    showUploadNotice(.rejected(String(localized: "No uploadable files were found.")))
                     return
                 }
                 pendingUploadSession = uploadSession
@@ -256,9 +239,10 @@ struct TerminalPlaceholderView: View {
                 uploadNotice = nil
             } catch {
                 await connectedClient?.disconnect()
-                guard uploadPreparationID == preparationID else { return }
-                uploadNotice = nil
-                uploadError = error.localizedDescription
+                guard uploadPreparationID == preparationID,
+                    sshSession.connectionAttemptID == generation
+                else { return }
+                showUploadNotice(.rejected(error.localizedDescription))
             }
         }
         return true
@@ -268,6 +252,7 @@ struct TerminalPlaceholderView: View {
         guard let uploadSession = pendingUploadSession else { return }
         let itemCount = pendingUploadItemCount
         let destination = uploadSession.path
+        let generation = sshSession.connectionAttemptID
         uploadConflictPresented = false
         uploadEnqueueTask = Task {
             await uploadSession.enqueuePending(
@@ -276,13 +261,14 @@ struct TerminalPlaceholderView: View {
             )
             let error = uploadSession.operationError
             uploadSession.disconnect()
-            guard pendingUploadSession === uploadSession else { return }
+            guard !Task.isCancelled, pendingUploadSession === uploadSession,
+                sshSession.connectionAttemptID == generation
+            else { return }
             uploadEnqueueTask = nil
             pendingUploadSession = nil
             pendingUploadItemCount = 0
             if let error {
-                uploadNotice = nil
-                uploadError = error
+                showUploadNotice(.rejected(error))
             } else {
                 showUploadNotice(.queued(itemCount, destination))
             }
@@ -295,23 +281,25 @@ struct TerminalPlaceholderView: View {
         uploadPreparationID = nil
         uploadEnqueueTask?.cancel()
         uploadEnqueueTask = nil
+        uploadNoticeTask?.cancel()
+        uploadNoticeTask = nil
         uploadNotice = nil
-        guard let uploadSession = pendingUploadSession else { return }
         uploadConflictPresented = false
+        pendingUploadItemCount = 0
+        guard let uploadSession = pendingUploadSession else { return }
         uploadSession.cancelPendingBatch()
         uploadSession.disconnect()
         pendingUploadSession = nil
-        pendingUploadItemCount = 0
-        uploadNotice = nil
     }
 
     private func showUploadNotice(_ notice: WorkspaceUploadNotice) {
         uploadNoticeTask?.cancel()
         uploadNotice = notice
         uploadNoticeTask = Task {
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(notice.isRejected ? 3 : 2))
             guard !Task.isCancelled, uploadNotice == notice else { return }
             uploadNotice = nil
+            uploadNoticeTask = nil
         }
     }
 
@@ -364,15 +352,16 @@ private struct TerminalUploadOverlay: View {
             symbol
             Text(notice.title).font(.headline)
             Text(notice.detail)
-                .font(.caption.monospaced())
+                .font(notice.isRejected ? .caption : .caption.monospaced())
                 .foregroundStyle(.secondary)
                 .lineLimit(2)
-                .truncationMode(.middle)
+                .truncationMode(notice.isRejected ? .tail : .middle)
         }
         .multilineTextAlignment(.center)
         .padding(.horizontal, Metrics.Space.xl)
         .padding(.vertical, Metrics.Space.l)
         .termindTransientOverlaySurface()
+        .accessibilityElement(children: .combine)
     }
 
     @ViewBuilder

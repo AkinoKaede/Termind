@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
 import UniformTypeIdentifiers
@@ -452,9 +453,164 @@ struct MobileUploadBatchTests {
         workspace.receiveWorkingDirectory("/srv/current")
         #expect(workspace.uploadTargetProblem == nil)
         #expect(workspace.prepareUpload([URL(fileURLWithPath: "/tmp/termind-test-upload")]))
-        #expect(await eventually { workspace.operationError != nil })
+        #expect(await eventually { workspace.uploadNotice?.isRejected == true })
+        #expect(workspace.operationError == nil)
         #expect(workspace.keyboardAuthentication.current == nil)
         #expect(transfers.sftpTransfers.isEmpty)
+    }
+
+    @Test(arguments: [UploadFailureStage.connection, .localFile, .preparation, .enqueue])
+    private func terminalUploadFailuresUseNoticesAndReleaseTheClient(_ stage: UploadFailureStage) async throws {
+        let client = MobileUploadSFTPClient(failureStage: stage)
+        let workspace = uploadWorkspace(client: client) {
+            if stage == .connection { throw URLError(.cannotConnectToHost) }
+            return client
+        }
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        workspace.receiveWorkingDirectory("/srv/current")
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: source) }
+        if stage == .enqueue {
+            try FileManager.default.createDirectory(at: source, withIntermediateDirectories: true)
+        } else if stage != .localFile {
+            try Data("upload".utf8).write(to: source)
+        }
+
+        #expect(workspace.prepareUpload([source]))
+        #expect(await eventually { workspace.uploadNotice?.isRejected == true })
+        #expect(workspace.operationError == nil)
+        #expect(workspace.transfers?.sftpTransfers.isEmpty == true)
+        #expect(!workspace.hasPendingTransferConflict)
+        if stage != .connection { #expect(await client.disconnectCount == 1) }
+    }
+
+    @Test func browserUploadFailuresKeepTheirOperationAlert() async throws {
+        let client = MobileUploadSFTPClient()
+        let workspace = uploadWorkspace(client: client, kind: .sftp)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        let missing = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        #expect(workspace.prepareUpload([missing]))
+        #expect(await eventually { workspace.operationError != nil })
+        #expect(workspace.uploadNotice == nil)
+        #expect(await client.disconnectCount == 0)
+        workspace.reportUploadFailure("Provider failed")
+        #expect(workspace.operationError == "Provider failed")
+        #expect(workspace.uploadNotice == nil)
+    }
+
+    @Test func partialFileProviderFailureStaysVisibleWhileReadableFilesAreQueued() async throws {
+        let client = MobileUploadSFTPClient()
+        let workspace = uploadWorkspace(client: client)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        workspace.receiveWorkingDirectory("/srv/current")
+        let source = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try Data("readable".utf8).write(to: source)
+        defer { try? FileManager.default.removeItem(at: source) }
+        let good = NSItemProvider()
+        good.suggestedName = "good.txt"
+        good.registerFileRepresentation(
+            forTypeIdentifier: UTType.plainText.identifier, fileOptions: [], visibility: .all
+        ) { completion in
+            completion(source, false, nil)
+            return nil
+        }
+        let bad = NSItemProvider()
+        bad.suggestedName = "bad.txt"
+        bad.registerFileRepresentation(
+            forTypeIdentifier: UTType.plainText.identifier, fileOptions: [], visibility: .all
+        ) { completion in
+            completion(nil, false, CocoaError(.fileReadNoPermission))
+            return nil
+        }
+        let payload = await MobileDropPayloadLoader.load([good, bad], kinds: [.files], fileMode: .staged)
+        defer {
+            if let root = payload.stagedRoot { try? FileManager.default.removeItem(at: root) }
+        }
+        let error = try #require(payload.failures.first)
+        #expect(workspace.prepareUpload(payload.fileURLs))
+        workspace.reportUploadFailure(error)
+        #expect(await eventuallyAsync { await client.disconnectCount == 1 })
+        #expect(workspace.transfers?.sftpTransfers.count == 1)
+        #expect(workspace.uploadNotice == .rejected(error))
+        #expect(workspace.operationError == nil)
+
+        // A new batch replaces the partial-failure notice and restores the ordinary success timer.
+        #expect(workspace.prepareUpload([source]))
+        #expect(workspace.uploadNotice == .preparing("/srv/current"))
+        #expect(await eventually { workspace.uploadNotice == .queued(1, "/srv/current") })
+        try await Task.sleep(for: .milliseconds(2300))
+        #expect(workspace.uploadNotice == nil)
+    }
+
+    @Test func repeatedFailuresRestartTheThreeSecondDismissalTimer() async throws {
+        let workspace = uploadWorkspace(client: MobileUploadSFTPClient())
+        defer { workspace.disconnect() }
+        workspace.reportUploadFailure("Unreadable file")
+        try await Task.sleep(for: .milliseconds(1600))
+        workspace.reportUploadFailure("Unreadable file")
+        try await Task.sleep(for: .milliseconds(1600))
+        #expect(workspace.uploadNotice == .rejected("Unreadable file"))
+        try await Task.sleep(for: .milliseconds(1700))
+        #expect(workspace.uploadNotice == nil)
+        #expect(workspace.operationError == nil)
+    }
+
+    @Test(arguments: [false, true])
+    func cancelledOpeningCannotReplaceANewerDropFailure(_ lateFailure: Bool) async throws {
+        let client = MobileUploadSFTPClient()
+        let opening = MobileUploadOpeningGate()
+        let workspace = uploadWorkspace(client: client) {
+            if opening.hasStarted { throw URLError(.timedOut) }
+            return try await opening.open()
+        }
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        workspace.receiveWorkingDirectory("/srv/current")
+        let source = URL(fileURLWithPath: "/tmp/unused-upload")
+        #expect(workspace.prepareUpload([source]))
+        #expect(await eventually { opening.hasStarted })
+        workspace.cancelPendingUpload()
+        #expect(workspace.uploadNotice == nil)
+        #expect(workspace.operationError == nil)
+        #expect(workspace.prepareUpload([source]))
+        #expect(await eventually { workspace.uploadNotice?.isRejected == true })
+        let notice = workspace.uploadNotice
+        opening.finish(lateFailure ? .failure(SSHInteractionRequired()) : .success(client))
+        #expect(await eventually { opening.hasFinished })
+        if !lateFailure { #expect(await eventuallyAsync { await client.disconnectCount == 1 }) }
+        #expect(workspace.uploadNotice == notice)
+        #expect(workspace.operationError == nil)
+        #expect(workspace.transfers?.sftpTransfers.isEmpty == true)
+        workspace.cancelPendingUpload()
+        #expect(workspace.uploadNotice == nil)
+    }
+
+    private func uploadWorkspace(
+        client: MobileUploadSFTPClient,
+        kind: ConnectionHistoryEntry.Kind = .ssh,
+        open: (() async throws -> any SFTPClientProtocol)? = nil
+    ) -> MobileWorkspace {
+        let identity = Identity(name: "Upload", username: "user")
+        let host = Host(name: "Upload", host: "example.invalid", identityID: identity.id)
+        let library = HostLibraryModel(hosts: [host], identities: [identity])
+        let transfers = SFTPTransferCoordinator(store: library) { client }
+        let services = MobileWorkspaceConnectionServices(
+            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            connectSSH: { _, _, _, _, _, _ in },
+            connectSFTP: { _, _, _ in
+                if let open { return try await open() }
+                return client
+            }, writeSSH: { _, _ in })
+        return MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: kind),
+            hosts: library, transfers: transfers, connectionServices: services)
     }
 
     @Test func serialUploadSurvivesClosingTheSFTPWorkspace() async throws {
@@ -827,6 +983,30 @@ struct MobileUploadBatchTests {
     }
 }
 
+private nonisolated enum UploadFailureStage: Sendable {
+    case connection, localFile, preparation, enqueue
+}
+
+@MainActor
+private final class MobileUploadOpeningGate {
+    private var continuation: CheckedContinuation<any SFTPClientProtocol, any Error>?
+    private(set) var hasStarted = false
+    private(set) var hasFinished = false
+
+    func open() async throws -> any SFTPClientProtocol {
+        defer { hasFinished = true }
+        return try await withCheckedThrowingContinuation {
+            continuation = $0
+            hasStarted = true
+        }
+    }
+
+    func finish(_ result: Result<any SFTPClientProtocol, any Error>) {
+        continuation?.resume(with: result)
+        continuation = nil
+    }
+}
+
 private actor MobileUploadSFTPClient: SFTPClientProtocol {
     private(set) var uploadedData: [String: Data] = [:]
     private(set) var createdDirectories: [String] = []
@@ -836,6 +1016,7 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
     private(set) var startedUploads = 0
     private let blocksUpload: Bool
     private let requiresInteraction: Bool
+    private let failureStage: UploadFailureStage?
     private var uploadWaiters: [CheckedContinuation<Void, Never>] = []
     private let attributes: [String: RemoteFile]
     private let failedDownloadPaths: Set<String>
@@ -845,10 +1026,12 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         attributes: [String: RemoteFile] = [:],
         failedDownloadPaths: Set<String> = [],
         children: [String: [RemoteFile]] = [:],
-        blocksUpload: Bool = false, requiresInteraction: Bool = false
+        blocksUpload: Bool = false, requiresInteraction: Bool = false,
+        failureStage: UploadFailureStage? = nil
     ) {
         self.blocksUpload = blocksUpload
         self.requiresInteraction = requiresInteraction
+        self.failureStage = failureStage
         self.attributes = attributes
         self.failedDownloadPaths = failedDownloadPaths
         self.children = children
@@ -868,9 +1051,15 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         listedDirectories.append(path)
         return children[path, default: []]
     }
-    func attributes(at path: String) async throws -> RemoteFile? { attributes[path] }
+    func attributes(at path: String) async throws -> RemoteFile? {
+        if failureStage == .preparation { throw SFTPError.operation("Cannot inspect upload destination") }
+        return attributes[path]
+    }
     func setPermissions(at path: String, to permissions: UInt32) async throws {}
-    func createDirectory(at path: String) async throws { createdDirectories.append(path) }
+    func createDirectory(at path: String) async throws {
+        if failureStage == .enqueue { throw SFTPError.operation("Cannot create upload directory") }
+        createdDirectories.append(path)
+    }
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {}
     func removeFile(at path: String) async throws { removedPaths.append(path) }
     func removeDirectory(at path: String) async throws { removedPaths.append(path) }

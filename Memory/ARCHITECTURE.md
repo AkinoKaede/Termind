@@ -347,6 +347,11 @@ whose endpoints share one connection alternate bounded reads and writes on that 
 checking source size/metadata and EOF before the existing atomic temporary-file commit.
 Terminal preflight and batch preparation are cancellable and scoped to the terminal
 generation; late results cannot enqueue files after invalidation.
+Terminal file-drop failures, including interactive-authentication requirements and mobile
+file-provider staging failures, use the existing nonmodal upload overlay on both platforms.
+Rejections remain visible for three seconds; queued notices last two seconds and cannot
+replace a visible failure from the same batch. New drops retire earlier preparation and
+notice timers. SFTP browser operation alerts and transfer conflict choices remain app-owned.
 Upload/download checkpoints, file references, acknowledged offsets and incremental digests live only
 in memory. Pause and connection loss retain the destination partial file and release
 the connection; explicit resume verifies the source and partial prefix before seeking.

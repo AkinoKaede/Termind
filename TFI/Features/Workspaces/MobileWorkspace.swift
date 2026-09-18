@@ -1003,6 +1003,7 @@ final class MobileWorkspace: Identifiable {
     func prepareUpload(_ urls: [URL]) -> Bool {
         let urls = urls.filter(\.isFileURL)
         guard !urls.isEmpty else { return false }
+        cancelPendingUpload()
         guard transfers != nil, let configuration = transferConfiguration,
             let destination = uploadDestination
         else {
@@ -1015,7 +1016,6 @@ final class MobileWorkspace: Identifiable {
             return false
         }
 
-        cancelPendingUpload()
         let connectionGeneration = generation
         let preparationID = UUID()
         uploadPreparationID = preparationID
@@ -1078,7 +1078,7 @@ final class MobileWorkspace: Identifiable {
                     connectionGeneration: connectionGeneration
                 )
                 if batch.conflictCount > 0 {
-                    uploadNotice = nil
+                    if uploadNotice?.isRejected != true { uploadNotice = nil }
                 } else {
                     enqueuePendingUpload(.replace)
                 }
@@ -1087,9 +1087,8 @@ final class MobileWorkspace: Identifiable {
                 if uploadPreparationID == preparationID { uploadNotice = nil }
             } catch {
                 if ownsClient { await client?.disconnect() }
-                guard uploadPreparationID == preparationID else { return }
-                uploadNotice = nil
-                operationError = error.localizedDescription
+                guard uploadPreparationID == preparationID, generation == connectionGeneration else { return }
+                reportUploadFailure(error.localizedDescription)
             }
         }
         return true
@@ -1286,9 +1285,8 @@ final class MobileWorkspace: Identifiable {
                 if uploadEnqueueID == enqueueID { uploadNotice = nil }
             } catch {
                 if pendingUpload.ownsClient { await pendingUpload.session.releaseOwner() }
-                guard uploadEnqueueID == enqueueID else { return }
-                uploadNotice = nil
-                operationError = error.localizedDescription
+                guard uploadEnqueueID == enqueueID, generation == pendingUpload.connectionGeneration else { return }
+                reportUploadFailure(error.localizedDescription)
             }
         }
     }
@@ -1312,14 +1310,25 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
+    func reportUploadFailure(_ message: String) {
+        if descriptor.kind == .ssh {
+            showUploadNotice(.rejected(message))
+        } else {
+            uploadNotice = nil
+            operationError = message
+        }
+    }
+
     private func showUploadNotice(_ notice: WorkspaceUploadNotice) {
+        // A partially loaded drop can enqueue its readable files while its failure is still visible.
+        if case .queued = notice, uploadNotice?.isRejected == true { return }
         uploadNoticeID = nil
         uploadNoticeTask?.cancel()
         let noticeID = UUID()
         uploadNoticeID = noticeID
         uploadNotice = notice
         uploadNoticeTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(2))
+            try? await Task.sleep(for: .seconds(notice.isRejected ? 3 : 2))
             guard !Task.isCancelled, self?.uploadNoticeID == noticeID,
                 self?.uploadNotice == notice
             else { return }

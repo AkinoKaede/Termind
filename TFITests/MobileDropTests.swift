@@ -3,6 +3,7 @@ import GhosttyTerminal
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 import UIKit
 import UniformTypeIdentifiers
@@ -165,6 +166,63 @@ nonisolated private func failedFileProvider() -> NSItemProvider {
 
 @Suite(.serialized) @MainActor
 struct MobileWorkspaceDropTests {
+    @Test func failedProviderDropShowsANoticeWithoutPresentingAnAlertOrTakingFocus() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: UUID(), title: "Upload Test", kind: .ssh), hosts: app.library)
+        let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let previous = scene.keyWindow
+        let window = UIWindow(windowScene: scene)
+        let controller = UIHostingController(
+            rootView: NavigationStack {
+                MobileWorkspaceView(
+                    library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
+                    workspace: workspace, workspaces: [workspace], selectWorkspace: { _ in },
+                    renameWorkspace: { _ in }, openSameDirectory: { _ in }, closeWorkspace: { _ in })
+            }
+            .environment(\.scenePhase, .active))
+        window.rootViewController = controller
+        window.makeKeyAndVisible()
+        defer {
+            window.isHidden = true
+            window.rootViewController = nil
+            previous?.makeKey()
+            workspace.disconnect()
+        }
+        controller.view.layoutIfNeeded()
+        workspace.terminal.requestFocus()
+        try await Task.sleep(for: .milliseconds(300))
+        let responder = try #require(firstResponder(in: window))
+        let region = try #require(dropRegion(in: controller.view))
+        let interaction = try #require(window.interactions.compactMap { $0 as? UIDropInteraction }.first)
+        let delegate = try #require(interaction.delegate)
+        let session = TestDropSession(providers: [failedFileProvider()], window: window)
+        session.point = region.convert(CGPoint(x: region.bounds.midX, y: region.bounds.midY), to: window)
+        delegate.dropInteraction?(interaction, sessionDidEnter: session)
+        delegate.dropInteraction?(interaction, performDrop: session)
+        delegate.dropInteraction?(interaction, sessionDidEnd: session)
+        for _ in 0..<100 where workspace.uploadNotice?.isRejected != true {
+            try await Task.sleep(for: .milliseconds(20))
+        }
+        #expect(workspace.uploadNotice?.isRejected == true)
+        #expect(workspace.operationError == nil)
+        #expect(controller.presentedViewController == nil)
+        #expect(firstResponder(in: window) === responder)
+        try await Task.sleep(for: .milliseconds(200))
+        let data = try #require(snapshot(window))
+        let name = "terminal-upload-provider-\(Locale.current.identifier)"
+        Attachment.record(data, named: "\(name).png")
+        try data.write(to: FileManager.default.temporaryDirectory.appending(path: "\(name).png"))
+        try await Task.sleep(for: .milliseconds(3000))
+        #expect(workspace.uploadNotice == nil)
+        #expect(firstResponder(in: window) === responder)
+    }
+
+    private func firstResponder(in view: UIView) -> UIView? {
+        if view.isFirstResponder { return view }
+        return view.subviews.lazy.compactMap { firstResponder(in: $0) }.first
+    }
+
     @Test(arguments: ConnectionHistoryEntry.Kind.allCases)
     func hostedWorkspacesRenderTheOverlayAcrossTheirContent(kind: ConnectionHistoryEntry.Kind) async throws {
         let app = try MobileAppModel(inMemory: true)
