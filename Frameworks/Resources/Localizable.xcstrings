@@ -5233,22 +5233,6 @@
         }
       }
     },
-    "Close this window?" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "关闭此窗口？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "關閉此視窗？"
-          }
-        }
-      }
-    },
     "Close Window" : {
       "localizations" : {
         "zh-Hans" : {
@@ -18649,23 +18633,6 @@
         }
       }
     },
-    "Quit Anyway" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仍然退出"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仍然結束"
-          }
-        }
-      }
-    },
     "Quit Termind" : {
       "localizations" : {
         "zh-Hans" : {
@@ -18678,23 +18645,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "退出Termind"
-          }
-        }
-      }
-    },
-    "Quit with unuploaded changes?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仍有修改未上传，确定退出吗？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仍有修改未上傳，確定結束嗎？"
           }
         }
       }
@@ -26560,22 +26510,6 @@
         }
       }
     },
-    "This window still has open Workspaces. Closing it will close them and disconnect their sessions." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此窗口中仍有打开的工作区。关闭窗口将关闭这些工作区并断开其中的会话连接。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此視窗中仍有開啟的工作區。關閉視窗將關閉這些工作區並中斷其中的工作階段連線。"
-          }
-        }
-      }
-    },
     "This Workspace can no longer be saved as a template." : {
       "localizations" : {
         "zh-Hans" : {
@@ -29433,23 +29367,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目前路徑也可以點選"
-          }
-        }
-      }
-    },
-    "Your edited files have not all been uploaded. Pending edits will not be restored next time." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "编辑过的文件尚未全部上传。下次启动时不会恢复待上传记录。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "編輯過的檔案尚未全部上傳。下次啟動時不會還原待上傳記錄。"
           }
         }
       }

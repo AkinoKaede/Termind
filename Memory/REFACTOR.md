@@ -585,3 +585,13 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
   `/tmp/termind-adaptive-tabs-scroll-native-{iphone,ipad}.xcresult`. Strict Swift
   formatting, Chinese localization and whitespace checks passed. Package pins,
   public interfaces and persistence remain unchanged.
+
+## Remove Desktop Window and Quit Confirmations (2026-09-18)
+
+- Evidence: `rg 'dismissalConfirmationDialog|Quit with unuploaded changes|sftpEdits.recheck' TFM`
+  found the Workspace-based window dismissal dialog and a separate SFTP edit check
+  used only to present the quit warning. Five catalog entries belong only to these dialogs.
+- Action: remove both confirmation paths and their unused copy while preserving native
+  window dismissal, pane-first Command-W, per-window session ownership, and bounded quit cleanup.
+- Estimated reduction: 25-35 production Swift lines and five localized catalog entries.
+- Status: implementation in progress; verification pending.

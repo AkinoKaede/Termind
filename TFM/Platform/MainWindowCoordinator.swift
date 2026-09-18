@@ -215,7 +215,7 @@ final class MainWindowCoordinator {
     }
 
     /// A selected pane consumes the command, even when it was the last one.
-    /// Window fallback uses the native dismissal path so confirmation can veto it.
+    /// Without a selected Workspace, use the window's native dismissal path.
     func closeSelectionOrWindow(in model: WindowModel) {
         guard !model.isClosed else { return }
         if model.selectedWorkspace != nil {

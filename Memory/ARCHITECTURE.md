@@ -80,10 +80,9 @@ cleanup is performed.
   demos use an in-memory size store. Window positions remain system-owned.
 - Desktop Command-W closes the selected Workspace's focused pane first. Closing
   the last pane removes its Workspace but keeps the window open. Without a selected
-  Workspace it requests native window dismissal. All user window-close paths share
-  SwiftUI's dismissal confirmation whenever that window owns any Workspaces,
-  including disconnected or hidden ones; cancellation preserves them. Closing a
-  different window never participates in that decision. Shift-Command-W remains
+  Workspace it requests native window dismissal. Window closure does not ask for
+  confirmation, including when the window owns connected, disconnected, or hidden
+  Workspaces. Workspace presence does not mark the window as edited. Shift-Command-W remains
   direct window dismissal, and the existing last-window background policy applies.
 - A Workspace can move intact to a new window through commands. Navigator drags
   use SwiftUI's original UUID string provider for in-window ordering and pane
@@ -308,8 +307,9 @@ be discarded; paused uploads are cancelled and cleaned up before their record is
 Hosts own activation, background, termination and native preview/open adapters.
 The macOS edit menu uses ordinary menu actions; Keep Local Copy delegates to an app-owned
 save panel and coordinated file copy instead of embedding ShareLink in the native menu.
-macOS checks edits before quitting; iOS cannot promise a quit warning or recovery after
-process termination. Background expiration still pauses uploads, with explicit resume.
+macOS quits without checking or confirming pending edits and retains its bounded cleanup.
+Neither platform restores edit tracking after process termination or automatically uploads
+pending edits on quit. Background expiration still pauses uploads, with explicit resume.
 
 Edit upload policy validates the original destination's kind, size, modification time
 and mode both before writing and immediately before remote rename, preserving its

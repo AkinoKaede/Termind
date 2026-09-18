@@ -296,7 +296,7 @@ struct MultiWindowTests {
         let model = WindowModel(workspaces: [workspace])
         model.selectedDestination = destination
         let native = nativeWindow()
-        let approval = CloseApproval()
+        let approval = CloseVeto()
         native.delegate = approval
         defer { native.close() }
         app.mainWindows.register(native, model: model, requestID: nil)
@@ -311,8 +311,10 @@ struct MultiWindowTests {
         #expect(!model.canReopen)
     }
 
-    @Test(arguments: [false, true])
-    func approvedWindowCloseOnlyDisconnectsTheRequestedWindowsSessions(directClose: Bool) throws {
+    @Test(arguments: [false, true], [WindowDestination.vault, .settings, .assistant, .metrics])
+    func windowCloseWithoutConfirmationOnlyDisconnectsTheRequestedWindowsSessions(
+        directClose: Bool, destination: WindowDestination
+    ) throws {
         let host = Host(name: "Server", host: "server.example")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
         let firstWorkspace = Workspace.sshSession(host: host)
@@ -323,12 +325,9 @@ struct MultiWindowTests {
         secondSession.status = .connected
         let firstModel = WindowModel(workspaces: [firstWorkspace])
         let secondModel = WindowModel(workspaces: [secondWorkspace])
-        if !directClose { firstModel.openSettings() }
+        if !directClose { firstModel.selectedDestination = destination }
         let first = nativeWindow()
         let second = nativeWindow()
-        let approval = CloseApproval()
-        approval.allowsClose = true
-        first.delegate = approval
         defer {
             first.close()
             second.close()
@@ -342,8 +341,9 @@ struct MultiWindowTests {
             app.mainWindows.closeSelectionOrWindow(in: firstModel)
         }
 
-        #expect(approval.requests == 1)
         #expect(firstModel.isClosed)
+        #expect(firstModel.workspaces.isEmpty)
+        #expect(!firstModel.canReopen)
         #expect(firstSession.status == .disconnected)
         #expect(!secondModel.isClosed)
         #expect(secondModel.selectedWorkspace === secondWorkspace)
@@ -379,13 +379,51 @@ struct MultiWindowTests {
         #expect(!unregistered.isClosed)
     }
 
-    private final class CloseApproval: NSObject, NSWindowDelegate {
-        var allowsClose = false
+    @Test(arguments: [false, true])
+    func quitStartsSessionCleanupWithoutWaitingForPendingEdits(hasPendingEdits: Bool) async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let workspace = Workspace.sshSession(host: host)
+        let session = try #require(workspace.focusedPane.sshSession)
+        session.status = .connected
+        let model = WindowModel(workspaces: [workspace])
+        app.registerWindow(model)
+        let edits = app.sftpEdits.model
+        if hasPendingEdits {
+            let file = RemoteFile(
+                path: "/srv/file", name: "file", kind: .file, size: 4,
+                modifiedAt: nil, permissions: 0o644, ownerUID: 0, ownerGID: 0)
+            let id = edits.register(
+                hostID: host.id, file: file,
+                localURL: URL(filePath: "/termind-test-unreadable-edit"), digest: "original")
+            edits.update(id) { $0.currentDigest = "edited" }
+        }
+
+        // Release this test delegate before yielding so its weak completion tasks
+        // cannot send a termination reply to the real test-host application.
+        weak var releasedDelegate: AppDelegate?
+        autoreleasepool {
+            let delegate = AppDelegate()
+            releasedDelegate = delegate
+            delegate.app = app
+
+            #expect(delegate.applicationShouldTerminate(NSApp) == .terminateLater)
+            #expect(model.workspaces.isEmpty)
+            #expect(session.status == .disconnected)
+            #expect(edits.hasPendingChanges == hasPendingEdits)
+            #expect(edits.files.allSatisfy { $0.localError == nil && $0.transferID == nil })
+            #expect(delegate.applicationShouldTerminate(NSApp) == .terminateLater)
+        }
+        #expect(releasedDelegate == nil)
+        await app.shutdownForTermination().value
+    }
+
+    private final class CloseVeto: NSObject, NSWindowDelegate {
         var requests = 0
 
         func windowShouldClose(_ sender: NSWindow) -> Bool {
             requests += 1
-            return allowsClose
+            return false
         }
     }
 
