@@ -29,7 +29,10 @@ nonisolated extension SSHKeyRef {
 }
 
 nonisolated extension PortForwardingRule {
-    public func defaultName(hostName: String) -> String { "\(hostName) (\(kind.sshArgument))" }
+    public func defaultName(hostName: String) -> String {
+        guard !hostName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return "" }
+        return "\(hostName) (\(kind.sshArgument))"
+    }
 }
 
 nonisolated extension PortForwardingRule.Kind {

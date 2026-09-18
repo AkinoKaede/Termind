@@ -15,7 +15,6 @@ public struct PortForwardingFields: View {
     private var namePrompt: Text {
         guard let host else { return Text(verbatim: "") }
         let name = SavedName.resolve(host.name, default: host.defaultName)
-        guard !name.isEmpty else { return Text(verbatim: "") }
         return Text(verbatim: rule.defaultName(hostName: name))
     }
 

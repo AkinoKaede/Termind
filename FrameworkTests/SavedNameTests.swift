@@ -12,6 +12,9 @@ struct SavedNameTests {
         #expect(Host(name: "", host: " \n").defaultName == "")
         #expect(Identity(name: "", username: " \n").defaultName == "")
         #expect(AIModel(id: "").savingName.displayName == "")
+        let forwarding = PortForwardingRule(hostID: UUID())
+        #expect(forwarding.defaultName(hostName: "") == "")
+        #expect(forwarding.defaultName(hostName: " \n") == "")
     }
 
     @Test(arguments: ["", " \t\n", "Production"])
