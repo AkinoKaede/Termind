@@ -191,6 +191,7 @@ struct SFTPBrowserView: View {
     let closePane: () -> Void
 
     @Environment(AppModel.self) private var app
+    @Environment(\.locale) private var locale
     @Environment(WindowModel.self) private var window
     @Environment(\.controlActiveState) private var controlActiveState
     @State private var newFolderPresented = false
@@ -871,9 +872,14 @@ struct SFTPBrowserView: View {
         }
         .onHover { hovering in hoveredFileID = hovering ? file.id : nil }
         .onDrag { remoteDragProvider(for: file) }
-        .contextMenu {
-            Group { fileMenu(file) }
-                .onAppear { selectForContextMenu(file) }
+        .overlay {
+            NativeRowContextMenu(
+                entries: {
+                    selectForContextMenu(file)
+                    return fileMenu(file)
+                },
+                isPresented: .constant(false)
+            )
         }
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(selected ? [.isSelected, .isButton] : .isButton)
@@ -963,66 +969,35 @@ struct SFTPBrowserView: View {
         }
     }
 
-    @ViewBuilder
-    private func fileMenu(_ file: RemoteFile) -> some View {
+    private func fileMenu(_ file: RemoteFile) -> [NativeMenuEntry] {
+        // Capture targets once, before AppKit starts tracking the menu. Later
+        // selection, hover and directory updates must not retarget its actions.
         let targets = menuTargets(for: file)
-        if targets.count == 1 {
-            Button("Open", systemImage: MenuSymbol.open) { primaryAction(file) }
-            if !file.isDirectory {
-                SFTPOpenWithMenu(filename: file.name) { application in
-                    open(file, with: application)
-                }
-                .disabled(sftpSession.status != .connected)
-            }
-        }
-        Button(
-            targets.count == 1 ? "Download" : "Download \(targets.count) Items",
-            systemImage: MenuSymbol.download
-        ) {
-            chooseDownloadDestination(for: targets)
-        }
-        Divider()
-        Button(
-            targets.count == 1 ? "Copy" : "Copy \(targets.count) Items",
-            systemImage: MenuSymbol.copy
-        ) {
-            copyRemoteItems(targets)
-        }
-        // Copy As is Copy's own submenu, so its two children stay bare.
-        Menu("Copy As", systemImage: MenuSymbol.copy) {
-            Button(targets.count == 1 ? "Name" : "Names") {
-                copyToPasteboard(targets.map(\.name).joined(separator: "\n"))
-            }
-            Button(targets.count == 1 ? "Path" : "Paths") {
-                copyToPasteboard(targets.map(\.path).joined(separator: "\n"))
-            }
-        }
-        Button("Paste", systemImage: MenuSymbol.paste) { pasteRemoteItems() }
-            .disabled(sftpSession.status != .connected || !canPasteRemoteItems)
-        if targets.count == 1 {
-            Button("Rename", systemImage: MenuSymbol.rename) {
+        return SFTPFileContextMenu(
+            file: file, targets: targets,
+            connected: sftpSession.status == .connected,
+            allowsRemoteMutations: sftpSession.allowsRemoteMutations,
+            canPaste: canPasteRemoteItems, isLoading: sftpSession.isLoading,
+            locale: locale
+        ).entries { action in
+            switch action {
+            case .open: primaryAction(file)
+            case .openWith(let application): open(file, with: application)
+            case .download: chooseDownloadDestination(for: targets)
+            case .copy: copyRemoteItems(targets)
+            case .copyNames: copyToPasteboard(targets.map(\.name).joined(separator: "\n"))
+            case .copyPaths: copyToPasteboard(targets.map(\.path).joined(separator: "\n"))
+            case .paste: pasteRemoteItems()
+            case .rename:
                 renameTarget = file
                 renameName = file.name
-            }
-            .disabled(!sftpSession.allowsRemoteMutations)
-            if file.kind == .file || file.kind == .directory {
-                Button("Edit Permissions", systemImage: MenuSymbol.editPermissions) {
-                    permissionTarget = file
-                }
-                .disabled(!sftpSession.allowsRemoteMutations)
+            case .editPermissions: permissionTarget = file
+            case .delete: deleteTargets = targets
+            case .newFolder: newFolderPresented = true
+            case .upload: chooseUploadItems()
+            case .refresh: sftpSession.reloadNow()
             }
         }
-        DestructiveMenuButton(targets.count == 1 ? "Delete" : "Delete \(targets.count) Items") {
-            deleteTargets = targets
-        }
-        .disabled(!sftpSession.allowsRemoteMutations)
-        Divider()
-        Button("New Folder", systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
-            .disabled(sftpSession.status != .connected)
-        Button("Upload", systemImage: MenuSymbol.upload) { chooseUploadItems() }
-            .disabled(sftpSession.status != .connected)
-        Button("Refresh", systemImage: MenuSymbol.refresh) { sftpSession.reloadNow() }
-            .disabled(sftpSession.status != .connected || sftpSession.isLoading)
     }
 
     private func primaryAction(_ file: RemoteFile) {
@@ -1049,10 +1024,7 @@ struct SFTPBrowserView: View {
     }
 
     private func menuTargets(for file: RemoteFile) -> [RemoteFile] {
-        guard sftpSession.selection.contains(file.id), sftpSession.selection.count > 1 else {
-            return [file]
-        }
-        return sftpSession.selectedFiles
+        sftpSession.menuTargets(for: file)
     }
 
     private func copyToPasteboard(_ value: String) {
@@ -1094,8 +1066,7 @@ struct SFTPBrowserView: View {
     }
 
     private func selectForContextMenu(_ file: RemoteFile) {
-        guard !sftpSession.selection.contains(file.id) else { return }
-        sftpSession.selection = [file.id]
+        guard sftpSession.selectForContextMenu(file) else { return }
         selectionAnchor = file.id
         selectionCursor = file.id
         focusListForUserGesture()

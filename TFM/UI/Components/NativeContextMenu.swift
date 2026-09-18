@@ -40,6 +40,7 @@ struct NativeMenuEntry {
     /// The SF Symbol beside the title, from `MenuSymbol`. AppKit fills this in
     /// for standard actions and leaves ours empty, so every verb names its own.
     var symbol: String?
+    var image: NSImage?
     var isOn = false
     var isEnabled = true
     var children: [NativeMenuEntry] = []
@@ -70,9 +71,11 @@ struct NativeMenuEntry {
     func menuItem() -> NSMenuItem {
         guard !isSeparator else { return .separator() }
         let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
-        item.image = symbol.flatMap {
-            NSImage(systemSymbolName: $0, accessibilityDescription: nil)
-        }
+        item.image =
+            image
+            ?? symbol.flatMap {
+                NSImage(systemSymbolName: $0, accessibilityDescription: nil)
+            }
         if children.isEmpty {
             let target = NativeMenuActionTarget(action)
             item.representedObject = target
@@ -130,18 +133,39 @@ struct NativeRowContextMenu: NSViewRepresentable {
         var setPresented: (Bool) -> Void = { _ in }
 
         override func hitTest(_ point: NSPoint) -> NSView? {
-            guard let event = NSApp.currentEvent,
-                event.type == .rightMouseDown || event.type == .rightMouseUp
+            guard let event = NSApp.currentEvent, Self.isContextMenuEvent(event)
             else { return nil }
             return super.hitTest(point) == nil ? nil : self
         }
 
+        static func isContextMenuEvent(_ event: NSEvent) -> Bool {
+            switch event.type {
+            case .rightMouseDown, .rightMouseUp: true
+            case .leftMouseDown, .leftMouseUp: event.modifierFlags.contains(.control)
+            default: false
+            }
+        }
+
+        override func mouseDown(with event: NSEvent) {
+            if Self.isContextMenuEvent(event) {
+                rightMouseDown(with: event)
+            } else {
+                super.mouseDown(with: event)
+            }
+        }
+
         override func rightMouseDown(with event: NSEvent) {
+            guard let menu = makeMenu() else { return }
+            // Keep this menu independent of subsequent SwiftUI row updates.
+            NSMenu.popUpContextMenu(menu, with: event, for: self)
+        }
+
+        func makeMenu() -> NSMenu? {
             let items = entries()
-            guard !items.isEmpty else { return }
+            guard !items.isEmpty else { return nil }
             let menu = NativeMenuEntry.menu(items)
             menu.delegate = self
-            NSMenu.popUpContextMenu(menu, with: event, for: self)
+            return menu
         }
 
         func menuWillOpen(_ menu: NSMenu) { setPresented(true) }

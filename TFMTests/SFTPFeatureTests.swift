@@ -17,6 +17,33 @@ import struct TermindDomain.Host
 @MainActor
 struct SFTPFeatureTests {
     @Test
+    func contextClickSelectsBeforeBuildingTargetsAndPreservesAnExistingMultiSelection() async {
+        let first = remoteFile(path: "/home/a.txt", kind: .file)
+        let second = remoteFile(path: "/home/b.txt", kind: .file)
+        let third = remoteFile(path: "/home/c.txt", kind: .file)
+        let session = SFTPSessionModel(
+            hostID: UUID(), initialPath: "/home",
+            client: SnapshotSFTPClient(responses: [.success([first, second, third])]))
+        await session.reload(silently: true)
+
+        #expect(session.selectForContextMenu(first))
+        #expect(session.selection == [first.id])
+        #expect(session.menuTargets(for: first) == [first])
+
+        session.selection = [first.id, second.id]
+        #expect(!session.selectForContextMenu(second))
+        #expect(session.selection == [first.id, second.id])
+        let targets = session.menuTargets(for: second)
+        #expect(targets == [first, second])
+
+        #expect(session.selectForContextMenu(third))
+        #expect(session.selection == [third.id])
+        #expect(session.menuTargets(for: third) == [third])
+        #expect(targets == [first, second])
+        #expect(!session.selectForContextMenu(third))
+    }
+
+    @Test
     func transferSummaryWeightsProgressByBytesAndCountsFailures() {
         let host = Host(name: "Host", host: "host.example")
         let first = SFTPTransfer(

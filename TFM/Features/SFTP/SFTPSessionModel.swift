@@ -226,6 +226,19 @@ final class SFTPSessionModel: Identifiable {
         directoryPresentation.visibleRows.filter { selection.contains($0.id) }.map(\.file)
     }
 
+    /// Returns whether a new single selection was made. The view owns the
+    /// corresponding keyboard anchor and focus changes.
+    func selectForContextMenu(_ file: RemoteFile) -> Bool {
+        guard !selection.contains(file.id) else { return false }
+        selection = [file.id]
+        return true
+    }
+
+    func menuTargets(for file: RemoteFile) -> [RemoteFile] {
+        guard selection.contains(file.id), selection.count > 1 else { return [file] }
+        return selectedFiles
+    }
+
     func sort(by field: RemoteFileSortField) {
         var presentation = directoryPresentation
         if presentation.sortField == field {

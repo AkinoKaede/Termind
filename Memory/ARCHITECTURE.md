@@ -241,6 +241,11 @@ copy also suppresses the conflicting root itself. Both use the same subtree mapp
 Keep Both naming, cancellation checkpoints, and recursive child-name/path validation;
 created-directory accounting remains available to awaited copy outcomes.
 
+macOS SFTP file-row context menus are AppKit snapshots built on the context click,
+after reconciling selection. Their targets and native menu items survive SwiftUI
+row reconfiguration from hover, focus, selection, and directory refreshes. Menu
+presentation never mutates selection from a SwiftUI appearance callback.
+
 SFTP external edits have one process-local Application model per app, independent of
 browser/workspace lifetime. Remote Infrastructure owns managed local copies, streamed
 SHA-256 checks, file/directory observation (including atomic-save replacement), and
