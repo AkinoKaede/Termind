@@ -40,6 +40,8 @@ struct MCPServerSessionTests {
         #expect(instructions.contains("request_user_secret"))
         #expect(instructions.contains("stdin_purpose"))
         #expect(instructions.contains("only once"))
+        #expect(instructions.contains("not required for SSH login or ordinary commands"))
+        #expect(instructions.contains("no open interactive terminal is required"))
 
         let notification = await protocolServer.handle(
             jsonRequest(

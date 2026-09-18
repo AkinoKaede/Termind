@@ -11,7 +11,12 @@ nonisolated public struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBui
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "list_hosts", "List Vault and temporary Termind SSH targets without credentials.",
+            "list_hosts",
+            """
+            List Vault and temporary Termind SSH targets without credentials. Use this to discover host IDs \
+            when no session context is attached, including in the standalone Assistant outside the sidebar. \
+            Pass a returned host's id as host_id to SSH or SFTP tools; no active terminal session is required.
+            """,
             properties: [:], required: [], target: .host, approvalPolicy: .approve,
             concurrency: .parallel,
             presentation: .init(
@@ -114,7 +119,12 @@ nonisolated public struct TerminalSuggestTool: AgentToolDefinition, AgentToolSch
     )
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "terminal_suggest", "Create a command card. Only the user can insert or run it in a PTY.",
+            "terminal_suggest",
+            """
+            Create a command card when the user wants a suggestion or needs to interact with a PTY. \
+            Only the user can insert or run the card. This tool does not execute commands or return \
+            execution output. To run a remote command yourself, use ssh_exec.
+            """,
             properties: [
                 "command": Self.string(max: 32_768),
                 "explanation": Self.string(max: 4_096),
@@ -240,13 +250,41 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
 
     public var descriptor: AgentToolDescriptor {
         Self.descriptor(
-            "ssh_exec", "Execute one command over a dedicated non-PTY SSH exec channel.",
+            "ssh_exec",
+            """
+            Execute a remote command and return its output over a dedicated non-PTY SSH exec channel. \
+            Use this to run commands or inspect a host, even without an open interactive terminal or \
+            attached session context. When context is absent, discover host_id with list_hosts. \
+            Only host_id and command are required. Termind handles SSH login using the host configuration \
+            and prompts for authentication when needed; do not call request_user_secret for SSH login. \
+            Use a secret handle only when the command actually needs secret standard input.
+            """,
             properties: [
-                "host_id": Self.string(), "command": Self.string(max: 32_768),
+                "host_id": Self.described(
+                    Self.string(),
+                    "The intended host's ID from session context or list_hosts."
+                ),
+                "command": Self.described(
+                    Self.string(max: 32_768), "The remote command to execute. Never include plaintext secrets."
+                ),
                 "cwd": Self.string(max: 4_096),
                 "timeout_seconds": Self.integer(min: 1, max: 900),
-                "stdin": Self.string(max: 131_072), "secret_handle": Self.string(),
-                "stdin_purpose": Self.string(max: 256),
+                "stdin": Self.described(
+                    Self.string(max: 131_072),
+                    "Optional non-secret standard input. Mutually exclusive with secret_handle."
+                ),
+                "secret_handle": Self.described(
+                    Self.string(),
+                    """
+                    Optional one-shot handle returned by request_user_secret for this run, host and ssh_exec. \
+                    Supplies secret standard input to the command, not SSH login credentials. Omit when no \
+                    secret input is needed; never invent a handle. Mutually exclusive with stdin.
+                    """
+                ),
+                "stdin_purpose": Self.described(
+                    Self.string(max: 256),
+                    "Required with secret_handle: exactly the purpose used in request_user_secret. Omit otherwise."
+                ),
             ], required: ["host_id", "command"], target: .host, approvalPolicy: .ask,
             presentation: .init(
                 symbol: "terminal",

@@ -15,7 +15,7 @@ import Testing
 @MainActor
 struct AgentBuiltInToolAvailabilityTests {
     @Test
-    func terminalSuggestionDefinitionIsStableAcrossSurfaces() {
+    func terminalSuggestionDefinitionIsStableAcrossSurfaces() throws {
         let hosts = AgentHostResolver(store: HostLibraryModel())
         let connections = AgentConnectionPool(
             configuration: { _ in throw AgentToolError.invalidHost },
@@ -57,6 +57,65 @@ struct AgentBuiltInToolAvailabilityTests {
         #expect(!planning.contains("sftp_copy"))
         #expect(acting.contains("sftp_copy"))
         #expect(acting.isSuperset(of: ["ssh_exec", "sftp_write"]))
+        let exec = try #require(mainAssistant.first { $0.name == "ssh_exec" })
+        #expect(registry.available(in: .planning).descriptors.first { $0.name == "ssh_exec" } == exec)
+        #expect(exec.summary.contains("discover host_id with list_hosts"))
+        #expect(exec.summary.contains("do not call request_user_secret for SSH login"))
+        #expect(
+            mainAssistant.first { $0.name == "list_hosts" }?.summary.contains("no session context") == true
+        )
+    }
+
+    @Test
+    func ordinarySSHNeedsOnlyAHostAndCommand() async throws {
+        let hosts = AgentHostResolver(store: HostLibraryModel())
+        let pool = AgentConnectionPool(
+            configuration: { _ in throw AgentToolError.invalidHost },
+            routeFingerprint: { _ in "" },
+            openExec: { _ in throw AgentToolError.invalidHost },
+            openSFTP: { _ in throw AgentToolError.invalidHost },
+            sweepInterval: nil
+        )
+        let tool = SSHExecTool(
+            authentication: AgentSSHAuthenticationRegistry(resolver: hosts), pool: pool,
+            background: AgentBackgroundCommands(sweepInterval: nil)
+        )
+        let hostID = UUID()
+        let arguments = AgentJSONValue.object([
+            "host_id": .string(hostID.uuidString), "command": .string("uname -a"),
+        ])
+        let schema = tool.descriptor.inputSchema
+        try AgentJSONSchemaValidator.validate(arguments, against: schema)
+        #expect(schema.objectValue?["required"]?.arrayValue == [.string("host_id"), .string("command")])
+        let properties = try #require(schema.objectValue?["properties"]?.objectValue)
+        #expect(properties["secret_handle"]?.objectValue?["description"]?.stringValue?.contains("Omit when") == true)
+        #expect(
+            properties["stdin_purpose"]?.objectValue?["description"]?.stringValue?.contains("Omit otherwise") == true
+        )
+        let checked = try await tool.preflight(
+            .init(runID: UUID(), call: .init(id: "inspect", name: "ssh_exec", arguments: arguments))
+        )
+        #expect(checked.invocation.targetHostID == hostID)
+        #expect(checked.approvalPolicy == .approve)
+    }
+
+    @Test(arguments: [true, false])
+    func standaloneContextKeepsHostDiscoveryInstructions(includesTerminalSuggestion: Bool) {
+        let snapshot = AgentTurnContextSnapshot(
+            sessionContext: SessionContext.none.modelContext,
+            toolAvailability: ["terminal_suggest": includesTerminalSuggestion]
+        )
+        let context = AgentContextSnapshotReplay().transform(
+            .init(
+                systemPrompt: TermindAgentPolicy.systemPrompt,
+                messages: [.init(role: .user, text: "Inspect my server", contextSnapshot: snapshot)],
+                tools: []
+            )
+        )
+        #expect(context.messages.contains { $0.text.contains("no active session") })
+        #expect(context.systemPrompt.contains("Use list_hosts to find the requested host"))
+        #expect(context.systemPrompt.contains("not the complete catalog"))
+        #expect(context.systemPrompt.contains("request_user_secret is not a prerequisite"))
     }
 
     @Test

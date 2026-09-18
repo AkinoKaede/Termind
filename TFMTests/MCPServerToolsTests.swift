@@ -120,6 +120,12 @@ struct MCPServerToolsTests {
         #expect(properties["secret_handle"] != nil)
         #expect(properties["stdin_purpose"] != nil)
         #expect(properties["command"] != nil)
+        try AgentJSONSchemaValidator.validate(
+            .object(["host_id": .string(UUID().uuidString), "command": .string("uname -a")]),
+            against: descriptor.inputSchema
+        )
+        #expect(descriptor.summary.contains("do not call request_user_secret for SSH login"))
+        #expect(properties["secret_handle"]?.objectValue?["description"]?.stringValue?.contains("Omit when") == true)
         #expect(makeMCPServerTools().contains("request_user_secret"))
     }
 

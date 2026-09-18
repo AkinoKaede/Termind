@@ -361,6 +361,13 @@ struct MobileAssistantTests {
         }
         // Surface availability is enforced at execution, not by changing the cached tool definitions.
         #expect(mobileDescriptors == registry(model, includesTerminalSuggestion: true).descriptors)
+        let exec = try #require(mobileDescriptors.first { $0.name == "ssh_exec" })
+        #expect(exec.summary.contains("discover host_id with list_hosts"))
+        #expect(exec.summary.contains("do not call request_user_secret for SSH login"))
+        try AgentJSONSchemaValidator.validate(
+            .object(["host_id": .string(UUID().uuidString), "command": .string("uname -a")]),
+            against: exec.inputSchema
+        )
         model.abilities = []
         #expect(registry(model).descriptors.isEmpty)
         #expect(registry(model, includesTerminalSuggestion: true).descriptors.isEmpty)

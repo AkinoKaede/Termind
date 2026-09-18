@@ -496,8 +496,18 @@ their structured continuation fields. `sftp_read` streams UTF-8 line windows; it
 
 Terminal suggestion definitions remain stable across surfaces. The executor checks
 availability from the most recently delivered user snapshot before preflight; merely
-changing focus does not change the active run's capabilities. Provider tool/schema JSON
-is deterministic. Responses and Chat Completions requests use a conversation cache key
+changing focus does not change the active run's capabilities. Termind's stable system
+prompt explains that surface availability is a partial override, not a tool catalog;
+terminal suggestion availability does not restrict independent SSH/SFTP tools.
+The standalone Assistant need not attach session context: no active session means
+no default target, not an inability to execute. Discover targets with `list_hosts`
+and ask only if the user's intended target remains ambiguous; no sidebar or
+terminal connection is a prerequisite.
+SSH/SFTP login is handled by the host configuration and app authentication UI.
+`request_user_secret` is only for command secret input, not a prerequisite for SSH;
+`ssh_exec` needs only `host_id` and `command` for ordinary commands. A terminal
+suggestion creates a user-operated card and never constitutes command execution.
+Provider tool/schema JSON is deterministic. Responses and Chat Completions requests use a conversation cache key
 without hostname restrictions; Anthropic uses
 short-lived system/message cache breakpoints, and Gemini retains implicit caching.
 Cache read/write usage is normalized without adding cached tokens twice to input totals.

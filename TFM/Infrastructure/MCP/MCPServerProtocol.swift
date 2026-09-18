@@ -210,7 +210,18 @@ actor MCPServerProtocol {
                             "version": .string(Bundle.termindDisplayVersion),
                         ]),
                         "instructions": .string(
-                            "Use list_hosts to discover host_id values. SSH and SFTP calls use Termind's saved Vault credentials and may show an authentication window on this Mac. For secret command input, call request_user_secret, then pass its secret_handle to ssh_exec with stdin_purpose exactly matching the original purpose. The handle is bound to this session, host, tool, and purpose, and can be used only once."
+                            """
+                            Use list_hosts to discover host_id values. Use ssh_exec to execute remote commands \
+                            and SFTP tools for remote files; no open interactive terminal is required. Termind \
+                            handles SSH and SFTP login using the host configuration and may show an authentication \
+                            window on this Mac. request_user_secret is not required for SSH login or ordinary \
+                            commands: call ssh_exec with host_id and command, omitting secret_handle and \
+                            stdin_purpose. Only when a command actually needs secret standard input, call \
+                            request_user_secret, then pass its secret_handle to ssh_exec with stdin_purpose \
+                            exactly matching the original purpose. The presence of sudo alone does not mean a \
+                            password is needed. Never put plaintext secrets in commands or ordinary chat. \
+                            The handle is bound to this session, host, tool, and purpose, and can be used only once.
+                            """
                         ),
                     ]))
         case "notifications/initialized":
