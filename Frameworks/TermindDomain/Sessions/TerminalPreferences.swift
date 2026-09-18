@@ -1,8 +1,6 @@
 import Foundation
 
 public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
-    public var fontSize = 12.0
-    public var fontFollowTheme = true
     public var darkTheme = "Termind Dark"
     public var lightTheme = "Termind Light"
     public var darkCustomEnabled = false
@@ -14,13 +12,11 @@ public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
     public var copyOnSelect = false
     public var pasteOnRightClick = false
     public init(
-        fontSize: Double = 12.0, fontFollowTheme: Bool = true, darkTheme: String = "Termind Dark",
+        darkTheme: String = "Termind Dark",
         lightTheme: String = "Termind Light", darkCustomEnabled: Bool = false, lightCustomEnabled: Bool = false,
         darkCustomConfiguration: String = "", lightCustomConfiguration: String = "", shellIntegration: Bool = true,
         remoteWindowTitleInMenuBar: Bool = true, copyOnSelect: Bool = false, pasteOnRightClick: Bool = false
     ) {
-        self.fontSize = fontSize
-        self.fontFollowTheme = fontFollowTheme
         self.darkTheme = darkTheme
         self.lightTheme = lightTheme
         self.darkCustomEnabled = darkCustomEnabled
@@ -34,15 +30,13 @@ public nonisolated struct TerminalPreferences: Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case fontSize, fontFollowTheme, darkTheme, lightTheme, darkCustomEnabled, lightCustomEnabled
+        case darkTheme, lightTheme, darkCustomEnabled, lightCustomEnabled
         case darkCustomConfiguration, lightCustomConfiguration, shellIntegration, remoteWindowTitleInMenuBar
         case copyOnSelect, pasteOnRightClick
     }
 
     public init(from decoder: any Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
-        fontSize = try values.decode(Double.self, forKey: .fontSize)
-        fontFollowTheme = try values.decode(Bool.self, forKey: .fontFollowTheme)
         darkTheme = try values.decode(String.self, forKey: .darkTheme)
         lightTheme = try values.decode(String.self, forKey: .lightTheme)
         darkCustomEnabled = try values.decode(Bool.self, forKey: .darkCustomEnabled)

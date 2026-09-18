@@ -23,6 +23,7 @@ struct TerminalPlaceholderView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @TerminalAppearanceSettings private var terminalAppearance
+    @Environment(\.scenePhase) private var scenePhase
     @FocusState private var terminalFocused: Bool
     @State private var pendingUploadSession: SFTPSessionModel?
     @State private var pendingUploadItemCount = 0
@@ -56,7 +57,8 @@ struct TerminalPlaceholderView: View {
                 // sshSession whose router was cleared while it moved.
                 sshSession.inputRouter = workspace
                 terminalFocused = requestsFocus
-                sshSession.terminalState.applyPreferences(terminalAppearance.preferences)
+                TerminalFontCatalog.shared.refresh()
+                sshSession.terminalState.applyPreferences(terminalAppearance.preferences, font: terminalAppearance.font)
                 sshSession.connectIfNeeded(using: app.hostLibrary)
                 if requestsFocus { sshSession.requestTerminalFocus() }
             }
@@ -74,8 +76,11 @@ struct TerminalPlaceholderView: View {
                 uploadPreparationTask?.cancel()
                 cancelPendingUpload()
             }
-            .onChange(of: terminalAppearance.preferences) { _, preferences in
-                sshSession.terminalState.applyPreferences(preferences)
+            .onChange(of: terminalAppearance) { _, appearance in
+                sshSession.terminalState.applyPreferences(appearance.preferences, font: appearance.font)
+            }
+            .onChange(of: scenePhase) { _, phase in
+                if phase == .active { TerminalFontCatalog.shared.refresh() }
             }
             .confirmationDialog(
                 uploadConflictTitle,

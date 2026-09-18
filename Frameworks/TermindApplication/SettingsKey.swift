@@ -34,6 +34,8 @@ public nonisolated enum SettingsKey {
     public static let terminalCustomConfigurationDarkEnabled = "terminal.customConfiguration.dark.enabled"
     public static let terminalCustomConfigurationLight = "terminal.customConfiguration.light"
     public static let terminalCustomConfigurationLightEnabled = "terminal.customConfiguration.light.enabled"
+    // Typography is device-local and never enters Settings sync.
+    public static let terminalFontFamily = "terminal.fontFamily"
     public static let terminalFontFollowTheme = "terminal.font.followTheme"
     public static let terminalFontSize = "terminal.fontSize"
     public static let terminalCopyOnSelect = "terminal.copyOnSelect"

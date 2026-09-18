@@ -64,13 +64,22 @@ public nonisolated enum TermindTerminalThemeCatalog {
         themeName: String,
         customEnabled: Bool,
         customText: String,
-        isDark: Bool
+        isDark: Bool,
+        font: TerminalFontPreferences = .init()
     ) -> GhosttyTerminal.TerminalConfiguration {
         let fallback = isDark ? defaultDark : defaultLight
         let selected = theme(named: themeName).flatMap { $0.isDark == isDark ? $0 : nil } ?? fallback
         let base = selected.toTerminalConfiguration()
-        guard customEnabled else { return base }
-        return TerminalCustomConfiguration(customText).applying(to: base)
+        let themed = customEnabled ? TerminalCustomConfiguration(customText).applying(to: base) : base
+        // Ghostty renders theme commands after session overrides. Typography must
+        // come last here, and font-family is a list that needs an explicit reset.
+        return GhosttyTerminal.TerminalConfiguration(startingFrom: themed) { builder in
+            if !font.family.isEmpty {
+                builder.withFontFamily("")
+                builder.withFontFamily(font.family)
+            }
+            if !font.sizeFollowsTheme { builder.withFontSize(Float(font.size)) }
+        }
     }
 
     public static func background(
@@ -94,17 +103,18 @@ public nonisolated enum TermindTerminalThemeCatalog {
 
 @MainActor
 extension TerminalViewState {
-    public func applyPreferences(_ value: TerminalPreferences) {
+    public func applyPreferences(_ value: TerminalPreferences, font: TerminalFontPreferences = .init()) {
         let light = TermindTerminalThemeCatalog.terminalConfiguration(
             themeName: value.lightTheme,
-            customEnabled: value.lightCustomEnabled, customText: value.lightCustomConfiguration, isDark: false)
+            customEnabled: value.lightCustomEnabled, customText: value.lightCustomConfiguration, isDark: false,
+            font: font)
         let dark = TermindTerminalThemeCatalog.terminalConfiguration(
             themeName: value.darkTheme,
-            customEnabled: value.darkCustomEnabled, customText: value.darkCustomConfiguration, isDark: true)
+            customEnabled: value.darkCustomEnabled, customText: value.darkCustomConfiguration, isDark: true,
+            font: font)
         setTheme(GhosttyTerminal.TerminalTheme(light: light, dark: dark))
         setTerminalConfiguration(
             GhosttyTerminal.TerminalConfiguration { builder in
-                if !value.fontFollowTheme { builder.withFontSize(Float(value.fontSize)) }
                 builder.withWindowPaddingX(8)
                 builder.withWindowPaddingY(8)
             })

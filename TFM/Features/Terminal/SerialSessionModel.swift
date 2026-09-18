@@ -195,6 +195,7 @@ struct SerialTerminalView: View {
     let closePane: () -> Void
 
     @TerminalAppearanceSettings private var terminalAppearance
+    @Environment(\.scenePhase) private var scenePhase
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -208,7 +209,8 @@ struct SerialTerminalView: View {
         .overlay { connectionJourney }
         .focused($focused)
         .onAppear {
-            session.terminalState.applyPreferences(terminalAppearance.preferences)
+            TerminalFontCatalog.shared.refresh()
+            session.terminalState.applyPreferences(terminalAppearance.preferences, font: terminalAppearance.font)
             session.connectIfNeeded()
             if requestsFocus { session.requestTerminalFocus() }
         }
@@ -219,8 +221,11 @@ struct SerialTerminalView: View {
         .onChange(of: session.connectionJourney.isPresented) { _, presented in
             if !presented, requestsFocus { session.requestTerminalFocus() }
         }
-        .onChange(of: terminalAppearance.preferences) { _, value in
-            session.terminalState.applyPreferences(value)
+        .onChange(of: terminalAppearance) { _, appearance in
+            session.terminalState.applyPreferences(appearance.preferences, font: appearance.font)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { TerminalFontCatalog.shared.refresh() }
         }
     }
 

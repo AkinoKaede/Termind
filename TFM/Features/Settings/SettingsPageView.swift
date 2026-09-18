@@ -685,8 +685,8 @@ private struct SFTPSettings: View {
 private struct TerminalSettings: View {
     let editConfiguration: (TerminalCustomConfigurationScheme) -> Void
     @Environment(AppModel.self) private var app
-    private var fontSize: Double { app.terminalSettings.preferences.fontSize }
-    private var fontFollowTheme: Bool { app.terminalSettings.preferences.fontFollowTheme }
+    @TerminalFontSettings private var font
+    @Environment(\.scenePhase) private var scenePhase
     private var darkTheme: String { app.terminalSettings.preferences.darkTheme }
     private var lightTheme: String { app.terminalSettings.preferences.lightTheme }
     private var darkCustomEnabled: Bool { app.terminalSettings.preferences.darkCustomEnabled }
@@ -729,12 +729,13 @@ private struct TerminalSettings: View {
                 }
             }
             Section("Font Configuration") {
-                Toggle("Follow Theme", isOn: binding(\.fontFollowTheme))
-                if !fontFollowTheme {
+                TerminalFontPicker(family: $font.family, families: TerminalFontCatalog.shared.families)
+                Toggle("Font Size Follows Theme", isOn: $font.sizeFollowsTheme)
+                if !font.sizeFollowsTheme {
                     LabeledContent("Font Size") {
                         HStack {
-                            Slider(value: binding(\.fontSize), in: 9...24, step: 1)
-                            Text(fontSize, format: .number.precision(.fractionLength(0)))
+                            Slider(value: $font.size, in: 9...24, step: 1)
+                            Text(font.size, format: .number.precision(.fractionLength(0)))
                                 .monospacedDigit().frame(width: 24, alignment: .trailing)
                         }
                     }
@@ -785,12 +786,16 @@ private struct TerminalSettings: View {
             }
         }
         .onAppear {
+            TerminalFontCatalog.shared.refresh()
             if TermindTerminalThemeCatalog.darkTheme(named: darkTheme) == nil {
                 app.terminalSettings.set(SettingsKey.defaultTerminalThemeDark, for: \.darkTheme)
             }
             if TermindTerminalThemeCatalog.lightTheme(named: lightTheme) == nil {
                 app.terminalSettings.set(SettingsKey.defaultTerminalThemeLight, for: \.lightTheme)
             }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { TerminalFontCatalog.shared.refresh() }
         }
     }
 }

@@ -45,11 +45,11 @@ struct SettingsPortTests {
     @Test func failedTerminalSaveKeepsTheAppliedPreferences() {
         let persistence = FailingTerminalPreferences()
         let model = TerminalSettingsModel(persistence: persistence)
-        #expect(!model.set(20, for: \.fontSize))
-        #expect(model.preferences.fontSize == 12)
+        #expect(!model.set("GitHub Light", for: \.lightTheme))
+        #expect(model.preferences.lightTheme == "Termind Light")
         #expect(model.storageError != nil)
-        model.applyRemoteSnapshot(TerminalPreferences(fontSize: 18))
-        #expect(model.preferences.fontSize == 18)
+        model.applyRemoteSnapshot(TerminalPreferences(lightTheme: "GitHub Light"))
+        #expect(model.preferences.lightTheme == "GitHub Light")
         #expect(persistence.saves == 1)
     }
 
@@ -85,13 +85,13 @@ struct SettingsPortTests {
         var callbacks = 0
         store.didRecordChanges = { _ in callbacks += 1 }
         let preferences = TerminalPreferences(
-            fontSize: 19, darkCustomEnabled: true, darkCustomConfiguration: "background = 123456")
+            darkCustomEnabled: true, darkCustomConfiguration: "background = 123456")
         let payload = SettingsRecordPayload.terminal(preferences)
         let envelope = SettingsEnvelope(
             key: payload.key, version: .next(after: nil, writerID: UUID(), now: .now), payload: payload)
         let result = try store.applyRemote([envelope])
         #expect(result.snapshot.terminal == preferences)
-        #expect(defaults.double(forKey: SettingsKey.terminalFontSize) == 19)
+        #expect(defaults.double(forKey: SettingsKey.terminalFontSize) == 12)
         #expect(callbacks == 0)
     }
 

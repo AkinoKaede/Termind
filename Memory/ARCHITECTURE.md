@@ -173,6 +173,21 @@ snapshot freshness, and presentation state. Platforms provide live context,
 validity, and insertion only; generated commands are inserted but never submitted.
 `TerminalFindController` is shared by desktop SSH/Serial and mobile SSH.
 
+Terminal typography is device-local on both platforms. Font family, size, and
+size-follow-theme live only in UserDefaults and never enter TerminalPreferences,
+the Settings journal, or outgoing CloudKit payloads. Before sync can materialize a
+remote snapshot, missing local size keys are seeded from the pre-upgrade local
+preferences blob (existing mirrors win), or from the defaults. Legacy remote font
+fields are ignored. New terminal payloads omit them; older apps that require those
+fields must upgrade to read the new payloads. Theme/custom configuration text keeps
+its existing sync behavior, including fonts explicitly authored in that text.
+An empty local family means Follow Theme; unavailable installed fonts fall back to
+the theme without deleting the selection. Platform font catalogs refresh on Settings
+entry and foregrounding. Native font discovery stays in apps, while Presentation
+owns the local SwiftUI bindings and final Ghostty configuration. Explicit family
+and size overrides follow theme/custom commands; the family list is reset before
+applying the selected family. Changes reconfigure existing surfaces in place.
+
 macOS SSH and serial terminals share two default-off mouse preferences: copy a
 completed mouse selection and paste on right-click. They use the existing terminal
 Settings sync record and UserDefaults mirror; missing fields in older records decode

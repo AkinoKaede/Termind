@@ -122,7 +122,7 @@ struct SettingsSyncTests {
         #expect(snapshot.configuration.providers.first?.models == provider.models)
         #expect(snapshot.skills == [skill])
         #expect(!snapshot.webSearch.isEnabled)
-        #expect(snapshot.terminal.fontSize == 17)
+        #expect(defaults.double(forKey: SettingsKey.terminalFontSize) == 17)
         #expect(snapshot.terminal.darkCustomConfiguration == "font-family = Menlo")
         #expect(defaults.object(forKey: SettingsKey.settingsSyncEnabled) == nil)
     }
@@ -141,7 +141,7 @@ struct SettingsSyncTests {
         try store.prepare()
         let terminal = try #require(try store.journal.pendingEnvelopes().first { $0.key.kind == .terminal })
         #expect(terminal.version.modifiedAt == VaultVersion.baselineDate)
-        #expect(try store.loadTerminal().fontSize == 17)
+        #expect(defaults.double(forKey: SettingsKey.terminalFontSize) == 17)
         for old in previous { #expect(try store.journal.envelope(for: old.key) == old) }
     }
 
@@ -151,8 +151,8 @@ struct SettingsSyncTests {
         let (destinationContainer, destination, defaults) = try fixture()
         defer { withExtendedLifetime((sourceContainer, destinationContainer)) {} }
         var preferences = TerminalPreferences()
-        preferences.fontSize = 18
-        preferences.fontFollowTheme = false
+        sourceDefaults.set(18.0, forKey: SettingsKey.terminalFontSize)
+        sourceDefaults.set(false, forKey: SettingsKey.terminalFontFollowTheme)
         preferences.darkTheme = "Catppuccin Mocha"
         preferences.lightTheme = "GitHub Light"
         preferences.darkCustomEnabled = true

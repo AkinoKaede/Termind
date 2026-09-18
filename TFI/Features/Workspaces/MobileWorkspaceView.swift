@@ -40,6 +40,7 @@ struct MobileWorkspaceView: View {
     @State private var workspaceIsVisible = false
     @State private var uploadDropTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
+    @TerminalFontSettings private var font
     @State private var downloadTarget: RemoteFile?
     @State private var previewURL: URL?
     @State private var openWithPresenter = MobileSFTPOpenWithPresenter()
@@ -48,6 +49,10 @@ struct MobileWorkspaceView: View {
     @State private var exportedEditURL: URL?
     @State private var showsExportedEdit = false
     @ScaledMetric private var editRowHeight = 76.0
+
+    private var resolvedFont: TerminalFontPreferences {
+        font.resolvingFamily(in: TerminalFontCatalog.shared.families)
+    }
 
     private var editedFiles: [SFTPEditedFile] {
         workspace.sftpEdits?.model.modifiedFiles(for: workspace.descriptor.hostID) ?? []
@@ -90,6 +95,7 @@ struct MobileWorkspaceView: View {
             .onChange(of: workspace.uploadDestination) { _, _ in cancelDropLoading() }
             .onChange(of: scenePhase) { _, phase in
                 if phase != .active { openWithPresenter.isEnabled = false }
+                if phase == .active { TerminalFontCatalog.shared.refresh() }
             }
     }
 
@@ -381,8 +387,12 @@ struct MobileWorkspaceView: View {
                     TerminalSurfaceView(context: workspace.terminal)
                         .id(workspace.id)
                         .onChange(of: workspace.terminalSettings.preferences, initial: true) { _, value in
-                            workspace.terminal.applyPreferences(value)
+                            workspace.terminal.applyPreferences(value, font: resolvedFont)
                         }
+                        .onChange(of: resolvedFont) { _, value in
+                            workspace.terminal.applyPreferences(workspace.terminalSettings.preferences, font: value)
+                        }
+                        .onAppear { TerminalFontCatalog.shared.refresh() }
                         .onTapGesture { workspace.terminal.requestFocus() }
                     MobileTerminalKeyboard(state: workspace.terminal) {
                         guard let text = UIPasteboard.general.string else { return }

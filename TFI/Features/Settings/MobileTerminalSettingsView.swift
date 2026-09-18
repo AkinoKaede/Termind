@@ -7,14 +7,17 @@ struct MobileTerminalSettingsView: View {
     let model: TerminalSettingsModel
     @State private var editingDark: Bool?
     @State private var customText = ""
+    @TerminalFontSettings private var font
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
         Form {
             Section("Font") {
-                Toggle("Follow Theme", isOn: binding(\.fontFollowTheme))
-                Stepper(value: binding(\.fontSize), in: 8...36, step: 1) {
-                    LabeledContent("Font Size", value: model.preferences.fontSize.formatted())
-                }.disabled(model.preferences.fontFollowTheme)
+                TerminalFontPicker(family: $font.family, families: TerminalFontCatalog.shared.families)
+                Toggle("Font Size Follows Theme", isOn: $font.sizeFollowsTheme)
+                Stepper(value: $font.size, in: 8...36, step: 1) {
+                    LabeledContent("Font Size", value: font.size.formatted())
+                }.disabled(font.sizeFollowsTheme)
             }
             themeSection(dark: false)
             themeSection(dark: true)
@@ -22,6 +25,10 @@ struct MobileTerminalSettingsView: View {
             if let error = model.storageError { Text(error).foregroundStyle(.red) }
         }
         .navigationTitle("Terminal")
+        .onAppear { TerminalFontCatalog.shared.refresh() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { TerminalFontCatalog.shared.refresh() }
+        }
         .sheet(isPresented: Binding(get: { editingDark != nil }, set: { if !$0 { editingDark = nil } })) {
             if let dark = editingDark {
                 let original =

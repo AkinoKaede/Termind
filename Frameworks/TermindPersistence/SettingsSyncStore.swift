@@ -215,7 +215,11 @@ public final class SettingsSyncPersistence {
     }
 
     private func terminalPreferences() throws -> PersistentTerminalPreferences {
-        if let row = try context.fetch(FetchDescriptor<PersistentTerminalPreferences>()).first { return row }
+        if let row = try context.fetch(FetchDescriptor<PersistentTerminalPreferences>()).first {
+            try TerminalFontPreferences.migrateLegacySettings(from: row.data, defaults: defaults)
+            return row
+        }
+        try TerminalFontPreferences.migrateLegacySettings(from: nil, defaults: defaults)
         let row = try PersistentTerminalPreferences(TerminalPreferences(defaults: defaults))
         context.insert(row)
         return row

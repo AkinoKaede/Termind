@@ -6,8 +6,6 @@ import TermindDomain
 extension TerminalPreferences {
     public nonisolated init(defaults: UserDefaults) {
         self.init()
-        fontSize = defaults.object(forKey: SettingsKey.terminalFontSize) as? Double ?? fontSize
-        fontFollowTheme = defaults.object(forKey: SettingsKey.terminalFontFollowTheme) as? Bool ?? fontFollowTheme
         darkTheme = defaults.string(forKey: SettingsKey.terminalThemeDark) ?? darkTheme
         lightTheme = defaults.string(forKey: SettingsKey.terminalThemeLight) ?? lightTheme
         darkCustomEnabled =
@@ -25,8 +23,6 @@ extension TerminalPreferences {
     }
 
     public nonisolated func mirror(to defaults: UserDefaults) {
-        defaults.set(fontSize, forKey: SettingsKey.terminalFontSize)
-        defaults.set(fontFollowTheme, forKey: SettingsKey.terminalFontFollowTheme)
         defaults.set(darkTheme, forKey: SettingsKey.terminalThemeDark)
         defaults.set(lightTheme, forKey: SettingsKey.terminalThemeLight)
         defaults.set(darkCustomEnabled, forKey: SettingsKey.terminalCustomConfigurationDarkEnabled)

@@ -28,7 +28,6 @@ struct TerminalMousePreferencesTests {
         let value = try row.load()
         #expect(!value.copyOnSelect)
         #expect(!value.pasteOnRightClick)
-        #expect(value.fontSize == 18)
         #expect(value.darkCustomConfiguration == "background = 112233")
         #expect(!value.shellIntegration)
 
@@ -40,7 +39,7 @@ struct TerminalMousePreferencesTests {
         let domain = "TerminalMousePreferencesTests.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: domain))
         defer { defaults.removePersistentDomain(forName: domain) }
-        let original = TerminalPreferences(fontSize: 17, copyOnSelect: true, pasteOnRightClick: true)
+        let original = TerminalPreferences(copyOnSelect: true, pasteOnRightClick: true)
         let row = try PersistentTerminalPreferences(original)
         #expect(try row.load() == original)
         original.mirror(to: defaults)
@@ -63,9 +62,9 @@ struct TerminalMousePreferencesTests {
         let snapshot = try store.applyRemote([envelope]).snapshot
         let model = TerminalSettingsModel(persistence: store)
         model.applyRemoteSnapshot(snapshot.terminal)
-        #expect(model.set(20, for: \.fontSize))
+        #expect(model.set("GitHub Light", for: \.lightTheme))
         let saved = try store.loadTerminal()
-        #expect(saved.fontSize == 20)
+        #expect(saved.lightTheme == "GitHub Light")
         #expect(saved.copyOnSelect)
         #expect(saved.pasteOnRightClick)
         let pending = try #require(try store.journal.pendingEnvelopes().first { $0.key.kind == .terminal })

@@ -10644,6 +10644,23 @@
         }
       }
     },
+    "Font Family" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字体"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字型"
+          }
+        }
+      }
+    },
     "Font Size" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10656,6 +10673,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "字型大小"
+          }
+        }
+      }
+    },
+    "Font Size Follows Theme" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字号跟随主题"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "字級跟隨主題"
           }
         }
       }
@@ -25909,6 +25943,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "思考中…"
+          }
+        }
+      }
+    },
+    "This font is unavailable on this device. Following the theme instead." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此设备上无法使用该字体，已改为跟随主题。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此裝置上無法使用此字型，已改為跟隨主題。"
           }
         }
       }

@@ -8,8 +8,9 @@ import TermindApplication
 import TermindDomain
 import TermindPresentation
 
-struct ResolvedTerminalAppearance {
+struct ResolvedTerminalAppearance: Equatable {
     var preferences: TerminalPreferences
+    var font: TerminalFontPreferences
     var background: Color
 }
 
@@ -20,7 +21,7 @@ struct ResolvedTerminalAppearance {
 @propertyWrapper
 struct TerminalAppearanceSettings: DynamicProperty {
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(SettingsKey.terminalFontSize) private var fontSize = 12.0
+    @TerminalFontSettings private var font
     @AppStorage(SettingsKey.terminalThemeDark) private var darkTheme =
         SettingsKey.defaultTerminalThemeDark
     @AppStorage(SettingsKey.terminalThemeLight) private var lightTheme =
@@ -33,12 +34,9 @@ struct TerminalAppearanceSettings: DynamicProperty {
     private var darkCustomConfiguration = ""
     @AppStorage(SettingsKey.terminalCustomConfigurationLight)
     private var lightCustomConfiguration = ""
-    @AppStorage(SettingsKey.terminalFontFollowTheme) private var fontFollowTheme = true
 
     var wrappedValue: ResolvedTerminalAppearance {
         let preferences = TerminalPreferences(
-            fontSize: fontSize,
-            fontFollowTheme: fontFollowTheme,
             darkTheme: darkTheme,
             lightTheme: lightTheme,
             darkCustomEnabled: darkCustomEnabled,
@@ -49,6 +47,7 @@ struct TerminalAppearanceSettings: DynamicProperty {
         let isDark = colorScheme == .dark
         return ResolvedTerminalAppearance(
             preferences: preferences,
+            font: font.resolvingFamily(in: TerminalFontCatalog.shared.families),
             background: TermindTerminalThemeCatalog.background(
                 themeName: isDark ? darkTheme : lightTheme,
                 customEnabled: isDark ? darkCustomEnabled : lightCustomEnabled,
