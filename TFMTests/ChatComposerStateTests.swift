@@ -1,5 +1,7 @@
 import AgentKit
+import AppKit
 import Foundation
+import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
@@ -51,6 +53,42 @@ private actor ConversationCancellationProbe {
 @Suite
 @MainActor
 struct ChatComposerStateTests {
+    @Test
+    func textEditorScrollerAppearsOnlyWhenItsDocumentOverflows() async throws {
+        let state = ComposerScrollerTestState()
+        let hosting = NSHostingView(
+            rootView: ComposerScrollerTestView(state: state)
+                .frame(width: 320, height: 80)
+        )
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 320, height: 80),
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        window.isReleasedWhenClosed = false
+        window.contentView = hosting
+        defer { window.close() }
+
+        let emptyScroller = try await requireComposerScroller(in: hosting)
+        #expect(emptyScroller.autohidesScrollers)
+        #expect(emptyScroller.hasVerticalScroller)
+        #expect(emptyScroller.verticalScroller?.isHidden == true)
+        #expect(emptyScroller.verticalScroller?.isEnabled == false)
+
+        state.text = Array(repeating: "A line of composer text", count: 40).joined(separator: "\n")
+        let overflowingScroller = try await requireComposerScroller(in: hosting) {
+            $0.verticalScroller?.isEnabled == true
+        }
+        #expect(overflowingScroller.autohidesScrollers)
+
+        state.text = "Short again"
+        let shortScroller = try await requireComposerScroller(in: hosting) {
+            $0.verticalScroller?.isEnabled == false
+        }
+        #expect(shortScroller.verticalScroller?.isHidden == true)
+    }
+
     @Test
     func largePasteThresholdUsesCharactersOrLines() {
         #expect(!ContextAttachmentImporter.shouldAttachPastedText(String(repeating: "x", count: 1_999)))
@@ -2211,4 +2249,56 @@ struct ChatComposerStateTests {
             try? await Task.sleep(for: .milliseconds(5))
         }
     }
+}
+
+@Observable
+@MainActor
+private final class ComposerScrollerTestState {
+    var text = ""
+}
+
+private struct ComposerScrollerTestView: View {
+    @Bindable var state: ComposerScrollerTestState
+
+    var body: some View {
+        TextEditor(text: $state.text)
+            .background { TextEditorScrollViewConfigurator() }
+    }
+}
+
+@MainActor
+private func requireComposerScroller(
+    in root: NSView,
+    condition: (NSScrollView) -> Bool = { _ in true }
+) async throws -> NSScrollView {
+    for _ in 0..<100 {
+        root.layoutSubtreeIfNeeded()
+        if let scrollView = composerScrollViews(in: root).first(where: condition),
+            scrollView.autohidesScrollers
+        {
+            return scrollView
+        }
+        try await Task.sleep(for: .milliseconds(10))
+    }
+    Issue.record("The configured composer scroll view did not reach the expected state")
+    throw ComposerScrollerTestError.expectedStateNotReached
+}
+
+private func composerScrollViews(in root: NSView) -> [NSScrollView] {
+    var result: [NSScrollView] = []
+    func visit(_ view: NSView) {
+        if let scrollView = view as? NSScrollView,
+            let textView = scrollView.documentView as? NSTextView,
+            textView.isEditable
+        {
+            result.append(scrollView)
+        }
+        view.subviews.forEach(visit)
+    }
+    visit(root)
+    return result
+}
+
+private enum ComposerScrollerTestError: Error {
+    case expectedStateNotReached
 }
