@@ -474,7 +474,7 @@ private struct ProSettings: View {
 
             Section("Termind Pro") {
                 Text(
-                    "Choose annual access or a permanent unlock for multi-pane workspaces, the AI Assistant, terminal uploads, MCP, and iCloud sync."
+                    "Choose annual access or a permanent unlock for the AI Assistant, terminal uploads, MCP, and iCloud sync."
                 )
                 .foregroundStyle(.secondary)
                 if app.proAccess.status.canPurchase {

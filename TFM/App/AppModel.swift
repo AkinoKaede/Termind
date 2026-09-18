@@ -393,7 +393,6 @@ final class AppModel {
 
     func registerWindow(_ window: WindowModel) {
         guard !window.isClosed, windows[ObjectIdentifier(window)]?.value !== window else { return }
-        window.proAccess = proAccess
         window.connectionCoordinator = connections
         window.hostStore = hosts
         window.metricsModel = serverMetrics
@@ -767,7 +766,6 @@ final class AppModel {
             let opened = hosts.map { open($0, as: target, in: window) }
             if let first = opened.first { window.select(first.id) }
         case .oneWorkspace:
-            guard proAccess.require(.workspaceComposition) else { return }
             for host in hosts { beginOpening(host, as: target) }
             window.openWorkspace(hosts, as: target)
         }
@@ -789,7 +787,6 @@ final class AppModel {
             let wanted = Set(ids)
             let targets = hosts.searchHosts("").filter { wanted.contains($0.id) }
             guard !targets.isEmpty else { continue }
-            if targets.count > 1, !proAccess.require(.workspaceComposition) { return }
             for host in targets { beginOpening(host, as: .sshSession) }
             if let workspace = window.openSnippetWorkspace(
                 hosts: targets, command: snippet.body

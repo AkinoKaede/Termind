@@ -10,17 +10,17 @@
       "internalID" : "2f39bfde-c559-49a9-958f-52aeb1703dc0",
       "localizations" : [
         {
-          "description" : "Lifetime AI, MCP, sync & multi-pane access.",
+          "description" : "Lifetime AI, MCP & iCloud sync access.",
           "displayName" : "Termind Pro Lifetime",
           "locale" : "en_US"
         },
         {
-          "description" : "永久使用AI、MCP、同步与多窗格功能。",
+          "description" : "永久使用AI、MCP与iCloud同步功能。",
           "displayName" : "Termind Pro 永久版",
           "locale" : "zh_CN"
         },
         {
-          "description" : "永久使用AI、MCP、同步與多窗格功能。",
+          "description" : "永久使用AI、MCP與iCloud同步功能。",
           "displayName" : "Termind Pro 永久版",
           "locale" : "zh_TW"
         }
@@ -82,17 +82,17 @@
           },
           "localizations" : [
             {
-              "description" : "Annual AI, MCP, sync & multi-pane access.",
+              "description" : "Annual AI, MCP & iCloud sync access.",
               "displayName" : "Termind Pro Annual",
               "locale" : "en_US"
             },
             {
-              "description" : "按年使用AI、MCP、同步与多窗格功能。",
+              "description" : "按年使用AI、MCP与iCloud同步功能。",
               "displayName" : "Termind Pro 年度订阅",
               "locale" : "zh_CN"
             },
             {
-              "description" : "按年使用AI、MCP、同步與多窗格功能。",
+              "description" : "按年使用AI、MCP與iCloud同步功能。",
               "displayName" : "Termind Pro 年度訂閱",
               "locale" : "zh_TW"
             }

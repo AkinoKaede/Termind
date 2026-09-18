@@ -20,15 +20,15 @@ sources for eligibility, offer duration, price, billing period, and expiration.
 
 Annual descriptions:
 
-- English: `Annual AI, MCP, sync & multi-pane access.`
-- Simplified Chinese: `按年使用AI、MCP、同步与多窗格功能。`
-- Traditional Chinese: `按年使用AI、MCP、同步與多窗格功能。`
+- English: `Annual AI, MCP & iCloud sync access.`
+- Simplified Chinese: `按年使用AI、MCP与iCloud同步功能。`
+- Traditional Chinese: `按年使用AI、MCP與iCloud同步功能。`
 
 Lifetime descriptions:
 
-- English: `Lifetime AI, MCP, sync & multi-pane access.`
-- Simplified Chinese: `永久使用AI、MCP、同步与多窗格功能。`
-- Traditional Chinese: `永久使用AI、MCP、同步與多窗格功能。`
+- English: `Lifetime AI, MCP & iCloud sync access.`
+- Simplified Chinese: `永久使用AI、MCP与iCloud同步功能。`
+- Traditional Chinese: `永久使用AI、MCP與iCloud同步功能。`
 
 Configure the annual product in one `Termind Pro` subscription group. Its
 introductory offer is free and currently lasts two weeks, but the app never
@@ -47,8 +47,9 @@ Permanent access wins over every subscription state. A verified annual transacti
 grants Pro while subscribed, during its introductory trial, or during a verified
 billing grace period. Cancellation keeps access through the verified expiration.
 Billing retry without grace, expiration, upgrade-away, refund, or revocation denies
-access. A current-launch workspace composition is not dismantled when access ends;
-other Pro features and fresh launches use the current entitlement immediately.
+access. Pro features use the current entitlement immediately. Mac Workspace
+composition, broadcast input, batch opening, multi-host snippets, and local templates
+are free regardless of entitlement; template iCloud sync still requires Pro.
 
 Product metadata failure never removes already verified access. macOS and mobile
 refresh on foreground activation, and `Transaction.updates` handles purchases,
@@ -57,6 +58,11 @@ renewals, refunds, revocations, and Ask to Buy completion.
 ## Release verification
 
 Automated `StoreKitTrialTests` use `SKTestSession` and the local configuration.
+Coordinate the website copy with the app release that makes Workspace composition
+free. Update both products' English, Simplified Chinese, and Traditional Chinese
+descriptions in App Store Connect to the text above; repository changes do not update
+production metadata. Keep product IDs, prices, and offer configuration unchanged.
+
 Before submission, verify with a new Sandbox account:
 
 1. The paywall obtains the localized annual/lifetime prices, annual billing period,

@@ -28,7 +28,6 @@ struct ProPaywallView: View {
             .padding(.top, 24)
 
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                feature("Arrange multiple panes and broadcast input", "rectangle.split.2x1")
                 feature("Use the AI Assistant", "sparkles")
                 feature("Monitor more than 3 servers", "waveform.path.ecg")
                 feature("Upload files by dropping them on a terminal", "arrow.up.doc")

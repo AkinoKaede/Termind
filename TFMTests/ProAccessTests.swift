@@ -38,15 +38,12 @@ struct ProAccessTests {
         #expect(EntitlementStatus.unrestrictedForTesting.hasProAccess)
     }
 
-    @Test @MainActor
-    func freeAccessRefusesAssistantBeforeAnyCallerCanProceed() {
+    @Test(arguments: ProFeature.allCases) @MainActor
+    func freeAccessRefusesEveryPaidFeatureBeforeAnyCallerCanProceed(feature: ProFeature) {
         let access = ProAccessController.testing(status: .free(trialAvailable: true))
-        #expect(!access.require(.assistant))
+        #expect(!access.canUse(feature))
+        #expect(!access.require(feature))
         #expect(access.isPaywallPresented)
-        #expect(access.requestedFeature == .assistant)
-        access.isPaywallPresented = false
-        #expect(!access.require(.terminalFileUpload))
-        #expect(access.isPaywallPresented)
-        #expect(access.requestedFeature == .terminalFileUpload)
+        #expect(access.requestedFeature == feature)
     }
 }

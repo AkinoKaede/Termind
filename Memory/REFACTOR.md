@@ -595,3 +595,21 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
   window dismissal, pane-first Command-W, per-window session ownership, and bounded quit cleanup.
 - Estimated reduction: 25-35 production Swift lines and five localized catalog entries.
 - Status: implementation in progress; verification pending.
+
+## Make Workspace Composition Free (2026-09-18)
+
+- Evidence: `rg 'workspaceComposition|window.proAccess' TFM Frameworks` found
+  15 composition gates, a window-only commerce dependency, and a launch-scoped grant.
+- Action: remove composition from Pro, delete its gates and sticky authorization state,
+  and align app, website, StoreKit copy, and architecture documentation.
+- Estimated reduction: 35-45 production Swift lines plus unused localized entries.
+- Status: implemented; removed 34 production Swift lines and two unused localized entries.
+- Verification: all 28 Workspace access cases across seven non-Pro states, all six
+  remaining Pro feature gates, and entitlement assertions passed. Strict Swift formatting,
+  Chinese localization, website build, and whitespace checks passed. Visually reviewed
+  English, Simplified Chinese, and Traditional Chinese home/FAQ content at desktop and
+  mobile widths; both legacy Chinese redirects passed.
+- Full macOS and iOS tests were stopped at the user's request. Before cancellation,
+  the Mac run reported failures in AgentBackgroundCommandTests, AgentApprovalQueueTests,
+  and SpeechWaveformViewTests; these were not investigated or rerun. No all-green
+  full-suite result is claimed. App Store Connect metadata remains a release step.

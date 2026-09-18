@@ -26,7 +26,6 @@ public final class ProAccessController {
     public private(set) var error: ProAccessControllerError?
     public private(set) var isProcessing = false
     public private(set) var pendingProductID: String?
-    public private(set) var workspaceCompositionGrantedForLaunch: Bool
     public var isPaywallPresented = false
     public var requestedFeature: ProFeature?
 
@@ -62,7 +61,6 @@ public final class ProAccessController {
     public static func testing(status: EntitlementStatus) -> ProAccessController {
         let controller = ProAccessController(observeStore: false)
         controller.status = status
-        controller.workspaceCompositionGrantedForLaunch = status.hasProAccess
         return controller
     }
 
@@ -72,7 +70,6 @@ public final class ProAccessController {
     ) {
         self.now = now
         status = .loading
-        workspaceCompositionGrantedForLaunch = false
         guard observeStore else { return }
         transactionUpdates = Task { [weak self] in
             for await update in Transaction.updates {
@@ -93,9 +90,8 @@ public final class ProAccessController {
         entitlementExpirationTask?.cancel()
     }
 
-    public func canUse(_ feature: ProFeature) -> Bool {
-        if feature == .workspaceComposition { return workspaceCompositionGrantedForLaunch }
-        return status.hasProAccess
+    public func canUse(_: ProFeature) -> Bool {
+        status.hasProAccess
     }
 
     public func canPurchase(_ plan: ProPurchasePlan) -> Bool {
@@ -425,7 +421,6 @@ public final class ProAccessController {
 
     private func apply(_ next: EntitlementStatus) {
         status = next
-        if next.hasProAccess { workspaceCompositionGrantedForLaunch = true }
         entitlementExpirationTask?.cancel()
         let expiresAt: Date?
         switch next {

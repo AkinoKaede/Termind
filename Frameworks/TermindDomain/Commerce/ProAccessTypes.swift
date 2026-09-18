@@ -1,7 +1,6 @@
 import Foundation
 
 public nonisolated enum ProFeature: String, CaseIterable, Hashable, Sendable {
-    case workspaceComposition
     case assistant
     case terminalFileUpload
     case remoteMCP

@@ -127,7 +127,6 @@ extension WindowModel {
     @discardableResult
     func openWorkspaceTemplate(_ template: WorkspaceTemplate) -> Workspace? {
         guard let hosts = hostStore else { return nil }
-        if template.layout.paneCount > 1, !proAccess.require(.workspaceComposition) { return nil }
         let result = template.layout.makeSplitNode(using: hosts)
         let workspace = Workspace(pane: result.node.firstPane)
         workspace.layout = result.node

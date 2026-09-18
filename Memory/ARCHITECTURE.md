@@ -688,8 +688,10 @@ Apple's bundle lookup, independently of the locale used for duration formatting.
 
 The retired standalone trial product and its historical transactions are not recognized.
 Entitlement expiration is checked on activation and at most minutely while active.
-Current-launch workspace composition is not dismantled, but other Pro features and a
-fresh launch receive no stale grant.
+Workspace composition is free on macOS, including splitting, merging, rearranging,
+duplicating, broadcasting input, batch opening, multi-host snippets, and local templates.
+It never depends on StoreKit or retains a launch-scoped Pro grant. Template iCloud sync
+and all other Pro features use the current entitlement immediately.
 
 One app-wide shared `AppReviewController` stores device-local first-use/active-day/version/
 attempt history, never syncs it, and never claims a review was shown. Desktop windows
