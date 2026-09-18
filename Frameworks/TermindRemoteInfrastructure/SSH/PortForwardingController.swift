@@ -59,6 +59,7 @@ public final class PortForwardingConnection {
     fileprivate var session: (any SSHForwardingSessionProtocol)?
     fileprivate var task: Task<Void, Never>?
     fileprivate var connected = false
+    fileprivate var connectionCounts: [PortForwardingRule.ID: Int] = [:]
 
     fileprivate init(host: Host, route: [Host]) {
         hostID = host.id
@@ -247,10 +248,12 @@ public final class PortForwardingController {
             { [weak self, weak context] id, count in
                 Task { @MainActor in
                     guard let self, let context, self.isCurrent(context, attempt: attempt),
-                        self.generations[id] != nil, self.presentations[id] === context,
-                        case .running = self.states[id]
+                        self.generations[id] != nil, self.presentations[id] === context
                     else { return }
-                    self.states[id] = .running(activeConnections: count)
+                    context.connectionCounts[id] = count
+                    if case .running = self.states[id], self.states[id] != .running(activeConnections: count) {
+                        self.states[id] = .running(activeConnections: count)
+                    }
                 }
             },
             { [weak self, weak context] message in
@@ -366,6 +369,7 @@ public final class PortForwardingController {
 
     private func startRule(_ rule: PortForwardingRule, in context: PortForwardingConnection) {
         guard let token = generations[rule.id], let session = context.session else { return }
+        context.connectionCounts[rule.id] = 0
         states[rule.id] = .starting
         let previous = ruleTasks[rule.id]
         ruleTasks[rule.id] = Task { [weak self] in
@@ -374,7 +378,7 @@ public final class PortForwardingController {
             do {
                 try await session.start(rule)
                 guard generations[rule.id] == token else { return }
-                states[rule.id] = .running(activeConnections: 0)
+                states[rule.id] = .running(activeConnections: context.connectionCounts[rule.id] ?? 0)
                 context.journey.succeed()
             } catch {
                 guard generations[rule.id] == token else { return }

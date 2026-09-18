@@ -52,33 +52,46 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         precondition(libssh2_init(0) == 0, "libssh2 initialization failed")
     }()
 
-    private final class RuleContext {
+    private final class RuleContext: @unchecked Sendable {
         let rule: PortForwardingRule
         var socket: Int32 = -1
+        var events: SSHSocketEvents?
         var remoteListener: OpaquePointer?
         var flows: [UUID: Flow] = [:]
+        var start: CheckedContinuation<Void, any Error>?
+        var stopped = false
+        var stop: (@Sendable () -> Void)?
+        var reportedCount = -1
 
         init(rule: PortForwardingRule) { self.rule = rule }
     }
 
-    private final class Flow {
-        enum Phase { case greeting, request, forwarding }
+    private final class Flow: @unchecked Sendable {
+        enum Phase { case greeting, request, opening, connecting, forwarding }
         let id = UUID()
-        var socket: Int32
-        var channel: OpaquePointer?
+        let context: RuleContext
+        let stream: SSHStreamPump
         var phase: Phase
+        var target: (String, Int)?
         var handshake = Data()
-        var toChannel = Data()
-        var toSocket = Data()
-        var socketEOF = false
-        var channelEOF = false
-        var socketWriteClosed = false
-        var channelWriteClosed = false
+        var events: SSHSocketEvents?
+        var connector: SSHForwardingConnector?
+        var retired = false
 
-        init(socket: Int32, dynamic: Bool, channel: OpaquePointer? = nil) {
-            self.socket = socket
-            self.phase = dynamic ? .greeting : .forwarding
-            self.channel = channel
+        init(socket: Int32, context: RuleContext, channel: OpaquePointer? = nil) {
+            self.context = context
+            stream = SSHStreamPump(socket: socket, channel: channel)
+            phase = context.rule.kind == .dynamic ? .greeting : channel == nil ? .opening : .connecting
+            if let host = context.rule.targetHost, let port = context.rule.targetPort { target = (host, port) }
+        }
+    }
+
+    private final class RetiredListener {
+        let listener: OpaquePointer
+        let completion: () -> Void
+        init(_ listener: OpaquePointer, completion: @escaping () -> Void) {
+            self.listener = listener
+            self.completion = completion
         }
     }
 
@@ -89,9 +102,25 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     private var routeTransport: SSHRoutedSocket?
     private var session: OpaquePointer?
     private var rules: [PortForwardingRule.ID: RuleContext] = [:]
+    private var flows: [UUID: Flow] = [:]
+    private var bufferedTransport: SSHBufferedTransport?
+    private var transportEvents: SSHSocketEvents?
     private var timer: (any DispatchSourceTimer)?
+    private var ready = SSHReadyQueue<UUID>()
+    private var pendingOpens = SSHReadyQueue<UUID>()
+    private var opening: Flow?
+    private var pendingListeners: [RuleContext] = []
+    private var listening: RuleContext?
+    private var retiredFlows: [Flow] = []
+    private var retiredListeners: [RetiredListener] = []
+    private var scratch = [UInt8](repeating: 0, count: 32 * 1024)
+    private var scheduled = false
+    private var generation = 0
+    private var controlDirections: Int32 = 0
+    private var keepaliveDue = true
+    private var nextKeepalive = DispatchTime.now()
 
-    public init(
+    init(
         connectionHandler: @escaping SSHForwardingSession.ConnectionHandler,
         failureHandler: @escaping SSHForwardingSession.FailureHandler
     ) {
@@ -100,7 +129,9 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         self.failureHandler = failureHandler
     }
 
-    public func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws {
+    deinit { cleanup() }
+
+    func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws {
         await queue.perform { self.cleanup() }
         let opened = try await SSHSessionWorker.openAuthenticatedSession(
             using: request, timeout: 20, progress: progress)
@@ -109,9 +140,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                 self.routeTransport = opened.transport
                 self.socket = opened.transport.socket
                 self.session = opened.session
+                self.bufferedTransport = SSHBufferedTransport(session: opened.session)
                 libssh2_session_set_blocking(opened.session, 0)
-                libssh2_keepalive_config(opened.session, 1, 20)
-                self.startTimer()
+                libssh2_keepalive_config(opened.session, 0, 20)
+                self.startEvents()
             }
             try Task.checkCancellation()
         } catch {
@@ -120,11 +152,11 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         }
     }
 
-    public func start(_ rule: PortForwardingRule) async throws {
+    func start(_ rule: PortForwardingRule) async throws {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [self] in
                 do {
-                    guard let session else { throw TermindSSHError.disconnected }
+                    guard session != nil else { throw TermindSSHError.disconnected }
                     if rules[rule.id] != nil {
                         continuation.resume()
                         return
@@ -132,223 +164,497 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                     let context = RuleContext(rule: rule)
                     switch rule.kind {
                     case .local, .dynamic:
-                        do {
-                            context.socket = try makeListener(
-                                host: rule.bindHost, port: rule.bindPort
-                            )
-                        } catch {
+                        do { context.socket = try makeListener(host: rule.bindHost, port: rule.bindPort) } catch {
                             throw TermindSSHError.route(
                                 String(
                                     localized: "Unable to listen on \(rule.bindAddress): \(error.localizedDescription)")
                             )
                         }
+                        context.events = SSHSocketEvents(socket: context.socket, queue: queue) {
+                            [weak self, weak context] in
+                            guard let self, let context, !context.stopped else { return }
+                            self.acceptLocal(context)
+                        }
+                        context.events?.update(read: true, write: false)
+                        rules[rule.id] = context
+                        report(context)
+                        continuation.resume()
                     case .remote:
-                        var boundPort: Int32 = 0
-                        let listener = rule.bindHost.withCString { host in
-                            libssh2_channel_forward_listen_ex(
-                                session, host, Int32(rule.bindPort), &boundPort, 64
-                            )
-                        }
-                        guard let listener else {
-                            throw TermindSSHError.route(
-                                SSHSessionWorker.sessionError(
-                                    session, prefix: String(localized: "Unable to start remote forwarding")
-                                ).localizedDescription
-                            )
-                        }
-                        context.remoteListener = listener
+                        context.start = continuation
+                        rules[rule.id] = context
+                        pendingListeners.append(context)
+                        schedulePump()
                     }
-                    rules[rule.id] = context
-                    connectionHandler(rule.id, 0)
-                    continuation.resume()
                 } catch { continuation.resume(throwing: error) }
             }
         }
     }
 
-    public func stop(_ id: PortForwardingRule.ID) async {
+    func stop(_ id: PortForwardingRule.ID) async {
         await withCheckedContinuation { continuation in
             queue.async { [self] in
-                if let context = rules.removeValue(forKey: id) { close(context) }
-                continuation.resume()
+                guard let context = rules.removeValue(forKey: id) else {
+                    continuation.resume()
+                    return
+                }
+                close(context) { continuation.resume() }
+                schedulePump()
             }
         }
     }
 
-    public func disconnect() async {
-        await withCheckedContinuation { continuation in
-            queue.async { [self] in
-                cleanup()
-                continuation.resume()
-            }
-        }
-    }
+    func disconnect() async { await queue.perform { self.cleanup() } }
 
-    private func startTimer() {
-        timer?.cancel()
+    private func startEvents() {
+        let token = generation
+        transportEvents = SSHSocketEvents(socket: socket, queue: queue) { [weak self] in
+            guard let self, self.generation == token else { return }
+            self.wakeAll()
+        }
+        transportEvents?.update(read: true, write: false)
         let source = DispatchSource.makeTimerSource(queue: queue)
-        source.schedule(deadline: .now(), repeating: .milliseconds(12), leeway: .milliseconds(4))
-        source.setEventHandler { [weak self] in self?.pump() }
+        // This timer services protocol deadlines and keepalive, never data throughput.
+        source.schedule(deadline: .now() + 1, repeating: .seconds(1), leeway: .milliseconds(100))
+        source.setEventHandler { [weak self] in
+            guard let self, self.generation == token else { return }
+            if DispatchTime.now() >= self.nextKeepalive { self.keepaliveDue = true }
+            if self.keepaliveDue || self.opening != nil || self.listening != nil
+                || !self.retiredFlows.isEmpty || !self.retiredListeners.isEmpty
+            {
+                self.wakeAll()
+            }
+        }
         timer = source
         source.resume()
+        keepaliveDue = true
+        schedulePump()
+    }
+
+    private func wakeAll() {
+        for id in flows.keys { ready.insert(id) }
+        schedulePump()
+    }
+
+    private func schedulePump() {
+        guard session != nil, !scheduled else { return }
+        scheduled = true
+        let token = generation
+        queue.async { [weak self] in
+            guard let self, self.generation == token else { return }
+            self.scheduled = false
+            self.pump()
+        }
     }
 
     private func pump() {
-        guard let session else { return }
-        for context in Array(rules.values) {
-            switch context.rule.kind {
-            case .local, .dynamic: acceptLocal(context, session: session)
-            case .remote: acceptRemote(context)
-            }
-            for flow in Array(context.flows.values) { pump(flow, in: context, session: session) }
-            connectionHandler(context.rule.id, context.flows.count)
+        guard let session, let bufferedTransport else { return }
+        do { try bufferedTransport.flush(socket: socket) } catch {
+            fail(session)
+            return
         }
-        var next = Int32(0)
-        let keepalive = libssh2_keepalive_send(session, &next)
-        if keepalive < 0, keepalive != LIBSSH2_ERROR_EAGAIN {
-            let message = SSHSessionWorker.sessionError(
-                session, prefix: String(localized: "The forwarding SSH connection closed")
-            ).localizedDescription
-            cleanup()
-            failureHandler(message)
+        if bufferedTransport.isBackpressured {
+            for flow in flows.values { flow.events?.update(read: false, write: false) }
+            transportEvents?.update(read: false, write: true)
+            return
         }
-    }
-
-    private func acceptLocal(_ context: RuleContext, session: OpaquePointer) {
-        while true {
-            let accepted = Darwin.accept(context.socket, nil, nil)
-            guard accepted >= 0 else { break }
-            makeNonblocking(accepted)
-            let flow = Flow(socket: accepted, dynamic: context.rule.kind == .dynamic)
-            if context.rule.kind == .local {
-                guard let targetHost = context.rule.targetHost, let targetPort = context.rule.targetPort else {
-                    Darwin.close(accepted)
-                    continue
-                }
-                flow.channel = targetHost.withCString { target in
-                    libssh2_channel_direct_tcpip_ex(session, target, Int32(targetPort), "127.0.0.1", 0)
-                }
-                guard flow.channel != nil else {
-                    Darwin.close(accepted)
-                    continue
-                }
-            }
-            context.flows[flow.id] = flow
-        }
-    }
-
-    private func acceptRemote(_ context: RuleContext) {
-        guard let listener = context.remoteListener,
-            let targetHost = context.rule.targetHost, let targetPort = context.rule.targetPort
-        else { return }
-        while let channel = libssh2_channel_forward_accept(listener) {
-            do {
-                let local = try SSHSocketConnector.open(
-                    host: targetHost, port: targetPort, timeout: 5
-                )
-                makeNonblocking(local)
-                let flow = Flow(socket: local, dynamic: false, channel: channel)
-                context.flows[flow.id] = flow
-            } catch {
-                _ = libssh2_channel_free(channel)
-            }
-        }
-    }
-
-    private func pump(_ flow: Flow, in context: RuleContext, session: OpaquePointer) {
-        let highWaterMark = 2 * 1024 * 1024
-        if !flow.socketEOF,
-            (flow.phase == .forwarding ? flow.toChannel.count : flow.handshake.count) < highWaterMark
+        bufferedTransport.beginPass()
+        let deadline = DispatchTime.now().uptimeNanoseconds + 2_000_000
+        controlDirections = 0
+        var progressed = advanceListeners(session)
+        if advanceOpen(session) { progressed = true }
+        while !bufferedTransport.isBackpressured, DispatchTime.now().uptimeNanoseconds < deadline, let id = ready.pop()
         {
-            var buffer = [UInt8](repeating: 0, count: 32 * 1024)
-            let count = Darwin.recv(flow.socket, &buffer, buffer.count, 0)
-            if count > 0 {
-                let data = Data(buffer.prefix(count))
-                if flow.phase == .forwarding {
-                    flow.toChannel.append(data)
-                } else {
-                    flow.handshake.append(data)
-                    if flow.handshake.count > 64 * 1024 {
-                        close(flow, in: context)
-                        return
-                    }
-                    handleSOCKSHandshake(flow, session: session)
-                }
-            } else if count == 0 {
-                flow.socketEOF = true
-            } else if errno != EAGAIN && errno != EWOULDBLOCK {
-                close(flow, in: context)
+            guard let flow = flows[id] else { continue }
+            if pump(flow, session: session) { progressed = true }
+        }
+        // Any channel read/write can consume packets for another channel,
+        // including forwarded-tcpip opens and control replies. Service those
+        // queues after stream I/O; waiting for another socket edge would stall.
+        if advanceOpen(session) { progressed = true }
+        if advanceListeners(session) { progressed = true }
+        for context in rules.values where context.remoteListener != nil {
+            if acceptRemote(context) { progressed = true }
+        }
+        for flow in flows.values where flow.phase == .forwarding {
+            guard let channel = flow.stream.channel else { continue }
+            if (flow.stream.wantsChannelRead && libssh2_poll_channel_read(channel, 0) == 1)
+                || (!flow.stream.channelEOF && libssh2_channel_eof(channel) == 1)
+            {
+                ready.insert(flow.id)
+            }
+        }
+        if reap(session) { progressed = true }
+        if keepaliveDue {
+            var next: Int32 = 0
+            let result = libssh2_keepalive_send(session, &next)
+            if result == LIBSSH2_ERROR_EAGAIN {
+                blocked(session)
+            } else if result < 0 {
+                fail(session)
                 return
-            }
-        }
-
-        if let channel = flow.channel {
-            while !flow.toChannel.isEmpty {
-                let written = flow.toChannel.withUnsafeBytes { bytes -> Int in
-                    guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return 0 }
-                    return libssh2_channel_write_ex(channel, 0, base, bytes.count)
-                }
-                if written > 0 {
-                    flow.toChannel.removeFirst(written)
-                } else if written == LIBSSH2_ERROR_EAGAIN {
-                    break
-                } else {
-                    close(flow, in: context)
-                    return
-                }
-            }
-            if flow.socketEOF, flow.toChannel.isEmpty, !flow.channelWriteClosed {
-                let result = libssh2_channel_send_eof(channel)
-                if result == 0 {
-                    flow.channelWriteClosed = true
-                } else if result != LIBSSH2_ERROR_EAGAIN {
-                    close(flow, in: context)
-                    return
-                }
-            }
-            if flow.toSocket.count < highWaterMark {
-                var buffer = [CChar](repeating: 0, count: 32 * 1024)
-                while flow.toSocket.count < highWaterMark {
-                    let count = libssh2_channel_read_ex(channel, 0, &buffer, buffer.count)
-                    if count > 0 {
-                        flow.toSocket.append(Data(bytes: buffer, count: count))
-                    } else if count == LIBSSH2_ERROR_EAGAIN || count == 0 {
-                        break
-                    } else {
-                        close(flow, in: context)
-                        return
-                    }
-                }
-            }
-            if libssh2_channel_eof(channel) == 1 { flow.channelEOF = true }
-        }
-
-        while !flow.toSocket.isEmpty {
-            let sent = flow.toSocket.withUnsafeBytes { bytes -> Int in
-                guard let base = bytes.baseAddress else { return 0 }
-                return Darwin.send(flow.socket, base, bytes.count, 0)
-            }
-            if sent > 0 {
-                flow.toSocket.removeFirst(sent)
-            } else if errno == EAGAIN || errno == EWOULDBLOCK {
-                break
             } else {
-                close(flow, in: context)
-                return
+                keepaliveDue = false
+                nextKeepalive = .now() + .seconds(max(1, Int(next)))
             }
         }
-        if flow.channelEOF, flow.toSocket.isEmpty, !flow.socketWriteClosed {
-            _ = Darwin.shutdown(flow.socket, SHUT_WR)
-            flow.socketWriteClosed = true
+        for context in rules.values { report(context) }
+        let directions = flows.values.reduce(controlDirections) { $0 | $1.stream.blockDirections }
+        var byte: UInt8 = 0
+        let available = Darwin.recv(socket, &byte, 1, MSG_PEEK | MSG_DONTWAIT)
+        if available == 0 || (available < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
+            fail(session)
+            return
         }
-        if flow.socketEOF,
-            flow.channel == nil || flow.channelEOF,
-            flow.toChannel.isEmpty, flow.toSocket.isEmpty
-        {
-            close(flow, in: context)
+        // With no channel/listener libssh2 has no public session-read operation.
+        // Park unsolicited bytes until the next operation can consume them;
+        // never repeatedly wake on the same unread packet.
+        let canRead =
+            available < 0
+            || flows.values.contains {
+                $0.phase == .forwarding && ($0.stream.wantsChannelRead || !$0.stream.toChannel.isEmpty)
+            } || rules.values.contains { $0.remoteListener != nil }
+            || opening != nil || listening != nil || !retiredFlows.isEmpty || !retiredListeners.isEmpty
+        do { try bufferedTransport.flush(socket: socket) } catch {
+            fail(session)
+            return
+        }
+        transportEvents?.update(
+            read: canRead && !bufferedTransport.isBackpressured,
+            write: bufferedTransport.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+        if progressed || bufferedTransport.exhaustedReadBudget { wakeAll() } else if !ready.isEmpty { schedulePump() }
+    }
+
+    private func blocked(_ session: OpaquePointer) {
+        controlDirections |= libssh2_session_block_directions(session)
+    }
+
+    private func advanceListeners(_ session: OpaquePointer) -> Bool {
+        if listening == nil {
+            while !pendingListeners.isEmpty {
+                let next = pendingListeners.removeFirst()
+                if !next.stopped {
+                    listening = next
+                    break
+                }
+            }
+        }
+        guard let context = listening else { return false }
+        var boundPort: Int32 = 0
+        let listener = context.rule.bindHost.withCString {
+            libssh2_channel_forward_listen_ex(session, $0, Int32(context.rule.bindPort), &boundPort, 128)
+        }
+        if let listener {
+            listening = nil
+            if context.stopped {
+                retiredListeners.append(RetiredListener(listener, completion: context.stop ?? {}))
+                context.stop = nil
+            } else {
+                context.remoteListener = listener
+                context.start?.resume()
+                context.start = nil
+                report(context)
+            }
+            return true
+        }
+        if libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN {
+            blocked(session)
+            return false
+        }
+        listening = nil
+        if rules[context.rule.id] === context { rules[context.rule.id] = nil }
+        context.start?.resume(
+            throwing: SSHSessionWorker.sessionError(
+                session, prefix: String(localized: "Unable to start remote forwarding")))
+        context.start = nil
+        context.stop?()
+        context.stop = nil
+        return true
+    }
+
+    private func advanceOpen(_ session: OpaquePointer) -> Bool {
+        if opening == nil {
+            while let id = pendingOpens.pop() {
+                if let flow = flows[id], flow.phase == .opening {
+                    opening = flow
+                    break
+                }
+            }
+        }
+        guard let flow = opening, let (host, port) = flow.target else { return false }
+        let channel = host.withCString {
+            libssh2_channel_direct_tcpip_ex(session, $0, Int32(port), "127.0.0.1", 0)
+        }
+        guard let channel else {
+            if libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN {
+                blocked(session)
+                return false
+            }
+            opening = nil
+            if !flow.retired {
+                if flow.context.rule.kind == .dynamic {
+                    flow.stream.toSocket.append(socksReply(0x05))
+                    flow.stream.socketEOF = true
+                    flow.phase = .request
+                    ready.insert(flow.id)
+                } else {
+                    close(flow)
+                }
+            }
+            return true
+        }
+        opening = nil
+        flow.stream.channel = channel
+        if flow.retired {
+            retiredFlows.append(flow)
+        } else {
+            if flow.context.rule.kind == .dynamic { flow.stream.toSocket.append(socksReply(0x00)) }
+            flow.phase = .forwarding
+            ready.insert(flow.id)
+        }
+        return true
+    }
+
+    private func acceptLocal(_ context: RuleContext) {
+        for _ in 0..<32 {
+            let descriptor = Darwin.accept(context.socket, nil, nil)
+            guard descriptor >= 0 else { break }
+            makeNonblocking(descriptor)
+            var yes: Int32 = 1
+            setsockopt(descriptor, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+            let flow = Flow(socket: descriptor, context: context)
+            register(flow)
+            watch(flow)
+            if flow.phase == .opening { pendingOpens.insert(flow.id) }
+        }
+        schedulePump()
+    }
+
+    private func acceptRemote(_ context: RuleContext) -> Bool {
+        guard let listener = context.remoteListener, let host = context.rule.targetHost,
+            let port = context.rule.targetPort
+        else { return false }
+        var progressed = false
+        for _ in 0..<32 {
+            guard let channel = libssh2_channel_forward_accept(listener) else {
+                if let session, libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN { blocked(session) }
+                break
+            }
+            progressed = true
+            let flow = Flow(socket: -1, context: context, channel: channel)
+            register(flow)
+            let connector = SSHForwardingConnector(queue: queue) { [weak self, weak flow] result in
+                guard let self, let flow, !flow.retired else {
+                    if case .success(let socket) = result { Darwin.close(socket) }
+                    return
+                }
+                flow.connector = nil
+                switch result {
+                case .success(let socket):
+                    flow.stream.socket = socket
+                    flow.phase = .forwarding
+                    self.watch(flow)
+                    self.ready.insert(flow.id)
+                case .failure: self.close(flow)
+                }
+                self.schedulePump()
+            }
+            flow.connector = connector
+            connector.start(host: host, port: port)
+        }
+        return progressed
+    }
+
+    private func register(_ flow: Flow) {
+        flows[flow.id] = flow
+        flow.context.flows[flow.id] = flow
+        ready.insert(flow.id)
+    }
+
+    private func watch(_ flow: Flow) {
+        flow.events = SSHSocketEvents(socket: flow.stream.socket, queue: queue) { [weak self, weak flow] in
+            guard let self, let flow, !flow.retired else { return }
+            self.wakeAll()
+        }
+        updateInterest(flow)
+    }
+
+    private func updateInterest(_ flow: Flow) {
+        let reading: Bool
+        switch flow.phase {
+        case .forwarding: reading = flow.stream.wantsSocketRead
+        case .greeting, .request: reading = !flow.stream.socketEOF
+        case .opening, .connecting: reading = false
+        }
+        flow.events?.update(read: reading, write: flow.stream.socketWriteBlocked)
+    }
+
+    private func pump(_ flow: Flow, session: OpaquePointer) -> Bool {
+        guard !flow.retired else { return false }
+        var progressed = false
+        do {
+            switch flow.phase {
+            case .forwarding:
+                progressed = try flow.stream.pump(session: session, scratch: &scratch)
+                if flow.stream.finished {
+                    close(flow)
+                    return true
+                }
+            case .greeting, .request:
+                if !flow.stream.socketEOF {
+                    let count = Darwin.recv(flow.stream.socket, &scratch, scratch.count, 0)
+                    if count > 0 {
+                        flow.handshake.append(contentsOf: scratch.prefix(count))
+                        guard flow.handshake.count <= 64 * 1024 else {
+                            close(flow)
+                            return true
+                        }
+                        handleSOCKSHandshake(flow, session: session)
+                        progressed = true
+                    } else if count == 0 {
+                        flow.stream.socketEOF = true
+                        progressed = true
+                    } else if errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR {
+                        close(flow)
+                        return true
+                    }
+                }
+                if try flow.stream.flushSocket() { progressed = true }
+                if flow.stream.socketEOF && flow.stream.toSocket.isEmpty {
+                    close(flow)
+                    return true
+                }
+            case .opening:
+                if try flow.stream.flushSocket() { progressed = true }
+            case .connecting: break
+            }
+        } catch {
+            close(flow)
+            return true
+        }
+        updateInterest(flow)
+        return progressed
+    }
+
+    private func report(_ context: RuleContext) {
+        guard !context.stopped, context.start == nil, context.reportedCount != context.flows.count else { return }
+        context.reportedCount = context.flows.count
+        connectionHandler(context.rule.id, context.reportedCount)
+    }
+
+    private func close(_ flow: Flow) {
+        guard !flow.retired else { return }
+        flow.retired = true
+        flows[flow.id] = nil
+        flow.context.flows[flow.id] = nil
+        flow.connector?.cancel()
+        flow.connector = nil
+        let descriptor = flow.stream.socket
+        flow.stream.socket = -1
+        if let events = flow.events {
+            events.cancel { Darwin.close(descriptor) }
+            flow.events = nil
+        } else if descriptor >= 0 {
+            Darwin.close(descriptor)
+        }
+        if flow.stream.channel != nil { retiredFlows.append(flow) }
+    }
+
+    private func close(_ context: RuleContext, completion: @escaping @Sendable () -> Void) {
+        context.stopped = true
+        context.start?.resume(throwing: CancellationError())
+        context.start = nil
+        for flow in Array(context.flows.values) { close(flow) }
+        if context === listening {
+            // Drain the in-flight global request and cancel the resulting
+            // listener before allowing a replacement to bind the same port.
+            context.stop = completion
+            return
+        }
+        if let listener = context.remoteListener {
+            retiredListeners.append(RetiredListener(listener, completion: completion))
+            context.remoteListener = nil
+        } else if let events = context.events {
+            let descriptor = context.socket
+            context.socket = -1
+            context.events = nil
+            events.cancel {
+                Darwin.close(descriptor)
+                completion()
+            }
+        } else {
+            completion()
         }
     }
 
+    private func reap(_ session: OpaquePointer) -> Bool {
+        var progressed = false
+        retiredFlows.removeAll { flow in
+            guard flow.stream.finishPendingWrite(session: session), let channel = flow.stream.channel else {
+                blocked(session)
+                return false
+            }
+            flow.stream.toChannel.removeAll()
+            flow.stream.toSocket.removeAll()
+            let result = libssh2_channel_free(channel)
+            if result == LIBSSH2_ERROR_EAGAIN {
+                blocked(session)
+                return false
+            }
+            flow.stream.channel = nil
+            progressed = true
+            return true
+        }
+        retiredListeners.removeAll { entry in
+            let result = libssh2_channel_forward_cancel(entry.listener)
+            if result == LIBSSH2_ERROR_EAGAIN {
+                blocked(session)
+                return false
+            }
+            entry.completion()
+            progressed = true
+            return true
+        }
+        return progressed
+    }
+
+    private func fail(_ session: OpaquePointer) {
+        let message = SSHSessionWorker.sessionError(
+            session, prefix: String(localized: "The forwarding SSH connection closed")
+        ).localizedDescription
+        cleanup()
+        failureHandler(message)
+    }
+
+    private func cleanup() {
+        generation += 1
+        scheduled = false
+        timer?.cancel()
+        timer = nil
+        for context in rules.values { close(context, completion: {}) }
+        rules.removeAll()
+        // Shutdown makes disposal nonblocking even if a peer stopped reading.
+        if socket >= 0 { _ = Darwin.shutdown(socket, SHUT_RDWR) }
+        if let session { bufferedTransport?.dispose(session: session) }
+        bufferedTransport = nil
+        session = nil
+        for entry in retiredListeners { entry.completion() }
+        retiredListeners.removeAll()
+        retiredFlows.removeAll()
+        opening = nil
+        listening?.stop?()
+        listening?.stop = nil
+        listening = nil
+        pendingListeners.removeAll()
+        flows.removeAll()
+        ready = SSHReadyQueue()
+        pendingOpens = SSHReadyQueue()
+        if let transport = routeTransport {
+            if let events = transportEvents { events.cancel { transport.close() } } else { transport.close() }
+        }
+        transportEvents = nil
+        routeTransport = nil
+        socket = -1
+    }
     private func handleSOCKSHandshake(_ flow: Flow, session: OpaquePointer) {
         switch flow.phase {
         case .greeting:
@@ -358,19 +664,19 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             guard flow.handshake[0] == 0x05,
                 flow.handshake[2..<(2 + methods)].contains(0x00)
             else {
-                flow.toSocket.append(contentsOf: [0x05, 0xff])
-                flow.socketEOF = true
+                flow.stream.toSocket.append(contentsOf: [0x05, 0xff])
+                flow.stream.socketEOF = true
                 return
             }
-            flow.handshake.removeFirst(2 + methods)
-            flow.toSocket.append(contentsOf: [0x05, 0x00])
+            flow.handshake = Data(flow.handshake.dropFirst(2 + methods))
+            flow.stream.toSocket.append(contentsOf: [0x05, 0x00])
             flow.phase = .request
             handleSOCKSHandshake(flow, session: session)
         case .request:
             guard flow.handshake.count >= 4 else { return }
             guard flow.handshake[0] == 0x05, flow.handshake[1] == 0x01 else {
-                flow.toSocket.append(socksReply(0x07))
-                flow.socketEOF = true
+                flow.stream.toSocket.append(socksReply(0x07))
+                flow.stream.socketEOF = true
                 return
             }
             let parsed: (String, Int, Int)?
@@ -404,27 +710,18 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                     Int(flow.handshake[20]) << 8 | Int(flow.handshake[21]), 22
                 )
             default:
-                flow.toSocket.append(socksReply(0x08))
-                flow.socketEOF = true
+                flow.stream.toSocket.append(socksReply(0x08))
+                flow.stream.socketEOF = true
                 return
             }
             guard let (host, port, consumed) = parsed else { return }
-            flow.handshake.removeFirst(consumed)
-            flow.channel = host.withCString { target in
-                libssh2_channel_direct_tcpip_ex(session, target, Int32(port), "127.0.0.1", 0)
-            }
-            guard flow.channel != nil else {
-                flow.toSocket.append(socksReply(0x05))
-                flow.socketEOF = true
-                return
-            }
-            flow.toSocket.append(socksReply(0x00))
-            flow.phase = .forwarding
-            if !flow.handshake.isEmpty {
-                flow.toChannel.append(flow.handshake)
-                flow.handshake.removeAll()
-            }
-        case .forwarding: break
+            flow.target = (host, port)
+            flow.stream.toChannel.append(Data(flow.handshake.dropFirst(consumed)))
+            flow.handshake.removeAll()
+            flow.phase = .opening
+            pendingOpens.insert(flow.id)
+            schedulePump()
+        case .opening, .connecting, .forwarding: break
         }
     }
 
@@ -467,45 +764,4 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         if flags >= 0 { _ = fcntl(socket, F_SETFL, flags | O_NONBLOCK) }
     }
 
-    private func close(_ flow: Flow, in context: RuleContext) {
-        context.flows[flow.id] = nil
-        if flow.socket >= 0 {
-            Darwin.close(flow.socket)
-            flow.socket = -1
-        }
-        if let channel = flow.channel {
-            _ = libssh2_channel_close(channel)
-            _ = libssh2_channel_free(channel)
-            flow.channel = nil
-        }
-    }
-
-    private func close(_ context: RuleContext) {
-        for flow in Array(context.flows.values) { close(flow, in: context) }
-        if context.socket >= 0 {
-            Darwin.close(context.socket)
-            context.socket = -1
-        }
-        if let listener = context.remoteListener {
-            _ = libssh2_channel_forward_cancel(listener)
-            context.remoteListener = nil
-        }
-    }
-
-    private func cleanup() {
-        timer?.cancel()
-        timer = nil
-        for context in Array(rules.values) { close(context) }
-        rules.removeAll()
-        if let session {
-            _ = libssh2_session_disconnect_ex(
-                session, SSH_DISCONNECT_BY_APPLICATION, "Termind stopped forwarding", ""
-            )
-            _ = libssh2_session_free(session)
-            self.session = nil
-        }
-        socket = -1
-        routeTransport?.close()
-        routeTransport = nil
-    }
 }

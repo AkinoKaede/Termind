@@ -16,6 +16,7 @@ import select
 import signal
 import socket
 import threading
+import time
 
 import paramiko
 
@@ -101,6 +102,7 @@ class Files(paramiko.SFTPServerInterface):
 
 class Authentication(paramiko.ServerInterface):
     def __init__(self, client_key):
+        self.listeners = {}
         self.client_key = client_key
         self.user = ""
         self.factor = False
@@ -119,7 +121,7 @@ class Authentication(paramiko.ServerInterface):
 
     def check_auth_none(self, username):
         self.user = username
-        return paramiko.AUTH_SUCCESSFUL if username == "none" else paramiko.AUTH_FAILED
+        return paramiko.AUTH_SUCCESSFUL if username in ("none", "none-slow-forward") else paramiko.AUTH_FAILED
 
     def check_auth_password(self, username, password):
         if password != "fixture-password":
@@ -181,27 +183,99 @@ class Authentication(paramiko.ServerInterface):
 
     def check_channel_direct_tcpip_request(self, chanid, origin, destination):
         # Allow routing only back to this fixture, never to other services.
-        if destination != ("127.0.0.1", self.port):
+        if destination not in self.allowed_destinations:
             return paramiko.OPEN_FAILED_ADMINISTRATIVELY_PROHIBITED
         self.destinations[chanid] = destination
         return paramiko.OPEN_SUCCEEDED
 
+    def check_port_forward_request(self, address, port):
+        if self.user == "none-slow-forward":
+            time.sleep(0.1)
+        if address not in ("127.0.0.1", "::1"):
+            return False
+        listener = socket.socket(socket.AF_INET6 if ":" in address else socket.AF_INET)
+        try:
+            listener.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+            listener.bind((address, port))
+            listener.listen(128)
+            listener.settimeout(0.2)
+        except OSError as error:
+            print(f"Fixture bind {address}:{port} failed: {error}", flush=True)
+            listener.close()
+            return False
+        bound = listener.getsockname()[1]
+        self.listeners[(address, bound)] = listener
+
+        def accept():
+            while self.transport.is_active():
+                try:
+                    peer, origin = listener.accept()
+                    channel = self.transport.open_forwarded_tcpip_channel(origin[:2], (address, bound))
+                    threading.Thread(target=relay_peer, args=(channel, peer), daemon=True).start()
+                except socket.timeout:
+                    continue
+                except (OSError, EOFError, paramiko.SSHException):
+                    break
+
+        threading.Thread(target=accept, daemon=True).start()
+        return bound
+
+    def cancel_port_forward_request(self, address, port):
+        listener = self.listeners.pop((address, port), None)
+        if listener:
+            listener.close()
+
+
+def relay_peer(channel, peer):
+    with peer:
+        try:
+            readers = [channel, peer]
+            while readers:
+                ready, _, _ = select.select(readers, [], [], 1)
+                for source in ready:
+                    destination = peer if source is channel else channel
+                    data = source.recv(32768)
+                    if data:
+                        destination.sendall(data)
+                    else:
+                        readers.remove(source)
+                        if destination is channel:
+                            channel.shutdown_write()
+                        else:
+                            peer.shutdown(socket.SHUT_WR)
+        except (OSError, EOFError, paramiko.SSHException):
+            pass
+        finally:
+            try:
+                channel.close()
+            except (OSError, EOFError, paramiko.SSHException):
+                pass
+
+
+def echo_server(listener):
+    def echo(peer):
+        with peer:
+            try:
+                while data := peer.recv(65536):
+                    peer.sendall(data)
+            except OSError:
+                pass
+    while True:
+        try:
+            peer, _ = listener.accept()
+            threading.Thread(target=echo, args=(peer,), daemon=True).start()
+        except OSError:
+            return
+
 
 def relay(channel, destination):
-    with socket.create_connection(destination) as peer:
-        try:
-            while True:
-                ready, _, _ = select.select([channel, peer], [], [], 1)
-                for source in ready:
-                    data = source.recv(32768)
-                    if not data:
-                        return
-                    (peer if source is channel else channel).sendall(data)
-        finally:
-            channel.close()
+    try:
+        relay_peer(channel, socket.create_connection(destination))
+    except OSError:
+        channel.close()
 
 
-def serve(sock, host_key, client_key, port):
+def serve(sock, host_key, client_key, port, echo_port):
     transport = paramiko.Transport(sock)
     transport.banner_timeout = 120
     transport.auth_timeout = 120
@@ -209,6 +283,8 @@ def serve(sock, host_key, client_key, port):
     transport.set_subsystem_handler("sftp", paramiko.SFTPServer, Files)
     server = Authentication(client_key)
     server.port = port
+    server.transport = transport
+    server.allowed_destinations = {("127.0.0.1", port), ("127.0.0.1", echo_port), ("::1", echo_port)}
     channels = []
     try:
         transport.start_server(server=server)
@@ -222,6 +298,8 @@ def serve(sock, host_key, client_key, port):
     except (EOFError, OSError, paramiko.SSHException):
         pass
     finally:
+        for listener in server.listeners.values():
+            listener.close()
         transport.close()
 
 
@@ -236,13 +314,18 @@ def main():
     client_key.write_private_key(private)
     encrypted_private = io.StringIO()
     client_key.write_private_key(encrypted_private, password="fixture-passphrase")
-    with socket.socket() as listener:
+    with socket.socket() as listener, socket.socket() as echo_listener:
+        echo_listener.bind(("127.0.0.1", 0))
+        echo_listener.listen(128)
+        echo_port = echo_listener.getsockname()[1]
+        threading.Thread(target=echo_server, args=(echo_listener,), daemon=True).start()
         listener.bind(("127.0.0.1", 0))
-        listener.listen()
+        listener.listen(128)
         port = listener.getsockname()[1]
         fingerprint = base64.b64encode(hashlib.sha256(host_key.asbytes()).digest()).decode().rstrip("=")
         metadata = {
             "port": port,
+            "echoPort": echo_port,
             "privateKey": private.getvalue(),
             "encryptedPrivateKey": encrypted_private.getvalue(),
             "hostFingerprint": "SHA256:" + fingerprint,
@@ -255,7 +338,7 @@ def main():
         try:
             while True:
                 sock, _ = listener.accept()
-                threading.Thread(target=serve, args=(sock, host_key, client_key, port), daemon=True).start()
+                threading.Thread(target=serve, args=(sock, host_key, client_key, port, echo_port), daemon=True).start()
         except KeyboardInterrupt:
             pass
         finally:

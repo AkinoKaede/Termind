@@ -254,6 +254,28 @@ transport failure fails all current rules without restarting them. Host route ed
 (including jump hosts) and rule replacement stop affected runs. Authentication's own
 Continue and Save may continue its explicitly requested opening. Connection and rule
 generations reject late callbacks, and stop/start serializes listener cleanup.
+Forwarding and jump-host bridges service sockets through DispatchSource readiness
+on their owning serial queues; every libssh2 session has exactly one queue owner.
+The shared stream pump retains stable write chunks across EAGAIN, uses a 256 KiB
+per-direction quantum, caps encrypted reads at 256 KiB per session pass (including
+reads performed internally by libssh2 writes), and pauses input at a 2 MiB high
+watermark until the queue falls below 1 MiB. A deduplicated FIFO and a 2 ms worker slice prevent a hot flow
+from monopolizing its peers. Half-close drains accepted bytes before propagating
+EOF. Remote target DNS uses at most four workers; nonblocking TCP connects and a
+five-second deadline never block SSH I/O. Channel opens and remote listener starts
+retain and retry the library's session-wide operation state.
+
+Authenticated forwarding/bridge sessions install an encrypted-output adapter using
+libssh2's public send/receive callbacks. It accepts complete encrypted packets and
+applies bounded backpressure between library calls, including receive-generated
+replies. This avoids the pinned libssh2 forwarded-tcpip confirmation retry losing
+its channel on socket EAGAIN. It is installed only after authentication has released
+the session abstract context. Teardown switches the adapter to discard writes and
+return EOF, allowing session disposal without waiting on the peer. Socket descriptors
+are closed only after dispatch-source cancellation handlers retire. Timers serve
+keepalive/protocol deadlines, never bulk-data polling; count notifications occur
+only on changes, including counts received while a rule is still starting.
+
 An Identity may contain only a username: preparation
 permits an empty credential list, SSH tries `none`, then advertised methods. Missing
 configured secrets and existing authentication failure/retry behavior stay unchanged.

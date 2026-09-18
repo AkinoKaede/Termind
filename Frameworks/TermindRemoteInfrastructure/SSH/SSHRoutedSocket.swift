@@ -420,19 +420,18 @@ private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
 /// to this queue.
 private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
     public let clientSocket: Int32
-
     private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.route-bridge")
     private var transportSocket: Int32
-    private var pumpSocket: Int32
     private var session: OpaquePointer?
-    private var channel: OpaquePointer?
+    private let bufferedTransport: SSHBufferedTransport
+    private let stream: SSHStreamPump
+    private var transportEvents: SSHSocketEvents?
+    private var socketEvents: SSHSocketEvents?
     private var timer: (any DispatchSourceTimer)?
-    private var toChannel = Data()
-    private var toSocket = Data()
-    private var socketEOF = false
-    private var channelEOF = false
-    private var channelWriteClosed = false
+    private var scratch = [UInt8](repeating: 0, count: 32 * 1024)
     private var isClosed = false
+    private var scheduled = false
+    private var keepaliveDue = true
 
     public init(
         transportSocket: Int32, session: OpaquePointer, channel: OpaquePointer,
@@ -447,8 +446,8 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
         }
         self.transportSocket = transportSocket
         self.session = session
-        self.channel = channel
-        pumpSocket = pair[0]
+        bufferedTransport = SSHBufferedTransport(session: session)
+        stream = SSHStreamPump(socket: pair[0], channel: channel)
         clientSocket = pair[1]
 
         var yes: Int32 = 1
@@ -467,97 +466,77 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
             clientSocket, SOL_SOCKET, SO_SNDTIMEO, &interval,
             socklen_t(MemoryLayout<timeval>.size)
         )
-        let flags = fcntl(pumpSocket, F_GETFL, 0)
-        if flags >= 0 { _ = fcntl(pumpSocket, F_SETFL, flags | O_NONBLOCK) }
+        let flags = fcntl(stream.socket, F_GETFL, 0)
+        if flags >= 0 { _ = fcntl(stream.socket, F_SETFL, flags | O_NONBLOCK) }
         libssh2_session_set_blocking(session, 0)
 
-        let source = DispatchSource.makeTimerSource(queue: queue)
-        source.schedule(deadline: .now(), repeating: .milliseconds(2), leeway: .milliseconds(1))
-        source.setEventHandler { [weak self] in self?.pump() }
-        timer = source
-        source.resume()
+        libssh2_keepalive_config(session, 0, 20)
+        queue.async { [self] in startEvents() }
     }
 
-    public func close() {
-        queue.sync { closeOnQueue() }
+    private func startEvents() {
+        guard !isClosed else { return }
+        transportEvents = SSHSocketEvents(socket: transportSocket, queue: queue) { [weak self] in self?.schedule() }
+        socketEvents = SSHSocketEvents(socket: stream.socket, queue: queue) { [weak self] in self?.schedule() }
+        transportEvents?.update(read: true, write: false)
+        socketEvents?.update(read: true, write: false)
+        let source = DispatchSource.makeTimerSource(queue: queue)
+        source.schedule(deadline: .now() + 20, repeating: .seconds(20), leeway: .seconds(1))
+        source.setEventHandler { [weak self] in
+            self?.keepaliveDue = true
+            self?.schedule()
+        }
+        timer = source
+        source.resume()
+        schedule()
+    }
+
+    public func close() { queue.sync { closeOnQueue() } }
+
+    private func schedule() {
+        guard !isClosed, !scheduled else { return }
+        scheduled = true
+        queue.async { [weak self] in
+            guard let self, !self.isClosed else { return }
+            self.scheduled = false
+            self.pump()
+        }
     }
 
     private func pump() {
-        guard !isClosed, let session, let channel else { return }
-        let highWaterMark = 2 * 1024 * 1024
-
-        if !socketEOF, toChannel.count < highWaterMark {
-            var bytes = [UInt8](repeating: 0, count: 32 * 1024)
-            let count = Darwin.recv(pumpSocket, &bytes, bytes.count, 0)
-            if count > 0 {
-                toChannel.append(contentsOf: bytes.prefix(count))
-            } else if count == 0 {
-                socketEOF = true
-            } else if errno != EAGAIN && errno != EWOULDBLOCK {
+        guard !isClosed, let session else { return }
+        do {
+            try bufferedTransport.flush(socket: transportSocket)
+            if bufferedTransport.isBackpressured {
+                transportEvents?.update(read: false, write: true)
+                socketEvents?.update(read: false, write: stream.socketWriteBlocked)
+                return
+            }
+            bufferedTransport.beginPass()
+            let progressed = try stream.pump(session: session, scratch: &scratch)
+            if stream.finished {
                 closeOnQueue()
                 return
             }
-        }
-
-        while !toChannel.isEmpty {
-            let written = toChannel.withUnsafeBytes { bytes -> Int in
-                guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return 0 }
-                return libssh2_channel_write_ex(channel, 0, base, bytes.count)
-            }
-            if written > 0 {
-                toChannel.removeFirst(written)
-            } else if written == LIBSSH2_ERROR_EAGAIN {
-                break
-            } else {
-                closeOnQueue()
-                return
-            }
-        }
-        if socketEOF, toChannel.isEmpty, !channelWriteClosed {
-            let result = libssh2_channel_send_eof(channel)
-            if result == 0 {
-                channelWriteClosed = true
-            } else if result != LIBSSH2_ERROR_EAGAIN {
-                closeOnQueue()
-                return
-            }
-        }
-
-        if toSocket.count < highWaterMark {
-            var bytes = [CChar](repeating: 0, count: 32 * 1024)
-            while toSocket.count < highWaterMark {
-                let count = libssh2_channel_read_ex(channel, 0, &bytes, bytes.count)
-                if count > 0 {
-                    toSocket.append(Data(bytes: bytes, count: count))
-                } else if count == LIBSSH2_ERROR_EAGAIN || count == 0 {
-                    break
-                } else {
+            if keepaliveDue {
+                var next: Int32 = 0
+                let result = libssh2_keepalive_send(session, &next)
+                if result == LIBSSH2_ERROR_EAGAIN {
+                    stream.blocked(session)
+                } else if result < 0 {
                     closeOnQueue()
                     return
+                } else {
+                    keepaliveDue = false
                 }
             }
-        }
-        if libssh2_channel_eof(channel) == 1 { channelEOF = true }
-
-        while !toSocket.isEmpty {
-            let sent = toSocket.withUnsafeBytes { bytes -> Int in
-                guard let base = bytes.baseAddress else { return 0 }
-                return Darwin.send(pumpSocket, base, bytes.count, 0)
-            }
-            if sent > 0 {
-                toSocket.removeFirst(sent)
-            } else if errno == EAGAIN || errno == EWOULDBLOCK {
-                break
-            } else {
-                closeOnQueue()
-                return
-            }
-        }
-        if channelEOF && toSocket.isEmpty {
-            _ = Darwin.shutdown(pumpSocket, SHUT_WR)
-        }
-        var next = Int32(0)
-        _ = libssh2_keepalive_send(session, &next)
+            try bufferedTransport.flush(socket: transportSocket)
+            socketEvents?.update(read: stream.wantsSocketRead, write: stream.socketWriteBlocked)
+            transportEvents?.update(
+                read: !bufferedTransport.isBackpressured && (stream.wantsChannelRead || !stream.toChannel.isEmpty),
+                write: bufferedTransport.wantsWrite || stream.blockDirections & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+            if progressed || bufferedTransport.exhaustedReadBudget { schedule() }
+        } catch { closeOnQueue() }
     }
 
     private func closeOnQueue() {
@@ -565,25 +544,17 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
         isClosed = true
         timer?.cancel()
         timer = nil
-        if pumpSocket >= 0 {
-            Darwin.close(pumpSocket)
-            pumpSocket = -1
-        }
-        if let channel {
-            _ = libssh2_channel_close(channel)
-            _ = libssh2_channel_free(channel)
-            self.channel = nil
-        }
-        if let session {
-            _ = libssh2_session_disconnect_ex(
-                session, SSH_DISCONNECT_BY_APPLICATION, "Termind closed the jump route", ""
-            )
-            _ = libssh2_session_free(session)
-            self.session = nil
-        }
-        if transportSocket >= 0 {
-            Darwin.close(transportSocket)
-            transportSocket = -1
-        }
+        let local = stream.socket
+        stream.socket = -1
+        if let socketEvents { socketEvents.cancel { Darwin.close(local) } } else { Darwin.close(local) }
+        socketEvents = nil
+        let remote = transportSocket
+        transportSocket = -1
+        _ = Darwin.shutdown(remote, SHUT_RDWR)
+        if let session { bufferedTransport.dispose(session: session) }
+        session = nil
+        stream.channel = nil
+        if let transportEvents { transportEvents.cancel { Darwin.close(remote) } } else { Darwin.close(remote) }
+        transportEvents = nil
     }
 }

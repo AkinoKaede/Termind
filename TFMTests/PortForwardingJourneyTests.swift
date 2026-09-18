@@ -10,6 +10,14 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct PortForwardingJourneyTests {
+    @Test func aCountReceivedWhileStartingSurvivesStartCompletion() async throws {
+        let fixture = Fixture(mode: .countDuringStart)
+        defer { fixture.controller.stopAll() }
+        let rule = fixture.rules[0]
+        fixture.controller.start(rule.id)
+        try await wait { fixture.controller.state(for: rule.id) == .running(activeConnections: 3) }
+    }
+
     @Test func windowsShareForwardingAuthenticationAndDeletingItsJumpHostCancelsIt() async throws {
         let jump = Host(name: "Jump", host: "jump.invalid")
         let host = Host(name: "Server", host: "server.invalid", jumpHostID: jump.id)
@@ -312,7 +320,7 @@ struct PortForwardingJourneyTests {
 }
 
 private actor ForwardingTestSession: SSHForwardingSessionProtocol {
-    enum Mode: Sendable { case immediate, keyboard, trust, failure, listenerFailure }
+    enum Mode: Sendable { case immediate, keyboard, trust, failure, listenerFailure, countDuringStart }
     let mode: Mode
     let count: SSHForwardingSession.ConnectionHandler
     let failure: SSHForwardingSession.FailureHandler
@@ -356,6 +364,10 @@ private actor ForwardingTestSession: SSHForwardingSessionProtocol {
     }
     func start(_ rule: PortForwardingRule) async throws {
         if mode == .listenerFailure && rule.bindPort == 9000 { throw TermindSSHError.route("Port in use") }
+        if mode == .countDuringStart {
+            count(rule.id, 3)
+            try await Task.sleep(for: .milliseconds(20))
+        }
         starts.append(rule.id)
         listening.insert(rule.id)
     }
