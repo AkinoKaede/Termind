@@ -4487,6 +4487,7 @@
       }
     },
     "Changes apply to queued transfers. Active transfers continue unchanged. If additional connections cannot open without authentication prompts, the session transfers files one at a time." : {
+      "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5667,6 +5668,7 @@
       }
     },
     "Concurrent Transfers" : {
+      "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -17578,6 +17580,7 @@
       }
     },
     "Per-Host Transfers" : {
+      "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

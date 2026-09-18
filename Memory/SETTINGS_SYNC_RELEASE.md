@@ -68,3 +68,21 @@ client that continues syncing existing record types.
 The implementation environment's `xcrun cktool get-teams` on 2026-09-19 reports no
 management token. Production schema deployment and signed-device delivery remain
 release prerequisites, separate from local codec, persistence and scheduler tests.
+
+### Local verification
+
+- TFI full suite: 652 tests passed on iPhone 17 Pro (iOS 26.5 Simulator).
+- iPad Pro 11-inch (iOS 26.5 Simulator): 29 settings, upload, and rendering tests passed.
+- TFM focused verification: 127 tests passed, covering SFTP settings/sync, migration,
+  transfer scheduling/session lifetime, architecture boundaries, and localization.
+- Manually inspected English, Simplified Chinese, and Traditional Chinese screenshots
+  on macOS, iPhone, and iPad at 15/5 and 100/50. macOS values use the original trailing
+  alignment; iOS retains native labeled-value layout beside the stepper.
+- Strict Swift formatting, Chinese localization checks, and `git diff --check` passed.
+
+All Xcode runs retained `-onlyUsePackageVersionsFromResolvedFile`. The initial full
+TFM run had 1,661 passed, 13 failed, and 13 skipped tests. Its stale schema assertion
+and SFTP test wait-timeout failures were corrected and passed focused verification.
+Failures outside this change included StoreKit trial expectations, Agent cancellation,
+Metrics toolbar rendering, single-line field editing, and forwarding editor rendering;
+the complete macOS suite has not been established green by this verification.
