@@ -85,6 +85,56 @@ private final class MobileSSHCommandConnectionBox {
 
 @Suite @MainActor
 struct MobileCommandGeneratorTests {
+    @Test(arguments: HostShellIntegrationMode.allCases, [false, true])
+    func integrationUsesConnectionSnapshotUntilManualOrAutomaticReconnect(
+        mode: HostShellIntegrationMode, global: Bool
+    ) async throws {
+        var (host, library) = try commandFixture()
+        host.shellIntegrationMode = mode
+        library.upsert(host)
+        let settings = TerminalSettingsModel()
+        #expect(settings.set(global, for: \.shellIntegration))
+        let connections = MobileSSHCommandConnectionBox()
+        let history = CommandHistoryModel()
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library, terminalSettings: settings, commandHistory: history,
+            connectionServices: connections.services)
+        defer { workspace.disconnect() }
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        let expected = mode.isEnabled(globalSetting: global)
+        #expect(connections.shellIntegrationPreferences == [expected])
+        workspace.receiveShellEvent(.available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test"))
+        workspace.receiveWorkingDirectory("/srv/app")
+
+        #expect(settings.set(!global, for: \.shellIntegration))
+        host.shellIntegrationMode = expected ? .disabled : .enabled
+        library.upsert(host)
+        #expect(workspace.isShellIntegrationEnabled == expected)
+        #expect(workspace.canGenerateFromCurrentDraft == expected)
+        #expect((workspace.sameDirectoryLaunch != nil) == expected)
+        workspace.receiveShellEvent(.commandStarted("pwd"))
+        workspace.receiveShellEvent(.commandFinished(0, duration: 0.1))
+        #expect(history.entries(for: host.id).count == (expected ? 1 : 0))
+        #expect(connections.sessionCount == 1)
+
+        workspace.disconnect()
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        #expect(connections.shellIntegrationPreferences == [expected, !expected])
+
+        host.shellIntegrationMode = .followGlobalSettings
+        library.replacePersistedSnapshot(VaultSnapshot(hosts: [host], identities: library.identities))
+        var synced = settings.preferences
+        synced.shellIntegration = expected
+        settings.applyRemoteSnapshot(synced)
+        #expect(workspace.isShellIntegrationEnabled == !expected)
+        await connections.finishSession(.failure(.socket("test disconnect")), session: 1)
+        #expect(await eventually(attempts: 500) { connections.sessionCount == 3 && workspace.connected })
+        #expect(connections.shellIntegrationPreferences == [expected, !expected, expected])
+    }
+
     @Test func readsTheCurrentDraftAndInsertsWithoutExecuting() async throws {
         let (host, library) = try commandFixture()
         let connections = MobileSSHCommandConnectionBox()
@@ -412,8 +462,8 @@ struct MobileCommandGeneratorTests {
         return (host, library)
     }
 
-    private func eventually(_ condition: @escaping @MainActor () -> Bool) async -> Bool {
-        for _ in 0..<100 {
+    private func eventually(attempts: Int = 100, _ condition: @escaping @MainActor () -> Bool) async -> Bool {
+        for _ in 0..<attempts {
             if condition() { return true }
             try? await Task.sleep(for: .milliseconds(10))
         }

@@ -86,6 +86,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public var groupID: HostGroup.ID?
     public var tags: [String] = []
     public var colorTag: TagColor = .none
+    public var shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings
     /// Last distribution reported by Shell Integration for this saved Host.
     /// System-owned: editor saves preserve it and only a validated probe updates it.
     public var detectedDistribution: DetectedDistribution?
@@ -137,7 +138,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         id: UUID = UUID(), name: String, host: String, port: Int = 22, identityID: Identity.ID? = nil,
         jumpHostID: Host.ID? = nil, proxy: HostProxy? = nil, sftpSessionInitialPath: String = "",
         groupID: HostGroup.ID? = nil, tags: [String] = [], colorTag: TagColor = .none,
-        detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0
+        detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
+        shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings
     ) {
         self.id = id
         self.name = name
@@ -152,6 +154,32 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.colorTag = colorTag
         self.detectedDistribution = detectedDistribution
         self.sortIndex = sortIndex
+        self.shellIntegrationMode = shellIntegrationMode
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, name, host, port, identityID, jumpHostID, proxy, sftpSessionInitialPath
+        case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        name = try values.decode(String.self, forKey: .name)
+        host = try values.decode(String.self, forKey: .host)
+        port = try values.decode(Int.self, forKey: .port)
+        identityID = try values.decodeIfPresent(UUID.self, forKey: .identityID)
+        jumpHostID = try values.decodeIfPresent(UUID.self, forKey: .jumpHostID)
+        proxy = try values.decodeIfPresent(HostProxy.self, forKey: .proxy)
+        sftpSessionInitialPath = try values.decode(String.self, forKey: .sftpSessionInitialPath)
+        groupID = try values.decodeIfPresent(UUID.self, forKey: .groupID)
+        tags = try values.decode([String].self, forKey: .tags)
+        colorTag = try values.decode(TagColor.self, forKey: .colorTag)
+        detectedDistribution = try values.decodeIfPresent(DetectedDistribution.self, forKey: .detectedDistribution)
+        sortIndex = try values.decode(Double.self, forKey: .sortIndex)
+        shellIntegrationMode =
+            try values.decodeIfPresent(String.self, forKey: .shellIntegrationMode)
+            .flatMap(HostShellIntegrationMode.init(rawValue:)) ?? .followGlobalSettings
     }
 
 }

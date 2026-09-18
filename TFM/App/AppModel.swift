@@ -274,9 +274,6 @@ final class AppModel {
         sftpSettings.didChange = { [weak sftpTransfers] preferences in
             sftpTransfers?.updateLimits(global: preferences.globalLimit, perHost: preferences.perHostLimit)
         }
-        terminalSettings.didChangeShellIntegration = { [weak self] enabled in
-            self?.shellIntegrationPreferenceDidChange(isEnabled: enabled)
-        }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
@@ -439,16 +436,6 @@ final class AppModel {
                 self?.deletedAgentConversationIDs.contains($0.id) != true
             }
             window?.assistantLibrary.restore(visible)
-        }
-    }
-
-    func shellIntegrationPreferenceDidChange(isEnabled: Bool) {
-        windows = windows.filter { $0.value.value != nil }
-        for window in windows.values.compactMap(\.value) {
-            for sshSession in window.workspaces.flatMap(\.panes).compactMap(\.sshSession) {
-                sshSession.applyShellIntegrationPreference(isEnabled: isEnabled)
-            }
-            window.refreshSessionContext()
         }
     }
 

@@ -167,6 +167,8 @@ struct HostEditorView: View {
                 }
             }
 
+            HostIntegrationSection { HostShellIntegrationPicker(mode: $draft.shellIntegrationMode) }
+
             if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Section("SSH Command") {
                     if let command = app.hostLibrary.sshCommand(for: draft) {

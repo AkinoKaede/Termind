@@ -21,7 +21,7 @@ The agent runtime is the separately versioned `AgentKit` package.
 - `TermindPresentation` owns reusable SwiftUI content, presentation policy,
   Ghostty themes, and the `TerminalPreferences` bridge. It depends only on
   Application and Domain; native surfaces, transports, and lifetimes stay in apps.
-- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V21
+- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V22
   schema, migration plan, and container factory. It never depends on an app target.
 - `TFM` and `TFI` own platform UI, adapters, and lifecycle orchestration. Both use
   `App`, `Application`, `Design`, `DesignSystem`, `Features`, `Infrastructure`,
@@ -317,6 +317,18 @@ handling, and mouse reports never enter the broadcast input capture scope.
 Empty clipboard pastes do not arm deferred input capture. A captured bracketed paste
 retains its classification across callback chunks until its closing marker; an
 interrupted sequence expires with the existing short-lived input ticket window.
+
+Host Shell Integration is a Vault-synced three-state override: Follow Global Settings,
+Enable, or Disable. V22 adds its backing column without changing V1–V21 Host schemas;
+legacy stores and payloads default to following global settings. Both Host editors
+place Integration after Group (Group & Tags on desktop), show Enable / Follow Global Settings /
+Disable with the default in the middle, and retain explicit-save drafts.
+Each SSH connection attempt resolves the destination Host override and global terminal
+preference once, before authentication, and retains that value for bootstrap, History,
+Command Generator, remote system information, and integration-dependent directory actions.
+Local or synchronized Host/global edits never change a current connection. New connections
+and manual/automatic reconnects resolve the latest values; edits never initiate reconnects
+or inject scripts into an existing shell. SFTP and forwarding route identity is unchanged.
 
 Mobile SSH sends shell-integration and transport-exit callbacks through one ordered,
 session-scoped MainActor consumer. Close, reconnect, or background expiration ends

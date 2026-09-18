@@ -7,7 +7,6 @@ public final class TerminalSettingsModel {
     public private(set) var preferences = TerminalPreferences()
     public private(set) var storageError: String?
     private let persistence: (any TerminalPreferencesPersisting)?
-    public var didChangeShellIntegration: ((Bool) -> Void)?
 
     public init(persistence: (any TerminalPreferencesPersisting)? = nil) {
         self.persistence = persistence
@@ -32,11 +31,7 @@ public final class TerminalSettingsModel {
     }
 
     public func applyRemoteSnapshot(_ value: TerminalPreferences) {
-        let previous = preferences
         preferences = value
         storageError = nil
-        if previous.shellIntegration != value.shellIntegration {
-            didChangeShellIntegration?(value.shellIntegration)
-        }
     }
 }

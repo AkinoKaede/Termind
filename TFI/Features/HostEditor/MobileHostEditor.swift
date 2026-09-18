@@ -90,6 +90,7 @@ struct MobileHostEditor: View {
                         ForEach(library.groups) { Text($0.name).tag(Optional($0.id)) }
                     }
                 }
+                HostIntegrationSection { MobileHostIntegrationPicker(mode: $draft.shellIntegrationMode) }
             }
         )
     }

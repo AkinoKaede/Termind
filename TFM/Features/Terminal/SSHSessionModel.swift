@@ -166,6 +166,8 @@ final class SSHSessionModel: Identifiable {
         focus: { [weak self] in self?.requestTerminalFocus() }
     )
 
+    /// Resolved once at the beginning of each connection attempt.
+    private(set) var isShellIntegrationEnabled = true
     /// Whether the remote shell accepted Termind's authenticated OSC integration.
     var shellIntegrationAvailable: Bool = false
     private(set) var integratedShell: String?
@@ -386,7 +388,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     var canGenerateFromCurrentDraft: Bool {
-        status.isLive && shellIntegrationAvailable && isShellPromptReady
+        status.isLive && isShellIntegrationEnabled && shellIntegrationAvailable && isShellPromptReady
             && TerminalCommandDraftController.supportedShells.contains(integratedShell ?? "")
     }
 
@@ -419,12 +421,6 @@ final class SSHSessionModel: Identifiable {
         invalidateCommandGeneration()
     }
 
-    func applyShellIntegrationPreference(isEnabled: Bool) {
-        guard !isEnabled else { return }
-        remoteSystemInfo = nil
-        homeResolution = .unavailable
-    }
-
     func connectIfNeeded(using store: any RemoteSessionHostStore) {
         guard startsOnMount, status == .connecting else { return }
         connect(using: store)
@@ -438,7 +434,7 @@ final class SSHSessionModel: Identifiable {
     private func startConnection(using store: any RemoteSessionHostStore) {
         resetCommandGeneratorShellState()
         remoteWindowTitle = nil
-        homeResolution = DesktopSettingsKey.isShellIntegrationEnabled ? .pending : .unavailable
+        homeResolution = .unavailable
         let reconnecting = connection.hasConnectedOnce && connection.isRecovering
         workingDirectory = nil
         transferConfiguration = nil
@@ -456,6 +452,9 @@ final class SSHSessionModel: Identifiable {
             connectionJourney.fail(String(localized: "The host is no longer available."))
             return
         }
+        isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
+            globalSetting: DesktopSettingsKey.isShellIntegrationEnabled)
+        homeResolution = isShellIntegrationEnabled ? .pending : .unavailable
         let route = store.route(for: host)
         let identity = store.identity(for: host)
         let suppliedAuthentication = suppliedAuthentications[host.id]
@@ -862,7 +861,7 @@ final class SSHSessionModel: Identifiable {
                         return try await self.connection.answerKeyboardInteractive(challenge)
                     }
                 ),
-                shellIntegrationEnabled: DesktopSettingsKey.isShellIntegrationEnabled,
+                shellIntegrationEnabled: isShellIntegrationEnabled,
                 columns: latestViewport.columns, rows: latestViewport.rows,
                 progress: progressHandler(attemptID: attemptID)
             )
@@ -885,7 +884,7 @@ final class SSHSessionModel: Identifiable {
                     String(localized: "Reconnected; a new remote shell has started.")
                 )
             }
-            if !DesktopSettingsKey.isShellIntegrationEnabled {
+            if !isShellIntegrationEnabled {
                 isInitialCommandSubmissionReady = true
             }
             submitPendingInitialCommandIfReady()
@@ -1081,6 +1080,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func receiveShellIntegrationEvent(_ event: SSHShellIntegrationEvent) {
+        guard isShellIntegrationEnabled else { return }
         switch event {
         case .available(let shell, let systemInfo, let homeDirectory):
             if let homeDirectory, homeDirectory.hasPrefix("/") {

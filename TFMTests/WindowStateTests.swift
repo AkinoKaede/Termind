@@ -750,9 +750,6 @@ struct WindowStateTests {
         workspace.focus(sshPane.id)
         #expect(window.sidebar.sessionContext.systemInfo == info)
 
-        sshSession.applyShellIntegrationPreference(isEnabled: false)
-        #expect(window.sidebar.sessionContext.systemInfo == nil)
-
         sshSession.receiveShellIntegrationEvent(
             .available(shell: "bash", systemInfo: info, homeDirectory: "/home/test")
         )

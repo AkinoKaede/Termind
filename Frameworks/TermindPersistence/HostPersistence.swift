@@ -586,7 +586,7 @@ public enum TermindSchemaV8: VersionedSchema {
     public static var models: [any PersistentModel.Type] {
         TermindSchemaV7.models.filter {
             $0 != TermindSchemaV7HostModels.PersistentHost.self
-        } + [PersistentHost.self]
+        } + [TermindSchemaV8Models.PersistentHost.self]
     }
 }
 
@@ -712,6 +712,15 @@ public enum TermindSchemaV21: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV22: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(22, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV21.models.filter {
+            $0 != TermindSchemaV8Models.PersistentHost.self
+        } + [PersistentHost.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -721,6 +730,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV10.self, TermindSchemaV11.self, TermindSchemaV12.self, TermindSchemaV13.self,
             TermindSchemaV14.self, TermindSchemaV15.self, TermindSchemaV16.self, TermindSchemaV17.self,
             TermindSchemaV18.self, TermindSchemaV19.self, TermindSchemaV20.self, TermindSchemaV21.self,
+            TermindSchemaV22.self,
         ]
     }
 
@@ -783,10 +793,11 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV18.self, toVersion: TermindSchemaV19.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV19.self, toVersion: TermindSchemaV20.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV20.self, toVersion: TermindSchemaV21.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV21.self, toVersion: TermindSchemaV22.self),
         ]
     }
 }
 
-public typealias PersistentHost = TermindSchemaV8Models.PersistentHost
+public typealias PersistentHost = TermindSchemaV22HostModels.PersistentHost
 public typealias PersistentIdentity = TermindSchemaV7Models.PersistentIdentity
 public typealias PersistentSSHKey = TermindSchemaV7Models.PersistentSSHKey

@@ -10669,6 +10669,22 @@
         }
       }
     },
+    "Follow Global Settings" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟随全局设置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟隨全域設定"
+          }
+        }
+      }
+    },
     "Follow Theme" : {
       "extractionState" : "manual",
       "localizations" : {

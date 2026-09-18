@@ -260,7 +260,6 @@ final class Pane: Identifiable {
     }
 
     var remoteSystemInfo: RemoteSystemInfo? {
-        guard DesktopSettingsKey.isShellIntegrationEnabled else { return nil }
         guard case .sshSession(let sshSession) = content else { return nil }
         return sshSession.remoteSystemInfo
     }

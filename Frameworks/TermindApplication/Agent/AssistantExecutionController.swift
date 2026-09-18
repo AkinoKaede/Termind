@@ -309,7 +309,7 @@ public final class AssistantExecutionController {
             channel: channel
         )
         // No second Shell Integration gate here. `Pane.remoteSystemInfo` already
-        // withholds the probe when the setting is off, and `context` is the same
+        // withholds the probe when integration was disabled at connection start, and `context` is the same
         // value the chips were drawn from — so what is shown and what is sent
         // cannot disagree.
         conversation.start(

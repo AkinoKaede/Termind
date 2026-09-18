@@ -73,7 +73,7 @@ struct ForwardingColorTests {
             let legacy = try ModelContainer(
                 for: schema,
                 configurations: [ModelConfiguration("Termind", schema: schema, url: url, cloudKitDatabase: .none)])
-            legacy.mainContext.insert(PersistentHost(host))
+            legacy.mainContext.insert(TermindSchemaV8Models.PersistentHost(host))
             for rule in rules {
                 legacy.mainContext.insert(TermindSchemaV19ForwardingModels.PersistentPortForwardingRule(rule))
             }

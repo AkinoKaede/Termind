@@ -175,13 +175,11 @@ struct SettingsSyncTests {
         #expect(defaults.bool(forKey: SettingsKey.terminalPasteOnRightClick))
         #expect(try !destination.journal.pendingEnvelopes().contains { $0.key.kind == .terminal })
         let model = TerminalSettingsModel(persistence: destination)
-        var changes: [Bool] = []
-        model.didChangeShellIntegration = { changes.append($0) }
         #expect(model.set(true, for: \.shellIntegration))
-        #expect(changes == [true])
+        #expect(model.preferences.shellIntegration)
         #expect(try destination.loadTerminal().shellIntegration)
         model.applyRemoteSnapshot(preferences)
-        #expect(changes == [true, false])
+        #expect(!model.preferences.shellIntegration)
     }
 
     @Test

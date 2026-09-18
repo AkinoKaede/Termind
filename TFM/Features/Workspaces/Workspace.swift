@@ -272,14 +272,13 @@ final class Workspace: Identifiable {
             })
         let focusedID = focusedPaneID
         let wasBroadcasting = broadcastsInput && canBroadcast
-        let includesSystemInfo = DesktopSettingsKey.isShellIntegrationEnabled
         commandGeneration.start(
             targetCount: targets.count,
             readContext: {
                 let draft = try await origin.requestCurrentDraft()
                 return CommandGeneratorContext(
                     draft: draft, shell: shell, cwd: cwd,
-                    remoteSystemInfo: includesSystemInfo ? origin.remoteSystemInfo : nil
+                    remoteSystemInfo: origin.remoteSystemInfo
                 )
             },
             isCurrent: { [weak self] in

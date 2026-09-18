@@ -103,6 +103,8 @@ final class MobileWorkspace: Identifiable {
         focus: { [weak self] in self?.terminal.requestFocus() }
     )
     private var activeHistoryID: UUID?
+    /// Resolved once at the beginning of each connection attempt.
+    private(set) var isShellIntegrationEnabled = true
     private var shellIntegrationAvailable = false
     private var isInitialCommandSubmissionReady = false
     private var pendingCommand: MobilePendingInitialCommand?
@@ -146,7 +148,7 @@ final class MobileWorkspace: Identifiable {
         guard connected else { return nil }
         switch descriptor.kind {
         case .ssh:
-            guard terminalSettings.preferences.shellIntegration,
+            guard isShellIntegrationEnabled,
                 shellIntegrationAvailable,
                 let workingDirectory,
                 !workingDirectory.isEmpty
@@ -360,7 +362,7 @@ final class MobileWorkspace: Identifiable {
 
         let connectionGeneration = generation
         let revision = commandGeneratorRevision
-        let includesSystemInfo = terminalSettings.preferences.shellIntegration
+        let includesSystemInfo = isShellIntegrationEnabled
         commandGeneration.start(
             targetCount: 1,
             readContext: { [weak self] in
@@ -401,7 +403,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     var canGenerateFromCurrentDraft: Bool {
-        connected && shellIntegrationAvailable && isShellPromptReady
+        connected && isShellIntegrationEnabled && shellIntegrationAvailable && isShellPromptReady
             && TerminalCommandDraftController.supportedShells.contains(integratedShell ?? "")
     }
 
@@ -462,7 +464,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func receiveShellEvent(_ event: SSHShellIntegrationEvent) {
-        guard terminalSettings.preferences.shellIntegration else {
+        guard isShellIntegrationEnabled else {
             activeHistoryID = nil
             resetCommandGeneratorShellState()
             return
@@ -545,6 +547,8 @@ final class MobileWorkspace: Identifiable {
             journey.fail(message)
             return
         }
+        isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
+            globalSetting: terminalSettings.preferences.shellIntegration)
         let route = hosts.route(for: host)
         journey.begin(
             host: host, route: route,
@@ -590,7 +594,7 @@ final class MobileWorkspace: Identifiable {
                     try await connectionServices.connectSSH(
                         session,
                         request,
-                        terminalSettings.preferences.shellIntegration,
+                        isShellIntegrationEnabled,
                         UInt16(clamping: viewport.columns),
                         UInt16(clamping: viewport.rows),
                         progressHandler
@@ -648,7 +652,7 @@ final class MobileWorkspace: Identifiable {
                     appendTerminalNotice(String(localized: "Reconnected; a new remote shell has started."))
                 }
                 if descriptor.kind == .ssh {
-                    if !terminalSettings.preferences.shellIntegration {
+                    if !isShellIntegrationEnabled {
                         isInitialCommandSubmissionReady = true
                     }
                     submitPendingInitialCommandIfReady()
