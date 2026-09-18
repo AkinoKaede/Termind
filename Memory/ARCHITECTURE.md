@@ -806,31 +806,47 @@ Device idiom is not a production layout input. These states are memory-only.
 
 Neither layout shows Welcome. Each Workspace owns exactly one SSH or SFTP session; mobile never composes
 panes, even with Pro. Assistant is independent. The title menu switches open peers
-without reconnecting existing sessions; a restored entry connects on its first selection.
+without reconnecting existing sessions; selecting a Recent Workspace creates and connects it on demand.
 More owns Rename/Close and cross-opening SSH/SFTP when a live path exists. Explicit close never retries.
 
 Initial connection failure and recovery stay in Connection Journey. Background-task
 expiration closes transports but retains intent; foreground resumes existing
-workspaces. Mobile saves device-local Workspace descriptors (stable ID, Host ID, kind,
-title, duplicate index and list order) under a versioned UserDefaults key. Relaunch
-restores disconnected entries after loading Hosts; selecting an entry consumes its
-first-open intent once across scenes and starts a fresh connection. Restoration itself
-never connects or records history. Commands, credentials, paths, terminal contents and
-transfers are excluded. Missing Hosts are pruned; unreadable snapshots are retained
-and cannot be overwritten during that process. Close, normal SSH exit and Host deletion
-remove saved entries. Workspace titles hold the lowest free index for
-their Host and connection kind; manual names retain the allocation, and closing the
-Workspace releases it without renumbering peers. Host deletion runs the shared outbox
-saga and cancels sessions, transfers, forwarding, and local history.
+workspaces. Mobile saves the full ordered list of device-local Workspace descriptors
+(stable ID, Host ID, kind, title and duplicate index) under `mobile.workspaces.v1`.
+Cold launch loads descriptors into Recent Workspaces after loading Hosts, leaving
+`workspaces` empty: no sessions, connections or history events are created. One
+MainActor open-by-ID entry point reuses an existing instance or registers and connects
+only the requested descriptor, preserving its ID and recording history once across
+scenes. Failures require explicit retry. New and restored instances share the same
+ordered saved list; saving current instances alone must never discard unopened entries.
+Commands, credentials, paths, terminal contents and transfers are excluded.
 
-One serialized Live Activity represents all Workspaces with counts and up to six
-distribution icons. Validated links open a Workspace or list and carry no secrets or
-commands. It starts only in foreground, ends with the last Workspace, and cannot keep
-SSH or Agent runs alive. Immutable activity snapshots are separate from observable
-Workspace/Vault state; a user-dismissed activity is not resurrected by ordinary
-foreground updates or descriptor restoration. Startup reconciles an existing activity
-only after descriptors have loaded, preserving its focused ID when available. A stale
-link with no matching entry opens the Workspace list with an unavailable explanation.
+The store reads both legacy bare arrays and the version-1 object envelope. Legacy
+records may lack duplicate indices; migration assigns the lowest free index per Host
+and kind in array order, reserving explicit indices, and immediately writes the envelope,
+including for an empty array. Successful loads permit later saves. Missing Hosts are
+pruned; unknown versions and corrupt snapshots retain their bytes and block writes
+until a successful load. Close, normal SSH exit and local or remote Host deletion
+remove current and unopened saved entries. Close All also clears Recent Workspaces,
+while retaining connection history. Recent Workspaces is a separate list from connection
+history, whose actions still create new sessions. The history section appears only when
+both current and Recent Workspaces are empty. Titles reserve indices across current
+and unopened entries; manual names retain the allocation, and closing releases it
+without renumbering peers. Host deletion runs the shared outbox saga and cancels
+sessions, transfers, forwarding, and local history.
+
+One serialized Live Activity represents only current Workspaces with counts and up to
+six distribution icons. Validated links open a Workspace by ID or navigate to the list
+without restoring sessions, and carry no secrets or commands. Cold launch ends leftover
+activities; their URLs can still restore a saved Workspace. Explicit opening retains a
+start intent until foreground conditions allow a request. Closing the last current
+Workspace clears that intent and ends the activity even when recent entries remain.
+Ordinary foreground updates cannot recreate a dismissed activity after its start intent
+has been consumed. Immutable activity snapshots are separate from observable
+Workspace/Vault state, and starts, updates and ends share one serial queue. An activity
+cannot keep SSH or Agent runs alive. A stale link with no matching entry opens the list
+with an unavailable explanation. Restoration does not distinguish system termination
+from a user force-quit.
 
 Mobile Settings exposes App, Terminal, SFTP, AI, and Sync. The macOS window-title
 preference stays synchronized but has no mobile control; there is no Live Activities

@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindDomain
 import Testing
 import UIKit
 
@@ -251,6 +252,63 @@ struct MobileAdaptiveLayoutTests {
                 #expect(!draft.isPresented)
             }
             #expect(draft.saveCount == 1)
+        }
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func recentWorkspaceListRestoresOnlySelectedRowAndNavigates(language: String) async throws {
+        let suite = "termind.recent-workspace-ui.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let seed = try MobileAppModel(inMemory: true)
+        let host = TermindDomain.Host(name: "Production", host: "server.example.invalid")
+        seed.library.upsert(host)
+        _ = seed.connectionHistory.record(kind: .ssh, for: host.id)
+        let descriptors = [
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Release Shell", kind: .ssh),
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Project Files", kind: .sftp),
+        ]
+        for sizeClass: UIUserInterfaceSizeClass in [.compact, .regular] {
+            let store = MobileWorkspaceStore(defaults: defaults)
+            try store.save(descriptors)
+            var dependencies = MobileAppDependencies.testing()
+            dependencies.container = seed.container
+            dependencies.workspaceStore = store
+            let app = try MobileAppModel(dependencies: dependencies)
+            defer { app.closeAll() }
+            let scene = MobileSceneModel(app: app)
+            let historyCount = app.connectionHistory.entries().count
+            scene.selectedDestination = .workspaces
+            try await withRoot(app: app, scene: scene, language: language, initialSizeClass: sizeClass) { root in
+                #expect(app.workspaces.isEmpty)
+                #expect(scene.workspaceCount == 0)
+                #expect(scene.canCloseAllWorkspaces)
+                let title = language == "en" ? "Workspaces" : language == "zh-Hans" ? "工作区" : "工作區"
+                let navigation = try #require(navigation(titled: title, in: root))
+                let page = try #require(navigation.topViewController)
+                let list = try #require(find(UICollectionView.self, in: page.view))
+                #expect(list.numberOfSections == 2)  // Transfers and Recent Workspaces; history stays hidden.
+                #expect((0..<list.numberOfSections).contains { list.numberOfItems(inSection: $0) == 2 })
+                let width = sizeClass == .compact ? "narrow" : "wide"
+                capture(root, name: "recent-workspaces-\(width)-\(language)")
+                // SwiftUI Button uses its gesture action, not UICollectionView's selection delegate.
+                scene.selectWorkspace(descriptors[1].id)
+                try await settle()
+                #expect(scene.workspaceID == descriptors[1].id)
+                #expect(app.workspaces.map(\.id) == [descriptors[1].id])
+                #expect(app.recentWorkspaces == [descriptors[0]])
+                #expect(navigation.viewControllers.count == 2)
+                capture(root, name: "recent-workspace-opened-\(width)-\(language)")
+                navigation.popViewController(animated: false)
+                try await settle()
+                #expect(scene.workspaceID == nil)
+                scene.closeAllWorkspaces()
+                try await settle()
+                #expect(app.recentWorkspaces.isEmpty)
+                #expect(!scene.canCloseAllWorkspaces)
+                #expect(app.connectionHistory.entries().count == historyCount + 1)
+                #expect(MobileWorkspaceListView(app: app, scene: scene).historyRows.isEmpty == false)
+            }
         }
     }
 

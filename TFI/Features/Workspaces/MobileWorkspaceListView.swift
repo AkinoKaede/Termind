@@ -20,16 +20,58 @@ struct MobileWorkspaceListView: View {
                     Label("Transfers", systemImage: "arrow.up.arrow.down")
                 }
             }
-            if app.workspaces.isEmpty, !historyRows.isEmpty {
-                Section("Recents") { historyRowsContent }
-            } else {
+            if !app.workspaces.isEmpty || (app.recentWorkspaces.isEmpty && historyRows.isEmpty) {
                 Section("Workspaces") { workspaceRows }
+            }
+            if !app.recentWorkspaces.isEmpty {
+                Section("Recent Workspaces") {
+                    ForEach(app.recentWorkspaces) { descriptor in
+                        if let host = app.library.host(descriptor.hostID) {
+                            Button {
+                                scene.selectWorkspace(descriptor.id)
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: descriptor.kind.symbol)
+                                        .foregroundStyle(.tint)
+                                        .frame(width: 28, height: 28)
+                                        .accessibilityLabel(Text(descriptor.kind.label))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                                        Text(app.library.loginAddress(for: host))
+                                            .font(.caption.monospaced())
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
+                                    }
+                                    Spacer(minLength: 0)
+                                }
+                                .contentShape(.rect)
+                                .accessibilityElement(children: .combine)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("recent-workspace-\(descriptor.id)")
+                            .swipeActions {
+                                Button("Remove", systemImage: "trash", role: .destructive) {
+                                    scene.closeWorkspace(descriptor.id)
+                                }
+                            }
+                            .contextMenu {
+                                Button("Remove", systemImage: "trash", role: .destructive) {
+                                    scene.closeWorkspace(descriptor.id)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            if app.workspaces.isEmpty, app.recentWorkspaces.isEmpty, !historyRows.isEmpty {
+                Section("Recents") { historyRowsContent }
             }
         }
         .navigationTitle("Workspaces")
         .toolbar {
             MobileWorkspaceToolbar(
-                hasWorkspaces: !app.workspaces.isEmpty,
+                hasWorkspaces: scene.canCloseAllWorkspaces,
                 hasHistory: !app.connectionHistory.entries().isEmpty,
                 closeAll: scene.closeAllWorkspaces,
                 clearHistory: { clearingHistory = true },

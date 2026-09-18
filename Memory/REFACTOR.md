@@ -479,4 +479,26 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
   bridge before registering, and remove the redundant representable and NSView.
   Both operations remain in the macOS platform layer.
 - Reduction: remove 30 lines of bridge plumbing, adding 5 lines at registration.
-- Status: implemented; focused and full-suite verification pending.
+- Status: completed. All 47 focused window, lifecycle, and terminal-shortcut tests
+  passed. Strict Swift formatting, localization validation, and diff checks passed.
+- Full pinned macOS verification used the immutable `94ad70f1` snapshot because
+  concurrent Dock-menu work introduced a separate test compilation error into
+  the shared checkout. Result: 1,593 passed, 8 skipped, 5 failed. Failures were
+  `StoreKitTrialTests.annualProductSuppliesPriceBillingPeriodTrialDurationAndEntitlement`
+  (JPY storefront values instead of the test's USD values),
+  `AgentApprovalQueueTests.cancellingAParallelBatchStillAnswersEveryCall`,
+  `ServerMetricsLifecycleTests.oneWorkerSurvivesWindowsAndStopsOnPauseSleepAndRemoval`,
+  `MetricsJourneyTests.offlineRestoredMetricsReconcileOnMainActor`, and
+  `TerminalCommandDraftControllerTests.readsOneDraftAndRejectsConcurrentRequests`.
+  The Agent and server-worker failures have earlier baseline evidence above;
+  no baseline claim is made for the other three. No unrelated implementation or
+  assertion was changed. Evidence: `/tmp/termind-window-sizing-focused-fixed.xcresult`
+  and `/tmp/termind-window-sizing-snapshot-full.xcresult`.
+- Native app checks confirmed a 904-by-572 window creates another of exactly the
+  same size, fullscreen Command-N opens Connect, and leaving fullscreen retains
+  the original size. Close/reopen preserved 904 by 572; isolated quit/relaunch
+  preserved 1004 by 652. Quitting with differently sized windows and reopening
+  used the last-used 904-by-572 size. The current macOS setting reopened one scene;
+  preserving distinct restored frames is covered by the native-window tests.
+  A concurrently running same-bundle demo initially interfered with system frame
+  restoration; the relaunch checks were repeated without another instance.

@@ -74,10 +74,14 @@ final class MobileAppModel {
     private let background: any MobileBackgroundTaskManaging
     private let workspaceConnectionServices: MobileWorkspaceConnectionServices
     private let workspaceStore: MobileWorkspaceStore
-    private var workspacesAwaitingFirstOpen: Set<UUID> = []
-    private var hasOpenedWorkspace = false
+    private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor] = []
+
+    var recentWorkspaces: [MobileWorkspaceDescriptor] {
+        let opened = Set(workspaces.map(\.id))
+        return savedWorkspaceDescriptors.filter { !opened.contains($0.id) }
+    }
+
     let outbox: OutboxRunner
-    private var hasActivated = false
     private var scenePhases: [UUID: ScenePhase] = [:]
 
     convenience init(
@@ -209,7 +213,7 @@ final class MobileAppModel {
             repository: self.hosts,
             closeWorkspaces: { [weak self] payload in
                 guard let self else { return }
-                for workspace in workspaces.filter({ $0.descriptor.hostID == payload.hostID }) { close(workspace.id) }
+                closeWorkspaces(for: payload.hostID)
                 commandHistory.clear(for: payload.hostID)
                 sftpHistory.clear(for: payload.hostID)
                 library.projectHostDeletion(payload.hostID)
@@ -237,7 +241,7 @@ final class MobileAppModel {
         metricsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
-        restoreWorkspaces()
+        loadRecentWorkspaces()
     }
 
     func open(
@@ -273,27 +277,32 @@ final class MobileAppModel {
         guard let workspace = workspaces.first(where: { $0.id == id }), workspace.rename(to: title) else {
             return false
         }
+        if let index = savedWorkspaceDescriptors.firstIndex(where: { $0.id == id }) {
+            savedWorkspaceDescriptors[index] = workspace.descriptor
+        }
         saveWorkspaces()
         return true
     }
 
     func close(_ id: UUID) {
-        guard let workspace = workspaces.first(where: { $0.id == id }) else { return }
-        workspace.didChangeState = nil
-        workspace.didRequestClose = nil
-        workspace.disconnect()
+        guard savedWorkspaceDescriptors.contains(where: { $0.id == id }) else { return }
+        if let workspace = workspaces.first(where: { $0.id == id }) {
+            workspace.didChangeState = nil
+            workspace.didRequestClose = nil
+            workspace.disconnect()
+        }
         workspaces.removeAll { $0.id == id }
-        workspacesAwaitingFirstOpen.remove(id)
+        savedWorkspaceDescriptors.removeAll { $0.id == id }
         saveWorkspaces()
         workspaceActivitySessions.removeAll { $0.id == id }
         liveActivities.update(workspaceActivitySessions)
     }
 
     func closeAll() {
-        guard !workspaces.isEmpty else { return }
+        guard !savedWorkspaceDescriptors.isEmpty else { return }
         let closing = workspaces
         workspaces.removeAll()
-        workspacesAwaitingFirstOpen.removeAll()
+        savedWorkspaceDescriptors.removeAll()
         saveWorkspaces()
         workspaceActivitySessions.removeAll()
         for workspace in closing {
@@ -304,10 +313,14 @@ final class MobileAppModel {
         liveActivities.update(workspaceActivitySessions)
     }
 
+    private func closeWorkspaces(for hostID: UUID) {
+        for descriptor in savedWorkspaceDescriptors where descriptor.hostID == hostID { close(descriptor.id) }
+    }
+
     func deleteHost(_ id: UUID) {
         do {
             assistant.disconnectHost(id)
-            for workspace in workspaces.filter({ $0.descriptor.hostID == id }) { close(workspace.id) }
+            closeWorkspaces(for: id)
             sftpEdits.invalidate(hostID: id)
             transfers.cancelAll(for: id)
             keyboardAuthentication.cancelAll(hostID: id)
@@ -359,12 +372,7 @@ final class MobileAppModel {
             forwardings.resumeEnabled()
             reconcileSync()
             outbox.start()
-            if !hasActivated && hasOpenedWorkspace {
-                liveActivities.start(workspaceActivitySessions)
-            } else {
-                liveActivities.update(workspaceActivitySessions)
-            }
-            hasActivated = true
+            liveActivities.update(workspaceActivitySessions)
             metrics.start()
         }
     }
@@ -397,14 +405,15 @@ final class MobileAppModel {
         for change in plan.hosts {
             if change.routeChanged {
                 sftpEdits.invalidate(hostID: change.id)
-                for workspace in workspaces.filter({ $0.descriptor.hostID == change.id }) {
-                    if change.isRemoved { close(workspace.id) } else { workspace.disconnect() }
+                if !change.isRemoved {
+                    for workspace in workspaces.filter({ $0.descriptor.hostID == change.id }) { workspace.disconnect() }
                 }
                 transfers.cancelAll(for: change.id)
                 keyboardAuthentication.cancelAll(hostID: change.id)
                 forwardings.suspend(library.portForwardings(for: change.id).map(\.id))
             }
             if change.isRemoved {
+                closeWorkspaces(for: change.id)
                 commandHistory.clear(for: change.id)
                 sftpHistory.clear(for: change.id)
                 metrics.remove(change.id)
@@ -425,38 +434,39 @@ final class MobileAppModel {
         liveActivities.focus(id, in: workspaceActivitySessions)
     }
 
-    /// Consume restored intent before connecting so all scenes share one first attempt.
-    func activateWorkspace(_ id: UUID) {
-        guard let workspace = workspaces.first(where: { $0.id == id }),
-            workspacesAwaitingFirstOpen.remove(id) != nil
-        else { return }
-        connectionHistory.record(kind: workspace.descriptor.kind, for: workspace.descriptor.hostID)
-        workspace.connect()
+    /// Publish before connecting so every scene shares one instance and one initial attempt.
+    @discardableResult
+    func openWorkspace(_ id: UUID) -> MobileWorkspace? {
+        if let workspace = workspaces.first(where: { $0.id == id }) { return workspace }
+        guard let descriptor = savedWorkspaceDescriptors.first(where: { $0.id == id }) else { return nil }
+        guard library.host(descriptor.hostID) != nil else {
+            close(id)
+            return nil
+        }
+        let workspace = MobileWorkspace(
+            descriptor: descriptor, hosts: library, transfers: transfers, sftpEdits: sftpEdits,
+            terminalSettings: terminalSettings, commandHistory: commandHistory, sftpHistory: sftpHistory,
+            connectionServices: workspaceConnectionServices)
+        connectionHistory.record(kind: descriptor.kind, for: descriptor.hostID)
+        addWorkspaces([workspace])
+        return workspace
     }
 
-    private func restoreWorkspaces() {
+    private func loadRecentWorkspaces() {
         do {
             let descriptors = try workspaceStore.load()
-            workspaces = descriptors.filter { library.host($0.hostID) != nil }.map {
-                MobileWorkspace(
-                    descriptor: $0, hosts: library, transfers: transfers, sftpEdits: sftpEdits,
-                    terminalSettings: terminalSettings, commandHistory: commandHistory, sftpHistory: sftpHistory,
-                    connectionServices: workspaceConnectionServices)
-            }
-            workspacesAwaitingFirstOpen = Set(workspaces.map(\.id))
-            for workspace in workspaces { observeActivityState(of: workspace) }
-            workspaceActivitySessions = workspaces.map(\.activitySession)
-            if workspaces.count != descriptors.count { saveWorkspaces() }
+            savedWorkspaceDescriptors = descriptors.filter { library.host($0.hostID) != nil }
+            if savedWorkspaceDescriptors.count != descriptors.count { saveWorkspaces() }
         } catch {
             self.error = String(localized: "Saved workspaces could not be restored. The saved data has been kept.")
         }
-        // Reconcile only after restoration. Never resurrect a dismissed activity on cold launch.
-        liveActivities.update(workspaceActivitySessions)
+        // No sessions exist at cold launch. Old URLs still resolve through the saved descriptors.
+        liveActivities.update([])
     }
 
     private func saveWorkspaces() {
         do {
-            try workspaceStore.save(workspaces.map(\.descriptor))
+            try workspaceStore.save(savedWorkspaceDescriptors)
         } catch {
             self.error = String(localized: "Workspace changes could not be saved for the next launch.")
         }
@@ -507,9 +517,9 @@ final class MobileAppModel {
         hostID: Host.ID, kind: ConnectionHistoryEntry.Kind
     ) -> Int {
         let taken = Set(
-            workspaces.lazy
-                .filter { $0.descriptor.hostID == hostID && $0.descriptor.kind == kind }
-                .map(\.descriptor.duplicateIndex)
+            savedWorkspaceDescriptors.lazy
+                .filter { $0.hostID == hostID && $0.kind == kind }
+                .map(\.duplicateIndex)
         )
         var index = 0
         while taken.contains(index) { index += 1 }
@@ -520,7 +530,8 @@ final class MobileAppModel {
         guard !added.isEmpty else { return }
         for workspace in added { observeActivityState(of: workspace) }
         workspaces.append(contentsOf: added)
-        hasOpenedWorkspace = true
+        let savedIDs = Set(savedWorkspaceDescriptors.map(\.id))
+        savedWorkspaceDescriptors.append(contentsOf: added.map(\.descriptor).filter { !savedIDs.contains($0.id) })
         saveWorkspaces()
         workspaceActivitySessions.append(contentsOf: added.map(\.activitySession))
         liveActivities.start(workspaceActivitySessions)

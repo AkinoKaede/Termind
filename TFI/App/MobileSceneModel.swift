@@ -96,6 +96,7 @@ final class MobileSceneModel {
     }
 
     var hasWorkspaces: Bool { !app.workspaces.isEmpty }
+    var canCloseAllWorkspaces: Bool { !app.savedWorkspaceDescriptors.isEmpty }
     var workspaceCount: Int { app.workspaces.count }
     var canCloseWorkspace: Bool { activeWorkspace != nil }
     var canUseTerminalCommands: Bool { activeWorkspace?.descriptor.kind == .ssh }
@@ -185,7 +186,14 @@ final class MobileSceneModel {
     }
 
     func selectWorkspace(_ id: MobileWorkspace.ID) {
-        guard app.workspaces.contains(where: { $0.id == id }) else { return }
+        guard app.openWorkspace(id) != nil else {
+            pendingWorkspaceID = nil
+            selectedDestination = .workspaces
+            workspaceID = nil
+            isWorkspaceUnavailable = true
+            return
+        }
+        isWorkspaceUnavailable = false
         if selectedDestination != .workspaces {
             workspaceID = nil
             pendingWorkspaceID = id
@@ -208,7 +216,6 @@ final class MobileSceneModel {
         workspaceID = id
         recentWorkspaceIDs.removeAll { $0 == id }
         recentWorkspaceIDs.insert(id, at: 0)
-        app.activateWorkspace(id)
         app.focusWorkspaceActivity(id)
     }
 
@@ -294,21 +301,14 @@ final class MobileSceneModel {
 
     func open(_ url: URL) {
         if WorkspaceActivityAttributes.accepts(url) {
+            isWorkspaceUnavailable = false
             pendingWorkspaceID = nil
             selectedDestination = .workspaces
             workspaceID = nil
             return
         }
         guard let id = WorkspaceActivityAttributes.workspaceID(from: url) else { return }
-        guard let workspace = app.workspaces.first(where: { $0.id == id }) else {
-            pendingWorkspaceID = nil
-            selectedDestination = .workspaces
-            workspaceID = nil
-            isWorkspaceUnavailable = true
-            return
-        }
-        isWorkspaceUnavailable = false
         selectWorkspace(id)
-        workspace.terminal.requestFocus()
+        app.workspaces.first(where: { $0.id == id })?.terminal.requestFocus()
     }
 }

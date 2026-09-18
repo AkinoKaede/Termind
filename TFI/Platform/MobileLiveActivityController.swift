@@ -11,6 +11,7 @@ final class MobileLiveActivityController {
     private let enabled: Bool
     private let services: MobileLiveActivityServices
     private var focusedWorkspaceID: UUID?
+    private var pendingStart = false
 
     init(enabled: Bool = true, services: MobileLiveActivityServices = .live) {
         self.enabled = enabled
@@ -46,17 +47,22 @@ final class MobileLiveActivityController {
         updates = Task { [weak self] in
             await previous?.value
             guard let self else { return }
+            if mayStart { pendingStart = true }
             guard state.workspaceCount > 0 else {
+                pendingStart = false
                 if let activity { await activity.end() }
                 activity = nil
                 return
             }
             if let activity, activity.state == .active || activity.state == .stale {
+                pendingStart = false
                 await activity.update(state)
                 return
             }
-            // Updates do not restart a dismissed activity. Requests require the foreground.
-            guard mayStart, services.canStart() else { return }
+            // An explicit open may arrive before activation. Retain its intent until a foreground update.
+            // Once consumed, ordinary updates cannot resurrect a user-dismissed activity.
+            guard pendingStart, services.canStart() else { return }
+            pendingStart = false
             do {
                 activity = try services.request(state)
                 error = nil
