@@ -1,52 +1,38 @@
 import SwiftUI
 
-enum MobileFeatureSurface: Hashable, Sendable {
-    case compactTab
-    case regularSidebar
-}
-
-struct MobileFeaturePlacement: Hashable, Sendable {
-    let surface: MobileFeatureSurface
-    let order: Int
-}
-
-/// One top-level mobile destination and the surfaces that host it.
+/// One top-level mobile destination.
 @MainActor
 struct MobileFeatureRegistration: Identifiable {
-    typealias Builder = (MobileAppModel, MobileSceneModel, MobileFeatureSurface) -> AnyView
+    typealias Builder = (MobileAppModel, MobileSceneModel) -> AnyView
 
     let id: MobileDestination
     let title: LocalizedStringKey
     let symbol: String
-    let placements: [MobileFeaturePlacement]
     private let builder: Builder
 
     init(
         id: MobileDestination,
         title: LocalizedStringKey,
         symbol: String,
-        placements: [MobileFeaturePlacement],
         builder: @escaping Builder
     ) {
         self.id = id
         self.title = title
         self.symbol = symbol
-        self.placements = placements
         self.builder = builder
     }
 
     func makeView(
         app: MobileAppModel,
-        scene: MobileSceneModel,
-        surface: MobileFeatureSurface
+        scene: MobileSceneModel
     ) -> AnyView {
-        builder(app, scene, surface)
+        builder(app, scene)
     }
 }
 
 /// The composition root for mobile navigation.
 ///
-/// Features register their identity, placement and destination together. The
+/// Features register their identity, order and destination together. The
 /// shell renders registrations and no longer maintains parallel tab, sidebar,
 /// metadata and destination switches.
 @MainActor
@@ -58,25 +44,7 @@ struct MobileFeatureRegistry {
             !registrations.contains { $0.id == registration.id },
             "Duplicate mobile feature registration: \(registration.id.rawValue)"
         )
-        precondition(
-            !registration.placements.isEmpty,
-            "Mobile feature has no placement: \(registration.id.rawValue)"
-        )
         registrations.append(registration)
-    }
-
-    func registrations(on surface: MobileFeatureSurface) -> [MobileFeatureRegistration] {
-        var placed: [(registration: MobileFeatureRegistration, order: Int)] = []
-        for registration in registrations {
-            guard let placement = registration.placements.first(where: { $0.surface == surface }) else { continue }
-            placed.append((registration, placement.order))
-        }
-        placed.sort { $0.order < $1.order }
-        return placed.map(\.registration)
-    }
-
-    func registration(for destination: MobileDestination) -> MobileFeatureRegistration? {
-        registrations.first { $0.id == destination }
     }
 
     static func standard() -> Self {
@@ -85,12 +53,8 @@ struct MobileFeatureRegistry {
             MobileFeatureRegistration(
                 id: .vault,
                 title: "Vault",
-                symbol: "server.rack",
-                placements: [
-                    MobileFeaturePlacement(surface: .compactTab, order: 0),
-                    MobileFeaturePlacement(surface: .regularSidebar, order: 0),
-                ]
-            ) { app, scene, surface in
+                symbol: "server.rack"
+            ) { app, scene in
                 AnyView(
                     MobileVaultView(
                         app: app,
@@ -101,9 +65,8 @@ struct MobileFeatureRegistry {
                         ),
                         activateHost: scene.activateHost,
                         open: scene.open,
-                        showsMetrics: surface == .compactTab,
                         executeSnippet: scene.execute,
-                        metricsPresentation: scene.compactMetricsPresentation
+                        openMetrics: { scene.selectedDestination = .metrics }
                     ))
             }
         )
@@ -111,9 +74,8 @@ struct MobileFeatureRegistry {
             MobileFeatureRegistration(
                 id: .metrics,
                 title: "Metrics",
-                symbol: "gauge.with.dots.needle.33percent",
-                placements: [MobileFeaturePlacement(surface: .regularSidebar, order: 1)]
-            ) { app, _, _ in
+                symbol: "waveform.path.ecg"
+            ) { app, _ in
                 AnyView(MobileMetricsView(app: app))
             }
         )
@@ -121,12 +83,8 @@ struct MobileFeatureRegistry {
             MobileFeatureRegistration(
                 id: .workspaces,
                 title: "Workspaces",
-                symbol: "terminal",
-                placements: [
-                    MobileFeaturePlacement(surface: .compactTab, order: 1),
-                    MobileFeaturePlacement(surface: .regularSidebar, order: 2),
-                ]
-            ) { app, scene, _ in
+                symbol: "terminal"
+            ) { app, scene in
                 AnyView(MobileWorkspaceListView(app: app, scene: scene))
             }
         )
@@ -134,12 +92,8 @@ struct MobileFeatureRegistry {
             MobileFeatureRegistration(
                 id: .assistant,
                 title: "Assistant",
-                symbol: "sparkles",
-                placements: [
-                    MobileFeaturePlacement(surface: .compactTab, order: 2),
-                    MobileFeaturePlacement(surface: .regularSidebar, order: 3),
-                ]
-            ) { app, scene, _ in
+                symbol: "sparkles"
+            ) { app, scene in
                 AnyView(
                     MobileAssistantView(
                         app: app,
@@ -155,12 +109,8 @@ struct MobileFeatureRegistry {
             MobileFeatureRegistration(
                 id: .settings,
                 title: "Settings",
-                symbol: "gearshape",
-                placements: [
-                    MobileFeaturePlacement(surface: .compactTab, order: 3),
-                    MobileFeaturePlacement(surface: .regularSidebar, order: 4),
-                ]
-            ) { app, scene, _ in
+                symbol: "gearshape"
+            ) { app, scene in
                 AnyView(MobileSettingsView(app: app, reviewScene: scene))
             }
         )

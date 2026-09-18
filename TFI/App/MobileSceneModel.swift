@@ -14,10 +14,6 @@ import struct TermindDomain.Host
 final class MobileSceneModel {
     let id = UUID()
     let assistant: MobileAssistantSceneModel
-    let layoutTransition = MobileLayoutTransition()
-    private(set) var layout: MobileLayout?
-    private(set) var layoutRevision = 0
-    var compactMetricsPresented = false
     var selectedDestination: MobileDestination? = .vault {
         didSet {
             if selectedDestination != .workspaces { pendingWorkspaceID = nil }
@@ -38,56 +34,6 @@ final class MobileSceneModel {
     init(app: MobileAppModel) {
         self.app = app
         assistant = app.assistant.makeSceneModel()
-    }
-
-    /// Rebuild only at width-class boundaries. Live sessions and conversations remain model-owned.
-    func updateLayout(_ next: MobileLayout) {
-        guard !layoutTransition.isBlocked, layout != next else { return }
-        guard let previous = layout else {
-            if next == .compact, selectedDestination == .metrics {
-                compactMetricsPresented = true
-                selectedDestination = .vault
-            }
-            layout = next
-            return
-        }
-        let destination: MobileDestination =
-            previous == .compact && selectedTab == .vault && compactMetricsPresented
-            ? .metrics : selectedDestination ?? .vault
-        layoutRevision += 1
-        workspaceID = nil
-        pendingWorkspaceID = nil
-        isConnectionPickerPresented = false
-        isWorkspaceUnavailable = false
-        editingHost = nil
-        renamingWorkspace = nil
-        assistantLibraryRoute = nil
-        reviewPageID = nil
-        compactMetricsPresented = next == .compact && destination == .metrics
-        selectedDestination = next == .compact && destination == .metrics ? .vault : destination
-        layout = next
-    }
-
-    var compactMetricsPresentation: Binding<Bool> {
-        let revision = layoutRevision
-        return Binding(
-            get: { self.compactMetricsPresented },
-            set: { value in
-                guard self.layoutRevision == revision, self.layout != .regular else { return }
-                self.compactMetricsPresented = value
-            }
-        )
-    }
-
-    var selectedTab: MobileDestination {
-        get {
-            switch selectedDestination {
-            case .workspaces, .assistant, .settings:
-                selectedDestination ?? .vault
-            case .vault, .metrics, nil: .vault
-            }
-        }
-        set { selectedDestination = newValue }
     }
 
     var activeWorkspace: MobileWorkspace? {

@@ -26,7 +26,7 @@ struct MobileAppTests {
         #expect(try app.hosts.snapshot().value == .empty)
         #expect(Set(app.container.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
         let features = MobileFeatureRegistry.standard()
-        #expect(features.registrations(on: .compactTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
+        #expect(features.registrations.map(\.id) == [.vault, .metrics, .workspaces, .assistant, .settings])
     }
 
     @Test func scenesCanUseTheSameAppRepository() throws {
@@ -863,7 +863,7 @@ struct MobileWorkspaceNavigationRenderingTests {
         }
     }
 
-    @Test func resizingReturnsToTheListWithoutReconnectingWorkspaces() async throws {
+    @Test func resizingKeepsWorkspaceDetailsWithoutReconnecting() async throws {
         let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
         let app = try MobileAppModel(inMemory: true, workspaceConnectionServices: connections.services)
         let host = try configureConnectionFixture(in: app)
@@ -882,21 +882,25 @@ struct MobileWorkspaceNavigationRenderingTests {
         scene.selectWorkspace(sshID)
         try await withHostedView(MobileRootView(app: app, scene: scene)) { controller in
             _ = try #require(await navigationController(titled: "Resize SSH", in: controller))
-            // Begin with the opposite of the simulator's initial width class.
-            let next: UIUserInterfaceSizeClass = scene.layout == .compact ? .regular : .compact
-            let other: UIUserInterfaceSizeClass = next == .regular ? .compact : .regular
-            for sizeClass in [next, other, next, other] {
-                controller.traitOverrides.horizontalSizeClass = sizeClass
-                _ = try #require(await navigationController(titled: "Workspaces", in: controller))
-                #expect(scene.workspaceID == nil)
-                #expect(ssh.connected && sftp.connected)
-                #expect(ssh.terminal === terminal)
-                #expect(sftp.sftpSession === browser)
-                #expect(browser.query == "Retained session filter")
-                #expect(connections.sshConnectCount == 1)
-                #expect(connections.connectCount == 1)
-                scene.selectWorkspace(sftpID)
-                _ = try #require(await navigationController(titled: "Resize SFTP", in: controller))
+            for id in [sshID, sftpID] {
+                scene.selectWorkspace(id)
+                let title = id == sshID ? "Resize SSH" : "Resize SFTP"
+                let navigation = try #require(await navigationController(titled: title, in: controller))
+                let detail = navigation.topViewController
+                for sizeClass: UIUserInterfaceSizeClass in [.regular, .compact, .regular, .compact] {
+                    controller.traitOverrides.horizontalSizeClass = sizeClass
+                    try await Task.sleep(for: .milliseconds(300))
+                    #expect(scene.workspaceID == id)
+                    let resizedNavigation = try #require(await navigationController(titled: title, in: controller))
+                    #expect(resizedNavigation === navigation)
+                    #expect(navigation.topViewController === detail)
+                    #expect(ssh.connected && sftp.connected)
+                    #expect(ssh.terminal === terminal)
+                    #expect(sftp.sftpSession === browser)
+                    #expect(browser.query == "Retained session filter")
+                    #expect(connections.sshConnectCount == 1)
+                    #expect(connections.connectCount == 1)
+                }
             }
         }
     }

@@ -87,10 +87,8 @@ struct MobileVaultView: View {
     let reviewScene: MobileSceneModel?
     let activateHost: (Host.ID) -> Void
     let open: (UUID, ConnectionHistoryEntry.Kind) -> Void
-    let showsMetrics: Bool
     let executeSnippet: (Snippet, [Host.ID]) -> Void
-    private let metricsPresentation: Binding<Bool>?
-    @State private var localMetricsPresented = false
+    private let openMetrics: (() -> Void)?
     @Binding var editingHost: Host?
     @State private var query = ""
     @State private var deletingHost: Host?
@@ -103,21 +101,17 @@ struct MobileVaultView: View {
         editingHost: Binding<Host?>,
         activateHost: @escaping (Host.ID) -> Void,
         open: @escaping (UUID, ConnectionHistoryEntry.Kind) -> Void,
-        showsMetrics: Bool = true,
         executeSnippet: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in },
-        metricsPresentation: Binding<Bool>? = nil
+        openMetrics: (() -> Void)? = nil
     ) {
         self.app = app
         self.reviewScene = reviewScene
         _editingHost = editingHost
         self.activateHost = activateHost
         self.open = open
-        self.showsMetrics = showsMetrics
         self.executeSnippet = executeSnippet
-        self.metricsPresentation = metricsPresentation
+        self.openMetrics = openMetrics
     }
-
-    private var presentsMetrics: Binding<Bool> { metricsPresentation ?? $localMetricsPresented }
 
     private var matchingHosts: [Host] { app.library.searchHosts(query) }
     private var matchingKeys: [SSHKeyRef] { app.credentials.searchKeys(query) }
@@ -187,18 +181,18 @@ struct MobileVaultView: View {
     }
 
     private var metricSearchLinks: [SearchLink] {
-        guard showsMetrics else { return [] }
+        guard openMetrics != nil else { return [] }
         var result: [SearchLink] = []
         if matchesMetricsPage {
             result.append(
                 SearchLink(
                     id: "metrics-page", title: pageTitle("Metrics"), detail: nil,
-                    symbol: "gauge.with.dots.needle.33percent", destination: .metrics))
+                    symbol: "waveform.path.ecg", destination: .metrics))
         }
         result += matchingMetricServers.map {
             SearchLink(
                 id: "metric-\($0.id)", title: $0.name, detail: nil,
-                symbol: "gauge.with.dots.needle.33percent", destination: .metrics)
+                symbol: "waveform.path.ecg", destination: .metrics)
         }
         return result
     }
@@ -235,7 +229,6 @@ struct MobileVaultView: View {
         }
         .searchable(text: $query.singleLineText)
         .navigationTitle("Vault")
-        .navigationDestination(isPresented: presentsMetrics) { MobileMetricsView(app: app) }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
@@ -314,18 +307,6 @@ struct MobileVaultView: View {
 
     @ViewBuilder
     private var vaultLinks: some View {
-        if showsMetrics {
-            MobileVaultLinkGroup {
-                Button {
-                    presentsMetrics.wrappedValue = true
-                } label: {
-                    MobileVaultLinkLabel(
-                        title: Text("Metrics"), detail: nil, symbol: "gauge.with.dots.needle.33percent")
-                }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("mobile.vault.metrics")
-            }
-        }
         MobileVaultLinkGroup {
             vaultLink("Keychain", symbol: "key") {
                 MobileCredentialsView(app: app)
@@ -363,7 +344,7 @@ struct MobileVaultView: View {
             Group {
                 if case .metrics = link.destination {
                     Button {
-                        presentsMetrics.wrappedValue = true
+                        openMetrics?()
                     } label: {
                         label
                     }
@@ -397,7 +378,7 @@ struct MobileVaultView: View {
             MobileKnownHostsView(app: app, initialQuery: useQuery ? query : "")
                 .mobileReviewPage("vault.knownHosts", scene: reviewScene)
         case .metrics:
-            MobileMetricsView(app: app)
+            EmptyView()
         }
     }
 

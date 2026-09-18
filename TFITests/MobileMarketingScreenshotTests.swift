@@ -71,8 +71,10 @@ struct MobileMarketingScreenshotTests {
                     if UIDevice.current.userInterfaceIdiom == .pad {
                         NavigationStack { MarketingMetricsScene(servers: metrics, language: language) }
                     } else {
-                        MarketingPhoneTabShell(selected: .vault) {
-                            MarketingPhoneMetricsNavigation(app: app, servers: metrics, language: language)
+                        MarketingPhoneTabShell(selected: .metrics) {
+                            NavigationStack {
+                                MarketingMetricsScene(servers: metrics, language: language, showsSidebarButton: false)
+                            }
                         }
                     }
                 }
@@ -306,7 +308,7 @@ private struct MarketingPhoneTabShell<Content: View>: View {
 
     var body: some View {
         TabView(selection: .constant(selected)) {
-            ForEach(features.registrations(on: .compactTab)) { feature in
+            ForEach(features.registrations) { feature in
                 Group {
                     if feature.id == selected {
                         content
@@ -319,29 +321,6 @@ private struct MarketingPhoneTabShell<Content: View>: View {
             }
         }
         .toolbar(.visible, for: .tabBar)
-    }
-}
-
-private struct MarketingPhoneMetricsNavigation: View {
-    private enum Route: Hashable {
-        case metrics
-    }
-
-    let app: MobileAppModel
-    let servers: [ServerMetric]
-    let language: String
-    @State private var path: [Route] = [.metrics]
-
-    var body: some View {
-        NavigationStack(path: $path) {
-            MobileVaultView(
-                app: app, editingHost: .constant(nil), activateHost: { _ in },
-                open: { _, _ in }
-            )
-            .navigationDestination(for: Route.self) { _ in
-                MarketingMetricsScene(servers: servers, language: language, showsSidebarButton: false)
-            }
-        }
     }
 }
 

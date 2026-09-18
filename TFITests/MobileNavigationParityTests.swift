@@ -7,11 +7,10 @@ import Testing
 
 @Suite @MainActor
 struct MobileNavigationParityTests {
-    @Test func vaultReplacesWelcomeAndMetricsRemainsBelowItOnIPad() {
+    @Test func fiveDestinationsShareOneOrder() {
         let features = MobileFeatureRegistry.standard()
-        #expect(features.registrations(on: .compactTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
         #expect(
-            features.registrations(on: .regularSidebar).map(\.id)
+            features.registrations.map(\.id)
                 == [.vault, .metrics, .workspaces, .assistant, .settings]
         )
     }

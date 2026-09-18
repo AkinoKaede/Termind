@@ -542,3 +542,46 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
   both test bundles before its slow optional `simctl diagnose` collection was
   interrupted; its finalized result retains all 587 tests and the three failures.
   Package pins, public interfaces, and persistence were unchanged.
+
+## Preserve Mobile Navigation During Window Resizing (2026-09-18)
+
+- Evidence: `rg 'layoutTransition|compactMetrics|registrations\(on|scene\.layout' TFI TFITests`
+  found two root navigation trees, width-triggered route clearing, duplicated Metrics
+  presentation, and a save gate whose sole purpose was delaying reconstruction.
+- Action: use one native sidebar-adaptable TabView with five stable feature stacks;
+  remove width-specific registration, route migration, and reconstruction save gating.
+  Keep Metrics search shortcuts directed at its single top-level destination.
+- Estimated reduction: 150-200 production lines, excluding replacement lifecycle and
+  narrow-window label coverage. Preserve sheet save/cancel/error behavior and native
+  terminal ownership.
+- Status: implemented, reducing production code by 210 lines. Metrics navigation and
+  Vault search use the desktop `waveform.path.ecg` symbol.
+- Verification: the focused iPad action passed all 21 test functions across adaptive
+  navigation, scene/session ownership, editor saves and feature ordering. The same
+  iPhone action passed 20 of 21; its scroll fixture incorrectly forced a regular
+  size class onto a compact-only phone, changing native search-bar placement. The
+  corrected fixture uses the device's native class plus compact widths; it passed
+  three repetitions each on iPhone and iPad, retaining the iPad regular/compact
+  transitions. State checks cover selected pages, Settings depth, unsaved forms,
+  search/scroll, Assistant drafts, independent windows, saving/error feedback and
+  existing SSH/SFTP instances without reconnecting.
+- Reviewed English, Simplified Chinese and Traditional Chinese screenshots at
+  normal and accessibility text sizes. All five titles fit the 320/375-point bottom
+  bar. The regular iPad top bar scrolls at intermediate widths; entries are retained
+  and remain selectable. Tests resize the hosting window as well as its child;
+  native title scaling is not treated as truncation by comparing intrinsic widths.
+  Manual iPad rotation retained the Models child page and showed the unified icon.
+  Device Hub did not perform the system corner-resize gesture; repeated window
+  resizing remains covered by native window-frame/trait tests.
+- Full results before the fixture corrections: iPad **583 passed, 3 failed / 586**;
+  iPhone **584 passed, 2 failed / 586**; macOS **1,598 passed, 1 failed,
+  8 skipped / 1,607**. New failures were the corrected tab-label/scroll fixtures.
+  The other failures were the previously reproduced iPad tab-bar visibility and
+  host-card height cases, and the previously recorded macOS waveform bitmap case.
+  Their production code and assertions were not changed for this work. These are
+  not all-green full-suite results.
+- Evidence: `/tmp/termind-adaptive-tabs-{ipad,iphone,macos}-full.xcresult`,
+  `/tmp/termind-adaptive-tabs-final-{ipad,iphone}.xcresult`, and
+  `/tmp/termind-adaptive-tabs-scroll-native-{iphone,ipad}.xcresult`. Strict Swift
+  formatting, Chinese localization and whitespace checks passed. Package pins,
+  public interfaces and persistence remain unchanged.

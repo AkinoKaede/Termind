@@ -13,138 +13,96 @@ struct MobileAdaptiveLayoutTests {
         #expect(MobileLayout(sizeClass: .regular) == .regular)
     }
 
-    @Test func metricsMappingUsesTheCurrentPageAndRejectsRetiredBindings() throws {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [DynamicTypeSize.large, .accessibility3])
+    func fiveNativeTabsRemainAvailableAcrossWindowWidths(language: String, typeSize: DynamicTypeSize) async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app)
-        scene.updateLayout(.regular)
-        scene.selectedDestination = .metrics
-        scene.updateLayout(.compact)
-        #expect(scene.selectedDestination == .vault)
-        #expect(scene.compactMetricsPresented)
-        let retired = scene.compactMetricsPresentation
-        scene.updateLayout(.regular)
-        #expect(scene.selectedDestination == .metrics)
-        scene.updateLayout(.compact)
-        retired.wrappedValue = false
-        #expect(scene.compactMetricsPresented)
-        scene.compactMetricsPresentation.wrappedValue = false
-        scene.updateLayout(.regular)
-        #expect(scene.selectedDestination == .vault)
-        scene.updateLayout(.compact)
-        scene.compactMetricsPresented = true
-        scene.openSettings()
-        scene.updateLayout(.regular)
-        #expect(scene.selectedDestination == .settings)
-        #expect(!scene.compactMetricsPresented)
-    }
-
-    @Test func layoutChangesResetOnlyWindowNavigationAndWaitForEverySave() throws {
-        let app = try MobileAppModel(inMemory: true)
-        let first = MobileSceneModel(app: app)
-        let second = MobileSceneModel(app: app)
-        first.updateLayout(.compact)
-        second.updateLayout(.regular)
-        let conversation = first.assistant.conversation
-        conversation.composer.draft = "Keep the existing conversation"
-        first.openNewHost()
-        first.updateLayout(.compact)
-        #expect(first.editingHost != nil)
-        let a = first.layoutTransition.beginSave()
-        let b = first.layoutTransition.beginSave()
-        first.updateLayout(.regular)
-        #expect(first.layout == .compact)
-        first.layoutTransition.endSave(a)
-        first.updateLayout(.regular)
-        #expect(first.editingHost != nil)
-        first.layoutTransition.endSave(b)
-        first.updateLayout(.regular)
-        #expect(first.layout == .regular)
-        #expect(first.editingHost == nil)
-        #expect(first.assistant.conversation === conversation)
-        #expect(conversation.composer.draft == "Keep the existing conversation")
-        #expect(second.layoutRevision == 0)
-        #expect(second.selectedDestination == .vault)
-    }
-
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func realRootSwitchesBetweenNativeSidebarAndFourTabs(language: String) async throws {
-        let app = try MobileAppModel(inMemory: true)
-        let scene = MobileSceneModel(app: app)
-        try await withRoot(app: app, scene: scene, language: language) { controller in
-            for sizeClass: UIUserInterfaceSizeClass in [.regular, .compact, .regular, .compact] {
-                resize(controller, to: sizeClass)
+        try await withRoot(app: app, scene: scene, language: language, typeSize: typeSize) { controller in
+            let tabs = try #require(find(UITabBarController.self, in: controller))
+            #expect(tabs.viewControllers?.count == 5)
+            #expect(tabs.mode == .tabSidebar)
+            for (width, sizeClass): (CGFloat, UIUserInterfaceSizeClass) in [
+                (1024, .regular), (600, .regular), (375, .compact), (320, .compact), (1024, .regular),
+            ] {
+                resize(controller, to: sizeClass, width: width)
+                tabs.sidebar.isHidden = true
                 try await settle()
-                if sizeClass == .regular {
-                    let split = try #require(find(UISplitViewController.self, in: controller))
-                    #expect(find(UITabBarController.self, in: controller) == nil)
-                    let sidebar = try #require(split.viewController(for: .primary))
-                    let list = try #require(find(UICollectionView.self, in: sidebar.view))
-                    #expect((0..<list.numberOfSections).reduce(0) { $0 + list.numberOfItems(inSection: $1) } == 5)
-                    for (row, destination) in [
-                        MobileDestination.vault, .metrics, .workspaces, .assistant, .settings,
-                    ].enumerated() {
-                        try selectRow(row, inSectionWithCount: 5, in: sidebar)
-                        try await settle()
-                        #expect(scene.selectedDestination == destination)
-                        #expect(find(UISplitViewController.self, in: controller) === split)
-                    }
-                    try selectRow(0, inSectionWithCount: 5, in: sidebar)
+                #expect(find(UITabBarController.self, in: controller) === tabs)
+                let pages = try #require(tabs.viewControllers)
+                #expect(pages.count == 5)
+                for (index, destination) in MobileDestination.allCases.enumerated() {
+                    let page = try #require(pages.indices.contains(index) ? pages[index] : nil)
+                    tabs.selectedViewController = page
+                    tabs.delegate?.tabBarController?(tabs, didSelect: page)
                     try await settle()
-                } else {
-                    #expect(find(UISplitViewController.self, in: controller) == nil)
-                    let tabs = try #require(find(UITabBarController.self, in: controller))
-                    #expect(tabs.tabBar.items?.count == 4)
-                    #expect(!tabs.isTabBarHidden)
+                    #expect(scene.selectedDestination == destination)
+                    #expect(tabs.selectedViewController === page)
+                    let title = try #require(page.tabBarItem.title)
+                    #expect(visibleLabels(in: tabs.view).contains { $0.text == title })
                 }
-                capture(controller, name: "root-\(sizeClass == .regular ? "wide" : "narrow")-\(language)")
+                let items = try #require(tabs.tabBar.items)
+                #expect(items.count == 5)
+                capture(controller, name: "tabs-\(Int(width))-\(language)-\(typeSize)")
+                let labels = visibleLabels(in: tabs.view)
+                Attachment.record(
+                    labels.map { "\($0.text ?? ""): \($0.bounds), natural \($0.intrinsicContentSize)" }
+                        .joined(separator: "\n"), named: "tab-labels-\(Int(width))-\(language)-\(typeSize)")
+                // The regular-width iPad bar scrolls when its titles do not fit.
+                // Compact width puts all five destinations in the bottom bar.
+                if sizeClass == .compact {
+                    for item in items {
+                        #expect(
+                            labels.contains { $0.text == item.title }, "Missing visible tab: \(item.title ?? "")")
+                    }
+                }
             }
         }
     }
 
-    @Test func coldCompactRootKeepsTheConversationAndDraftAcrossReconstruction() async throws {
+    @Test func compactLaunchKeepsTheConversationAndDraftAcrossResizing() async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app)
         scene.selectedDestination = .assistant
         let conversation = scene.assistant.conversation
         conversation.composer.draft = "Keep this draft through rotation"
         try await withRoot(app: app, scene: scene, initialSizeClass: .compact) { controller in
-            let tabs = try #require(find(UITabBarController.self, in: controller))
-            #expect(tabs.tabBar.items?.count == 4)
-            #expect(tabs.selectedIndex == 2)
-            for sizeClass: UIUserInterfaceSizeClass in [.regular, .compact] {
+            let navigation = try #require(navigation(titled: "Assistant", in: controller))
+            let detail = navigation.topViewController
+            for sizeClass: UIUserInterfaceSizeClass in [.regular, .compact, .regular] {
                 resize(controller, to: sizeClass)
                 try await settle()
                 #expect(scene.selectedDestination == .assistant)
                 #expect(scene.assistant.conversation === conversation)
                 #expect(conversation.composer.draft == "Keep this draft through rotation")
+                #expect(navigation.topViewController === detail)
             }
         }
     }
 
-    @Test func metricsReopensAtTheListAndBackDoesNotRestoreItLater() async throws {
+    @Test func metricsStaysSelectedAcrossResizingAndTabRoundTrips() async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app)
         scene.selectedDestination = .metrics
         try await withRoot(app: app, scene: scene) { controller in
+            let metrics = try #require(navigation(titled: "Metrics", in: controller))
+            let page = metrics.topViewController
             for sizeClass: UIUserInterfaceSizeClass in [.compact, .regular, .compact] {
                 resize(controller, to: sizeClass)
                 try await settle()
-                #expect(scene.selectedDestination == (sizeClass == .regular ? .metrics : .vault))
-                let navigation = try #require(navigation(titled: "Metrics", in: controller))
-                #expect(navigation.topViewController?.navigationItem.title == "Metrics")
+                #expect(scene.selectedDestination == .metrics)
+                #expect(navigation(titled: "Metrics", in: controller) === metrics)
+                #expect(metrics.topViewController === page)
             }
-            let metrics = try #require(navigation(titled: "Metrics", in: controller))
-            metrics.popViewController(animated: false)
+            scene.openSettings()
             try await settle()
-            #expect(!scene.compactMetricsPresented)
-            resize(controller, to: .regular)
+            scene.selectedDestination = .metrics
             try await settle()
-            #expect(scene.selectedDestination == .vault)
-            #expect(navigation(titled: "Vault", in: controller) != nil)
+            #expect(navigation(titled: "Metrics", in: controller) === metrics)
+            #expect(metrics.topViewController === page)
         }
     }
 
-    @Test func settingsDepthAndUnsavedFormsResetOnlyAcrossWidthClasses() async throws {
+    @Test func settingsDepthAndUnsavedFormsSurviveWidthChanges() async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app)
         scene.openSettings()
@@ -157,68 +115,114 @@ struct MobileAdaptiveLayoutTests {
             try await settle()
             let models = try #require(navigation(titled: "Models", in: controller))
             let detail = models.topViewController
-            controller.view.frame.size.width = 900
-            controller.view.layoutIfNeeded()
-            try await settle()
-            #expect(models.topViewController === detail)
-            resize(controller, to: .compact)
-            try await settle()
-            #expect(navigation(titled: "Settings", in: controller) != nil)
-            #expect(navigation(titled: "Models", in: controller) == nil)
+            for sizeClass: UIUserInterfaceSizeClass in [.compact, .regular, .compact] {
+                resize(controller, to: sizeClass)
+                try await settle()
+                #expect(navigation(titled: "Models", in: controller) === models)
+                #expect(models.topViewController === detail)
+            }
             scene.openNewHost()
             try await settle()
+            let hostID = try #require(scene.editingHost?.id)
             let sheet = try #require(presented(in: controller))
             let field = try #require(find(UITextField.self, in: sheet.view))
-            field.text = "Discarded draft"
+            field.text = "Preserved draft"
             field.sendActions(for: .editingChanged)
-            resize(controller, to: .regular)
+            for sizeClass: UIUserInterfaceSizeClass in [.regular, .compact, .regular] {
+                resize(controller, to: sizeClass)
+                try await settle()
+                #expect(scene.editingHost?.id == hostID)
+                #expect(presented(in: controller) === sheet)
+                #expect(field.text == "Preserved draft")
+                #expect(app.library.hosts.isEmpty)
+            }
+            sheet.dismiss(animated: false)
             try await settle()
-            #expect(scene.editingHost == nil)
-            #expect(presented(in: controller) == nil)
-            #expect(app.library.hosts.isEmpty)
+            scene.openSettings()
+            try await settle()
+            #expect(navigation(titled: "Models", in: controller) === models)
+            #expect(models.topViewController === detail)
         }
     }
 
-    @Test func twoWindowsResizeIndependentlyWhileOneSaveIsPending() async throws {
+    @Test func vaultSearchAndScrollSurviveResizing() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        for index in 0..<40 {
+            app.library.upsert(TermindDomain.Host(name: "Production \(index)", host: "server-\(index).example.invalid"))
+        }
+        let scene = MobileSceneModel(app: app)
+        let windowScene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let nativeSizeClass = windowScene.traitCollection.horizontalSizeClass
+        let nativeWidth: CGFloat = nativeSizeClass == .regular ? 1024 : 430
+        try await withRoot(app: app, scene: scene, initialSizeClass: nativeSizeClass) { controller in
+            let navigation = try #require(navigation(titled: "Vault", in: controller))
+            let page = try #require(navigation.topViewController)
+            let search = try #require(page.navigationItem.searchController)
+            search.searchBar.text = "Production"
+            search.searchBar.delegate?.searchBar?(search.searchBar, textDidChange: "Production")
+            search.searchResultsUpdater?.updateSearchResults(for: search)
+            try await settle()
+            let scroll = try #require(find(UIScrollView.self, in: page.view))
+            scroll.setContentOffset(CGPoint(x: 0, y: 300), animated: false)
+            try await settle()
+            capture(controller, name: "vault-scroll-before-resize")
+            // iPhone stays in its native width class; iPad also crosses regular/compact.
+            // Forcing regular width on a compact-only phone changes unsupported search-bar placement.
+            for (width, sizeClass): (CGFloat, UIUserInterfaceSizeClass) in [
+                (375, .compact), (nativeWidth, nativeSizeClass), (320, .compact),
+            ] {
+                resize(controller, to: sizeClass, width: width)
+                try await settle()
+                capture(controller, name: "vault-scroll-\(sizeClass.rawValue)")
+                #expect(navigation.topViewController === page)
+                #expect(page.navigationItem.searchController === search)
+                #expect(search.searchBar.text == "Production")
+                #expect(find(UIScrollView.self, in: page.view) === scroll)
+                #expect(
+                    scroll.contentOffset.y > 100,
+                    "offset \(scroll.contentOffset), content \(scroll.contentSize), bounds \(scroll.bounds)")
+            }
+        }
+    }
+
+    @Test func twoWindowsKeepIndependentPagesAndDraftsDuringResizing() async throws {
         let app = try MobileAppModel(inMemory: true)
         let first = MobileSceneModel(app: app)
         let second = MobileSceneModel(app: app)
         first.selectedDestination = .metrics
-        second.openSettings()
+        second.openNewHost()
+        let hostID = second.editingHost?.id
         try await withRoot(app: app, scene: first) { firstRoot in
+            let metrics = try #require(navigation(titled: "Metrics", in: firstRoot))
             try await withRoot(app: app, scene: second) { secondRoot in
-                let save = first.layoutTransition.beginSave()
+                let sheet = try #require(presented(in: secondRoot))
                 resize(firstRoot, to: .compact)
+                try await settle()
+                #expect(first.selectedDestination == .metrics)
+                #expect(navigation(titled: "Metrics", in: firstRoot) === metrics)
+                #expect(second.editingHost?.id == hostID)
+                #expect(presented(in: secondRoot) === sheet)
                 resize(secondRoot, to: .compact)
+                resize(firstRoot, to: .regular)
                 try await settle()
-                #expect(first.layout == .regular)
-                #expect(second.layout == .compact)
-                #expect(second.selectedDestination == .settings)
-                first.layoutTransition.endSave(save)
-                try await settle()
-                #expect(first.layout == .compact)
-                #expect(first.compactMetricsPresented)
-                #expect(second.layout == .compact)
-                #expect(!second.compactMetricsPresented)
+                #expect(presented(in: secondRoot) === sheet)
+                #expect(first.editingHost == nil)
+                #expect(second.selectedDestination == .vault)
             }
         }
     }
 
     @Test(arguments: [false, true])
-    func savingInTheRealRootDefersRebuildingUntilCompletionOrErrorFeedback(fails: Bool) async throws {
+    func savingSurvivesResizingThroughCompletionAndErrorFeedback(fails: Bool) async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app)
         scene.openSettings()
         let draft = SavingDraft(fails: fails)
         var features = MobileFeatureRegistry()
         features.register(
-            MobileFeatureRegistration(
-                id: .settings, title: "Settings", symbol: "gearshape",
-                placements: [
-                    MobileFeaturePlacement(surface: .compactTab, order: 0),
-                    MobileFeaturePlacement(surface: .regularSidebar, order: 0),
-                ]
-            ) { _, _, _ in AnyView(SavingFeature(draft: draft)) })
+            MobileFeatureRegistration(id: .settings, title: "Settings", symbol: "gearshape") { _, _ in
+                AnyView(SavingFeature(draft: draft))
+            })
         defer { draft.finish() }
         try await withRoot(app: app, scene: scene, features: features) { controller in
             let sheet = try #require(presented(in: controller))
@@ -229,11 +233,9 @@ struct MobileAdaptiveLayoutTests {
             let action = try #require(save.action)
             #expect(UIApplication.shared.sendAction(action, to: save.target, from: save, for: nil))
             try await settle()
-            #expect(scene.layoutTransition.isBlocked)
             for sizeClass: UIUserInterfaceSizeClass in [.compact, .regular, .compact] {
                 resize(controller, to: sizeClass)
                 try await settle()
-                #expect(scene.layout == .regular)
                 #expect(presented(in: controller) === sheet)
                 #expect(draft.saveCount == 1)
                 capture(sheet, name: "saving-\(sizeClass == .regular ? "wide" : "narrow")")
@@ -241,15 +243,20 @@ struct MobileAdaptiveLayoutTests {
             draft.finish()
             try await settle()
             if fails {
-                #expect(scene.layout == .regular)
-                #expect(scene.layoutTransition.isBlocked)
                 #expect(draft.isPresented)
                 #expect(draft.text == "Unsaved input")
-                #expect(find(UIAlertController.self, in: sheet) != nil)
+                let alert = try #require(find(UIAlertController.self, in: sheet))
+                resize(controller, to: .regular)
+                try await settle()
+                #expect(presented(in: controller) === sheet)
+                #expect(find(UIAlertController.self, in: sheet) === alert)
+                #expect(draft.text == "Unsaved input")
             } else {
-                #expect(scene.layout == .compact)
-                #expect(!scene.layoutTransition.isBlocked)
                 #expect(!draft.isPresented)
+                for _ in 0..<20 where presented(in: controller) != nil {
+                    try await Task.sleep(for: .milliseconds(100))
+                }
+                #expect(presented(in: controller) == nil)
             }
             #expect(draft.saveCount == 1)
         }
@@ -328,6 +335,7 @@ struct MobileAdaptiveLayoutTests {
     private func withRoot(
         app: MobileAppModel, scene: MobileSceneModel, language: String = "en",
         features: MobileFeatureRegistry = .standard(),
+        typeSize: DynamicTypeSize = .large,
         initialSizeClass: UIUserInterfaceSizeClass = .regular,
         check: (UIViewController) async throws -> Void
     ) async throws {
@@ -337,7 +345,8 @@ struct MobileAdaptiveLayoutTests {
         let container = UIViewController()
         let controller = UIHostingController(
             rootView: MobileRootView(app: app, scene: scene, features: features)
-                .environment(\.locale, Locale(identifier: language)))
+                .environment(\.locale, Locale(identifier: language))
+                .environment(\.dynamicTypeSize, typeSize))
         window.rootViewController = container
         container.addChild(controller)
         container.view.addSubview(controller.view)
@@ -354,9 +363,12 @@ struct MobileAdaptiveLayoutTests {
         try await check(controller)
     }
 
-    private func resize(_ controller: UIViewController, to sizeClass: UIUserInterfaceSizeClass) {
+    private func resize(_ controller: UIViewController, to sizeClass: UIUserInterfaceSizeClass, width: CGFloat? = nil) {
+        let frame = CGRect(x: 0, y: 0, width: width ?? (sizeClass == .regular ? 1024 : 430), height: 800)
+        controller.view.window?.frame = frame
+        controller.parent?.view.frame = frame
         controller.traitOverrides.horizontalSizeClass = sizeClass
-        controller.view.frame = CGRect(x: 0, y: 0, width: sizeClass == .regular ? 1024 : 430, height: 800)
+        controller.view.frame = frame
         controller.view.setNeedsLayout()
         controller.view.layoutIfNeeded()
     }
@@ -379,6 +391,11 @@ struct MobileAdaptiveLayoutTests {
             return navigation
         }
         return controller.children.lazy.compactMap { navigation(titled: title, in: $0) }.first
+    }
+
+    private func visibleLabels(in view: UIView) -> [UILabel] {
+        guard !view.isHidden, view.alpha > 0, view.bounds.width > 0, view.bounds.height > 0 else { return [] }
+        return (view as? UILabel).map { [$0] } ?? view.subviews.flatMap { visibleLabels(in: $0) }
     }
 
     private func settle() async throws { try await Task.sleep(for: .milliseconds(500)) }

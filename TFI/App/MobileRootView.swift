@@ -1,7 +1,7 @@
 import SwiftUI
 import TermindPresentation
 
-/// Each window uses native tabs or a native sidebar according to its available width.
+/// A window retains its feature stacks while the system adapts tabs into a sidebar.
 struct MobileRootView: View {
     let app: MobileAppModel
     private let features: MobileFeatureRegistry
@@ -26,37 +26,16 @@ struct MobileRootView: View {
     }
 
     var body: some View {
-        ZStack {
-            if (scene.layout ?? windowLayout) == .compact {
-                TabView(selection: tabSelection) {
-                    ForEach(features.registrations(on: .compactTab)) { feature in
-                        NavigationStack {
-                            feature.makeView(app: app, scene: scene, surface: .compactTab)
-                        }
-                        .tabItem { Label(feature.title, systemImage: feature.symbol) }
-                        .tag(feature.id)
-                    }
-                }
-            } else {
-                NavigationSplitView {
-                    List(selection: sidebarSelection) {
-                        ForEach(features.registrations(on: .regularSidebar)) { feature in
-                            NavigationLink(value: feature.id) {
-                                Label(feature.title, systemImage: feature.symbol)
-                            }
-                            .accessibilityIdentifier("mobile.sidebar.\(feature.id.rawValue)")
-                        }
-                    }
-                    .listStyle(.sidebar)
-                    .accessibilityIdentifier("mobile.sidebar")
-                } detail: {
+        TabView(selection: selection) {
+            ForEach(features.registrations) { feature in
+                Tab(feature.title, systemImage: feature.symbol, value: feature.id) {
                     NavigationStack {
-                        selectedFeature.makeView(app: app, scene: scene, surface: .regularSidebar)
+                        feature.makeView(app: app, scene: scene)
                     }
-                    .id(selectedFeature.id)
                 }
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .environment(\.singleLineInputAdapter, { AnyView(MobileSingleLineFieldInput()) })
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {
             MobileProView(pro: app.pro)
@@ -132,42 +111,13 @@ struct MobileRootView: View {
                     ) : app.error ?? "")
         }
         .modifier(MobileAppReviewPresenter(app: app, scene: scene, scenePhase: scenePhase))
-        .onChange(of: windowLayout, initial: true) { _, layout in scene.updateLayout(layout) }
-        .onChange(of: scene.layoutTransition.isBlocked) { _, blocked in
-            if !blocked { scene.updateLayout(windowLayout) }
-        }
-        .environment(\.mobileLayout, windowLayout)
-        .environment(\.mobileLayoutTransition, scene.layoutTransition)
-
+        .environment(\.mobileLayout, MobileLayout(sizeClass: sizeClass))
     }
 
-    private var windowLayout: MobileLayout { MobileLayout(sizeClass: sizeClass) }
-
-    private var tabSelection: Binding<MobileDestination> {
-        let revision = scene.layoutRevision
-        return Binding(
-            get: { scene.selectedTab },
-            set: { destination in
-                guard scene.layoutRevision == revision else { return }
-                scene.selectedTab = destination
-            }
+    private var selection: Binding<MobileDestination> {
+        Binding(
+            get: { scene.selectedDestination ?? .vault },
+            set: { scene.selectedDestination = $0 }
         )
     }
-
-    private var sidebarSelection: Binding<MobileDestination?> {
-        let revision = scene.layoutRevision
-        return Binding(
-            get: { scene.selectedDestination },
-            set: { destination in
-                guard scene.layoutRevision == revision, let destination else { return }
-                scene.selectedDestination = destination
-            }
-        )
-    }
-
-    private var selectedFeature: MobileFeatureRegistration {
-        features.registration(for: scene.selectedDestination ?? .vault)
-            ?? features.registration(for: .vault)!
-    }
-
 }

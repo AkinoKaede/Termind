@@ -21,12 +21,10 @@ struct MobileEditorSheet<Content: View>: View {
     let save: () async throws -> Void
     @ViewBuilder let content: () -> Content
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.mobileLayoutTransition) private var layoutTransition
     @State private var discard = false
     @State private var error: String?
     @State private var isSaving = false
     @State private var saveTask: Task<Void, Never>?
-    @State private var layoutSaveID: UUID?
 
     var body: some View {
         NavigationStack {
@@ -64,12 +62,8 @@ struct MobileEditorSheet<Content: View>: View {
                         Button {
                             guard !isSaving else { return }
                             isSaving = true
-                            layoutSaveID = layoutTransition?.beginSave()
                             saveTask = Task {
-                                defer {
-                                    isSaving = false
-                                    if error == nil { endLayoutSave() }
-                                }
+                                defer { isSaving = false }
                                 do {
                                     try await save()
                                     try Task.checkCancellation()
@@ -85,29 +79,15 @@ struct MobileEditorSheet<Content: View>: View {
                 .confirmationDialog("Discard Changes?", isPresented: $discard, titleVisibility: .visible) {
                     Button("Discard Changes", role: .destructive, action: cancel)
                 }
-                .alert("Unable to Save", isPresented: Binding(get: { error != nil }, set: { if !$0 { clearError() } }))
-            {
-                Button("OK", role: .cancel, action: clearError)
-            } message: {
-                Text(error ?? "")
-            }
+                .alert("Unable to Save", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+                    Button("OK", role: .cancel, action: { error = nil })
+                } message: {
+                    Text(error ?? "")
+                }
         }
         .mobileSheetPresentation(compact: compact)
         .interactiveDismissDisabled(isDirty || isSaving)
-        .onDisappear {
-            saveTask?.cancel()
-            endLayoutSave()
-        }
-    }
-
-    private func clearError() {
-        error = nil
-        endLayoutSave()
-    }
-
-    private func endLayoutSave() {
-        if let layoutSaveID { layoutTransition?.endSave(layoutSaveID) }
-        layoutSaveID = nil
+        .onDisappear { saveTask?.cancel() }
     }
 
     private func cancel() {
