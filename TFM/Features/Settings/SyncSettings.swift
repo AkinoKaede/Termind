@@ -48,7 +48,7 @@ struct SyncSettings: View {
                     retry: { app.metricsSync?.retry() },
                     merge: { app.metricsSync?.confirmAccountSwitchMerge() })
                 SyncSelectionRow(
-                    title: "Settings", detail: "Terminal and AI preferences.",
+                    title: "Settings", detail: "Terminal, SFTP, and AI preferences.",
                     isSelected: Binding(
                         get: { includesSettings },
                         set: { value in

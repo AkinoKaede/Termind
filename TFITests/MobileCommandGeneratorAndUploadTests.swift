@@ -692,6 +692,55 @@ struct MobileUploadBatchTests {
         #expect(await eventuallyAsync { await preflightClient.disconnectCount == 1 })
     }
 
+    @Test func terminalBatchUploadsFiveFilesConcurrentlyAndKeepsQueuedFilesAfterClosure() async throws {
+        let identity = Identity(name: "Upload", username: "user")
+        let host = Host(name: "Concurrent", host: "parallel.invalid", identityID: identity.id)
+        let library = HostLibraryModel(hosts: [host], identities: [identity])
+        let clients = MobileParallelUploadClients()
+        let primary = clients.makeClient()
+        let transfers = SFTPTransferCoordinator(
+            store: library, clientFactory: { clients.makeClient() }, globalLimit: 15, perHostLimit: 5)
+        let services = MobileWorkspaceConnectionServices(
+            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            connectSSH: { _, _, _, _, _, _ in },
+            connectSFTP: { request, _, _ in
+                #expect(request.interactionPolicy == .forbidden)
+                return primary
+            }, writeSSH: { _, _ in })
+        let workspace = MobileWorkspace(
+            descriptor: .init(hostID: host.id, title: host.name, kind: .ssh), hosts: library,
+            transfers: transfers, connectionServices: services)
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        workspace.receiveWorkingDirectory("/srv/current")
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let files = try (0..<7).map { index in
+            let file = directory.appending(path: "file-\(index)")
+            try Data([1]).write(to: file)
+            return file
+        }
+        #expect(workspace.prepareUpload(files))
+        #expect(await eventuallyAsync { await clients.startedUploads() == 5 })
+        #expect(transfers.activeCount == 5)
+        #expect(clients.snapshot.count == 5)
+        #expect(await primary.startedUploads == 1)
+        workspace.disconnect()
+        #expect(await primary.disconnectCount == 0)
+        await primary.finishUploads()
+        #expect(await eventuallyAsync { await clients.startedUploads() == 6 })
+        #expect(transfers.activeCount == 5)
+        for _ in 0..<100 {
+            await clients.finishUploads()
+            if transfers.activeCount == 0 { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(transfers.sftpTransfers.count == 7)
+        #expect(transfers.sftpTransfers.allSatisfy { $0.state == .completed })
+        #expect(await primary.disconnectCount == 1)
+    }
+
     @Test func sftpFolderUploadUsesTheCurrentDirectoryAndOneBatch() async throws {
         let identity = Identity(name: "Deploy", username: "deploy")
         var host = Host(name: "Example", host: "example.invalid")
@@ -1084,5 +1133,28 @@ private actor MobileUploadSFTPClient: SFTPClientProtocol {
         if failedDownloadPaths.contains(remotePath) {
             throw SFTPError.operation("Download failed")
         }
+    }
+}
+
+private nonisolated final class MobileParallelUploadClients: @unchecked Sendable {
+    private let lock = NSLock()
+    private var clients: [MobileUploadSFTPClient] = []
+
+    var snapshot: [MobileUploadSFTPClient] { lock.withLock { clients } }
+
+    func makeClient() -> MobileUploadSFTPClient {
+        let client = MobileUploadSFTPClient(blocksUpload: true)
+        lock.withLock { clients.append(client) }
+        return client
+    }
+
+    func startedUploads() async -> Int {
+        var count = 0
+        for client in snapshot { count += await client.startedUploads }
+        return count
+    }
+
+    func finishUploads() async {
+        for client in snapshot { await client.finishUploads() }
     }
 }

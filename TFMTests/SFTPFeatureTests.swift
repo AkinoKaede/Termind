@@ -545,7 +545,8 @@ struct SFTPFeatureTests {
         let hostB = UUID()
         let store = HostLibraryModel()
         let gate = SFTPTransferClientGate()
-        let coordinator = SFTPTransferCoordinator(store: store) { FakeSFTPTransferClient(gate: gate) }
+        let coordinator = SFTPTransferCoordinator(
+            store: store, clientFactory: { FakeSFTPTransferClient(gate: gate) }, globalLimit: 3, perHostLimit: 2)
         let root = URL(fileURLWithPath: NSTemporaryDirectory())
         for index in 0..<5 {
             let isA = index < 4
@@ -568,6 +569,36 @@ struct SFTPFeatureTests {
         #expect(await gate.maximumActive == 3)
         #expect(await gate.maximumActive(for: "a") == 2)
         await gate.releaseAll()
+    }
+
+    @Test(arguments: [(15, 5), (100, 50)])
+    func configuredLimitsBoundConcurrentFilesAcrossHosts(_ limits: (Int, Int)) async throws {
+        let gate = SFTPTransferClientGate()
+        let coordinator = SFTPTransferCoordinator(
+            store: HostLibraryModel(), clientFactory: { FakeSFTPTransferClient(gate: gate) },
+            globalLimit: limits.0, perHostLimit: limits.1)
+        let root = URL(fileURLWithPath: NSTemporaryDirectory())
+        for index in 0..<4 {
+            let hostID = UUID()
+            for file in 0...limits.1 {
+                coordinator.enqueue(
+                    direction: .upload, batchID: UUID(), localURL: root.appending(path: "file-\(index)-\(file)"),
+                    remotePath: "/file-\(file)", byteCount: 1, hostID: hostID,
+                    configuration: makeTestConfiguration(hostID: hostID, host: "host-\(index)"),
+                    scopedRoot: root, overwrite: true)
+            }
+        }
+        await gate.waitForStarts(limits.0)
+        #expect(await gate.maximumActive == limits.0)
+        #expect(await gate.maximumActive(for: "host-0") == limits.1)
+        for _ in 0..<500 {
+            await gate.releaseAll()
+            if coordinator.activeCount == 0 { break }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(coordinator.sftpTransfers.allSatisfy { $0.state == .completed })
+        #expect(await gate.maximumActive == limits.0)
+        for index in 0..<4 { #expect(await gate.maximumActive(for: "host-\(index)") <= limits.1) }
     }
 
     @Test
@@ -1171,6 +1202,7 @@ private actor SFTPTransferClientGate {
     private var activeByHost: [String: Int] = [:]
     private var maximumByHost: [String: Int] = [:]
     private var continuations: [CheckedContinuation<Void, Never>] = []
+    private var startWaiters: [(Int, CheckedContinuation<Void, Never>)] = []
 
     var maximumActive: Int { maximum }
     func maximumActive(for host: String) -> Int { maximumByHost[host, default: 0] }
@@ -1179,6 +1211,9 @@ private actor SFTPTransferClientGate {
         active += 1
         activeByHost[host, default: 0] += 1
         starts += 1
+        let ready = startWaiters.filter { starts >= $0.0 }
+        startWaiters.removeAll { starts >= $0.0 }
+        for (_, waiter) in ready { waiter.resume() }
         maximum = max(maximum, active)
         maximumByHost[host] = max(maximumByHost[host, default: 0], activeByHost[host, default: 0])
         await withCheckedContinuation { continuations.append($0) }
@@ -1187,7 +1222,8 @@ private actor SFTPTransferClientGate {
     }
 
     func waitForStarts(_ count: Int) async {
-        while starts < count { await Task.yield() }
+        guard starts < count else { return }
+        await withCheckedContinuation { startWaiters.append((count, $0)) }
     }
 
     func releaseAll() {

@@ -9,15 +9,17 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
     public var skills: [AgentSkill]
     public var webSearch: AIWebSearchPreferences
     public var terminal = TerminalPreferences()
+    public var sftp = SFTPPreferences()
 
     public init(
         configuration: AIConfigurationSnapshot, skills: [AgentSkill], webSearch: AIWebSearchPreferences,
-        terminal: TerminalPreferences = .init()
+        terminal: TerminalPreferences = .init(), sftp: SFTPPreferences = .init()
     ) {
         self.configuration = configuration
         self.skills = skills
         self.webSearch = webSearch
         self.terminal = terminal
+        self.sftp = sftp
     }
 
     public var recordPayloads: [SettingsRecordKey: SettingsRecordPayload] {
@@ -37,6 +39,7 @@ public nonisolated struct SettingsSyncSnapshot: Sendable {
         for role in AIRole.allCases { payloads.append(.role(role, configuration.roles[role])) }
         payloads.append(.webSearch(webSearch))
         payloads.append(.terminal(terminal))
+        payloads.append(.sftp(sftp))
         return Dictionary(uniqueKeysWithValues: payloads.map { ($0.key, $0) })
     }
 }
@@ -66,25 +69,28 @@ public final class SettingsSyncPersistence {
             try journal.discardInactiveEntries()
             let previous = try load()
             mutations.keys.formUnion(try journal.bootstrapIfNeeded(previous).keys)
-            // V14 adds Terminal preferences to stores whose V13 bootstrap is already complete.
-            let terminal = SettingsRecordPayload.terminal(try terminalPreferences().load())
-            if try journal.envelope(for: terminal.key) == nil {
-                let version = VaultVersion.baseline(writerID: try journal.state().installationID)
-                let envelope = SettingsEnvelope(key: terminal.key, version: version, payload: terminal)
-                context.insert(try PersistentAIConfigurationSyncEntry(envelope: envelope, needsUpload: true))
-                mutations.keys.insert(terminal.key)
+            // Add preferences introduced after an installed store completed its bootstrap.
+            for payload in [SettingsRecordPayload.terminal(previous.terminal), .sftp(previous.sftp)] {
+                if try journal.envelope(for: payload.key) == nil {
+                    let version = VaultVersion.baseline(writerID: try journal.state().installationID)
+                    let envelope = SettingsEnvelope(key: payload.key, version: version, payload: payload)
+                    context.insert(try PersistentAIConfigurationSyncEntry(envelope: envelope, needsUpload: true))
+                    mutations.keys.insert(payload.key)
+                }
             }
         }
         let snapshot = try load()
         mirror(snapshot.webSearch)
         snapshot.terminal.mirror(to: defaults)
+        snapshot.sftp.mirror(to: defaults)
         didRecordChanges?(mutations)
     }
 
     public func load() throws -> SettingsSyncSnapshot {
         SettingsSyncSnapshot(
             configuration: try ai.load(preservingUnresolvedReferences: true),
-            skills: try skills.load(), webSearch: try preferences().value, terminal: try terminalPreferences().load())
+            skills: try skills.load(), webSearch: try preferences().value, terminal: try terminalPreferences().load(),
+            sftp: try sftpPreferences().load())
     }
 
     public func saveConfiguration(_ configuration: AIConfigurationSnapshot) throws {
@@ -159,10 +165,12 @@ public final class SettingsSyncPersistence {
             try skills.replace(snapshot.skills)
             try preferences().apply(snapshot.webSearch)
             try terminalPreferences().apply(snapshot.terminal)
+            try sftpPreferences().apply(snapshot.sftp)
             try journal.markNeedsUpload(merge.needsUpload)
         }
         mirror(snapshot.webSearch)
         snapshot.terminal.mirror(to: defaults)
+        snapshot.sftp.mirror(to: defaults)
         return (snapshot, Set(merge.accepted.map(\.key)), merge.needsUpload)
     }
 
@@ -178,6 +186,7 @@ public final class SettingsSyncPersistence {
             providers: [], roles: [:], lastSelectedModel: localSelection)
         var webSearch = try preferences().value
         var terminal = try terminalPreferences().load()
+        var sftp = try sftpPreferences().load()
         for envelope in envelopes where !envelope.isDeleted && envelope.key.kind.participatesInSync {
             switch envelope.payload {
             case .provider(let value): providers.append(value)
@@ -187,6 +196,7 @@ public final class SettingsSyncPersistence {
             case .selection: break
             case .webSearch(let value): webSearch = value
             case .terminal(let value): terminal = value
+            case .sftp(let value): sftp = value
             case nil: break
             }
         }
@@ -211,7 +221,8 @@ public final class SettingsSyncPersistence {
             configuration.lastSelectedModel = nil
         }
         return SettingsSyncSnapshot(
-            configuration: configuration, skills: skillRows.map(\.0), webSearch: webSearch, terminal: terminal)
+            configuration: configuration, skills: skillRows.map(\.0), webSearch: webSearch, terminal: terminal,
+            sftp: sftp)
     }
 
     private func terminalPreferences() throws -> PersistentTerminalPreferences {
@@ -229,6 +240,21 @@ public final class SettingsSyncPersistence {
 
     public func saveTerminal(_ value: TerminalPreferences) throws {
         try saveLocal { try terminalPreferences().apply(value) }
+        value.mirror(to: defaults)
+    }
+
+    private func sftpPreferences() throws -> PersistentSFTPPreferences {
+        if let row = try context.fetch(FetchDescriptor<PersistentSFTPPreferences>()).first { return row }
+        let row = try PersistentSFTPPreferences(SFTPPreferences(defaults: defaults))
+        context.insert(row)
+        return row
+    }
+
+    public func loadSFTP() throws -> SFTPPreferences { try sftpPreferences().load() }
+
+    public func saveSFTP(_ value: SFTPPreferences) throws {
+        let value = value.normalized
+        try saveLocal { try sftpPreferences().apply(value) }
         value.mirror(to: defaults)
     }
 
@@ -271,3 +297,4 @@ extension SettingsSyncPersistence: AIWebSearchPersisting {
 }
 
 extension SettingsSyncPersistence: TerminalPreferencesPersisting {}
+extension SettingsSyncPersistence: SFTPPreferencesPersisting {}

@@ -11,25 +11,18 @@ import Testing
 
 @Suite @MainActor
 struct MobileSettingsPortTests {
-    @Test func sftpSettingsDefaultsAndNormalizationMatchDesktop() {
-        #expect(SettingsKey.sftpGlobalTransferLimit == "sftp.transfers.globalLimit")
-        #expect(SettingsKey.sftpPerHostTransferLimit == "sftp.transfers.perHostLimit")
-        #expect(SettingsKey.defaultSFTPGlobalTransferLimit == 3)
-        #expect(SettingsKey.defaultSFTPPerHostTransferLimit == 2)
-        #expect(SettingsKey.sftpTransferLimitRange == 1...8)
-
-        let defaults = MobileSFTPTransferLimits(global: 3, perHost: 2)
-        #expect(defaults.global == 3)
-        #expect(defaults.perHost == 2)
-        let belowRange = MobileSFTPTransferLimits(global: 0, perHost: 0)
-        #expect(belowRange.global == 1)
-        #expect(belowRange.perHost == 1)
-        let aboveRange = MobileSFTPTransferLimits(global: 20, perHost: 20)
-        #expect(aboveRange.global == 8)
-        #expect(aboveRange.perHost == 8)
-        let aboveGlobal = MobileSFTPTransferLimits(global: 3, perHost: 7)
-        #expect(aboveGlobal.global == 3)
-        #expect(aboveGlobal.perHost == 3)
+    @Test func sftpSettingsUseTheSharedPreferencesAndUpdateWithoutOpeningSettings() throws {
+        let app = try MobileAppModel(inMemory: true)
+        #expect(app.sftpSettings.preferences == SFTPPreferences(globalLimit: 15, perHostLimit: 5))
+        #expect(app.transfers.globalLimit == 15)
+        #expect(app.transfers.perHostLimit == 5)
+        #expect(app.sftpSettings.set(100, for: \.globalLimit))
+        #expect(app.sftpSettings.set(50, for: \.perHostLimit))
+        #expect(app.transfers.globalLimit == 100)
+        #expect(app.transfers.perHostLimit == 50)
+        app.sftpSettings.applyRemoteSnapshot(SFTPPreferences(globalLimit: 3, perHostLimit: 2))
+        #expect(app.transfers.globalLimit == 3)
+        #expect(app.transfers.perHostLimit == 2)
     }
 
     @Test func sftpCoordinatorAppliesNormalizedSettingsImmediately() {

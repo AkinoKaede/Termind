@@ -123,31 +123,20 @@ public final class SFTPTransferCoordinator {
         self.store = store
         self.clientFactory = clientFactory
         let defaults = UserDefaults.standard
-        let normalizedGlobal = Self.normalizedLimit(
-            globalLimit ?? defaults.object(forKey: SettingsKey.sftpGlobalTransferLimit) as? Int
-                ?? SettingsKey.defaultSFTPGlobalTransferLimit
-        )
-        self.globalLimit = normalizedGlobal
-        self.perHostLimit = min(
-            Self.normalizedLimit(
-                perHostLimit ?? defaults.object(forKey: SettingsKey.sftpPerHostTransferLimit) as? Int
-                    ?? SettingsKey.defaultSFTPPerHostTransferLimit
-            ),
-            normalizedGlobal
-        )
+        let limits = SFTPPreferences(
+            globalLimit: globalLimit ?? defaults.object(forKey: SettingsKey.sftpGlobalTransferLimit) as? Int
+                ?? SFTPPreferences.defaultGlobalLimit,
+            perHostLimit: perHostLimit ?? defaults.object(forKey: SettingsKey.sftpPerHostTransferLimit) as? Int
+                ?? SFTPPreferences.defaultPerHostLimit)
+        self.globalLimit = limits.globalLimit
+        self.perHostLimit = limits.perHostLimit
     }
 
     public func updateLimits(global: Int, perHost: Int) {
-        globalLimit = Self.normalizedLimit(global)
-        perHostLimit = min(Self.normalizedLimit(perHost), globalLimit)
+        let limits = SFTPPreferences(globalLimit: global, perHostLimit: perHost)
+        globalLimit = limits.globalLimit
+        perHostLimit = limits.perHostLimit
         schedule()
-    }
-
-    private static func normalizedLimit(_ value: Int) -> Int {
-        min(
-            max(value, SettingsKey.sftpTransferLimitRange.lowerBound),
-            SettingsKey.sftpTransferLimitRange.upperBound
-        )
     }
 
     public var sftpTransfers: [SFTPTransfer] {

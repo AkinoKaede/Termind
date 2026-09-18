@@ -48,6 +48,7 @@ final class MobileAppModel {
     private(set) var workspaces: [MobileWorkspace] = []
     var error: String?
     let terminalSettings: TerminalSettingsModel
+    let sftpSettings: SFTPSettingsModel
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
     let connectionHistory: ConnectionHistoryModel
@@ -142,6 +143,7 @@ final class MobileAppModel {
         try metricsPersistence.prepare()
         let aiSecrets = AISecretStore(context: settingsPersistence.context, keychain: secrets)
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
+        sftpSettings = SFTPSettingsModel(persistence: settingsPersistence)
         commandHistory = CommandHistoryModel(
             repository: SwiftDataCommandHistoryRepository(context: ModelContext(container)))
         sftpHistory = SFTPHistoryModel(
@@ -189,7 +191,8 @@ final class MobileAppModel {
         forwardingLibrary = ForwardingLibraryModel(library: library)
         forwardings = PortForwardingController(hosts: library)
         transfers = SFTPTransferCoordinator(
-            store: library, clientFactory: { SFTPClient() })
+            store: library, clientFactory: { SFTPClient() },
+            globalLimit: sftpSettings.preferences.globalLimit, perHostLimit: sftpSettings.preferences.perHostLimit)
         sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
         library.willDeleteHost = { [weak sftpEdits, weak forwardings] hostID, _ in
             sftpEdits?.invalidate(hostID: hostID)
@@ -223,9 +226,13 @@ final class MobileAppModel {
             repository.didRecordVaultChanges = { [weak vaultSync] in vaultSync?.noteLocalChanges($0) }
         }
         vaultSync?.didApplyRemote = { [weak self] in self?.applyRemoteVault($0, keys: $1) }
+        sftpSettings.didChange = { [weak transfers] preferences in
+            transfers?.updateLimits(global: preferences.globalLimit, perHost: preferences.perHostLimit)
+        }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
+            self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
         }
         metricsSync?.didApplyRemote = { [weak self] snapshot, _ in

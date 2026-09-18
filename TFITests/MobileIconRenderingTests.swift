@@ -133,7 +133,7 @@ struct MobileIconRenderingTests {
                 .environment(\.locale, locale)
             }
             try await capture("sftp-settings-\(suffix)", language: language, scheme: scheme) {
-                NavigationStack { MobileSFTPSettingsView(transfers: app.transfers) }.environment(\.locale, locale)
+                NavigationStack { MobileSFTPSettingsView(model: app.sftpSettings) }.environment(\.locale, locale)
             }
             try await capture("editor-\(suffix)", language: language, scheme: scheme) {
                 MobileHostEditor(app: app, host: Host(name: "Example", host: "example.invalid"))
@@ -185,7 +185,7 @@ struct MobileIconRenderingTests {
             .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
         }
         try await capture("sftp-settings-large-type", language: language, scheme: .light) {
-            NavigationStack { MobileSFTPSettingsView(transfers: app.transfers) }
+            NavigationStack { MobileSFTPSettingsView(model: app.sftpSettings) }
                 .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
         }
         try await capture("editor-large-type", language: language, scheme: .light) {

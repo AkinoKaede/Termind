@@ -177,6 +177,68 @@ struct SFTPTransferSessionTests {
         #expect(coordinator.sftpTransfers.first?.state == .completed)
     }
 
+    @Test func terminalBatchUsesFiveConnectionsAndSurvivesItsTemporarySessionClosing() async throws {
+        let harness = TransferSessionHarness(behaviors: [])
+        let primary = TransferSessionClient(harness: harness, primary: true)
+        let configuration = SSHConnectionConfiguration(
+            hostID: UUID(), host: "terminal", port: 22, username: "user", credentials: [], expectedHostKeys: [])
+        let coordinator = SFTPTransferCoordinator(
+            store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) },
+            globalLimit: 15, perHostLimit: 5)
+        let upload = SFTPSessionModel(
+            hostID: configuration.hostID, initialPath: "/destination", client: primary,
+            configuration: configuration, wasOpenedSilently: true)
+        let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let files = try (0..<7).map { index in
+            let file = directory.appending(path: "file-\(index)")
+            try Data([1]).write(to: file)
+            return file
+        }
+        await upload.prepareUpload(files)
+        await upload.enqueuePending(policy: .replace, coordinator: coordinator)
+        upload.disconnect()
+        try await eventually { await harness.started == 5 }
+        #expect(await harness.maximumActive == 5)
+        #expect(await harness.opens == 4)
+        #expect(await harness.policies.allSatisfy { $0 == .forbidden })
+        #expect(await primary.disconnects == 0)
+        await harness.releaseOne()
+        try await eventually { await harness.started == 6 }
+        #expect(await harness.maximumActive == 5)
+        await harness.releaseAll()
+        try await eventually { await harness.started == 7 }
+        await harness.releaseAll()
+        try await eventually { coordinator.activeCount == 0 }
+        #expect(coordinator.sftpTransfers.allSatisfy { $0.state == .completed })
+        #expect(await primary.disconnects == 1)
+    }
+
+    @Test func twoTerminalSessionsForOneHostShareTheSameFiveTransferLimit() async throws {
+        let harness = TransferSessionHarness(behaviors: [])
+        let coordinator = SFTPTransferCoordinator(
+            store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) },
+            globalLimit: 15, perHostLimit: 5)
+        let configuration = SSHConnectionConfiguration(
+            hostID: UUID(), host: "same-host", port: 22, username: "user", credentials: [], expectedHostKeys: [])
+        let sessions = (0..<2).map { _ in
+            SFTPTransferSession(
+                configuration: configuration, client: TransferSessionClient(harness: harness),
+                wasOpenedSilently: true)
+        }
+        for session in sessions { enqueue(4, session: session, coordinator: coordinator) }
+        try await eventually { await harness.started == 5 }
+        #expect(coordinator.activeCount == 5)
+        #expect(await harness.maximumActive == 5)
+        for session in sessions { await session.releaseOwner() }
+        await harness.releaseAll()
+        try await eventually { await harness.started == 8 }
+        await harness.releaseAll()
+        try await eventually { coordinator.activeCount == 0 }
+        #expect(await harness.maximumActive == 5)
+    }
+
     private func fixture(
         primary: TransferSessionClient, harness: TransferSessionHarness, limit: Int = 4,
         wasOpenedSilently: Bool = false

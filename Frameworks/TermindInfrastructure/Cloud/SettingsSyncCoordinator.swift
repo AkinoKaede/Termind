@@ -13,6 +13,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     // Keep the initial AI-sync identifiers so existing replicas remain reachable.
     public nonisolated static let zoneName = "TermindAIConfigurationV1"
     public nonisolated static let recordType = "AIConfigurationItem"
+    // Older clients filter by record type before decoding, so they can ignore SFTP safely.
+    public nonisolated static let sftpRecordType = "SFTPPreferencesItem"
     public nonisolated static let subscriptionID = "termind-ai-configuration-v1-changes"
     public nonisolated static let inlinePayloadLimit = CloudSyncRecordCoding.inlinePayloadLimit
 
@@ -399,7 +401,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         var quarantinedError: String?
         for modification in changes.modifications {
             let record = modification.record
-            guard record.recordType == Self.recordType, record.recordID.zoneID == zoneID else {
+            guard Self.acceptsRecordType(record.recordType), record.recordID.zoneID == zoneID else {
                 continue
             }
             if let key = SettingsRecordKey(recordName: record.recordID.recordName),
@@ -515,12 +517,23 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         terminalError = nil
     }
 
+    nonisolated static func acceptsRecordType(_ type: String) -> Bool {
+        type == recordType || type == sftpRecordType
+    }
+
+    private nonisolated static func recordType(for kind: SettingsRecordKind) -> String {
+        kind == .sftp ? sftpRecordType : recordType
+    }
+
     public nonisolated static func makeRecord(
         _ outgoing: SettingsOutgoingEntry, recordID: CKRecord.ID
     ) throws -> CKRecord {
         let envelope = outgoing.envelope
         let record = try CloudSyncRecordCoding.makeRecord(
-            type: recordType, id: recordID, systemFields: outgoing.systemFieldsData)
+            type: recordType(for: envelope.key.kind), id: recordID, systemFields: outgoing.systemFieldsData)
+        guard record.recordType == recordType(for: envelope.key.kind), record.recordID == recordID else {
+            throw SettingsSyncPersistenceError.invalidEnvelope(recordID.recordName)
+        }
         let payload = try SettingsSyncCodec.encode(envelope)
         record["formatVersion"] = NSNumber(value: envelope.formatVersion)
         record["kind"] = envelope.key.kind.rawValue as NSString
@@ -537,7 +550,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         let data = try CloudSyncRecordCoding.validatedPayloadData(
             from: record, invalidEnvelope: SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
         let envelope = try SettingsSyncCodec.decode(data)
-        guard envelope.key.recordName == record.recordID.recordName,
+        guard record.recordType == recordType(for: envelope.key.kind),
+            envelope.key.recordName == record.recordID.recordName,
             envelope.isValid || envelope.isValidLegacyGuardianRecord
         else {
             throw SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName)

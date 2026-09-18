@@ -98,6 +98,7 @@ final class AppModel {
     /// rather than more fields on `ai`: that one is about endpoints you spend a
     /// key at, this is a library of documents. See `SkillLibraryModel`.
     let terminalSettings: TerminalSettingsModel
+    let sftpSettings: SFTPSettingsModel
     let skills: SkillLibraryModel
     let memory: MemoryModel
     let commandGenerator: CommandGeneratorController
@@ -133,6 +134,7 @@ final class AppModel {
         skills: SkillLibraryModel = SkillLibraryModel(),
         memory: MemoryModel = MemoryModel(),
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
+        sftpSettings: SFTPSettingsModel = SFTPSettingsModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
@@ -188,13 +190,15 @@ final class AppModel {
         forwarding = PortForwardingController(hosts: hosts)
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
-            clientFactory: { connectionCoordinator.makeSFTPClient() }
+            clientFactory: { connectionCoordinator.makeSFTPClient() },
+            globalLimit: sftpSettings.preferences.globalLimit, perHostLimit: sftpSettings.preferences.perHostLimit
         )
         sftpEdits = SFTPEditService(transfers: sftpTransfers, host: { [weak hosts] in hosts?.host($0) })
         self.ai = ai
         self.skills = skills
         self.memory = memory
         self.terminalSettings = terminalSettings
+        self.sftpSettings = sftpSettings
         commandGenerator = CommandGeneratorController(ai: ai)
         conversationTitles = ConversationTitleController(ai: ai)
         self.speechTranscription =
@@ -267,6 +271,9 @@ final class AppModel {
         vaultSync?.didApplyRemote = { [weak self] snapshot, keys in
             self?.applyRemoteVaultSnapshot(snapshot, changedKeys: keys)
         }
+        sftpSettings.didChange = { [weak sftpTransfers] preferences in
+            sftpTransfers?.updateLimits(global: preferences.globalLimit, perHost: preferences.perHostLimit)
+        }
         terminalSettings.didChangeShellIntegration = { [weak self] enabled in
             self?.shellIntegrationPreferenceDidChange(isEnabled: enabled)
         }
@@ -274,6 +281,7 @@ final class AppModel {
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
+            self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)
         }
         metricsSync?.didApplyRemote = { [weak serverMetrics] snapshot, _ in
             serverMetrics?.applyRemoteSnapshot(snapshot)

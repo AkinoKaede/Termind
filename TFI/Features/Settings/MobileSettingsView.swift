@@ -21,7 +21,7 @@ struct MobileSettingsView: View {
                     Label("Terminal", systemImage: "terminal")
                 }
                 NavigationLink {
-                    MobileSFTPSettingsView(transfers: app.transfers)
+                    MobileSFTPSettingsView(model: app.sftpSettings)
                 } label: {
                     Label("SFTP", systemImage: "arrow.up.arrow.down")
                 }

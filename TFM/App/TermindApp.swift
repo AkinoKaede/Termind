@@ -99,6 +99,7 @@ struct TermindApp: App {
                         : MemoryModel(
                             storage: GRDBMemoryStore(directory: GRDBMemoryStore.defaultDirectory), defaults: .standard),
                     terminalSettings: TerminalSettingsModel(persistence: settingsPersistence),
+                    sftpSettings: SFTPSettingsModel(persistence: settingsPersistence),
                     commandHistory: CommandHistoryModel(modelContext: container.mainContext),
                     sftpHistory: SFTPHistoryModel(
                         repository: SwiftDataSFTPHistoryRepository(context: container.mainContext)

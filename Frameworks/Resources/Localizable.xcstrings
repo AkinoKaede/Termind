@@ -4486,18 +4486,18 @@
         }
       }
     },
-    "Changes apply to queued transfers. Active transfers continue unchanged. Unsaved credentials limit a session to one transfer at a time." : {
+    "Changes apply to queued transfers. Active transfers continue unchanged. If additional connections cannot open without authentication prompts, the session transfers files one at a time." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更改会应用到排队中的传输。正在进行的传输不受影响。使用未保存的凭据时，每个会话一次只能进行一项传输。"
+            "value" : "更改会应用到排队中的传输。正在进行的传输不受影响。如果额外连接需要身份验证提示，会话将逐个传输文件。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更改會應用到排隊中的傳輸。正在進行的傳輸不受影響。使用未儲存的認證資訊時，每個工作階段一次只能進行一項傳輸。"
+            "value" : "更改會套用至佇列中的傳輸。正在進行的傳輸不受影響。如果額外連線需要驗證提示，工作階段將逐一傳輸檔案。"
           }
         }
       }
@@ -23920,18 +23920,18 @@
         }
       }
     },
-    "Terminal and AI preferences." : {
+    "Terminal, SFTP, and AI preferences." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "终端和AI偏好设置。"
+            "value" : "终端、SFTP和AI偏好设置。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "終端和AI偏好設定。"
+            "value" : "終端、SFTP和AI偏好設定。"
           }
         }
       }

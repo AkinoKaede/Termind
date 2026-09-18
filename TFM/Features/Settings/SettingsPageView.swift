@@ -627,58 +627,9 @@ private struct StartupSettings: View {
 
 private struct SFTPSettings: View {
     @Environment(AppModel.self) private var app
-    @AppStorage(SettingsKey.sftpGlobalTransferLimit) private var globalLimit = SettingsKey
-        .defaultSFTPGlobalTransferLimit
-    @AppStorage(SettingsKey.sftpPerHostTransferLimit) private var perHostLimit = SettingsKey
-        .defaultSFTPPerHostTransferLimit
 
     var body: some View {
-        Section("SFTP") {
-            Stepper(value: $globalLimit, in: SettingsKey.sftpTransferLimitRange) {
-                HStack {
-                    Text("Concurrent Transfers")
-                    Spacer()
-                    Text(globalLimit, format: .number).monospacedDigit()
-                }
-            }
-            Stepper(value: $perHostLimit, in: perHostRange) {
-                HStack {
-                    Text("Per-Host Transfers")
-                    Spacer()
-                    Text(perHostLimit, format: .number).monospacedDigit()
-                }
-            }
-            Text(
-                "Changes apply to queued transfers. Active transfers continue unchanged. Unsaved credentials limit a session to one transfer at a time."
-            )
-            .font(.caption).foregroundStyle(.secondary)
-        }
-        .onAppear { applyLimits() }
-        .onChange(of: globalLimit) { applyLimits() }
-        .onChange(of: perHostLimit) { applyLimits() }
-    }
-
-    private var perHostRange: ClosedRange<Int> {
-        let minimum = SettingsKey.sftpTransferLimitRange.lowerBound
-        return minimum...max(globalLimit, minimum)
-    }
-
-    private func applyLimits() {
-        let normalizedGlobal = min(
-            max(globalLimit, SettingsKey.sftpTransferLimitRange.lowerBound),
-            SettingsKey.sftpTransferLimitRange.upperBound
-        )
-        if globalLimit != normalizedGlobal {
-            globalLimit = normalizedGlobal
-            return
-        }
-        let normalizedPerHost = min(
-            max(perHostLimit, SettingsKey.sftpTransferLimitRange.lowerBound), normalizedGlobal)
-        if perHostLimit != normalizedPerHost {
-            perHostLimit = normalizedPerHost
-            return
-        }
-        app.sftpTransfers.updateLimits(global: globalLimit, perHost: perHostLimit)
+        Section("SFTP") { SFTPSettingsFields(model: app.sftpSettings) }
     }
 }
 

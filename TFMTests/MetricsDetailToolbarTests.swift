@@ -78,6 +78,7 @@ struct MetricsDetailToolbarTests {
         state.metricsModel = model
         let root = NavigationStack {
             MetricsDetailView(server: server, model: model)
+                .toolbar(removing: state.showsCompactMetricsDetail ? .title : nil)
                 .toolbar {
                     ToolbarItem(placement: .principal) { MetricsDetailPagePicker() }
                     ToolbarItem(placement: .primaryAction) { WindowToolbarLegacySearch() }
@@ -167,6 +168,13 @@ struct MetricsDetailToolbarTests {
             window.contentView?.superview?.layoutSubtreeIfNeeded()
             if condition() { return }
             try await Task.sleep(for: .milliseconds(10))
+        }
+        print("Toolbar timeout", window.isKeyWindow, "children", window.childWindows?.count ?? 0)
+        for item in window.toolbar?.items ?? [] {
+            print(
+                "Toolbar item", item.itemIdentifier.rawValue,
+                "visible", window.toolbar?.visibleItems?.contains(where: { $0 === item }) ?? false,
+                "frame", item.view?.frame as Any, "fitting", item.view?.fittingSize as Any)
         }
         try #require(condition(), "The toolbar or its popover did not finish updating within two seconds.")
     }

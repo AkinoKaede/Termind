@@ -14,9 +14,10 @@ schemas and deploy them to Production:
 | Category | Zone | Record type | Subscription |
 | --- | --- | --- | --- |
 | Settings | `TermindAIConfigurationV1` | `AIConfigurationItem` | `termind-ai-configuration-v1-changes` |
+| SFTP settings | `TermindAIConfigurationV1` | `SFTPPreferencesItem` | `termind-ai-configuration-v1-changes` |
 | Metrics | `TermindMetricsV1` | `MetricsItem` | `termind-metrics-v1-changes` |
 
-Both record types use the Vault envelope: integer `formatVersion`, `counter`,
+All record types use the Vault envelope: integer `formatVersion`, `counter`,
 `isDeleted`; string `kind`, `entityID`, `writerID`, `payloadHash`; date
 `modifiedAt`; bytes `payload`; asset `payloadAsset`. No public database access
 is needed.
@@ -43,3 +44,27 @@ deployment or real delivery.
   Host arrives.
 - Release privacy policy 1.5 with the app and replace its prepared September 12,
   2026 effective date with the actual publication date.
+
+## SFTP settings release (2026-09-19)
+
+V21 adds local SFTP preferences and imports existing global/per-host UserDefaults
+values once. Unset values default to 15/5; ranges are 1–100 and 1–min(50, global).
+The existing Settings selection, master switch and Pro gating govern replication.
+The two limits travel together as `v1/sftp/default`, using the same version/conflict
+rules and baseline precedence as other settings. Transfer jobs and file contents
+are not settings records.
+
+Deploy `SFTPPreferencesItem` with the envelope fields above to Production before
+releasing clients that upload it. The distinct type lets installed older clients
+ignore SFTP records without quarantining the new payload or reporting a sync error.
+The zone, subscription and format version remain unchanged. No AgentKit change is needed.
+
+Release verification must include a signed Mac and iPhone/iPad on one Apple account:
+change 15/5 to 100/50, close Settings, and confirm the other device's queue adopts
+the limits without interrupting active transfers. Repeat while offline, with Settings
+or master sync paused, then resumed. Include a device retaining 3/2 and an older
+client that continues syncing existing record types.
+
+The implementation environment's `xcrun cktool get-teams` on 2026-09-19 reports no
+management token. Production schema deployment and signed-device delivery remain
+release prerequisites, separate from local codec, persistence and scheduler tests.

@@ -65,8 +65,9 @@ struct PersistenceCompatibilityTests {
         try first.mainContext.save()
         #expect(try second.mainContext.fetchCount(FetchDescriptor<PersistentHostGroup>()) == 0)
         #expect(Set(first.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
-        #expect(TermindMigrationPlan.schemas.count == 20)
+        #expect(TermindMigrationPlan.schemas.count == 21)
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
+        #expect(first.schema.entities.contains { $0.name == "PersistentSFTPPreferences" })
     }
 
     @Test

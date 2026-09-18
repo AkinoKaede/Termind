@@ -21,7 +21,7 @@ The agent runtime is the separately versioned `AgentKit` package.
 - `TermindPresentation` owns reusable SwiftUI content, presentation policy,
   Ghostty themes, and the `TerminalPreferences` bridge. It depends only on
   Application and Domain; native surfaces, transports, and lifetimes stay in apps.
-- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V19
+- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V21
   schema, migration plan, and container factory. It never depends on an app target.
 - `TFM` and `TFI` own platform UI, adapters, and lifecycle orchestration. Both use
   `App`, `Application`, `Design`, `DesignSystem`, `Features`, `Infrastructure`,
@@ -345,6 +345,12 @@ uploads use their successful silent preflight connection for the first transfer.
 host trust is refreshed after initial authentication, but once-only approval is not promoted
 to trust for additional connections. No credential presence or persistence flag gates
 transfer eligibility or parallelism.
+The application-wide queue defaults to 15 active file transfers and 5 per Host.ID,
+including transfers from multiple terminal/browser sessions for that host. Global
+limits are configurable from 1 to 100; per-host limits from 1 to min(50, global).
+`SFTPPreferences` owns normalization. Each app wires its `SFTPSettingsModel` to the
+coordinator independently of Settings view lifetime; limit changes affect later
+scheduling and never interrupt already active transfers.
 Closing a pane releases only its ownership. Queued jobs retain the primary connection until
 completion/cancellation; paused jobs retain their configuration/checkpoint but release their
 connection ownership. Retired browser generations never replace transfer snapshots. Copies
@@ -860,8 +866,18 @@ and upgrades do not re-enable it. Pro gates three independent coordinators:
 V13 Settings entity names/defaults are frozen; V14 only adds
 `PersistentTerminalPreferences`; V15 adds the independent Metrics journal/account/
 quarantine. Settings persistence atomically commits data and upload intent. Separate
-records cover providers/models, MCP clients, skills, roles, Web Search, and terminal
-preferences/custom text. The most recently selected conversation model remains
+records cover providers/models, MCP clients, skills, roles, Web Search, terminal
+preferences/custom text, and the two SFTP concurrency limits. V21 adds
+`PersistentSFTPPreferences` without changing historical schemas. Its first row imports
+existing UserDefaults limits (including 3/2), or 15/5 for missing values, and preparation
+adds the missing baseline record even for previously bootstrapped stores. Subsequent
+preparation uses persisted truth, never reimports the defaults mirror.
+SFTP uses one `v1/sftp/default` record in the existing Settings zone and a distinct
+`SFTPPreferencesItem` CloudKit type. Older clients ignore that type before decoding;
+existing settings keep `AIConfigurationItem`. Both record types use the unchanged V1
+envelope. Invalid SFTP limits and mismatched record types are quarantined at the
+read boundary. Local changes commit preferences and upload intent together, then
+mirror the legacy defaults keys; remote application never generates a local echo. The most recently selected conversation model remains
 device-local. Remote commits refresh models without
 re-entering local mutation. Active Agent runs keep their starting snapshot.
 Every model role has a live synced record: a nil Command Generator assignment means

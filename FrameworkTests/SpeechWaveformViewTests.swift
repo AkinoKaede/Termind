@@ -70,7 +70,9 @@ struct SpeechWaveformViewTests {
     ) throws {
         let matches =
             first.image.width == second.image.width && first.image.height == second.image.height
-            && first.data == second.data
+            // Canvas can round antialiased colors to adjacent 8-bit values on
+            // macOS. A single channel step is not a change in the waveform.
+            && zip(first.data, second.data).allSatisfy { abs(Int($0) - Int($1)) <= 1 }
         if matches != equal {
             for (name, bitmap) in [("first", first), ("second", second)] {
                 let data = NSMutableData()
