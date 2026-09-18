@@ -36,6 +36,8 @@ nonisolated enum MenuSymbol {
 
     // MARK: Creating
 
+    static let newWindow = "macwindow.badge.plus"
+    static let moveToNewWindow = "macwindow.on.rectangle"
     static let newChat = "plus.bubble"
     static let newHost = "plus.rectangle"
     static let newGroup = "folder.badge.plus"
@@ -125,7 +127,7 @@ nonisolated enum MenuSymbol {
         execute, executeOnHosts, start, stop, refresh, showHiddenFiles, hideHiddenFiles, editPath,
         editPermissions, test,
         pin, unpin, archive, unarchive, delete,
-        workspace, nextWorkspace, previousWorkspace, currentWorkspace, newWorkspace,
+        workspace, nextWorkspace, previousWorkspace, currentWorkspace, newWorkspace, newWindow, moveToNewWindow,
         separatePanes, splitRight, splitDown, closeWorkspace, reopenWorkspace,
         filterByTag, clearFilter, removeHistory, clearHistory,
     ]

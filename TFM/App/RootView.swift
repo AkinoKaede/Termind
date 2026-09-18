@@ -10,10 +10,10 @@ import TermindPresentation
 /// views stay mounted while another destination is in front, preserving terminal
 /// grids, scrollback, and SFTP state.
 struct RootView: View {
-    @Environment(\.openWindow) private var openWindow
     @Environment(AppModel.self) private var app
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.locale) private var locale
+    private let requestID: UUID?
     @State private var window: WindowModel
     @State private var layoutWidth = Metrics.Window.defaultWidth
     @State private var automaticQuickOpenReady = false
@@ -21,7 +21,8 @@ struct RootView: View {
     @AppStorage(SettingsKey.remoteWindowTitleInMenuBar) private var showsRemoteWindowTitle =
         DesktopSettingsKey.defaultRemoteWindowTitleInMenuBarEnabled
 
-    init(window: WindowModel = WindowModel()) {
+    init(window: WindowModel = WindowModel(), requestID: UUID? = nil) {
+        self.requestID = requestID
         _window = State(initialValue: window)
     }
 
@@ -65,7 +66,7 @@ struct RootView: View {
         .navigationSplitViewStyle(.balanced)
         .environment(\.singleLinePasteAction, { SingleLineFieldEditing.paste() })
         .background {
-            MetricsWindowRegistration(model: window)
+            MainWindowRegistration(coordinator: app.mainWindows, model: window, requestID: requestID)
             WindowToolbarSearchHost()
             WindowActivityReader(
                 windowModel: window,
@@ -176,6 +177,7 @@ struct RootView: View {
         // layout drops without competing for the same text payload.
         .environment(window)
         .modifier(AppReviewPresenter(window: window))
+        .proPaywallPresenter(app: app, window: window)
         .focusedSceneValue(\.window, window)
         .onChange(of: window.selectedDestination) {
             window.refreshSessionContext()
@@ -183,18 +185,7 @@ struct RootView: View {
         }
         .onAppear { [weak app] in
             guard let app else { return }
-            window.proAccess = app.proAccess
-            window.connectionCoordinator = app.connections
-            window.hostStore = app.hostLibrary
             app.registerWindow(window)
-            if app.opensMetricsOnNextWindow {
-                window.selectedDestination = .metrics
-                app.opensMetricsOnNextWindow = false
-            }
-            MetricsWindowPresenter.reopen = { [weak app, openWindow] in
-                app?.opensMetricsOnNextWindow = true
-                openWindow(id: "main")
-            }
             window.refreshSessionContext()
             window.reconcileSidebarMode()
             app.reconcileProAccess()

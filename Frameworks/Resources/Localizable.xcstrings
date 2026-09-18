@@ -14374,6 +14374,22 @@
         }
       }
     },
+    "Move Workspace to New Window" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将工作区移到新窗口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將工作區移至新視窗"
+          }
+        }
+      }
+    },
     "Name" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14781,6 +14797,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新增子包"
+          }
+        }
+      }
+    },
+    "New Window" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建窗口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增視窗"
           }
         }
       }

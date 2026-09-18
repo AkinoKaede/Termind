@@ -527,6 +527,7 @@ struct ComposerView: View {
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @FocusState private var isFocused: Bool
+    @State private var transcriptionOwnerID = UUID()
     @State private var draftBeforeTranscription = ""
     @State private var slashSelection = 0
     @State private var slashScrollRequest = 0
@@ -575,7 +576,7 @@ struct ComposerView: View {
     }
 
     private var ownsTranscription: Bool {
-        transcription.isOwned(by: conversation.id)
+        transcription.isOwned(by: transcriptionOwnerID)
     }
 
     private var showsTranscriptionControls: Bool {
@@ -633,9 +634,9 @@ struct ComposerView: View {
         .onAppear(perform: normalizeReasoningEffort)
         .onChange(of: reasoningResolution) { _, _ in normalizeReasoningEffort() }
         .onDisappear {
-            guard transcription.isOwned(by: conversation.id) else { return }
+            guard transcription.isOwned(by: transcriptionOwnerID) else { return }
             conversation.composer.draft = draftBeforeTranscription
-            transcription.cancel(ownerID: conversation.id)
+            transcription.cancel(ownerID: transcriptionOwnerID)
         }
         .alert(
             transcriptionError?.title ?? String(localized: "Transcription Failed"),
@@ -843,7 +844,7 @@ struct ComposerView: View {
         .buttonStyle(.plain)
         .contentShape(.circle)
         .disabled(
-            !transcription.canStart(for: conversation.id)
+            !transcription.canStart(for: transcriptionOwnerID)
                 || (ownsTranscription && transcription.isRequestingAuthorization)
         )
         .help(Text("Transcribe with Apple Speech"))
@@ -871,14 +872,14 @@ struct ComposerView: View {
                 circularControl(
                     title: "Stop Recording",
                     systemImage: "stop.fill",
-                    action: { transcription.stop(ownerID: conversation.id) }
+                    action: { transcription.stop(ownerID: transcriptionOwnerID) }
                 )
 
                 sendButton(
                     enabled: true,
                     action: {
                         transcription.stop(
-                            ownerID: conversation.id,
+                            ownerID: transcriptionOwnerID,
                             sendAfterTranscription: true
                         )
                     }
@@ -952,7 +953,7 @@ struct ComposerView: View {
     }
 
     private var transcriptionError: SpeechTranscriptionFailure? {
-        guard transcription.errorOwnerID == conversation.id else { return nil }
+        guard transcription.errorOwnerID == transcriptionOwnerID else { return nil }
         return transcription.error
     }
 
@@ -960,7 +961,7 @@ struct ComposerView: View {
         Binding(
             get: { transcriptionError != nil },
             set: { presented in
-                if !presented { transcription.dismissError(ownerID: conversation.id) }
+                if !presented { transcription.dismissError(ownerID: transcriptionOwnerID) }
             }
         )
     }
@@ -968,7 +969,7 @@ struct ComposerView: View {
     private func beginTranscription() {
         draftBeforeTranscription = conversation.composer.draft
         Task {
-            await transcription.start(ownerID: conversation.id) { transcript, shouldSend in
+            await transcription.start(ownerID: transcriptionOwnerID) { transcript, shouldSend in
                 let applied = conversation.applyTranscription(
                     transcript,
                     sendAfterTranscription: shouldSend,
@@ -981,7 +982,7 @@ struct ComposerView: View {
 
     private func cancelTranscription() {
         conversation.composer.draft = draftBeforeTranscription
-        transcription.cancel(ownerID: conversation.id)
+        transcription.cancel(ownerID: transcriptionOwnerID)
         isFocused = true
     }
 

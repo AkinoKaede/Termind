@@ -22,6 +22,7 @@ protocol WindowRemoteTitleSink: AnyObject {
 /// `FocusedValues.window`.
 @Observable
 final class WindowModel {
+    private(set) var isClosed = false
     var proAccess: ProAccessController = .unrestrictedForTesting()
     let workspaceDeck: WorkspaceDeckModel
     var workspaces: [Workspace] {
@@ -1243,6 +1244,39 @@ final class WindowModel {
         else { return nil }
         numberPane(copy)
         return copy
+    }
+
+    /// Moving preserves live transports and does not populate close history.
+    func takeWorkspaceForMove(_ id: Workspace.ID) -> Workspace? {
+        guard !isClosed, let workspace = workspaces.first(where: { $0.id == id }) else { return nil }
+        removeWorkspaceForMove(id)
+        workspace.lifecycleRouter = nil
+        dragging = nil
+        if workspaces.isEmpty {
+            selectedDestination = .vault
+            vaultDestination = .welcome
+            vaultWorkRoute = nil
+        }
+        refreshSessionContext()
+        reconcileSidebarMode()
+        return workspace
+    }
+
+    func closeForWindow() {
+        guard !isClosed else { return }
+        isClosed = true
+        for workspace in workspaces {
+            workspace.disconnectConnections()
+            workspace.lifecycleRouter = nil
+        }
+        workspaces.removeAll()
+        reopenStack.removeAll()
+        dragging = nil
+        presentations.route = nil
+        transcriptCache.removeAll()
+        focusToolbarFindField = nil
+        selectedDestination = .vault
+        refreshSessionContext()
     }
 
     // MARK: - Closing

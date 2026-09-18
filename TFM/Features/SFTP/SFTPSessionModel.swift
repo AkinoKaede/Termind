@@ -153,6 +153,7 @@ final class SFTPSessionModel: Identifiable {
     private var configuration: SSHConnectionConfiguration?
     private var usesEphemeralCredentials = false
     private var connectionTask: Task<Void, Never>?
+    private var startsOnMount = true
     private var automaticRefreshTask: Task<Void, Never>?
     private var uploadRefreshTask: Task<Void, Never>?
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
@@ -186,6 +187,7 @@ final class SFTPSessionModel: Identifiable {
         self.path = path
         self.pathText = path
         self.client = client
+        startsOnMount = client == nil
         self.configuration = configuration
         self.homeResolution = homeResolution
         self.automaticRefreshInterval = automaticRefreshInterval
@@ -253,7 +255,17 @@ final class SFTPSessionModel: Identifiable {
         return configuration.map(SFTPTransferConnection.saved)
     }
 
+    func prepareForReopen() {
+        startsOnMount = true
+    }
+
+    func connectIfNeeded(using store: any RemoteSessionHostStore) {
+        guard startsOnMount, status == .disconnected else { return }
+        connect(using: store)
+    }
+
     func connect(using store: any RemoteSessionHostStore) {
+        startsOnMount = false
         startConnection(using: store)
     }
 
@@ -456,6 +468,7 @@ final class SFTPSessionModel: Identifiable {
     }
 
     func disconnect() {
+        startsOnMount = false
         cancelPendingBatch()
         pendingAuthentication = nil
         suppliedAuthentications.removeAll()

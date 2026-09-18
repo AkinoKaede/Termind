@@ -32,6 +32,8 @@ nonisolated enum AppCommandTarget: Hashable, Sendable {
     case assistantConversation(ConversationModel.ID)
     case workspace(Workspace.ID)
     case connectHost(Host.ID, HostOpenTarget)
+    case newWindow
+    case moveWorkspaceToNewWindow(UUID)
     case newChat
     case newHost
     case showAssistant
@@ -64,7 +66,7 @@ final class AppCommandRegistry {
             + conversationCommands(window.assistantLibrary)
             + window.workspaces.map { workspaceCommand($0, store: app.hostLibrary) }
             + app.hostLibrary.searchHosts("").flatMap(hostCommands)
-            + actionCommands(canShowAssistant: window.selectedWorkspace != nil)
+            + actionCommands(workspaceID: window.selectedWorkspaceID)
     }
 
     func perform(_ target: AppCommandTarget, app: AppModel, window: WindowModel) {
@@ -84,6 +86,10 @@ final class AppCommandRegistry {
         case .connectHost(let id, let target):
             guard let host = app.hostLibrary.host(id) else { return }
             app.open(host, as: target, in: window)
+        case .newWindow:
+            app.mainWindows.newWindow()
+        case .moveWorkspaceToNewWindow(let id):
+            app.mainWindows.moveWorkspace(id, from: window)
         case .newChat:
             window.openNewAssistantChat()
         case .newHost:
@@ -186,8 +192,13 @@ final class AppCommandRegistry {
         ]
     }
 
-    private func actionCommands(canShowAssistant: Bool) -> [AppCommandDescriptor] {
+    private func actionCommands(workspaceID: UUID?) -> [AppCommandDescriptor] {
         var commands = [
+            AppCommandDescriptor(
+                id: "action.new-window", title: String(localized: "New Window"),
+                subtitle: String(localized: "Action"), symbol: MenuSymbol.newWindow,
+                section: .actions, keywords: ["window"], target: .newWindow
+            ),
             AppCommandDescriptor(
                 id: "action.new-chat", title: String(localized: "New Chat"),
                 subtitle: String(localized: "Action"), symbol: "plus.bubble",
@@ -201,7 +212,13 @@ final class AppCommandRegistry {
                 keywords: ["server", "add"], target: .newHost
             ),
         ]
-        if canShowAssistant {
+        if let workspaceID {
+            commands.append(
+                AppCommandDescriptor(
+                    id: "action.move-workspace-window", title: String(localized: "Move Workspace to New Window"),
+                    subtitle: String(localized: "Action"), symbol: MenuSymbol.moveToNewWindow,
+                    section: .actions, keywords: ["window", "move"], target: .moveWorkspaceToNewWindow(workspaceID)
+                ))
             commands.append(
                 AppCommandDescriptor(
                     id: "action.show-assistant", title: String(localized: "Show Assistant in Sidebar"),

@@ -76,7 +76,7 @@ final class AppModel {
     let onboarding: OnboardingController
     let appReview: AppReviewController
     let serverMetrics: ServerMetricsModel
-    var opensMetricsOnNextWindow = false
+    @ObservationIgnored lazy var mainWindows = MainWindowCoordinator(app: self)
     let connections: RemoteConnectionCoordinator
     let serialPorts: any SerialPortServing
     let hostRepository: any HostRepository
@@ -377,7 +377,16 @@ final class AppModel {
         AssistantExecutionController.titleContext(for: conversation)
     }
 
+    func unregisterWindow(_ window: WindowModel) {
+        windows[ObjectIdentifier(window)] = nil
+        onboarding.windowClosed(window)
+    }
+
     func registerWindow(_ window: WindowModel) {
+        guard !window.isClosed, windows[ObjectIdentifier(window)]?.value !== window else { return }
+        window.proAccess = proAccess
+        window.connectionCoordinator = connections
+        window.hostStore = hosts
         window.metricsModel = serverMetrics
         windows = windows.filter { $0.value.value != nil }
         windows[ObjectIdentifier(window)] = WeakWindow(window)
@@ -409,7 +418,9 @@ final class AppModel {
             }
         )
         Task { [agentRunRepository, weak window, weak self] in
-            guard let restored = try? await agentRunRepository.loadConversations() else { return }
+            guard let restored = try? await agentRunRepository.loadConversations(),
+                window?.isClosed == false
+            else { return }
             let visible = restored.filter {
                 self?.deletedAgentConversationIDs.contains($0.id) != true
             }

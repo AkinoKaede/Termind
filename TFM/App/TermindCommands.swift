@@ -21,8 +21,8 @@ struct TermindCommands: Commands {
     @FocusedValue(\.window) private var window
 
     var body: some Commands {
-        let _ = MetricsWindowPresenter.registerWindowCreation {
-            openWindow(id: "main")
+        let _ = app.mainWindows.registerWindowCreation { [openWindow] id in
+            openWindow(id: "main", value: id)
         }
 
         CommandGroup(replacing: .appSettings) {
@@ -32,6 +32,11 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(replacing: .newItem) {
+            Button("New Window", systemImage: MenuSymbol.newWindow) { app.mainWindows.newWindow() }
+                .termindShortcut("n")
+
+            Divider()
+
             // Keep Quick Open inside the replacement group. Placing it in a
             // separate group after `.newItem` makes SwiftUI discard it when
             // this replacement is merged into the final File menu, leaving
@@ -197,6 +202,14 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(before: .windowList) {
+            Button("Move Workspace to New Window", systemImage: MenuSymbol.moveToNewWindow) {
+                guard let window, let id = window.selectedWorkspaceID else { return }
+                app.mainWindows.moveWorkspace(id, from: window)
+            }
+            .disabled(window?.selectedWorkspace == nil)
+
+            Divider()
+
             // One pair, not two. There used to be a ⌃⇥ copy of these beside
             // them, which AppKit's automatic window tabbing already claims for
             // Show Next Tab — so the app's copy was both shadowed and a second

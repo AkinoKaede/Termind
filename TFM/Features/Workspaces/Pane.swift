@@ -205,8 +205,10 @@ final class Pane: Identifiable {
             replacement.status = .connecting
             content = .sshSession(replacement)
         case .serialSession(let serialSession):
-            serialSession.status = .connecting
-        case .sftpSession, .empty:
+            serialSession.prepareForReopen()
+        case .sftpSession(let sftpSession):
+            sftpSession.prepareForReopen()
+        case .empty:
             break
         }
     }

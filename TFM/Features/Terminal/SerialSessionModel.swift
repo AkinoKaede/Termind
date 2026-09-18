@@ -36,6 +36,7 @@ final class SerialSessionModel: Identifiable {
     private let service: any SerialPortServing
     private var connection: (any SerialPortConnection)?
     private var connectionTask: Task<Void, Never>?
+    private var startsOnMount = true
     let connectionController = RemoteSessionConnectionController()
     var connectionJourney: ConnectionJourney { connectionController.journey }
 
@@ -76,7 +77,18 @@ final class SerialSessionModel: Identifiable {
         connectionJourney.beginSerial(name: title, address: devicePath)
     }
 
+    func prepareForReopen() {
+        startsOnMount = true
+        status = .connecting
+    }
+
+    func connectIfNeeded() {
+        guard startsOnMount, status == .connecting else { return }
+        connect()
+    }
+
     func connect() {
+        startsOnMount = false
         connectionTask?.cancel()
         let previousConnection = connection
         connection = nil
@@ -124,6 +136,7 @@ final class SerialSessionModel: Identifiable {
     }
 
     func disconnect() {
+        startsOnMount = false
         connectionTask?.cancel()
         connectionTask = nil
         let connection = connection
@@ -195,12 +208,10 @@ struct SerialTerminalView: View {
         .overlay { connectionJourney }
         .focused($focused)
         .onAppear {
-            session.terminalState.isSurfaceVisible = isVisible
             session.terminalState.applyPreferences(terminalAppearance.preferences)
-            if session.status == .connecting { session.connect() }
+            session.connectIfNeeded()
             if requestsFocus { session.requestTerminalFocus() }
         }
-        .onChange(of: isVisible) { _, value in session.terminalState.isSurfaceVisible = value }
         .onChange(of: requestsFocus) { _, value in
             focused = value
             if value, !session.connectionJourney.isPresented { session.requestTerminalFocus() }
@@ -211,7 +222,6 @@ struct SerialTerminalView: View {
         .onChange(of: terminalAppearance.preferences) { _, value in
             session.terminalState.applyPreferences(value)
         }
-        .onDisappear { session.terminalState.isSurfaceVisible = false }
     }
 
     @ViewBuilder

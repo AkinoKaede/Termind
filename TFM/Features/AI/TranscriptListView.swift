@@ -267,6 +267,11 @@ final class TranscriptListCache {
         order.removeAll { removed.contains($0) }
     }
 
+    func removeAll() {
+        owners.removeAll()
+        order.removeAll()
+    }
+
     func cachedOwner(for key: TranscriptCacheKey) -> PersistentTranscriptListOwner? {
         owners[key]
     }

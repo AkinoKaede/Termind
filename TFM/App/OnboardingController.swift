@@ -99,6 +99,13 @@ final class OnboardingController {
         self.automaticPresentationEnabled = automaticPresentationEnabled
     }
 
+    func windowClosed(_ window: WindowModel) {
+        let id = ObjectIdentifier(window)
+        if presentation?.windowID == id { presentation = nil }
+        if activeWindowID == id { activeWindowID = nil }
+        revision &+= 1
+    }
+
     func windowBecameActive(_ window: WindowModel) {
         let windowID = ObjectIdentifier(window)
         if let presentation, presentation.windowID != windowID {

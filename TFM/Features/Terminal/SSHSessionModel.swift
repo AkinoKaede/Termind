@@ -221,6 +221,7 @@ final class SSHSessionModel: Identifiable {
     private var ssh: SSHSessionActor?
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
+    private var startsOnMount = true
     private var connectionAttemptID: UUID?
     private var reconnectController: SessionReconnectController { connection.reconnect }
     private var workingDirectoryObservation: AnyCancellable?
@@ -424,7 +425,13 @@ final class SSHSessionModel: Identifiable {
         homeResolution = .unavailable
     }
 
+    func connectIfNeeded(using store: any RemoteSessionHostStore) {
+        guard startsOnMount, status == .connecting else { return }
+        connect(using: store)
+    }
+
     func connect(using store: any RemoteSessionHostStore) {
+        startsOnMount = false
         startConnection(using: store)
     }
 
@@ -778,6 +785,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     func disconnect() {
+        startsOnMount = false
         resetCommandGeneratorShellState()
         remoteWindowTitle = nil
         workingDirectory = nil

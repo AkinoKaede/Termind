@@ -207,17 +207,33 @@ struct ProPaywallView: View {
 
 struct ProPaywallPresenter: ViewModifier {
     let app: AppModel
+    let window: WindowModel
 
     func body(content: Content) -> some View {
-        @Bindable var pro = app.proAccess
-        content.sheet(isPresented: $pro.isPaywallPresented) {
-            ProPaywallView().environment(app)
-        }
+        content
+            .onChange(of: app.proAccess.isPaywallPresented, initial: true) {
+                app.mainWindows.synchronizePaywall()
+            }
+            .sheet(
+                isPresented: Binding(
+                    get: {
+                        app.proAccess.isPaywallPresented
+                            && app.mainWindows.paywallOwnerID == ObjectIdentifier(window)
+                    },
+                    set: { presented in
+                        guard app.mainWindows.paywallOwnerID == ObjectIdentifier(window) else { return }
+                        app.proAccess.isPaywallPresented = presented
+                        app.mainWindows.synchronizePaywall()
+                    }
+                )
+            ) {
+                ProPaywallView().environment(app)
+            }
     }
 }
 
 extension View {
-    func proPaywallPresenter(app: AppModel) -> some View {
-        modifier(ProPaywallPresenter(app: app))
+    func proPaywallPresenter(app: AppModel, window: WindowModel) -> some View {
+        modifier(ProPaywallPresenter(app: app, window: window))
     }
 }

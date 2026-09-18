@@ -59,6 +59,24 @@ cleanup is performed.
 
 - Repository snapshots and preference models are application-wide. A window owns
   its shell, quick-open, search, navigation, and context-panel state.
+- Desktop main scenes each own a distinct `WindowModel`. The process-owned main
+  window coordinator routes UUID-scoped scene requests and weakly tracks native
+  windows. Creating a window starts on Welcome; Dock reopening preserves the
+  existing destination, while the Metrics entry explicitly selects Metrics.
+  Restoring a scene never restores or reconnects live Workspaces.
+- A Workspace can move intact to a new window through commands or a Navigator
+  drag released outside visible app windows. Native drag cancellation and accepted
+  internal drops never tear off. Private drag data carries no text/file export.
+  The destination must register before the MainActor transfers ownership; moves
+  preserve native terminal surfaces, transports, split geometry and session state,
+  and do not enter close history. Empty source windows remain on Welcome.
+  Native window closure explicitly disconnects only its owned sessions, cancels
+  pending moves, and unregisters it. Independent transfers and application-owned
+  services retain their existing lifetimes. Mounting a session cannot restart
+  an attempted connection or authentication; explicit retry/reopen still can.
+- Paywall presentation is pinned to one main window until dismissed. Speech input
+  ownership belongs to a composer instance, not a shared conversation ID, so
+  closing another view of that conversation cannot cancel the recording.
 - Desktop navigation starts with Vault and Assistant, places Metrics above Vault
   libraries, appends dynamic SSH/SFTP Workspaces, and ends with Settings. Vault
   owns Hosts, Keychain, Snippets, Known Hosts, Welcome, and Host Editor routes.

@@ -17,7 +17,6 @@ struct TermindApp: App {
     private let modelContainer: ModelContainer
     @State private var app: AppModel
     private let launchLanguage: AppLanguage
-    private let launchWindow: WindowModel?
 
     init() {
         ContextAttachmentOpener.cleanPreviousSession()
@@ -47,8 +46,6 @@ struct TermindApp: App {
                         serverMetrics: screenshotDemo.makeMetricsModel(hosts: hosts)
                     )
                     _app = State(initialValue: app)
-                    let window = screenshotDemo.makeWindow(hosts: hosts)
-                    launchWindow = window
                     return
                 }
             #endif
@@ -124,7 +121,6 @@ struct TermindApp: App {
                     appReview: .live()
                 )
             )
-            launchWindow = nil
         } catch {
             fatalError("Unable to open Termind's local database: \(error.localizedDescription)")
         }
@@ -134,15 +130,23 @@ struct TermindApp: App {
         @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
     #endif
 
+    private func makeWindow(requestID: UUID?) -> WindowModel {
+        #if DEBUG
+            if requestID == nil, let demo = ScreenshotDemoConfiguration.active {
+                return demo.makeWindow(hosts: app.hostLibrary)
+            }
+        #endif
+        return WindowModel()
+    }
+
     /// Workspace windows share app data, while each keeps its own Navigator
     /// destinations and dynamic Workspaces.
     var body: some Scene {
-        WindowGroup(id: "main") {
-            RootView(window: launchWindow ?? WindowModel())
+        WindowGroup(id: "main", for: UUID.self) { $requestID in
+            RootView(window: makeWindow(requestID: requestID), requestID: requestID)
                 .environment(app)
                 .environment(\.locale, launchLanguage.locale)
                 .modelContainer(modelContainer)
-                .proPaywallPresenter(app: app)
                 #if canImport(AppKit)
                     .onAppear { delegate.app = app }
                 #endif
@@ -191,6 +195,7 @@ struct TermindApp: App {
                 }
                 app.serverMetrics.start()
                 metricsActivity.start(app.serverMetrics)
+                metricsMenu.openMainWindow = { [weak app] in app?.mainWindows.openMetrics() }
                 metricsMenu.start(app.serverMetrics)
             }
         }
@@ -277,7 +282,7 @@ struct TermindApp: App {
 
         func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
             guard !flag else { return true }
-            return MetricsWindowPresenter.handleReopen()
+            return app?.mainWindows.handleReopen() ?? true
         }
 
         /// Opening at login is for having Termind *available*, not for taking the

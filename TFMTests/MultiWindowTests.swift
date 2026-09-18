@@ -1,0 +1,291 @@
+import AppKit
+import TermindApplication
+import TermindDomain
+import TermindInfrastructure
+import Testing
+
+@testable import Termind
+
+@Suite(.serialized)
+@MainActor
+struct MultiWindowTests {
+    @Test
+    func moveWaitsForDestinationAndPreservesWorkspaceIdentityAndRouting() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let workspace = Workspace.sshSession(host: host)
+        let second = Pane.sshSession(host: host)
+        workspace.layout = .split(
+            SplitNode.Branch(axis: .horizontal, fraction: 0.37, first: workspace.layout, second: .leaf(second)))
+        workspace.focusedPaneID = second.id
+        workspace.customTitle = "Two terminals"
+        workspace.broadcastsInput = true
+        let sessions = workspace.panes.compactMap(\.sshSession)
+        for session in sessions { session.status = .connected }
+        let source = WindowModel(workspaces: [workspace])
+        let target = WindowModel()
+        let sourceNative = nativeWindow()
+        let targetNative = nativeWindow()
+        defer {
+            sourceNative.close()
+            targetNative.close()
+        }
+        app.mainWindows.register(sourceNative, model: source, requestID: nil)
+        var created: [UUID] = []
+        app.mainWindows.createScene = { created.append($0) }
+
+        let request = try #require(app.mainWindows.moveWorkspace(workspace.id, from: source))
+        #expect(source.workspaces.first === workspace)
+        #expect(target.workspaces.isEmpty)
+        #expect(app.mainWindows.moveWorkspace(workspace.id, from: source) == request)
+        #expect(Set(created) == [request])
+
+        app.mainWindows.register(targetNative, model: target, requestID: request)
+        #expect(source.workspaces.isEmpty)
+        #expect(!source.canReopen)
+        #expect(!source.isClosed)
+        #expect(source.vaultDestination == .welcome)
+        #expect(target.selectedWorkspace === workspace)
+        #expect(workspace.lifecycleRouter === target)
+        #expect(workspace.focusedPaneID == second.id)
+        #expect(workspace.customTitle == "Two terminals")
+        #expect(workspace.broadcastsInput)
+        for (actual, expected) in zip(workspace.panes.compactMap(\.sshSession), sessions) {
+            #expect(actual === expected)
+            #expect(actual.status == .connected)
+        }
+        if case .split(let branch) = workspace.layout {
+            #expect(branch.fraction == 0.37)
+        } else {
+            Issue.record("Split layout was lost")
+        }
+
+        app.mainWindows.register(targetNative, model: target, requestID: request)
+        #expect(target.workspaces.count == 1)
+        sourceNative.close()
+        #expect(sessions.allSatisfy { $0.status == .connected })
+        target.workspace(workspace, closePaneAfterSSHSessionExit: second.id)
+        #expect(workspace.panes.count == 1)
+        #expect(source.workspaces.isEmpty)
+        targetNative.close()
+        #expect(sessions.allSatisfy { $0.status == .disconnected })
+    }
+
+    @Test
+    func concurrentWelcomeAndMetricsRequestsCannotConsumeEachOthersDestination() throws {
+        let app = AppModel(hosts: HostLibraryModel())
+        app.mainWindows.createScene = { _ in }
+        let welcomeRequest = try #require(app.mainWindows.newWindow())
+        let metricsRequest = try #require(app.mainWindows.newWindow(showsMetrics: true))
+        let welcome = WindowModel()
+        let metrics = WindowModel()
+        let first = nativeWindow()
+        let second = nativeWindow()
+        defer {
+            first.close()
+            second.close()
+        }
+        app.mainWindows.register(second, model: metrics, requestID: metricsRequest)
+        app.mainWindows.register(first, model: welcome, requestID: welcomeRequest)
+        #expect(welcome.selectedDestination == .vault)
+        #expect(metrics.selectedDestination == .metrics)
+        #expect(first.tabbingMode == .disallowed)
+        #expect(second.tabbingMode == .disallowed)
+        let chat = welcome.assistantLibrary.createConversation()
+        #expect(metrics.assistantLibrary.conversation(id: chat.id) === chat)
+        welcome.assistantQuery = "local search"
+        welcome.isQuickOpenPresented = true
+        #expect(metrics.assistantQuery.isEmpty)
+        #expect(!metrics.isQuickOpenPresented)
+    }
+
+    @Test
+    func closingTheSourceCancelsAnUnclaimedMoveAndCannotResurrectSessions() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        app.mainWindows.createScene = { _ in }
+        let workspace = Workspace.sshSession(host: host)
+        let session = try #require(workspace.focusedPane.sshSession)
+        session.status = .connected
+        let source = WindowModel(workspaces: [workspace])
+        let target = WindowModel()
+        let first = nativeWindow()
+        let second = nativeWindow()
+        defer {
+            first.close()
+            second.close()
+        }
+        app.mainWindows.register(first, model: source, requestID: nil)
+        let request = try #require(app.mainWindows.moveWorkspace(workspace.id, from: source))
+        first.close()
+        #expect(source.isClosed)
+        #expect(session.status == .disconnected)
+        app.mainWindows.register(second, model: target, requestID: request)
+        #expect(target.workspaces.isEmpty)
+        #expect(!source.canReopen)
+        source.closeForWindow()
+        session.status = .connecting
+        let phase = session.connectionJourney.phase
+        session.connectIfNeeded(using: app.hostLibrary)
+        #expect(session.connectionJourney.phase == phase)
+    }
+
+    @Test
+    func missingFactoryNeverRemovesWorkspaceAndStaleRestorationStartsEmpty() {
+        let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
+        let source = WindowModel(workspaces: [workspace])
+        let app = AppModel(hosts: HostLibraryModel())
+        #expect(app.mainWindows.moveWorkspace(workspace.id, from: source) == nil)
+        #expect(source.selectedWorkspace === workspace)
+        let restored = WindowModel()
+        let native = nativeWindow()
+        defer { native.close() }
+        app.mainWindows.register(native, model: restored, requestID: UUID())
+        #expect(restored.workspaces.isEmpty)
+        #expect(restored.selectedDestination == .vault)
+        source.closeForWindow()
+    }
+
+    @Test
+    func paywallStaysWithOneWindowAndClosesWithItsOwner() {
+        let app = AppModel(hosts: HostLibraryModel())
+        let first = nativeWindow()
+        let second = nativeWindow()
+        let firstModel = WindowModel()
+        let secondModel = WindowModel()
+        defer {
+            first.close()
+            second.close()
+        }
+        app.mainWindows.register(first, model: firstModel, requestID: nil)
+        app.mainWindows.register(second, model: secondModel, requestID: nil)
+        NotificationCenter.default.post(name: NSWindow.didBecomeKeyNotification, object: first)
+        app.proAccess.isPaywallPresented = true
+        app.mainWindows.synchronizePaywall()
+        #expect(app.mainWindows.paywallOwnerID == ObjectIdentifier(firstModel))
+        NotificationCenter.default.post(name: NSWindow.didBecomeKeyNotification, object: second)
+        #expect(app.mainWindows.paywallOwnerID == ObjectIdentifier(firstModel))
+        first.close()
+        #expect(!app.proAccess.isPaywallPresented)
+        #expect(app.mainWindows.paywallOwnerID == nil)
+        #expect(!secondModel.isClosed)
+    }
+
+    @Test
+    func closingDestinationDoesNotCloseAnotherWindowsConnection() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let firstWorkspace = Workspace.sshSession(host: host)
+        let secondWorkspace = Workspace.sshSession(host: host)
+        let firstSession = try #require(firstWorkspace.focusedPane.sshSession)
+        let secondSession = try #require(secondWorkspace.focusedPane.sshSession)
+        firstSession.status = .connected
+        secondSession.status = .connected
+        let firstModel = WindowModel(workspaces: [firstWorkspace])
+        let secondModel = WindowModel(workspaces: [secondWorkspace])
+        let first = nativeWindow()
+        let second = nativeWindow()
+        defer {
+            first.close()
+            second.close()
+        }
+        app.mainWindows.register(first, model: firstModel, requestID: nil)
+        app.mainWindows.register(second, model: secondModel, requestID: nil)
+        first.close()
+        #expect(firstSession.status == .disconnected)
+        #expect(secondSession.status == .connected)
+        #expect(secondModel.selectedWorkspace === secondWorkspace)
+    }
+
+    @Test
+    func onlyAnUnhandledMouseReleaseOutsideAllWindowsCreatesAWindow() {
+        let frames = [CGRect(x: 0, y: 0, width: 400, height: 400), CGRect(x: 600, y: 0, width: 400, height: 400)]
+        func opens(
+            _ point: CGPoint, cancelled: Bool = false, released: Bool = true,
+            handled: Bool = false, operation: NSDragOperation = []
+        ) -> Bool {
+            WorkspaceWindowDragSession.shouldOpenWindow(
+                cancelled: cancelled, mouseReleased: released, operation: operation,
+                hasUnhandledWorkspace: !handled, at: point, windowFrames: frames)
+        }
+        let outside = CGPoint(x: 500, y: 200)
+        #expect(opens(outside))
+        #expect(!opens(CGPoint(x: 100, y: 100)))
+        #expect(!opens(CGPoint(x: 700, y: 100)))
+        #expect(!opens(outside, cancelled: true))
+        #expect(!opens(outside, released: false))
+        #expect(!opens(outside, handled: true))
+        #expect(!opens(outside, operation: .move))
+    }
+
+    @Test
+    func dropPlacementUsesTheDestinationScreensVisibleFrame() {
+        let screen = CGRect(x: -1600, y: 100, width: 1600, height: 900)
+        let frame = MainWindowCoordinator.frame(
+            at: CGPoint(x: -1580, y: 110), size: CGSize(width: 1000, height: 700), within: screen)
+        #expect(screen.contains(frame))
+        #expect(frame.size == CGSize(width: 1000, height: 700))
+        let oversized = MainWindowCoordinator.frame(
+            at: CGPoint(x: -20, y: 950), size: CGSize(width: 3000, height: 2000), within: screen)
+        #expect(oversized == screen)
+    }
+
+    @Test
+    func remountingMigratedSSHAndSFTPPanesPreservesAuthenticationPrompts() async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let sshWorkspace = Workspace.sshSession(host: host)
+        let sftpWorkspace = Workspace.sftpSession(host: host, initialPath: "/srv")
+        let ssh = try #require(sshWorkspace.focusedPane.sshSession)
+        let sftp = try #require(sftpWorkspace.focusedPane.sftpSession)
+        ssh.connectIfNeeded(using: app.hostLibrary)
+        sftp.connectIfNeeded(using: app.transfers)
+        let sshPrompt = try #require(ssh.pendingAuthentication)
+        for _ in 0..<100 where sftp.pendingAuthentication == nil {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        let sftpPrompt = try #require(sftp.pendingAuthentication)
+        let source = WindowModel(workspaces: [sshWorkspace, sftpWorkspace])
+        let destination = WindowModel()
+        defer {
+            source.closeForWindow()
+            destination.closeForWindow()
+        }
+        destination.open(try #require(source.takeWorkspaceForMove(sshWorkspace.id)))
+        destination.open(try #require(source.takeWorkspaceForMove(sftpWorkspace.id)))
+        ssh.connectIfNeeded(using: app.hostLibrary)
+        sftp.connectIfNeeded(using: app.transfers)
+        #expect(ssh.pendingAuthentication?.id == sshPrompt.id)
+        #expect(sftp.pendingAuthentication?.id == sftpPrompt.id)
+        #expect(sftp.path == "/srv")
+        #expect(source.workspaces.isEmpty)
+        #expect(destination.workspaces.count == 2)
+    }
+
+    @Test
+    func quickOpenUsesTheSameWindowFactoryAndMoveRequest() throws {
+        let app = AppModel(hosts: HostLibraryModel())
+        var requests: [UUID] = []
+        app.mainWindows.createScene = { requests.append($0) }
+        let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
+        let model = WindowModel(workspaces: [workspace])
+        defer { model.closeForWindow() }
+        let commands = app.commands.commands(app: app, window: model)
+        #expect(commands.contains { $0.target == .newWindow })
+        #expect(commands.contains { $0.target == .moveWorkspaceToNewWindow(workspace.id) })
+        app.commands.perform(.newWindow, app: app, window: model)
+        app.commands.perform(.moveWorkspaceToNewWindow(workspace.id), app: app, window: model)
+        #expect(requests.count == 2)
+        #expect(requests[0] != requests[1])
+        #expect(model.selectedWorkspace === workspace)
+    }
+
+    private func nativeWindow() -> NSWindow {
+        let window = NSWindow(
+            contentRect: CGRect(x: 0, y: 0, width: 800, height: 600),
+            styleMask: [.titled, .closable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.animationBehavior = .none
+        return window
+    }
+}

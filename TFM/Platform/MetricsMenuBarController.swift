@@ -11,6 +11,7 @@ final class MetricsMenuBarController: NSObject, NSPopoverDelegate {
     private var observer: (any NSObjectProtocol)?
     private weak var model: ServerMetricsModel?
     private var clearsInitialFocus = false
+    var openMainWindow: () -> Void = {}
 
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
@@ -66,7 +67,7 @@ final class MetricsMenuBarController: NSObject, NSPopoverDelegate {
         if clearsInitialFocus { UserInputModalityTracker.shared.notePointerInteraction() }
         let view = MetricsMenuView(model: model) { [weak self] in
             self?.popover.close()
-            if !MetricsWindowPresenter.open() { MetricsWindowPresenter.reopen?() }
+            self?.openMainWindow()
         }
         .environment(\.locale, AppLanguage.stored().locale)
         popover.delegate = self

@@ -208,6 +208,7 @@
     @MainActor
     final class PersistentTerminalViewOwner {
         private let terminalView: TermindTerminalView
+        private let state: TerminalViewState
         private weak var container: TerminalMountView?
         private var mountConstraints: [NSLayoutConstraint] = []
         private var appliedVisibility: Bool?
@@ -220,6 +221,7 @@
             state: TerminalViewState,
             inputCapture: TerminalInteractiveInputCapture
         ) {
+            self.state = state
             let terminal = TermindTerminalView(frame: .zero)
             terminal.inputCapture = inputCapture
             terminal.translatesAutoresizingMaskIntoConstraints = false
@@ -276,6 +278,7 @@
             terminalView.pasteOnRightClick = pasteOnRightClick
             if appliedVisibility != isVisible {
                 appliedVisibility = isVisible
+                state.isSurfaceVisible = isVisible
                 terminalView.setSurfaceVisible(isVisible)
             }
 
@@ -294,6 +297,9 @@
                 terminalView.superview === oldContainer
             else { return }
 
+            state.isSurfaceVisible = false
+            appliedVisibility = false
+            terminalView.setSurfaceVisible(false)
             NSLayoutConstraint.deactivate(mountConstraints)
             mountConstraints.removeAll(keepingCapacity: true)
             terminalView.removeFromSuperview()
@@ -347,6 +353,9 @@
         #endif
 
         private func move(to newContainer: TerminalMountView) {
+            state.isSurfaceVisible = false
+            appliedVisibility = false
+            terminalView.setSurfaceVisible(false)
             NSLayoutConstraint.deactivate(mountConstraints)
             mountConstraints.removeAll(keepingCapacity: true)
             terminalView.removeFromSuperview()

@@ -334,11 +334,8 @@ struct SFTPBrowserView: View {
         .background(TermindColor.windowSurface)
         .onAppear {
             sftpSession.bindTransfers(to: app.sftpTransfers)
-            if sftpSession.status == .disconnected {
-                sftpSession.connect(using: app.transfers)
-            } else {
-                sftpSession.startAutomaticRefresh()
-            }
+            sftpSession.connectIfNeeded(using: app.transfers)
+            sftpSession.startAutomaticRefresh()
         }
         .alert("New Folder", isPresented: $newFolderPresented) {
             TextField("Folder Name", text: $newFolderName.singleLineText, axis: .horizontal).singleLinePaste()

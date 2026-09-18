@@ -55,14 +55,10 @@ struct TerminalPlaceholderView: View {
                 // here so a stale layout callback cannot leave live keystrokes on a
                 // sshSession whose router was cleared while it moved.
                 sshSession.inputRouter = workspace
-                sshSession.terminalState.isSurfaceVisible = isVisible
                 terminalFocused = requestsFocus
                 sshSession.terminalState.applyPreferences(terminalAppearance.preferences)
-                if sshSession.status == .connecting { sshSession.connect(using: app.hostLibrary) }
+                sshSession.connectIfNeeded(using: app.hostLibrary)
                 if requestsFocus { sshSession.requestTerminalFocus() }
-            }
-            .onChange(of: isVisible) { _, visible in
-                sshSession.terminalState.isSurfaceVisible = visible
             }
             .onChange(of: requestsFocus) { _, focused in
                 terminalFocused = focused
@@ -73,7 +69,6 @@ struct TerminalPlaceholderView: View {
                 _ = receiveDroppedURLs(externalFileDrop.urls)
             }
             .onDisappear {
-                sshSession.terminalState.isSurfaceVisible = false
                 terminalFocused = false
                 uploadNoticeTask?.cancel()
                 uploadPreparationTask?.cancel()

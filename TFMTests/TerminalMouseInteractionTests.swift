@@ -186,6 +186,36 @@ struct TerminalMouseInteractionTests {
         #expect(fixture.state.surface === surface)
     }
 
+    @Test func movingBetweenNativeWindowsIgnoresStaleUnmountsAndKeepsTerminalContents() async throws {
+        let fixture = try await TerminalMouseFixture.make()
+        let targetMount = TerminalMountView(frame: fixture.mount.frame)
+        let target = NSWindow(contentRect: targetMount.frame, styleMask: [.titled], backing: .buffered, defer: false)
+        target.isReleasedWhenClosed = false
+        target.animationBehavior = .none
+        target.contentView = targetMount
+        target.makeKeyAndOrderFront(nil)
+        defer {
+            fixture.owner.unmount(from: targetMount)
+            target.close()
+            fixture.close()
+        }
+        fixture.feed("preserved across windows")
+        let surface = try #require(fixture.state.surface)
+        fixture.owner.mount(in: targetMount, state: fixture.state, isVisible: true, requestsFocus: true)
+        targetMount.layoutSubtreeIfNeeded()
+        fixture.owner.unmount(from: fixture.mount)
+        // SwiftUI may still update the old representable after the new one mounted.
+        fixture.owner.mount(in: fixture.mount, state: fixture.state, isVisible: false, requestsFocus: false)
+        #expect(fixture.view.window === target)
+        #expect(fixture.state.surface === surface)
+        #expect(fixture.state.isSurfaceVisible)
+        #expect(fixture.backend.readViewportText()?.contains("preserved across windows") == true)
+        #expect(fixture.owner.hasKeyboardFocusForTesting)
+        fixture.window.close()
+        #expect(fixture.view.window === target)
+        #expect(fixture.state.surface === surface)
+    }
+
     @Test func preferenceUpdatesAndReparentingPreserveSurfaceAndScrollback() async throws {
         let fixture = try await TerminalMouseFixture.make()
         defer { fixture.close() }

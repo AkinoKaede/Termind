@@ -327,7 +327,7 @@ struct MetricsMenuView: View {
                 }
                 .buttonStyle(.plain).termindInputAwareFocusEffect()
                 .help(Text("Open Termind")).accessibilityLabel(Text("Open Termind"))
-                Button(action: MetricsWindowPresenter.quit) {
+                Button(action: { NSApp.terminate(nil) }) {
                     Image(systemName: "power").frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain).termindInputAwareFocusEffect()

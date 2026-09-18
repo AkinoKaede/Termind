@@ -90,14 +90,14 @@ struct MetricsInteractionTests {
         var createdWindow = false
 
         #expect(
-            MetricsWindowPresenter.handleReopen(
+            MainWindowCoordinator.handleReopen(
                 openExistingWindow: { false },
                 createWindow: nil
             ))
         #expect(!createdWindow)
 
         #expect(
-            !MetricsWindowPresenter.handleReopen(
+            !MainWindowCoordinator.handleReopen(
                 openExistingWindow: { false },
                 createWindow: { createdWindow = true }
             ))
@@ -105,7 +105,7 @@ struct MetricsInteractionTests {
 
         createdWindow = false
         #expect(
-            !MetricsWindowPresenter.handleReopen(
+            !MainWindowCoordinator.handleReopen(
                 openExistingWindow: { true },
                 createWindow: { createdWindow = true }
             ))

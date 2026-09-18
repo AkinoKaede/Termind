@@ -388,9 +388,11 @@ private struct WorkspaceNavigatorRow: View {
         if isRenaming {
             row
         } else {
-            row.onDrag {
-                window.dragging = .workspace(workspace.id)
-                return NSItemProvider(object: workspace.id.uuidString as NSString)
+            row.background {
+                WorkspaceWindowDragSource(
+                    model: window, workspaceID: workspace.id,
+                    title: workspace.title(in: app.hostLibrary, locale: locale),
+                    hint: localized("Move Workspace to New Window"), coordinator: app.mainWindows)
             }
         }
     }
@@ -575,6 +577,12 @@ private struct WorkspaceNavigatorRow: View {
             )
             entries.append(.separator)
         }
+        entries.append(
+            NativeMenuEntry(title: localized("Move Workspace to New Window"), symbol: MenuSymbol.moveToNewWindow) {
+                app.mainWindows.moveWorkspace(workspace.id, from: window)
+            }
+        )
+        entries.append(.separator)
         // Close Other and Close All are the same verb as the item above them,
         // so only the first of the run carries a glyph.
         entries.append(
@@ -637,7 +645,7 @@ private final class WorkspaceNavigatorDropReceivingView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        registerForDraggedTypes([.string])
+        registerForDraggedTypes([.string, WorkspaceDragType.pasteboard])
     }
 
     @available(*, unavailable)
@@ -667,7 +675,7 @@ private final class WorkspaceNavigatorDropReceivingView: NSView {
     }
 
     private func update(_ sender: any NSDraggingInfo) -> Bool {
-        guard sender.draggingPasteboard.availableType(from: [.string]) != nil else {
+        guard sender.draggingPasteboard.availableType(from: [.string, WorkspaceDragType.pasteboard]) != nil else {
             onExit()
             return false
         }
