@@ -1,8 +1,8 @@
 import SwiftUI
 
 enum MobileFeatureSurface: Hashable, Sendable {
-    case phoneTab
-    case padSidebar
+    case compactTab
+    case regularSidebar
 }
 
 struct MobileFeaturePlacement: Hashable, Sendable {
@@ -87,8 +87,8 @@ struct MobileFeatureRegistry {
                 title: "Vault",
                 symbol: "server.rack",
                 placements: [
-                    MobileFeaturePlacement(surface: .phoneTab, order: 0),
-                    MobileFeaturePlacement(surface: .padSidebar, order: 0),
+                    MobileFeaturePlacement(surface: .compactTab, order: 0),
+                    MobileFeaturePlacement(surface: .regularSidebar, order: 0),
                 ]
             ) { app, scene, surface in
                 AnyView(
@@ -101,8 +101,9 @@ struct MobileFeatureRegistry {
                         ),
                         activateHost: scene.activateHost,
                         open: scene.open,
-                        showsMetrics: surface == .phoneTab,
-                        executeSnippet: scene.execute
+                        showsMetrics: surface == .compactTab,
+                        executeSnippet: scene.execute,
+                        metricsPresentation: scene.compactMetricsPresentation
                     ))
             }
         )
@@ -111,7 +112,7 @@ struct MobileFeatureRegistry {
                 id: .metrics,
                 title: "Metrics",
                 symbol: "gauge.with.dots.needle.33percent",
-                placements: [MobileFeaturePlacement(surface: .padSidebar, order: 1)]
+                placements: [MobileFeaturePlacement(surface: .regularSidebar, order: 1)]
             ) { app, _, _ in
                 AnyView(MobileMetricsView(app: app))
             }
@@ -122,8 +123,8 @@ struct MobileFeatureRegistry {
                 title: "Workspaces",
                 symbol: "terminal",
                 placements: [
-                    MobileFeaturePlacement(surface: .phoneTab, order: 1),
-                    MobileFeaturePlacement(surface: .padSidebar, order: 2),
+                    MobileFeaturePlacement(surface: .compactTab, order: 1),
+                    MobileFeaturePlacement(surface: .regularSidebar, order: 2),
                 ]
             ) { app, scene, _ in
                 AnyView(MobileWorkspaceListView(app: app, scene: scene))
@@ -135,8 +136,8 @@ struct MobileFeatureRegistry {
                 title: "Assistant",
                 symbol: "sparkles",
                 placements: [
-                    MobileFeaturePlacement(surface: .phoneTab, order: 2),
-                    MobileFeaturePlacement(surface: .padSidebar, order: 3),
+                    MobileFeaturePlacement(surface: .compactTab, order: 2),
+                    MobileFeaturePlacement(surface: .regularSidebar, order: 3),
                 ]
             ) { app, scene, _ in
                 AnyView(
@@ -156,8 +157,8 @@ struct MobileFeatureRegistry {
                 title: "Settings",
                 symbol: "gearshape",
                 placements: [
-                    MobileFeaturePlacement(surface: .phoneTab, order: 3),
-                    MobileFeaturePlacement(surface: .padSidebar, order: 4),
+                    MobileFeaturePlacement(surface: .compactTab, order: 3),
+                    MobileFeaturePlacement(surface: .regularSidebar, order: 4),
                 ]
             ) { app, scene, _ in
                 AnyView(MobileSettingsView(app: app, reviewScene: scene))

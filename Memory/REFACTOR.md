@@ -431,3 +431,40 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
 - No unrelated failing implementation/test, AgentKit source, package pin, or user's QA-project deletion was
   changed to force a green result. The three requested implementations have passing affected checks, but this
   is not an all-green full-suite result and the outstanding test gate remains unresolved.
+## Width-based mobile layouts (2026-09-18)
+
+- **Evidence:** `rg 'mobileInterfaceIdiom|MobileInterfaceIdiom' TFI TFITests` found
+  device-based navigation, sheets and cards, plus a duplicated workspace test shell.
+- **Action:** remove the device environment and injection; use the real root in
+  workspace tests. Native compact and regular shells may rebuild at width-class changes.
+- **Estimated reduction:** about 50 lines from the obsolete environment and test shell,
+  excluding the new width transition behavior and regression coverage.
+- **Status:** implemented and verified within the simulator coverage below; the
+  full-suite gate remains non-green because of confirmed baseline failures.
+- **Verification:** real-root tests cover repeated native sidebar/tab reconstruction,
+  actual sidebar selection, Settings depth reset, discarded unsaved forms, Metrics
+  list mapping and Back, retained Assistant drafts, independent window gates,
+  deferred successful/failed saves, and existing SSH/SFTP connections. English,
+  Simplified Chinese and Traditional Chinese snapshots are attached to the results.
+  iPhone focused checks passed 25 tests; the final breadcrumb adjustment passed
+  all four workspace rendering tests again on both iPhone and iPad. Actual
+  portrait/landscape navigation was inspected on both simulators. Device Hub did
+  not drive the system window-corner resize gesture: width changes and two-window
+  independence were verified with real roots using frame and trait changes,
+  rather than a manual Stage Manager drag. Formatting, Chinese localization and
+  whitespace checks pass. Dependencies remain pinned and unchanged.
+- **Full runs:** iPad reported 537 passed, 3 failed, 0 skipped out of 540;
+  macOS reported 1,527 passed, 1 failed, 13 skipped out of 1,541. All new tests
+  passed. Results: `/tmp/termind-width-final-ipad.xcresult`,
+  `/tmp/termind-width-rebuild-macos.xcresult`, `/tmp/termind-width-iphone.xcresult`,
+  `/tmp/termind-width-path-final.xcresult`, and
+  `/tmp/termind-width-path-final-ipad.xcresult`. An earlier mobile run interrupted
+  during cleanup of an older test process was superseded by the complete iPad run.
+- **Baseline failures:** a clean export of `c015d5f3` with the original TFI scheme
+  reproduces the iPad tab-bar visibility, host-card height and knowledge-row
+  expansion assertions. The same baseline card suite passes on iPhone. Evidence:
+  `/tmp/termind-width-baseline-ipad.xcresult` and
+  `/tmp/termind-width-baseline-cards.xcresult`. No unrelated code or assertion was
+  changed to hide these failures. The macOS full run has the previously documented
+  `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable`
+  failure; its source and test remain unchanged.

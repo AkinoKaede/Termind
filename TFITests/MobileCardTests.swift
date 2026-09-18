@@ -12,15 +12,15 @@ import UIKit
 
 @Suite @MainActor
 struct MobileCardTests {
-    @Test func phonesKeepOneColumnInLandscapeAndPadsUseActualContentWidth() {
+    @Test func cardColumnsFollowContainerWidthOnEveryDevice() {
         for width: CGFloat in [0, 288, 370, 660, 1024] {
-            #expect(MobileCardLayout.columns(width: width, isPad: false, accessibilitySize: false) == 1)
-            #expect(MobileCardLayout.columns(width: width, isPad: true, accessibilitySize: true) == 1)
+            #expect(MobileCardLayout.columns(width: width, accessibilitySize: true) == 1)
         }
-        #expect(MobileCardLayout.columns(width: 651, isPad: true, accessibilitySize: false) == 1)
-        #expect(MobileCardLayout.columns(width: 652, isPad: true, accessibilitySize: false) == 2)
-        #expect(MobileCardLayout.columns(width: 983, isPad: true, accessibilitySize: false) == 2)
-        #expect(MobileCardLayout.columns(width: 984, isPad: true, accessibilitySize: false) == 3)
+        #expect(MobileCardLayout.columns(width: 0, accessibilitySize: false) == 1)
+        #expect(MobileCardLayout.columns(width: 651, accessibilitySize: false) == 1)
+        #expect(MobileCardLayout.columns(width: 652, accessibilitySize: false) == 2)
+        #expect(MobileCardLayout.columns(width: 983, accessibilitySize: false) == 2)
+        #expect(MobileCardLayout.columns(width: 984, accessibilitySize: false) == 3)
     }
 
     @Test func standardCardHeightDoesNotChangeWithHostTags() {

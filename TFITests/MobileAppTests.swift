@@ -26,7 +26,7 @@ struct MobileAppTests {
         #expect(try app.hosts.snapshot().value == .empty)
         #expect(Set(app.container.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
         let features = MobileFeatureRegistry.standard()
-        #expect(features.registrations(on: .phoneTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
+        #expect(features.registrations(on: .compactTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
     }
 
     @Test func scenesCanUseTheSameAppRepository() throws {
@@ -783,7 +783,7 @@ struct MobileWorkspaceNavigationRenderingTests {
 
         try await withHostedView(
             MobileRootView(app: app, scene: scene)
-                .environment(\.mobileInterfaceIdiom, .pad)
+                .environment(\.horizontalSizeClass, .regular)
         ) { controller in
             let navigation = try #require(
                 await navigationController(titled: "Snippet Workspace", in: controller)
@@ -824,7 +824,7 @@ struct MobileWorkspaceNavigationRenderingTests {
 
         let scene = MobileSceneModel(app: app)
         scene.selectWorkspace(sftpID)
-        try await withHostedView(MobileWorkspaceNavigationHarness(app: app, scene: scene)) { controller in
+        try await withHostedView(MobileRootView(app: app, scene: scene)) { controller in
             var navigation = try #require(
                 await navigationController(titled: "SFTP Workspace", in: controller)
             )
@@ -860,6 +860,75 @@ struct MobileWorkspaceNavigationRenderingTests {
             scene.closeWorkspace(sftpID)
             _ = try #require(await navigationController(titled: "Workspaces", in: controller))
             #expect(scene.workspaceID == nil)
+        }
+    }
+
+    @Test func resizingReturnsToTheListWithoutReconnectingWorkspaces() async throws {
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let app = try MobileAppModel(inMemory: true, workspaceConnectionServices: connections.services)
+        let host = try configureConnectionFixture(in: app)
+        let sshID = try #require(app.open(hostID: host.id, kind: .ssh))
+        let sftpID = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+        #expect(await eventually { app.workspaces.allSatisfy(\.connected) })
+        #expect(app.renameWorkspace(sshID, to: "Resize SSH"))
+        #expect(app.renameWorkspace(sftpID, to: "Resize SFTP"))
+        let ssh = try #require(app.workspaces.first { $0.id == sshID })
+        let sftp = try #require(app.workspaces.first { $0.id == sftpID })
+        let terminal = ssh.terminal
+        let browser = sftp.sftpSession
+        browser.query = "Retained session filter"
+        let scene = MobileSceneModel(app: app)
+        scene.selectWorkspace(sshID)
+        try await withHostedView(MobileRootView(app: app, scene: scene)) { controller in
+            _ = try #require(await navigationController(titled: "Resize SSH", in: controller))
+            // Begin with the opposite of the simulator's initial width class.
+            let next: UIUserInterfaceSizeClass = scene.layout == .compact ? .regular : .compact
+            let other: UIUserInterfaceSizeClass = next == .regular ? .compact : .regular
+            for sizeClass in [next, other, next, other] {
+                controller.traitOverrides.horizontalSizeClass = sizeClass
+                _ = try #require(await navigationController(titled: "Workspaces", in: controller))
+                #expect(scene.workspaceID == nil)
+                #expect(ssh.connected && sftp.connected)
+                #expect(ssh.terminal === terminal)
+                #expect(sftp.sftpSession === browser)
+                #expect(browser.query == "Retained session filter")
+                #expect(connections.sshConnectCount == 1)
+                #expect(connections.connectCount == 1)
+                scene.selectWorkspace(sftpID)
+                _ = try #require(await navigationController(titled: "Resize SFTP", in: controller))
+            }
+        }
+    }
+
+    @Test(arguments: [DynamicTypeSize.large, .accessibility3])
+    func sftpLongPathsFitNarrowAndWideContainers(typeSize: DynamicTypeSize) async throws {
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let app = try MobileAppModel(inMemory: true, workspaceConnectionServices: connections.services)
+        let host = try configureConnectionFixture(in: app)
+        let id = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+        let workspace = try #require(app.workspaces.first { $0.id == id })
+        #expect(await eventually { workspace.connected })
+        let path = "/srv/projects/production-environment/很长的服务器配置目录/application-configuration"
+        await workspace.sftpSession.openDirectory(path)
+        let scene = MobileSceneModel(app: app)
+        scene.selectWorkspace(id)
+        try await withHostedView(
+            MobileRootView(app: app, scene: scene)
+                .environment(\.horizontalSizeClass, .compact)
+                .environment(\.dynamicTypeSize, typeSize)
+        ) { controller in
+            _ = try #require(await navigationController(titled: workspace.descriptor.title, in: controller))
+            for width: CGFloat in [390, 844] {
+                controller.view.frame.size = CGSize(width: width, height: 800)
+                controller.view.layoutIfNeeded()
+                try await Task.sleep(for: .milliseconds(300))
+                #expect(workspace.sftpSession.path == path)
+                #expect(connections.connectCount == 1)
+                let image = try #require(renderedPNGData(of: controller))
+                Attachment.record(image, named: "sftp-long-path-\(Int(width))-\(typeSize).png")
+            }
         }
     }
 
@@ -960,28 +1029,6 @@ struct MobileWorkspaceNavigationRenderingTests {
             controller.view.drawHierarchy(in: controller.view.bounds, afterScreenUpdates: true)
         }
         return image.pngData()
-    }
-}
-
-private struct MobileWorkspaceNavigationHarness: View {
-    let app: MobileAppModel
-    @Bindable var scene: MobileSceneModel
-
-    @ViewBuilder
-    var body: some View {
-        if UIDevice.current.userInterfaceIdiom == .pad {
-            NavigationSplitView {
-                Text("Sidebar")
-            } detail: {
-                NavigationStack {
-                    MobileWorkspaceListView(app: app, scene: scene)
-                }
-            }
-        } else {
-            NavigationStack {
-                MobileWorkspaceListView(app: app, scene: scene)
-            }
-        }
     }
 }
 

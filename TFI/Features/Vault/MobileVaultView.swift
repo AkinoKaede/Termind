@@ -89,6 +89,8 @@ struct MobileVaultView: View {
     let open: (UUID, ConnectionHistoryEntry.Kind) -> Void
     let showsMetrics: Bool
     let executeSnippet: (Snippet, [Host.ID]) -> Void
+    private let metricsPresentation: Binding<Bool>?
+    @State private var localMetricsPresented = false
     @Binding var editingHost: Host?
     @State private var query = ""
     @State private var deletingHost: Host?
@@ -102,7 +104,8 @@ struct MobileVaultView: View {
         activateHost: @escaping (Host.ID) -> Void,
         open: @escaping (UUID, ConnectionHistoryEntry.Kind) -> Void,
         showsMetrics: Bool = true,
-        executeSnippet: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in }
+        executeSnippet: @escaping (Snippet, [Host.ID]) -> Void = { _, _ in },
+        metricsPresentation: Binding<Bool>? = nil
     ) {
         self.app = app
         self.reviewScene = reviewScene
@@ -111,7 +114,10 @@ struct MobileVaultView: View {
         self.open = open
         self.showsMetrics = showsMetrics
         self.executeSnippet = executeSnippet
+        self.metricsPresentation = metricsPresentation
     }
+
+    private var presentsMetrics: Binding<Bool> { metricsPresentation ?? $localMetricsPresented }
 
     private var matchingHosts: [Host] { app.library.searchHosts(query) }
     private var matchingKeys: [SSHKeyRef] { app.credentials.searchKeys(query) }
@@ -229,6 +235,7 @@ struct MobileVaultView: View {
         }
         .searchable(text: $query.singleLineText)
         .navigationTitle("Vault")
+        .navigationDestination(isPresented: presentsMetrics) { MobileMetricsView(app: app) }
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
@@ -309,9 +316,14 @@ struct MobileVaultView: View {
     private var vaultLinks: some View {
         if showsMetrics {
             MobileVaultLinkGroup {
-                vaultLink("Metrics", symbol: "gauge.with.dots.needle.33percent") {
-                    MobileMetricsView(app: app)
+                Button {
+                    presentsMetrics.wrappedValue = true
+                } label: {
+                    MobileVaultLinkLabel(
+                        title: Text("Metrics"), detail: nil, symbol: "gauge.with.dots.needle.33percent")
                 }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("mobile.vault.metrics")
             }
         }
         MobileVaultLinkGroup {
@@ -345,12 +357,23 @@ struct MobileVaultView: View {
     @ViewBuilder
     private func searchLinkRows(_ links: [SearchLink]) -> some View {
         ForEach(Array(links.enumerated()), id: \.element.id) { index, link in
-            NavigationLink {
-                searchDestination(link.destination)
-            } label: {
-                MobileVaultLinkLabel(
-                    title: Text(verbatim: link.title),
-                    detail: link.detail.map { Text(verbatim: $0) }, symbol: link.symbol)
+            let label = MobileVaultLinkLabel(
+                title: Text(verbatim: link.title),
+                detail: link.detail.map { Text(verbatim: $0) }, symbol: link.symbol)
+            Group {
+                if case .metrics = link.destination {
+                    Button {
+                        presentsMetrics.wrappedValue = true
+                    } label: {
+                        label
+                    }
+                } else {
+                    NavigationLink {
+                        searchDestination(link.destination)
+                    } label: {
+                        label
+                    }
+                }
             }
             .buttonStyle(.plain)
             if index < links.count - 1 {

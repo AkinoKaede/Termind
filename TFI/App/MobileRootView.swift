@@ -1,12 +1,12 @@
 import SwiftUI
 import TermindPresentation
 
-/// iPhone has four destinations. iPad retains the sidebar with individual library routes.
+/// Each window uses native tabs or a native sidebar according to its available width.
 struct MobileRootView: View {
     let app: MobileAppModel
-    private let features = MobileFeatureRegistry.standard()
+    private let features: MobileFeatureRegistry
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.mobileInterfaceIdiom) private var interfaceIdiom
+    @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var scene: MobileSceneModel
     private let pendingQuickAction: MobileHomeScreenQuickAction?
     private let consumePendingQuickAction: () -> MobileHomeScreenQuickAction?
@@ -14,22 +14,24 @@ struct MobileRootView: View {
     init(
         app: MobileAppModel,
         scene: MobileSceneModel? = nil,
+        features: MobileFeatureRegistry = .standard(),
         pendingQuickAction: MobileHomeScreenQuickAction? = nil,
         consumePendingQuickAction: @escaping () -> MobileHomeScreenQuickAction? = { nil }
     ) {
         self.app = app
+        self.features = features
         self.pendingQuickAction = pendingQuickAction
         self.consumePendingQuickAction = consumePendingQuickAction
         _scene = State(initialValue: scene ?? MobileSceneModel(app: app))
     }
 
     var body: some View {
-        Group {
-            if interfaceIdiom != .pad {
-                TabView(selection: $scene.selectedTab) {
-                    ForEach(features.registrations(on: .phoneTab)) { feature in
+        ZStack {
+            if (scene.layout ?? windowLayout) == .compact {
+                TabView(selection: tabSelection) {
+                    ForEach(features.registrations(on: .compactTab)) { feature in
                         NavigationStack {
-                            feature.makeView(app: app, scene: scene, surface: .phoneTab)
+                            feature.makeView(app: app, scene: scene, surface: .compactTab)
                         }
                         .tabItem { Label(feature.title, systemImage: feature.symbol) }
                         .tag(feature.id)
@@ -37,19 +39,22 @@ struct MobileRootView: View {
                 }
             } else {
                 NavigationSplitView {
-                    List(selection: $scene.selectedDestination) {
-                        ForEach(features.registrations(on: .padSidebar)) { feature in
+                    List(selection: sidebarSelection) {
+                        ForEach(features.registrations(on: .regularSidebar)) { feature in
                             NavigationLink(value: feature.id) {
                                 Label(feature.title, systemImage: feature.symbol)
                             }
+                            .accessibilityIdentifier("mobile.sidebar.\(feature.id.rawValue)")
                         }
                     }
+                    .listStyle(.sidebar)
+                    .accessibilityIdentifier("mobile.sidebar")
                 } detail: {
                     NavigationStack {
-                        selectedFeature.makeView(app: app, scene: scene, surface: .padSidebar)
+                        selectedFeature.makeView(app: app, scene: scene, surface: .regularSidebar)
                     }
+                    .id(selectedFeature.id)
                 }
-                .id(scene.selectedDestination ?? .vault)
             }
         }
         .environment(\.singleLineInputAdapter, { AnyView(MobileSingleLineFieldInput()) })
@@ -107,7 +112,37 @@ struct MobileRootView: View {
                     ? String(localized: "This workspace was closed or its host was removed.") : app.error ?? "")
         }
         .modifier(MobileAppReviewPresenter(app: app, scene: scene, scenePhase: scenePhase))
+        .onChange(of: windowLayout, initial: true) { _, layout in scene.updateLayout(layout) }
+        .onChange(of: scene.layoutTransition.isBlocked) { _, blocked in
+            if !blocked { scene.updateLayout(windowLayout) }
+        }
+        .environment(\.mobileLayout, windowLayout)
+        .environment(\.mobileLayoutTransition, scene.layoutTransition)
 
+    }
+
+    private var windowLayout: MobileLayout { MobileLayout(sizeClass: sizeClass) }
+
+    private var tabSelection: Binding<MobileDestination> {
+        let revision = scene.layoutRevision
+        return Binding(
+            get: { scene.selectedTab },
+            set: { destination in
+                guard scene.layoutRevision == revision else { return }
+                scene.selectedTab = destination
+            }
+        )
+    }
+
+    private var sidebarSelection: Binding<MobileDestination?> {
+        let revision = scene.layoutRevision
+        return Binding(
+            get: { scene.selectedDestination },
+            set: { destination in
+                guard scene.layoutRevision == revision, let destination else { return }
+                scene.selectedDestination = destination
+            }
+        )
     }
 
     private var selectedFeature: MobileFeatureRegistration {

@@ -22,7 +22,6 @@ struct TermindIOSApp: App {
             case .success(let app):
                 MobileQuickActionSceneRoot(app: app)
                     .modelContainer(app.container)
-                    .environment(\.mobileInterfaceIdiom, MobileInterfaceIdiom.current)
                     .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
             case .failure:
                 ContentUnavailableView(

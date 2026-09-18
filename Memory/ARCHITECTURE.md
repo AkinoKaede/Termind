@@ -695,9 +695,25 @@ and UI preferences never enter its zone.
 
 ## Mobile boundaries
 
-iPhone top-level order is Vault, Workspaces, Assistant, Settings; Metrics is a Vault
-section. iPad uses Vault, Metrics, Workspaces, Assistant, Settings. Neither shows
-Welcome. Each Workspace owns exactly one SSH or SFTP session; mobile never composes
+Mobile navigation follows each window's horizontal size class, defaulting to compact.
+Compact windows use native Vault, Workspaces, Assistant, Settings tabs, with Metrics
+inside Vault. Regular windows use the native Vault, Metrics, Workspaces, Assistant,
+Settings sidebar. Only a width-class change rebuilds the navigation branch; ordinary
+resizing does not reset it. The current feature is retained, but child pages, searches,
+scroll positions and unsaved forms may reset. Metrics reopens at its list in the new
+layout; server details are not restored, and leaving Metrics prevents later restoration.
+The outer scene and app models survive both branches: rebuilding never restarts live
+connections, transfers or Agent runs, or creates a new Assistant conversation.
+
+A window-owned save gate defers navigation reconstruction during an editor save.
+The latest width is applied after success, or after failure feedback is acknowledged
+or dismissed. Separate windows never share that gate. Sheets follow the presenting
+window's width using stable presentation modifiers, even while navigation rebuilding
+is deferred. Cards use container width and one column at accessibility text sizes;
+SFTP breadcrumbs fit three or two trailing components to the available space.
+Device idiom is not a production layout input. These states are memory-only.
+
+Neither layout shows Welcome. Each Workspace owns exactly one SSH or SFTP session; mobile never composes
 panes, even with Pro. Assistant is independent. The title menu switches open peers
 without connecting/focusing; More owns Rename/Close and cross-opening SSH/SFTP when a
 live path exists. Explicit close never retries.
@@ -763,7 +779,7 @@ representations are copied within their callbacks into app-owned staging before
 upload preparation; queued transfers retain those files after navigation away.
 
 Mobile top-level destinations are registered in `MobileFeatureRegistry`. A
-registration owns stable identity, label, symbol, phone/iPad placement, ordering,
+registration owns stable identity, label, symbol, compact/regular placement, ordering,
 and its destination factory. The root shell renders that catalog and does not
 maintain separate tab, sidebar, and destination switches. Registries are injected
 values rather than global singletons, and duplicate feature IDs fail immediately.

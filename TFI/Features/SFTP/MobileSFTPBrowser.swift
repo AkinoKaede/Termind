@@ -191,7 +191,7 @@ private struct MobileSFTPPathBar: View {
         }
         .disabled(!connected)
         .padding(.horizontal, 16)
-        .frame(height: 44)
+        .frame(minHeight: 44)
         .background(.bar)
         .onChange(of: pathFocused) { wasFocused, isFocused in
             guard wasFocused, !isFocused, editsPath else { return }
@@ -203,8 +203,18 @@ private struct MobileSFTPPathBar: View {
     }
 
     private var breadcrumbContent: some View {
+        ViewThatFits(in: .horizontal) {
+            breadcrumbs(tailCount: 3).fixedSize(horizontal: true, vertical: false)
+            breadcrumbs(tailCount: 2)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(session.path))
+        .accessibilityHint(Text("Edit Path"))
+    }
+
+    private func breadcrumbs(tailCount: Int) -> some View {
         let components = RemotePath.components(of: session.path)
-        let tailCount = UIDevice.current.userInterfaceIdiom == .pad ? 3 : 2
         let collapses = components.count > tailCount + 1
         let visible = collapses ? Array(components.suffix(tailCount)) : Array(components.dropFirst())
         return HStack(spacing: 6) {
@@ -213,19 +223,15 @@ private struct MobileSFTPPathBar: View {
                 separator
                 Image(systemName: "ellipsis")
                     .foregroundStyle(.secondary)
-                    .frame(width: 20)
+                    .frame(minWidth: 20)
             }
             ForEach(visible) { component in
                 separator
                 breadcrumbLabel(component, isRoot: false)
             }
-            Spacer(minLength: 0)
         }
         .lineLimit(1)
         .truncationMode(.middle)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(session.path))
-        .accessibilityHint(Text("Edit Path"))
     }
 
     private var separator: some View {
@@ -241,6 +247,7 @@ private struct MobileSFTPPathBar: View {
                 .font(.body.weight(component.path == session.path ? .medium : .regular))
                 .lineLimit(1)
         }
+        .fixedSize(horizontal: isRoot, vertical: false)
     }
 
     private func beginPathEditing() {

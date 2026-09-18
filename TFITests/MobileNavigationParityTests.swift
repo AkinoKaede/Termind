@@ -9,9 +9,9 @@ import Testing
 struct MobileNavigationParityTests {
     @Test func vaultReplacesWelcomeAndMetricsRemainsBelowItOnIPad() {
         let features = MobileFeatureRegistry.standard()
-        #expect(features.registrations(on: .phoneTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
+        #expect(features.registrations(on: .compactTab).map(\.id) == [.vault, .workspaces, .assistant, .settings])
         #expect(
-            features.registrations(on: .padSidebar).map(\.id)
+            features.registrations(on: .regularSidebar).map(\.id)
                 == [.vault, .metrics, .workspaces, .assistant, .settings]
         )
     }

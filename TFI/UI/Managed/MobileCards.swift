@@ -15,7 +15,6 @@ struct MobileCardPage<Content: View>: View {
 
 struct MobileCardGrid<Content: View>: View {
     @Environment(\.dynamicTypeSize) private var typeSize
-    @Environment(\.mobileInterfaceIdiom) private var interfaceIdiom
     @State private var width: CGFloat = 0
     @ViewBuilder var content: Content
 
@@ -24,7 +23,7 @@ struct MobileCardGrid<Content: View>: View {
             columns: Array(
                 repeating: GridItem(.flexible(), spacing: 12, alignment: .top),
                 count: MobileCardLayout.columns(
-                    width: width, isPad: interfaceIdiom == .pad,
+                    width: width,
                     accessibilitySize: typeSize.isAccessibilitySize)),
             alignment: .leading, spacing: 12
         ) { content }

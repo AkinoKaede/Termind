@@ -187,7 +187,10 @@ struct MobileMarketingScreenshotTests {
         let controller = UIHostingController(
             rootView: view()
                 .environment(\.locale, Locale(identifier: language))
-                .environment(\.mobileInterfaceIdiom, MobileInterfaceIdiom.current)
+                .environment(
+                    \.mobileLayout,
+                    MobileLayout(sizeClass: scene.traitCollection.horizontalSizeClass == .regular ? .regular : .compact)
+                )
                 .preferredColorScheme(.light))
         controller.view.backgroundColor = .systemBackground
         window.rootViewController = controller
@@ -303,7 +306,7 @@ private struct MarketingPhoneTabShell<Content: View>: View {
 
     var body: some View {
         TabView(selection: .constant(selected)) {
-            ForEach(features.registrations(on: .phoneTab)) { feature in
+            ForEach(features.registrations(on: .compactTab)) { feature in
                 Group {
                     if feature.id == selected {
                         content
