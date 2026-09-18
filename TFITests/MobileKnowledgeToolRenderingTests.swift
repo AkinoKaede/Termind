@@ -31,15 +31,58 @@ struct MobileKnowledgeToolRenderingTests {
                 if ProcessInfo.processInfo.environment["TERMIND_KNOWLEDGE_SCREENSHOTS"] == "1" {
                     try snapshot(controller.view, name: "ios-\(language.rawValue)-\(card.descriptor.name)")
                 }
+                let detail = try detail(for: card, language: language)
+                guard AgentToolDetailPreview(detail).isShortened else {
+                    #expect(!state.isExpanded(.toolDetail(card.id)))
+                    continue
+                }
                 state.toggleDisclosure(.toolDetail(card.id))
                 try await Task.sleep(for: .milliseconds(20))
                 controller.view.setNeedsLayout()
                 controller.view.layoutIfNeeded()
                 let expanded = controller.sizeThatFits(in: size)
-                #expect(expanded.height >= compact.height)
-                if card.descriptor.name != "skill_install" { #expect(expanded.height > compact.height) }
+                #expect(expanded.height > compact.height, "\(language.rawValue): \(card.descriptor.name)")
+                controller.view.setNeedsLayout()
+                controller.view.layoutIfNeeded()
+                #expect(abs(controller.sizeThatFits(in: size).height - expanded.height) < 0.5)
                 #expect(state.isExpanded(.toolDetail(card.id)))
+                state.toggleDisclosure(.toolDetail(card.id))
+                try await Task.sleep(for: .milliseconds(20))
+                controller.view.setNeedsLayout()
+                controller.view.layoutIfNeeded()
+                #expect(abs(controller.sizeThatFits(in: size).height - compact.height) < 0.5)
+                #expect(!state.isExpanded(.toolDetail(card.id)))
             }
+        }
+    }
+
+    @Test func shortKnowledgeDetailsKeepTheirNaturalHeight() throws {
+        for language in [AppLanguage.english, .simplifiedChinese, .traditionalChinese] {
+            var shortCards = 0
+            for card in AssistantTranscriptPreview.knowledgeCards(language: language) {
+                let detail = try detail(for: card, language: language)
+                guard !AgentToolDetailPreview(detail).isShortened else { continue }
+                shortCards += 1
+                let natural = UIHostingController(
+                    rootView:
+                        AssistantToolDetails(items: detail.items)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .environment(\.locale, language.locale))
+                let compact = UIHostingController(
+                    rootView:
+                        AssistantCompactToolDetails(
+                            detail: detail, isError: false, expanded: .constant(false), copy: { _ in }
+                        )
+                        .environment(\.locale, language.locale))
+                let proposal = CGSize(width: 334, height: 30_000)
+                let naturalHeight = natural.sizeThatFits(in: proposal).height
+                #expect(naturalHeight > 0 && naturalHeight < 180)
+                #expect(
+                    abs(compact.sizeThatFits(in: proposal).height - naturalHeight) < 0.5,
+                    "\(language.rawValue): \(card.descriptor.name)")
+            }
+            #expect(shortCards > 0)
         }
     }
 
@@ -54,6 +97,12 @@ struct MobileKnowledgeToolRenderingTests {
         let size = controller.sizeThatFits(in: CGSize(width: 390, height: 30_000))
         #expect(size.height > 180)
         #expect(size.height < 800)
+    }
+
+    private func detail(for card: AgentToolCard, language: AppLanguage) throws -> AgentToolDetail {
+        let presenter = try #require(
+            AgentToolCatalog.builtInPresenters.first { $0.id == card.descriptor.presentation?.presenterID })
+        return try #require(AgentToolPresentation.detail(for: card, presenter: presenter, locale: language.locale))
     }
 
     private func snapshot(_ view: UIView, name: String) throws {

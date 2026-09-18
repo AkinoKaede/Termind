@@ -28,6 +28,7 @@ public struct AssistantCompactToolDetails: View {
                     contentHeight = $0
                 }
                 .frame(maxHeight: expanded ? nil : previewHeight, alignment: .top)
+                .fixedSize(horizontal: false, vertical: true)
                 .clipped()
             if expanded || preview.isShortened || contentHeight > previewHeight {
                 HStack(spacing: 16) {

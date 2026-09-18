@@ -34,13 +34,25 @@ struct KnowledgeToolRenderingTests {
                     try snapshot(
                         row, width: width, height: compact, name: "mac-\(language.rawValue)-\(card.descriptor.name)")
                 }
+                let presenter = try #require(
+                    AgentToolCatalog.builtInPresenters.first { $0.id == card.descriptor.presentation?.presenterID })
+                let detail = try #require(
+                    AgentToolPresentation.detail(for: card, presenter: presenter, locale: language.locale))
+                guard AgentToolDetailPreview(detail).isShortened else {
+                    #expect(!state.disclosures.isExpanded(.toolDetail(card.id)))
+                    continue
+                }
                 state.disclosures.toggleDisclosure(.toolDetail(card.id))
                 configure()
                 let expanded = row.measuredHeight(for: width)
-                #expect(expanded >= compact)
-                if card.descriptor.name != "skill_install" { #expect(expanded > compact) }
+                #expect(expanded > compact, "\(language.rawValue): \(card.descriptor.name)")
                 configure()
+                #expect(abs(row.measuredHeight(for: width) - expanded) < 0.5)
                 #expect(state.disclosures.isExpanded(.toolDetail(card.id)))
+                state.disclosures.toggleDisclosure(.toolDetail(card.id))
+                configure()
+                #expect(abs(row.measuredHeight(for: width) - compact) < 0.5)
+                #expect(!state.disclosures.isExpanded(.toolDetail(card.id)))
             }
         }
     }

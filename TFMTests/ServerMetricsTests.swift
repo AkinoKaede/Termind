@@ -348,6 +348,9 @@ struct ServerMetricsLifecycleTests {
         #expect(fixture.model.servers.count == 1)
         #expect(fixture.model.snapshot(for: fixture.host.id)?.state == .live)
         #expect(await fixture.sampler.connections == 1)
+        // Base metrics appear before GPU collection finishes and the sampling sleep is registered.
+        // Both the maintenance loop and the sampler must be waiting before advancing this clock.
+        await eventually { fixture.time.pendingSleeps == 2 }
         let first = server.point?.date
         fixture.time.advance(2)
         await eventually { server.point?.date != first }
@@ -534,13 +537,15 @@ struct ServerMetricsLifecycleTests {
         await eventually { await fixture.sampler.connections == 2 }
     }
 
-    private func eventually(_ condition: () async -> Bool) async {
+    private func eventually(
+        sourceLocation: SourceLocation = #_sourceLocation, _ condition: () async -> Bool
+    ) async {
         for _ in 0..<2000 {
             if await condition() { return }
             await Task.yield()
             try? await Task.sleep(for: .milliseconds(1))
         }
-        #expect(await condition())
+        #expect(await condition(), sourceLocation: sourceLocation)
     }
 
     private struct Fixture {
@@ -659,6 +664,7 @@ private nonisolated final class ManualMetricsTime: @unchecked Sendable {
     private var waiters: [UUID: (Date, CheckedContinuation<Void, any Error>)] = [:]
     private var requested: [Double] = []
     var delays: [Double] { lock.withLock { requested } }
+    var pendingSleeps: Int { lock.withLock { waiters.count } }
     var clock: MetricsClock {
         MetricsClock(now: { self.lock.withLock { self.date } }, sleep: { try await self.sleep($0) })
     }
