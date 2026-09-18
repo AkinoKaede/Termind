@@ -76,14 +76,8 @@ struct MetricsDetailToolbarTests {
         state.selectedDestination = .metrics
         state.metricsHostID = server.id
         state.metricsModel = model
-        let root = NavigationStack {
-            MetricsDetailView(server: server, model: model)
-                .toolbar(removing: state.showsCompactMetricsDetail ? .title : nil)
-                .toolbar {
-                    ToolbarItem(placement: .principal) { MetricsDetailPagePicker() }
-                    ToolbarItem(placement: .primaryAction) { WindowToolbarLegacySearch() }
-                }
-        }.environment(state).environment(\.locale, language.locale)
+        let root = LegacyMetricsToolbarFixture(server: server, model: model)
+            .environment(state).environment(\.locale, language.locale)
         let window = makeWindow(root)
         defer {
             window.orderOut(nil)
@@ -97,6 +91,14 @@ struct MetricsDetailToolbarTests {
         #expect(descendants(in: frame, ofType: NSSearchField.self).isEmpty)
         #expect(window.toolbar != nil)
         _ = try #require(state.focusToolbarFindField)
+        try await waitUntil(in: window) {
+            NSRunningApplication.current.activate(options: [.activateAllWindows])
+            NSApp.activate(ignoringOtherApps: true)
+            window.orderFrontRegardless()
+            window.makeMain()
+            window.makeKey()
+            return window.isKeyWindow
+        }
         try capture(frame, name: "legacy-\(language.rawValue)-before-search")
         state.focusToolbarFind()
         let field = try await searchField(in: window, inline: false)
@@ -162,21 +164,18 @@ struct MetricsDetailToolbarTests {
             + (window.childWindows ?? []).flatMap { searchFields(in: $0) }
     }
 
-    private func waitUntil(in window: NSWindow, _ condition: () -> Bool) async throws {
+    private func waitUntil(
+        in window: NSWindow, sourceLocation: SourceLocation = #_sourceLocation, _ condition: () -> Bool
+    ) async throws {
         let deadline = ContinuousClock.now.advanced(by: .seconds(2))
         while ContinuousClock.now < deadline {
             window.contentView?.superview?.layoutSubtreeIfNeeded()
             if condition() { return }
             try await Task.sleep(for: .milliseconds(10))
         }
-        print("Toolbar timeout", window.isKeyWindow, "children", window.childWindows?.count ?? 0)
-        for item in window.toolbar?.items ?? [] {
-            print(
-                "Toolbar item", item.itemIdentifier.rawValue,
-                "visible", window.toolbar?.visibleItems?.contains(where: { $0 === item }) ?? false,
-                "frame", item.view?.frame as Any, "fitting", item.view?.fittingSize as Any)
-        }
-        try #require(condition(), "The toolbar or its popover did not finish updating within two seconds.")
+        try #require(
+            condition(), "The toolbar or its popover did not finish updating within two seconds.",
+            sourceLocation: sourceLocation)
     }
 
     private func descendants<T: NSView>(in view: NSView, ofType type: T.Type) -> [T] {
@@ -189,5 +188,24 @@ struct MetricsDetailToolbarTests {
         let data = try #require(bitmap.representation(using: .png, properties: [:]))
         try data.write(
             to: FileManager.default.temporaryDirectory.appending(path: "termind-metrics-compact-\(name).png"))
+    }
+}
+
+/// Like RootView, the toolbar owner observes compact mode so native toolbar
+/// preferences are refreshed when the first measured detail width arrives.
+private struct LegacyMetricsToolbarFixture: View {
+    let server: ServerMetric
+    let model: ServerMetricsModel
+    @Environment(WindowModel.self) private var window
+
+    var body: some View {
+        NavigationStack {
+            MetricsDetailView(server: server, model: model)
+                .toolbar(removing: window.showsCompactMetricsDetail ? .title : nil)
+                .toolbar {
+                    ToolbarItem(placement: .principal) { MetricsDetailPagePicker() }
+                    ToolbarItem(placement: .primaryAction) { WindowToolbarLegacySearch() }
+                }
+        }
     }
 }

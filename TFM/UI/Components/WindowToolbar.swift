@@ -48,7 +48,18 @@ struct WindowToolbarFindContext {
 /// down and redrawn for every character.
 @MainActor
 final class NativeSearchFieldOwner {
-    let field = NSSearchField()
+    let field: NSSearchField = MountedSearchField()
+}
+
+/// Popovers can attach their content after the representable's first update.
+/// Deliver pending keyboard intent when AppKit actually mounts the control.
+private final class MountedSearchField: NSSearchField {
+    var onWindowChange: (() -> Void)?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        onWindowChange?()
+    }
 }
 
 /// `NSSearchField`, not `.searchable`, so Return, Shift-Return and Escape can
@@ -90,7 +101,7 @@ struct NativeSearchField: NSViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator(field: self) }
 
     func makeNSView(context: Context) -> NSSearchField {
-        let field = owner?.field ?? NSSearchField()
+        let field = owner?.field ?? MountedSearchField()
         field.delegate = context.coordinator
         field.placeholderString = placeholder
         field.stringValue = text
@@ -146,6 +157,7 @@ struct NativeSearchField: NSViewRepresentable {
         private var holdsKeyboardIntent = false
         private weak var attachedSearchField: NSSearchField?
         private var userExitMonitor: Any?
+        private var windowKeyObserver: (any NSObjectProtocol)?
         private var windowResignObserver: (any NSObjectProtocol)?
         private var pendingCommandExitTimestamp: TimeInterval?
         init(field: NativeSearchField) {
@@ -155,11 +167,19 @@ struct NativeSearchField: NSViewRepresentable {
 
         func attach(to searchField: NSSearchField) {
             attachedSearchField = searchField
+            (searchField as? MountedSearchField)?.onWindowChange = { [weak self, weak searchField] in
+                guard let self, let searchField else { return }
+                stopUserExitObservers()
+                guard searchField.window != nil, holdsKeyboardIntent else { return }
+                installUserExitObservers(for: searchField)
+                restoreKeyboardClaim(to: searchField)
+            }
         }
 
         func detachForReplacement(from searchField: NSSearchField) {
             guard attachedSearchField === searchField else { return }
             stopUserExitObservers()
+            (searchField as? MountedSearchField)?.onWindowChange = nil
             holdsKeyboardIntent = false
             attachedSearchField = nil
         }
@@ -270,6 +290,10 @@ struct NativeSearchField: NSViewRepresentable {
                 NotificationCenter.default.removeObserver(windowResignObserver)
                 self.windowResignObserver = nil
             }
+            if let windowKeyObserver {
+                NotificationCenter.default.removeObserver(windowKeyObserver)
+                self.windowKeyObserver = nil
+            }
         }
 
         private func installUserExitObservers(for searchField: NSSearchField) {
@@ -281,6 +305,16 @@ struct NativeSearchField: NSViewRepresentable {
                 return event
             }
             guard let window = searchField.window else { return }
+            windowKeyObserver = NotificationCenter.default.addObserver(
+                forName: NSWindow.didBecomeKeyNotification,
+                object: window,
+                queue: .main
+            ) { [weak self, weak searchField] _ in
+                MainActor.assumeIsolated {
+                    guard let self, let searchField, self.holdsKeyboardIntent else { return }
+                    self.restoreKeyboardClaim(to: searchField)
+                }
+            }
             windowResignObserver = NotificationCenter.default.addObserver(
                 forName: NSWindow.didResignKeyNotification,
                 object: window,
