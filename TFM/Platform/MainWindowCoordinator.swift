@@ -215,7 +215,7 @@ final class MainWindowCoordinator {
     }
 
     /// A selected pane consumes the command, even when it was the last one.
-    /// Without a selected Workspace, use the window's native dismissal path.
+    /// Window fallback uses the native dismissal path so confirmation can veto it.
     func closeSelectionOrWindow(in model: WindowModel) {
         guard !model.isClosed else { return }
         if model.selectedWorkspace != nil {
@@ -325,6 +325,7 @@ final class MainWindowRegistrationView: NSView {
     private let coordinator: MainWindowCoordinator
     private let model: WindowModel
     private let requestID: UUID?
+    private var documentEditedObservation: NSKeyValueObservation?
 
     init(coordinator: MainWindowCoordinator, model: WindowModel, requestID: UUID?) {
         self.coordinator = coordinator
@@ -338,6 +339,13 @@ final class MainWindowRegistrationView: NSView {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        documentEditedObservation = nil
+        // SwiftUI marks a window with dismissal confirmation as edited. Workspaces
+        // are not documents; suppress that decoration without changing dismissal.
+        documentEditedObservation = window?.observe(\.isDocumentEdited, options: [.initial, .new]) { window, change in
+            guard change.newValue == true else { return }
+            MainActor.assumeIsolated { window.isDocumentEdited = false }
+        }
         register()
     }
 

@@ -594,7 +594,20 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
 - Action: remove both confirmation paths and their unused copy while preserving native
   window dismissal, pane-first Command-W, per-window session ownership, and bounded quit cleanup.
 - Estimated reduction: 25-35 production Swift lines and five localized catalog entries.
-- Status: implementation in progress; verification pending.
+- Status: superseded by the user's request to retain both confirmations and hide
+  only the close-button edited indicator. Both dialogs and all five strings are restored.
+
+## Hide the Desktop Close-Button Edited Indicator (2026-09-18)
+
+- Evidence: the restored SwiftUI WindowGroup sets `NSWindow.isDocumentEdited` when
+  a Workspace requires dismissal confirmation. An isolated Demo probe cleared that
+  property and still presented the original Close Window / Cancel dialog.
+- Action: observe the native edited flag only while the main-window registration
+  view is attached and clear the decoration. Retain SwiftUI's dismissal delegate,
+  Workspace condition, all confirmation copy, and SFTP quit checks.
+- This is a visual behavior correction, not a code-reduction refactor. No shared
+  API, persistence, package, or dependency change is needed.
+- Status: implemented; verification pending.
 
 ## Make Workspace Composition Free (2026-09-18)
 

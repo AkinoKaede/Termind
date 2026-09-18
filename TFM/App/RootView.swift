@@ -172,6 +172,13 @@ struct RootView: View {
         } message: {
             Text(window.workspaceTemplateNotice ?? "")
         }
+        .dismissalConfirmationDialog("Close this window?", shouldPresent: !window.workspaces.isEmpty) {
+            Button("Cancel", role: .cancel) {}
+                .keyboardShortcut(.defaultAction)
+            Button("Close Window", role: .destructive) {}
+        } message: {
+            Text("This window still has open Workspaces. Closing it will close them and disconnect their sessions.")
+        }
         // No ancestor drop target: pane and Navigator targets must own internal
         // layout drops without competing for the same text payload.
         .environment(window)

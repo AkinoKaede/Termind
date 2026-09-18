@@ -296,10 +296,12 @@ struct MultiWindowTests {
         let model = WindowModel(workspaces: [workspace])
         model.selectedDestination = destination
         let native = nativeWindow()
-        let approval = CloseVeto()
+        let approval = CloseApproval()
         native.delegate = approval
         defer { native.close() }
-        app.mainWindows.register(native, model: model, requestID: nil)
+        native.contentView = MainWindowRegistrationView(coordinator: app.mainWindows, model: model, requestID: nil)
+        native.isDocumentEdited = true
+        #expect(!native.isDocumentEdited)
 
         app.mainWindows.closeSelectionOrWindow(in: model)
 
@@ -311,10 +313,8 @@ struct MultiWindowTests {
         #expect(!model.canReopen)
     }
 
-    @Test(arguments: [false, true], [WindowDestination.vault, .settings, .assistant, .metrics])
-    func windowCloseWithoutConfirmationOnlyDisconnectsTheRequestedWindowsSessions(
-        directClose: Bool, destination: WindowDestination
-    ) throws {
+    @Test(arguments: [false, true])
+    func approvedWindowCloseOnlyDisconnectsTheRequestedWindowsSessions(directClose: Bool) throws {
         let host = Host(name: "Server", host: "server.example")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
         let firstWorkspace = Workspace.sshSession(host: host)
@@ -325,9 +325,12 @@ struct MultiWindowTests {
         secondSession.status = .connected
         let firstModel = WindowModel(workspaces: [firstWorkspace])
         let secondModel = WindowModel(workspaces: [secondWorkspace])
-        if !directClose { firstModel.selectedDestination = destination }
+        if !directClose { firstModel.openSettings() }
         let first = nativeWindow()
         let second = nativeWindow()
+        let approval = CloseApproval()
+        approval.allowsClose = true
+        first.delegate = approval
         defer {
             first.close()
             second.close()
@@ -341,13 +344,35 @@ struct MultiWindowTests {
             app.mainWindows.closeSelectionOrWindow(in: firstModel)
         }
 
+        #expect(approval.requests == 1)
         #expect(firstModel.isClosed)
-        #expect(firstModel.workspaces.isEmpty)
-        #expect(!firstModel.canReopen)
         #expect(firstSession.status == .disconnected)
         #expect(!secondModel.isClosed)
         #expect(secondModel.selectedWorkspace === secondWorkspace)
         #expect(secondSession.status == .connected)
+    }
+
+    @Test
+    func registrationSuppressesOnlyItsWindowsEditedIndicatorUntilDetached() {
+        let app = AppModel(hosts: HostLibraryModel())
+        let model = WindowModel()
+        let native = nativeWindow()
+        let auxiliary = nativeWindow()
+        defer {
+            native.close()
+            auxiliary.close()
+        }
+        native.isDocumentEdited = true
+        auxiliary.isDocumentEdited = true
+        native.contentView = MainWindowRegistrationView(coordinator: app.mainWindows, model: model, requestID: nil)
+        #expect(!native.isDocumentEdited)
+        native.isDocumentEdited = true
+        #expect(!native.isDocumentEdited)
+        #expect(auxiliary.isDocumentEdited)
+
+        native.contentView = nil
+        native.isDocumentEdited = true
+        #expect(native.isDocumentEdited)
     }
 
     @Test(arguments: [WindowDestination.vault, .settings, .assistant, .metrics])
@@ -379,51 +404,13 @@ struct MultiWindowTests {
         #expect(!unregistered.isClosed)
     }
 
-    @Test(arguments: [false, true])
-    func quitStartsSessionCleanupWithoutWaitingForPendingEdits(hasPendingEdits: Bool) async throws {
-        let host = Host(name: "Server", host: "server.example")
-        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
-        let workspace = Workspace.sshSession(host: host)
-        let session = try #require(workspace.focusedPane.sshSession)
-        session.status = .connected
-        let model = WindowModel(workspaces: [workspace])
-        app.registerWindow(model)
-        let edits = app.sftpEdits.model
-        if hasPendingEdits {
-            let file = RemoteFile(
-                path: "/srv/file", name: "file", kind: .file, size: 4,
-                modifiedAt: nil, permissions: 0o644, ownerUID: 0, ownerGID: 0)
-            let id = edits.register(
-                hostID: host.id, file: file,
-                localURL: URL(filePath: "/termind-test-unreadable-edit"), digest: "original")
-            edits.update(id) { $0.currentDigest = "edited" }
-        }
-
-        // Release this test delegate before yielding so its weak completion tasks
-        // cannot send a termination reply to the real test-host application.
-        weak var releasedDelegate: AppDelegate?
-        autoreleasepool {
-            let delegate = AppDelegate()
-            releasedDelegate = delegate
-            delegate.app = app
-
-            #expect(delegate.applicationShouldTerminate(NSApp) == .terminateLater)
-            #expect(model.workspaces.isEmpty)
-            #expect(session.status == .disconnected)
-            #expect(edits.hasPendingChanges == hasPendingEdits)
-            #expect(edits.files.allSatisfy { $0.localError == nil && $0.transferID == nil })
-            #expect(delegate.applicationShouldTerminate(NSApp) == .terminateLater)
-        }
-        #expect(releasedDelegate == nil)
-        await app.shutdownForTermination().value
-    }
-
-    private final class CloseVeto: NSObject, NSWindowDelegate {
+    private final class CloseApproval: NSObject, NSWindowDelegate {
+        var allowsClose = false
         var requests = 0
 
         func windowShouldClose(_ sender: NSWindow) -> Bool {
             requests += 1
-            return false
+            return allowsClose
         }
     }
 
