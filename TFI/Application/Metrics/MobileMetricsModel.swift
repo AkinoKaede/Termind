@@ -16,15 +16,14 @@ final class MobileMetricsModel {
     init(
         preferences: any MetricsConfigurationStoring,
         hosts: any RemoteSessionHostStore,
-        services: MobileMetricsServices,
-        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
+        services: MobileMetricsServices
     ) {
         self.hosts = hosts
         let limit = limit
         core = ServerMetricsModel(
             hosts: hosts, preferences: preferences,
             makeSampler: services.makeSampler,
-            cardLimit: { limit.maximum }, keyboardInteractive: keyboardInteractive)
+            cardLimit: { limit.maximum })
     }
 
     func add(_ id: UUID, pro: Bool) -> Bool {

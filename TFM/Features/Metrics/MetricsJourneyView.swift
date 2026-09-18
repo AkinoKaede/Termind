@@ -24,7 +24,9 @@ struct MetricsJourneyView: View {
             trustHostKey: { model.acceptHostKey(server, observation: $0, remember: true) },
             denyHostKey: cancel,
             retry: { model.retry(server) },
-            cancel: cancel
+            cancel: cancel,
+            keyboardAuthentication: server.keyboardAuthentication,
+            cancelKeyboardAuthentication: cancel
         )
         .environment(app)
     }

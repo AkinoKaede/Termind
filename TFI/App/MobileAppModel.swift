@@ -177,8 +177,7 @@ final class MobileAppModel {
             storage: GRDBMemoryStore(directory: GRDBMemoryStore.defaultDirectory), defaults: settingsDefaults)
         library = HostLibraryModel(persistence: persistence, secrets: secrets)
         metrics = MobileMetricsModel(
-            preferences: metricsPersistence, hosts: library, services: dependencies.metrics,
-            keyboardInteractive: keyboardAuthentication.handler)
+            preferences: metricsPersistence, hosts: library, services: dependencies.metrics)
         let speechAudio = IOSSpeechAudioInput()
         let speech = SpeechTranscriptionCoordinator(
             service: AppleSpeechTranscriptionService(audioInput: speechAudio)

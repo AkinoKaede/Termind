@@ -192,8 +192,9 @@ scene. Terminal file drops and all additional transfer connections forbid Termin
 credential, passphrase, MFA and host-key forms, including fallback responders on jump
 hosts. System key authorization such as Touch ID remains allowed. Username-only and
 SSH `none` authentication remain eligible; actual connection success decides availability.
-No upload-specific mobile sheet exists; the app-owned MFA sheet still serves Metrics
-and forwarding. Cancellation interrupts opening, and temporary-file cleanup must also
+No upload-specific mobile sheet exists; the app-owned MFA sheet serves forwarding,
+while Metrics owns its challenges inside Connection Journey on both platforms.
+Cancellation interrupts opening, and temporary-file cleanup must also
 remain silent. Cleanup requiring new interaction retains the existing failure report.
 Forwarding rules sharing a host session share authentication; a new connection must
 answer fresh challenges. An Identity may contain only a username: preparation
@@ -767,7 +768,14 @@ processes to 20. Monitoring itself does not depend on AgentKit.
 Metrics order syncs independently of Vault order; local layout, process sorting,
 search, detail navigation, and menu-bar visibility do not. Detail observation alone
 enables process/filesystem collection. Authentication opens the shared Connection
-Journey while the metrics coordinator retains transport ownership. Temporary trust
+Journey while the metrics coordinator retains transport ownership. Each monitor owns
+its keyboard-interactive queue, including challenges from its jump hosts. Metrics
+always supplies its own responder, never falling back to an app-owned sheet or external
+authentication window. Cards indicate required authentication without changing navigation;
+opening a card presents its Journey. Leaving details retains the challenge, while explicit
+authentication cancellation pauses the monitor and returns that window to the list.
+Retiring an attempt cancels both queued and not-yet-enqueued responders; generation and
+request IDs prevent stale answers or cleanup from affecting another attempt. Temporary trust
 is cleared on pause/removal/configuration change; rejection pauses the monitor.
 Free access admits at most three cards (paused included), atomically and without
 deleting restored cards after downgrade; Pro/trial access is unlimited.

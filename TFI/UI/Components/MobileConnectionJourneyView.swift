@@ -16,6 +16,7 @@ struct MobileConnectionJourneyView: View {
     let stopReconnecting: () -> Void
     let cancel: () -> Void
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
+    var cancelKeyboardAuthentication: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -51,7 +52,14 @@ struct MobileConnectionJourneyView: View {
         } else if let queue = keyboardAuthentication, let challenge = queue.current {
             SSHKeyboardInteractiveForm(
                 challenge: challenge, submit: { queue.respond(challenge.id, answers: $0) },
-                cancel: { queue.cancel(challenge.id) }, usesContainerChrome: true
+                cancel: {
+                    guard queue.current?.id == challenge.id else { return }
+                    if let cancelKeyboardAuthentication {
+                        cancelKeyboardAuthentication()
+                    } else {
+                        queue.cancel(challenge.id)
+                    }
+                }, usesContainerChrome: true
             )
             .id(challenge.id)
         } else if let authenticationPrompt {

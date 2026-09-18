@@ -22,10 +22,13 @@ public final class ServerMetric: Identifiable {
     public var hostKey: SSHHostKeyObservation?
     public var needsAttention = false
     public let journey = ConnectionJourney()
+    public let keyboardAuthentication = SSHKeyboardInteractiveQueue()
     public var authenticationPrompt: SSHAuthenticationPrompt?
     public var hostKeyPrompt: SSHHostKeyPrompt?
     public var hostKeyHostID: UUID?
-    public var requiresAuthentication: Bool { hostKey != nil || authenticationPrompt != nil }
+    public var requiresAuthentication: Bool {
+        hostKey != nil || authenticationPrompt != nil || keyboardAuthentication.current != nil
+    }
     public var showsConnectionJourney: Bool { requiresAuthentication || journey.isPresented }
     public var processes: [MetricsProcess] = []
     public var processesDate: Date?
@@ -71,6 +74,10 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         var id: UUID
         var continuation: AsyncStream<SSHHostKeyDecision>.Continuation
     }
+    private struct PendingKeyboardAuthentication {
+        var id: UUID
+        var task: Task<[String], any Error>
+    }
     private nonisolated struct RunAttempt: Sendable {
         var host: Host
         var preparation: SSHConnectionPreparation
@@ -84,8 +91,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         case stop, attention, retry
     }
     private var pendingHostKeyAuthorizations: [UUID: PendingHostKeyAuthorization] = [:]
-
-    private nonisolated let keyboardInteractive: SSHKeyboardInteractiveHandler?
+    private var pendingKeyboardAuthentications: [UUID: PendingKeyboardAuthentication] = [:]
 
     public var keepsRunning: Bool { servers.contains { $0.selection.enabled } }
 
@@ -94,10 +100,8 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         makeSampler: @escaping @Sendable () -> any MetricsSampling,
         clock: MetricsClock = MetricsClock(),
         cardLimit: @escaping () -> Int? = { ServerMetricsModel.freeCardLimit },
-        limitReached: @escaping () -> Void = {},
-        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
+        limitReached: @escaping () -> Void = {}
     ) {
-        self.keyboardInteractive = keyboardInteractive
         self.hosts = hosts
         self.preferences = preferences
         self.makeSampler = makeSampler
@@ -466,9 +470,21 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
 
     private func cancel(_ id: UUID) {
-        finishHostKeyAuthorization(for: id, decision: .reject)
         generations[id] = nil
         workers.removeValue(forKey: id)?.cancel()
+        let hadHostKeyAuthorization = pendingHostKeyAuthorizations[id] != nil
+        finishHostKeyAuthorization(for: id, decision: .reject)
+        let authentication = pendingKeyboardAuthentications.removeValue(forKey: id)
+        authentication?.task.cancel()
+        if let server = servers.first(where: { $0.id == id }) {
+            if hadHostKeyAuthorization {
+                server.hostKey = nil
+                server.hostKeyHostID = nil
+                server.hostKeyPrompt = nil
+            }
+            if hadHostKeyAuthorization || authentication != nil { server.needsAttention = false }
+            server.keyboardAuthentication.cancelAll()
+        }
         if let sampler = samplers.removeValue(forKey: id) {
             Task { await sampler.disconnect() }
         }
@@ -547,7 +563,11 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                                 serverID, challenge: challenge, token: token
                             )
                         },
-                        keyboardInteractive: keyboardInteractive
+                        keyboardInteractive: { [weak self] challenge in
+                            guard let self else { throw CancellationError() }
+                            return try await self.answerKeyboardInteractiveFromWorker(
+                                serverID, challenge: challenge, token: token)
+                        }
                     )
                 )
                 guard await publishConnected(serverID, token: token, hostID: attempt.host.id) else {
@@ -764,6 +784,61 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             return .attention
         }
         return .retry
+    }
+
+    private nonisolated func answerKeyboardInteractiveFromWorker(
+        _ serverID: UUID, challenge: SSHKeyboardInteractiveChallenge, token: UUID
+    ) async throws -> [String] {
+        guard await isCurrent(serverID, token: token) else { throw CancellationError() }
+        // Informational rounds must complete even when no Metrics detail is visible.
+        guard !challenge.prompts.isEmpty else { return [] }
+        guard let task = await beginKeyboardAuthentication(serverID, challenge: challenge, token: token) else {
+            throw CancellationError()
+        }
+        do {
+            let answers = try await withTaskCancellationHandler {
+                try await task.value
+            } onCancel: {
+                task.cancel()
+            }
+            guard await finishKeyboardAuthentication(serverID, requestID: challenge.id, token: token) else {
+                throw CancellationError()
+            }
+            try Task.checkCancellation()
+            return answers
+        } catch {
+            _ = await finishKeyboardAuthentication(serverID, requestID: challenge.id, token: token)
+            throw error
+        }
+    }
+
+    private func beginKeyboardAuthentication(
+        _ serverID: UUID, challenge: SSHKeyboardInteractiveChallenge, token: UUID
+    ) -> Task<[String], any Error>? {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return nil }
+        let queue = server.keyboardAuthentication
+        // Retain the responder before yielding so retiring this attempt also cancels a not-yet-enqueued request.
+        let task = Task { try await queue.request(challenge) }
+        pendingKeyboardAuthentications[serverID] = PendingKeyboardAuthentication(id: challenge.id, task: task)
+        server.needsAttention = true
+        server.isConnecting = false
+        server.status = String(localized: "Authentication required")
+        server.collectionState = .awaitingAuthentication
+        server.journey.waitForAuthentication(at: challenge.hostID)
+        return task
+    }
+
+    private func finishKeyboardAuthentication(_ serverID: UUID, requestID: UUID, token: UUID) -> Bool {
+        guard generations[serverID] == token, pendingKeyboardAuthentications[serverID]?.id == requestID,
+            let server = servers.first(where: { $0.id == serverID })
+        else { return false }
+        pendingKeyboardAuthentications[serverID] = nil
+        server.needsAttention = false
+        server.isConnecting = true
+        server.status = String(localized: "Connecting…")
+        server.collectionState = .connecting
+        server.journey.resume()
+        return true
     }
 
     private nonisolated func authorizeHostKeyFromWorker(

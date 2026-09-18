@@ -118,6 +118,7 @@ public struct MetricsInstrumentBody: View {
     }
 
     private var connectionLabel: String {
+        if server.keyboardAuthentication.current != nil { return String(localized: "Authentication required") }
         if server.requiresAuthentication { return String(localized: "Server Identity Verification Required") }
         return server.status
     }

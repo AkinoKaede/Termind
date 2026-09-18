@@ -158,6 +158,7 @@ struct ConnectionJourneyView: View {
     var failureRetryLabel: LocalizedStringKey = "Retry"
     var compactFailureActions = false
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
+    var cancelKeyboardAuthentication: (() -> Void)? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -195,7 +196,15 @@ struct ConnectionJourneyView: View {
             SSHKeyboardInteractiveForm(
                 challenge: challenge,
                 submit: { queue.respond(challenge.id, answers: $0) },
-                cancel: { queue.cancel(challenge.id) }, keyboard: DesktopConnectionFormKeyboard()
+                cancel: {
+                    guard queue.current?.id == challenge.id else { return }
+                    if let cancelKeyboardAuthentication {
+                        cancelKeyboardAuthentication()
+                    } else {
+                        queue.cancel(challenge.id)
+                    }
+                },
+                keyboard: DesktopConnectionFormKeyboard()
             )
             .id(challenge.id)
             .connectionFormChrome(isEnabled: true)

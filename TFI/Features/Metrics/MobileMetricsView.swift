@@ -98,10 +98,9 @@ struct MobileMetricsDetailView: View {
                         }
                     }, retry: { app.metrics.core.retry(server) },
                     retryReconnectNow: {}, stopReconnecting: {},
-                    cancel: {
-                        app.metrics.core.setEnabled(false, for: server)
-                        dismiss()
-                    })
+                    cancel: cancelAuthentication,
+                    keyboardAuthentication: server.keyboardAuthentication,
+                    cancelKeyboardAuthentication: cancelAuthentication)
             } else {
                 GeometryReader { geometry in
                     if MobileMetricsDetailPage.showsBothColumns(width: geometry.size.width) {
@@ -128,7 +127,7 @@ struct MobileMetricsDetailView: View {
         .toolbar(removing: tabBarPlacement == .topBar ? .title : nil)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                if !MobileMetricsDetailPage.showsBothColumns(width: availableWidth) {
+                if !server.showsConnectionJourney && !MobileMetricsDetailPage.showsBothColumns(width: availableWidth) {
                     Picker("Details", selection: $page) {
                         Image(systemName: "gauge.with.dots.needle.33percent").accessibilityLabel("Status").tag(
                             MobileMetricsDetailPage.status)
@@ -154,6 +153,11 @@ struct MobileMetricsDetailView: View {
         .onAppear { observe() }
         .onChange(of: server.showsConnectionJourney) { observe() }
         .onDisappear { app.metrics.core.stopObservingDetails(observer) }
+    }
+
+    private func cancelAuthentication() {
+        app.metrics.core.setEnabled(false, for: server)
+        dismiss()
     }
 
     private func observe() {
