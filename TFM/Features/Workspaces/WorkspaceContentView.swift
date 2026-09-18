@@ -487,7 +487,7 @@ private struct PaneView: View {
             Color.clear
                 .contentShape(.rect)
                 .onDrop(
-                    of: [.text, WorkspaceDragType.content],
+                    of: [.text],
                     delegate: PaneDropDelegate(
                         size: proxy.size,
                         isActive: window.dragging?.isLayoutPayload == true,
@@ -1348,7 +1348,7 @@ private struct PaneDropDelegate: DropDelegate {
     let cancel: () -> Void
 
     func validateDrop(info: DropInfo) -> Bool {
-        isActive && info.hasItemsConforming(to: [.text, WorkspaceDragType.content])
+        isActive && info.hasItemsConforming(to: [.text])
     }
 
     func dropEntered(info: DropInfo) {

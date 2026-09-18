@@ -198,39 +198,6 @@ struct MultiWindowTests {
     }
 
     @Test
-    func onlyAnUnhandledMouseReleaseOutsideAllWindowsCreatesAWindow() {
-        let frames = [CGRect(x: 0, y: 0, width: 400, height: 400), CGRect(x: 600, y: 0, width: 400, height: 400)]
-        func opens(
-            _ point: CGPoint, cancelled: Bool = false, released: Bool = true,
-            handled: Bool = false, operation: NSDragOperation = []
-        ) -> Bool {
-            WorkspaceWindowDragSession.shouldOpenWindow(
-                cancelled: cancelled, mouseReleased: released, operation: operation,
-                hasUnhandledWorkspace: !handled, at: point, windowFrames: frames)
-        }
-        let outside = CGPoint(x: 500, y: 200)
-        #expect(opens(outside))
-        #expect(!opens(CGPoint(x: 100, y: 100)))
-        #expect(!opens(CGPoint(x: 700, y: 100)))
-        #expect(!opens(outside, cancelled: true))
-        #expect(!opens(outside, released: false))
-        #expect(!opens(outside, handled: true))
-        #expect(!opens(outside, operation: .move))
-    }
-
-    @Test
-    func dropPlacementUsesTheDestinationScreensVisibleFrame() {
-        let screen = CGRect(x: -1600, y: 100, width: 1600, height: 900)
-        let frame = MainWindowCoordinator.frame(
-            at: CGPoint(x: -1580, y: 110), size: CGSize(width: 1000, height: 700), within: screen)
-        #expect(screen.contains(frame))
-        #expect(frame.size == CGSize(width: 1000, height: 700))
-        let oversized = MainWindowCoordinator.frame(
-            at: CGPoint(x: -20, y: 950), size: CGSize(width: 3000, height: 2000), within: screen)
-        #expect(oversized == screen)
-    }
-
-    @Test
     func remountingMigratedSSHAndSFTPPanesPreservesAuthenticationPrompts() async throws {
         let host = Host(name: "Server", host: "server.example")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))

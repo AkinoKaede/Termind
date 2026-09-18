@@ -388,11 +388,9 @@ private struct WorkspaceNavigatorRow: View {
         if isRenaming {
             row
         } else {
-            row.background {
-                WorkspaceWindowDragSource(
-                    model: window, workspaceID: workspace.id,
-                    title: workspace.title(in: app.hostLibrary, locale: locale),
-                    hint: localized("Move Workspace to New Window"), coordinator: app.mainWindows)
+            row.onDrag {
+                window.dragging = .workspace(workspace.id)
+                return NSItemProvider(object: workspace.id.uuidString as NSString)
             }
         }
     }
@@ -645,7 +643,7 @@ private final class WorkspaceNavigatorDropReceivingView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        registerForDraggedTypes([.string, WorkspaceDragType.pasteboard])
+        registerForDraggedTypes([.string])
     }
 
     @available(*, unavailable)
@@ -675,7 +673,7 @@ private final class WorkspaceNavigatorDropReceivingView: NSView {
     }
 
     private func update(_ sender: any NSDraggingInfo) -> Bool {
-        guard sender.draggingPasteboard.availableType(from: [.string, WorkspaceDragType.pasteboard]) != nil else {
+        guard sender.draggingPasteboard.availableType(from: [.string]) != nil else {
             onExit()
             return false
         }

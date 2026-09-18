@@ -23,19 +23,17 @@ final class MainWindowCoordinator {
         weak var source: WindowModel?
         let workspaceID: UUID?
         let showsMetrics: Bool
-        let dropPoint: CGPoint?
         /// AppKit content coordinates, including the titlebar for the main
         /// window's full-size content view. Never a fullscreen frame.
         let sourceSize: CGSize
 
         init(
             source: WindowModel? = nil, workspaceID: UUID? = nil,
-            showsMetrics: Bool = false, dropPoint: CGPoint? = nil, sourceSize: CGSize
+            showsMetrics: Bool = false, sourceSize: CGSize
         ) {
             self.source = source
             self.workspaceID = workspaceID
             self.showsMetrics = showsMetrics
-            self.dropPoint = dropPoint
             self.sourceSize = sourceSize
         }
     }
@@ -45,7 +43,6 @@ final class MainWindowCoordinator {
     @ObservationIgnored private var entries: [Entry] = []
     @ObservationIgnored private var requests: [UUID: Request] = [:]
     @ObservationIgnored private var observers: [any NSObjectProtocol] = []
-    @ObservationIgnored var activeWorkspaceDrag: WorkspaceWindowDragSession?
     @ObservationIgnored var createScene: ((UUID) -> Void)?
     @ObservationIgnored private var isTerminating = false
     private(set) var paywallOwnerID: ObjectIdentifier?
@@ -146,14 +143,14 @@ final class MainWindowCoordinator {
     }
 
     @discardableResult
-    func moveWorkspace(_ id: UUID, from source: WindowModel, at point: CGPoint? = nil) -> UUID? {
+    func moveWorkspace(_ id: UUID, from source: WindowModel) -> UUID? {
         guard !source.isClosed, source.workspaces.contains(where: { $0.id == id }) else { return nil }
         if let existing = requests.first(where: { $0.value.source === source && $0.value.workspaceID == id }) {
             createScene?(existing.key)
             return existing.key
         }
         return request(
-            Request(source: source, workspaceID: id, dropPoint: point, sourceSize: sourceSize(from: source)))
+            Request(source: source, workspaceID: id, sourceSize: sourceSize(from: source)))
     }
 
     private func sourceSize(from source: WindowModel?) -> CGSize {
@@ -192,7 +189,7 @@ final class MainWindowCoordinator {
             } else if request.showsMetrics {
                 model.selectedDestination = .metrics
             }
-            applySize(request.sourceSize, to: native, model: model, dropPoint: request.dropPoint)
+            applySize(request.sourceSize, to: native, model: model)
         }
         // A restored scene has no pending request. Its system-restored frame
         // must not be replaced with another window's shared fallback.
@@ -201,24 +198,18 @@ final class MainWindowCoordinator {
         synchronizePaywall()
     }
 
-    private func applySize(_ size: CGSize, to native: NSWindow, model: WindowModel, dropPoint: CGPoint?) {
+    private func applySize(_ size: CGSize, to native: NSWindow, model: WindowModel) {
         let contentSize = CGSize(
             width: max(
                 size.width, native.contentMinSize.width, Metrics.Window.minWidth(showsSidebar: model.showsSidebar)),
             height: max(size.height, native.contentMinSize.height, Metrics.Window.minHeight))
         let frameSize = native.frameRect(forContentRect: CGRect(origin: .zero, size: contentSize)).size
-        let screen =
-            dropPoint.flatMap { point in NSScreen.screens.first(where: { $0.frame.contains(point) }) }
-            ?? native.screen ?? NSScreen.main
+        let screen = native.screen ?? NSScreen.main
         var frame = CGRect(
             x: native.frame.minX, y: native.frame.maxY - frameSize.height,
             width: frameSize.width, height: frameSize.height)
         if let screen {
-            if let dropPoint {
-                frame = Self.frame(at: dropPoint, size: frameSize, within: screen.visibleFrame)
-            } else {
-                frame = Self.fittingFrame(frame, within: screen.visibleFrame)
-            }
+            frame = Self.fittingFrame(frame, within: screen.visibleFrame)
         }
         native.setFrame(frame, display: true)
     }
@@ -304,13 +295,6 @@ final class MainWindowCoordinator {
             entries.first(where: { $0.window?.isKeyWindow == true })
             ?? entries.reversed().first(where: { $0.window != nil && $0.model?.isClosed == false })
         paywallOwnerID = entry?.model.map(ObjectIdentifier.init)
-    }
-
-    static func frame(at point: CGPoint, size: CGSize, within available: CGRect) -> CGRect {
-        let width = min(size.width, available.width)
-        let height = min(size.height, available.height)
-        return fittingFrame(
-            CGRect(x: point.x - width / 2, y: point.y - height + 20, width: width, height: height), within: available)
     }
 
     static func fittingFrame(_ frame: CGRect, within available: CGRect) -> CGRect {

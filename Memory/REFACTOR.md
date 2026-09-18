@@ -502,3 +502,43 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
   preserving distinct restored frames is covered by the native-window tests.
   A concurrently running same-bundle demo initially interfered with system frame
   restoration; the relaunch checks were repeated without another instance.
+
+## Resolve Metrics Clock and Short Knowledge-Card Baseline Failures (2026-09-18)
+
+- The Metrics lifecycle test advanced its manual clock after the first base point,
+  before optional GPU collection and the sampler's next sleep had necessarily
+  finished registering. The pre-fix repeated run failed 3 of 5 iterations. A
+  controlled probe of the existing model reproduced the missed advance; another
+  0.05 seconds of simulated time released the sampler. The test now waits for
+  both maintenance and sampling sleeps, and its polling helper preserves the
+  caller's source location. Production Metrics lifecycle code is unchanged.
+- The SwiftUI compact detail's flexible maximum height accepted the test's large
+  height proposal even for short content. A trailing vertical `fixedSize` now
+  preserves natural height within the scaled preview cap. The short installation
+  fixture measures 99.33 points instead of occupying 180 points on the iPhone
+  simulator. Tests classify the fixtures by preview truncation rather than tool
+  name: short details must match natural height, while long rows must expand,
+  retain expansion across layout, and return to compact height when collapsed.
+- Focused macOS lifecycle/knowledge checks passed all 26 test functions; the
+  lifecycle case additionally passed 20 of 20 repetitions. All three mobile
+  knowledge tests passed, covering English, Simplified Chinese, Traditional
+  Chinese, phone width, and accessibility text size. Native macOS row checks
+  retain their 380- and 720-point widths. Strict Swift formatting, Chinese
+  localization validation, and whitespace checks passed.
+- Full pinned results: macOS **1,600 passed, 1 failed, 8 skipped / 1,609**;
+  iOS **584 passed, 3 failed, 0 skipped / 587**. The repaired lifecycle and all
+  knowledge rendering tests passed in these full actions. The macOS failure was
+  the previously recorded
+  `AgentApprovalQueueTests.cancellingAParallelBatchStillAnswersEveryCall`.
+  Mobile failures were
+  `MobileUploadBatchTests.sftpFolderUploadUsesTheCurrentDirectoryAndOneBatch`,
+  `MobileEditorToolbarTests.cancelOnlyDismissesUnmodifiedDrafts(isDirty:)`, and
+  `MobileAdaptiveLayoutTests.settingsDepthAndUnsavedFormsResetOnlyAcrossWidthClasses`.
+  All three mobile cases passed focused reruns. This is not an all-green full
+  suite, and those reruns do not establish a baseline or fix for unrelated cases.
+- Evidence: `/tmp/termind-metrics-knowledge-fix-{macos-focused,repeat20,ios-focused,macos-full,ios-full}.xcresult`
+  and the matching logs; mobile reruns are `ios-unrelated-rerun` (editor/settings)
+  and `ios-upload-rerun` under the same prefix. The full mobile action completed
+  both test bundles before its slow optional `simctl diagnose` collection was
+  interrupted; its finalized result retains all 587 tests and the three failures.
+  Package pins, public interfaces, and persistence were unchanged.

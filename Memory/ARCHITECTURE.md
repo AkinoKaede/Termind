@@ -77,8 +77,7 @@ cleanup is performed.
   it, and termination freezes it before window teardown. A cold scene uses this
   default only when macOS has no individual restored frame; restoring multiple
   scenes never applies the shared size over their frames. Tests and screenshot
-  demos use an in-memory size store. Window positions remain system-owned except
-  for the existing workspace tear-off placement.
+  demos use an in-memory size store. Window positions remain system-owned.
 - Desktop Command-W closes the selected Workspace's focused pane first. Closing
   the last pane removes its Workspace but keeps the window open. Without a selected
   Workspace it requests native window dismissal. All user window-close paths share
@@ -86,9 +85,9 @@ cleanup is performed.
   including disconnected or hidden ones; cancellation preserves them. Closing a
   different window never participates in that decision. Shift-Command-W remains
   direct window dismissal, and the existing last-window background policy applies.
-- A Workspace can move intact to a new window through commands or a Navigator
-  drag released outside visible app windows. Native drag cancellation and accepted
-  internal drops never tear off. Private drag data carries no text/file export.
+- A Workspace can move intact to a new window through commands. Navigator drags
+  use SwiftUI's original UUID string provider for in-window ordering and pane
+  composition; releasing a drag outside the window never creates a window.
   The destination must register before the MainActor transfers ownership; moves
   preserve native terminal surfaces, transports, split geometry and session state,
   and do not enter close history. Empty source windows remain on Welcome.
