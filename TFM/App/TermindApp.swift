@@ -271,6 +271,22 @@ struct TermindApp: App {
             return app?.mainWindows.handleReopen() ?? true
         }
 
+        func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+            let menu = NSMenu()
+            menu.autoenablesItems = false
+            let item = NSMenuItem(
+                title: String(localized: "New Window"), action: #selector(newWindowFromDock(_:)), keyEquivalent: "")
+            item.target = self
+            item.isEnabled = app?.mainWindows.createScene != nil
+            menu.addItem(item)
+            return menu
+        }
+
+        @objc private func newWindowFromDock(_ sender: NSMenuItem) {
+            guard app?.mainWindows.newWindow() != nil else { return }
+            NSApp.activate(ignoringOtherApps: true)
+        }
+
         /// Opening at login is for having Termind *available*, not for taking the
         /// screen from whatever the user opened their Mac to do. Hidden rather
         /// than window-less: Termind quits with its last window, so the window is

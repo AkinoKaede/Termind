@@ -63,6 +63,9 @@ cleanup is performed.
   window coordinator routes UUID-scoped scene requests and weakly tracks native
   windows. Creating a window starts on Welcome; Dock reopening preserves the
   existing destination, while the Metrics entry explicitly selects Metrics.
+  The Dock context menu's New Window action always creates an independent Welcome
+  window through the same scene factory and activates the app, including when
+  hidden or without main windows. It is disabled until the factory is ready.
   Restoring a scene never restores or reconnects live Workspaces.
 - Desktop new-window requests snapshot their source's ordinary content size;
   repeated registration cannot reapply it. The native registration bridge sets
