@@ -12,7 +12,12 @@ import UIKit
 /// Opt-in marketing captures. Fixtures are entirely in memory and never open a network connection.
 @Suite(.serialized) @MainActor
 struct MobileMarketingScreenshotTests {
-    private let languages = ["en", "zh-Hans", "zh-Hant"]
+    private var languages: [String] {
+        if let language = ProcessInfo.processInfo.environment["TERMIND_MARKETING_LOCALE"] {
+            return [language]
+        }
+        return ["en", "zh-Hans", "zh-Hant"]
+    }
 
     @Test func renderMarketingScenes() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_MARKETING_SCREENSHOTS"] == "1" else { return }

@@ -14,13 +14,13 @@ marketing_runtime="${TERMIND_MARKETING_RUNTIME:-com.apple.CoreSimulator.SimRunti
 
 expected_capture_count() {
     if [[ -z "$marketing_scenes" ]]; then
-        print 15
+        print 5
         return
     fi
     local -a scenes
     scenes=("${(@s:,:)marketing_scenes}")
     local scene_count="${#scenes}"
-    print "$((scene_count * 3))"
+    print "$scene_count"
 }
 
 find_device() {
@@ -31,33 +31,9 @@ find_device() {
         | head -n 1
 }
 
-set_simulator_orientation() {
-    local name="$1"
-    local orientation="$2"
-    osascript - "$name" "$orientation" <<'APPLESCRIPT'
-on run arguments
-    set deviceName to item 1 of arguments
-    set targetOrientation to item 2 of arguments
-    tell application "Simulator" to activate
-    tell application "System Events"
-        tell process "Simulator"
-            repeat with candidate in menu items of menu 1 of menu bar item "Window" of menu bar 1
-                if name of candidate starts with deviceName then
-                    click candidate
-                    exit repeat
-                end if
-            end repeat
-            delay 0.4
-            click menu item targetOrientation of menu 1 of menu item "Orientation" of menu 1 of menu bar item "Device" of menu bar 1
-        end tell
-    end tell
-end run
-APPLESCRIPT
-    sleep 1
-}
-
 run_capture() {
     local name="$1"
+    local language="$2"
     local device_id
     device_id="$(find_device "$name")"
     if [[ -z "$device_id" ]]; then
@@ -69,14 +45,29 @@ run_capture() {
     xcrun simctl bootstatus "$device_id" -b
     if [[ "$name" == iPad* ]]; then
         xcrun devicectl device orientation set --device "$device_id" landscapeLeft >/dev/null
-    elif pgrep -x Simulator >/dev/null; then
-        set_simulator_orientation "$name" "Portrait"
     fi
     xcrun simctl status_bar "$device_id" override \
         --time '9:41' --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
-    local test_log="$derived_data/${device_id}-capture.log"
+    local region apple_locale
+    case "$language" in
+        en) region=US; apple_locale=en_US ;;
+        zh-Hans) region=CN; apple_locale=zh_CN ;;
+        zh-Hant) region=TW; apple_locale=zh_TW ;;
+    esac
+    local localized_xctestrun="$derived_data/Build/Products/Marketing-TFI-$language.xctestrun"
+    cp "$marketing_xctestrun" "$localized_xctestrun"
+    /usr/libexec/PlistBuddy \
+        -c "Add :TFITests:EnvironmentVariables:TERMIND_MARKETING_LOCALE string $language" \
+        -c "Set :TFITests:TestLanguage $language" \
+        -c "Set :TFITests:TestRegion $region" \
+        -c 'Add :TFITests:CommandLineArguments:0 string -AppleLanguages' \
+        -c "Add :TFITests:CommandLineArguments:1 string ($language)" \
+        -c 'Add :TFITests:CommandLineArguments:2 string -AppleLocale' \
+        -c "Add :TFITests:CommandLineArguments:3 string $apple_locale" \
+        "$localized_xctestrun"
+    local test_log="$derived_data/${device_id}-$language-capture.log"
     xcodebuild \
-        -xctestrun "$marketing_xctestrun" \
+        -xctestrun "$localized_xctestrun" \
         -destination "id=$device_id" \
         -only-testing:TFITests/MobileMarketingScreenshotTests \
         test-without-building > "$test_log" 2>&1 &
@@ -129,7 +120,7 @@ run_capture() {
     local expected
     expected="$(expected_capture_count)"
     if [[ "$captures" -ne "$expected" ]]; then
-        print -u2 "Expected $expected captures for $name, received $captures. See $test_log"
+        print -u2 "Expected $expected captures for $name ($language), received $captures. See $test_log"
         exit 70
     fi
 }
@@ -168,10 +159,14 @@ if [[ -n "$marketing_scenes" ]]; then
 fi
 
 if [[ ",$marketing_devices," == *,iphone,* ]]; then
-    run_capture "iPhone 17 Pro Max"
+    for language in en zh-Hans zh-Hant; do
+        run_capture "iPhone 17 Pro Max" "$language"
+    done
 fi
 if [[ ",$marketing_devices," == *,ipad,* ]]; then
-    run_capture "iPad Pro 13-inch (M5)"
+    for language in en zh-Hans zh-Hant; do
+        run_capture "iPad Pro 13-inch (M5)" "$language"
+    done
 fi
 
 print "Marketing screenshots written to $output_directory"

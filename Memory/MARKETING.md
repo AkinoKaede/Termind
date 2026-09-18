@@ -46,7 +46,7 @@ include `workspace`, `ssh`, `sftp`, `metrics`, `assistant`, `vault`, and
 
 Raw captures have no `-framed` suffix. Framing scripts may replace a framed file,
 but must never replace its raw input. The Mac capture script backs up previous raw
-Workspace files under `.build/screenshot-backups/<timestamp>/` before replacement.
+files by feature under `.build/screenshot-backups/<timestamp>/` before replacement.
 
 ## iPhone and iPad source captures
 
@@ -72,6 +72,12 @@ The runner defaults to the iOS/iPadOS 26.5 simulator runtime so installing a new
 runtime cannot silently change the marketing UI or select another same-name
 device. Set `TERMIND_MARKETING_RUNTIME` to a full CoreSimulator runtime identifier
 only when intentionally updating the runtime used for a capture set.
+
+Each locale launches a separate test process with matching Apple language, region,
+and locale arguments. `TERMIND_MARKETING_LOCALE` selects that process's fixture
+language, so Foundation-localized strings (including Vault's last-connection label)
+match SwiftUI labels. The iPhone fixture requests portrait orientation through its
+window scene; the runner does not depend on Simulator menu automation.
 
 For a targeted recapture, set both filters. This example refreshes only the three
 localized iPad Assistant sources:
@@ -122,17 +128,33 @@ Whenever SFTP, Metrics, Assistant navigation, or system chrome changes, recaptur
 the affected device and every locale. A marketing fixture may be updated to expose
 the current UI, but it must not add production behavior.
 
-## Mac Workspace source captures
+## Mac source captures
 
-The source is `TFMTests/MacMarketingScreenshotTests.swift`. It constructs the real
-`RootView` and `ScreenshotDemoConfiguration` inside a native `NSWindow`. Before it
+The source is `TFMTests/MacMarketingScreenshotTests.swift`. It captures the existing
+production WindowGroup launched with `ScreenshotDemoConfiguration`; it never
+mounts a second RootView or duplicates a terminal/transcript surface. Before it
 publishes the ready marker, it requires both `NSApp.isActive` and
-`window.isKeyWindow`.
+`window.isKeyWindow`, allows the focused appearance to render, and requires native
+2× backing scale. Focus is checked again when the capture is acknowledged.
 
 Generate all three localized Workspace sources:
 
 ```sh
 Scripts/run-mac-marketing-screenshots.sh
+```
+
+The default remains Workspace. Use `TERMIND_MAC_MARKETING_SCENES` to select a
+comma-separated subset of `hosts`, `workspace`, `agent`, `command`, and `metrics`.
+Use `TERMIND_MAC_MARKETING_LOCALES` for `en`, `zh-Hans`, and `zh-Hant` (all three by
+default). The filename mappings are Vault `mac`, Workspace `mac`, Assistant `mac`,
+Command Generator `mac`, and Metrics `mac-overview`, respectively. Metrics detail
+remains available as a development demo, but has no marketing source or export.
+
+```sh
+TERMIND_MAC_MARKETING_SCENES=hosts,metrics,command \
+  Scripts/run-mac-marketing-screenshots.sh
+TERMIND_MAC_MARKETING_SCENES=agent TERMIND_MAC_MARKETING_LOCALES=zh-Hant \
+  Scripts/run-mac-marketing-screenshots.sh
 ```
 
 The runner:
@@ -142,7 +164,8 @@ The runner:
 3. waits for an active/key window marker;
 4. captures the system window by window number;
 5. removes only the two-pixel transparent capture edge when present;
-6. verifies a final `2360x1480` sRGB source.
+6. verifies the test's focus acknowledgement and final dimensions before replacing
+   the source: `2360x1480`, or `2044x1280` for Command Generator.
 
 The current Workspace contains focused English terminal panes and the current SFTP
 browser. SFTP filenames, types, dates, and app chrome localize; terminal transcripts
@@ -330,6 +353,9 @@ Use Figwright `save_screenshots` with `format: "JPG"` and `scale: 1` for final
 exports. `get_screenshot` is for visual review and caps its output size; it is not
 the delivery export path. Keep temporary node-ID filenames outside `Marketing/AppStore`
 and copy the verified full-size results to the established locale/platform names.
+If a Figma JPG export has no embedded color profile, add the sRGB ICC profile as
+JPEG metadata without re-encoding its image data. Verify that decoded RGB pixels
+are identical to the original export before copying it into the delivery tree.
 
 ## Verification checklist
 
@@ -356,8 +382,8 @@ Also confirm manually:
 - iOS status/navigation chrome is real and complete;
 - SFTP reflects the current production UI on every platform;
 - iPad Assistant is the latest capture;
-- Mac traffic lights are colored, one pane has the active blue outline, and the
-  MacBook render contains no Dock or copyrighted wallpaper;
+- Mac traffic lights are colored, Workspace's active pane has the blue outline,
+  and the MacBook render contains no Dock or copyrighted wallpaper;
 - Chinese glyphs use the intended PingFang family;
 - Traditional Chinese uses `伺服器` and other Taiwan-standard terms;
 - the store export directory contains exactly 54 final JPG files.
@@ -381,3 +407,55 @@ copy, fonts, layout, geometry and FIT mode. SHA-256 comparison against the compl
 iPhone baseline found exactly 27 changed iPad images and 108 unchanged marketing
 files, including iPhone, Mac, SSH/SFTP and the first boards. All 54 App Store JPGs
 remain opaque three-channel sRGB.
+
+The 2026-09-19 Port Forwarding navigation refresh generated 16 raw captures:
+Mac Vault, Metrics overview and Command Generator in all three languages,
+Traditional Chinese Mac Assistant, and iPhone/iPad Vault in all three languages.
+The two English/Simplified Chinese Mac Metrics detail sources were removed;
+the product detail view and development demo remain available. Existing Workspace
+sources and English/Simplified Chinese Mac Assistant sources stayed unchanged.
+All 15 retained Mac source images and boards 02–06 were checked for colored
+traffic lights. The ten new Mac captures also passed active/key checks before
+capture and after acknowledgement. Traditional Chinese Assistant now contains a
+Traditional Chinese interface and conversation, with English terminal output.
+
+Only the six mobile Vault MockUPhone frames were regenerated. The Figwright
+development plugin was reconnected to the verified `Termind` file
+(`udtCX9xVEeoHsTGTwIBgBw`). Mac boards 03, 05 and 06 in all languages, Traditional
+Chinese Mac board 04, and mobile board 06 in all languages were replaced and
+exported as JPG at 1×. All 16 Figma image fills match their local PNG source bytes;
+readback confirmed unchanged text, fonts, geometry, shadows and FIT mode. The
+final JPGs have embedded sRGB profiles, opaque RGB pixels and the original
+platform dimensions. App Store delivery remains 54 JPGs, six per platform/locale.
+
+The pre-capture backup and SHA-256 manifests are under
+`.build/marketing-forwarding-refresh/`. The exact-path audit found 35 modified,
+three added, two deleted and 94 unchanged images: the final tree has 45 raw
+captures, 33 device frames and 54 App Store exports. English, Simplified Chinese
+and Traditional Chinese homepages were checked with the rebuilt Vault frames;
+`/zh/` redirects to `/zh-hans/`. The production website build, Chinese localization
+check, full Swift format lint and screenshot script syntax checks passed.
+
+Swift verification for this refresh is not fully green. The opt-in capture runs,
+`ScreenshotDemoTests` and `AppLanguageTests` passed. The full TFI run completed
+307 app tests with seven issues and passed all 316 shared-framework tests. The
+full TFM run reported UI/runtime issues and was interrupted after its upload
+cancellation test remained blocked in the fixture's socket read. Serial reruns
+(`-parallel-testing-enabled NO`) passed the previously failing cancellation,
+input, mobile editor, mobile forwarding and saved-name checks; the isolated
+`MCPUploadTests` (23 tests) and `MobileUploadBatchTests` (nine tests) also passed.
+The following failures persisted in unchanged tests:
+
+- `PortForwardingRenderingTests.saveClosesTheEditorOnlyAfterPersistenceSucceeds`:
+  the native Save accessibility element is missing in both parameter cases.
+- `PortForwardingRenderingTests.closingJourneyRetainsItsExitViewButDisablesAuthentication`:
+  a secure text field remains when Reduce Motion is off.
+- `MetricsDetailToolbarTests.legacyCompactSearchOpensTheNativeFieldAndKeepsItsQueryWhenWidened`:
+  the native search field is missing.
+- `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable`:
+  the Reduce Motion bitmap equality check fails on Mac, including an isolated rerun.
+- `MobileProviderDefaultsTests.modelNamesAreMaterializedAfterMergingTheProviderDraft`:
+  the expected validation error is not thrown.
+
+Logs and `.xcresult` bundles remain in `.build/marketing-forwarding-refresh/`.
+No production behavior or unrelated tests were changed to address these failures.

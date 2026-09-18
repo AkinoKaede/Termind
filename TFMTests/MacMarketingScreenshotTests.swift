@@ -1,8 +1,4 @@
 import AppKit
-import SwiftData
-import SwiftUI
-import TermindApplication
-import TermindPersistence
 import Testing
 
 @testable import Termind
@@ -12,57 +8,25 @@ import Testing
     @MainActor
     struct MacMarketingScreenshotTests {
         @Test
-        func captureWorkspaceInSystemWindow() async throws {
+        func captureDemoInFocusedSystemWindow() async throws {
             let environment = ProcessInfo.processInfo.environment
             guard environment["TERMIND_MAC_MARKETING_SCREENSHOTS"] == "1" else { return }
 
-            let argument = environment["TERMIND_MAC_MARKETING_LOCALE"] ?? "en"
-            let language: AppLanguage
-            switch argument {
-            case "zh-Hans": language = .simplifiedChinese
-            case "zh-Hant": language = .traditionalChinese
-            default: language = .english
+            let configuration = try #require(ScreenshotDemoConfiguration.active)
+            // Capture the production WindowGroup. A second RootView would mount
+            // persistent terminal and transcript surfaces in two hierarchies.
+            for _ in 0..<100 {
+                if NSApp.windows.contains(where: { $0.isVisible && $0.canBecomeKey }) { break }
+                try await Task.sleep(for: .milliseconds(50))
             }
-
-            let configuration = ScreenshotDemoConfiguration(scene: .workspace, language: language)
-            let hosts = HostLibraryModel.demo(language: language)
-            let app = AppModel(
-                hosts: hosts,
-                ai: .demo(),
-                proAccess: .unrestrictedForTesting(),
-                onboarding: OnboardingController(automaticPresentationEnabled: false),
-                serverMetrics: configuration.makeMetricsModel(hosts: hosts)
-            )
-            let container = try TermindPersistence.makeContainer(inMemory: true)
-            let root = RootView(window: configuration.makeWindow(hosts: hosts))
-                .environment(app)
-                .environment(\.locale, language.locale)
-                .modelContainer(container)
-            let controller = NSHostingController(rootView: root)
-            let window = NSWindow(
-                contentRect: NSRect(origin: .zero, size: configuration.windowSize),
-                styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
-                backing: .buffered,
-                defer: false
-            )
-            window.isReleasedWhenClosed = false
-            window.isRestorable = false
+            let window = try #require(NSApp.windows.first(where: { $0.isVisible && $0.canBecomeKey }))
             window.contentMinSize = .zero
-            window.titlebarAppearsTransparent = true
-            window.titlebarSeparatorStyle = .none
             window.appearance = NSAppearance(named: .aqua)
-            window.contentViewController = controller
             window.setFrame(NSRect(origin: .zero, size: configuration.windowSize), display: true)
             window.center()
-            defer {
-                window.orderOut(nil)
-                window.contentViewController = nil
-                app.shutdownForTermination()
-            }
-
-            controller.view.layoutSubtreeIfNeeded()
+            window.contentView?.layoutSubtreeIfNeeded()
             try await Task.sleep(for: .seconds(1))
-            controller.view.layoutSubtreeIfNeeded()
+            window.contentView?.layoutSubtreeIfNeeded()
 
             for _ in 0..<100 {
                 NSRunningApplication.current.activate(options: [.activateAllWindows])
@@ -77,12 +41,22 @@ import Testing
                 Issue.record("Marketing window could not become the focused key window")
                 return
             }
+            if configuration.scene == .hosts {
+                window.initialFirstResponder = nil
+                window.makeFirstResponder(nil)
+            }
+            // Allow the active appearance to render before the external capture.
+            try await Task.sleep(for: .milliseconds(300))
+            try #require(NSApp.isActive && window.isKeyWindow)
+            try #require(window.backingScaleFactor == 2)
 
             let control = FileManager.default.temporaryDirectory.appending(path: "marketing-capture-control")
             try FileManager.default.createDirectory(at: control, withIntermediateDirectories: true)
             let token = UUID().uuidString
             let ready = control.appending(path: "ready")
-            try "workspace\t\(argument)\t\(window.windowNumber)\t\(token)\tactive\tkey\n".write(
+            let scene = configuration.scene.rawValue
+            let language = configuration.language.rawValue
+            try "\(scene)\t\(language)\t\(window.windowNumber)\t\(token)\tactive\tkey\n".write(
                 to: ready, atomically: true, encoding: .utf8)
             FileHandle.standardOutput.write(
                 Data("TERMIND_MAC_MARKETING_READY \(ready.path)\n".utf8)
@@ -91,6 +65,7 @@ import Testing
             let acknowledgement = control.appending(path: "ack-\(token)")
             for _ in 0..<600 {
                 if FileManager.default.fileExists(atPath: acknowledgement.path) {
+                    #expect(NSApp.isActive && window.isKeyWindow, "Capture window lost focus before acknowledgement")
                     try? FileManager.default.removeItem(at: acknowledgement)
                     try? FileManager.default.removeItem(at: ready)
                     return
