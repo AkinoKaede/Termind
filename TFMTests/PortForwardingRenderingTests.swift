@@ -44,11 +44,11 @@ struct PortForwardingRenderingTests {
         name.delegate?.controlTextDidChange?(Notification(name: NSControl.textDidChangeNotification, object: name))
         await Task.yield()
         let save = try #require(
-            accessibilityDescendants(in: controller.view).first {
-                $0.accessibilityRole() == .button && $0.accessibilityLabel() == String(localized: "Save")
-            })
-        #expect(save.accessibilityPerformPress())
-        try await Task.sleep(for: .milliseconds(300))
+            NSEvent.keyEvent(
+                with: .keyDown, location: .zero, modifierFlags: [],
+                timestamp: ProcessInfo.processInfo.systemUptime, windowNumber: window.windowNumber,
+                context: nil, characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: 36))
+        #expect(window.performKeyEquivalent(with: save))
         if fails {
             #expect(navigation.vaultWorkRoute == .forwardingEditor(rule.id))
             #expect(app.forwardings.portForwarding(rule.id)?.label == "Database")
@@ -58,6 +58,7 @@ struct PortForwardingRenderingTests {
             #expect(navigation.vaultWorkRoute == nil)
             #expect(navigation.vaultSelection(for: .portForwarding) == [.forwarding(rule.id)])
             #expect(app.forwardings.portForwarding(rule.id)?.label == "Updated Database")
+            try await waitUntil(in: controller.view) { name.window == nil }
             #expect(name.window == nil)
         }
         #expect(app.forwarding.state(for: rule.id) == .stopped)
@@ -312,21 +313,43 @@ struct PortForwardingRenderingTests {
             #expect(!exitingFields.isEmpty)
             #expect(exitingFields.allSatisfy { !$0.isEnabled })
         }
-        try await Task.sleep(for: .milliseconds(300))
+        try await waitUntil(in: controller.view) {
+            !descendants(in: controller.view).contains { $0 is NSSecureTextField }
+        }
         #expect(!descendants(in: controller.view).contains { $0 is NSSecureTextField })
+        for _ in 0..<3 {
+            navigation.openVaultWork(.forwardingEditor(rule.id), on: .portForwarding)
+            try await waitUntil(in: controller.view) {
+                descendants(in: controller.view).contains { ($0 as? NSSecureTextField)?.isEnabled == true }
+            }
+            navigation.closeVaultWork()
+            await Task.yield()
+        }
+        navigation.openVaultWork(.forwardingEditor(rule.id), on: .portForwarding)
+        try await waitUntil(in: controller.view) {
+            descendants(in: controller.view).contains { ($0 as? NSSecureTextField)?.isEnabled == true }
+        }
         #expect(context.authenticationPrompt?.id == prompt.id)
         #expect(app.forwarding.connection(for: rule.id) === context)
         #expect(app.forwarding.state(for: rule.id) == .awaitingAuthentication)
+        navigation.closeVaultWork()
+        try await waitUntil(in: controller.view) {
+            !descendants(in: controller.view).contains { $0 is NSSecureTextField }
+        }
     }
 
     private func descendants(in view: NSView) -> [NSView] {
         [view] + view.subviews.flatMap { descendants(in: $0) }
     }
 
-    private func accessibilityDescendants(in element: any NSAccessibilityProtocol) -> [any NSAccessibilityProtocol] {
-        [element]
-            + (element.accessibilityChildren() ?? []).compactMap { $0 as? any NSAccessibilityProtocol }
-            .flatMap { accessibilityDescendants(in: $0) }
+    private func waitUntil(in view: NSView, _ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while ContinuousClock.now < deadline {
+            view.layoutSubtreeIfNeeded()
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try #require(condition(), "The native view did not finish updating within two seconds.")
     }
 
     private func mouseEvent(_ type: NSEvent.EventType, at point: CGPoint, in view: NSView) throws -> NSEvent {

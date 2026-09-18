@@ -70,7 +70,45 @@ struct MobileProviderDefaultsTests {
         remote.displayName = "Remote Name"
         ai.updateModel(remote, in: provider.id)
         #expect(throws: SettingsDraftMerge.Conflict.self) { try conflict.save() }
+        #expect(conflict.draft.models[0].displayName == "")
         #expect(ai.modelProvider(provider.id)?.models[0].displayName == "Remote Name")
+    }
+
+    @Test(arguments: ["", " \n"], ["", "Local Name"])
+    func legacyNameMaterializationDoesNotConflictWithDraftEdits(originalName: String, localName: String) throws {
+        let model = AIModel(id: "private-model", displayName: originalName)
+        let provider = ModelProvider(name: "Gateway", models: [model])
+        let ai = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
+        let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+        if !localName.isEmpty { editor.draft.models[0].displayName = localName }
+        editor.draft.models[0].maxOutputTokens = 512
+        var remote = model
+        remote.contextLength = 1234
+        ai.updateModel(remote, in: provider.id)
+        #expect(ai.modelProvider(provider.id)?.models[0].displayName == model.id)
+
+        try editor.save()
+
+        let saved = try #require(ai.modelProvider(provider.id)?.models.first)
+        #expect(saved.displayName == (localName.isEmpty ? model.id : localName))
+        #expect(saved.contextLength == 1234)
+        #expect(saved.maxOutputTokens == 512)
+    }
+
+    @Test(arguments: ["private-model", "Custom Name"], ["", " \n"])
+    func clearingASavedNameConflictsWithARemoteRename(originalName: String, clearedName: String) throws {
+        let model = AIModel(id: "private-model", displayName: originalName)
+        let provider = ModelProvider(name: "Gateway", models: [model])
+        let ai = AIConfigurationModel(modelProviders: [provider], persistsSecrets: false)
+        let editor = MobileProviderEditorModel(ai: ai, provider: provider)
+        editor.draft.models[0].displayName = clearedName
+        var remote = model
+        remote.displayName = "Remote Name"
+        ai.updateModel(remote, in: provider.id)
+
+        #expect(throws: SettingsDraftMerge.Conflict.self) { try editor.save() }
+        #expect(editor.draft.models[0].displayName == clearedName)
+        #expect(ai.modelProvider(provider.id)?.models[0] == remote)
     }
 
     @Test func vertexPreviewSelectsItsOwnCredentialAndCanSaveAfterClearingIt() throws {

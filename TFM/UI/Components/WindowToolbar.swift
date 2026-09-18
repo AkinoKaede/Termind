@@ -476,43 +476,56 @@ struct WindowToolbarSearchSlot: View {
 /// popover inside the toolbar item so changing width never reparents page content.
 struct WindowToolbarLegacySearch: View {
     @Environment(WindowModel.self) private var window
-
-    var body: some View {
-        if window.showsCompactMetricsDetail {
-            WindowToolbarCompactFind()
-        } else {
-            WindowToolbarFindField()
-        }
-    }
-}
-
-private struct WindowToolbarCompactFind: View {
-    @Environment(WindowModel.self) private var window
     @State private var isPresented = false
 
     var body: some View {
         let presentation = $isPresented
-        Button("Search", systemImage: "magnifyingglass") { window.focusToolbarFind() }
-            .labelStyle(.iconOnly)
-            .help("Search")
-            .frame(height: Metrics.Toolbar.height)
-            .popover(isPresented: $isPresented, arrowEdge: .bottom) {
-                WindowToolbarFindField(installFocusHandler: { focus in
-                    window.focusToolbarFindField = {
-                        presentation.wrappedValue = true
-                        focus()
-                    }
-                })
-                .padding(12)
-                .onExitCommand { isPresented = false }
+        Group {
+            if window.showsCompactMetricsDetail {
+                Button("Search", systemImage: "magnifyingglass") { window.focusToolbarFind() }
+                    .labelStyle(.iconOnly)
+                    .help("Search")
+                    .onAppear { installCompactFocusHandler() }
+            } else {
+                WindowToolbarFindField()
             }
-            .onAppear {
-                window.focusToolbarFindField = { presentation.wrappedValue = true }
-                if window.isToolbarFindFocused { isPresented = true }
+        }
+        // The initial geometry can mount the expanded field before the compact
+        // layout is known. Give AppKit the new size instead of retaining its
+        // 220-point minimum and moving the search anchor into toolbar overflow.
+        .frame(
+            width: window.findKind == nil
+                ? 0
+                : window.showsCompactMetricsDetail
+                    ? Metrics.Toolbar.height : Metrics.Toolbar.searchFieldWidth,
+            height: Metrics.Toolbar.height
+        )
+        .fixedSize()
+        .popover(isPresented: $isPresented, arrowEdge: .bottom) {
+            WindowToolbarFindField(installFocusHandler: { focus in
+                window.focusToolbarFindField = {
+                    presentation.wrappedValue = true
+                    focus()
+                }
+            })
+            .padding(12)
+            .onExitCommand { isPresented = false }
+        }
+        .onChange(of: window.showsCompactMetricsDetail) { _, compact in
+            if !compact { isPresented = false }
+        }
+        .onChange(of: isPresented) { _, presented in
+            if !presented && window.showsCompactMetricsDetail {
+                window.isToolbarFindFocused = false
+                installCompactFocusHandler()
             }
-            .onChange(of: isPresented) { _, presented in
-                if !presented { window.isToolbarFindFocused = false }
-            }
+        }
+    }
+
+    private func installCompactFocusHandler() {
+        let presentation = $isPresented
+        window.focusToolbarFindField = { presentation.wrappedValue = true }
+        if window.isToolbarFindFocused { isPresented = true }
     }
 }
 

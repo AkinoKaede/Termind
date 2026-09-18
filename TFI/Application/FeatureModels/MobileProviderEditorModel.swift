@@ -151,7 +151,14 @@ final class MobileProviderEditorModel {
 
     static func mergeModel(_ original: AIModel, _ draft: AIModel, _ current: AIModel) throws -> AIModel {
         // Materializing a legacy blank name on another save is not a competing rename.
-        var fields = SettingsFields(original.savingName, draft.savingName, current.savingName)
+        // Keep explicit clears intact: even a saved default name is an ordinary name.
+        var current = current
+        if original.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            current.displayName == original.savingName.displayName
+        {
+            current.displayName = original.displayName
+        }
+        var fields = SettingsFields(original, draft, current)
         try fields.merge(\.displayName)
         try fields.merge(\.kind)
         try fields.merge(\.input)

@@ -25,6 +25,7 @@ struct MetricsDetailToolbarTests {
         defer {
             window.orderOut(nil)
             window.contentViewController = nil
+            window.close()
             app.shutdownForTermination()
         }
         await settle(window)
@@ -66,9 +67,9 @@ struct MetricsDetailToolbarTests {
         #expect(!descendants(in: frame, ofType: NSSegmentedControl.self).isEmpty)
     }
 
-    @Test
-    func legacyCompactSearchOpensTheNativeFieldAndKeepsItsQueryWhenWidened() async throws {
-        let configuration = ScreenshotDemoConfiguration(scene: .metricsDetail, language: .english)
+    @Test(arguments: [AppLanguage.english, .simplifiedChinese, .traditionalChinese])
+    func legacyCompactSearchOpensTheNativeFieldAndKeepsItsQueryWhenWidened(_ language: AppLanguage) async throws {
+        let configuration = ScreenshotDemoConfiguration(scene: .metricsDetail, language: language)
         let model = configuration.makeMetricsModel(hosts: .demo())
         let server = try #require(model.servers.first)
         let state = WindowModel()
@@ -81,11 +82,12 @@ struct MetricsDetailToolbarTests {
                     ToolbarItem(placement: .principal) { MetricsDetailPagePicker() }
                     ToolbarItem(placement: .primaryAction) { WindowToolbarLegacySearch() }
                 }
-        }.environment(state)
+        }.environment(state).environment(\.locale, language.locale)
         let window = makeWindow(root)
         defer {
             window.orderOut(nil)
             window.contentViewController = nil
+            window.close()
             model.shutdown()
         }
         await settle(window)
@@ -94,25 +96,32 @@ struct MetricsDetailToolbarTests {
         #expect(descendants(in: frame, ofType: NSSearchField.self).isEmpty)
         #expect(window.toolbar != nil)
         _ = try #require(state.focusToolbarFindField)
-        try capture(frame, name: "legacy-before-search")
+        try capture(frame, name: "legacy-\(language.rawValue)-before-search")
         state.focusToolbarFind()
-        await settle(window)
-        try capture(frame, name: "legacy-after-search")
-        let field = try #require(
-            NSApp.windows.filter(\.isVisible).compactMap(\.contentView)
-                .flatMap { descendants(in: $0, ofType: NSSearchField.self) }.first)
+        let field = try await searchField(in: window, inline: false)
+        try capture(frame, name: "legacy-\(language.rawValue)-after-search")
         #expect(state.metricsDetailPage == .processes)
         #expect(field.currentEditor() != nil)
         field.stringValue = "node"
         field.delegate?.controlTextDidChange?(Notification(name: NSControl.textDidChangeNotification, object: field))
-        await settle(window)
         #expect(state.metricsProcessQuery == "node")
+        let editor = try #require(field.currentEditor())
+        editor.doCommand(by: #selector(NSResponder.cancelOperation(_:)))
+        try await waitUntil(in: window) { self.searchFields(in: window).isEmpty }
+        #expect(!state.isToolbarFindFocused)
+        state.focusToolbarFind()
+        let reopenedField = try await searchField(in: window, inline: false)
+        #expect(reopenedField.stringValue == "node")
         window.setContentSize(CGSize(width: 900, height: 600))
-        await settle(window)
-        let expandedField = try #require(
-            descendants(in: frame, ofType: NSSearchField.self).first)
+        let expandedField = try await searchField(in: window, inline: true)
         #expect(expandedField.stringValue == "node")
         #expect(state.metricsDetailPage == .processes)
+        try capture(frame, name: "legacy-\(language.rawValue)-expanded-search")
+        window.setContentSize(CGSize(width: 360, height: 600))
+        let compactField = try await searchField(in: window, inline: false)
+        #expect(compactField.stringValue == "node")
+        #expect(state.metricsDetailPage == .processes)
+        #expect(state.isToolbarFindFocused)
     }
 
     private func makeWindow(_ root: some View) -> NSWindow {
@@ -134,6 +143,32 @@ struct MetricsDetailToolbarTests {
         window.contentView?.layoutSubtreeIfNeeded()
         try? await Task.sleep(for: .milliseconds(350))
         window.contentView?.layoutSubtreeIfNeeded()
+    }
+
+    private func searchField(in window: NSWindow, inline: Bool) async throws -> NSSearchField {
+        try await waitUntil(in: window) {
+            searchFields(in: window).contains { ($0.window === window) == inline && $0.currentEditor() != nil }
+        }
+        return try #require(
+            searchFields(in: window).first { ($0.window === window) == inline && $0.currentEditor() != nil })
+    }
+
+    private func searchFields(in window: NSWindow) -> [NSSearchField] {
+        let ownFields =
+            window.isVisible
+            ? window.contentView.map { descendants(in: $0.superview ?? $0, ofType: NSSearchField.self) } ?? [] : []
+        return ownFields.filter { !$0.isHiddenOrHasHiddenAncestor && !$0.visibleRect.isEmpty }
+            + (window.childWindows ?? []).flatMap { searchFields(in: $0) }
+    }
+
+    private func waitUntil(in window: NSWindow, _ condition: () -> Bool) async throws {
+        let deadline = ContinuousClock.now.advanced(by: .seconds(2))
+        while ContinuousClock.now < deadline {
+            window.contentView?.superview?.layoutSubtreeIfNeeded()
+            if condition() { return }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        try #require(condition(), "The toolbar or its popover did not finish updating within two seconds.")
     }
 
     private func descendants<T: NSView>(in view: NSView, ofType type: T.Type) -> [T] {

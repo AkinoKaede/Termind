@@ -71,6 +71,11 @@ reads the saved value. Legacy blank records and incoming replicas are not backfi
 on load; their next local record save materializes the name in the existing transaction.
 No schema or synchronization payload change is required.
 
+Mobile provider drafts merge raw model names before materializing defaults at Save.
+An explicit clear of a saved name, including a generated name, conflicts with a
+concurrent rename. Only a legacy blank name becoming its default in the latest
+record is treated as unchanged, so unrelated remote edits still merge normally.
+
 - Repository snapshots and preference models are application-wide. A window owns
   its shell, quick-open, search, navigation, and context-panel state.
 - Desktop main scenes each own a distinct `WindowModel`. The process-owned main
