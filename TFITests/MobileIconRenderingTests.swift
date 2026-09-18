@@ -33,7 +33,8 @@ struct MobileIconRenderingTests {
         let app = try MobileAppModel(inMemory: true)
         let forwardingHost = Host(name: "Example", host: "example.invalid")
         let forwardingRule = PortForwardingRule(hostID: forwardingHost.id, label: "Web")
-        #expect(app.library.upsert(forwardingHost, replacingPortForwardings: [forwardingRule]))
+        app.library.upsert(forwardingHost)
+        #expect(app.library.upsert(forwardingRule))
         let proxyHost = Host(
             name: "Proxied", host: "proxied.example.invalid",
             proxy: HostProxy(kind: .socks5, hostname: "proxy.example.invalid", port: 1080))
@@ -144,8 +145,7 @@ struct MobileIconRenderingTests {
             }
             try await capture("forwarding-editor-\(suffix)", language: language, scheme: scheme) {
                 MobileForwardingEditor(
-                    app: app, host: forwardingHost, rule: forwardingRule, isNew: false,
-                    save: { _ in }
+                    app: app, rule: forwardingRule, isNew: false
                 )
                 .environment(\.locale, locale)
             }

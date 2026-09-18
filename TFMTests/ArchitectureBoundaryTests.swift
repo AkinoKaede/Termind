@@ -4,6 +4,26 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func forwardingAndMobileAuthenticationRemainFeatureOwned() throws {
+        let controller = try String(
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift"),
+            encoding: .utf8)
+        for symbol in ["UserDefaults", "SettingsKey", "SessionReconnectController", "ExternalAuthentication"] {
+            #expect(!containsToken(symbol, in: controller))
+        }
+        for path in ["../TFI/App/MobileAppModel.swift", "../TFI/App/MobileRootView.swift"] {
+            let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
+            #expect(!containsToken("SSHKeyboardInteractiveQueue", in: source))
+            #expect(!containsToken("keyboardAuthentication", in: source))
+        }
+        for path in ["Features/HostEditor/HostEditorView.swift", "../TFI/Features/HostEditor/MobileHostEditor.swift"] {
+            let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
+            #expect(!containsToken("PortForwardingRule", in: source))
+        }
+    }
+
+    @Test
     func mobileLayersKeepUIAndInfrastructureSeparate() throws {
         try assertNoImports(
             in: "../TFI/Application",

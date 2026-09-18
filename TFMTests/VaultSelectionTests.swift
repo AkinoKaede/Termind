@@ -14,6 +14,24 @@ import struct TermindDomain.Host
 @Suite
 @MainActor
 struct VaultSelectionTests {
+    @Test func forwardingLivesBetweenKeychainAndSnippetsWithIndependentSelectionAndSearch() {
+        let pages = VaultPage.allCases
+        #expect(pages.firstIndex(of: .portForwarding) == pages.firstIndex(of: .keychain).map { $0 + 1 })
+        #expect(pages.firstIndex(of: .snippets) == pages.firstIndex(of: .portForwarding).map { $0 + 1 })
+        let window = WindowModel()
+        let id = UUID()
+        window.selectVaultItem(.forwarding(id), on: .portForwarding)
+        window.vaultPages.portForwarding.query = "Database"
+        window.openPage(.keychain)
+        window.openPage(.portForwarding)
+        #expect(window.findKind == .portForwarding)
+        #expect(window.findContext()?.query.wrappedValue == "Database")
+        #expect(window.vaultSelection(for: .portForwarding) == [.forwarding(id)])
+        #expect(window.creationActions(for: .portForwarding).count == 1)
+        window.pruneVaultSelections(in: HostLibraryModel())
+        #expect(window.vaultSelection(for: .portForwarding).isEmpty)
+    }
+
     @Test
     func selectionsAreOrderedDeduplicatedAndScopedPerPage() {
         let window = WindowModel()

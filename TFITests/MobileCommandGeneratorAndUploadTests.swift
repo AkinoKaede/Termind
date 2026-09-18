@@ -426,7 +426,6 @@ struct MobileUploadBatchTests {
         let identity = Identity(name: "OTP", username: "user")
         let host = Host(name: "OTP", host: "example.invalid", identityID: identity.id)
         let library = HostLibraryModel(hosts: [host], identities: [identity])
-        let queue = SSHKeyboardInteractiveQueue()
         let client = MobileUploadSFTPClient()
         let transfers = SFTPTransferCoordinator(store: library) { client }
         let services = MobileWorkspaceConnectionServices(
@@ -443,7 +442,7 @@ struct MobileUploadBatchTests {
                         prompts: [.init(text: "Code", echo: false)]))
                 return client
             }, writeSSH: { _, _ in }
-        ).withKeyboardInteractive(queue.handler)
+        )
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
             hosts: library, transfers: transfers, connectionServices: services)
@@ -454,7 +453,7 @@ struct MobileUploadBatchTests {
         #expect(workspace.uploadTargetProblem == nil)
         #expect(workspace.prepareUpload([URL(fileURLWithPath: "/tmp/termind-test-upload")]))
         #expect(await eventually { workspace.operationError != nil })
-        #expect(queue.current == nil)
+        #expect(workspace.keyboardAuthentication.current == nil)
         #expect(transfers.sftpTransfers.isEmpty)
     }
 

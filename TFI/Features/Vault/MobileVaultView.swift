@@ -67,6 +67,7 @@ private struct MobileVaultLinkDivider: View {
 struct MobileVaultView: View {
     private enum SearchDestination {
         case keychain(useQuery: Bool)
+        case portForwarding(useQuery: Bool)
         case snippets(useQuery: Bool)
         case knownHosts(useQuery: Bool)
         case metrics
@@ -148,6 +149,22 @@ struct MobileVaultView: View {
         return result
     }
 
+    private var forwardingSearchLinks: [SearchLink] {
+        var result: [SearchLink] = []
+        if pageTitle("Port Forwarding").localizedCaseInsensitiveContains(query) {
+            result.append(
+                SearchLink(
+                    id: "forwarding-page", title: pageTitle("Port Forwarding"), detail: nil,
+                    symbol: "arrow.left.arrow.right", destination: .portForwarding(useQuery: false)))
+        }
+        result += app.forwardingLibrary.search(query).map { rule in
+            SearchLink(
+                id: "forwarding-\(rule.id)", title: rule.displayName(hostName: app.library.host(rule.hostID)?.name),
+                detail: rule.summary, symbol: rule.kind.symbol, destination: .portForwarding(useQuery: true))
+        }
+        return result
+    }
+
     private var snippetSearchLinks: [SearchLink] {
         var result: [SearchLink] = []
         if matchesSnippetsPage {
@@ -199,7 +216,7 @@ struct MobileVaultView: View {
 
     private var hasSearchResults: Bool {
         !matchingHosts.isEmpty || !keychainSearchLinks.isEmpty || !snippetSearchLinks.isEmpty
-            || !knownHostSearchLinks.isEmpty || !metricSearchLinks.isEmpty
+            || !forwardingSearchLinks.isEmpty || !knownHostSearchLinks.isEmpty || !metricSearchLinks.isEmpty
     }
 
     var body: some View {
@@ -282,6 +299,11 @@ struct MobileVaultView: View {
                 }
             }
         }
+        if !forwardingSearchLinks.isEmpty {
+            MobileCardSection(title: "Port Forwarding") {
+                MobileVaultLinkGroup { searchLinkRows(forwardingSearchLinks) }
+            }
+        }
         if !snippetSearchLinks.isEmpty {
             MobileCardSection(title: "Snippets") {
                 MobileVaultLinkGroup {
@@ -311,6 +333,11 @@ struct MobileVaultView: View {
             vaultLink("Keychain", symbol: "key") {
                 MobileCredentialsView(app: app)
                     .mobileReviewPage("vault.keychain", scene: reviewScene)
+            }
+            MobileVaultLinkDivider()
+            vaultLink("Port Forwarding", symbol: "arrow.left.arrow.right") {
+                MobileForwardingView(app: app, reviewScene: reviewScene)
+                    .mobileReviewPage("vault.portForwarding", scene: reviewScene)
             }
             MobileVaultLinkDivider()
             vaultLink("Snippets", symbol: "curlybraces") {
@@ -369,6 +396,9 @@ struct MobileVaultView: View {
         case .keychain(let useQuery):
             MobileCredentialsView(app: app, initialQuery: useQuery ? query : "")
                 .mobileReviewPage("vault.keychain", scene: reviewScene)
+        case .portForwarding(let useQuery):
+            MobileForwardingView(app: app, initialQuery: useQuery ? query : "", reviewScene: reviewScene)
+                .mobileReviewPage("vault.portForwarding", scene: reviewScene)
         case .snippets(let useQuery):
             MobileSnippetsView(
                 app: app, initialQuery: useQuery ? query : "", execute: executeSnippet

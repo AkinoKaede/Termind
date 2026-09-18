@@ -19,8 +19,6 @@ public nonisolated enum SettingsKey {
     public static let iCloudSyncEnabled = "icloud.sync.enabled"
     public static let metricsSyncEnabled = "metrics.sync.enabled"
     public static let metricsSyncEnvironment = "metrics.sync.environment"
-    /// Device-local forwarding intent. It is deliberately excluded from Settings and Vault sync.
-    public static let portForwardingEnabledRuleIDs = "portForwarding.enabledRuleIDs"
     public static let remoteWindowTitleInMenuBar = "terminal.remoteWindowTitleInMenuBar"
     public static let settingsSyncEnabled = "settings.sync.enabled"
     public static let settingsSyncEnvironment = "settings.sync.environment"

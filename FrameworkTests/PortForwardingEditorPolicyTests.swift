@@ -7,31 +7,15 @@ import struct TermindDomain.Host
 
 @Suite
 struct PortForwardingEditorPolicyTests {
-    @Test(
-        arguments: [false, true],
-        [
-            (false, false, true, true, false),
-            (true, false, false, true, true),
-            (false, true, false, false, false),
-            (true, true, false, false, false),
-        ])
-    func controlsKeepSavedEligibilityIntentAndActivityIndependent(
-        hasSavedConfiguration: Bool,
-        scenario: (enabled: Bool, active: Bool, canStartSaved: Bool, canEdit: Bool, waitsWhenUnsaved: Bool)
-    ) {
+    @Test(arguments: [false, true], [false, true])
+    func onlySavedStoppedRulesCanStart(hasSavedConfiguration: Bool, isActive: Bool) {
         let host = Host(name: "Server", host: "server.invalid")
         let rule = PortForwardingRule(hostID: host.id)
         let policy = PortForwardingEditorPolicy(
             rule: rule, savedRule: hasSavedConfiguration ? rule : nil, savedHost: host,
-            isEnabled: scenario.enabled, isRuntimeActive: scenario.active)
-
-        #expect(policy.hasSavedConfiguration == hasSavedConfiguration)
-        #expect(policy.isEnabled == scenario.enabled)
-        #expect(policy.isRuntimeActive == scenario.active)
-        #expect(policy.canStart == (hasSavedConfiguration && scenario.canStartSaved))
-        #expect(policy.canToggle)
-        #expect(policy.canEdit == scenario.canEdit)
-        #expect(policy.isWaitingForSave == (!hasSavedConfiguration && scenario.waitsWhenUnsaved))
+            isRuntimeActive: isActive)
+        #expect(policy.canStart == (hasSavedConfiguration && !isActive))
+        #expect(policy.canEdit == !isActive)
     }
 
     enum UnavailableConfiguration: CaseIterable {
@@ -52,11 +36,10 @@ struct PortForwardingEditorPolicyTests {
         }
         let policy = PortForwardingEditorPolicy(
             rule: rule, savedRule: savedRule, savedHost: savedHost,
-            isEnabled: false, isRuntimeActive: false)
+            isRuntimeActive: false)
 
         #expect(!policy.hasSavedConfiguration)
         #expect(!policy.canStart)
-        #expect(policy.canToggle)
         #expect(policy.canEdit)
     }
 
@@ -68,7 +51,7 @@ struct PortForwardingEditorPolicyTests {
         savedRule.bindPort = invalidPort
         let policy = PortForwardingEditorPolicy(
             rule: PortForwardingEditorPolicy.normalized(draft), savedRule: savedRule, savedHost: host,
-            isEnabled: false, isRuntimeActive: false)
+            isRuntimeActive: false)
 
         #expect(!policy.hasSavedConfiguration)
         #expect(!policy.canStart)

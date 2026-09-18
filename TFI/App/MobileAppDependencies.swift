@@ -7,7 +7,6 @@ struct MobileAppDependencies {
     var hosts: (any HostRepository)?
     var inMemory: Bool
     var defaults: UserDefaults?
-    var forwardingDefaults: UserDefaults?
     var background: any MobileBackgroundTaskManaging
     var workspaceConnections: MobileWorkspaceConnectionServices
     var metrics: MobileMetricsServices
@@ -21,7 +20,6 @@ struct MobileAppDependencies {
             hosts: nil,
             inMemory: false,
             defaults: .standard,
-            forwardingDefaults: .standard,
             background: MobileBackgroundController(),
             workspaceConnections: .live,
             metrics: .live,
@@ -32,7 +30,6 @@ struct MobileAppDependencies {
     static func testing(
         hosts: (any HostRepository)? = nil,
         defaults: UserDefaults? = nil,
-        forwardingDefaults: UserDefaults? = nil,
         background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
         workspaceConnections: MobileWorkspaceConnectionServices = .live,
         metrics: MobileMetricsServices = .testing,
@@ -42,7 +39,6 @@ struct MobileAppDependencies {
             hosts: hosts,
             inMemory: true,
             defaults: defaults,
-            forwardingDefaults: forwardingDefaults,
             background: background,
             workspaceConnections: workspaceConnections,
             metrics: metrics,

@@ -185,9 +185,7 @@ final class AppModel {
         vaultSync = dependencies.vaultSync
         settingsSync = dependencies.settingsSync
         metricsSync = dependencies.metricsSync
-        forwarding = PortForwardingController(
-            hosts: hosts, defaults: dependencies.forwardingDefaults,
-            keyboardInteractive: externalAuthentication.keyboardInteractive)
+        forwarding = PortForwardingController(hosts: hosts)
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
             clientFactory: { connectionCoordinator.makeSFTPClient() }
@@ -224,18 +222,17 @@ final class AppModel {
             sftpEdits?.invalidate(hostID: hostID)
             mcpServer?.tools.revokeHost(hostID)
             serverMetrics?.remove(hostID)
-            forwarding?.suspend(ruleIDs)
+            forwarding?.hostConfigurationChanged(hostID)
+            forwarding?.stop(ruleIDs)
             // Not a `HostDeletionOutbox` step like the others: a live socket
             // cannot outlive the process, so there is nothing to replay after a
             // crash and nothing to make durable.
             Task { await agentConnections.disconnect(hostID: hostID) }
         }
         hosts.willDeletePortForwardings = { [weak forwarding] ruleIDs in
-            forwarding?.suspend(ruleIDs)
+            forwarding?.stop(ruleIDs)
         }
-        hosts.didReplacePortForwardings = { [weak forwarding] ruleIDs in
-            forwarding?.resumeEnabled(ruleIDs)
-        }
+        hosts.didChangeHostConnection = { [weak forwarding] in forwarding?.hostConfigurationChanged($0) }
         hosts.didPersistCore = { [weak repository = dependencies.hostRepository] in
             try? repository?.refresh()
         }
@@ -261,6 +258,7 @@ final class AppModel {
                     if let self { Task { await self.mcpServer.tools.cancelHostTransfers(deletion.hostID) } }
                 },
                 stopForwardings: { [weak self] deletion in
+                    self?.forwarding.hostConfigurationChanged(deletion.hostID)
                     self?.forwarding.remove(deletion.forwardingRuleIDs)
                 }
             )
@@ -326,9 +324,9 @@ final class AppModel {
                 connectionHistory.clear(for: change.id)
             }
         }
-        if !plan.forwardingRuleIDs.isEmpty { forwarding.suspend(plan.forwardingRuleIDs) }
+        if !plan.forwardingRuleIDs.isEmpty { forwarding.stop(plan.forwardingRuleIDs) }
         hosts.replacePersistedSnapshot(snapshot)
-        forwarding.resumeEnabled()
+        forwarding.reconcileConfiguration()
     }
 
     @ObservationIgnored private lazy var assistantOperations = AssistantConversationOperations(
@@ -573,6 +571,8 @@ final class AppModel {
     func requestHostDeletion(_ hostID: Host.ID) -> Bool {
         do {
             try hostRepository.requestHostDeletion(hostID)
+            forwarding.hostConfigurationChanged(hostID)
+            forwarding.remove(hosts.portForwardings(for: hostID).map(\.id))
             commandHistory.clear(for: hostID)
             sftpHistory.clear(for: hostID)
             connectionHistory.clear(for: hostID)
@@ -630,7 +630,7 @@ final class AppModel {
         for window in liveWindows { window.closeAll() }
         sftpTransfers.cancelAll()
         externalAuthentication.cancelAll()
-        forwarding.suspendAll()
+        forwarding.stopAll()
         let task = Task { [mcpServer, sftpTransfers, agentConnections, agentBackgroundCommands] in
             async let stopMCP: Void = mcpServer.stop()
             async let stopSFTP: Void = sftpTransfers.waitForCancellation()

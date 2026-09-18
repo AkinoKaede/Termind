@@ -18,7 +18,6 @@ struct AppDependencies {
     let metricsSync: MetricsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
     let metricsPreferences: (any MetricsConfigurationStoring)?
-    let forwardingDefaults: UserDefaults?
     let mcpServerSecrets: any SecretStoring
 
     init(
@@ -30,7 +29,6 @@ struct AppDependencies {
         settingsSync: SettingsSyncCoordinator? = nil,
         metricsSync: MetricsSyncCoordinator? = nil,
         metricsPreferences: (any MetricsConfigurationStoring)? = nil,
-        forwardingDefaults: UserDefaults? = nil,
         mcpServerSecrets: any SecretStoring = InMemorySecretStore()
     ) {
         self.hostRepository = hostRepository
@@ -42,7 +40,6 @@ struct AppDependencies {
         self.settingsSync = settingsSync
         self.metricsSync = metricsSync
         self.metricsPreferences = metricsPreferences
-        self.forwardingDefaults = forwardingDefaults
         self.mcpServerSecrets = mcpServerSecrets
     }
 

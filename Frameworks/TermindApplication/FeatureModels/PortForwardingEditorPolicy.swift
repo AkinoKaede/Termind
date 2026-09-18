@@ -6,23 +6,19 @@ import struct TermindDomain.Host
 /// Shared edit and start policy for the platform-specific forwarding editors.
 public nonisolated struct PortForwardingEditorPolicy {
     public let hasSavedConfiguration: Bool
-    public let isEnabled: Bool
     public let isRuntimeActive: Bool
 
-    public var canStart: Bool { hasSavedConfiguration && !isEnabled && !isRuntimeActive }
-    public var canToggle: Bool { true }
+    public var canStart: Bool { hasSavedConfiguration && !isRuntimeActive }
     public var canEdit: Bool { !isRuntimeActive }
-    public var isWaitingForSave: Bool { isEnabled && !hasSavedConfiguration && !isRuntimeActive }
 
     public init(
         rule: PortForwardingRule?,
         savedRule: PortForwardingRule?, savedHost: Host?,
-        isEnabled: Bool, isRuntimeActive: Bool
+        isRuntimeActive: Bool
     ) {
         hasSavedConfiguration =
             savedRule?.isValid == true && savedRule?.hostID == savedHost?.id
             && (rule == nil || rule?.id == savedRule?.id)
-        self.isEnabled = isEnabled
         self.isRuntimeActive = isRuntimeActive
     }
 

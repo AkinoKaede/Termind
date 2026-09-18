@@ -21,7 +21,7 @@ The agent runtime is the separately versioned `AgentKit` package.
 - `TermindPresentation` owns reusable SwiftUI content, presentation policy,
   Ghostty themes, and the `TerminalPreferences` bridge. It depends only on
   Application and Domain; native surfaces, transports, and lifetimes stay in apps.
-- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V18
+- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V19
   schema, migration plan, and container factory. It never depends on an app target.
 - `TFM` and `TFI` own platform UI, adapters, and lifecycle orchestration. Both use
   `App`, `Application`, `Design`, `DesignSystem`, `Features`, `Infrastructure`,
@@ -104,7 +104,7 @@ cleanup is performed.
   closing another view of that conversation cannot cancel the recording.
 - Desktop navigation starts with Vault and Assistant, places Metrics above Vault
   libraries, appends dynamic SSH/SFTP Workspaces, and ends with Settings. Vault
-  owns Hosts, Keychain, Snippets, Known Hosts, Welcome, and Host Editor routes.
+  owns Hosts, Keychain, Port Forwarding, Snippets, Known Hosts, Welcome, and their editor routes.
 - Desktop main pages share a 360-point detail minimum, independent of the
   Assistant's 840-point reading maximum. Opening the Navigator grows the window
   when necessary. Vault overlays its existing editor below 721 points and keeps
@@ -132,8 +132,8 @@ cleanup is performed.
   share one Vault snapshot. `VaultStore` owns the transaction; sessions use
   `RemoteSessionHostStore`, never the full mutation API.
 - Runtime connection state is never written onto domain records. Saved repository
-  data is persistent truth; device-local enabled forwarding intent is UserDefaults
-  state and is excluded from Vault/Metrics/Settings sync.
+  data is persistent truth; forwarding runs and authentication exist only in memory
+  and never enter Vault/Metrics/Settings sync or UserDefaults.
 - Serial sessions are temporary and local. IOKit/termios objects remain in
   Infrastructure; serial paths and parameters are neither persisted nor exposed
   as Agent hosts.
@@ -187,17 +187,43 @@ callback, cancels its responder, and interrupts the pending transport.
 User connections own their challenge queues. Agent runs reuse their application
 interaction queue; macOS background operations and MCP share the native authentication
 window with independently cancellable origins. Stopping MCP preserves app-owned
-requests. Mobile background operations use an app-owned queue presented by one active
-scene. Terminal file drops and all additional transfer connections forbid Termind
+requests. Terminal file drops and all additional transfer connections forbid Termind
 credential, passphrase, MFA and host-key forms, including fallback responders on jump
 hosts. System key authorization such as Touch ID remains allowed. Username-only and
 SSH `none` authentication remain eligible; actual connection success decides availability.
-No upload-specific mobile sheet exists; the app-owned MFA sheet serves forwarding,
-while Metrics owns its challenges inside Connection Journey on both platforms.
+No app-owned mobile authentication sheet exists. Forwarding and Metrics each own
+their challenges inside Connection Journey on both platforms; forwarding never uses
+the desktop external authentication window.
 Cancellation interrupts opening, and temporary-file cleanup must also
 remain silent. Cleanup requiring new interaction retains the existing failure report.
+Port Forwarding is an independent Vault card library between Keychain and Snippets
+on both platforms. Its cards share Hosts' two-row height and show the same name,
+address, type, Host and runtime state. An unnamed rule uses the Host name and SSH
+argument, such as `AWS (-L)`, including its detail title. Desktop Journey lives in
+the Vault detail column, and double-clicking a desktop card starts/stops it without
+an inline action button. Desktop cards use Vault's window-owned multiple and marquee
+selection; the multi-selection context menu offers Stop (disabled without active rules)
+and transactional Delete. Starting and retrying always target one rule; neither platform
+offers bulk start or Start All/Stop All controls. Mobile pushes a detail page with Start/Stop/Retry in the
+trailing toolbar. Host editors never own forwarding drafts; each rule is saved or
+deleted in its own rollback-safe Vault transaction and retains its Host reference.
+The shared color picker edits a rule's persisted palette value and both card icons
+use that color. V20 adds the color with a lightweight migration while freezing the
+V1–V19 forwarding entity; legacy JSON defaults to no color. Color travels in the
+existing Vault rule payload, with no change to record identity or Host references.
+Rules start only through explicit user actions. Startup, foregrounding, saved/synced
+configuration changes and failures never open or retry a forwarding connection; the
+legacy enabled-rule defaults are unused. Background expiration and app termination
+stop all forwarding resources. Navigation does not own transport or prompt lifetimes.
+
 Forwarding rules sharing a host session share authentication; a new connection must
-answer fresh challenges. An Identity may contain only a username: preparation
+answer fresh challenges. Stopping one rule preserves its peers; retiring the last
+rule cancels the opening and prompts. Listener failures affect only that rule;
+transport failure fails all current rules without restarting them. Host route edits
+(including jump hosts) and rule replacement stop affected runs. Authentication's own
+Continue and Save may continue its explicitly requested opening. Connection and rule
+generations reject late callbacks, and stop/start serializes listener cleanup.
+An Identity may contain only a username: preparation
 permits an empty credential list, SSH tries `none`, then advertised methods. Missing
 configured secrets and existing authentication failure/retry behavior stay unchanged.
 

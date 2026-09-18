@@ -4,320 +4,279 @@ import TermindDomain
 import TermindPresentation
 import TermindRemoteInfrastructure
 
-import struct TermindDomain.Host
+@Observable
+final class PortForwardingPageState {
+    var query = ""
+    var deleting: Set<UUID> = []
+    var error: String?
+}
 
-/// Host-scoped forwarding management embedded in `HostEditorView`.
-struct PortForwardingEditorSection: View {
-    let host: Host
-    @Binding var rules: [PortForwardingRule]
-    let openEditor: (PortForwardingRule) -> Void
+struct PortForwardingPageView: ManagedCardPage {
+    typealias SectionID = String
+    typealias Item = PortForwardingRule
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+    let state: PortForwardingPageState
 
-    var body: some View {
-        forwardingSection
+    var managedSections: [ManagedCardSection<String, PortForwardingRule>] {
+        [
+            ManagedCardSection(
+                id: "forwardings", title: String(localized: "Port Forwarding"),
+                items: app.forwardings.search(state.query), canAcceptDrop: false, showsWhenEmpty: false)
+        ]
     }
+    var managedSelection: ManagedCardSelection<UUID> {
+        ManagedCardSelection(
+            selected: { Set(window.vaultSelection(for: .portForwarding).compactMap(\.forwardingID)) },
+            update: { ids in
+                window.setVaultSelection(
+                    app.forwardings.rules.filter { ids.contains($0.id) }.map { .forwarding($0.id) },
+                    for: .portForwarding)
+            })
+    }
+    var managedCapabilities: ManagedCardCapabilities<String, UUID> {
+        ManagedCardCapabilities(selection: .multiple, marqueeSelection: true)
+    }
+    var isManagedSourceEmpty: Bool { app.forwardings.rules.isEmpty }
 
-    private var forwardingSection: some View {
-        Section("Port Forwarding") {
-            ForEach(rules) { rule in
-                HostForwardingRow(
-                    host: host,
-                    rule: rule,
-                    edit: { openEditor(rule) },
-                    duplicate: { duplicate(rule) },
-                    delete: { delete(rule) }
-                )
+    func managedHeader(for section: ManagedCardSection<String, Item>, isDropTarget: Bool) -> some View {
+        CardSectionHeader(title: section.title, count: section.items.count)
+    }
+    func managedCard(for item: Item, context: ManagedCardItemContext<Item>) -> some View {
+        card(item, selected: context.isSelected, select: context.select, extend: context.extendSelection)
+            .contextMenu {
+                if context.actionItems.count > 1 {
+                    Button("Stop", systemImage: MenuSymbol.stop) {
+                        app.forwarding.stop(
+                            context.actionItems.filter { app.forwarding.state(for: $0.id).isActive }.map(\.id))
+                    }
+                    .disabled(!context.actionItems.contains { app.forwarding.state(for: $0.id).isActive })
+                } else {
+                    if app.forwarding.state(for: item.id).isActive {
+                        Button("Stop", systemImage: MenuSymbol.stop) { app.forwarding.stop(item.id) }
+                    } else {
+                        Button(
+                            app.forwarding.state(for: item.id).isFailed ? "Retry" : "Start",
+                            systemImage: MenuSymbol.start
+                        ) { start(item) }.disabled(!canStart(item))
+                    }
+                    Button("Edit", systemImage: MenuSymbol.edit) { open(item) }
+                    Button("Duplicate", systemImage: MenuSymbol.duplicate) { duplicate(item) }
+                    Button("Copy Address", systemImage: MenuSymbol.copy) { copyToPasteboard(item.bindAddress) }
+                    Button("Copy SSH Command") {
+                        if let command = app.forwardings.sshCommand(for: item) { copyToPasteboard(command) }
+                    }.disabled(app.forwardings.sshCommand(for: item) == nil)
+                }
+                Divider()
+                Button("Delete", systemImage: MenuSymbol.delete, role: .destructive) {
+                    state.deleting = Set(context.actionItems.map(\.id))
+                }
             }
-            FormNavigationAction(title: "Add Forwarding") {
-                openEditor(PortForwardingRule(hostID: host.id))
-            }
-            if !rules.isEmpty {
-                forwardingActions
-            }
-            Text(
-                "Enabled is saved immediately on this device. Unsaved forwarding changes apply after the host is saved."
-            )
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+    }
+    func managedGhost(for item: Item) -> some View { card(item, selected: false, select: {}, extend: {}) }
+    func managedBlankAreaMenu(for section: String?) -> [NativeMenuEntry] {
+        window.creationMenu(for: .portForwarding, locale: .current)
+    }
+    func managedEmptyState() -> some View {
+        ContentUnavailableView {
+            Label("No Port Forwarding", systemImage: "arrow.left.arrow.right")
+        } description: {
+            Text("Create a forwarding rule, then start it manually.")
+        } actions: {
+            Button("New Forwarding") { window.openVaultWork(.forwardingEditor(nil), on: .portForwarding) }
         }
     }
+    func managedNoResultsState() -> some View { ContentUnavailableView.search(text: state.query) }
+    var managedPresentation: PortForwardingPagePresentation {
+        PortForwardingPagePresentation(
+            state: state, ids: app.forwardings.rules.map(\.id),
+            prune: { window.pruneVaultSelections(in: app.hostLibrary) },
+            delete: {
+                do { try app.forwardings.delete(state.deleting) } catch { state.error = error.localizedDescription }
+                state.deleting = []
+            })
+    }
 
-    private var forwardingActions: some View {
-        HStack(spacing: Metrics.Space.m) {
-            Spacer()
-            Button("Enable All", action: enableAll)
-                .disabled(enableableRules.isEmpty)
-            Button("Disable All", action: disableAll)
-                .disabled(runningRules.isEmpty)
+    private func card(_ rule: Item, selected: Bool, select: @escaping () -> Void, extend: @escaping () -> Void)
+        -> some View
+    {
+        let runtime = app.forwarding.state(for: rule.id)
+        let activate = {
+            if app.forwarding.state(for: rule.id).isActive { app.forwarding.stop(rule.id) } else { start(rule) }
+        }
+        return CardTile(
+            selectionID: rule.id, isSelected: selected,
+            select: select, extendSelection: extend, activate: activate, activatesOnReturn: true
+        ) {
+            VStack(alignment: .leading, spacing: Metrics.Space.m) {
+                HStack {
+                    CardIcon(symbol: rule.kind.symbol, tint: rule.colorTag.color ?? TermindColor.accent)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(rule.displayName(hostName: app.hostLibrary.host(rule.hostID)?.name))
+                            .font(.headline).lineLimit(1)
+                        Text(rule.summary).font(.caption).foregroundStyle(.secondary)
+                            .lineLimit(1).truncationMode(.middle)
+                    }
+                    Spacer(minLength: 0)
+                }
+                HStack(spacing: Metrics.Space.xs) {
+                    CardChip(text: rule.kind.shortDisplayName)
+                    Text(app.hostLibrary.host(rule.hostID)?.name ?? String(localized: "Host Unavailable"))
+                        .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
+                    Spacer(minLength: 0)
+                    CardChip(
+                        text: runtime.label, symbol: runtime.isActive ? "circle.fill" : "circle",
+                        tint: runtime.isActive ? .green : nil)
+                }
+            }
         }
     }
-
-    private var enableableRules: [PortForwardingRule] {
-        rules.filter { !app.forwarding.isEnabled($0.id) }
+    private func canStart(_ rule: Item) -> Bool {
+        PortForwardingEditorPolicy(
+            rule: nil, savedRule: rule, savedHost: app.hostLibrary.host(rule.hostID),
+            isRuntimeActive: app.forwarding.state(for: rule.id).isActive
+        ).canStart
     }
-
-    private var runningRules: [PortForwardingRule] {
-        rules.filter { app.forwarding.isEnabled($0.id) || app.forwarding.state(for: $0.id).isActive }
+    private func open(_ rule: Item) { window.openVaultWork(.forwardingEditor(rule.id), on: .portForwarding) }
+    private func start(_ rule: Item) {
+        guard canStart(rule) else { return }
+        open(rule)
+        app.forwarding.start(rule.id)
     }
-
-    private func duplicate(_ rule: PortForwardingRule) {
+    private func duplicate(_ rule: Item) {
         var copy = rule
         copy.id = UUID()
         if !copy.label.isEmpty { copy.label += String(localized: " Copy") }
-        rules.append(copy)
-    }
-
-    private func delete(_ rule: PortForwardingRule) {
-        app.forwarding.discardPending([rule.id])
-        rules.removeAll { $0.id == rule.id }
-    }
-
-    private func enableAll() {
-        app.forwarding.setEnabled(true, for: enableableRules.map(\.id))
-    }
-
-    private func disableAll() {
-        app.forwarding.setEnabled(false, for: runningRules.map(\.id))
+        do {
+            try app.forwardings.save(copy)
+            open(copy)
+        } catch { state.error = error.localizedDescription }
     }
 }
 
-private struct HostForwardingRow: View {
-    let host: Host
-    let rule: PortForwardingRule
-    let edit: () -> Void
-    let duplicate: () -> Void
+struct PortForwardingPagePresentation: ManagedCardPresentationModifier {
+    @Bindable var state: PortForwardingPageState
+    let ids: [UUID]
+    let prune: () -> Void
     let delete: () -> Void
-
-    @Environment(AppModel.self) private var app
-
-    private var state: PortForwardingEditorPolicy {
-        PortForwardingEditorPolicy(
-            rule: PortForwardingEditorPolicy.normalized(rule),
-            savedRule: app.forwardings.portForwarding(rule.id),
-            savedHost: app.hostLibrary.host(host.id),
-            isEnabled: app.forwarding.isEnabled(rule.id),
-            isRuntimeActive: runtime.isActive)
-    }
-    private var runtime: PortForwardingRuntimeState { app.forwarding.state(for: rule.id) }
-    private var title: String { rule.label.isEmpty ? rule.kind.displayName : rule.label }
-
-    var body: some View {
-        HStack(spacing: Metrics.Space.m) {
-            Image(systemName: rule.kind.symbol)
-                .foregroundStyle(runtime.isActive ? Color.green : Color.secondary)
-                .frame(width: Metrics.Sidebar.rowIcon)
-            VStack(alignment: .leading, spacing: 1) {
-                Text(title).lineLimit(1)
-                Text(rule.summary)
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+    func body(content: Content) -> some View {
+        content.onAppear(perform: prune).onChange(of: ids) { prune() }
+            .confirmationDialog(
+                "Delete Forwarding Rules?",
+                isPresented: Binding(get: { !state.deleting.isEmpty }, set: { if !$0 { state.deleting = [] } })
+            ) {
+                Button("Delete", role: .destructive, action: delete)
             }
-            Spacer(minLength: Metrics.Space.m)
-            statusChip
-            Toggle("", isOn: enabled)
-                .labelsHidden()
-                .toggleStyle(.switch)
-                .controlSize(.mini)
-                .disabled(!state.canToggle)
-                .accessibilityLabel(Text("Enable \(title)"))
-            Button(action: edit) {
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.tertiary)
+            .alert(
+                "Operation Failed",
+                isPresented: Binding(get: { state.error != nil }, set: { if !$0 { state.error = nil } })
+            ) {
+                Button("OK") { state.error = nil }
+            } message: {
+                Text(state.error ?? "")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel(Text("Edit \(title)"))
-        }
-        .contentShape(.rect)
-        .onTapGesture(perform: edit)
-        .contextMenu {
-            HostForwardingContextMenu(
-                host: host, rule: rule,
-                edit: edit, duplicate: duplicate, delete: delete
-            )
-        }
-        .help(Text(rule.summary))
-    }
-
-    @ViewBuilder
-    private var statusChip: some View {
-        if state.isWaitingForSave {
-            CardChip(text: String(localized: "Waiting for Save"), symbol: "clock")
-        } else {
-            CardChip(
-                text: runtime.label,
-                symbol: runtime.isActive ? "circle.fill" : "circle",
-                tint: runtime.isActive ? Color.green : nil
-            )
-        }
-    }
-
-    private var enabled: Binding<Bool> {
-        Binding(
-            get: { state.isEnabled || state.isRuntimeActive },
-            set: { value in
-                app.forwarding.setEnabled(value, for: rule.id)
-            }
-        )
     }
 }
 
-private struct HostForwardingContextMenu: View {
-    let host: Host
-    let rule: PortForwardingRule
-    let edit: () -> Void
-    let duplicate: () -> Void
-    let delete: () -> Void
-
+struct PortForwardingDetailView: View {
+    let ruleID: UUID?
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+    @State private var draft = PortForwardingRule(hostID: UUID())
+    @State private var loaded = false
+    @State private var error: String?
 
-    private var state: PortForwardingEditorPolicy {
-        PortForwardingEditorPolicy(
-            rule: PortForwardingEditorPolicy.normalized(rule),
-            savedRule: app.forwardings.portForwarding(rule.id),
-            savedHost: app.hostLibrary.host(host.id),
-            isEnabled: app.forwarding.isEnabled(rule.id),
-            isRuntimeActive: app.forwarding.state(for: rule.id).isActive)
-    }
-    private var isActive: Bool { !state.canEdit }
-    private var command: String? { app.forwardings.sshCommand(for: rule, host: host) }
-
-    var body: some View {
-        let isRunning = state.isEnabled || state.isRuntimeActive
-        Button(
-            isRunning ? String(localized: "Disable") : String(localized: "Enable"),
-            systemImage: isRunning ? MenuSymbol.stop : MenuSymbol.start,
-            action: toggle
-        )
-        .disabled(!state.canToggle)
-        Button("Edit", systemImage: MenuSymbol.edit, action: edit)
-        Button("Duplicate", systemImage: MenuSymbol.duplicate, action: duplicate)
-            .disabled(isActive)
-        // Copy SSH Command repeats the verb above it, so only the first carries
-        // the glyph.
-        Button("Copy Address", systemImage: MenuSymbol.copy, action: copyAddress)
-            .disabled(isActive)
-        Button("Copy SSH Command", action: copyCommand)
-            .disabled(isActive || command == nil)
-        Divider()
-        DestructiveMenuButton("Delete", action: delete).disabled(isActive)
-    }
-
-    private func toggle() {
-        if state.isEnabled || state.isRuntimeActive {
-            app.forwarding.setEnabled(false, for: rule.id)
-        } else {
-            app.forwarding.setEnabled(true, for: rule.id)
-        }
-    }
-
-    private func copyAddress() { copyToPasteboard(rule.bindAddress) }
-    private func copyCommand() { if let command { copyToPasteboard(command) } }
-}
-
-struct PortForwardingEditorSheet: View {
-    let host: Host
-    let isNew: Bool
-    let back: () -> Void
-    let delete: () -> Void
-    let save: (PortForwardingRule) -> Void
-
-    @Environment(AppModel.self) private var app
-    @State private var draft: PortForwardingRule
-
-    init(
-        forwarding: PortForwardingRule, host: Host, isNew: Bool,
-        back: @escaping () -> Void,
-        delete: @escaping () -> Void,
-        save: @escaping (PortForwardingRule) -> Void
-    ) {
-        self.host = host
-        self.isNew = isNew
-        self.back = back
-        self.delete = delete
-        self.save = save
-        _draft = State(initialValue: forwarding)
+    private var saved: PortForwardingRule? { ruleID.flatMap(app.forwardings.portForwarding) }
+    private var runtime: PortForwardingRuntimeState { app.forwarding.state(for: draft.id) }
+    private var normalized: PortForwardingRule? { PortForwardingEditorPolicy.normalized(draft) }
+    private var canSave: Bool {
+        !runtime.isActive && normalized != nil && app.hostLibrary.host(draft.hostID) != nil
+            && (ruleID == nil || saved != nil)
     }
 
     var body: some View {
         VaultDetailScaffold(
-            title: isNew ? "New Forwarding" : "Edit Forwarding",
-            symbol: "arrow.left.arrow.right", close: cancel,
-            closeLabel: "Back", closeSymbol: "chevron.backward"
+            title: ruleID == nil
+                ? "New Forwarding" : "\(draft.displayName(hostName: app.hostLibrary.host(draft.hostID)?.name))",
+            symbol: "arrow.left.arrow.right", close: window.closeVaultWork
         ) {
-            Form {
-                Section {
-                    Toggle("Enabled", isOn: enabled)
-                        .disabled(!state.canToggle)
-                    LabeledContent(
-                        "Status",
-                        value: state.isWaitingForSave ? String(localized: "Waiting for Save") : runtime.label
-                    )
-                    if state.isWaitingForSave {
-                        Text("This forwarding will start after the host is saved.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            if let context = app.forwarding.connection(for: draft.id), context.journey.isPresented {
+                journey(context)
+            } else {
+                Form {
+                    if ruleID != nil {
+                        Section {
+                            LabeledContent("Status", value: runtime.label)
+                            if runtime.isActive {
+                                Button("Stop") { app.forwarding.stop(draft.id) }
+                            } else {
+                                Button(runtime.isFailed ? "Retry" : "Start") { app.forwarding.start(draft.id) }
+                                    .disabled(saved == nil || normalized != saved || !canSave)
+                            }
+                        }
                     }
-                }
-                PortForwardingFields(rule: $draft)
-                    .disabled(!state.canEdit)
+                    PortForwardingHostPicker(rule: $draft, hosts: app.forwardings.hosts)
+                        .disabled(runtime.isActive)
+                    PortForwardingFields(rule: $draft).disabled(runtime.isActive)
+                    if let error { Text(error).foregroundStyle(.red) }
+                    if ruleID != nil && saved == nil {
+                        Text("The forwarding rule is unavailable.").foregroundStyle(.secondary)
+                    }
+                }.formStyle(.grouped)
             }
-            .formStyle(.grouped)
         } footer: {
             HStack {
-                if !isNew {
-                    Button("Delete", role: .destructive) {
-                        guard state.canEdit else { return }
-                        delete()
-                        back()
-                    }
-                    .disabled(!state.canEdit)
-                }
+                if runtime.isActive { Button("Stop") { app.forwarding.stop(draft.id) } }
                 Spacer()
-                Button("Cancel", action: cancel).keyboardShortcut(.cancelAction)
-                Button("Save") { commit() }
-                    .buttonStyle(.borderedProminent)
-                    .keyboardShortcut(.defaultAction)
-                    .disabled(normalizedDraft == nil || !state.canEdit)
-            }
-            .padding(Metrics.Space.l)
+                Button("Close", action: window.closeVaultWork)
+                Button("Save", action: save).buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction).disabled(!canSave)
+            }.padding(Metrics.Space.l)
+        }
+        .onAppear {
+            guard !loaded else { return }
+            loaded = true
+            if let saved { draft = saved }
         }
     }
 
-    private var normalizedDraft: PortForwardingRule? {
-        PortForwardingEditorPolicy.normalized(draft)
+    private func journey(_ context: PortForwardingConnection) -> some View {
+        let promptID = context.authenticationPrompt?.id
+        let hostKeyRequestID = context.hostKeyRequestID
+        return ConnectionJourneyView(
+            journey: context.journey, authenticationPrompt: context.authenticationPrompt,
+            hostKey: context.connection.pendingHostKey,
+            submitAuthentication: { identity, username, password, passphrase, key, save in
+                guard let promptID else { return }
+                app.forwarding.submitAuthentication(
+                    for: draft.id, promptID: promptID, identityID: identity,
+                    username: username, password: password, passphrase: passphrase, keyID: key, save: save)
+            },
+            continueHostKey: {
+                guard let hostKeyRequestID else { return }
+                app.forwarding.acceptHostKey(
+                    for: draft.id, requestID: hostKeyRequestID, observation: $0, remember: false)
+            },
+            trustHostKey: {
+                guard let hostKeyRequestID else { return }
+                app.forwarding.acceptHostKey(
+                    for: draft.id, requestID: hostKeyRequestID, observation: $0, remember: true)
+            },
+            denyHostKey: cancel, retry: { app.forwarding.retry(draft.id) }, cancel: cancel,
+            keyboardAuthentication: context.connection.keyboardAuthentication, cancelKeyboardAuthentication: cancel)
     }
-
-    private var runtime: PortForwardingRuntimeState { app.forwarding.state(for: draft.id) }
-
-    private var state: PortForwardingEditorPolicy {
-        PortForwardingEditorPolicy(
-            rule: normalizedDraft,
-            savedRule: app.forwardings.portForwarding(draft.id),
-            savedHost: app.hostLibrary.host(host.id),
-            isEnabled: app.forwarding.isEnabled(draft.id),
-            isRuntimeActive: runtime.isActive)
-    }
-
-    private var enabled: Binding<Bool> {
-        Binding(
-            get: { state.isEnabled || state.isRuntimeActive },
-            set: { value in
-                app.forwarding.setEnabled(value, for: draft.id)
-            })
-    }
-
     private func cancel() {
-        if isNew { app.forwarding.discardPending([draft.id]) }
-        back()
+        app.forwarding.stop(draft.id)
+        window.closeVaultWork()
     }
-
-    private func commit() {
-        guard state.canEdit, let value = normalizedDraft else { return }
-        save(value)
-        back()
+    private func save() {
+        guard canSave, let normalized else { return }
+        do {
+            try app.forwardings.save(normalized)
+            window.selectVaultItem(.forwarding(normalized.id), on: .portForwarding)
+            window.openVaultWork(.forwardingEditor(normalized.id), on: .portForwarding)
+            draft = normalized
+            error = nil
+        } catch { self.error = error.localizedDescription }
     }
 }

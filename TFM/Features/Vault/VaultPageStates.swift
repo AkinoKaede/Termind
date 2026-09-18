@@ -9,6 +9,7 @@ nonisolated struct VaultSelectionID: Hashable, Sendable, Identifiable {
         static let host = "host"
         static let key = "key"
         static let identity = "identity"
+        static let forwarding = "forwarding"
         static let snippet = "snippet"
         static let knownHost = "knownHost"
     }
@@ -40,6 +41,11 @@ nonisolated struct VaultSelectionID: Hashable, Sendable, Identifiable {
         Self(kind: Kind.knownHost, rawID: id, page: .knownHosts)
     }
 
+    nonisolated static func forwarding(_ id: PortForwardingRule.ID) -> Self {
+        Self(kind: Kind.forwarding, rawID: id, page: .portForwarding)
+    }
+
+    var forwardingID: PortForwardingRule.ID? { kind == Kind.forwarding ? rawID : nil }
     var knownHostID: KnownHostEntry.ID? { kind == Kind.knownHost ? rawID : nil }
     var hostID: Host.ID? { kind == Kind.host ? rawID : nil }
     var keyID: SSHKeyRef.ID? { kind == Kind.key ? rawID : nil }
@@ -94,6 +100,7 @@ final class VaultSelectionState {
 final class VaultPageStates {
     let hosts = HostsPageState()
     let keychain = KeychainPageState()
+    let portForwarding = PortForwardingPageState()
     let snippets = SnippetsPageState()
     let knownHosts = KnownHostsPageState()
     let selection = VaultSelectionState()
@@ -105,6 +112,7 @@ final class VaultPageStates {
         case .welcome: ""
         case .hosts: hosts.query
         case .keychain: keychain.query
+        case .portForwarding: portForwarding.query
         case .snippets: snippets.query
         case .knownHosts: knownHosts.query
         }

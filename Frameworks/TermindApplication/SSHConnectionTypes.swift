@@ -336,13 +336,4 @@ public nonisolated enum TermindSSHError: LocalizedError, Sendable {
         return false
     }
 
-    public var isRetryableForwardingFailure: Bool {
-        switch self {
-        case .socket, .library, .handshake, .disconnected: true
-        case .proxy, .route, .routeHost, .authenticationFailed, .hostKeyChanged,
-            .missingCredential, .keyPassphraseRequired, .missingUsername,
-            .untrustedHost, .mismatchedHostKey:
-            false
-        }
-    }
 }

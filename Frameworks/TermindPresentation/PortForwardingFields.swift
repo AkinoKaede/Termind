@@ -11,6 +11,16 @@ public struct PortForwardingFields: View {
                 .textFieldStyle(
                     .automatic
                 ).multilineTextAlignment(.leading)
+            #if os(macOS)
+                LabeledContent("Color") {
+                    ColorTagPicker(selection: $rule.colorTag, layout: .compact)
+                }
+            #else
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("Color")
+                    ColorTagPicker(selection: $rule.colorTag, layout: .touch)
+                }
+            #endif
             PortForwardingDirectionPicker(kind: $rule.kind)
             Text(directionDescription).font(.caption).foregroundStyle(.secondary)
             LabeledContent("Bind Address") {

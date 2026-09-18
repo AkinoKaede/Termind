@@ -2,7 +2,7 @@ import CoreGraphics
 
 /// Mobile layout values shared by managed collection surfaces.
 nonisolated enum MobileCardLayout {
-    static let minimumHeight: CGFloat = 104
+    static let minimumHeight: CGFloat = 106
     static let maximumVisibleTags = 2
 
     static func columns(width: CGFloat, accessibilitySize: Bool) -> Int {

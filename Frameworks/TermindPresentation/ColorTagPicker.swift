@@ -1,7 +1,7 @@
 import SwiftUI
 import TermindDomain
 
-/// The persisted tag palette, shared by host, identity and key editors on both platforms.
+/// The persisted tag palette shared by Vault editors on both platforms.
 public struct ColorTagPicker: View {
     public enum Layout { case compact, touch }
     @Binding private var selection: TagColor

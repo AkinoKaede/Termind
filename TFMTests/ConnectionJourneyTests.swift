@@ -360,7 +360,7 @@ struct ConnectionJourneyTests {
         let store = HostLibraryModel(hosts: [host, shared], knownHosts: [entry])
         host.host = "new.example"
         host.port = 2222
-        #expect(store.upsert(host, replacingPortForwardings: []))
+        #expect(store.saveHost(host))
         #expect(store.knownHosts == [entry])
         #expect(store.knownHosts(for: host).isEmpty)
         #expect(store.knownHosts(for: shared) == [entry])

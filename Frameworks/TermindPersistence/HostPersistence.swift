@@ -426,6 +426,7 @@ public final class PersistentPortForwardingRule {
     public var targetHost: String?
     public var targetPort: Int?
     public var label = ""
+    public var colorTag = TagColor.none.rawValue
 
     public init(_ value: PortForwardingRule) {
         id = value.id
@@ -440,6 +441,7 @@ public final class PersistentPortForwardingRule {
         targetHost = value.kind == .dynamic ? nil : value.targetHost
         targetPort = value.kind == .dynamic ? nil : value.targetPort
         label = value.label
+        colorTag = value.colorTag.rawValue
     }
 
     public var value: PortForwardingRule {
@@ -447,7 +449,8 @@ public final class PersistentPortForwardingRule {
             id: id, hostID: hostID,
             kind: PortForwardingRule.Kind(rawValue: kind) ?? .local,
             bindHost: bindHost, bindPort: bindPort,
-            targetHost: targetHost, targetPort: targetPort, label: label
+            targetHost: targetHost, targetPort: targetPort, label: label,
+            colorTag: TagColor(rawValue: colorTag) ?? .none
         )
     }
 }
@@ -503,7 +506,7 @@ public enum TermindSchemaV1: VersionedSchema {
             PersistentKnownHost.self,
             PersistentSnippetPackage.self,
             PersistentSnippet.self,
-            PersistentPortForwardingRule.self,
+            TermindSchemaV19ForwardingModels.PersistentPortForwardingRule.self,
             PersistentOutboxJob.self,
             PersistentPendingDeletion.self,
             PersistentDatabaseMetadata.self,
@@ -693,6 +696,15 @@ public enum TermindSchemaV19: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV20: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(20, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV19.models.filter {
+            $0 != TermindSchemaV19ForwardingModels.PersistentPortForwardingRule.self
+        } + [PersistentPortForwardingRule.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -701,7 +713,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV7.self, TermindSchemaV8.self, TermindSchemaV9.self,
             TermindSchemaV10.self, TermindSchemaV11.self, TermindSchemaV12.self, TermindSchemaV13.self,
             TermindSchemaV14.self, TermindSchemaV15.self, TermindSchemaV16.self, TermindSchemaV17.self,
-            TermindSchemaV18.self, TermindSchemaV19.self,
+            TermindSchemaV18.self, TermindSchemaV19.self, TermindSchemaV20.self,
         ]
     }
 
@@ -762,6 +774,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV16.self, toVersion: TermindSchemaV17.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV17.self, toVersion: TermindSchemaV18.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV18.self, toVersion: TermindSchemaV19.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV19.self, toVersion: TermindSchemaV20.self),
         ]
     }
 }

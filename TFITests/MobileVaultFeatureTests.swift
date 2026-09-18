@@ -12,16 +12,16 @@ import Testing
 struct MobileVaultFeatureTests {
     @Test func hostProxyEditorAppliesDefaultsPreservesCustomPortsAndValidatesAuthentication() {
         var host = TermindDomain.Host(name: "Remote", host: "example.invalid")
-        #expect(MobileHostEditorPolicy.canSave(host, forwardings: []))
+        #expect(MobileHostEditorPolicy.canSave(host))
 
         host.proxy = MobileHostEditorPolicy.selectProxy(.http, current: nil)
         #expect(host.proxy?.port == 8080)
-        #expect(!MobileHostEditorPolicy.canSave(host, forwardings: []))
+        #expect(!MobileHostEditorPolicy.canSave(host))
 
         host.proxy?.hostname = "proxy.example"
-        #expect(MobileHostEditorPolicy.canSave(host, forwardings: []))
+        #expect(MobileHostEditorPolicy.canSave(host))
         host.proxy?.port = 0
-        #expect(!MobileHostEditorPolicy.canSave(host, forwardings: []))
+        #expect(!MobileHostEditorPolicy.canSave(host))
         host.proxy?.port = 8080
         host.proxy = MobileHostEditorPolicy.selectProxy(.socks5, current: host.proxy)
         #expect(host.proxy?.port == 1080)
@@ -36,14 +36,14 @@ struct MobileVaultFeatureTests {
         host.proxy = MobileHostEditorPolicy.selectProxyIdentity(identity, current: host.proxy)
         #expect(host.proxy?.identityID == identity.id)
         #expect(host.proxy?.username == "proxy-user")
-        #expect(MobileHostEditorPolicy.canSave(host, forwardings: []))
+        #expect(MobileHostEditorPolicy.canSave(host))
 
         host.proxy?.username = ""
-        #expect(!MobileHostEditorPolicy.canSave(host, forwardings: []))
+        #expect(!MobileHostEditorPolicy.canSave(host))
         host.proxy = MobileHostEditorPolicy.selectProxyIdentity(nil, current: host.proxy)
         #expect(host.proxy?.identityID == nil)
         #expect(host.proxy?.username.isEmpty == true)
-        #expect(MobileHostEditorPolicy.canSave(host, forwardings: []))
+        #expect(MobileHostEditorPolicy.canSave(host))
 
         host.proxy = MobileHostEditorPolicy.selectProxy(nil, current: host.proxy)
         #expect(host.proxy == nil)
@@ -66,38 +66,25 @@ struct MobileVaultFeatureTests {
         #expect(!app.library.isProxyEligibleOnThisDevice(keyOnly))
     }
 
-    @Test func forwardingEnabledIntentUsesInjectedDevicePreferences() throws {
-        let suite = "MobileForwardingIntentTests.\(UUID().uuidString)"
+    @Test func savingAndForegroundingNeverStartForwardings() throws {
+        let suite = "MobileManualForwardingTests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suite))
         defer { defaults.removePersistentDomain(forName: suite) }
-        let app = try MobileAppModel(inMemory: true, forwardingDefaults: defaults)
         let host = TermindDomain.Host(name: "Remote", host: "example.invalid")
         let rule = PortForwardingRule(hostID: host.id)
-        #expect(app.library.upsert(host, replacingPortForwardings: [rule]))
-
-        app.forwardings.setEnabled(true, for: rule.id)
-        #expect(app.forwardings.isEnabled(rule.id))
-        #expect(defaults.stringArray(forKey: SettingsKey.portForwardingEnabledRuleIDs) == [rule.id.uuidString])
-        app.forwardings.suspendAll()
-        #expect(app.forwardings.isEnabled(rule.id))
-        app.forwardings.setEnabled(false, for: rule.id)
-        #expect(!app.forwardings.isEnabled(rule.id))
-    }
-
-    @Test func unsavedForwardingIntentWaitsUntilTheHostIsSaved() throws {
-        let suite = "MobilePendingForwardingIntentTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let app = try MobileAppModel(inMemory: true, forwardingDefaults: defaults)
-        let host = TermindDomain.Host(name: "Remote", host: "example.invalid")
-        let rule = PortForwardingRule(hostID: host.id)
-
-        app.forwardings.setEnabled(true, for: rule.id)
-        #expect(app.forwardings.isEnabled(rule.id))
+        defaults.set([rule.id.uuidString], forKey: "portForwarding.enabledRuleIDs")
+        let app = try MobileAppModel(inMemory: true, defaults: defaults)
+        app.library.upsert(host)
+        try app.forwardingLibrary.save(rule)
+        let sceneID = UUID()
+        app.sceneChanged(sceneID, phase: .active)
         #expect(app.forwardings.state(for: rule.id) == .stopped)
-        #expect(app.library.upsert(host, replacingPortForwardings: [rule]))
-        #expect(app.forwardings.state(for: rule.id) != .stopped)
-        app.forwardings.setEnabled(false, for: rule.id)
+        #expect(app.forwardings.connection(for: rule.id) == nil)
+        app.forwardings.stopAll()
+        app.sceneChanged(sceneID, phase: .background)
+        app.sceneChanged(sceneID, phase: .active)
+        #expect(app.forwardings.state(for: rule.id) == .stopped)
+        app.removeScene(sceneID)
     }
 
     @Test func encryptedKeyGenerationImportAndMetadataEditingKeepTheSecretOutOfRecords() async throws {
@@ -318,7 +305,7 @@ struct MobileVaultFeatureTests {
         app.library.upsert(host)
         var rule = PortForwardingRule(hostID: host.id)
         try app.forwardingLibrary.save(rule)
-        #expect(!app.forwardings.isEnabled(rule.id))
+        #expect(app.forwardings.state(for: rule.id) == .stopped)
         var stopped: [UUID] = []
         app.library.willDeletePortForwardings = { stopped.append(contentsOf: $0) }
         rule.bindPort = 9000

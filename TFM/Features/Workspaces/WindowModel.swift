@@ -187,6 +187,7 @@ final class WindowModel {
         Set(store.hosts.map { .host($0.id) })
             .union(store.keys.map { .key($0.id) })
             .union(store.identities.map { .identity($0.id) })
+            .union(store.portForwardings.map { .forwarding($0.id) })
             .union(store.snippets.map { .snippet($0.id) })
             .union(store.knownHosts.map { .knownHost($0.id) })
     }
@@ -414,6 +415,7 @@ final class WindowModel {
             case .welcome: return nil
             case .hosts: return .hosts
             case .keychain: return .keychain
+            case .portForwarding: return .portForwarding
             case .snippets: return .snippets
             case .knownHosts: return .knownHosts
             }

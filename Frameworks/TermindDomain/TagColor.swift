@@ -1,6 +1,6 @@
 import Foundation
 
-/// A persisted label color shared by hosts, keys, and identities.
+/// A persisted label color shared by hosts, keys, identities, and forwarding rules.
 /// Presentation details live in TermindPresentation so the domain value remains
 /// usable without SwiftUI.
 public nonisolated enum TagColor: String, CaseIterable, Codable, Sendable, Identifiable {

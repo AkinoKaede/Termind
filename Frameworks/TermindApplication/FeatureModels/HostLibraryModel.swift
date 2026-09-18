@@ -30,9 +30,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// references are removed and the controller can stop listeners cleanly.
     public var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
     public var willDeletePortForwardings: (([PortForwardingRule.ID]) -> Void)?
-    /// Reconciles locally enabled rules after their saved configuration has been added,
-    /// replaced, removed, or rolled back.
-    public var didReplacePortForwardings: (([PortForwardingRule.ID]) -> Void)?
+    public var didChangeHostConnection: ((Host.ID) -> Void)?
     public var didPersistCore: (() -> Void)? {
         get { vault.didPersist }
         set { vault.didPersist = newValue }
@@ -827,71 +825,16 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     // MARK: - Writes
 
-    public func upsert(_ host: Host) {
-        guard validatedRoute(for: host) != nil else {
-            storageError = String(localized: "The selected jump host creates a routing loop or exceeds 8 hops.")
-            return
-        }
-        if let index = hosts.firstIndex(where: { $0.id == host.id }) {
-            var updated = host
-            updated.detectedDistribution = hosts[index].detectedDistribution
-            hosts[index] = updated
-        } else {
-            var new = host
-            new.sortIndex = nextSortIndex(in: host.groupID)
-            hosts.append(new)
-        }
-        persistCore()
-    }
+    public func upsert(_ host: Host) { _ = saveHost(host) }
 
-    /// Commits one host and its complete editor-owned collections together.
-    ///
-    /// `HostEditorView` owns the Host, forwarding rules, and Known Hosts as
-    /// drafts, so persisting them through separate calls would let Save only
-    /// partly succeed. The in-memory projections are
-    /// restored if SwiftData rejects the replacement, and rules whose live
-    /// connection would no longer match the saved configuration are stopped
-    /// before their old records disappear.
     @discardableResult
-    public func upsert(
-        _ host: Host,
-        replacingPortForwardings rules: [PortForwardingRule]
-    ) -> Bool {
+    public func saveHost(_ host: Host) -> Bool {
         guard validatedRoute(for: host) != nil else {
             storageError = String(localized: "The selected jump host creates a routing loop or exceeds 8 hops.")
             return false
         }
-        let normalizedRules = rules.map { rule in
-            var normalized = rule
-            normalized.hostID = host.id
-            if normalized.kind == .dynamic {
-                normalized.targetHost = nil
-                normalized.targetPort = nil
-            }
-            return normalized
-        }
-        guard normalizedRules.allSatisfy(\.isValid),
-            Set(normalizedRules.map(\.id)).count == normalizedRules.count
-        else {
-            storageError = String(localized: "One or more forwarding rules are incomplete.")
-            return false
-        }
-
-        let oldHosts = hosts
-        let oldRules = portForwardings
-        let existingHost = self.host(host.id)
-        let existingRules = portForwardings(for: host.id)
-        let existingRuleIDs = Set(existingRules.map(\.id))
-        let nextByID = Dictionary(uniqueKeysWithValues: normalizedRules.map { ($0.id, $0) })
-        var rulesToStop = Set(
-            existingRules.compactMap { old in nextByID[old.id] == old ? nil : old.id }
-        )
-        if let existingHost, existingHost.sshConnectionFields != host.sshConnectionFields {
-            rulesToStop.formUnion(existingRules.map(\.id))
-        }
-        let affectedRuleIDs = Array(rulesToStop)
-        if !affectedRuleIDs.isEmpty { willDeletePortForwardings?(affectedRuleIDs) }
-
+        let previous = hosts
+        let old = self.host(host.id)
         if let index = hosts.firstIndex(where: { $0.id == host.id }) {
             var updated = host
             updated.detectedDistribution = hosts[index].detectedDistribution
@@ -901,17 +844,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             new.sortIndex = nextSortIndex(in: host.groupID)
             hosts.append(new)
         }
-        portForwardings.removeAll { $0.hostID == host.id }
-        portForwardings.append(contentsOf: normalizedRules)
         guard persistCore() else {
-            hosts = oldHosts
-            portForwardings = oldRules
-            if !affectedRuleIDs.isEmpty { didReplacePortForwardings?(affectedRuleIDs) }
+            hosts = previous
             return false
         }
-        let addedRuleIDs = Set(normalizedRules.map(\.id)).subtracting(existingRuleIDs)
-        let savedRuleIDs = Array(rulesToStop.union(addedRuleIDs))
-        if !savedRuleIDs.isEmpty { didReplacePortForwardings?(savedRuleIDs) }
+        if let old, !old.hasSameConnectionRoute(as: host) { didChangeHostConnection?(host.id) }
         return true
     }
 
@@ -1523,19 +1460,39 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         persistCore()
     }
 
-    public func upsert(_ forwarding: PortForwardingRule) {
-        guard forwarding.isValid, host(forwarding.hostID) != nil else { return }
-        var normalized = forwarding
-        if normalized.kind == .dynamic {
-            normalized.targetHost = nil
-            normalized.targetPort = nil
+    @discardableResult
+    public func upsert(_ forwarding: PortForwardingRule) -> Bool {
+        guard let normalized = PortForwardingEditorPolicy.normalized(forwarding), host(forwarding.hostID) != nil else {
+            storageError = String(localized: "The forwarding rule is incomplete.")
+            return false
         }
+        let previous = portForwardings
         if let index = portForwardings.firstIndex(where: { $0.id == normalized.id }) {
+            if portForwardings[index] == normalized { return true }
+            willDeletePortForwardings?([normalized.id])
             portForwardings[index] = normalized
         } else {
             portForwardings.append(normalized)
         }
-        persistCore()
+        guard persistCore() else {
+            portForwardings = previous
+            return false
+        }
+        return true
+    }
+
+    @discardableResult
+    public func deletePortForwardings(_ ids: Set<PortForwardingRule.ID>) -> Bool {
+        let affected = portForwardings.filter { ids.contains($0.id) }.map(\.id)
+        guard !affected.isEmpty else { return true }
+        let previous = portForwardings
+        willDeletePortForwardings?(affected)
+        portForwardings.removeAll { ids.contains($0.id) }
+        guard persistCore() else {
+            portForwardings = previous
+            return false
+        }
+        return true
     }
 
     /// Root jump first and destination last. A nil result means the proposed
@@ -1910,23 +1867,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         storageError = nil
         vault.didApplyRemoteSnapshot()
     }
-}
-
-extension Host {
-    fileprivate var sshConnectionFields: SSHConnectionFields {
-        SSHConnectionFields(
-            host: host, port: port, identityID: identityID,
-            jumpHostID: jumpHostID, proxy: proxy
-        )
-    }
-}
-
-private struct SSHConnectionFields: Equatable {
-    let host: String
-    let port: Int
-    let identityID: Identity.ID?
-    let jumpHostID: Host.ID?
-    let proxy: HostProxy?
 }
 
 // MARK: - Manual ordering

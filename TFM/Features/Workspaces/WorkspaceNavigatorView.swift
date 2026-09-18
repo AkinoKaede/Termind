@@ -140,6 +140,7 @@ struct WorkspaceNavigatorView: View {
         case .welcome: 0
         case .hosts: app.hostLibrary.hosts.count
         case .keychain: app.hostLibrary.keys.count + app.hostLibrary.identities.count
+        case .portForwarding: app.forwardings.rules.count
         case .snippets: app.hostLibrary.snippets.count
         case .knownHosts: app.knownHosts.entries.count
         }

@@ -16,19 +16,28 @@ public final class ForwardingLibraryModel {
     public var rules: [PortForwardingRule] { library.portForwardings }
 
     public func save(_ rule: PortForwardingRule) throws {
-        guard rule.isValid, let host = library.host(rule.hostID) else { throw CocoaError(.coderInvalidValue) }
-        let rules = library.portForwardings(for: host.id).filter { $0.id != rule.id } + [rule]
-        guard library.upsert(host, replacingPortForwardings: rules) else {
+        guard library.upsert(rule) else {
             throw TermindSSHError.library(library.storageError ?? String(localized: "Unable to Save"))
         }
     }
 
-    public func delete(_ id: UUID) throws {
-        guard let rule = library.portForwarding(id), let host = library.host(rule.hostID) else { return }
-        guard
-            library.upsert(host, replacingPortForwardings: library.portForwardings(for: host.id).filter { $0.id != id })
-        else {
+    public func delete(_ id: UUID) throws { try delete([id]) }
+
+    public func delete(_ ids: Set<UUID>) throws {
+        guard library.deletePortForwardings(ids) else {
             throw TermindSSHError.library(library.storageError ?? String(localized: "Unable to Save"))
+        }
+    }
+
+    public func search(_ query: String) -> [PortForwardingRule] {
+        let query = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !query.isEmpty else { return rules }
+        return rules.filter { rule in
+            [
+                rule.label, rule.bindAddress, rule.targetHost ?? "", rule.targetPort.map(String.init) ?? "",
+                library.host(rule.hostID)?.name ?? "", library.host(rule.hostID)?.displayAddress ?? "",
+            ]
+            .contains { $0.localizedCaseInsensitiveContains(query) }
         }
     }
 

@@ -56,7 +56,6 @@ struct MobileMetricsJourneyTests {
         try await wait { server.keyboardAuthentication.current != nil }
         let challenge = try #require(server.keyboardAuthentication.current)
         #expect(!route.showsDetails)
-        #expect(app.keyboardAuthentication.pending.isEmpty)
         route.showsDetails = true
         for width in [430.0, 600.0, 1024.0] {
             resize(controller, width: width)
@@ -67,7 +66,6 @@ struct MobileMetricsJourneyTests {
             #expect(descendants(UISegmentedControl.self, in: controller.view).isEmpty)
             #expect(presented(in: controller) == nil)
             #expect(server.keyboardAuthentication.current?.id == challenge.id)
-            #expect(app.keyboardAuthentication.pending.isEmpty)
             try capture(controller.view, name: "metrics-journey-\(language)-\(Int(width))")
         }
         route.showsDetails = false
@@ -94,7 +92,6 @@ struct MobileMetricsJourneyTests {
         try await wait { server.point != nil && !server.showsConnectionJourney }
         try await Task.sleep(for: .milliseconds(400))
         #expect(descendants(UITextField.self, in: controller.view).isEmpty)
-        #expect(app.keyboardAuthentication.pending.isEmpty)
         #expect(presented(in: controller) == nil)
         #expect(await sampler.answers == ["deploy", "test-code"])
         #expect(await sampler.connections == 1)

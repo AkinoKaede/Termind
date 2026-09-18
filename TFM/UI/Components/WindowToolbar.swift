@@ -18,6 +18,7 @@ nonisolated enum WindowToolbarFindKind: String, Hashable, Sendable, CaseIterable
     case metrics
     case processes
     case keychain
+    case portForwarding
     case snippets
     case knownHosts
     case assistant
@@ -725,6 +726,12 @@ extension WindowModel {
                 },
                 importFolder,
             ]
+        case .portForwarding:
+            return [
+                WindowToolbarCreationAction(id: "forwarding", title: "New Forwarding", symbol: "plus") {
+                    self.openVaultWork(.forwardingEditor(nil), on: .portForwarding)
+                }
+            ]
         case .knownHosts:
             return [
                 WindowToolbarCreationAction(id: "known-host", title: "Add Host Key", symbol: "plus") {
@@ -796,6 +803,10 @@ extension WindowModel {
                 query: Binding(get: { state.query }, set: { state.query = $0 }),
                 focusRequest: findFocusRequest
             )
+        case .portForwarding:
+            let state = vaultPages.portForwarding
+            return WindowToolbarFindContext(
+                query: Binding(get: { state.query }, set: { state.query = $0 }), focusRequest: findFocusRequest)
         case .knownHosts:
             let state = vaultPages.knownHosts
             return WindowToolbarFindContext(

@@ -13,7 +13,6 @@ struct HostEditorView: View {
         case identity
         case proxyIdentity
         case group
-        case forwarding(PortForwardingRule)
     }
 
     let hostID: Host.ID?
@@ -22,7 +21,6 @@ struct HostEditorView: View {
     @Environment(WindowModel.self) private var window
 
     @State private var draft = Host(name: "", host: "")
-    @State private var draftForwardings: [PortForwardingRule] = []
     @State private var route: Route?
     @State private var saveError: String?
     @State private var didLoad = false
@@ -146,11 +144,6 @@ struct HostEditorView: View {
                 }
             }
 
-            PortForwardingEditorSection(
-                host: draft, rules: $draftForwardings,
-                openEditor: { route = .forwarding($0) }
-            )
-
             Section("Group & Tags") {
                 Picker("Group", selection: groupChoice) {
                     Text("None").tag(Choice<HostGroup.ID>.unset)
@@ -227,27 +220,12 @@ struct HostEditorView: View {
                 draft.proxy?.identityID = identity.id
                 draft.proxy?.username = identity.username
             }
-        case .forwarding(let rule):
-            PortForwardingEditorSheet(
-                forwarding: rule, host: draft,
-                isNew: !draftForwardings.contains { $0.id == rule.id },
-                back: closeNestedEditor,
-                delete: { draftForwardings.removeAll { $0.id == rule.id } },
-                save: upsertForwardingDraft
-            )
+
         }
     }
 
     private func closeNestedEditor() {
         route = nil
-    }
-
-    private func upsertForwardingDraft(_ rule: PortForwardingRule) {
-        if let index = draftForwardings.firstIndex(where: { $0.id == rule.id }) {
-            draftForwardings[index] = rule
-        } else {
-            draftForwardings.append(rule)
-        }
     }
 
     // MARK: - Picking, and making
@@ -442,13 +420,11 @@ struct HostEditorView: View {
             && (draft.sftpSessionInitialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || draft.sftpSessionInitialPath.hasPrefix("/"))
             && app.hostLibrary.validatedRoute(for: draft) != nil
-            && draftForwardings.allSatisfy(\.isValid)
     }
 
     private func load() {
         guard let hostID, let existing = app.hostLibrary.host(hostID) else { return }
         draft = existing
-        draftForwardings = app.hostLibrary.portForwardings(for: hostID)
     }
 
     private func loadOnce() {
@@ -465,11 +441,7 @@ struct HostEditorView: View {
         }
         let initialPath = draft.sftpSessionInitialPath.trimmingCharacters(in: .whitespacesAndNewlines)
         draft.sftpSessionInitialPath = initialPath.isEmpty ? "" : RemotePath.normalized(initialPath)
-        for index in draftForwardings.indices { draftForwardings[index].hostID = draft.id }
-        if app.hostLibrary.upsert(
-            draft,
-            replacingPortForwardings: draftForwardings
-        ) {
+        if app.hostLibrary.saveHost(draft) {
             closeTab()
         } else {
             saveError = app.hostLibrary.storageError ?? String(localized: "The host could not be saved.")
@@ -477,7 +449,6 @@ struct HostEditorView: View {
     }
 
     private func cancel() {
-        app.forwarding.discardPending(draftForwardings.map(\.id))
         closeTab()
     }
 

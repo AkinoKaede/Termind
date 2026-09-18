@@ -10,6 +10,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
     case welcome
     case hosts
     case keychain
+    case portForwarding
     case snippets
     case knownHosts
 
@@ -20,6 +21,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
         case .welcome: "Welcome"
         case .hosts: "Hosts"
         case .keychain: "Keychain"
+        case .portForwarding: "Port Forwarding"
         case .snippets: "Snippets"
         case .knownHosts: "Known Hosts"
         }
@@ -30,6 +32,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
         case .welcome: AppLocalization.string("Welcome", locale: locale)
         case .hosts: AppLocalization.string("Hosts", locale: locale)
         case .keychain: AppLocalization.string("Keychain", locale: locale)
+        case .portForwarding: AppLocalization.string("Port Forwarding", locale: locale)
         case .snippets: AppLocalization.string("Snippets", locale: locale)
         case .knownHosts: AppLocalization.string("Known Hosts", locale: locale)
         }
@@ -40,6 +43,7 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
         case .welcome: "house"
         case .hosts: "server.rack"
         case .keychain: "key.fill"
+        case .portForwarding: "arrow.left.arrow.right"
         case .snippets: "curlybraces"
         case .knownHosts: "touchid"
         }
@@ -50,6 +54,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
     case welcome
     case hosts
     case keychain
+    case portForwarding
     case snippets
     case knownHosts
 
@@ -58,6 +63,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
         case .welcome: self = .welcome
         case .hosts: self = .hosts
         case .keychain: self = .keychain
+        case .portForwarding: self = .portForwarding
         case .snippets: self = .snippets
         case .knownHosts: self = .knownHosts
         }
@@ -68,6 +74,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
         case .welcome: .welcome
         case .hosts: .hosts
         case .keychain: .keychain
+        case .portForwarding: .portForwarding
         case .snippets: .snippets
         case .knownHosts: .knownHosts
         }
@@ -80,6 +87,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
 nonisolated enum VaultWorkRoute: Hashable, Sendable {
     case hostEditor(Host.ID?)
     case hostGroupEditor(groupID: HostGroup.ID?, parentID: HostGroup.ID?)
+    case forwardingEditor(PortForwardingRule.ID?)
     case identityEditor(Identity.ID?)
     case generateKey
     case importKey

@@ -66,11 +66,6 @@ final class MobileAppModel {
     @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
     private let defaults: UserDefaults?
     private let snippetTimestampFallback: Date
-    let keyboardAuthentication: SSHKeyboardInteractiveQueue
-    var keyboardAuthenticationSceneID: UUID? {
-        scenePhases.filter { $0.value == .active }.keys.sorted { $0.uuidString < $1.uuidString }.first
-    }
-
     private let background: any MobileBackgroundTaskManaging
     private let workspaceConnectionServices: MobileWorkspaceConnectionServices
     private let workspaceStore: MobileWorkspaceStore
@@ -88,7 +83,6 @@ final class MobileAppModel {
         hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = .standard,
         background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
         workspaceConnectionServices: MobileWorkspaceConnectionServices = .live,
-        forwardingDefaults: UserDefaults? = nil,
         appReview: AppReviewController = AppReviewController()
     ) throws {
         try self.init(
@@ -96,7 +90,6 @@ final class MobileAppModel {
                 hosts: hosts,
                 inMemory: inMemory,
                 defaults: defaults,
-                forwardingDefaults: forwardingDefaults ?? (inMemory || hosts != nil ? nil : defaults),
                 background: background,
                 workspaceConnections: workspaceConnectionServices,
                 metrics: inMemory || hosts != nil ? .testing : .live,
@@ -109,10 +102,7 @@ final class MobileAppModel {
         let inMemory = dependencies.inMemory
         let defaults = dependencies.defaults
         let background = dependencies.background
-        let keyboardAuthentication = SSHKeyboardInteractiveQueue()
-        self.keyboardAuthentication = keyboardAuthentication
-        let workspaceConnectionServices = dependencies.workspaceConnections.withKeyboardInteractive(
-            keyboardAuthentication.handler)
+        let workspaceConnectionServices = dependencies.workspaceConnections
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
         workspaceStore =
@@ -197,15 +187,16 @@ final class MobileAppModel {
         snippets = SnippetLibraryModel(library: library)
         knownHosts = KnownHostsLibraryModel(library: library)
         forwardingLibrary = ForwardingLibraryModel(library: library)
-        forwardings = PortForwardingController(
-            hosts: library, defaults: dependencies.forwardingDefaults,
-            keyboardInteractive: keyboardAuthentication.handler)
+        forwardings = PortForwardingController(hosts: library)
         transfers = SFTPTransferCoordinator(
             store: library, clientFactory: { SFTPClient() })
         sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
-        library.willDeleteHost = { [weak sftpEdits] hostID, _ in sftpEdits?.invalidate(hostID: hostID) }
-        library.willDeletePortForwardings = { [weak forwardings] ids in forwardings?.suspend(ids) }
-        library.didReplacePortForwardings = { [weak forwardings] ids in forwardings?.resumeEnabled(ids) }
+        library.willDeleteHost = { [weak sftpEdits, weak forwardings] hostID, _ in
+            sftpEdits?.invalidate(hostID: hostID)
+            forwardings?.hostConfigurationChanged(hostID)
+        }
+        library.willDeletePortForwardings = { [weak forwardings] ids in forwardings?.stop(ids) }
+        library.didChangeHostConnection = { [weak forwardings] in forwardings?.hostConfigurationChanged($0) }
         let visibleHostIDs = Set(try self.hosts.snapshot().value.hosts.map(\.id))
         for host in library.hosts where !visibleHostIDs.contains(host.id) { library.projectHostDeletion(host.id) }
         outbox.registerHostDeletionHandlers(
@@ -221,9 +212,9 @@ final class MobileAppModel {
                 guard let self else { return }
                 sftpEdits.invalidate(hostID: payload.hostID)
                 transfers.cancelAll(for: payload.hostID)
-                keyboardAuthentication.cancelAll(hostID: payload.hostID)
             },
             stopForwardings: { [weak forwardings] payload in
+                forwardings?.hostConfigurationChanged(payload.hostID)
                 forwardings?.remove(payload.forwardingRuleIDs)
             }
         )
@@ -322,7 +313,7 @@ final class MobileAppModel {
             closeWorkspaces(for: id)
             sftpEdits.invalidate(hostID: id)
             transfers.cancelAll(for: id)
-            keyboardAuthentication.cancelAll(hostID: id)
+            forwardings.hostConfigurationChanged(id)
             forwardings.remove(library.portForwardings(for: id).map(\.id))
             metrics.remove(id)
             try hosts.requestHostDeletion(id)
@@ -356,9 +347,8 @@ final class MobileAppModel {
             background.begin { [weak self] in
                 guard let self else { return }
                 for workspace in workspaces { workspace.suspendForBackgroundExpiration() }
-                forwardings.suspendAll()
+                forwardings.stopAll()
                 transfers.pauseAll()
-                keyboardAuthentication.cancelAll()
                 assistant.expireBackground()
             }
             liveActivities.update(workspaceActivitySessions)
@@ -368,7 +358,6 @@ final class MobileAppModel {
             Task { [weak self] in await self?.pro.refresh() }
             background.finish()
             for workspace in workspaces { workspace.resumeAfterBackground() }
-            forwardings.resumeEnabled()
             reconcileSync()
             outbox.start()
             liveActivities.update(workspaceActivitySessions)
@@ -408,8 +397,7 @@ final class MobileAppModel {
                     for workspace in workspaces.filter({ $0.descriptor.hostID == change.id }) { workspace.disconnect() }
                 }
                 transfers.cancelAll(for: change.id)
-                keyboardAuthentication.cancelAll(hostID: change.id)
-                forwardings.suspend(library.portForwardings(for: change.id).map(\.id))
+                forwardings.stop(library.portForwardings(for: change.id).map(\.id))
             }
             if change.isRemoved {
                 closeWorkspaces(for: change.id)
@@ -418,9 +406,9 @@ final class MobileAppModel {
                 metrics.remove(change.id)
             }
         }
-        forwardings.suspend(plan.forwardingRuleIDs)
+        forwardings.stop(plan.forwardingRuleIDs)
         library.replacePersistedSnapshot(snapshot)
-        forwardings.resumeEnabled()
+        forwardings.reconcileConfiguration()
         liveActivities.update(workspaceActivitySessions)
     }
 

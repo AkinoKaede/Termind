@@ -18,21 +18,3 @@ extension KeyStorage {
         }
     }
 }
-
-extension PortForwardingRule.Kind {
-    nonisolated var displayName: String {
-        switch self {
-        case .local: String(localized: "Local forward (-L)")
-        case .remote: String(localized: "Remote forward (-R)")
-        case .dynamic: String(localized: "Dynamic proxy (-D)")
-        }
-    }
-
-    nonisolated var symbol: String {
-        switch self {
-        case .local: "arrow.right"
-        case .remote: "arrow.left"
-        case .dynamic: "shuffle"
-        }
-    }
-}

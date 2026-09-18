@@ -63,7 +63,7 @@ public struct ConnectionJourneyHeader: View {
     private var detail: String {
         let protocolName: String =
             switch journey.purpose {
-            case .sshSession, .metrics: "SSH"
+            case .sshSession, .metrics, .portForwarding: "SSH"
             case .sftpSession: "SFTP"
             case .serialSession: String(localized: "Serial")
             }
@@ -80,6 +80,7 @@ public struct ConnectionJourneyHeader: View {
         case .sftpSession: "folder.fill.badge.gearshape"
         case .serialSession: "cable.connector"
         case .metrics: "waveform.path.ecg"
+        case .portForwarding: "arrow.left.arrow.right"
         }
     }
 }
@@ -112,6 +113,7 @@ public struct ConnectionJourneyStatus: View {
             case .sshSession, .serialSession: String(localized: "Terminal ready")
             case .sftpSession: String(localized: "File browser ready")
             case .metrics: String(localized: "Metrics ready")
+            case .portForwarding: String(localized: "Forwarding ready")
             }
         case .failed(let message): message
         case .hidden: ""

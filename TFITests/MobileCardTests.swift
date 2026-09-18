@@ -45,6 +45,34 @@ struct MobileCardTests {
         #expect(Array(MobileCardLayout.visibleTags(["one", "two", "three"])) == ["one", "two"])
     }
 
+    @Test func forwardingCardsMatchHostHeightWithOrWithoutNames() {
+        for width: CGFloat in [320, 398, 600] {
+            let hostHeight = measuredHeight(of: standardActionCard(tags: ["production"]), width: width)
+            for kind in PortForwardingRule.Kind.allCases {
+                for name in ["", "Database with a long display name that stays on one line"] {
+                    let rule = PortForwardingRule(
+                        hostID: UUID(), kind: kind, targetHost: "database.production.example.invalid", label: name)
+                    let card = MobileActionCard(
+                        action: {},
+                        content: { MobileForwardingCardContent(rule: rule, hostName: "Production", runtime: .stopped) },
+                        actions: { EmptyView() })
+                    #expect(abs(measuredHeight(of: card, width: width) - hostHeight) <= 1)
+                }
+            }
+        }
+    }
+
+    @Test func unnamedForwardingUsesTheHostAndSSHArgument() {
+        for (kind, argument) in [(PortForwardingRule.Kind.local, "-L"), (.remote, "-R"), (.dynamic, "-D")] {
+            var rule = PortForwardingRule(hostID: UUID(), kind: kind)
+            #expect(rule.displayName(hostName: "AWS") == "AWS (\(argument))")
+            rule.label = "Database"
+            #expect(rule.displayName(hostName: "AWS") == "Database")
+            rule.label = "  "
+            #expect(rule.displayName(hostName: "AWS") == "AWS (\(argument))")
+        }
+    }
+
     @Test func hostSectionsFoldNestedGroupsKeepEmptyGroupsAndLeaveSearchAvailable() throws {
         let app = try MobileAppModel(inMemory: true)
         let root = HostGroup(name: "Production")

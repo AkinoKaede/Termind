@@ -115,7 +115,7 @@ struct TermindApp: App {
                         ),
                         vaultSync: vaultSync, settingsSync: settingsSync,
                         metricsSync: metricsSync, metricsPreferences: metricsPersistence,
-                        forwardingDefaults: .standard, mcpServerSecrets: secrets
+                        mcpServerSecrets: secrets
                     ),
                     proAccess: proAccess,
                     appReview: .live(),
@@ -185,10 +185,6 @@ struct TermindApp: App {
             didSet {
                 guard let app else { return }
                 guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
-                if !didRestoreForwardings {
-                    didRestoreForwardings = true
-                    app.forwarding.resumeEnabled()
-                }
                 app.serverMetrics.start()
                 metricsActivity.start(app.serverMetrics)
                 metricsMenu.openMainWindow = { [weak app] in app?.mainWindows.openMetrics() }
@@ -197,7 +193,6 @@ struct TermindApp: App {
         }
         private let metricsActivity = MetricsActivityObserver()
         private let metricsMenu = MetricsMenuBarController()
-        private var didRestoreForwardings = false
         private var awaitingTermination = false
         private var repliedToTermination = false
         private var quietLaunchObserver: (any NSObjectProtocol)?

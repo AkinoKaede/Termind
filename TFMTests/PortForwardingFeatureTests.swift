@@ -16,99 +16,6 @@ import struct TermindDomain.Host
 @MainActor
 struct PortForwardingFeatureTests {
     @Test
-    func unsavedEnabledIntentWaitsForSaveAndCanBeDiscarded() throws {
-        let suite = "PortForwardingPendingIntentTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let host = Host(name: "Server", host: "server.invalid")
-        let rule = PortForwardingRule(hostID: host.id)
-        let library = HostLibraryModel()
-        let controller = PortForwardingController(hosts: library, defaults: defaults)
-
-        controller.setEnabled(true, for: rule.id)
-        #expect(controller.isEnabled(rule.id))
-        #expect(controller.state(for: rule.id) == .stopped)
-        #expect(defaults.stringArray(forKey: SettingsKey.portForwardingEnabledRuleIDs) == [rule.id.uuidString])
-
-        controller.resumeEnabled([])
-        #expect(controller.isEnabled(rule.id))
-        controller.discardPending([rule.id])
-        #expect(!controller.isEnabled(rule.id))
-        #expect(defaults.stringArray(forKey: SettingsKey.portForwardingEnabledRuleIDs)?.isEmpty == true)
-    }
-
-    @Test
-    func savingAPendingRuleMakesItRunnable() throws {
-        let host = Host(name: "Server", host: "server.invalid")
-        let rule = PortForwardingRule(hostID: host.id)
-        let library = HostLibraryModel()
-        let controller = PortForwardingController(hosts: library)
-        library.didReplacePortForwardings = { controller.resumeEnabled($0) }
-
-        controller.setEnabled(true, for: rule.id)
-        #expect(controller.state(for: rule.id) == .stopped)
-        #expect(library.upsert(host, replacingPortForwardings: [rule]))
-        #expect(controller.isEnabled(rule.id))
-        #expect(controller.state(for: rule.id) != .stopped)
-        controller.setEnabled(false, for: rule.id)
-    }
-
-    @Test
-    func enabledIntentPersistsLocallyAndPrunesMissingRulesWithoutStarting() throws {
-        let suite = "PortForwardingIntentTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let host = Host(name: "Server", host: "server.invalid")
-        let rule = PortForwardingRule(hostID: host.id)
-        let missingID = UUID()
-        let library = HostLibraryModel(hosts: [host], portForwardings: [rule])
-        defaults.set(
-            [rule.id.uuidString, missingID.uuidString, "invalid"],
-            forKey: SettingsKey.portForwardingEnabledRuleIDs)
-
-        let controller = PortForwardingController(hosts: library, defaults: defaults)
-        #expect(controller.isEnabled(rule.id))
-        #expect(controller.isEnabled(missingID))
-        controller.resumeEnabled([])
-        #expect(controller.isEnabled(rule.id))
-        #expect(!controller.isEnabled(missingID))
-        #expect(defaults.stringArray(forKey: SettingsKey.portForwardingEnabledRuleIDs) == [rule.id.uuidString])
-
-        let restored = PortForwardingController(hosts: library, defaults: defaults)
-        #expect(restored.isEnabled(rule.id))
-        restored.suspend(rule.id)
-        #expect(restored.isEnabled(rule.id))
-        restored.remove([rule.id])
-        #expect(!restored.isEnabled(rule.id))
-        #expect(defaults.stringArray(forKey: SettingsKey.portForwardingEnabledRuleIDs)?.isEmpty == true)
-    }
-
-    @Test
-    func failedAutomaticStartKeepsEnabledIntentUntilTheUserDisablesIt() async throws {
-        let suite = "PortForwardingFailureIntentTests.\(UUID().uuidString)"
-        let defaults = try #require(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let host = Host(name: "Server", host: "server.invalid")
-        let rule = PortForwardingRule(hostID: host.id)
-        let library = HostLibraryModel(hosts: [host], portForwardings: [rule])
-        defaults.set([rule.id.uuidString], forKey: SettingsKey.portForwardingEnabledRuleIDs)
-        let controller = PortForwardingController(hosts: library, defaults: defaults)
-
-        controller.resumeEnabled()
-        for _ in 0..<100 {
-            if case .failed = controller.state(for: rule.id) { break }
-            await Task.yield()
-        }
-        guard case .failed = controller.state(for: rule.id) else {
-            Issue.record("Expected the missing identity to fail forwarding startup")
-            return
-        }
-        #expect(controller.isEnabled(rule.id))
-        controller.setEnabled(false, for: rule.id)
-        #expect(!controller.isEnabled(rule.id))
-    }
-
-    @Test
     func proxyIdentityRequiresUsernameAndSavedPassword() {
         let eligible = Identity(
             name: "Proxy", username: "proxy", credentialRef: "password-reference"
@@ -345,31 +252,12 @@ struct PortForwardingFeatureTests {
     }
 
     @Test
-    func hostAndForwardingDraftsCommitAsOneHostScopedCollection() {
-        let first = Host(name: "First", host: "first.example")
-        let second = Host(name: "Second", host: "second.example")
-        let oldFirstRule = PortForwardingRule(hostID: first.id, bindPort: 8000)
-        let secondRule = PortForwardingRule(hostID: second.id, bindPort: 9000)
-        let store = HostLibraryModel(
-            hosts: [first, second], portForwardings: [oldFirstRule, secondRule]
-        )
-        var renamed = first
-        renamed.name = "First Renamed"
-        let replacement = PortForwardingRule(
-            hostID: UUID(), kind: .remote, bindPort: 8080,
-            targetHost: "localhost", targetPort: 3000
-        )
-
-        #expect(store.upsert(renamed, replacingPortForwardings: [replacement]))
-        #expect(store.host(first.id)?.name == "First Renamed")
-        #expect(store.portForwarding(oldFirstRule.id) == nil)
-        #expect(store.portForwarding(replacement.id)?.hostID == first.id)
-        #expect(store.portForwarding(secondRule.id) == secondRule)
-
-        let invalid = PortForwardingRule(
-            hostID: first.id, bindPort: 0, targetHost: "", targetPort: 0
-        )
-        #expect(!store.upsert(renamed, replacingPortForwardings: [invalid]))
-        #expect(store.portForwarding(replacement.id) != nil)
+    func savingAHostPreservesItsIndependentForwardingRules() {
+        var host = Host(name: "First", host: "first.example")
+        let rule = PortForwardingRule(hostID: host.id)
+        let store = HostLibraryModel(hosts: [host], portForwardings: [rule])
+        host.name = "Renamed"
+        #expect(store.saveHost(host))
+        #expect(store.portForwardings == [rule])
     }
 }

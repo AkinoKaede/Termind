@@ -14,12 +14,13 @@ public nonisolated struct PortForwardingRule: Identifiable, Codable, Hashable, S
     public var targetHost: String? = "localhost"
     public var targetPort: Int? = 80
     public var label: String = ""
+    public var colorTag: TagColor = .none
 
     public init(
         id: UUID = UUID(), hostID: Host.ID, kind: Kind = .local,
         bindHost: String = "127.0.0.1", bindPort: Int = 8080,
         targetHost: String? = "localhost", targetPort: Int? = 80,
-        label: String = ""
+        label: String = "", colorTag: TagColor = .none
     ) {
         self.id = id
         self.hostID = hostID
@@ -29,6 +30,25 @@ public nonisolated struct PortForwardingRule: Identifiable, Codable, Hashable, S
         self.targetHost = kind == .dynamic ? nil : targetHost
         self.targetPort = kind == .dynamic ? nil : targetPort
         self.label = label
+        self.colorTag = colorTag
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id, hostID, kind, bindHost, bindPort, targetHost, targetPort, label, colorTag
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            id: try values.decode(UUID.self, forKey: .id),
+            hostID: try values.decode(UUID.self, forKey: .hostID),
+            kind: try values.decode(Kind.self, forKey: .kind),
+            bindHost: try values.decode(String.self, forKey: .bindHost),
+            bindPort: try values.decode(Int.self, forKey: .bindPort),
+            targetHost: try values.decodeIfPresent(String.self, forKey: .targetHost),
+            targetPort: try values.decodeIfPresent(Int.self, forKey: .targetPort),
+            label: try values.decode(String.self, forKey: .label),
+            colorTag: (try? values.decode(TagColor.self, forKey: .colorTag)) ?? .none)
     }
 
     public var isValid: Bool {
@@ -47,7 +67,8 @@ public nonisolated struct PortForwardingRule: Identifiable, Codable, Hashable, S
         case .local:
             "\(bindAddress) → \(Self.address(targetHost ?? "", port: targetPort ?? 0))"
         case .remote:
-            String(localized: "SSH \(bindAddress) → This Mac \(Self.address(targetHost ?? "", port: targetPort ?? 0))")
+            String(
+                localized: "SSH \(bindAddress) → This Device \(Self.address(targetHost ?? "", port: targetPort ?? 0))")
         case .dynamic: "SOCKS5 \(bindAddress)"
         }
     }

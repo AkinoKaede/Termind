@@ -4,7 +4,14 @@ import Foundation
 import TermindApplication
 import TermindDomain
 
-public actor SSHForwardingSession {
+public protocol SSHForwardingSessionProtocol: Actor {
+    func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws
+    func start(_ rule: PortForwardingRule) async throws
+    func stop(_ id: PortForwardingRule.ID) async
+    func disconnect() async
+}
+
+public actor SSHForwardingSession: SSHForwardingSessionProtocol {
     public typealias ConnectionHandler = @Sendable (PortForwardingRule.ID, Int) -> Void
     public typealias FailureHandler = @Sendable (String) -> Void
 
@@ -23,8 +30,8 @@ public actor SSHForwardingSession {
         try await connect(SSHConnectionRequest(configuration: configuration))
     }
 
-    public func connect(_ request: SSHConnectionRequest) async throws {
-        try await worker.connect(request)
+    public func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler? = nil) async throws {
+        try await worker.connect(request, progress: progress)
     }
 
     public func start(_ rule: PortForwardingRule) async throws {
@@ -93,9 +100,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         self.failureHandler = failureHandler
     }
 
-    public func connect(_ request: SSHConnectionRequest) async throws {
+    public func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws {
         await queue.perform { self.cleanup() }
-        let opened = try await SSHSessionWorker.openAuthenticatedSession(using: request, timeout: 20)
+        let opened = try await SSHSessionWorker.openAuthenticatedSession(
+            using: request, timeout: 20, progress: progress)
         do {
             await queue.perform {
                 self.routeTransport = opened.transport

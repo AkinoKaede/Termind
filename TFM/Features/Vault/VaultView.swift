@@ -21,6 +21,7 @@ struct VaultView: View {
         case .welcome: WelcomeView()
         case .hosts: HostsPageView(state: pages.hosts)
         case .keychain: KeychainPageView(state: pages.keychain)
+        case .portForwarding: PortForwardingPageView(state: pages.portForwarding)
         case .snippets: SnippetsPageView(state: pages.snippets)
         case .knownHosts: KnownHostsPageView(state: pages.knownHosts)
         }
@@ -47,6 +48,8 @@ struct VaultWorkDetailView: View {
                 },
                 close: window.closeVaultWork
             )
+        case .forwardingEditor(let id):
+            PortForwardingDetailView(ruleID: id)
         case .identityEditor(let id):
             NewIdentitySheet(
                 identity: id.flatMap(app.hostLibrary.identity),
