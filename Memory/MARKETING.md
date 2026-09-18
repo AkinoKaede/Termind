@@ -29,17 +29,16 @@ behavior to make a screenshot easier to capture.
 
 ## Asset layout
 
-Raw and framed files live together under:
+Raw captures and their generated device frames live separately under:
 
 ```text
-LandingPage/public/screenshots/<feature>/
-  iphone-<locale>.png
-  iphone-<locale>-framed.png
-  ipad-<locale>.png
-  ipad-<locale>-framed.png
-  mac-<locale>.png
-  mac-<locale>-framed.png
+Marketing/Screenshots/Captures/<feature>/<device>-<locale>.png
+Marketing/Screenshots/DeviceFrames/<feature>/<device>-<locale>-framed.png
 ```
+
+The website imports its allowlist from `DeviceFrames` through
+`LandingPage/src/lib/marketingImages.ts`; Astro emits optimized AVIF, WebP and JPEG
+assets during the build. Do not copy these sources into `LandingPage/public`.
 
 Locales in filenames are `en`, `zh-hans`, and `zh-hant`. Current feature folders
 include `workspace`, `ssh`, `sftp`, `metrics`, `assistant`, `vault`, and
@@ -77,6 +76,22 @@ TERMIND_MARKETING_SCENES=assistant \
 TERMIND_MARKETING_DEVICES=ipad \
 Scripts/run-mobile-marketing-screenshots.sh
 ```
+
+The iPhone Vault, Metrics and Assistant fixtures use the same native `Tab` API,
+sidebar-adaptable style and feature registration order as the production shell:
+Vault, Metrics, Workspaces, Assistant, Settings. Metrics is its own selected tab;
+Vault no longer contains the former Metrics navigation row. Refresh all nine
+localized sources after a change to that navigation:
+
+```sh
+TERMIND_MARKETING_SCENES=vault,metrics,assistant \
+TERMIND_MARKETING_DEVICES=iphone \
+Scripts/run-mobile-marketing-screenshots.sh
+```
+
+Regenerate only their matching device frames, replace the corresponding Figma
+iPhone boards 04-06, and export those nine boards again. The three-device first
+boards use iPhone SSH and therefore do not change for this navigation refresh.
 
 The runner sets a deterministic `9:41` status bar, charged battery, Wi-Fi, and
 cellular state. iPad framebuffer output is rotated after capture because `simctl`
@@ -144,8 +159,9 @@ background. Do not add a second titlebar or another set of traffic lights.
 
 ## Website integration
 
-The Astro homepage reads `*-framed.png` files. Keep explicit image dimensions in
-`LandingPage/src/pages/index.astro` synchronized with generated assets:
+The Astro homepage imports `*-framed.png` files through `marketingImages.ts` and
+renders them with `ScreenshotPicture.astro`. Keep source dimensions synchronized
+with generated assets:
 
 - iPhone framed: `1530x3036`.
 - iPad framed: `2960x2290`.
@@ -227,7 +243,7 @@ The final matrix is exactly 54 store boards:
 Board sizes:
 
 - Mac: `2880x1800`.
-- iPhone 6.9-inch: `1320x2868`.
+- iPhone 6.5-inch: `1284x2778` (the raw simulator capture remains `1320x2868`).
 - iPad 13-inch: `2752x2064`.
 
 Content order:
@@ -268,7 +284,7 @@ Export the 54 final boards as high-quality, opaque, sRGB JPG files:
 
 ```text
 Marketing/AppStore/<locale>/mac/01-06-*.jpg
-Marketing/AppStore/<locale>/iphone-6.9/01-06-*.jpg
+Marketing/AppStore/<locale>/iphone-6.5/01-06-*.jpg
 Marketing/AppStore/<locale>/ipad-13/01-06-*.jpg
 ```
 
@@ -279,7 +295,7 @@ the delivery tree. A quick verification is:
 test "$(find Marketing/AppStore -type f -name '*.jpg' | wc -l | tr -d ' ')" = 54
 test -z "$(find Marketing/AppStore -type f ! -name '*.jpg' -print -quit)"
 
-for platform in mac iphone-6.9 ipad-13; do
+for platform in mac iphone-6.5 ipad-13; do
   find Marketing/AppStore -path "*/$platform/*.jpg" -print0 \
     | xargs -0 identify -format '%wx%h %[colorspace] %[channels] opaque=%[opaque]\n' \
     | sort | uniq -c
@@ -289,6 +305,11 @@ done
 Expected grouped results are 18 opaque sRGB three-channel images at each platform
 size. Review every board at 100% in Figma and inspect contact sheets for each
 platform/locale before delivery.
+
+Use Figwright `save_screenshots` with `format: "JPG"` and `scale: 1` for final
+exports. `get_screenshot` is for visual review and caps its output size; it is not
+the delivery export path. Keep temporary node-ID filenames outside `Marketing/AppStore`
+and copy the verified full-size results to the established locale/platform names.
 
 ## Verification checklist
 
@@ -323,3 +344,11 @@ Also confirm manually:
 
 As of 2026-09-13, these checks pass and the 54 exported files are present under
 `Marketing/AppStore`.
+
+The 2026-09-18 iPhone navigation refresh regenerated the English, Simplified
+Chinese and Traditional Chinese Metrics, Assistant and Vault captures, device
+frames and Figma exports. SHA-256 verification confirmed that exactly those 27
+images changed; the other 108 marketing files, including SSH/SFTP, first boards,
+iPad and Mac assets, stayed unchanged. The nine Figma image fills match the local
+device-frame PNGs byte for byte, and the nine final JPGs are full-size
+`1284x2778` opaque sRGB exports. The App Store directory still contains 54 JPGs.

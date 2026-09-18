@@ -309,17 +309,16 @@ private struct MarketingPhoneTabShell<Content: View>: View {
     var body: some View {
         TabView(selection: .constant(selected)) {
             ForEach(features.registrations) { feature in
-                Group {
+                Tab(feature.title, systemImage: feature.symbol, value: feature.id) {
                     if feature.id == selected {
                         content
                     } else {
                         NavigationStack { Color.clear }
                     }
                 }
-                .tabItem { Label(feature.title, systemImage: feature.symbol) }
-                .tag(feature.id)
             }
         }
+        .tabViewStyle(.sidebarAdaptable)
         .toolbar(.visible, for: .tabBar)
     }
 }
