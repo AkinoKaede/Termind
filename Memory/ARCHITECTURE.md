@@ -224,6 +224,8 @@ Its embedded presentation uses 16-point horizontal margins, an icon-only log
 button, and vertical scrolling for short windows. Switching between the editor
 and Journey fades within that column without replacing the connection or pending
 challenge. Other Journey surfaces retain their default presentation.
+Saving a desktop forwarding rule closes its editor after persistence succeeds and
+keeps the saved card selected; a failed save retains the draft and editor.
 Double-clicking a desktop card starts/stops it without
 an inline action button. Desktop cards use Vault's window-owned multiple and marquee
 selection; the multi-selection context menu offers Stop (disabled without active rules)

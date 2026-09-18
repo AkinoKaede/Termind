@@ -280,10 +280,10 @@ struct PortForwardingDetailView: View {
         guard canSave, let normalized else { return }
         do {
             let saved = try app.forwardings.save(normalized)
-            window.selectVaultItem(.forwarding(normalized.id), on: .portForwarding)
-            window.openVaultWork(.forwardingEditor(normalized.id), on: .portForwarding)
             draft = saved
             error = nil
+            window.selectVaultItem(.forwarding(saved.id), on: .portForwarding)
+            window.closeVaultWork()
         } catch { self.error = error.localizedDescription }
     }
 }

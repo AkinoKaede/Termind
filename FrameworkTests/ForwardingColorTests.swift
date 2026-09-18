@@ -34,11 +34,10 @@ struct ForwardingColorTests {
         let host = Host(name: "Server", host: "server.invalid")
         library.upsert(host)
         let original = PortForwardingRule(hostID: host.id, colorTag: .teal)
-        try model.save(original)
-        var draft = original
+        var draft = try model.save(original)
         draft.colorTag = .pink
         #expect(model.portForwarding(original.id)?.colorTag == .teal)
-        try model.save(draft)
+        draft = try model.save(draft)
         #expect(try persistence.load().portForwardings == [draft])
 
         let remoteContainer = try TermindPersistence.makeContainer(inMemory: true)

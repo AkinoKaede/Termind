@@ -1,8 +1,16 @@
 import SwiftUI
 
 struct VaultWorkspaceView: View {
-    @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        VaultWorkspaceContent(reduceMotion: reduceMotion)
+    }
+}
+
+struct VaultWorkspaceContent: View {
+    @Environment(WindowModel.self) private var window
+    let reduceMotion: Bool
 
     var body: some View {
         GeometryReader { geometry in

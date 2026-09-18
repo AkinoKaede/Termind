@@ -10,6 +10,59 @@ import struct TermindDomain.Host
 
 @Suite(.serialized) @MainActor
 struct PortForwardingRenderingTests {
+    @Test(arguments: [false, true])
+    func saveClosesTheEditorOnlyAfterPersistenceSucceeds(_ fails: Bool) async throws {
+        let host = Host(name: "Server", host: "server.example.invalid")
+        let rule = PortForwardingRule(hostID: host.id, label: "Database")
+        let snapshot = VaultSnapshot(hosts: [host], portForwardings: [rule])
+        let library = HostLibraryModel(
+            hosts: [host], portForwardings: [rule],
+            persistence: fails ? RejectingForwardingSave(snapshot: snapshot) : nil)
+        let app = AppModel(hosts: library)
+        let navigation = WindowModel()
+        navigation.openVaultWork(.forwardingEditor(rule.id), on: .portForwarding)
+        let controller = NSHostingController(
+            rootView: VaultWorkspaceView().environment(app).environment(navigation))
+        let window = NSWindow(
+            contentRect: CGRect(x: 0, y: 0, width: 900, height: 740),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        controller.sizingOptions = []
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        defer {
+            app.shutdownForTermination()
+            window.orderOut(nil)
+            window.contentViewController = nil
+            window.close()
+        }
+        try await Task.sleep(for: .milliseconds(300))
+        let name = try #require(
+            descendants(in: controller.view).compactMap { $0 as? NSTextField }
+                .first { $0.isEditable && $0.stringValue == rule.label })
+        name.stringValue = "Updated Database"
+        name.delegate?.controlTextDidChange?(Notification(name: NSControl.textDidChangeNotification, object: name))
+        await Task.yield()
+        let save = try #require(
+            accessibilityDescendants(in: controller.view).first {
+                $0.accessibilityRole() == .button && $0.accessibilityLabel() == String(localized: "Save")
+            })
+        #expect(save.accessibilityPerformPress())
+        try await Task.sleep(for: .milliseconds(300))
+        if fails {
+            #expect(navigation.vaultWorkRoute == .forwardingEditor(rule.id))
+            #expect(app.forwardings.portForwarding(rule.id)?.label == "Database")
+            #expect(name.stringValue == "Updated Database")
+            #expect(name.window === window)
+        } else {
+            #expect(navigation.vaultWorkRoute == nil)
+            #expect(navigation.vaultSelection(for: .portForwarding) == [.forwarding(rule.id)])
+            #expect(app.forwardings.portForwarding(rule.id)?.label == "Updated Database")
+            #expect(name.window == nil)
+        }
+        #expect(app.forwarding.state(for: rule.id) == .stopped)
+    }
+
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func cardsAndJourneyKeepTheirStateAcrossWindowSizes(_ language: String) async throws {
         let host = Host(name: "Production", host: "server.example.invalid")
@@ -226,8 +279,7 @@ struct PortForwardingRenderingTests {
         let navigation = WindowModel()
         navigation.openPage(.portForwarding)
         let controller = NSHostingController(
-            rootView: VaultWorkspaceView().environment(app).environment(navigation)
-                .environment(\.accessibilityReduceMotion, reduceMotion))
+            rootView: VaultWorkspaceContent(reduceMotion: reduceMotion).environment(app).environment(navigation))
         let window = NSWindow(
             contentRect: CGRect(x: 0, y: 0, width: 900, height: 600),
             styleMask: [.titled, .resizable], backing: .buffered, defer: false)
@@ -271,6 +323,12 @@ struct PortForwardingRenderingTests {
         [view] + view.subviews.flatMap { descendants(in: $0) }
     }
 
+    private func accessibilityDescendants(in element: any NSAccessibilityProtocol) -> [any NSAccessibilityProtocol] {
+        [element]
+            + (element.accessibilityChildren() ?? []).compactMap { $0 as? any NSAccessibilityProtocol }
+            .flatMap { accessibilityDescendants(in: $0) }
+    }
+
     private func mouseEvent(_ type: NSEvent.EventType, at point: CGPoint, in view: NSView) throws -> NSEvent {
         try #require(
             NSEvent.mouseEvent(
@@ -287,5 +345,16 @@ struct PortForwardingRenderingTests {
         let directory = FileManager.default.temporaryDirectory.appending(path: "termind-forwarding-ui")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         try data.write(to: directory.appending(path: "\(name).png"))
+    }
+}
+
+@MainActor private final class RejectingForwardingSave: VaultPersisting {
+    let snapshot: VaultSnapshot
+    init(snapshot: VaultSnapshot) { self.snapshot = snapshot }
+    func load() throws -> VaultSnapshot { snapshot }
+    func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet { throw CocoaError(.fileWriteNoPermission) }
+    func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {}
+    func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
+        throw CocoaError(.fileWriteNoPermission)
     }
 }
