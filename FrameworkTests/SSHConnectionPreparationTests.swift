@@ -5,6 +5,27 @@ import Testing
 
 @Suite
 struct SSHConnectionPreparationTests {
+    @Test func usernameOnlyIdentityReachesServerAuthentication() async throws {
+        let preparation = makePreparation(
+            identity: Identity(name: "OTP", username: "deploy"),
+            secrets: PreparationSecrets(password: nil, key: nil)
+        )
+        let configuration = try await preparation.resolve(trustPolicy: .allowChallenge)
+        #expect(configuration.username == "deploy")
+        #expect(configuration.credentials.isEmpty)
+    }
+
+    @Test func customUsernameOnlySubmissionDoesNotRequireTheHostsSavedPassword() async throws {
+        var preparation = makePreparation(
+            identity: Identity(name: "Saved", username: "saved", credentialRef: "saved-password"),
+            secrets: PreparationSecrets(password: nil, key: nil)
+        )
+        preparation.nodes[0].submission = SSHAuthenticationSubmission(username: "otp-user")
+        let configuration = try await preparation.resolve(trustPolicy: .allowChallenge)
+        #expect(configuration.username == "otp-user")
+        #expect(configuration.credentials.isEmpty)
+    }
+
     @Test
     func keychainFailureRemainsDistinctFromMissingCredential() async {
         let identity = Identity(

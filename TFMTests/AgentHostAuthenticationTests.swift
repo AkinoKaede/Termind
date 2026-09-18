@@ -15,6 +15,48 @@ import struct TermindDomain.Host
 @Suite(.serialized)
 @MainActor
 struct AgentHostAuthenticationTests {
+    @Test func usernameOnlyIdentityDoesNotRequireCredentialEntry() async throws {
+        let identity = Identity(name: "OTP", username: "deploy")
+        let host = Host(name: "Server", host: "server.example", identityID: identity.id)
+        let store = HostLibraryModel(hosts: [host], identities: [identity])
+        let resolver = AgentHostResolver(store: store)
+        let session = AgentSSHConfigurationSession(
+            resolver: resolver, hostID: host.id, invocationID: UUID(), interaction: .unavailable
+        )
+        let configuration = try await session.configuration()
+        #expect(configuration.username == "deploy")
+        #expect(configuration.credentials.isEmpty)
+    }
+
+    @Test func concurrentConnectionChallengesAreNeverCoalescedWithSavedCredentials() async throws {
+        let identity = Identity(name: "OTP", username: "deploy")
+        let host = Host(name: "Server", host: "server.example", identityID: identity.id)
+        let store = HostLibraryModel(hosts: [host], identities: [identity])
+        let interaction = AuthenticationResponder { request in
+            let challenge = request.keyboardInteractive!
+            return .keyboardInteractive([challenge.id.uuidString])
+        }
+        let session = AgentSSHConfigurationSession(
+            resolver: AgentHostResolver(store: store), hostID: host.id, invocationID: UUID(),
+            interaction: interaction.sshInteraction
+        )
+        let attempt = try await session.configurationAttempt()
+        let responder = try #require(attempt.request.keyboardInteractive)
+        let first = SSHKeyboardInteractiveChallenge(
+            connectionID: UUID(), hostID: host.id, hostname: host.host, port: 22, username: "deploy",
+            round: 1, name: "PAM", instruction: "", prompts: [.init(text: "OTP", echo: false)])
+        var second = first
+        second.id = UUID()
+        second.connectionID = UUID()
+        let secondChallenge = second
+        async let firstAnswers = responder(first)
+        async let secondAnswers = responder(secondChallenge)
+        let answers = try await (firstAnswers, secondAnswers)
+        #expect(answers.0 == [first.id.uuidString])
+        #expect(answers.1 == [second.id.uuidString])
+        #expect(store.identities == [identity])
+    }
+
     @Test
     func listingIncludesNestedAndEmptyGroupsAndHostPaths() throws {
         let root = HostGroup(name: "Production", sortIndex: 0)
@@ -135,6 +177,8 @@ struct AgentHostAuthenticationTests {
                         username: "deploy", password: "fallback-password",
                         keyID: key.id, save: false
                     ))
+            case .keyboardInteractive:
+                return .cancelled
             case .passphrase(let keyID):
                 #expect(keyID == key.id)
                 return .submit(

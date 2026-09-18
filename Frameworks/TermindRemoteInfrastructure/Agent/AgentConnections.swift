@@ -222,7 +222,7 @@ public final class AgentHostResolver: Sendable {
                     failureMessage: failure
                 )
                 switch await interaction.authenticate(request) {
-                case .cancelled:
+                case .cancelled, .keyboardInteractive:
                     throw AgentToolError.cancelled
                 case .submit(let answer):
                     if case .passphrase = requirement.mode,
@@ -321,9 +321,7 @@ public final class AgentHostResolver: Sendable {
             {
                 return AuthenticationRequirement(mode: .passphrase(keyID: keyID))
             }
-            if submission.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || (submission.keyID == nil && submission.password == nil)
-            {
+            if submission.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 return AuthenticationRequirement(mode: .identity)
             }
             if forcedHostID == host.id {
@@ -339,7 +337,7 @@ public final class AgentHostResolver: Sendable {
             return AuthenticationRequirement(mode: .passphrase(keyID: keyID))
         }
         if identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-            || resolution.credentials.isEmpty
+            || (identity.hasSecret && resolution.credentials.isEmpty)
         {
             return AuthenticationRequirement(mode: .identity)
         }
@@ -585,6 +583,13 @@ public actor AgentSSHConfigurationSession {
                     return await self.authorizeHostKey(
                         challenge, generation: generation
                     )
+                },
+                keyboardInteractive: { [weak self] challenge in
+                    guard let self, await self.currentGeneration == generation else { throw CancellationError() }
+                    let answers = try await self.interaction.respondToChallenge(
+                        challenge, invocationID: self.invocationID)
+                    guard await self.currentGeneration == generation else { throw CancellationError() }
+                    return answers
                 }
             ),
             generation: generation

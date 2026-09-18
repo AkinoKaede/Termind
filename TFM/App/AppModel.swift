@@ -144,7 +144,10 @@ final class AppModel {
         serverMetrics suppliedMetrics: ServerMetricsModel? = nil
     ) {
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
-        let connectionCoordinator = dependencies.connectionCoordinator
+        let externalAuthentication = ExternalAuthCoordinator()
+        self.externalAuthentication = externalAuthentication
+        let connectionCoordinator = dependencies.connectionCoordinator.withKeyboardInteractive(
+            externalAuthentication.keyboardInteractive)
         self.serverMetrics =
             suppliedMetrics
             ?? ServerMetricsModel(
@@ -166,7 +169,6 @@ final class AppModel {
         self.sftpHistory = sftpHistory
         self.connectionHistory = connectionHistory
         self.externalToolCalls = externalToolCalls
-        externalAuthentication = ExternalAuthCoordinator()
         connections = connectionCoordinator
         serialPorts = dependencies.serialPortService
         agentRunRepository = MemoryIndexedAgentRepository(
@@ -180,7 +182,9 @@ final class AppModel {
         vaultSync = dependencies.vaultSync
         settingsSync = dependencies.settingsSync
         metricsSync = dependencies.metricsSync
-        forwarding = PortForwardingController(hosts: hosts, defaults: dependencies.forwardingDefaults)
+        forwarding = PortForwardingController(
+            hosts: hosts, defaults: dependencies.forwardingDefaults,
+            keyboardInteractive: externalAuthentication.keyboardInteractive)
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
             clientFactory: { connectionCoordinator.makeSFTPClient() }
@@ -249,6 +253,7 @@ final class AppModel {
                 cancelTransfers: { [weak self] deletion in
                     self?.sftpEdits.invalidate(hostID: deletion.hostID)
                     self?.sftpTransfers.cancelAll(for: deletion.hostID)
+                    self?.externalAuthentication.cancel(hostID: deletion.hostID)
                     self?.mcpServer.tools.revokeHost(deletion.hostID)
                     if let self { Task { await self.mcpServer.tools.cancelHostTransfers(deletion.hostID) } }
                 },
@@ -311,6 +316,7 @@ final class AppModel {
                 closeWorkspaces(for: change.id)
                 sftpEdits.invalidate(hostID: change.id)
                 sftpTransfers.cancelAll(for: change.id)
+                externalAuthentication.cancel(hostID: change.id)
                 mcpServer.tools.revokeHost(change.id)
                 commandHistory.clear(for: change.id)
                 sftpHistory.clear(for: change.id)
@@ -621,6 +627,7 @@ final class AppModel {
         windows.removeAll()
         for window in liveWindows { window.closeAll() }
         sftpTransfers.cancelAll()
+        externalAuthentication.cancelAll()
         forwarding.suspendAll()
         let task = Task { [mcpServer, sftpTransfers, agentConnections, agentBackgroundCommands] in
             async let stopMCP: Void = mcpServer.stop()

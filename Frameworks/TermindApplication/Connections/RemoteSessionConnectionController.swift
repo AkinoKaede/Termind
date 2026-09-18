@@ -9,6 +9,8 @@ import struct TermindDomain.Host
 @Observable
 public final class RemoteSessionConnectionController {
     public let journey = ConnectionJourney()
+    public let keyboardAuthentication = SSHKeyboardInteractiveQueue()
+    private var keyboardAuthenticationID: UUID?
     public let reconnect: SessionReconnectController
     public private(set) var pendingHostKey: SSHHostKeyPrompt?
     public var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
@@ -25,6 +27,8 @@ public final class RemoteSessionConnectionController {
     }
 
     public func disconnect() {
+        keyboardAuthenticationID = nil
+        keyboardAuthentication.cancelAll()
         finishHostKeyAuthorization(.reject)
         temporaryHostKeys.removeAll()
         reconnect.stop()
@@ -103,6 +107,20 @@ public final class RemoteSessionConnectionController {
     }
 
     public func rejectHostKey() { finishHostKeyAuthorization(.reject) }
+
+    public func answerKeyboardInteractive(_ challenge: SSHKeyboardInteractiveChallenge) async throws -> [String] {
+        try Task.checkCancellation()
+        keyboardAuthenticationID = challenge.id
+        reconnect.pauseForUserInteraction()
+        journey.waitForAuthentication(at: challenge.hostID)
+        defer {
+            if keyboardAuthenticationID == challenge.id {
+                keyboardAuthenticationID = nil
+                journey.resume()
+            }
+        }
+        return try await keyboardAuthentication.request(challenge)
+    }
 
     public func authorizeHostKey(
         _ challenge: SSHHostKeyChallenge,

@@ -23,4 +23,17 @@ struct MobileWorkspaceConnectionServices {
             (@Sendable (String) -> Void)?
         ) async throws -> any SFTPClientProtocol
     var writeSSH: (SSHSessionActor, Data) async -> Void
+
+    func withKeyboardInteractive(_ handler: @escaping SSHKeyboardInteractiveHandler) -> Self {
+        var services = self
+        services.connectSSH = { session, request, integration, columns, rows, progress in
+            try await self.connectSSH(
+                session, request.withKeyboardInteractiveFallback(handler), integration, columns, rows, progress
+            )
+        }
+        services.connectSFTP = { request, progress, failure in
+            try await self.connectSFTP(request.withKeyboardInteractiveFallback(handler), progress, failure)
+        }
+        return services
+    }
 }

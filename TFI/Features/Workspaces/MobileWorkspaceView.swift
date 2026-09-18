@@ -692,7 +692,8 @@ struct MobileWorkspaceView: View {
                     passphrase: passphrase, keyID: key, save: save)
             }, accept: { workspace.trustHostKey(remember: $0) }, retry: { workspace.connect() },
             retryReconnectNow: { workspace.retryReconnectNow() },
-            stopReconnecting: { workspace.stopReconnecting() }, cancel: { closeWorkspace(workspace.id) })
+            stopReconnecting: { workspace.stopReconnecting() }, cancel: { closeWorkspace(workspace.id) },
+            keyboardAuthentication: workspace.keyboardAuthentication)
     }
 }
 

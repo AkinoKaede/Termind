@@ -20,7 +20,11 @@ public actor SSHForwardingSession {
     }
 
     public func connect(_ configuration: SSHConnectionConfiguration) async throws {
-        try await worker.connect(configuration)
+        try await connect(SSHConnectionRequest(configuration: configuration))
+    }
+
+    public func connect(_ request: SSHConnectionRequest) async throws {
+        try await worker.connect(request)
     }
 
     public func start(_ rule: PortForwardingRule) async throws {
@@ -89,49 +93,22 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         self.failureHandler = failureHandler
     }
 
-    public func connect(_ configuration: SSHConnectionConfiguration) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async { [self] in
-                do {
-                    cleanup()
-                    routeTransport = try SSHRoutedSocket.open(
-                        host: configuration.host, port: configuration.port,
-                        proxy: configuration.proxy, jumps: configuration.jumps, timeout: 20
-                    )
-                    guard let routeTransport else { throw TermindSSHError.disconnected }
-                    socket = routeTransport.socket
-                    guard let created = libssh2_session_init_ex(nil, nil, nil, nil) else {
-                        throw TermindSSHError.library(String(localized: "Unable to create an SSH forwarding session."))
-                    }
-                    session = created
-                    libssh2_session_set_blocking(created, 1)
-                    try SSHSessionWorker.performHandshake(
-                        created, socket: socket,
-                        peer: SSHSocketConnector.peerDescription(
-                            socket: socket,
-                            fallbackHost: configuration.host,
-                            port: configuration.port
-                        )
-                    )
-                    let observed = try SSHSessionWorker.observation(
-                        host: configuration.host, port: configuration.port, session: created
-                    )
-                    try SSHSessionWorker.validateHostKey(
-                        observed, expected: configuration.expectedHostKeys
-                    )
-                    try SSHSessionWorker.authenticate(
-                        username: configuration.username,
-                        credentials: configuration.credentials, session: created
-                    )
-                    libssh2_session_set_blocking(created, 0)
-                    libssh2_keepalive_config(created, 1, 20)
-                    startTimer()
-                    continuation.resume()
-                } catch {
-                    cleanup()
-                    continuation.resume(throwing: error)
-                }
+    public func connect(_ request: SSHConnectionRequest) async throws {
+        await queue.perform { self.cleanup() }
+        let opened = try await SSHSessionWorker.openAuthenticatedSession(using: request, timeout: 20)
+        do {
+            await queue.perform {
+                self.routeTransport = opened.transport
+                self.socket = opened.transport.socket
+                self.session = opened.session
+                libssh2_session_set_blocking(opened.session, 0)
+                libssh2_keepalive_config(opened.session, 1, 20)
+                self.startTimer()
             }
+            try Task.checkCancellation()
+        } catch {
+            await queue.perform { self.cleanup() }
+            throw error
         }
     }
 

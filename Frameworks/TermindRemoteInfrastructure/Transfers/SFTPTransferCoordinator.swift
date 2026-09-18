@@ -396,7 +396,7 @@ public final class SFTPTransferCoordinator {
             do {
                 if let id = runtime.connection.borrowedID { try await reserveBorrowedConnection(id) }
                 defer { if let id = runtime.connection.borrowedID { releaseBorrowedConnections([id]) } }
-                let lease = try await clientLease(for: runtime.connection)
+                let lease = try await clientLease(for: runtime.connection, allowsAuthentication: false)
                 do { try await runtime.resume.cleanup(using: lease.client) } catch {
                     await lease.disconnect()
                     throw error
@@ -489,7 +489,7 @@ public final class SFTPTransferCoordinator {
             var lease: ClientLease?
             var result: SFTPTransfer.State
             do {
-                let acquired = try await clientLease(for: runtime.connection)
+                let acquired = try await clientLease(for: runtime.connection, cancellation: runtime.cancellation)
                 lease = acquired
                 let client = acquired.client
                 let progress: @Sendable (SFTPProgress) -> Void = { [weak self] value in
@@ -579,10 +579,11 @@ public final class SFTPTransferCoordinator {
             var destinationLease: ClientLease?
             let result: SFTPTransfer.State
             do {
-                let acquiredSource = try await clientLease(for: runtime.sourceConnection)
+                let acquiredSource = try await clientLease(
+                    for: runtime.sourceConnection, cancellation: runtime.cancellation)
                 sourceLease = acquiredSource
                 let acquiredDestination = try await clientLease(
-                    for: runtime.destinationConnection
+                    for: runtime.destinationConnection, cancellation: runtime.cancellation
                 )
                 destinationLease = acquiredDestination
                 let progress: @Sendable (SFTPProgress) -> Void = { [weak self] value in
@@ -629,13 +630,32 @@ public final class SFTPTransferCoordinator {
     }
 
     private func clientLease(
-        for connection: SFTPTransferConnection
+        for connection: SFTPTransferConnection, cancellation: TransferCancellationToken? = nil,
+        allowsAuthentication: Bool = true
     ) async throws -> ClientLease {
         switch connection {
         case .saved(let configuration):
             let client = clientFactory()
             do {
-                try await client.connect(using: configuration, progress: nil)
+                var request = SSHConnectionRequest(configuration: configuration)
+                if !allowsAuthentication {
+                    // Cleanup after cancellation must not start another user interaction.
+                    // If fresh MFA is required, retain the existing cleanup-failure report.
+                    request.keyboardInteractive = { _ in throw CancellationError() }
+                }
+                let openingRequest = request
+                let opening = Task {
+                    try await client.connect(using: openingRequest, progress: nil, connectionFailure: nil)
+                }
+                let observer = cancellation?.observeCancellation { opening.cancel() }
+                defer { if let observer { cancellation?.removeObserver(observer) } }
+                try await withTaskCancellationHandler {
+                    try await opening.value
+                    try Task.checkCancellation()
+                    if cancellation?.isCancelled == true { throw CancellationError() }
+                } onCancel: {
+                    opening.cancel()
+                }
             } catch {
                 await client.disconnect()
                 throw error

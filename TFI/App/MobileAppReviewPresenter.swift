@@ -26,6 +26,7 @@ struct MobileAppReviewPresenter: ViewModifier {
                         || scene.renamingWorkspace != nil
                         || scene.isWorkspaceUnavailable
                         || app.error != nil
+                        || app.keyboardAuthentication.current != nil
                         || app.pro.isPaywallPresented
                         || app.pro.isProcessing,
                     request: { requestReview() }

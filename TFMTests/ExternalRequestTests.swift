@@ -17,6 +17,46 @@ import struct TermindDomain.Host
 @Suite(.serialized)
 @MainActor
 struct ExternalAuthCoordinatorTests {
+    @Test func interactiveResponsesAreScopedAndInformationalRoundsComplete() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let challenge = SSHKeyboardInteractiveChallenge(
+            connectionID: UUID(), hostID: UUID(), hostname: "server.example", port: 22,
+            username: "deploy", round: 1, name: "PAM", instruction: "OTP",
+            prompts: [.init(text: "Code", echo: false)]
+        )
+        let task = Task { try await coordinator.keyboardInteractive(challenge) }
+        for _ in 0..<1_000 where coordinator.current == nil { await Task.yield() }
+        #expect(coordinator.current?.id == challenge.id)
+        coordinator.respondSSH(.keyboardInteractive(["stale"]), requestID: UUID())
+        #expect(coordinator.current?.id == challenge.id)
+        coordinator.respondSSH(.keyboardInteractive(["123456"]), requestID: challenge.id)
+        #expect(try await task.value == ["123456"])
+        var notice = challenge
+        notice.id = UUID()
+        notice.prompts = []
+        #expect(try await coordinator.keyboardInteractive(notice) == [])
+        #expect(coordinator.current == nil)
+    }
+
+    @Test func stoppingMCPPreservesAppAuthentication() async throws {
+        let coordinator = ExternalAuthCoordinator()
+        let challenge = SSHKeyboardInteractiveChallenge(
+            connectionID: UUID(), hostID: UUID(), hostname: "server.example", port: 22,
+            username: "deploy", round: 1, name: "PAM", instruction: "OTP",
+            prompts: [.init(text: "Code", echo: false)]
+        )
+        let appTask = Task { try await coordinator.keyboardInteractive(challenge) }
+        let externalTask = Task {
+            await coordinator.enqueue(authenticationRequest(name: "MCP"), clientName: "Termind", runID: UUID())
+        }
+        try await waitUntil { coordinator.pending.count == 2 }
+        coordinator.cancelExternalRequests()
+        #expect(await externalTask.value == .cancelled)
+        #expect(coordinator.pending.map(\.id) == [challenge.id])
+        coordinator.respondSSH(.keyboardInteractive(["123456"]), requestID: challenge.id)
+        #expect(try await appTask.value == ["123456"])
+    }
+
     @Test
     func authenticationWindowUsesFocusableNativeChrome() {
         let window = NSWindow(

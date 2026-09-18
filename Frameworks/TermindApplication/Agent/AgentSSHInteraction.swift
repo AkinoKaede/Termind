@@ -11,6 +11,7 @@ import struct TermindDomain.Host
 nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable, Sendable {
     public nonisolated enum Mode: Hashable, Sendable {
         case identity
+        case keyboardInteractive(SSHKeyboardInteractiveChallenge)
         case passphrase(keyID: SSHKeyRef.ID)
     }
 
@@ -30,6 +31,10 @@ nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable,
         if case .passphrase = mode { true } else { false }
     }
 
+    public var keyboardInteractive: SSHKeyboardInteractiveChallenge? {
+        if case .keyboardInteractive(let challenge) = mode { challenge } else { nil }
+    }
+
     public var journeyPrompt: SSHAuthenticationPrompt {
         SSHAuthenticationPrompt(
             host: Host(id: hostID, name: displayName, host: address),
@@ -38,7 +43,8 @@ nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable,
             selectedKeyID: selectedKeyID,
             failureMessage: failureMessage,
             requiresPassphrase: requiresPassphrase,
-            mode: failureMessage == nil ? .localIdentity : .serverChallenge
+            mode: failureMessage == nil ? .localIdentity : .serverChallenge,
+            keyboardInteractive: keyboardInteractive
         )
     }
 
@@ -88,6 +94,7 @@ nonisolated public struct AgentSSHAuthenticationAnswer: Hashable, Sendable {
 
 nonisolated public enum AgentSSHAuthenticationResponse: Hashable, Sendable {
     case submit(AgentSSHAuthenticationAnswer)
+    case keyboardInteractive([String])
     case cancelled
 }
 
@@ -156,6 +163,22 @@ nonisolated public struct AgentSSHInteraction: Sendable {
     public static let unavailable = AgentSSHInteraction(
         authenticate: { _ in .cancelled }, confirmHostKey: { _ in .deny }
     )
+
+    public func respondToChallenge(
+        _ challenge: SSHKeyboardInteractiveChallenge, invocationID: AgentToolInvocation.ID
+    ) async throws -> [String] {
+        try Task.checkCancellation()
+        let response = await authenticate(
+            AgentSSHAuthenticationRequest(
+                id: challenge.id, invocationID: invocationID, hostID: challenge.hostID,
+                displayName: challenge.hostname, address: challenge.address,
+                mode: .keyboardInteractive(challenge), username: challenge.username
+            )
+        )
+        try Task.checkCancellation()
+        guard case .keyboardInteractive(let answers) = response else { throw CancellationError() }
+        return answers
+    }
 
     public init(authenticate: @escaping Authenticating, confirmHostKey: @escaping HostKeyConfirming) {
         self.authenticate = authenticate

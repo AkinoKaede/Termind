@@ -366,7 +366,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             identity.keyID.flatMap { key($0) }.map {
                 keyAvailability(for: $0) == .available
             } == true
-        guard hasAvailablePassword || hasUsableKey else {
+        guard !identity.hasSecret || hasAvailablePassword || hasUsableKey else {
             return String(localized: "No saved credential")
         }
         let knownHosts = knownHosts(for: host)
@@ -453,7 +453,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             }
             credentials = resolution.credentials
         }
-        guard !credentials.isEmpty else { throw TermindSSHError.missingCredential }
+        let expectsCredential =
+            submissions[host.id].map { $0.keyID != nil || $0.password != nil }
+            ?? (identity(for: host)?.hasSecret == true)
+        if credentials.isEmpty, expectsCredential { throw TermindSSHError.missingCredential }
         let expectedHostKeys = try expectedHostKeys(
             for: host, temporaryHostKeys: temporaryHostKeys,
             trustPolicy: trustPolicy
@@ -553,7 +556,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard resolution.requiredPassphraseKeyID == nil else {
             throw TermindSSHError.keyPassphraseRequired
         }
-        guard !resolution.credentials.isEmpty else { throw TermindSSHError.missingCredential }
+        guard !identity.hasSecret || !resolution.credentials.isEmpty else { throw TermindSSHError.missingCredential }
         return SSHRouteHopConfiguration(
             id: host.id, name: host.name, host: host.host, port: host.port,
             username: username, credentials: resolution.credentials,
@@ -579,7 +582,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         let credentials = try sshCredentials(
             for: submission, accessedIdentityIDs: &accessedIdentityIDs
         )
-        guard !credentials.isEmpty else { throw TermindSSHError.missingCredential }
+        guard submission.keyID == nil || !credentials.isEmpty else { throw TermindSSHError.missingCredential }
         return SSHRouteHopConfiguration(
             id: host.id, name: host.name, host: host.host, port: host.port,
             username: username, credentials: credentials,

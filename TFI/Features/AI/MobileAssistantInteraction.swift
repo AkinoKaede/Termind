@@ -504,9 +504,14 @@ private struct MobileAssistantAuthenticationForm: View {
                     .submit(
                         .init(
                             identityID: identity, identityName: nil,
-                            username: username, password: password, passphrase: passphrase, keyID: key, save: save)))
-            }, cancel: { conversation.respondToSSHAuthentication(.cancelled) }, usesContainerChrome: false,
-            library: hosts
+                            username: username, password: password, passphrase: passphrase, keyID: key, save: save)),
+                    requestID: request.id)
+            }, cancel: { conversation.respondToSSHAuthentication(.cancelled, requestID: request.id) },
+            usesContainerChrome: false,
+            library: hosts,
+            respondKeyboardInteractive: {
+                conversation.respondToSSHAuthentication(.keyboardInteractive($0), requestID: request.id)
+            }
         )
         .id(request.id)
     }

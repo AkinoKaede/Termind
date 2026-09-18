@@ -49,6 +49,7 @@ public nonisolated enum PortForwardingRuntimeState: Hashable, Sendable {
 @Observable
 public final class PortForwardingController {
     private let hosts: HostLibraryModel
+    private let keyboardInteractive: SSHKeyboardInteractiveHandler?
     private let defaults: UserDefaults?
     private let enabledDefaultsKey: String
     public private(set) var states: [PortForwardingRule.ID: PortForwardingRuntimeState] = [:]
@@ -69,9 +70,11 @@ public final class PortForwardingController {
 
     public init(
         hosts: HostLibraryModel, defaults: UserDefaults? = nil,
-        enabledDefaultsKey: String = SettingsKey.portForwardingEnabledRuleIDs
+        enabledDefaultsKey: String = SettingsKey.portForwardingEnabledRuleIDs,
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
     ) {
         self.hosts = hosts
+        self.keyboardInteractive = keyboardInteractive
         self.defaults = defaults
         self.enabledDefaultsKey = enabledDefaultsKey
         enabled = Set(
@@ -225,7 +228,8 @@ public final class PortForwardingController {
                 states[rule.id] = .connecting
                 let task = Task {
                     let configuration = try hosts.sshConnectionConfiguration(for: host)
-                    try await created.connect(configuration)
+                    try await created.connect(
+                        SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive))
                 }
                 connectionTasks[host.id] = task
                 do { try await task.value } catch {

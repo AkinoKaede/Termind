@@ -152,7 +152,10 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             }
         }
         if result.isEmpty, let retrievalFailure { throw retrievalFailure }
-        guard !result.isEmpty else { throw TermindSSHError.missingCredential }
+        let usesIdentity = node.submission == nil || node.submission?.identityID != nil
+        if result.isEmpty, node.key != nil || (usesIdentity && node.identity?.hasSecret == true) {
+            throw TermindSSHError.missingCredential
+        }
         return (username, result)
     }
 

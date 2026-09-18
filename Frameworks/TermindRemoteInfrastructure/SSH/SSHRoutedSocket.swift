@@ -115,10 +115,16 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         host: String, port: Int, proxy: SSHTransportProxy?,
         jumps: [SSHRouteHopConfiguration], timeout: TimeInterval,
         progress: SSHRouteProgressHandler? = nil,
-        authorizeHostKey: SSHHostKeyAuthorizer?
+        authorizeHostKey: SSHHostKeyAuthorizer?,
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
     ) async throws -> SSHRoutedSocket {
         let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.route-opening")
         let state = SSHRouteOpeningState()
+        let exchange = SSHKeyboardInteractiveExchange(
+            configuration: SSHConnectionConfiguration(
+                hostID: UUID(), host: host, port: port, username: "", credentials: [], expectedHostKeys: []
+            ), handler: keyboardInteractive
+        )
         return try await withTaskCancellationHandler {
             do {
                 try await queue.perform {
@@ -152,7 +158,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                                 destinationProxy: proxy, jumps: jumps,
                                 index: index, timeout: timeout,
                                 afterHostKeyApproval: requiredApproval,
-                                progress: progress
+                                progress: progress, keyboardInteractive: exchange
                             )
                         }
                     } catch is CancellationError {
@@ -168,6 +174,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                 throw error
             }
         } onCancel: {
+            exchange.cancel()
             state.cancel()
             queue.async { state.cleanup() }
         }
@@ -300,14 +307,16 @@ private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
         destinationProxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration],
         index: Int, timeout: TimeInterval,
         afterHostKeyApproval: Bool,
-        progress: SSHRouteProgressHandler?
+        progress: SSHRouteProgressHandler?, keyboardInteractive: SSHKeyboardInteractiveExchange
     ) throws {
+        keyboardInteractive.setHop(hop)
         guard let session = pendingSession else { throw TermindSSHError.disconnected }
         progress?(.authenticating(hop.id))
         try SSHSessionWorker.authenticate(
             username: hop.username, credentials: hop.credentials,
             session: session,
-            afterHostKeyApproval: afterHostKeyApproval
+            afterHostKeyApproval: afterHostKeyApproval,
+            keyboardInteractive: keyboardInteractive, socket: currentSocket
         )
         progress?(.authenticated(hop.id))
 

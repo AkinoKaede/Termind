@@ -164,7 +164,7 @@ final class MCPServerController {
         await tools.stopTransfers()
         await protocolServer.stop()
         await http.stop()
-        externalAuthentication.cancelAll()
+        externalAuthentication.cancelExternalRequests()
         connectedClients = 0
         status = .stopped
     }

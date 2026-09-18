@@ -2051,6 +2051,10 @@ public final class ConversationModel: Identifiable {
     ) async -> AgentSSHAuthenticationResponse {
         await withTaskCancellationHandler {
             await withCheckedContinuation {
+                guard !Task.isCancelled else {
+                    $0.resume(returning: .cancelled)
+                    return
+                }
                 sshAuthenticationWaiters[request.id] = $0
                 let index = pendingSSHAuthentications.firstIndex {
                     $0.createdAt > request.createdAt
@@ -2059,15 +2063,24 @@ public final class ConversationModel: Identifiable {
                     request, at: index ?? pendingSSHAuthentications.endIndex
                 )
                 setToolState(request.invocationID, .waitingForUser)
+                if request.keyboardInteractive?.prompts.isEmpty == true {
+                    Task { [weak self] in
+                        await Task.yield()
+                        self?.respondToSSHAuthentication(.keyboardInteractive([]), requestID: request.id)
+                    }
+                }
             }
         } onCancel: {
             Task { @MainActor [weak self] in self?.cancelSSHAuthentication(request.id) }
         }
     }
 
-    public func respondToSSHAuthentication(_ response: AgentSSHAuthenticationResponse) {
-        guard !pendingSSHAuthentications.isEmpty else { return }
-        let request = pendingSSHAuthentications.removeFirst()
+    public func respondToSSHAuthentication(_ response: AgentSSHAuthenticationResponse, requestID: UUID? = nil) {
+        guard
+            let index = requestID.map({ id in pendingSSHAuthentications.firstIndex { $0.id == id } })
+                ?? (pendingSSHAuthentications.isEmpty ? nil : 0)
+        else { return }
+        let request = pendingSSHAuthentications.remove(at: index)
         setToolState(request.invocationID, .running)
         sshAuthenticationWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }

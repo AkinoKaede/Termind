@@ -544,7 +544,7 @@ final class SSHSessionModel: Identifiable {
             credentialFailures = resolution.failures
             hasConfiguredCredential = resolution.hasConfiguredCredential
         }
-        if credentials.isEmpty, suppliedAuthentication == nil {
+        if credentials.isEmpty, suppliedAuthentication == nil, hasConfiguredCredential {
             requestAuthentication(
                 for: host, username: username,
                 selectedKeyID: selectedKeyID,
@@ -856,7 +856,11 @@ final class SSHSessionModel: Identifiable {
             try await actor.connect(
                 using: SSHConnectionRequest(
                     configuration: configuration,
-                    authorizeHostKey: authorizeHostKey
+                    authorizeHostKey: authorizeHostKey,
+                    keyboardInteractive: { [weak self] challenge in
+                        guard let self, await self.connectionAttemptID == attemptID else { throw CancellationError() }
+                        return try await self.connection.answerKeyboardInteractive(challenge)
+                    }
                 ),
                 shellIntegrationEnabled: DesktopSettingsKey.isShellIntegrationEnabled,
                 columns: latestViewport.columns, rows: latestViewport.rows,

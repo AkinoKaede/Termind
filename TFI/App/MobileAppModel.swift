@@ -66,6 +66,11 @@ final class MobileAppModel {
     @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
     private let defaults: UserDefaults?
     private let snippetTimestampFallback: Date
+    let keyboardAuthentication: SSHKeyboardInteractiveQueue
+    var keyboardAuthenticationSceneID: UUID? {
+        scenePhases.filter { $0.value == .active }.keys.sorted { $0.uuidString < $1.uuidString }.first
+    }
+
     private let background: any MobileBackgroundTaskManaging
     private let workspaceConnectionServices: MobileWorkspaceConnectionServices
     private let workspaceStore: MobileWorkspaceStore
@@ -100,7 +105,10 @@ final class MobileAppModel {
         let inMemory = dependencies.inMemory
         let defaults = dependencies.defaults
         let background = dependencies.background
-        let workspaceConnectionServices = dependencies.workspaceConnections
+        let keyboardAuthentication = SSHKeyboardInteractiveQueue()
+        self.keyboardAuthentication = keyboardAuthentication
+        let workspaceConnectionServices = dependencies.workspaceConnections.withKeyboardInteractive(
+            keyboardAuthentication.handler)
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
         workspaceStore =
@@ -164,7 +172,9 @@ final class MobileAppModel {
         memory = MemoryModel(
             storage: GRDBMemoryStore(directory: GRDBMemoryStore.defaultDirectory), defaults: settingsDefaults)
         library = HostLibraryModel(persistence: persistence, secrets: secrets)
-        metrics = MobileMetricsModel(preferences: metricsPersistence, hosts: library, services: dependencies.metrics)
+        metrics = MobileMetricsModel(
+            preferences: metricsPersistence, hosts: library, services: dependencies.metrics,
+            keyboardInteractive: keyboardAuthentication.handler)
         let speechAudio = IOSSpeechAudioInput()
         let speech = SpeechTranscriptionCoordinator(
             service: AppleSpeechTranscriptionService(audioInput: speechAudio)
@@ -184,8 +194,11 @@ final class MobileAppModel {
         snippets = SnippetLibraryModel(library: library)
         knownHosts = KnownHostsLibraryModel(library: library)
         forwardingLibrary = ForwardingLibraryModel(library: library)
-        forwardings = PortForwardingController(hosts: library, defaults: dependencies.forwardingDefaults)
-        transfers = SFTPTransferCoordinator(store: library, clientFactory: { SFTPClient() })
+        forwardings = PortForwardingController(
+            hosts: library, defaults: dependencies.forwardingDefaults,
+            keyboardInteractive: keyboardAuthentication.handler)
+        transfers = SFTPTransferCoordinator(
+            store: library, clientFactory: { SFTPClient(keyboardInteractive: keyboardAuthentication.handler) })
         sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
         library.willDeleteHost = { [weak sftpEdits] hostID, _ in sftpEdits?.invalidate(hostID: hostID) }
         library.willDeletePortForwardings = { [weak forwardings] ids in forwardings?.suspend(ids) }
@@ -205,6 +218,7 @@ final class MobileAppModel {
                 guard let self else { return }
                 sftpEdits.invalidate(hostID: payload.hostID)
                 transfers.cancelAll(for: payload.hostID)
+                keyboardAuthentication.cancelAll(hostID: payload.hostID)
             },
             stopForwardings: { [weak forwardings] payload in
                 forwardings?.remove(payload.forwardingRuleIDs)
@@ -296,6 +310,7 @@ final class MobileAppModel {
             for workspace in workspaces.filter({ $0.descriptor.hostID == id }) { close(workspace.id) }
             sftpEdits.invalidate(hostID: id)
             transfers.cancelAll(for: id)
+            keyboardAuthentication.cancelAll(hostID: id)
             forwardings.remove(library.portForwardings(for: id).map(\.id))
             metrics.remove(id)
             try hosts.requestHostDeletion(id)
@@ -331,6 +346,7 @@ final class MobileAppModel {
                 for workspace in workspaces { workspace.suspendForBackgroundExpiration() }
                 forwardings.suspendAll()
                 transfers.pauseAll()
+                keyboardAuthentication.cancelAll()
                 assistant.expireBackground()
             }
             liveActivities.update(workspaceActivitySessions)
@@ -385,6 +401,7 @@ final class MobileAppModel {
                     if change.isRemoved { close(workspace.id) } else { workspace.disconnect() }
                 }
                 transfers.cancelAll(for: change.id)
+                keyboardAuthentication.cancelAll(hostID: change.id)
                 forwardings.suspend(library.portForwardings(for: change.id).map(\.id))
             }
             if change.isRemoved {

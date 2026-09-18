@@ -61,6 +61,23 @@ struct MobileRootView: View {
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {
             MobileProView(pro: app.pro)
         }
+        .sheet(
+            isPresented: Binding(
+                get: { app.keyboardAuthentication.current != nil && app.keyboardAuthenticationSceneID == scene.id },
+                set: { _ in }
+            )
+        ) {
+            if let challenge = app.keyboardAuthentication.current {
+                SSHKeyboardInteractiveForm(
+                    challenge: challenge,
+                    submit: { app.keyboardAuthentication.respond(challenge.id, answers: $0) },
+                    cancel: { app.keyboardAuthentication.cancel(challenge.id) }
+                )
+                .id(challenge.id)
+                .padding(24)
+                .interactiveDismissDisabled()
+            }
+        }
         .sheet(item: $scene.renamingWorkspace) { workspace in
             MobileWorkspaceRenameView(workspace: workspace) { title in
                 app.renameWorkspace(workspace.id, to: title)

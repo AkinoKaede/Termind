@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 import UIKit
 
@@ -9,6 +10,33 @@ import UIKit
 /// Opt-in native screenshots cover the connection states without opening a transport.
 @Suite(.serialized) @MainActor
 struct MobileConnectionJourneyRenderingTests {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func rendersInteractiveAuthentication(_ language: String) async throws {
+        let host = TermindDomain.Host(name: "Production Gateway", host: "gateway.example.invalid")
+        let library = HostLibraryModel(hosts: [host])
+        let journey = ConnectionJourney()
+        journey.begin(host: host, route: [host], purpose: .sshSession, username: "deploy")
+        journey.waitForAuthentication(at: host.id)
+        let queue = SSHKeyboardInteractiveQueue()
+        let challenge = SSHKeyboardInteractiveChallenge(
+            connectionID: UUID(), hostID: host.id, hostname: host.host, port: 22,
+            username: "deploy", round: 1, name: "PAM", instruction: "Enter your account and verification code.",
+            prompts: [.init(text: "Account", echo: true), .init(text: "Verification code", echo: false)])
+        let request = Task { try await queue.request(challenge) }
+        defer {
+            queue.cancel(challenge.id)
+            request.cancel()
+        }
+        for _ in 0..<100 where queue.current == nil { await Task.yield() }
+        _ = try #require(queue.current)
+        try await capture(
+            "keyboard-interactive", language: language, scheme: .light,
+            view: MobileConnectionJourneyView(
+                journey: journey, library: library, authenticationPrompt: nil, hostKey: nil,
+                reconnectState: nil, submit: { _, _, _, _, _, _ in }, accept: { _ in }, retry: {},
+                retryReconnectNow: {}, stopReconnecting: {}, cancel: {}, keyboardAuthentication: queue))
+    }
+
     @Test func renderConnectionJourneyStates() async throws {
         guard ProcessInfo.processInfo.environment["TERMIND_JOURNEY_SCREENSHOTS"] == "1" else { return }
         let host = TermindDomain.Host(name: "Production Gateway", host: "gateway.example.invalid")
@@ -83,6 +111,7 @@ struct MobileConnectionJourneyRenderingTests {
         }
         let data = try #require(image.pngData())
         #expect(data.count > 10_000)
+        Attachment.record(data, named: "\(name)-\(language)-\(scheme == .dark ? "dark" : "light").png")
         let directory = FileManager.default.temporaryDirectory.appending(path: "journey-screenshots")
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let device = UIDevice.current.userInterfaceIdiom == .pad ? "ipad" : "iphone"

@@ -561,11 +561,14 @@ public actor SSHSessionActor {
     public typealias ShellIntegrationHandler = @Sendable (SSHShellIntegrationEvent) -> Void
 
     private let worker: SSHSessionWorker
+    private let keyboardInteractive: SSHKeyboardInteractiveHandler?
 
     public init(
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
-        shellIntegration: @escaping ShellIntegrationHandler = { _ in }
+        shellIntegration: @escaping ShellIntegrationHandler = { _ in },
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
     ) {
+        self.keyboardInteractive = keyboardInteractive
         worker = SSHSessionWorker(
             output: output, exit: exit, shellIntegrationHandler: shellIntegration
         )
@@ -578,9 +581,14 @@ public actor SSHSessionActor {
         _ publicKey: String, named keyName: String,
         using configuration: SSHConnectionConfiguration
     ) async throws {
-        try await SSHSessionWorker.installAuthorizedKey(
-            publicKey, named: keyName, using: configuration
-        )
+        try await installAuthorizedKey(
+            publicKey, named: keyName, using: SSHConnectionRequest(configuration: configuration))
+    }
+
+    public static func installAuthorizedKey(
+        _ publicKey: String, named keyName: String, using request: SSHConnectionRequest
+    ) async throws {
+        try await SSHSessionWorker.installAuthorizedKey(publicKey, named: keyName, using: request)
     }
 
     public func connect(
@@ -617,7 +625,7 @@ public actor SSHSessionActor {
         progress: SSHRouteProgressHandler? = nil
     ) async throws {
         try await worker.connect(
-            using: request,
+            using: request.withKeyboardInteractiveFallback(keyboardInteractive),
             shellIntegrationEnabled: shellIntegrationEnabled,
             columns: columns, rows: rows, progress: progress
         )
@@ -738,9 +746,12 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             host: configuration.host, port: configuration.port,
             proxy: configuration.proxy, jumps: configuration.jumps,
             timeout: timeout, progress: progress,
-            authorizeHostKey: request.authorizeHostKey
+            authorizeHostKey: request.authorizeHostKey,
+            keyboardInteractive: request.keyboardInteractive
         )
         let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.authenticated-opening")
+        let exchange = SSHKeyboardInteractiveExchange(
+            configuration: configuration, handler: request.keyboardInteractive)
         let state = SSHAuthenticatedOpeningState(transport: transport)
         return try await withTaskCancellationHandler {
             do {
@@ -761,7 +772,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                     try state.authenticate(
                         configuration: configuration,
                         afterHostKeyApproval: requiredApproval,
-                        progress: progress
+                        progress: progress, keyboardInteractive: exchange
                     )
                 }
                 return try await queue.perform { try state.takeResult() }
@@ -770,6 +781,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 throw error
             }
         } onCancel: {
+            exchange.cancel()
             state.cancel()
             queue.async { state.cleanup() }
         }
@@ -777,22 +789,19 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
 
     public static func installAuthorizedKey(
         _ publicKey: String, named keyName: String,
-        using configuration: SSHConnectionConfiguration
+        using request: SSHConnectionRequest
     ) async throws {
         _ = initialization
         let input = try authorizedKeyInstallInput(publicKey: publicKey, keyName: keyName)
-
-        try await withCheckedThrowingContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    try installAuthorizedKeyBlocking(
-                        input, using: configuration
-                    )
-                    continuation.resume()
-                } catch {
-                    continuation.resume(throwing: error)
-                }
+        let opened = try await openAuthenticatedSession(using: request, timeout: 20)
+        let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.key-export")
+        let interruption = SSHKeyExportInterruption(socket: opened.transport.socket)
+        try await withTaskCancellationHandler {
+            try await queue.perform {
+                try installAuthorizedKeyBlocking(input, opened: opened, interruption: interruption)
             }
+        } onCancel: {
+            interruption.cancel()
         }
     }
 
@@ -800,11 +809,10 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     /// the OpenSSH directory with restrictive permissions and performs an exact
     /// line check before appending, making repeated exports idempotent.
     private static func installAuthorizedKeyBlocking(
-        _ input: Data, using configuration: SSHConnectionConfiguration
+        _ input: Data, opened: SSHOpenedSession, interruption: SSHKeyExportInterruption
     ) throws {
-        let (transport, created) = try openAuthenticatedSession(
-            using: configuration, timeout: 20
-        )
+        let transport = opened.transport
+        let created = opened.session
         var channel: OpaquePointer?
         defer {
             if let channel {
@@ -816,6 +824,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 created, SSH_DISCONNECT_BY_APPLICATION, "Termind completed key export", ""
             )
             _ = libssh2_session_free(created)
+            interruption.finish()
             transport.close()
         }
 
@@ -1000,17 +1009,45 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     }
 
     public static func authenticate(
-        username: String, credentials: [SSHCredentials], session: OpaquePointer
+        username: String, credentials: [SSHCredentials], session: OpaquePointer,
+        keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1
     ) throws {
-        let methods = try authenticationMethods(username: username, session: session)
+        var methods = try authenticationMethods(username: username, session: session)
         // Asking for the method list sends SSH's `none` authentication request.
         // Servers that need no credential accept it there and report the
         // session as authenticated without another userauth call.
         if libssh2_userauth_authenticated(session) == 1 { return }
         var attempted = false
         var secureEnclaveError: (any Error)?
-        for credentials in credentials {
-            switch credentials {
+        var remaining = credentials
+        var attemptedInteractive = false
+        while true {
+            guard
+                let index = remaining.firstIndex(where: { credential in
+                    switch credential {
+                    case .password: methods.contains("password")
+                    case .privateKey, .secureEnclave: methods.contains("publickey")
+                    }
+                })
+            else {
+                guard !attemptedInteractive, methods.contains("keyboard-interactive"), let keyboardInteractive else {
+                    break
+                }
+                attempted = true
+                attemptedInteractive = true
+                let result = Self.keyboardInteractive(
+                    username: username, exchange: keyboardInteractive, session: session, socket: socket
+                )
+                try keyboardInteractive.checkCancellation()
+                if let error = keyboardInteractive.error { throw error }
+                if result == 0 { return }
+                methods = try authenticationMethods(username: username, session: session)
+                if libssh2_userauth_authenticated(session) == 1 { return }
+                continue
+            }
+            try keyboardInteractive?.checkCancellation()
+            let credential = remaining.remove(at: index)
+            switch credential {
             case .password(let password):
                 if methods.contains("password") {
                     attempted = true
@@ -1023,14 +1060,6 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                         }
                     }
                     if result == 0 { return }
-                }
-                if methods.contains("keyboard-interactive") {
-                    attempted = true
-                    if keyboardInteractive(
-                        username: username, password: password, session: session
-                    ) == 0 {
-                        return
-                    }
                 }
             case .privateKey(let privateKey, let publicKey, let passphrase):
                 guard methods.contains("publickey") else { continue }
@@ -1083,6 +1112,8 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 if result == 0 { return }
                 secureEnclaveError = signer.error
             }
+            methods = try authenticationMethods(username: username, session: session)
+            if libssh2_userauth_authenticated(session) == 1 { return }
         }
         if let secureEnclaveError {
             throw TermindSSHError.authenticationFailed(secureEnclaveError.localizedDescription)
@@ -1099,14 +1130,16 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
 
     public static func authenticate(
         username: String, credentials: [SSHCredentials],
-        session: OpaquePointer, afterHostKeyApproval: Bool
+        session: OpaquePointer, afterHostKeyApproval: Bool,
+        keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1
     ) throws {
         do {
             try authenticate(
                 username: username, credentials: credentials,
-                session: session
+                session: session, keyboardInteractive: keyboardInteractive, socket: socket
             )
         } catch {
+            if error is CancellationError || keyboardInteractive?.error != nil { throw error }
             let code = libssh2_session_last_errno(session)
             if afterHostKeyApproval,
                 code == LIBSSH2_ERROR_SOCKET_DISCONNECT
@@ -1143,13 +1176,17 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     }
 
     private static func keyboardInteractive(
-        username: String, password: String, session: OpaquePointer
+        username: String, exchange: SSHKeyboardInteractiveExchange, session: OpaquePointer, socket: Int32
     ) -> Int32 {
-        let box = Unmanaged.passRetained(SSHKeyboardPassword(password))
+        let callback = SSHKeyboardInteractiveCallback(exchange: exchange, session: session, socket: socket)
+        let box = Unmanaged.passRetained(callback)
         let abstract = libssh2_session_abstract(session)
+        let previous = abstract?.pointee
+        let timeout = libssh2_session_get_timeout(session)
         abstract?.pointee = box.toOpaque()
         defer {
-            abstract?.pointee = nil
+            abstract?.pointee = previous
+            libssh2_session_set_timeout(session, timeout)
             box.release()
         }
         return username.withCString { user in
@@ -1495,7 +1532,7 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
     func authenticate(
         configuration: SSHConnectionConfiguration,
         afterHostKeyApproval: Bool,
-        progress: SSHRouteProgressHandler?
+        progress: SSHRouteProgressHandler?, keyboardInteractive: SSHKeyboardInteractiveExchange
     ) throws {
         guard let session else { throw TermindSSHError.disconnected }
         progress?(.authenticating(configuration.hostID))
@@ -1503,7 +1540,8 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
             username: configuration.username,
             credentials: configuration.credentials,
             session: session,
-            afterHostKeyApproval: afterHostKeyApproval
+            afterHostKeyApproval: afterHostKeyApproval,
+            keyboardInteractive: keyboardInteractive, socket: transport?.socket ?? -1
         )
         progress?(.authenticated(configuration.hostID))
     }
@@ -1574,27 +1612,19 @@ private nonisolated let secureEnclaveSignCallback:
         }
     }
 
-private nonisolated final class SSHKeyboardPassword: @unchecked Sendable {
-    public let value: String
+/// Stops cancellation from shutting down a descriptor after it has been closed
+/// and potentially reused by another operation.
+private nonisolated final class SSHKeyExportInterruption: @unchecked Sendable {
+    private let lock = NSLock()
+    private var socket: Int32
 
-    public init(_ value: String) {
-        self.value = value
-    }
-}
+    init(socket: Int32) { self.socket = socket }
 
-private nonisolated func sshKeyboardInteractiveResponse(
-    _ name: UnsafePointer<CChar>?, _ nameLength: Int32,
-    _ instruction: UnsafePointer<CChar>?, _ instructionLength: Int32,
-    _ promptCount: Int32,
-    _ prompts: UnsafePointer<LIBSSH2_USERAUTH_KBDINT_PROMPT>?,
-    _ responses: UnsafeMutablePointer<LIBSSH2_USERAUTH_KBDINT_RESPONSE>?,
-    _ abstract: UnsafeMutablePointer<UnsafeMutableRawPointer?>?
-) {
-    guard promptCount > 0, let responses, let opaque = abstract?.pointee else { return }
-    let password = Unmanaged<SSHKeyboardPassword>.fromOpaque(opaque)
-        .takeUnretainedValue().value
-    for index in 0..<Int(promptCount) {
-        responses[index].text = password.withCString(Darwin.strdup)
-        responses[index].length = UInt32(password.utf8.count)
+    func cancel() {
+        lock.withLock {
+            if socket >= 0 { _ = Darwin.shutdown(socket, SHUT_RDWR) }
+        }
     }
+
+    func finish() { lock.withLock { socket = -1 } }
 }

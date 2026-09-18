@@ -117,11 +117,14 @@ struct ExternalAuthWindow: View {
                                 passphrase: passphrase, keyID: keyID,
                                 save: request.requiresPassphrase ? false : save
                             )
-                        )
+                        ), requestID: request.id
                     )
                 },
-                cancel: { app.externalAuthentication.respondSSH(.cancelled) },
-                usesContainerChrome: false
+                cancel: { app.externalAuthentication.respondSSH(.cancelled, requestID: request.id) },
+                usesContainerChrome: false,
+                respondKeyboardInteractive: {
+                    app.externalAuthentication.respondSSH(.keyboardInteractive($0), requestID: request.id)
+                }
             )
             .id(pending.id)
         case .secret(let request):

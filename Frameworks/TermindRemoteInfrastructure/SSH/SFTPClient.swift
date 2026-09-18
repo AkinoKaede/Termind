@@ -313,7 +313,10 @@ public actor SFTPClient: SFTPClientProtocol {
             at: path, maximumBytes: maximumBytes, cancellation: cancellation)
         return NativeSFTPDownloadStream(worker: worker, id: id, identity: identity)
     }
-    public init() {}
+    private let keyboardInteractive: SSHKeyboardInteractiveHandler?
+    public init(keyboardInteractive: SSHKeyboardInteractiveHandler? = nil) {
+        self.keyboardInteractive = keyboardInteractive
+    }
     private nonisolated let worker = SFTPWorker()
 
     public func connect(
@@ -321,7 +324,7 @@ public actor SFTPClient: SFTPClientProtocol {
         progress: SSHRouteProgressHandler? = nil
     ) async throws {
         try await worker.connect(
-            using: SSHConnectionRequest(configuration: configuration),
+            using: SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive),
             progress: progress
         )
     }
@@ -343,7 +346,7 @@ public actor SFTPClient: SFTPClientProtocol {
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
         try await worker.connect(
-            using: request, progress: progress,
+            using: request.withKeyboardInteractiveFallback(keyboardInteractive), progress: progress,
             connectionFailure: connectionFailure
         )
     }

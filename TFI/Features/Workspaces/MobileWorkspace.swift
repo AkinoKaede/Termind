@@ -131,6 +131,7 @@ final class MobileWorkspace: Identifiable {
     private var generation = UUID()
     private let hosts: any RemoteSessionHostStore
     private let connectionServices: MobileWorkspaceConnectionServices
+    var keyboardAuthentication: SSHKeyboardInteractiveQueue { connection.keyboardAuthentication }
     private let connection: RemoteSessionConnectionController
     private var viewport = InMemoryTerminalViewport(columns: 80, rows: 24)
 
@@ -572,6 +573,10 @@ final class MobileWorkspace: Identifiable {
                         return await self.connection.authorizeHostKey(
                             challenge, using: hosts
                         )
+                    },
+                    keyboardInteractive: { [weak self] challenge in
+                        guard let self, await self.generation == token else { throw CancellationError() }
+                        return try await self.connection.answerKeyboardInteractive(challenge)
                     }
                 )
 

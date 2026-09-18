@@ -157,6 +157,7 @@ struct ConnectionJourneyView: View {
     var failureCancelLabel: LocalizedStringKey = "Cancel"
     var failureRetryLabel: LocalizedStringKey = "Retry"
     var compactFailureActions = false
+    var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -190,6 +191,14 @@ struct ConnectionJourneyView: View {
     private var content: some View {
         if journey.showsLogs {
             logs
+        } else if let queue = keyboardAuthentication, let challenge = queue.current {
+            SSHKeyboardInteractiveForm(
+                challenge: challenge,
+                submit: { queue.respond(challenge.id, answers: $0) },
+                cancel: { queue.cancel(challenge.id) }, keyboard: DesktopConnectionFormKeyboard()
+            )
+            .id(challenge.id)
+            .connectionFormChrome(isEnabled: true)
         } else if let prompt = authenticationPrompt {
             DesktopSSHAuthenticationForm(
                 prompt: prompt,
@@ -284,11 +293,13 @@ struct DesktopSSHAuthenticationForm: View {
     let submit: (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void
     let cancel: () -> Void
     var usesContainerChrome = true
+    var respondKeyboardInteractive: (([String]) -> Void)? = nil
     @Environment(AppModel.self) private var app
     var body: some View {
         TermindPresentation.SSHAuthenticationForm(
             prompt: prompt, submit: submit, cancel: cancel, usesContainerChrome: false,
-            library: app.hostLibrary, keyboard: DesktopConnectionFormKeyboard()
+            library: app.hostLibrary, keyboard: DesktopConnectionFormKeyboard(),
+            respondKeyboardInteractive: respondKeyboardInteractive
         )
         .connectionFormChrome(isEnabled: usesContainerChrome)
     }

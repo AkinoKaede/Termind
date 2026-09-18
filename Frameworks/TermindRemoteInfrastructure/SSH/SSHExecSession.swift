@@ -75,7 +75,10 @@ nonisolated extension SSHExecSessionProtocol {
 public typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
 
 public actor SSHExecSession: SSHExecSessionProtocol {
-    public init() {}
+    private let keyboardInteractive: SSHKeyboardInteractiveHandler?
+    public init(keyboardInteractive: SSHKeyboardInteractiveHandler? = nil) {
+        self.keyboardInteractive = keyboardInteractive
+    }
     private nonisolated let worker = SSHExecWorker()
 
     public func connect(using configuration: SSHConnectionConfiguration) async throws {
@@ -83,7 +86,7 @@ public actor SSHExecSession: SSHExecSessionProtocol {
     }
 
     public func connect(using request: SSHConnectionRequest) async throws {
-        try await worker.connect(using: request)
+        try await worker.connect(using: request.withKeyboardInteractiveFallback(keyboardInteractive))
     }
 
     /// Actor-isolated, so commands on one session queue behind each other. That

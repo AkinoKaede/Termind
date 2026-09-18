@@ -142,6 +142,27 @@ authentication; callers never perform a separate discovery connection.
 Generation tokens prevent callbacks, credential results, and retry timers from a
 retired connection mutating its replacement.
 
+SSH keyboard-interactive challenges use the same authenticated-opening path for
+PTY, exec, SFTP, forwarding, key installation, and each jump host. The C callback
+waits only on its transport queue while an async, cancellable application responder
+presents the server's literal name, instructions, prompts and echo flags. Rounds and
+connections have distinct request IDs; answers are ephemeral and never autofilled
+from saved passwords, cached, logged, or added to Agent/MCP history. Empty answers
+are valid; zero-question rounds complete without requiring a visible form. User
+waiting time does not consume libssh2's network timeout. Cancellation wakes the
+callback, cancels its responder, and interrupts the pending transport.
+
+User connections own their challenge queues. Agent runs reuse their application
+interaction queue; macOS background operations and MCP share the native authentication
+window with independently cancellable origins. Stopping MCP preserves app-owned
+requests. Mobile background operations use an app-owned queue presented by one active
+scene. Cancelling a transfer interrupts pending authentication; subsequent temporary-file
+cleanup may use noninteractive credentials but must not reopen an MFA prompt. A cleanup
+that requires new interaction retains the existing temporary-file cleanup failure report. Forwarding rules sharing a host session share authentication; a new connection
+must answer fresh challenges. An Identity may contain only a username: preparation
+permits an empty credential list, SSH tries `none`, then advertised methods. Missing
+configured secrets and existing authentication failure/retry behavior stay unchanged.
+
 An Identity's device-local `lastUsedAt` means its saved password or private key was
 successfully read for connection setup, not that remote authentication succeeded.
 Connection-specific resolvers batch those accesses across destinations, jump hosts,

@@ -2,8 +2,9 @@ import CryptoKit
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindRemoteInfrastructure
 import Testing
+
+@testable import TermindRemoteInfrastructure
 
 @Suite
 @MainActor
@@ -64,6 +65,33 @@ struct SFTPResumeTests {
         #expect(coordinator.activeCount == 0)
     }
 
+    @Test func cancellingAPausedUploadDoesNotOpenAnotherAuthenticationPromptForCleanup() async throws {
+        let queue = SSHKeyboardInteractiveQueue()
+        let client = ResumeQueueClient(cleanupAuthentication: queue.handler)
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel(), clientFactory: { client })
+        defer { queue.cancelAll() }
+        let root = FileManager.default.temporaryDirectory
+        coordinator.enqueue(
+            direction: .upload, batchID: UUID(), localURL: root.appendingPathComponent(UUID().uuidString),
+            remotePath: "/file", byteCount: 4, hostID: UUID(),
+            configuration: SSHConnectionConfiguration(
+                hostID: UUID(), host: "test", port: 22, username: "test", credentials: [], expectedHostKeys: []),
+            scopedRoot: root, overwrite: true)
+        let id = try #require(coordinator.sftpTransfers.first?.id)
+        try await waitUntil { await client.checkpoint?.snapshot.offset == 2 }
+        coordinator.pause(id)
+        try await waitUntil { coordinator.sftpTransfers.first?.state == .paused }
+        coordinator.cancel(id)
+        try await waitUntil { coordinator.sftpTransfers.first?.state != .paused }
+        #expect(queue.current == nil)
+        // A remote temporary file requiring new MFA cannot be silently deleted.
+        guard case .failed? = coordinator.sftpTransfers.first?.state else {
+            Issue.record("Expected the existing temporary-file cleanup failure report")
+            return
+        }
+        #expect(await client.connections == 2)
+    }
+
     @Test
     func checkpointRejectsChangedSourceAndHashesOnlyAcknowledgedBytes() throws {
         let state = SFTPResumeState()
@@ -95,12 +123,18 @@ private actor ResumeQueueClient: SFTPClientProtocol {
     var offsets: [Int64] = []
     var disconnects = 0
     let connectionLoss: Bool
-    init(connectionLoss: Bool = false) { self.connectionLoss = connectionLoss }
+    let cleanupAuthentication: SSHKeyboardInteractiveHandler?
+    var connections = 0
+    init(connectionLoss: Bool = false, cleanupAuthentication: SSHKeyboardInteractiveHandler? = nil) {
+        self.connectionLoss = connectionLoss
+        self.cleanupAuthentication = cleanupAuthentication
+    }
     func run(
         _ state: SFTPResumeState, token: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
         checkpoint = state
+        if cleanupAuthentication != nil { _ = state.temporaryPath(for: "/file") }
         let offset = state.snapshot.offset
         offsets.append(offset)
         try state.validateSource(SFTPSourceIdentity(byteCount: 4, modifiedAt: nil))
@@ -139,6 +173,20 @@ private actor ResumeQueueClient: SFTPClientProtocol {
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws { throw SFTPResumeFailure.unsupported }
     func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {}
+    func connect(
+        using request: SSHConnectionRequest, progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws {
+        connections += 1
+        guard connections > 1, let handler = request.keyboardInteractive ?? cleanupAuthentication else { return }
+        let configuration = request.configuration
+        _ = try await handler(
+            SSHKeyboardInteractiveChallenge(
+                connectionID: UUID(), hostID: configuration.hostID, hostname: configuration.host,
+                port: configuration.port,
+                username: configuration.username, round: 1, name: "OTP", instruction: "",
+                prompts: [.init(text: "Code", echo: false)]))
+    }
     func disconnect() async { disconnects += 1 }
     func homeDirectory() async throws -> String { "/" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { [] }

@@ -381,6 +381,12 @@ final class SFTPSessionModel: Identifiable {
                             return await self.connection.authorizeHostKey(
                                 challenge, using: store
                             )
+                        },
+                        keyboardInteractive: { [weak self] challenge in
+                            guard let self, await self.connectionAttemptID == attemptID else {
+                                throw CancellationError()
+                            }
+                            return try await self.connection.answerKeyboardInteractive(challenge)
                         }
                     ),
                     progress: progressHandler(attemptID: attemptID),

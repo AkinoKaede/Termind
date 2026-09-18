@@ -54,13 +54,22 @@ public nonisolated enum SSHHostTrustPolicy: Equatable, Sendable {
 public nonisolated struct SSHConnectionRequest: Sendable {
     public var configuration: SSHConnectionConfiguration
     public var authorizeHostKey: SSHHostKeyAuthorizer?
+    public var keyboardInteractive: SSHKeyboardInteractiveHandler?
 
     public init(
         configuration: SSHConnectionConfiguration,
-        authorizeHostKey: SSHHostKeyAuthorizer? = nil
+        authorizeHostKey: SSHHostKeyAuthorizer? = nil,
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
     ) {
         self.configuration = configuration
         self.authorizeHostKey = authorizeHostKey
+        self.keyboardInteractive = keyboardInteractive
+    }
+
+    public func withKeyboardInteractiveFallback(_ handler: SSHKeyboardInteractiveHandler?) -> Self {
+        var request = self
+        if request.keyboardInteractive == nil { request.keyboardInteractive = handler }
+        return request
     }
 }
 

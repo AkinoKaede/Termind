@@ -85,6 +85,8 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
     private var pendingHostKeyAuthorizations: [UUID: PendingHostKeyAuthorization] = [:]
 
+    private nonisolated let keyboardInteractive: SSHKeyboardInteractiveHandler?
+
     public var keepsRunning: Bool { servers.contains { $0.selection.enabled } }
 
     public init(
@@ -92,8 +94,10 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         makeSampler: @escaping @Sendable () -> any MetricsSampling,
         clock: MetricsClock = MetricsClock(),
         cardLimit: @escaping () -> Int? = { ServerMetricsModel.freeCardLimit },
-        limitReached: @escaping () -> Void = {}
+        limitReached: @escaping () -> Void = {},
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
     ) {
+        self.keyboardInteractive = keyboardInteractive
         self.hosts = hosts
         self.preferences = preferences
         self.makeSampler = makeSampler
@@ -542,7 +546,8 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                             return await self.authorizeHostKeyFromWorker(
                                 serverID, challenge: challenge, token: token
                             )
-                        }
+                        },
+                        keyboardInteractive: keyboardInteractive
                     )
                 )
                 guard await publishConnected(serverID, token: token, hostID: attempt.host.id) else {

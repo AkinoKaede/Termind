@@ -9,7 +9,7 @@ public protocol ConnectionFormKeyboardAdapting {
 
 extension View {
     @ViewBuilder
-    fileprivate func connectionFormChrome(isEnabled: Bool) -> some View {
+    func connectionFormChrome(isEnabled: Bool) -> some View {
         if isEnabled {
             padding(18).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
                 .overlay { RoundedRectangle(cornerRadius: 14).strokeBorder(.quaternary) }
@@ -23,6 +23,7 @@ public struct SSHAuthenticationForm: View {
     let prompt: SSHAuthenticationPrompt
     let submit: (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void
     let cancel: () -> Void
+    let respondKeyboardInteractive: (([String]) -> Void)?
     var usesContainerChrome = true
 
     let library: HostLibraryModel
@@ -41,8 +42,10 @@ public struct SSHAuthenticationForm: View {
         submit: @escaping (Identity.ID?, String, String?, String?, SSHKeyRef.ID?, Bool) -> Void,
         cancel: @escaping () -> Void,
         usesContainerChrome: Bool = true,
-        library: HostLibraryModel, keyboard: (any ConnectionFormKeyboardAdapting)? = nil
+        library: HostLibraryModel, keyboard: (any ConnectionFormKeyboardAdapting)? = nil,
+        respondKeyboardInteractive: (([String]) -> Void)? = nil
     ) {
+        self.respondKeyboardInteractive = respondKeyboardInteractive
         self.library = library
         self.keyboard = keyboard
         self.prompt = prompt
@@ -70,17 +73,25 @@ public struct SSHAuthenticationForm: View {
     }
 
     public var body: some View {
-        form
-            .connectionFormChrome(isEnabled: usesContainerChrome)
-            .background {
-                if let keyboard {
-                    keyboard.bridge(canSubmit: canContinue, submit: { commit(save: !needsPassphrase) }, cancel: cancel)
-                }
+        Group {
+            if let challenge = prompt.keyboardInteractive, let respondKeyboardInteractive {
+                SSHKeyboardInteractiveForm(
+                    challenge: challenge, submit: respondKeyboardInteractive, cancel: cancel, keyboard: keyboard
+                )
+            } else {
+                form
             }
-            .onAppear {
-                if identityID != nil, selectedIdentity == nil { identityID = nil }
-                updateFocusForRequirement()
+        }
+        .connectionFormChrome(isEnabled: usesContainerChrome)
+        .background {
+            if prompt.keyboardInteractive == nil, let keyboard {
+                keyboard.bridge(canSubmit: canContinue, submit: { commit(save: !needsPassphrase) }, cancel: cancel)
             }
+        }
+        .onAppear {
+            if identityID != nil, selectedIdentity == nil { identityID = nil }
+            updateFocusForRequirement()
+        }
     }
 
     private var form: some View {

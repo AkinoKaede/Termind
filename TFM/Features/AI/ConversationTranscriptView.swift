@@ -650,9 +650,12 @@ private struct AgentSSHAuthenticationCard: View {
                 prompt: request.journeyPrompt,
                 submit: submit,
                 cancel: {
-                    conversation.respondToSSHAuthentication(.cancelled)
+                    conversation.respondToSSHAuthentication(.cancelled, requestID: request.id)
                 },
-                usesContainerChrome: false
+                usesContainerChrome: false,
+                respondKeyboardInteractive: {
+                    conversation.respondToSSHAuthentication(.keyboardInteractive($0), requestID: request.id)
+                }
             )
             // A retry or the next route node must start with fresh SecureFields.
             .id(request.id)
@@ -673,7 +676,7 @@ private struct AgentSSHAuthenticationCard: View {
                     keyID: keyID,
                     save: request.requiresPassphrase ? false : save
                 )
-            ))
+            ), requestID: request.id)
     }
 }
 

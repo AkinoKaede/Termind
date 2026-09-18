@@ -6,20 +6,32 @@ import TermindDomain
 /// SSH/SFTP transports. Features receive this service instead of constructing
 /// infrastructure clients in views.
 public nonisolated final class RemoteConnectionCoordinator: Sendable {
-    public init() {}
+    private let keyboardInteractive: SSHKeyboardInteractiveHandler?
+
+    public init(keyboardInteractive: SSHKeyboardInteractiveHandler? = nil) {
+        self.keyboardInteractive = keyboardInteractive
+    }
+
+    public func withKeyboardInteractive(_ handler: @escaping SSHKeyboardInteractiveHandler)
+        -> RemoteConnectionCoordinator
+    {
+        RemoteConnectionCoordinator(keyboardInteractive: handler)
+    }
     public func makeSSHSession(
         output: @escaping SSHSessionActor.OutputHandler,
         exit: @escaping SSHSessionActor.ExitHandler,
         shellIntegration: @escaping SSHSessionActor.ShellIntegrationHandler = { _ in }
     ) -> SSHSessionActor {
         SSHSessionActor(
-            output: output, exit: exit, shellIntegration: shellIntegration
+            output: output, exit: exit, shellIntegration: shellIntegration, keyboardInteractive: keyboardInteractive
         )
     }
 
-    public func makeSFTPClient() -> any SFTPClientProtocol { SFTPClient() }
+    public func makeSFTPClient() -> any SFTPClientProtocol { SFTPClient(keyboardInteractive: keyboardInteractive) }
 
-    public func makeExecSession() -> any SSHExecSessionProtocol { SSHExecSession() }
+    public func makeExecSession() -> any SSHExecSessionProtocol {
+        SSHExecSession(keyboardInteractive: keyboardInteractive)
+    }
 
     /// Mirrors `connectSFTP`, including its guarantee that a session which fails
     /// to come up is torn down here rather than handed back half-open.
@@ -78,7 +90,8 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         using configuration: SSHConnectionConfiguration
     ) async throws {
         try await SSHSessionActor.installAuthorizedKey(
-            publicKey, named: keyName, using: configuration
+            publicKey, named: keyName,
+            using: SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive)
         )
     }
 }

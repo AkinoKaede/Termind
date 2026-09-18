@@ -63,9 +63,29 @@ final class ExternalAuthCoordinator {
     private var sshWaiters: [UUID: CheckedContinuation<AgentSSHAuthenticationResponse, Never>] = [:]
     private var secretWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
     private var hostKeyWaiters: [UUID: CheckedContinuation<AgentSSHHostKeyResponse, Never>] = [:]
+    private var appAuthenticationRuns: Set<UUID> = []
     private var secretTimeoutTask: Task<Void, Never>?
 
     var current: Pending? { pending.first }
+
+    nonisolated var keyboardInteractive: SSHKeyboardInteractiveHandler {
+        { [weak self] challenge in
+            guard let self else { throw CancellationError() }
+            return try await self.answerAppChallenge(challenge)
+        }
+    }
+
+    private func answerAppChallenge(_ challenge: SSHKeyboardInteractiveChallenge) async throws -> [String] {
+        appAuthenticationRuns.insert(challenge.connectionID)
+        defer { appAuthenticationRuns.remove(challenge.connectionID) }
+        return try await handler(clientName: "Termind", runID: challenge.connectionID)
+            .sshInteraction.respondToChallenge(challenge, invocationID: challenge.id)
+    }
+
+    func cancelExternalRequests() {
+        let ids = pending.filter { !appAuthenticationRuns.contains($0.runID) }.map(\.id)
+        for id in ids { cancel(id) }
+    }
 
     func handler(clientName: String, runID: UUID) -> Handler {
         Handler(clientName: clientName, runID: runID, coordinator: self)
@@ -76,8 +96,18 @@ final class ExternalAuthCoordinator {
     ) async -> AgentSSHAuthenticationResponse {
         return await withTaskCancellationHandler {
             await withCheckedContinuation { continuation in
+                guard !Task.isCancelled else {
+                    continuation.resume(returning: .cancelled)
+                    return
+                }
                 sshWaiters[request.id] = continuation
                 append(.ssh(request), clientName: clientName, runID: runID)
+                if request.keyboardInteractive?.prompts.isEmpty == true {
+                    Task { [weak self] in
+                        await Task.yield()
+                        self?.respondSSH(.keyboardInteractive([]), requestID: request.id)
+                    }
+                }
             }
         } onCancel: {
             Task { @MainActor [weak self] in self?.cancel(request.id) }
@@ -113,9 +143,13 @@ final class ExternalAuthCoordinator {
         }
     }
 
-    func respondSSH(_ response: AgentSSHAuthenticationResponse) {
-        guard case .ssh? = current?.request, let request = removeCurrent() else { return }
-        sshWaiters.removeValue(forKey: request.id)?.resume(returning: response)
+    func respondSSH(_ response: AgentSSHAuthenticationResponse, requestID: UUID? = nil) {
+        guard let id = requestID ?? current?.id,
+            let index = pending.firstIndex(where: { $0.id == id }),
+            case .ssh = pending[index].request
+        else { return }
+        if index == 0 { _ = removeCurrent() } else { pending.remove(at: index) }
+        sshWaiters.removeValue(forKey: id)?.resume(returning: response)
     }
 
     func respondSecret(_ response: AgentUserInputResponse) {
@@ -151,6 +185,14 @@ final class ExternalAuthCoordinator {
         for continuation in sshContinuations { continuation.resume(returning: .cancelled) }
         for continuation in secretContinuations { continuation.resume(returning: .cancelled) }
         for continuation in hostKeyContinuations { continuation.resume(returning: .deny) }
+    }
+
+    func cancel(hostID: UUID) {
+        let ids = pending.compactMap { item -> UUID? in
+            if case .ssh(let request) = item.request, request.hostID == hostID { return item.id }
+            return nil
+        }
+        for id in ids { cancel(id) }
     }
 
     func cancel(runID: UUID) {

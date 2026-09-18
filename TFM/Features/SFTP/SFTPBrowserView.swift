@@ -323,7 +323,8 @@ struct SFTPBrowserView: View {
                     cancel: cancelConnection,
                     reconnectState: sftpSession.reconnectState,
                     retryReconnectNow: sftpSession.retryReconnectNow,
-                    stopReconnecting: sftpSession.stopReconnecting
+                    stopReconnecting: sftpSession.stopReconnecting,
+                    keyboardAuthentication: sftpSession.connection.keyboardAuthentication
                 )
                 .zIndex(10)
             }

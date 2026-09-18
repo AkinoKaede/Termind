@@ -150,7 +150,8 @@ struct TerminalPlaceholderView: View {
                 },
                 reconnectState: sshSession.reconnectState,
                 retryReconnectNow: sshSession.retryReconnectNow,
-                stopReconnecting: sshSession.stopReconnecting
+                stopReconnecting: sshSession.stopReconnecting,
+                keyboardAuthentication: sshSession.connection.keyboardAuthentication
             )
         }
     }
