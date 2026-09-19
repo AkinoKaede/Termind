@@ -147,7 +147,12 @@ public struct MemorySettingsSection: View {
                 .controlSize(.small)
                 .labelStyle(.titleOnly)
             }
-            if memory.isEnabled && memory.isIndexing { ProgressView("Indexing History") }
+            if memory.isEnabled && memory.isIndexing {
+                ProgressView("Indexing History")
+                    #if os(macOS)
+                        .controlSize(.small)
+                    #endif
+            }
             if memory.isBusy { ProgressView() }
         } header: {
             if layout == .section { Text("Hermes Memory") }
