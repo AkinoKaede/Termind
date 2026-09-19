@@ -579,7 +579,7 @@ final class SFTPSessionModel: Identifiable {
         keyID: SSHKeyRef.ID?, save: Bool, using store: any RemoteSessionHostStore
     ) {
         guard let prompt = pendingAuthentication,
-            var host = store.host(prompt.host.id)
+            let host = store.host(prompt.host.id)
         else { return }
 
         if prompt.requiresPassphrase,
@@ -599,23 +599,18 @@ final class SFTPSessionModel: Identifiable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !submittedUsername.isEmpty else { return }
         let submittedKeyID = selectedIdentity?.keyID ?? keyID
-        let submittedPassword: String?
+        let submission: SSHAuthenticationSubmission
         do {
-            submittedPassword =
-                try password
-                ?? selectedIdentity.flatMap {
-                    try store.connectionPasswordCredential(for: $0)
-                }
+            submission = try store.authenticationSubmission(
+                username: submittedUsername, password: password, passphrase: passphrase,
+                keyID: submittedKeyID, selectedIdentity: selectedIdentity
+            )
         } catch {
             requestAuthentication(host: host, store: store, failure: error.localizedDescription)
             return
         }
 
-        suppliedAuthentications[host.id] = SSHAuthenticationSubmission(
-            username: submittedUsername, password: submittedPassword,
-            passphrase: passphrase, keyID: submittedKeyID,
-            identityID: selectedIdentity?.id
-        )
+        suppliedAuthentications[host.id] = submission
         usesEphemeralCredentials =
             !save
             && (password != nil || passphrase != nil
@@ -623,42 +618,10 @@ final class SFTPSessionModel: Identifiable {
         pendingAuthentication = nil
         connectionJourney.resume()
         if save {
-            if let selectedIdentity {
-                if let password {
-                    do {
-                        try store.upsert(
-                            selectedIdentity, passwordUpdate: .replace(password)
-                        )
-                    } catch {
-                        operationError = error.localizedDescription
-                        requestAuthentication(
-                            host: host, store: store, failure: error.localizedDescription
-                        )
-                        return
-                    }
-                }
-                host.identityID = selectedIdentity.id
-                store.upsert(host)
-                connect(using: store)
-                return
-            }
-            let existing = store.identity(for: host)
-            let identity = Identity(
-                id: existing?.id ?? UUID(), name: existing?.name ?? submittedUsername,
-                username: submittedUsername, credentialRef: existing?.credentialRef ?? "",
-                passwordStorage: existing?.passwordStorage ?? .iCloud,
-                keyID: submittedKeyID, notes: existing?.notes ?? "",
-                lastUsedAt: existing?.lastUsedAt,
-                colorTag: existing?.colorTag ?? .none
-            )
-            let update: IdentityPasswordUpdate =
-                submittedPassword.map(IdentityPasswordUpdate.replace)
-                ?? (existing == nil ? .remove : .keep)
             do {
-                try store.upsert(identity, passwordUpdate: update)
-                var updated = host
-                updated.identityID = identity.id
-                store.upsert(updated)
+                _ = try store.saveAuthentication(
+                    submission, for: host, selectedIdentity: selectedIdentity, suppliedPassword: password
+                )
             } catch {
                 operationError = error.localizedDescription
                 requestAuthentication(host: host, store: store, failure: error.localizedDescription)

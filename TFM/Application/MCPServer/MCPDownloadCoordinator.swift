@@ -33,34 +33,23 @@ final class MCPDownloadCoordinator {
             @escaping @Sendable (any SFTPDownloadStream) async throws -> Void
         ) async throws -> Void
 
-    private struct Ticket {
-        var id: UUID
-        var token: String
+    private struct Ticket: MCPTransferTicketEntry {
+        var info: MCPTransferTicket
         var request: MCPDownloadRequest
-        var runID: UUID
-        var clientName: String
-        var invocationID: UUID
-        var expiresAt: Date
-        var state = "waiting"
         var resume = SFTPResumeState()
         var rangeOffset: Int64?
         var attemptID = UUID()
         var byteCount: Int64?
         var sentBytes: Int64 = 0
         var actualSHA256: String?
-        var errorCode: String?
-        var finishedAt: Date?
-        var cancellation = TransferCancellationToken()
         var observer: UUID?
         var cancelTransport: (@Sendable () -> Void)?
-        var cancelRequested = false
         var revoked = false
         var timedOut = false
         var reader: MCPDownloadReader?
         var task: Task<Void, Never>?
         var watchdog: Task<Void, Never>?
-        var auditID: UUID?
-        var live: Bool { state == "connecting" || state == "transferring" }
+        var live: Bool { info.state == "connecting" || info.state == "transferring" }
     }
 
     private let hosts: AgentHostResolver
@@ -90,12 +79,7 @@ final class MCPDownloadCoordinator {
     func configure(port: UInt16) { self.port = port }
     func register(runID: UUID, clientName: String) { clients[runID] = String(clientName.prefix(160)) }
     func hasDownloadActivity(runID: UUID) -> Bool {
-        let date = now()
-        return tickets.values.contains {
-            $0.runID == runID
-                && ($0.live || ($0.state == "paused" && $0.expiresAt > date)
-                    || ($0.auditID != nil && $0.finishedAt.map { date.timeIntervalSince($0) < 1_800 } == true))
-        }
+        tickets.hasTransferActivity(runID: runID, at: now())
     }
 
     func setEnabled(_ enabled: Bool) {
@@ -112,25 +96,20 @@ final class MCPDownloadCoordinator {
         guard enabled, let port, let client = clients[invocation.runID], !Task.isCancelled else {
             throw MCPDownloadError.unavailable
         }
-        guard tickets.values.filter({ $0.finishedAt == nil }).count < 64 else { throw MCPDownloadError.capacity }
-        let id = UUID()
-        let token = try MCPUploadToken.make()
-        let expiry = now().addingTimeInterval(600)
-        tickets[id] = Ticket(
-            id: id, token: token, request: request, runID: invocation.runID,
-            clientName: client, invocationID: invocation.id, expiresAt: expiry
-        )
+        guard tickets.values.filter({ $0.info.finishedAt == nil }).count < 64 else { throw MCPDownloadError.capacity }
+        let info = try MCPTransferTicket(invocation, clientName: client, now: now())
+        tickets[info.id] = Ticket(info: info, request: request)
         return .object([
-            "download_id": .string(id.uuidString), "download_token": .string(token),
-            "download_url": .string("http://127.0.0.1:\(port)/downloads/\(id.uuidString)"),
-            "expires_at": .string(expiry.ISO8601Format()), "method": .string("GET"),
-            "headers": .object(["Authorization": .string("Bearer \(token)")]),
+            "download_id": .string(info.id.uuidString), "download_token": .string(info.token),
+            "download_url": .string("http://127.0.0.1:\(port)/downloads/\(info.id.uuidString)"),
+            "expires_at": .string(info.expiresAt.ISO8601Format()), "method": .string("GET"),
+            "headers": .object(["Authorization": .string("Bearer \(info.token)")]),
         ])
     }
 
     func status(id: UUID, runID: UUID) throws -> AgentJSONValue {
         sweep()
-        guard let ticket = tickets[id], ticket.runID == runID, clients[runID] != nil else {
+        guard let ticket = tickets[id], ticket.info.runID == runID, clients[runID] != nil else {
             throw MCPDownloadError.unknown
         }
         return payload(ticket)
@@ -152,13 +131,15 @@ final class MCPDownloadCoordinator {
             let id = UUID(uuidString: String(components.path.dropFirst("/downloads/".count))), var ticket = tickets[id]
         else { return Self.error(404, "unknown_download") }
         guard let authorization = request.header("authorization"), authorization.hasPrefix("Bearer "),
-            LoopbackHTTPServer.constantTimeEqual(String(authorization.dropFirst(7)), ticket.token)
+            LoopbackHTTPServer.constantTimeEqual(String(authorization.dropFirst(7)), ticket.info.token)
         else { return Self.error(401, "invalid_download_token") }
-        guard clients[ticket.runID] != nil, !ticket.revoked else { return Self.error(410, "download_revoked") }
-        guard ticket.expiresAt > now(), ticket.state != "expired" else { return Self.error(410, "download_expired") }
+        guard clients[ticket.info.runID] != nil, !ticket.revoked else { return Self.error(410, "download_revoked") }
+        guard ticket.info.expiresAt > now(), ticket.info.state != "expired" else {
+            return Self.error(410, "download_expired")
+        }
         guard
-            ticket.state == "waiting" || ticket.state == "paused"
-                || (ticket.state == "succeeded" && request.header("range") != nil)
+            ticket.info.state == "waiting" || ticket.info.state == "paused"
+                || (ticket.info.state == "succeeded" && request.header("range") != nil)
         else { return Self.error(409, "download_already_claimed") }
         var rangeOffset: Int64?
         if let range = request.header("range") {
@@ -179,19 +160,19 @@ final class MCPDownloadCoordinator {
         }
         guard !cancellation.isCancelled else { return Self.error(410, "download_cancelled") }
         guard budget.claim(id) else { return Self.error(429, "transfer_capacity") }
-        let previousState = ticket.state
-        ticket.state = "connecting"
+        let previousState = ticket.info.state
+        ticket.info.state = "connecting"
         ticket.rangeOffset = rangeOffset
         ticket.sentBytes = rangeOffset ?? 0
-        ticket.errorCode = nil
-        ticket.finishedAt = nil
+        ticket.info.errorCode = nil
+        ticket.info.finishedAt = nil
         ticket.timedOut = false
         ticket.attemptID = UUID()
         let attempt = ticket.attemptID
-        ticket.cancellation = cancellation
+        ticket.info.cancellation = cancellation
         ticket.cancelTransport = cancelTransport
-        ticket.auditID = history.beginDownload(
-            runID: ticket.runID, clientName: ticket.clientName, hostID: ticket.request.hostID,
+        ticket.info.auditID = history.beginDownload(
+            runID: ticket.info.runID, clientName: ticket.info.clientName, hostID: ticket.request.hostID,
             remotePath: ticket.request.remotePath
         )
         ticket.observer = cancellation.observeCancellation { [weak self] in
@@ -201,7 +182,9 @@ final class MCPDownloadCoordinator {
         let exchange = MCPDownloadExchange()
         let task = Task { [self] in
             do {
-                try await transfer(ticket.request, ticket.runID, ticket.invocationID, ticket.clientName, cancellation) {
+                try await transfer(
+                    ticket.request, ticket.info.runID, ticket.info.invocationID, ticket.info.clientName, cancellation
+                ) {
                     [self] stream in
                     try await serve(id: id, stream: stream, exchange: exchange)
                 }
@@ -215,8 +198,8 @@ final class MCPDownloadCoordinator {
                 } else {
                     let (status, code) = failure(error, id: id)
                     let resumable =
-                        tickets[id]?.cancelRequested != true && ticket.expiresAt > now()
-                        && (ticket.cancellation.isCancelled || Self.recoverable(error))
+                        tickets[id]?.info.cancelRequested != true && ticket.info.expiresAt > now()
+                        && (ticket.info.cancellation.isCancelled || Self.recoverable(error))
                         && !(error is SFTPResumeFailure)
                         && !(error is SFTPDownloadFailure && code != "download_timeout")
                     await finish(
@@ -237,10 +220,10 @@ final class MCPDownloadCoordinator {
     }
 
     private func serve(id: UUID, stream: any SFTPDownloadStream, exchange: MCPDownloadExchange) async throws {
-        guard let ticket = tickets[id], ticket.live, !ticket.cancellation.isCancelled else {
+        guard let ticket = tickets[id], ticket.live, !ticket.info.cancellation.isCancelled else {
             throw AgentToolError.cancelled
         }
-        guard stream.byteCount >= 0, stream.byteCount <= Int64(MCPUploadRequest.maximumBytes) else {
+        guard stream.byteCount >= 0, stream.byteCount <= Int64(MCPTransferBudget.maximumBytes) else {
             throw SFTPDownloadFailure.tooLarge
         }
         if let offset = ticket.rangeOffset, offset >= stream.byteCount {
@@ -248,7 +231,7 @@ final class MCPDownloadCoordinator {
         }
         let offset = ticket.rangeOffset ?? 0
         let reader = MCPDownloadReader(
-            stream: stream, expectedSHA256: ticket.request.expectedSHA256, cancellation: ticket.cancellation,
+            stream: stream, expectedSHA256: ticket.request.expectedSHA256, cancellation: ticket.info.cancellation,
             resume: ticket.resume)
         tickets[id]?.byteCount = stream.byteCount
         tickets[id]?.reader = reader
@@ -276,7 +259,7 @@ final class MCPDownloadCoordinator {
                 await self?.waitForTask(id)
             },
             cancel: {
-                ticket.cancellation.cancel()
+                ticket.info.cancellation.cancel()
                 ticket.cancelTransport?()
             }
         )
@@ -299,9 +282,9 @@ final class MCPDownloadCoordinator {
 
     private func progress(id: UUID, attempt: UUID, bytes: Int64) {
         guard tickets[id]?.attemptID == attempt, tickets[id]?.live == true else { return }
-        tickets[id]?.state = "transferring"
+        tickets[id]?.info.state = "transferring"
         tickets[id]?.sentBytes = bytes
-        if let audit = tickets[id]?.auditID {
+        if let audit = tickets[id]?.info.auditID {
             history.updateDownload(id: audit, bytes: max(0, bytes - (tickets[id]?.rangeOffset ?? 0)))
         }
     }
@@ -309,20 +292,20 @@ final class MCPDownloadCoordinator {
     private func finish(id: UUID, state: String, error: String? = nil, auditSucceeded: Bool? = nil) async {
         let actual = await tickets[id]?.reader?.actualSHA256
         guard var ticket = tickets[id] else { return }
-        ticket.state = state
+        ticket.info.state = state
         if let actual { ticket.actualSHA256 = actual }
-        ticket.errorCode = error
-        ticket.finishedAt = (state == "paused" || state == "waiting") ? nil : now()
+        ticket.info.errorCode = error
+        ticket.info.finishedAt = (state == "paused" || state == "waiting") ? nil : now()
         ticket.watchdog?.cancel()
         ticket.watchdog = nil
-        if let observer = ticket.observer { ticket.cancellation.removeObserver(observer) }
+        if let observer = ticket.observer { ticket.info.cancellation.removeObserver(observer) }
         ticket.observer = nil
         ticket.reader = nil
         ticket.task = nil
         ticket.cancelTransport = nil
         tickets[id] = ticket
         budget.release(id)
-        if let audit = ticket.auditID {
+        if let audit = ticket.info.auditID {
             history.updateDownload(
                 id: audit, bytes: max(0, ticket.sentBytes - (ticket.rangeOffset ?? 0)),
                 succeeded: auditSucceeded ?? (state == "succeeded"))
@@ -333,43 +316,44 @@ final class MCPDownloadCoordinator {
     private func waitForTask(_ id: UUID) async { await tickets[id]?.task?.value }
     private func interrupt(_ id: UUID, attempt: UUID) {
         guard let ticket = tickets[id], ticket.attemptID == attempt, ticket.live else { return }
-        ticket.cancellation.cancel()
+        ticket.info.cancellation.cancel()
         ticket.cancelTransport?()
         ticket.task?.cancel()
     }
 
     private func cancel(_ id: UUID) {
         tickets[id]?.revoked = true
-        if tickets[id]?.state == "succeeded" { return }
+        if tickets[id]?.info.state == "succeeded" { return }
         guard let ticket = tickets[id],
-            ticket.state == "waiting" || ticket.state == "paused" || ticket.state == "succeeded" || ticket.live
+            ticket.info.state == "waiting" || ticket.info.state == "paused" || ticket.info.state == "succeeded"
+                || ticket.live
         else { return }
-        tickets[id]?.cancelRequested = true
-        ticket.cancellation.cancel()
+        tickets[id]?.info.cancelRequested = true
+        ticket.info.cancellation.cancel()
         ticket.cancelTransport?()
         ticket.task?.cancel()
         if ticket.task == nil {
-            tickets[id]?.state = "cancelled"
-            tickets[id]?.errorCode = "download_cancelled"
-            tickets[id]?.finishedAt = now()
+            tickets[id]?.info.state = "cancelled"
+            tickets[id]?.info.errorCode = "download_cancelled"
+            tickets[id]?.info.finishedAt = now()
             sweep()
         }
     }
     func revokeHost(_ hostID: UUID) {
-        for id in tickets.values.filter({ $0.request.hostID == hostID }).map(\.id) { cancel(id) }
+        for id in tickets.values.filter({ $0.request.hostID == hostID }).map(\.info.id) { cancel(id) }
     }
     func cancelHost(_ hostID: UUID) async {
-        await cancelAndWait(ids: tickets.values.filter { $0.request.hostID == hostID }.map(\.id))
+        await cancelAndWait(ids: tickets.values.filter { $0.request.hostID == hostID }.map(\.info.id))
     }
     func endSession(runID: UUID) async {
         clients[runID] = nil
-        let ids = tickets.values.filter { $0.runID == runID }.map(\.id)
+        let ids = tickets.values.filter { $0.info.runID == runID }.map(\.info.id)
         await cancelAndWait(ids: ids)
         for id in ids { tickets[id] = nil }
     }
     func revokeSession(runID: UUID) {
         clients[runID] = nil
-        for id in tickets.values.filter({ $0.runID == runID }).map(\.id) { cancel(id) }
+        for id in tickets.values.filter({ $0.info.runID == runID }).map(\.info.id) { cancel(id) }
     }
     func suspend() {
         port = nil
@@ -389,30 +373,25 @@ final class MCPDownloadCoordinator {
     }
     private func sweep() {
         let date = now()
-        for id in Array(tickets.keys) {
-            guard let ticket = tickets[id] else { continue }
-            if ticket.state == "waiting" || ticket.state == "paused", ticket.expiresAt <= date {
-                tickets[id]?.state = "expired"
-                tickets[id]?.finishedAt = date
-                tickets[id]?.errorCode = "download_expired"
-            } else if let finished = ticket.finishedAt, date.timeIntervalSince(finished) >= 1_800 {
-                tickets[id] = nil
-            }
+        for id in tickets.expiredTransferIDs(at: date) {
+            tickets[id]?.info.state = "expired"
+            tickets[id]?.info.finishedAt = date
+            tickets[id]?.info.errorCode = "download_expired"
         }
-        let terminal = tickets.values.filter { $0.finishedAt != nil }.sorted { $0.finishedAt! < $1.finishedAt! }
-        for ticket in terminal.prefix(max(0, terminal.count - 256)) { tickets[ticket.id] = nil }
+        tickets.pruneTransferCompletions(at: date)
     }
     private func payload(_ ticket: Ticket) -> AgentJSONValue {
         .object([
-            "download_id": .string(ticket.id.uuidString), "status": .string(ticket.state),
+            "download_id": .string(ticket.info.id.uuidString), "status": .string(ticket.info.state),
             "remote_path": .string(ticket.request.remotePath),
             "byte_count": ticket.byteCount.map { .number(Double($0)) } ?? .null,
             "bytes": .number(Double(ticket.sentBytes)),
             "resumable": .bool(
-                !ticket.revoked && (ticket.state == "paused" || ticket.state == "succeeded") && ticket.expiresAt > now()
+                !ticket.revoked && (ticket.info.state == "paused" || ticket.info.state == "succeeded")
+                    && ticket.info.expiresAt > now()
             ),
             "sha256": ticket.actualSHA256.map(AgentJSONValue.string) ?? .null,
-            "error": ticket.errorCode.map(AgentJSONValue.string) ?? .null,
+            "error": ticket.info.errorCode.map(AgentJSONValue.string) ?? .null,
         ])
     }
     private nonisolated static func recoverable(_ error: any Error) -> Bool {
@@ -439,7 +418,7 @@ final class MCPDownloadCoordinator {
             case .timedOut: return (504, "download_timeout")
             }
         }
-        if tickets[id]?.cancelRequested == true || tickets[id]?.cancellation.isCancelled == true
+        if tickets[id]?.info.cancelRequested == true || tickets[id]?.info.cancellation.isCancelled == true
             || error is CancellationError
         {
             return (410, "download_cancelled")

@@ -17,7 +17,7 @@ nonisolated struct MCPUploadTool: AgentToolDefinition, AgentToolSchemaBuilding {
                 + "Resume requires the same live MCP session and application process.",
             properties: [
                 "host_id": Self.string(), "remote_path": Self.string(max: 4_096),
-                "byte_count": Self.integer(min: 0, max: MCPUploadRequest.maximumBytes),
+                "byte_count": Self.integer(min: 0, max: MCPTransferBudget.maximumBytes),
                 "sha256": Self.string(max: 64), "overwrite": Self.boolean(),
             ], required: ["host_id", "remote_path", "byte_count", "sha256"],
             target: .host, approvalPolicy: .ask,

@@ -687,13 +687,22 @@ final class SSHSessionModel: Identifiable {
         }
 
         let submittedKeyID = selectedIdentity?.keyID ?? keyID
-        let submittedPassword: String?
         do {
-            submittedPassword =
-                try password
-                ?? selectedIdentity.flatMap {
-                    try store.connectionPasswordCredential(for: $0)
-                }
+            let submission = try store.authenticationSubmission(
+                username: trimmedUsername, password: password, passphrase: passphrase,
+                keyID: submittedKeyID, selectedIdentity: selectedIdentity
+            )
+            suppliedAuthentications[host.id] = submission
+            if host.id == hostID { usernameHint = trimmedUsername }
+            pendingAuthentication = nil
+            connectionJourney.resume()
+
+            if save {
+                host = try store.saveAuthentication(
+                    submission, for: host, selectedIdentity: selectedIdentity, suppliedPassword: password
+                )
+                if host.id == hostID { transientHost = host }
+            }
         } catch {
             requestAuthentication(
                 for: host, username: trimmedUsername,
@@ -704,72 +713,6 @@ final class SSHSessionModel: Identifiable {
             return
         }
 
-        suppliedAuthentications[host.id] = SSHAuthenticationSubmission(
-            username: trimmedUsername, password: submittedPassword,
-            passphrase: passphrase, keyID: submittedKeyID,
-            identityID: selectedIdentity?.id
-        )
-        if host.id == hostID { usernameHint = trimmedUsername }
-        pendingAuthentication = nil
-        connectionJourney.resume()
-
-        if save {
-            if let selectedIdentity {
-                if let password {
-                    do {
-                        try store.upsert(
-                            selectedIdentity, passwordUpdate: .replace(password)
-                        )
-                    } catch {
-                        requestAuthentication(
-                            for: host, username: trimmedUsername,
-                            selectedKeyID: submittedKeyID,
-                            failureMessage: error.localizedDescription,
-                            requiresPassphrase:
-                                submittedKeyID
-                                .flatMap { store.key($0) }?.requiresPassphraseEntry == true
-                        )
-                        return
-                    }
-                }
-                host.identityID = selectedIdentity.id
-                store.upsert(host)
-                if host.id == hostID { transientHost = host }
-                connect(using: store)
-                return
-            }
-            let existing = store.identity(for: host)
-            let identity = Identity(
-                id: existing?.id ?? UUID(),
-                name: existing?.name ?? trimmedUsername,
-                username: trimmedUsername,
-                credentialRef: existing?.credentialRef ?? "",
-                passwordStorage: existing?.passwordStorage ?? .iCloud,
-                keyID: submittedKeyID,
-                notes: existing?.notes ?? "",
-                lastUsedAt: existing?.lastUsedAt,
-                colorTag: existing?.colorTag ?? .none
-            )
-            let passwordUpdate: IdentityPasswordUpdate =
-                submittedPassword.map(
-                    IdentityPasswordUpdate.replace
-                ) ?? (existing == nil ? .remove : .keep)
-            do {
-                try store.upsert(identity, passwordUpdate: passwordUpdate)
-            } catch {
-                requestAuthentication(
-                    for: host, username: trimmedUsername,
-                    selectedKeyID: submittedKeyID, failureMessage: error.localizedDescription,
-                    requiresPassphrase:
-                        submittedKeyID
-                        .flatMap { store.key($0) }?.requiresPassphraseEntry == true
-                )
-                return
-            }
-            host.identityID = identity.id
-            store.upsert(host)
-            if host.id == hostID { transientHost = host }
-        }
         connect(using: store)
     }
 

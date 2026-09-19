@@ -66,7 +66,7 @@ final class MCPServerTools {
                 pool: connections, cancellation: token
             ) { client in
                 let stream = try await client.openDownloadStream(
-                    at: request.remotePath, maximumBytes: Int64(MCPUploadRequest.maximumBytes), cancellation: token
+                    at: request.remotePath, maximumBytes: Int64(MCPTransferBudget.maximumBytes), cancellation: token
                 )
                 do { try await serve(stream) } catch {
                     try await stream.close()

@@ -46,6 +46,53 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    /// Resolves a desktop authentication form without saving its input. Only a
+    /// selected Identity can supply a saved password; explicit input wins.
+    public func authenticationSubmission(
+        username: String, password: String?, passphrase: String?, keyID: SSHKeyRef.ID?,
+        selectedIdentity: Identity?
+    ) throws -> SSHAuthenticationSubmission {
+        SSHAuthenticationSubmission(
+            username: username,
+            password: try password ?? selectedIdentity.flatMap { try connectionPasswordCredential(for: $0) },
+            passphrase: passphrase, keyID: keyID, identityID: selectedIdentity?.id
+        )
+    }
+
+    /// Saves the optional form edit before associating its Host. A selected
+    /// Identity changes only for an explicitly supplied password. Custom input
+    /// reuses the Host's Identity, preserving the existing save boundaries.
+    public func saveAuthentication(
+        _ submission: SSHAuthenticationSubmission, for host: Host,
+        selectedIdentity: Identity?, suppliedPassword: String?
+    ) throws -> Host {
+        let identity: Identity
+        if let selectedIdentity {
+            if let suppliedPassword {
+                try upsert(selectedIdentity, passwordUpdate: .replace(suppliedPassword))
+            }
+            identity = selectedIdentity
+        } else {
+            let existing = self.identity(for: host)
+            identity = Identity(
+                id: existing?.id ?? UUID(), name: existing?.name ?? submission.username,
+                username: submission.username, credentialRef: existing?.credentialRef ?? "",
+                passwordStorage: existing?.passwordStorage ?? .iCloud,
+                keyID: submission.keyID, notes: existing?.notes ?? "",
+                lastUsedAt: existing?.lastUsedAt, colorTag: existing?.colorTag ?? .none
+            )
+            try upsert(
+                identity,
+                passwordUpdate: submission.password.map(IdentityPasswordUpdate.replace)
+                    ?? (existing == nil ? .remove : .keep)
+            )
+        }
+        var updated = host
+        updated.identityID = identity.id
+        upsert(updated)
+        return updated
+    }
+
     /// Refresh only durable trust after a successful handshake. The connection may
     /// have prompted before its configuration was captured; once-only approval is
     /// deliberately not promoted into permission for additional connections.

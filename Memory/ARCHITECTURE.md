@@ -196,6 +196,14 @@ authentication; callers never perform a separate discovery connection.
 Generation tokens prevent callbacks, credential results, and retry timers from a
 retired connection mutating its replacement.
 
+Desktop SSH and SFTP share authentication submission resolution and optional
+Identity/Host saving through `RemoteSessionHostStore`. Explicit passwords take
+precedence over selected-Identity lookup; custom input never inherits an unselected
+Identity's password. Saving a selection only replaces an explicitly entered password;
+custom input reuses the Host's existing Identity. Identity/secret persistence still
+precedes the separate Host association. Sessions retain validation order, passphrase
+continuation, prompt/error state, temporary credentials, transient Hosts, and reconnects.
+
 SSH keyboard-interactive challenges use the same authenticated-opening path for
 PTY, exec, SFTP, forwarding, key installation, and each jump host. The C callback
 waits only on its transport queue while an async, cancellable application responder
@@ -541,6 +549,12 @@ release. Pre-header failures return safe JSON; post-header failures close the
 connection without appending JSON or changing the announced status. Clients must
 poll `sftp_download_status`, compare local size/hash, and finalize their own file;
 HTTP 200 and Content-Length alone are not proof of success or local persistence.
+
+Upload and download compose the same MCP ticket metadata value and retention policy.
+The shared policy identifies expired waiting/paused tickets and prunes completions;
+each direction still owns its live states, claim rules, streaming, and cancellation.
+Upload expiry can start asynchronous partial-file cleanup; download success still
+permits a valid Range request. Each direction keeps its own ticket dictionary.
 
 Upload and download share one four-active-transfer budget. Each direction retains
 at most 64 unfinished capabilities (including paused attempts) and 256 terminal
@@ -896,6 +910,18 @@ Vault/Metrics default on, Settings off; disabling the master preserves selection
 and upgrades do not re-enable it. Pro gates three independent coordinators:
 `TermindVaultV1`, `TermindMetricsV1`, and the compatibility-named
 `TermindAIConfigurationV1`.
+
+Each coordinator composes its own Infrastructure `CloudSyncLifecycle`. The driver
+owns serialized operations and generation checks, account consent, engine creation,
+fetch-before-send readiness, pause/retry, reset orchestration, and status precedence.
+Typed category adapters project journal state as values; persistent model types and
+schemas remain exclusively in Persistence. Zones, subscriptions, switches, account
+bindings, journals, and engine instances remain independent. Category coordinators
+retain record coding, quarantine, merge rules, and versioned acknowledgements.
+Settings authorizes secret uploads only after a successful current-engine fetch and
+revokes authorization on pause or account retirement. Retired operations cannot clear
+a replacement operation or publish a late completion/error. The transport seam is
+internal and permits deterministic lifecycle tests without contacting iCloud.
 
 V13 Settings entity names/defaults are frozen; V14 only adds
 `PersistentTerminalPreferences`; V15 adds the independent Metrics journal/account/

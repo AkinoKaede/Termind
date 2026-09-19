@@ -626,3 +626,61 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
   the Mac run reported failures in AgentBackgroundCommandTests, AgentApprovalQueueTests,
   and SpeechWaveformViewTests; these were not investigated or rerun. No all-green
   full-suite result is claimed. App Store Connect metadata remains a release step.
+
+## Share Desktop SSH and SFTP Authentication Submission (2026-09-19)
+
+- Evidence: `rg -n 'continueAuthentication|submittedPassword|let existing = store.identity|passwordUpdate' TFM/Features/Terminal/SSHSessionModel.swift TFM/Features/SFTP/SFTPSessionModel.swift`
+  confirms duplicated saved-password fallback, submission construction, selected
+  Identity updates, custom Identity reuse, and Host association in the two desktop
+  authentication continuations.
+- Action: share submission resolution and optional saving through the existing
+  Application `RemoteSessionHostStore` port. Keep username validation, passphrase
+  continuation, prompt/error presentation, ephemeral SFTP credentials, transient
+  SSH Hosts, and reconnection sequencing in their current session owners. Preserve
+  separate Identity and Host writes and the existing secret-access bookkeeping.
+  Mobile, Metrics, and Forwarding authentication retain their distinct save rules.
+- Estimated reduction: 40-80 production Swift lines, including helper and caller
+  changes but excluding regression tests. No package, schema, or localization change
+  is needed. The existing localization-catalog edit is outside this refactor.
+- Status: implemented, reducing production Swift by 47 lines. Both sessions reuse
+  two methods on the existing port; no new model, generic base type, dependency,
+  schema, or secret-storage implementation is introduced. Architecture documentation
+  records this ownership; the existing boundary tests need no rule changes.
+- Focused verification: all 83 test functions passed (105 expanded test cases),
+  including the new shared-policy and desktop entry-point suites, credential usage,
+  connection preparation, Identity credentials, Connection Journey, SFTP sessions,
+  multi-window lifetimes, and architecture boundaries. The initial build found an
+  ambiguous `Host` import in the new desktop test fixture; an explicit Domain import
+  fixed it before the passing run. Strict Swift formatting, Chinese localization and
+  whitespace validation passed. Full pinned macOS and iOS verification is pending.
+- Evidence: `/tmp/termind-auth-refactor.uUFmoB/focused-macos-2.xcresult` and matching
+  logs/summary. Production-line counts and localization/dependency fingerprints are
+  recorded in the same directory. Existing catalog edits remain untouched.
+
+## Share MCP Transfer Retention Policy (2026-09-19)
+
+- Evidence: fresh `rg` confirms R6's duplicated activity, waiting/paused expiry,
+  unfinished capacity, completion-age pruning, and oldest-first completion cap in
+  `MCPUploadCoordinator` and `MCPDownloadCoordinator`. Request path/digest validation
+  remains direction-owned; both directions use the upload-owned byte limit.
+- Action: share ticket metadata, expiry construction, retention, and byte limits inside the desktop MCP layer.
+  Preserve per-direction dictionaries and errors, live-state definitions, Range after
+  success, upload cleanup, revocation, and the distinct cancellation/task ordering.
+- Estimated reduction: 10-40 production Swift lines after the narrow helper pays for
+  its protocol surface; regression coverage is counted separately.
+- Status: implementing. At the user's request, finish both remaining refactors before
+  running unified verification rather than testing each intermediate change.
+
+## Share CloudKit Coordinator Lifecycle (2026-09-19)
+
+- Evidence: fresh `rg` confirms R5's repeated operation generation, account checks,
+  engine setup, fetch-before-send gate, pause/retry, account/zone/environment resets,
+  completion status, and error classification in all three Cloud coordinators.
+- Action: compose one independent Infrastructure lifecycle instance per coordinator.
+  Use a small journal-state value and closures to adapt existing typed journals, and
+  an injectable account/engine transport for deterministic lifecycle tests. Keep
+  codecs, merges, quarantine, version acknowledgements, and Settings secret handling
+  in category adapters. Do not alter persistent model shapes or package dependencies.
+- Estimated reduction: 200-350 production Swift lines; adapter and driver costs are
+  included, while regression tests are counted separately.
+- Status: implementing; unified verification follows all edits, as requested.

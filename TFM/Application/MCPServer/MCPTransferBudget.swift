@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 final class MCPTransferBudget {
+    nonisolated static let maximumBytes = 10 * 1_024 * 1_024 * 1_024
     private var active: Set<UUID> = []
     func claim(_ id: UUID) -> Bool {
         guard active.count < 4, !active.contains(id) else { return false }
