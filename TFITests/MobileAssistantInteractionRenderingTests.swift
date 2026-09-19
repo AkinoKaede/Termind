@@ -213,10 +213,16 @@ struct MobileAssistantInteractionRenderingTests {
         let previousWindow = scene.windows.first { $0.isKeyWindow }
         let window = UIWindow(windowScene: scene)
         window.overrideUserInterfaceStyle = dark ? .dark : .light
+        var interactionFrame = CGRect.zero
         let controller = UIHostingController(
             rootView: VStack {
                 Spacer()
                 view
+                    .onGeometryChange(for: CGRect.self) {
+                        $0.frame(in: .global)
+                    } action: {
+                        interactionFrame = $0
+                    }
             }
             .padding(16)
             .background(Color(uiColor: .systemBackground))
@@ -249,7 +255,12 @@ struct MobileAssistantInteractionRenderingTests {
         let recognition = VNRecognizeTextRequest()
         recognition.recognitionLevel = .accurate
         recognition.recognitionLanguages = ["en-US"]
-        try VNImageRequestHandler(cgImage: #require(image.cgImage)).perform([recognition])
+        // Keep tablet whitespace from shrinking the glyphs when Vision downsamples its input.
+        let visibleFrame = interactionFrame.insetBy(dx: -8, dy: -8).intersection(window.bounds)
+        #expect(visibleFrame.width > 0 && visibleFrame.height > 0)
+        let pixels = visibleFrame.applying(CGAffineTransform(scaleX: image.scale, y: image.scale))
+        let interactionImage = try #require(image.cgImage?.cropping(to: pixels))
+        try VNImageRequestHandler(cgImage: interactionImage).perform([recognition])
         let visibleText = (recognition.results ?? []).compactMap { $0.topCandidates(1).first?.string }.joined(
             separator: " ")
         // OCR may insert spaces around punctuation in monospaced addresses.

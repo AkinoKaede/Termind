@@ -32,6 +32,7 @@ struct MobileRootView: View {
                     NavigationStack {
                         feature.makeView(app: app, scene: scene)
                     }
+                    .mobileToolbarEnvironment()
                 }
             }
         }

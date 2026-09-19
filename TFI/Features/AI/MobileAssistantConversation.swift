@@ -454,6 +454,7 @@ struct MobileAssistantConversation: View {
     @State private var editing: ChatMessage?
     @State private var editedText = ""
     @State private var presentation = AssistantTranscriptPresentationState()
+    @State private var interactionHeight: CGFloat = 0
     @Environment(\.locale) private var locale
     @Environment(\.horizontalSizeClass) private var sizeClass
     @State private var preview: URL?
@@ -466,27 +467,48 @@ struct MobileAssistantConversation: View {
             uniqueKeysWithValues: entries.map {
                 ($0.id, presentation.layoutRevision(for: $0.presentationIDs))
             })
-        MobileNativeList(
-            items: entries,
-            estimatedRowHeight: 132,
-            refreshID: transcriptRefreshID,
-            followsBottom: true,
-            surface: .plain,
-            rowRevision: { revisions[$0.id] ?? 0 },
-            prepareUpdate: { old, new, visible in
-                presentation.prepareWorkCompletionTransitions(from: old, to: new, visibleIDs: visible)
-            },
-            onViewportChange: { presentation.collapseWorkOutsideViewport(visibleIDs: $0) },
-            onTap: { composerFocus.wrappedValue = false }
-        ) { entry in
-            transcriptRow(entry)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .frame(maxWidth: 840)
-                .frame(maxWidth: .infinity)
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            bottomSurface
+        MobileRegionReader { regions in
+            let panes = regions.assistant(interactionHeight: interactionHeight)
+            MobilePaneLayout(frames: [panes.first, panes.second]) {
+                MobileNativeList(
+                    items: entries,
+                    estimatedRowHeight: 132,
+                    refreshID: transcriptRefreshID,
+                    followsBottom: true,
+                    surface: .plain,
+                    rowRevision: { revisions[$0.id] ?? 0 },
+                    prepareUpdate: { old, new, visible in
+                        presentation.prepareWorkCompletionTransitions(from: old, to: new, visibleIDs: visible)
+                    },
+                    onViewportChange: { presentation.collapseWorkOutsideViewport(visibleIDs: $0) },
+                    onTap: { composerFocus.wrappedValue = false }
+                ) { entry in
+                    transcriptRow(entry)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: 840)
+                        .frame(maxWidth: .infinity)
+                }
+                .opacity(MobileContentRegions.isUsable(panes.first) ? 1 : 0)
+                .allowsHitTesting(MobileContentRegions.isUsable(panes.first))
+                .accessibilityHidden(!MobileContentRegions.isUsable(panes.first))
+                .clipped()
+                ScrollView {
+                    bottomSurface
+                        .fixedSize(horizontal: false, vertical: true)
+                        .onGeometryChange(for: CGFloat.self) {
+                            $0.size.height
+                        } action: {
+                            interactionHeight = $0
+                        }
+                }
+                .scrollBounceBehavior(.basedOnSize)
+                .defaultScrollAnchor(.bottom, for: .alignment)
+                .opacity(MobileContentRegions.isUsable(panes.second) ? 1 : 0)
+                .allowsHitTesting(MobileContentRegions.isUsable(panes.second))
+                .accessibilityHidden(!MobileContentRegions.isUsable(panes.second))
+                .clipped()
+            }
         }
         .background(Color(uiColor: .systemBackground))
         .mobileConversationAttachmentDropTarget(
@@ -546,6 +568,7 @@ struct MobileAssistantConversation: View {
 
     @ViewBuilder private var bottomSurface: some View {
         bottomSurfaceContent
+            .padding(.top, !conversation.tasks.isEmpty && acceptsAttachmentDrops ? 44 : 0)
             .padding(12)
             .frame(maxWidth: 840)
             .frame(maxWidth: .infinity)

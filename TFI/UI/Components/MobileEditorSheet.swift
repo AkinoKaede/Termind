@@ -28,62 +28,61 @@ struct MobileEditorSheet<Content: View>: View {
 
     var body: some View {
         NavigationStack {
-            Form { content().disabled(isSaving) }
-                .navigationTitle(title)
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel", systemImage: "xmark") {
-                            if isDirty {
-                                discard = true
-                            } else {
-                                cancel()
-                            }
-                        }
-                        .labelStyle(.iconOnly).disabled(isSaving)
-                    }
-                    ToolbarItem(placement: .primaryAction) {
-                        if !actions.isEmpty {
-                            Menu {
-                                ForEach(actions) { action in
-                                    if action.startsGroup { Divider() }
-                                    Button(role: action.role, action: action.perform) {
-                                        Label(action.title, systemImage: action.systemImage)
-                                    }
-                                    .disabled(!action.isEnabled || isSaving)
-                                }
-                            } label: {
-                                MobileOverflowMenuLabel("More")
-                            }
-                            .disabled(isSaving)
+            Form {
+                content().disabled(isSaving)
+                if isSaving { ProgressView().frame(maxWidth: .infinity) }
+            }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel", systemImage: "xmark") {
+                        if isDirty {
+                            discard = true
+                        } else {
+                            cancel()
                         }
                     }
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button {
-                            guard !isSaving else { return }
-                            isSaving = true
-                            saveTask = Task {
-                                defer { isSaving = false }
-                                do {
-                                    try await save()
-                                    try Task.checkCancellation()
-                                    dismiss()
-                                } catch is CancellationError {
-                                } catch { self.error = error.localizedDescription }
+                    .labelStyle(.iconOnly).disabled(isSaving)
+                }
+                if !actions.isEmpty {
+                    MobileToolbarOverflow {
+                        ForEach(actions) { action in
+                            if action.startsGroup { Divider() }
+                            Button(role: action.role, action: action.perform) {
+                                Label(action.title, systemImage: action.systemImage)
                             }
-                        } label: {
-                            if isSaving { ProgressView() } else { Label("Save", systemImage: "checkmark") }
-                        }.labelStyle(.iconOnly).accessibilityLabel(Text("Save")).disabled(!canSave || isSaving)
+                            .disabled(!action.isEnabled || isSaving)
+                        }
                     }
                 }
-                .confirmationDialog("Discard Changes?", isPresented: $discard, titleVisibility: .visible) {
-                    Button("Discard Changes", role: .destructive, action: cancel)
+                ToolbarItem(placement: .confirmationAction) {
+                    Button {
+                        guard !isSaving else { return }
+                        isSaving = true
+                        saveTask = Task {
+                            defer { isSaving = false }
+                            do {
+                                try await save()
+                                try Task.checkCancellation()
+                                dismiss()
+                            } catch is CancellationError {
+                            } catch { self.error = error.localizedDescription }
+                        }
+                    } label: {
+                        Label("Save", systemImage: "checkmark")
+                    }.labelStyle(.iconOnly).accessibilityLabel(Text("Save")).disabled(!canSave || isSaving)
                 }
-                .alert("Unable to Save", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
-                    Button("OK", role: .cancel, action: { error = nil })
-                } message: {
-                    Text(error ?? "")
-                }
+                .mobileProminentAction()
+            }
+            .confirmationDialog("Discard Changes?", isPresented: $discard, titleVisibility: .visible) {
+                Button("Discard Changes", role: .destructive, action: cancel)
+            }
+            .alert("Unable to Save", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
+                Button("OK", role: .cancel, action: { error = nil })
+            } message: {
+                Text(error ?? "")
+            }
         }
         .mobileSheetPresentation(compact: compact)
         .interactiveDismissDisabled(isDirty || isSaving)

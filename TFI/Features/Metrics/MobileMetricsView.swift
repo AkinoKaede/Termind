@@ -75,10 +75,10 @@ struct MobileMetricsDetailView: View {
     let app: MobileAppModel
     let server: ServerMetric
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.tabBarPlacement) private var tabBarPlacement
+    @Environment(\.mobileToolbarLayout) private var toolbarLayout
     @State private var page = MobileMetricsDetailPage.status
     @State private var observer = UUID()
-    @State private var availableWidth: CGFloat = 0
+    @State private var showsBothPanels = false
 
     var body: some View {
         Group {
@@ -102,57 +102,66 @@ struct MobileMetricsDetailView: View {
                     keyboardAuthentication: server.keyboardAuthentication,
                     cancelKeyboardAuthentication: cancelAuthentication)
             } else {
-                GeometryReader { geometry in
-                    if MobileMetricsDetailPage.showsBothColumns(width: geometry.size.width) {
-                        HStack(alignment: .top, spacing: 16) {
-                            ScrollView { MetricsSystemPanels(server: server).padding(1) }
-                                .frame(width: min(360, geometry.size.width * 0.4))
-                            MobileMetricsProcessesView(server: server)
-                        }.padding(16)
-                    } else if page == .status {
+                MobileRegionReader { regions in
+                    let panels = MobileMetricsPanels(regions: regions, page: page)
+                    MobilePaneLayout(frames: [panels.status, panels.processes]) {
                         ScrollView { MetricsSystemPanels(server: server).padding() }
-                    } else {
+                            .opacity(panels.status == nil ? 0 : 1)
+                            .allowsHitTesting(panels.status != nil)
+                            .accessibilityHidden(panels.status == nil)
+                            .clipped()
                         MobileMetricsProcessesView(server: server)
+                            .opacity(panels.processes == nil ? 0 : 1)
+                            .allowsHitTesting(panels.processes != nil)
+                            .accessibilityHidden(panels.processes == nil)
+                            .clipped()
                     }
+                    .onChange(of: panels.showsBoth, initial: true) { _, value in showsBothPanels = value }
                 }
             }
-        }
-        .onGeometryChange(for: CGFloat.self) {
-            $0.size.width
-        } action: {
-            availableWidth = $0
         }
         .navigationTitle(server.name)
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar(removing: tabBarPlacement == .topBar ? .title : nil)
+        .toolbar(removing: toolbarLayout.usesIconSwitcher ? .title : nil)
         .toolbar {
-            ToolbarItem(placement: .principal) {
-                if !server.showsConnectionJourney && !MobileMetricsDetailPage.showsBothColumns(width: availableWidth) {
-                    Picker("Details", selection: $page) {
-                        Image(systemName: "gauge.with.dots.needle.33percent").accessibilityLabel("Status").tag(
-                            MobileMetricsDetailPage.status)
-                        Image(systemName: "list.bullet.rectangle").accessibilityLabel("Processes").tag(
-                            MobileMetricsDetailPage.processes)
-                    }.pickerStyle(.segmented).frame(width: 104)
+            if !server.showsConnectionJourney && !showsBothPanels {
+                if toolbarLayout.isVertical {
+                    ToolbarItem(placement: .primaryAction) {
+                        Menu {
+                            pagePicker
+                        } label: {
+                            Label("Details", systemImage: page.systemImage)
+                        }
+                        .labelStyle(.iconOnly)
+                    }
+                    .mobileProminentAction()
+                } else {
+                    ToolbarItem(placement: .principal) {
+                        pagePicker.pickerStyle(.segmented).labelStyle(.iconOnly).frame(width: 104)
+                    }
                 }
             }
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button(
-                        server.selection.enabled ? "Pause" : "Resume",
-                        systemImage: server.selection.enabled ? "pause" : "play"
-                    ) {
-                        app.metrics.core.setEnabled(!server.selection.enabled, for: server)
-                    }
-                    Button("Retry", systemImage: "arrow.clockwise") { app.metrics.core.retry(server) }
-                } label: {
-                    MobileOverflowMenuLabel("Metrics")
+            MobileToolbarOverflow(title: "Metrics") {
+                Button(
+                    server.selection.enabled ? "Pause" : "Resume",
+                    systemImage: server.selection.enabled ? "pause" : "play"
+                ) {
+                    app.metrics.core.setEnabled(!server.selection.enabled, for: server)
                 }
+                Button("Retry", systemImage: "arrow.clockwise") { app.metrics.core.retry(server) }
             }
         }
         .onAppear { observe() }
         .onChange(of: server.showsConnectionJourney) { observe() }
         .onDisappear { app.metrics.core.stopObservingDetails(observer) }
+    }
+
+    private var pagePicker: some View {
+        Picker("Details", selection: $page) {
+            Label("Status", systemImage: MobileMetricsDetailPage.status.systemImage).tag(MobileMetricsDetailPage.status)
+            Label("Processes", systemImage: MobileMetricsDetailPage.processes.systemImage).tag(
+                MobileMetricsDetailPage.processes)
+        }
     }
 
     private func cancelAuthentication() {
@@ -172,6 +181,37 @@ struct MobileMetricsDetailView: View {
 nonisolated enum MobileMetricsDetailPage: CaseIterable {
     case status, processes
     static func showsBothColumns(width: CGFloat) -> Bool { width >= 700 }
+    var systemImage: String {
+        switch self {
+        case .status: "gauge.with.dots.needle.33percent"
+        case .processes: "list.bullet.rectangle"
+        }
+    }
+}
+
+nonisolated struct MobileMetricsPanels {
+    var status: CGRect?
+    var processes: CGRect?
+    var showsBoth: Bool { status != nil && processes != nil }
+
+    init(regions: MobileContentRegions, page: MobileMetricsDetailPage) {
+        if let split = regions.split {
+            status = split.first
+            processes = split.second
+        } else if !regions.hasActiveDivision
+            && MobileMetricsDetailPage.showsBothColumns(width: regions.continuous.width)
+        {
+            let bounds = regions.continuous
+            let statusWidth = min(360, bounds.width * 0.4)
+            status = CGRect(x: bounds.minX, y: bounds.minY, width: statusWidth, height: bounds.height)
+            processes = CGRect(
+                x: bounds.minX + statusWidth + 16, y: bounds.minY,
+                width: bounds.width - statusWidth - 32, height: bounds.height)
+        } else if MobileContentRegions.isUsable(regions.continuous) {
+            status = page == .status ? regions.continuous : nil
+            processes = page == .processes ? regions.continuous : nil
+        }
+    }
 }
 
 private struct MobileMetricsProcessesView: View {

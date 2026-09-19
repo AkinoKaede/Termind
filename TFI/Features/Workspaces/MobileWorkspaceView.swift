@@ -40,6 +40,7 @@ struct MobileWorkspaceView: View {
     @State private var workspaceIsVisible = false
     @State private var uploadDropTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.mobileToolbarLayout) private var toolbarLayout
     @TerminalFontSettings private var font
     @State private var downloadTarget: RemoteFile?
     @State private var previewURL: URL?
@@ -60,11 +61,6 @@ struct MobileWorkspaceView: View {
 
     var body: some View {
         workspaceAlerts
-            .overlay {
-                if uploadDropTargeted {
-                    DropTargetOverlay(presentation: uploadDropPresentation)
-                }
-            }
             .background {
                 MobileSFTPOpenWithAnchor(
                     presenter: openWithPresenter,
@@ -100,110 +96,130 @@ struct MobileWorkspaceView: View {
     }
 
     private var workspaceChrome: some View {
-        workspaceContent
-            .overlay(alignment: .bottom) {
-                VStack(spacing: 12) {
-                    if showsCommandGeneratorOverlay {
-                        MobileCommandGeneratorOverlay(state: workspace.commandGeneratorState)
+        MobileRegionReader { regions in
+            MobilePaneLayout(frames: [regions.continuous]) {
+                workspaceContent
+                    .overlay(alignment: .bottom) {
+                        VStack(spacing: 12) {
+                            if showsCommandGeneratorOverlay {
+                                MobileCommandGeneratorOverlay(state: workspace.commandGeneratorState)
+                            }
+                            if let notice = workspace.uploadNotice {
+                                MobileUploadNoticeOverlay(notice: notice)
+                            }
+                        }
+                        .padding()
+                        .allowsHitTesting(false)
                     }
-                    if let notice = workspace.uploadNotice {
-                        MobileUploadNoticeOverlay(notice: notice)
+                    .overlay {
+                        if uploadDropTargeted { DropTargetOverlay(presentation: uploadDropPresentation) }
                     }
-                }
-                .padding()
-                .allowsHitTesting(false)
+                    .clipped()
+                    .opacity(MobileContentRegions.isUsable(regions.continuous) ? 1 : 0)
+                    .allowsHitTesting(MobileContentRegions.isUsable(regions.continuous))
+                    .accessibilityHidden(!MobileContentRegions.isUsable(regions.continuous))
             }
-            .navigationTitle(workspace.descriptor.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar(.hidden, for: .tabBar)
-            .toolbarTitleMenu {
-                ForEach(workspaces) { candidate in
-                    Button {
-                        guard candidate.id != workspace.id else { return }
-                        selectWorkspace(candidate.id)
+        }
+        .navigationTitle(workspace.descriptor.title)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar(toolbarLayout.showsWorkspaceTabs ? .visible : .hidden, for: .tabBar)
+        .toolbar(removing: toolbarLayout.usesIconSwitcher ? .title : nil)
+        .toolbar {
+            if toolbarLayout.usesIconSwitcher {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        workspaceSwitchActions
                     } label: {
-                        workspaceTitleMenuLabel(for: candidate)
+                        Label("Workspaces", systemImage: "rectangle.stack")
                     }
+                    .labelStyle(.iconOnly)
+                    .accessibilityValue(workspace.descriptor.title)
                 }
+                .mobileProminentAction()
+            } else {
+                ToolbarTitleMenu { workspaceSwitchActions }
             }
-            .modifier(MobileWorkspaceSearchModifier(workspace: workspace))
-            .toolbar { workspaceToolbar }
+        }
+        .modifier(MobileWorkspaceSearchModifier(workspace: workspace))
+        .toolbar { workspaceToolbar }
+    }
+
+    private var workspaceSwitchActions: some View {
+        ForEach(workspaces) { candidate in
+            Button {
+                guard candidate.id != workspace.id else { return }
+                selectWorkspace(candidate.id)
+            } label: {
+                workspaceTitleMenuLabel(for: candidate)
+            }
+        }
     }
 
     @ToolbarContentBuilder
     private var workspaceToolbar: some ToolbarContent {
         if workspace.descriptor.kind == .ssh {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button("Generate Command", systemImage: "sparkles") {
-                        workspace.generateCommand(using: commandGenerator)
-                    }
-                    Divider()
-                    Button("Snippets", systemImage: "curlybraces") { terminalSheet = .snippets }
-                    Button("History", systemImage: "clock") { terminalSheet = .commandHistory }
-                    Divider()
-                    Button("Next Match", systemImage: "chevron.down") {
-                        workspace.find.presentAndNavigate(.previous)
-                    }
-                    Button("Previous Match", systemImage: "chevron.up") {
-                        workspace.find.presentAndNavigate(.next)
-                    }
-                    Divider()
-                    sameDirectoryMenuAction
-                    Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
-                    Button("Close", systemImage: "xmark", role: .destructive) {
-                        closeWorkspace(workspace.id)
-                    }
-                } label: {
-                    MobileOverflowMenuLabel("More")
+            MobileToolbarOverflow(placement: .topBarTrailing) {
+                Button("Generate Command", systemImage: "sparkles") {
+                    workspace.generateCommand(using: commandGenerator)
+                }
+                Divider()
+                Button("Snippets", systemImage: "curlybraces") { terminalSheet = .snippets }
+                Button("History", systemImage: "clock") { terminalSheet = .commandHistory }
+                Divider()
+                Button("Next Match", systemImage: "chevron.down") {
+                    workspace.find.presentAndNavigate(.previous)
+                }
+                Button("Previous Match", systemImage: "chevron.up") {
+                    workspace.find.presentAndNavigate(.next)
+                }
+                Divider()
+                sameDirectoryMenuAction
+                Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
+                Button("Close", systemImage: "xmark", role: .destructive) {
+                    closeWorkspace(workspace.id)
                 }
             }
         }
         if isSFTP {
-            ToolbarItem(placement: .topBarTrailing) {
-                Menu {
-                    Button("Previous Location", systemImage: "chevron.left") {
-                        Task { await workspace.sftpSession.goBack() }
-                    }
-                    .disabled(!workspace.connected || !workspace.sftpSession.canGoBack)
-                    Button("Next Location", systemImage: "chevron.right") {
-                        Task { await workspace.sftpSession.goForward() }
-                    }
-                    .disabled(!workspace.connected || !workspace.sftpSession.canGoForward)
-                    Divider()
-                    Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
-                    Button("History", systemImage: "clock") { terminalSheet = .sftpHistory }
-                    Divider()
-                    Button("Upload", systemImage: "square.and.arrow.up") { importing = true }
-                        .disabled(!workspace.connected)
-                    Button("New Folder", systemImage: "folder.badge.plus") { creatingDirectory = true }
-                        .disabled(!workspace.connected)
-                    Button("Paste", systemImage: "doc.on.clipboard", action: pasteRemoteItems)
-                        .disabled(!workspace.connected)
-                    sortMenu
-                    if workspace.sftpSession.showsHiddenFiles {
-                        Button("Hide Hidden Files", systemImage: "eye.slash") {
-                            workspace.sftpSession.showsHiddenFiles = false
-                        }
-                    } else {
-                        Button("Show Hidden Files", systemImage: "eye") {
-                            workspace.sftpSession.showsHiddenFiles = true
-                        }
-                    }
-                    Button("Refresh", systemImage: "arrow.clockwise") {
-                        Task { await workspace.sftpSession.reload() }
-                    }
-                    .disabled(!workspace.connected || workspace.sftpSession.isRefreshing)
-                    Divider()
-                    sameDirectoryMenuAction
-                    Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
-                    Button("Close", systemImage: "xmark", role: .destructive) {
-                        closeWorkspace(workspace.id)
-                    }
-                } label: {
-                    MobileOverflowMenuLabel("More")
+            MobileToolbarOverflow(placement: .topBarTrailing) {
+                Button("Previous Location", systemImage: "chevron.left") {
+                    Task { await workspace.sftpSession.goBack() }
                 }
-                .menuOrder(.fixed)
+                .disabled(!workspace.connected || !workspace.sftpSession.canGoBack)
+                Button("Next Location", systemImage: "chevron.right") {
+                    Task { await workspace.sftpSession.goForward() }
+                }
+                .disabled(!workspace.connected || !workspace.sftpSession.canGoForward)
+                Divider()
+                Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
+                Button("History", systemImage: "clock") { terminalSheet = .sftpHistory }
+                Divider()
+                Button("Upload", systemImage: "square.and.arrow.up") { importing = true }
+                    .disabled(!workspace.connected)
+                Button("New Folder", systemImage: "folder.badge.plus") { creatingDirectory = true }
+                    .disabled(!workspace.connected)
+                Button("Paste", systemImage: "doc.on.clipboard", action: pasteRemoteItems)
+                    .disabled(!workspace.connected)
+                sortMenu
+                if workspace.sftpSession.showsHiddenFiles {
+                    Button("Hide Hidden Files", systemImage: "eye.slash") {
+                        workspace.sftpSession.showsHiddenFiles = false
+                    }
+                } else {
+                    Button("Show Hidden Files", systemImage: "eye") {
+                        workspace.sftpSession.showsHiddenFiles = true
+                    }
+                }
+                Button("Refresh", systemImage: "arrow.clockwise") {
+                    Task { await workspace.sftpSession.reload() }
+                }
+                .disabled(!workspace.connected || workspace.sftpSession.isRefreshing)
+                Divider()
+                sameDirectoryMenuAction
+                Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
+                Button("Close", systemImage: "xmark", role: .destructive) {
+                    closeWorkspace(workspace.id)
+                }
             }
         }
     }

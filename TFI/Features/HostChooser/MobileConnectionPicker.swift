@@ -13,20 +13,19 @@ struct MobileWorkspaceToolbar: ToolbarContent {
     let connect: () -> Void
 
     var body: some ToolbarContent {
-        ToolbarItemGroup(placement: .primaryAction) {
+        ToolbarItem(placement: .primaryAction) {
             Button("Connect", systemImage: "network", action: connect)
                 .labelStyle(.iconOnly)
-            Menu {
-                Button("Close All Workspaces", systemImage: "rectangle.stack.badge.minus") {
-                    closeAll()
-                }
-                .disabled(!hasWorkspaces)
-                Divider()
-                Button("Clear History", systemImage: "trash", role: .destructive, action: clearHistory)
-                    .disabled(!hasHistory)
-            } label: {
-                MobileOverflowMenuLabel("More")
+        }
+        .mobileProminentAction()
+        MobileToolbarOverflow {
+            Button("Close All Workspaces", systemImage: "rectangle.stack.badge.minus") {
+                closeAll()
             }
+            .disabled(!hasWorkspaces)
+            Divider()
+            Button("Clear History", systemImage: "trash", role: .destructive, action: clearHistory)
+                .disabled(!hasHistory)
         }
     }
 }

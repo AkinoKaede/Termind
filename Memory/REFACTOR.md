@@ -684,3 +684,15 @@ The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this 
 - Estimated reduction: 200-350 production Swift lines; adapter and driver costs are
   included, while regression tests are counted separately.
 - Status: implementing; unified verification follows all edits, as requested.
+
+## Centralize Responsive Mobile Toolbar Decisions (2026-09-19)
+
+- Evidence: `rg -n 'tabBarPlacement|mobileToolbarLayout' TFI` finds direct placement
+  fallbacks in Assistant and Metrics alongside the shared environment already
+  provided by each stable feature stack. The production UI contains no device-idiom
+  or model-based layout branches.
+- Action: remove both feature-local placement reads and use the shared toolbar
+  layout as the sole policy input. Retain container geometry, active reserved regions,
+  native view identity, and OS availability checks at the SwiftUI API boundary.
+- Estimated reduction: two production Swift lines and two duplicated conditions.
+- Status: implementing; verify native title/menu transitions and fold/session lifetime tests.

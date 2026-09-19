@@ -21,7 +21,7 @@ struct MobileAssistantView: View {
     let app: MobileAppModel
     @Bindable var model: MobileAssistantSceneModel
     @Binding var libraryRoute: MobileAssistantLibraryRoute?
-    @Environment(\.tabBarPlacement) private var tabBarPlacement
+    @Environment(\.mobileToolbarLayout) private var toolbarLayout
     @State private var restoreComposerFocusAfterLibrary = false
     @State private var nextComposerFocusRequest = 0
     @State private var composerFocusRequest: Int?
@@ -51,19 +51,23 @@ struct MobileAssistantView: View {
                         Menu {
                             conversationTitleMenu
                         } label: {
-                            Label("Conversations", systemImage: "bubble.left.and.bubble.right")
+                            Label("Conversations", systemImage: "rectangle.stack")
                         }
                         .labelStyle(.iconOnly)
                         .accessibilityValue(conversationTitle)
                     }
+                    .mobileProminentAction()
                 } else if libraryRoute == nil {
                     ToolbarTitleMenu { conversationTitleMenu }
                 }
             }
             .toolbar {
-                Button("New Conversation", systemImage: "plus.bubble", action: newConversation)
-                    .labelStyle(.iconOnly)
-                Menu {
+                ToolbarItem(placement: .primaryAction) {
+                    Button("New Conversation", systemImage: "plus.bubble", action: newConversation)
+                        .labelStyle(.iconOnly)
+                }
+                .mobileProminentAction()
+                MobileToolbarOverflow {
                     Button("Conversations", systemImage: "clock") { showLibrary(.conversations) }
                     Button("Archived", systemImage: "archivebox") { showLibrary(.archived) }
                     Divider()
@@ -94,8 +98,6 @@ struct MobileAssistantView: View {
                         }
                         .disabled(!canChangeHistory)
                     }
-                } label: {
-                    MobileOverflowMenuLabel("More")
                 }
             }
             .navigationDestination(item: $libraryRoute) { route in
@@ -152,7 +154,7 @@ struct MobileAssistantView: View {
     }
 
     private var usesConversationIcon: Bool {
-        tabBarPlacement == .topBar && libraryRoute == nil
+        toolbarLayout.usesIconSwitcher && libraryRoute == nil
     }
 
     private var detail: some View {

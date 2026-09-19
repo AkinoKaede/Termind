@@ -9,7 +9,7 @@ struct MobileOverflowMenuLabel: View {
     }
 
     var body: some View {
-        Image(systemName: "ellipsis")
-            .accessibilityLabel(Text(title))
+        Label(title, systemImage: "ellipsis")
+            .labelStyle(.iconOnly)
     }
 }

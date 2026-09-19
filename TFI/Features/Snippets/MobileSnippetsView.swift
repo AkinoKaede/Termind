@@ -458,21 +458,20 @@ struct MobileSnippetDetailView: View {
                 .navigationTitle(snippet.title)
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
-                    ToolbarItemGroup(placement: .primaryAction) {
+                    ToolbarItem(placement: .primaryAction) {
                         Button("Edit", systemImage: "pencil", action: edit).labelStyle(.iconOnly)
-                        Menu {
-                            Button("Execute on Hosts", systemImage: "play.rectangle") {
-                                executeOnHosts(snippet.id)
-                            }
-                            .disabled(app.snippets.hosts.isEmpty)
-                            Button("Duplicate", systemImage: "plus.square.on.square") {
-                                duplicate(snippet.id)
-                            }
-                            Divider()
-                            Button("Delete", systemImage: "trash", role: .destructive, action: delete)
-                        } label: {
-                            Label("More", systemImage: "ellipsis.circle").labelStyle(.iconOnly)
+                    }
+                    .mobileProminentAction()
+                    MobileToolbarOverflow {
+                        Button("Execute on Hosts", systemImage: "play.rectangle") {
+                            executeOnHosts(snippet.id)
                         }
+                        .disabled(app.snippets.hosts.isEmpty)
+                        Button("Duplicate", systemImage: "plus.square.on.square") {
+                            duplicate(snippet.id)
+                        }
+                        Divider()
+                        Button("Delete", systemImage: "trash", role: .destructive, action: delete)
                     }
                 }
             } else {

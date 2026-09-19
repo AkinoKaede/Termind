@@ -234,6 +234,7 @@ struct MobileAssistantComposer: View {
                 .zIndex(20)
             }
         }
+        .padding(.top, !slashCompletion.isEmpty && !isSlashPanelDismissed ? slashPanelHeight + 8 : 0)
         .animation(.snappy(duration: 0.2), value: slashCompletion.rows.map(\.id))
         .onChange(of: composer.draft) { _, _ in isSlashPanelDismissed = false }
     }

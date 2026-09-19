@@ -972,10 +972,37 @@ unsaved forms. Metrics has one independent stack in all widths; Vault search sho
 select that destination rather than constructing another Metrics page. Resizing never
 restarts live connections, transfers or Agent runs, or creates a new conversation.
 
-Metrics detail and Assistant use the actual tab-bar placement to hide their toolbar
-titles only beside the top tab bar. Assistant retains its conversation switcher as
-an icon menu there; sidebar and bottom-bar layouts retain the original titles and
-title menus. Assistant library pages retain their titles in every placement.
+Mobile toolbar policy reads actual tab-bar placement and the system's preferred vertical
+toolbar edge inside each stable feature stack. Feature views consume this one policy
+instead of independently reading placement or device capabilities. Workspace details
+retain the five application tabs beside top bars and in vertical toolbars. Bottom tabs
+stay hidden in SSH/SFTP details whenever the vertical toolbar is unavailable.
+Workspace and Assistant share a `rectangle.stack` switcher in top and vertical bars,
+with a title menu elsewhere.
+These switchers select peers within the feature; they are separate
+from the five application tabs. Assistant library pages always retain their titles.
+Metrics uses a labeled icon menu in a vertical toolbar and a principal segmented picker
+in a horizontal toolbar, hiding either when both panels are visible. iOS 27 uses the
+system ToolbarOverflowMenu for secondary actions; older systems keep labeled menus.
+Save stays a standard labeled button while a form-level progress indicator shows work.
+SSH/SFTP search retains the minimized system search button in all toolbar placements;
+opening a sidebar or changing pose never activates search or takes keyboard focus.
+
+Mobile content reads active division and occlusion ReservedRegions on iOS 27.1 after
+system safe-area and keyboard layout. Frames already include margins and use the same
+leading-origin coordinate convention as SwiftUI Layout, including RTL. A terminal and
+its shortcut strip and notices occupy the largest continuous unobstructed rectangle,
+with ties resolved toward the top and then leading edge. Ghostty remains the grid-size
+authority and resizes the existing PTY; invalid viewport updates are ignored. Workspace
+native surfaces and transports remain owned by their existing session, never by pose.
+Assistant keeps one native transcript and one scrollable interaction surface mounted;
+active folds place them above/below or leading/trailing, with the complete interaction
+surface (including tasks, approvals and questions) inside its region. With one remaining
+region it returns to the stacked layout. Metrics keeps both panels mounted at their last
+valid sizes, preserving native lists, sort and scroll state. An active fold assigns one
+panel to each usable region; with only one region it shows the selected page. Without a
+fold it retains the 700-point two-column threshold. Region policy and native identity
+tests exercise folding without changing navigation, drafts, focus or session ownership.
 
 Editor saves do not gate layout changes. Their tasks, duplicate-submit protection,
 unsaved-dismiss confirmation and error feedback survive width changes. Sheets follow

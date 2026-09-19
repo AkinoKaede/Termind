@@ -1442,6 +1442,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     private func resize(_ size: InMemoryTerminalViewport) async {
+        guard size.columns > 0, size.rows > 0, size.widthPixels > 0, size.heightPixels > 0 else { return }
         viewport = size
         await ssh?.resize(
             columns: UInt16(clamping: size.columns), rows: UInt16(clamping: size.rows),

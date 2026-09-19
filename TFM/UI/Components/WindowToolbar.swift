@@ -606,8 +606,7 @@ struct WindowToolbarFindField: View {
     }
 }
 
-/// The leading half: Notes' `square.and.pencil`, holding whatever the content in
-/// front can create, plus the Assistant's Archive toggle.
+/// The leading `plus` control holds whatever the content in front can create.
 ///
 /// Read from the main content, never from `window.sidebarMode` — a New Host item
 /// that appeared because the sidebar was showing the Navigator would create
@@ -644,7 +643,7 @@ struct WindowToolbarLeadingActions: View {
             Button(action: only.perform) {
                 Label(
                     only.localizedTitle(locale: locale),
-                    systemImage: "square.and.pencil"
+                    systemImage: "plus"
                 )
             }
             .help(Text(only.localizedTitle(locale: locale)))
@@ -659,7 +658,7 @@ struct WindowToolbarLeadingActions: View {
                     )
                 }
             } label: {
-                Label("New", systemImage: "square.and.pencil")
+                Label("New", systemImage: "plus")
             }
             .help(Text("New"))
         }

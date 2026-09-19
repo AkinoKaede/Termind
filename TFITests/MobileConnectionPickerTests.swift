@@ -130,8 +130,12 @@ struct MobileConnectionPickerTests {
             #expect(UIApplication.shared.sendAction(connectAction, to: connect.target, from: connect, for: nil))
             #expect(connectActivations == 1)
 
-            let more = try #require(toolbarButton(named: expectedMoreName, in: navigation))
-            #expect(more.isEnabled)
+            if #available(iOS 27.0, *) {
+                #expect(navigation.topViewController?.navigationItem.additionalOverflowItems != nil)
+            } else {
+                let more = try #require(toolbarButton(named: expectedMoreName, in: navigation))
+                #expect(more.isEnabled)
+            }
         }
     }
 

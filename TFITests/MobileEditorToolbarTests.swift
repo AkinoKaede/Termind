@@ -53,11 +53,16 @@ struct MobileEditorToolbarTests {
         state.showsActions = true
         try await withEditor(state) { _, navigation in
             #expect(saveButton(in: navigation)?.isEnabled == true)
-            #expect(moreButton(in: navigation)?.isEnabled == true)
+            let initialActions = try await moreActions(in: navigation)
+            #expect(initialActions.count == 2)
+            #expect(initialActions.allSatisfy { !$0.attributes.contains(.disabled) })
+            #expect(initialActions.allSatisfy { !$0.title.isEmpty && $0.image != nil })
 
             try activate(#require(saveButton(in: navigation)))
             try await settle()
-            #expect(moreButton(in: navigation)?.isEnabled == false)
+            let savingActions = try await moreActions(in: navigation)
+            #expect(savingActions.count == 2)
+            #expect(savingActions.allSatisfy { $0.attributes.contains(.disabled) })
 
             state.finishSave()
             try await settle()
@@ -123,6 +128,40 @@ struct MobileEditorToolbarTests {
 
     private func moreButton(in navigation: UINavigationController) -> UIBarButtonItem? {
         toolbarButton(namedOneOf: ["More", "更多"], in: navigation)
+    }
+
+    private func moreActions(in navigation: UINavigationController) async throws -> [UIAction] {
+        let page = try #require(navigation.topViewController)
+        let menu: UIMenu
+        if #available(iOS 27.0, *) {
+            menu = UIMenu(children: [try #require(page.navigationItem.additionalOverflowItems)])
+        } else {
+            menu = try #require(moreButton(in: navigation)?.menu)
+        }
+        let button = UIButton(frame: CGRect(x: 100, y: 100, width: 44, height: 44))
+        button.menu = menu
+        button.showsMenuAsPrimaryAction = true
+        page.view.addSubview(button)
+        defer { button.removeFromSuperview() }
+        button.performPrimaryAction()
+        try await settle()
+        let interaction = try #require(button.contextMenuInteraction)
+        var actions: [UIAction] = []
+        interaction.updateVisibleMenu { resolved in
+            actions = menuActions(resolved)
+            return resolved
+        }
+        interaction.dismissMenu()
+        try await settle()
+        return actions
+    }
+
+    private func menuActions(_ menu: UIMenu) -> [UIAction] {
+        menu.children.flatMap { element -> [UIAction] in
+            if let action = element as? UIAction { return [action] }
+            if let submenu = element as? UIMenu { return menuActions(submenu) }
+            return []
+        }
     }
 
     private func toolbarButton(

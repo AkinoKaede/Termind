@@ -281,18 +281,14 @@ struct MobileMCPEditor: View {
         .navigationTitle("MCP Server")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItem(placement: .primaryAction) {
-                Menu {
-                    Button("Connect", systemImage: "bolt") {
-                        if pro.require(.remoteMCP) { model.connect() }
-                    }
-                    .disabled(!model.canSave || model.running)
-                    if ai.mcpServer(model.original.id) != nil {
-                        Divider()
-                        Button("Delete", systemImage: "trash", role: .destructive) { deleting = true }
-                    }
-                } label: {
-                    MobileOverflowMenuLabel("More")
+            MobileToolbarOverflow {
+                Button("Connect", systemImage: "bolt") {
+                    if pro.require(.remoteMCP) { model.connect() }
+                }
+                .disabled(!model.canSave || model.running)
+                if ai.mcpServer(model.original.id) != nil {
+                    Divider()
+                    Button("Delete", systemImage: "trash", role: .destructive) { deleting = true }
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
@@ -305,6 +301,7 @@ struct MobileMCPEditor: View {
                 .accessibilityLabel(Text("Save"))
                 .disabled(!model.canSave || !pro.canUse(.remoteMCP))
             }
+            .mobileProminentAction()
         }
         .navigationDestination(item: $editingHeader) { header in
             MobileMCPHeaderEditor(header: header, focusesName: true) { model.upsertHeader($0) }

@@ -764,6 +764,55 @@ struct MobileLiveActivitySchedulingTests {
 
 @Suite(.serialized) @MainActor
 struct MobileWorkspaceNavigationRenderingTests {
+    @Test func padWorkspaceDetailsShowTopTabsAndLeadingSwitcherButHideCompactBottomTabs() async throws {
+        guard UIDevice.current.userInterfaceIdiom == .pad else { return }
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let app = try MobileAppModel(inMemory: true, workspaceConnectionServices: connections.services)
+        let host = try configureConnectionFixture(in: app)
+        let sshID = try #require(app.open(hostID: host.id, kind: .ssh))
+        let sftpID = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+        #expect(await eventually { app.workspaces.allSatisfy(\.connected) })
+        let scene = MobileSceneModel(app: app)
+        scene.selectWorkspace(sshID)
+        try await withHostedView(MobileRootView(app: app, scene: scene)) { controller in
+            let tabs = try #require(descendant(of: UITabBarController.self, in: controller))
+            for id in [sshID, sftpID] {
+                scene.selectWorkspace(id)
+                let workspace = try #require(app.workspaces.first { $0.id == id })
+                let navigation = try #require(
+                    await navigationController(titled: workspace.descriptor.title, in: controller))
+                let detail = try #require(navigation.topViewController)
+                for sizeClass: UIUserInterfaceSizeClass in [.regular, .compact, .regular] {
+                    controller.traitOverrides.horizontalSizeClass = sizeClass
+                    tabs.sidebar.isHidden = true
+                    try await Task.sleep(for: .milliseconds(700))
+                    #expect(tabs.isTabBarHidden == (sizeClass == .compact))
+                    #expect(navigation.topViewController === detail)
+                    let leading =
+                        detail.navigationItem.leadingItemGroups.flatMap(\.barButtonItems)
+                        + (detail.navigationItem.leftBarButtonItems ?? [])
+                    #expect(leading.contains { $0.menu != nil } == (sizeClass == .regular))
+                    if let image = renderedPNGData(of: controller) {
+                        Attachment.record(
+                            image, named: "workspace-tabs-\(workspace.descriptor.kind)-\(sizeClass.rawValue).png")
+                    }
+                }
+                tabs.sidebar.isHidden = false
+                try await Task.sleep(for: .milliseconds(700))
+                let search = try #require(detail.navigationItem.searchController)
+                #expect(!search.isActive)
+                if #available(iOS 26.0, *) {
+                    #expect(detail.navigationItem.preferredSearchBarPlacement == .integratedButton)
+                }
+                #expect(!workspace.find.isPresented)
+                if let image = renderedPNGData(of: controller) {
+                    Attachment.record(image, named: "workspace-sidebar-search-\(workspace.descriptor.kind).png")
+                }
+            }
+        }
+    }
+
     @Test func crossDestinationExecutionBuildsTheWorkspaceDetailInThePadRoot() async throws {
         let connections = MobileSFTPConnectionBox(clients: [])
         let app = try MobileAppModel(
@@ -831,6 +880,14 @@ struct MobileWorkspaceNavigationRenderingTests {
             var detail = try #require(navigation.topViewController)
             #expect(!detail.navigationItem.hidesBackButton)
             #expect(descendant(of: MobileTerminalView.self, in: detail.view) == nil)
+            try await Task.sleep(for: .milliseconds(500))
+            #expect(try #require(detail.navigationItem.searchController).isActive == false)
+            if #available(iOS 26.0, *) {
+                #expect(detail.navigationItem.preferredSearchBarPlacement == .integratedButton)
+            }
+            if let image = renderedPNGData(of: controller) {
+                Attachment.record(image, named: "workspace-sftp-toolbar.png")
+            }
 
             scene.selectWorkspace(sshID)
             navigation = try #require(
@@ -842,6 +899,14 @@ struct MobileWorkspaceNavigationRenderingTests {
             #expect(terminal.window != nil)
             #expect(terminal.bounds.width > 0)
             #expect(terminal.bounds.height > 0)
+            try await Task.sleep(for: .milliseconds(500))
+            #expect(try #require(detail.navigationItem.searchController).isActive == false)
+            if #available(iOS 26.0, *) {
+                #expect(detail.navigationItem.preferredSearchBarPlacement == .integratedButton)
+            }
+            if let image = renderedPNGData(of: controller) {
+                Attachment.record(image, named: "workspace-ssh-toolbar.png")
+            }
 
             scene.selectWorkspace(sftpID)
             _ = try #require(await navigationController(titled: "SFTP Workspace", in: controller))
@@ -880,13 +945,17 @@ struct MobileWorkspaceNavigationRenderingTests {
         browser.query = "Retained session filter"
         let scene = MobileSceneModel(app: app)
         scene.selectWorkspace(sshID)
-        try await withHostedView(MobileRootView(app: app, scene: scene)) { controller in
+        let regions = MobileRegionTestState()
+        try await withHostedView(
+            MobileRegionTestHost(state: regions) { MobileRootView(app: app, scene: scene) }
+        ) { controller in
             _ = try #require(await navigationController(titled: "Resize SSH", in: controller))
             for id in [sshID, sftpID] {
                 scene.selectWorkspace(id)
                 let title = id == sshID ? "Resize SSH" : "Resize SFTP"
                 let navigation = try #require(await navigationController(titled: title, in: controller))
                 let detail = navigation.topViewController
+                let nativeTerminal = detail.flatMap { descendant(of: MobileTerminalView.self, in: $0.view) }
                 for sizeClass: UIUserInterfaceSizeClass in [.regular, .compact, .regular, .compact] {
                     controller.traitOverrides.horizontalSizeClass = sizeClass
                     try await Task.sleep(for: .milliseconds(300))
@@ -900,6 +969,25 @@ struct MobileWorkspaceNavigationRenderingTests {
                     #expect(browser.query == "Retained session filter")
                     #expect(connections.sshConnectCount == 1)
                     #expect(connections.connectCount == 1)
+                }
+                for region in [
+                    MobileReservedRegion(kind: .division, frame: CGRect(x: 0, y: 250, width: 2000, height: 32)),
+                    MobileReservedRegion(kind: .division, frame: CGRect(x: 160, y: 0, width: 32, height: 2000)),
+                    MobileReservedRegion(kind: .occlusion, frame: CGRect(x: 0, y: 0, width: 50, height: 40)),
+                    MobileReservedRegion(kind: .division, frame: .zero, isActive: false),
+                ] {
+                    regions.regions = [region]
+                    try await Task.sleep(for: .milliseconds(400))
+                    #expect(navigation.topViewController === detail)
+                    #expect(ssh.terminal === terminal)
+                    #expect(sftp.sftpSession === browser)
+                    #expect(ssh.connected && sftp.connected)
+                    #expect(connections.sshConnectCount == 1)
+                    #expect(connections.connectCount == 1)
+                    if let nativeTerminal, let detail {
+                        #expect(descendant(of: MobileTerminalView.self, in: detail.view) === nativeTerminal)
+                        #expect(nativeTerminal.bounds.width > 0 && nativeTerminal.bounds.height > 0)
+                    }
                 }
             }
         }

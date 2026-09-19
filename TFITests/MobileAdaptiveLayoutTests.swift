@@ -8,6 +8,119 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileAdaptiveLayoutTests {
+    @Test func metricsRetainsItsNativeListAndScrollPositionAcrossFoldsAndVerticalMenuChanges() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app)
+        scene.selectedDestination = .metrics
+        let server = ServerMetric(selection: MetricsSelection(id: UUID(), enabled: false), name: "Fold Metrics")
+        server.processes = (1...100).map {
+            MetricsProcess(pid: $0, started: 1, name: "process-\($0)", cpu: Double($0), memory: Double(101 - $0))
+        }
+        let regions = MobileRegionTestState()
+        var features = MobileFeatureRegistry()
+        features.register(
+            MobileFeatureRegistration(id: .metrics, title: "Metrics", symbol: "waveform.path.ecg") { app, _ in
+                AnyView(
+                    MobileRegionTestHost(state: regions) {
+                        MobileMetricsDetailView(app: app, server: server)
+                            .environment(\.mobileToolbarLayout, regions.toolbarLayout)
+                    })
+            })
+        try await withRoot(app: app, scene: scene, features: features, initialSizeClass: .compact) { controller in
+            let navigation = try #require(navigation(titled: server.name, in: controller))
+            let picker = try #require(find(UISegmentedControl.self, in: controller.view))
+            picker.selectedSegmentIndex = 1
+            picker.sendActions(for: .valueChanged)
+            try await settle()
+            let list = try #require(find(UICollectionView.self, in: navigation.view))
+            list.setContentOffset(CGPoint(x: 0, y: 350), animated: false)
+            try await settle()
+            for region in [
+                MobileReservedRegion(kind: .division, frame: CGRect(x: 0, y: 280, width: 2000, height: 24)),
+                MobileReservedRegion(kind: .division, frame: CGRect(x: 200, y: 0, width: 24, height: 2000)),
+                MobileReservedRegion(kind: .division, frame: .zero, isActive: false),
+            ] {
+                regions.regions = [region]
+                try await settle()
+                #expect(find(UICollectionView.self, in: navigation.view) === list)
+                #expect(list.contentOffset.y > 200)
+                if region.isActive { #expect(find(UISegmentedControl.self, in: controller.view) == nil) }
+            }
+            regions.toolbarLayout.verticalEdge = .trailing
+            try await settle()
+            #expect(find(UISegmentedControl.self, in: controller.view) == nil)
+            let menuButton = try #require(toolbarButton(namedOneOf: ["Details"], in: navigation))
+            var actions = try await resolvedMenuActions(#require(menuButton.menu), in: navigation.view)
+            #expect(actions.contains { $0.title == "Processes" && $0.state == .on && $0.image != nil })
+            let status = try #require(actions.first { $0.title == "Status" })
+            UIButton(primaryAction: status).sendActions(for: .primaryActionTriggered)
+            try await settle()
+            #expect(find(UICollectionView.self, in: navigation.view) === list)
+            let updatedButton = try #require(toolbarButton(namedOneOf: ["Details"], in: navigation))
+            actions = try await resolvedMenuActions(#require(updatedButton.menu), in: navigation.view)
+            #expect(actions.contains { $0.title == "Status" && $0.state == .on })
+            let processes = try #require(actions.first { $0.title == "Processes" })
+            UIButton(primaryAction: processes).sendActions(for: .primaryActionTriggered)
+            try await settle()
+            #expect(find(UICollectionView.self, in: navigation.view) === list)
+            #expect(list.contentOffset.y > 200)
+            regions.toolbarLayout.verticalEdge = nil
+            try await settle()
+            #expect(try #require(find(UISegmentedControl.self, in: controller.view)).selectedSegmentIndex == 1)
+            #expect(toolbarButton(namedOneOf: ["Details"], in: navigation) == nil)
+            #expect(find(UICollectionView.self, in: navigation.view) === list)
+            #expect(list.contentOffset.y > 200)
+        }
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func foldingKeepsAssistantTranscriptComposerFocusAndMarkedText(language: String) async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app)
+        scene.selectedDestination = .assistant
+        await scene.assistant.load()
+        let conversation = scene.assistant.conversation
+        conversation.appendUserTurn("Keep this transcript while folding")
+        conversation.composer.draft = "Draft across folds"
+        let regions = MobileRegionTestState()
+        try await withRoot(app: app, scene: scene, language: language, regions: regions) { controller in
+            let composer = try #require(textInput(containing: conversation.composer.draft, in: controller.view))
+            let input = try #require(composer as? any UITextInput)
+            let transcript = try #require(find(UICollectionView.self, in: controller.view))
+            #expect(composer.becomeFirstResponder())
+            input.setMarkedText("输入中", selectedRange: NSRange(location: 3, length: 0))
+            try await settle()
+            for (index, region) in [
+                MobileReservedRegion(kind: .division, frame: CGRect(x: 0, y: 160, width: 2000, height: 24)),
+                MobileReservedRegion(kind: .division, frame: CGRect(x: 350, y: 0, width: 24, height: 2000)),
+                MobileReservedRegion(kind: .occlusion, frame: CGRect(x: 0, y: 0, width: 40, height: 40)),
+                MobileReservedRegion(kind: .division, frame: .zero, isActive: false),
+            ].enumerated() {
+                regions.regions = [region]
+                try await settle()
+                #expect(scene.assistant.conversation === conversation)
+                #expect(find(UICollectionView.self, in: controller.view) === transcript)
+                #expect(composer.isFirstResponder)
+                #expect(composer.window != nil)
+                let marked = try #require(input.markedTextRange)
+                #expect(input.text(in: marked) == "输入中")
+                capture(controller, name: "assistant-fold-\(index)-\(language)")
+            }
+            input.unmarkText()
+            composer.resignFirstResponder()
+        }
+    }
+
+    private func textInput(containing text: String, in view: UIView) -> UIView? {
+        if let input = view as? any UITextInput,
+            let range = input.textRange(from: input.beginningOfDocument, to: input.endOfDocument),
+            input.text(in: range) == text
+        {
+            return view
+        }
+        return view.subviews.lazy.compactMap { textInput(containing: text, in: $0) }.first
+    }
+
     @Test func widthClassificationDefaultsToCompact() {
         #expect(MobileLayout(sizeClass: nil) == .compact)
         #expect(MobileLayout(sizeClass: .compact) == .compact)
@@ -20,7 +133,7 @@ struct MobileAdaptiveLayoutTests {
         let scene = MobileSceneModel(app: app)
         try await withRoot(app: app, scene: scene, language: language, typeSize: typeSize) { controller in
             let tabs = try #require(find(UITabBarController.self, in: controller))
-            #expect(tabs.viewControllers?.count == 5)
+            #expect(tabs.tabs.count == 5)
             #expect(tabs.mode == .tabSidebar)
             for (width, sizeClass): (CGFloat, UIUserInterfaceSizeClass) in [
                 (1024, .regular), (600, .regular), (375, .compact), (320, .compact), (1024, .regular),
@@ -29,19 +142,20 @@ struct MobileAdaptiveLayoutTests {
                 tabs.sidebar.isHidden = true
                 try await settle()
                 #expect(find(UITabBarController.self, in: controller) === tabs)
-                let pages = try #require(tabs.viewControllers)
+                let pages = tabs.tabs
                 #expect(pages.count == 5)
                 for (index, destination) in MobileDestination.allCases.enumerated() {
                     let page = try #require(pages.indices.contains(index) ? pages[index] : nil)
-                    tabs.selectedViewController = page
-                    tabs.delegate?.tabBarController?(tabs, didSelect: page)
+                    let previous = tabs.selectedTab
+                    tabs.selectedTab = page
+                    tabs.delegate?.tabBarController?(tabs, didSelectTab: page, previousTab: previous)
                     try await settle()
                     #expect(scene.selectedDestination == destination)
-                    #expect(tabs.selectedViewController === page)
-                    let title = try #require(page.tabBarItem.title)
+                    #expect(tabs.selectedTab === page)
+                    let title = page.title
                     #expect(visibleLabels(in: tabs.view).contains { $0.text == title })
                 }
-                let items = try #require(tabs.tabBar.items)
+                let items = tabs.tabs
                 #expect(items.count == 5)
                 capture(controller, name: "tabs-\(Int(width))-\(language)-\(typeSize)")
                 let labels = visibleLabels(in: tabs.view)
@@ -53,7 +167,7 @@ struct MobileAdaptiveLayoutTests {
                 if sizeClass == .compact {
                     for item in items {
                         #expect(
-                            labels.contains { $0.text == item.title }, "Missing visible tab: \(item.title ?? "")")
+                            labels.contains { $0.text == item.title }, "Missing visible tab: \(item.title)")
                     }
                 }
             }
@@ -143,8 +257,10 @@ struct MobileAdaptiveLayoutTests {
                     let trailingButtons =
                         page.navigationItem.trailingItemGroups.flatMap(\.barButtonItems)
                         + (page.navigationItem.rightBarButtonItems ?? [])
-                    // New Conversation and More, without a second overflow for the hidden title menu.
-                    #expect(Set(trailingButtons.map(ObjectIdentifier.init)).count == 2)
+                    // System overflow is owned by UINavigationItem rather than a second custom bar button.
+                    let expectedButtons = if #available(iOS 27.0, *) { 1 } else { 2 }
+                    #expect(Set(trailingButtons.map(ObjectIdentifier.init)).count == expectedButtons)
+                    if #available(iOS 27.0, *) { #expect(page.navigationItem.additionalOverflowItems != nil) }
                     let menu = try #require(switcher.menu)
                     let actions = try await resolvedMenuActions(menu, in: page.view)
                     #expect(actions.map(\.title).contains(first.derivedTitle))
@@ -211,7 +327,12 @@ struct MobileAdaptiveLayoutTests {
                 #expect(navigation.topViewController === page)
                 #expect(navigation.viewControllers.count == 2)
                 #expect(page.navigationItem.title == server.name)
-                #expect(toolbarButton(namedOneOf: ["Metrics", "监控", "監控"], in: navigation) != nil)
+                if #available(iOS 27.0, *) {
+                    #expect(page.navigationItem.additionalOverflowItems != nil)
+                    #expect(page.navigationItem.overflowPresentationSource != nil)
+                } else {
+                    #expect(toolbarButton(namedOneOf: ["Metrics", "监控", "監控"], in: navigation) != nil)
+                }
                 if sidebar {
                     #expect(visibleLabels(in: navigation.navigationBar).contains { $0.text == server.name })
                 } else if sizeClass == .regular {
@@ -471,6 +592,7 @@ struct MobileAdaptiveLayoutTests {
         features: MobileFeatureRegistry = .standard(),
         typeSize: DynamicTypeSize = .large,
         initialSizeClass: UIUserInterfaceSizeClass = .regular,
+        regions: MobileRegionTestState? = nil,
         check: (UIViewController) async throws -> Void
     ) async throws {
         let windowScene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
@@ -478,9 +600,11 @@ struct MobileAdaptiveLayoutTests {
         let window = UIWindow(windowScene: windowScene)
         let container = UIViewController()
         let controller = UIHostingController(
-            rootView: MobileRootView(app: app, scene: scene, features: features)
-                .environment(\.locale, Locale(identifier: language))
-                .environment(\.dynamicTypeSize, typeSize))
+            rootView: MobileRegionTestHost(state: regions) {
+                MobileRootView(app: app, scene: scene, features: features)
+            }
+            .environment(\.locale, Locale(identifier: language))
+            .environment(\.dynamicTypeSize, typeSize))
         window.rootViewController = container
         container.addChild(controller)
         container.view.addSubview(controller.view)

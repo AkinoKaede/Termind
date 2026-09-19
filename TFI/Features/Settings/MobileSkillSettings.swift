@@ -62,14 +62,13 @@ struct MobileSkillSettings: View {
         }
         .navigationTitle("Skills")
         .toolbar {
-            ToolbarItemGroup(placement: .primaryAction) {
+            ToolbarItem(placement: .primaryAction) {
                 Button("Add Skill", systemImage: "plus") { editing = AgentSkill(name: "") }
                     .labelStyle(.iconOnly)
-                Menu {
-                    Button("Import Skill", systemImage: "square.and.arrow.down") { importing = true }
-                } label: {
-                    MobileOverflowMenuLabel("More")
-                }
+            }
+            .mobileProminentAction()
+            MobileToolbarOverflow {
+                Button("Import Skill", systemImage: "square.and.arrow.down") { importing = true }
             }
         }
         .sheet(item: $editing) { MobileSkillEditor(library: skills, skill: $0) }

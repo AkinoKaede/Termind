@@ -7,7 +7,7 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileAISettingsToolbarTests {
-    @Test func workspaceDetailHidesTheRootTabBar() async throws {
+    @Test func workspaceDetailHidesBottomTabsAndRestoresThemOnExit() async throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)
@@ -20,10 +20,10 @@ struct MobileAISettingsToolbarTests {
             let content = WorkspaceTabBarHarness(app: app, workspace: workspace, visibility: visibility)
             try await withHostedView(content) { controller in
                 let tabController = try #require(descendant(of: UITabBarController.self, in: controller))
-                #expect(tabController.tabBar.isHidden)
+                #expect(tabController.isTabBarHidden)
                 visibility.showsDetail = false
                 try await Task.sleep(for: .milliseconds(300))
-                #expect(!tabController.tabBar.isHidden)
+                #expect(!tabController.isTabBarHidden)
             }
         }
     }
