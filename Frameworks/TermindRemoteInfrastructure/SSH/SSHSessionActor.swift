@@ -560,7 +560,8 @@ public actor SSHSessionActor {
     public typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void
     public typealias ShellIntegrationHandler = @Sendable (SSHShellIntegrationEvent) -> Void
 
-    private let worker: SSHSessionWorker
+    private let adapter: SSHSingleChannelAdapter<SSHSessionWorker>
+    private var worker: SSHSessionWorker { adapter.channel }
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
 
     public init(
@@ -570,9 +571,9 @@ public actor SSHSessionActor {
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session")
     ) {
         self.keyboardInteractive = keyboardInteractive
-        worker = SSHSessionWorker(
-            output: output, exit: exit, shellIntegrationHandler: shellIntegration, logger: logger
-        )
+        let worker = SSHSessionWorker(
+            output: output, exit: exit, shellIntegrationHandler: shellIntegration, logger: logger)
+        adapter = SSHSingleChannelAdapter(channel: worker) { await $0.disconnect() }
     }
 
     /// Appends a named public key to a remote account's `authorized_keys`, unless
@@ -644,9 +645,7 @@ public actor SSHSessionActor {
         )
     }
 
-    public func disconnect() {
-        worker.disconnect()
-    }
+    public func disconnect() async { await adapter.disconnect() }
 }
 
 public nonisolated final class SSHSessionWorker: @unchecked Sendable {
@@ -666,7 +665,9 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private var channel: OpaquePointer?
     private var hostID: Host.ID?
     private var pumpTimer: (any DispatchSourceTimer)?
-    private var pendingWrites = Data()
+    private var bufferedTransport: SSHBufferedTransport?
+    private var socketEvents: SSHSocketEvents?
+    private let pendingWrites = SSHByteQueue(chunkSize: 32_700)
     private var ptyResize = SSHPTYResizeState()
     private var shellIntegration: RemoteShellIntegrationBootstrap?
     private var commandEventFilter: RemoteCommandEventFilter?
@@ -843,90 +844,26 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         using request: SSHConnectionRequest,
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install")
     ) async throws {
-        _ = initialization
         let input = try authorizedKeyInstallInput(publicKey: publicKey, keyName: keyName)
-        let opened = try await openAuthenticatedSession(using: request, timeout: 20, logger: logger)
-        let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.key-export")
-        let interruption = SSHKeyExportInterruption(socket: opened.transport.socket)
-        try await withTaskCancellationHandler {
-            try await queue.perform {
-                try installAuthorizedKeyBlocking(input, opened: opened, interruption: interruption)
+        let session = SSHExecSession(logger: logger)
+        do {
+            try await session.connect(using: request)
+            let command =
+                #"umask 077; dir="$HOME/.ssh"; file="$dir/authorized_keys"; mkdir -p "$dir" && touch "$file" && chmod 700 "$dir" && chmod 600 "$file" && IFS= read -r comment && IFS= read -r key && { LC_ALL=C grep -Fqx -- "$key" "$file" || printf '%s\n%s\n' "$comment" "$key" >> "$file"; }"#
+            let result = try await session.execute(
+                command, workingDirectory: nil, stdin: input, timeout: 20,
+                outputLimit: 64 * 1024, onOutput: nil)
+            guard result.exitCode == 0 else {
+                let detail = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+                throw TermindSSHError.library(
+                    detail.isEmpty
+                        ? "The remote authorized_keys update exited with status \(result.exitCode)."
+                        : "The remote authorized_keys update failed: \(detail)")
             }
-        } onCancel: {
-            interruption.cancel()
-        }
-    }
-
-    /// A short-lived exec channel rather than a PTY. The fixed script creates
-    /// the OpenSSH directory with restrictive permissions and performs an exact
-    /// line check before appending, making repeated exports idempotent.
-    private static func installAuthorizedKeyBlocking(
-        _ input: Data, opened: SSHOpenedSession, interruption: SSHKeyExportInterruption
-    ) throws {
-        let transport = opened.transport
-        let created = opened.session
-        var channel: OpaquePointer?
-        defer {
-            if let channel {
-                _ = libssh2_channel_send_eof(channel)
-                _ = libssh2_channel_close(channel)
-                _ = libssh2_channel_free(channel)
-            }
-            _ = libssh2_session_disconnect_ex(
-                created, SSH_DISCONNECT_BY_APPLICATION, "Termind completed key export", ""
-            )
-            _ = libssh2_session_free(created)
-            interruption.finish()
-            transport.close()
-        }
-
-        guard
-            let opened = libssh2_channel_open_ex(
-                created, "session", 7, 2 * 1024 * 1024, 32 * 1024, nil, 0
-            )
-        else {
-            throw sessionError(created, prefix: "Unable to open SSH channel")
-        }
-        channel = opened
-
-        let command =
-            #"umask 077; dir="$HOME/.ssh"; file="$dir/authorized_keys"; mkdir -p "$dir" && touch "$file" && chmod 700 "$dir" && chmod 600 "$file" && IFS= read -r comment && IFS= read -r key && { LC_ALL=C grep -Fqx -- "$key" "$file" || printf '%s\n%s\n' "$comment" "$key" >> "$file"; }"#
-        let started = command.withCString { commandBuffer in
-            libssh2_channel_process_startup(
-                opened, "exec", 4, commandBuffer, UInt32(command.utf8.count)
-            )
-        }
-        guard started == 0 else {
-            throw sessionError(created, prefix: "Unable to start authorized_keys update")
-        }
-
-        try input.withUnsafeBytes { bytes in
-            guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return }
-            var offset = 0
-            while offset < bytes.count {
-                let written = libssh2_channel_write_ex(
-                    opened, 0, base.advanced(by: offset), bytes.count - offset
-                )
-                guard written > 0 else {
-                    throw sessionError(created, prefix: "Unable to send the public key")
-                }
-                offset += written
-            }
-        }
-        guard libssh2_channel_send_eof(opened) == 0 else {
-            throw sessionError(created, prefix: "Unable to finish the public-key upload")
-        }
-        _ = libssh2_channel_wait_eof(opened)
-
-        let standardError = readAll(from: opened, stream: 1)
-        let status = libssh2_channel_get_exit_status(opened)
-        guard status == 0 else {
-            let detail = standardError.trimmingCharacters(in: .whitespacesAndNewlines)
-            throw TermindSSHError.library(
-                detail.isEmpty
-                    ? "The remote authorized_keys update exited with status \(status)."
-                    : "The remote authorized_keys update failed: \(detail)"
-            )
+            await session.disconnect()
+        } catch {
+            await session.disconnect()
+            throw error
         }
     }
 
@@ -948,17 +885,6 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             .joined(separator: " ")
         let safeName = normalizedName.isEmpty ? "Key" : normalizedName
         return Data(("# \(safeName) Key by Termind\n\(normalizedKey)\n").utf8)
-    }
-
-    private static func readAll(from channel: OpaquePointer, stream: Int32) -> String {
-        var data = Data()
-        var buffer = [CChar](repeating: 0, count: 4 * 1024)
-        while true {
-            let count = libssh2_channel_read_ex(channel, stream, &buffer, buffer.count)
-            guard count > 0 else { break }
-            data.append(Data(bytes: buffer, count: count))
-        }
-        return String(decoding: data, as: UTF8.self)
     }
 
     public func connect(
@@ -1011,6 +937,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 guard libssh2_channel_process_startup(opened, "shell", 5, nil, 0) == 0 else {
                     throw Self.sessionError(created, prefix: "Remote shell request failed")
                 }
+                bufferedTransport = SSHBufferedTransport(session: created)
                 libssh2_session_set_blocking(created, 0)
                 libssh2_keepalive_config(created, 1, 20)
                 didReportExit = false
@@ -1055,11 +982,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
     }
 
-    public func disconnect() {
-        queue.async { [self] in
-            cleanup()
-        }
-    }
+    public func disconnect() async { await queue.perform { self.cleanup() } }
 
     public static func authenticate(
         username: String, credentials: [SSHCredentials], session: OpaquePointer,
@@ -1256,15 +1179,31 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
 
     private func startPump() {
         pumpTimer?.cancel()
+        socketEvents?.cancel()
+        socketEvents = SSHSocketEvents(socket: socket, queue: queue) { [weak self] in self?.pump() }
+        socketEvents?.update(read: true, write: false)
         let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now(), repeating: .milliseconds(12), leeway: .milliseconds(4))
+        // Timer advances shell-integration deadlines and keepalive only; data
+        // throughput is readiness-driven by `socketEvents`.
+        timer.schedule(deadline: .now(), repeating: .milliseconds(100), leeway: .milliseconds(20))
         timer.setEventHandler { [weak self] in self?.pump() }
         pumpTimer = timer
         timer.resume()
     }
 
     private func pump() {
-        guard let session, let channel else { return }
+        guard let session, let channel, let bufferedTransport else { return }
+        let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
+        bufferedTransport.beginPass(deadline: deadline)
+        do { try bufferedTransport.flush(socket: socket) } catch {
+            reportExit(.failure(Self.sessionError(session, prefix: "SSH transport write failed")))
+            cleanup()
+            return
+        }
+        if bufferedTransport.isBackpressured {
+            socketEvents?.update(read: false, write: true)
+            return
+        }
         let resizeResult = ptyResize.flush { size in
             libssh2_channel_request_pty_size_ex(
                 channel, Int32(size.columns), Int32(size.rows),
@@ -1284,7 +1223,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         // Continue other I/O on EAGAIN: window-change may itself be waiting
         // for a previously blocked channel write or window adjustment.
         var buffer = [CChar](repeating: 0, count: 32 * 1024)
-        while true {
+        while DispatchTime.now().uptimeNanoseconds < deadline {
             let count = libssh2_channel_read_ex(channel, 0, &buffer, buffer.count)
             if count > 0 {
                 deliverOutput(Data(bytes: buffer, count: count))
@@ -1303,13 +1242,13 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             applyShellIntegrationUpdate(update)
         }
 
-        while !pendingWrites.isEmpty {
-            let written = pendingWrites.withUnsafeBytes { bytes -> Int in
+        while !pendingWrites.isEmpty && DispatchTime.now().uptimeNanoseconds < deadline {
+            let written = pendingWrites.withFirstBytes { bytes -> Int in
                 guard let address = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return 0 }
                 return libssh2_channel_write_ex(channel, 0, address, bytes.count)
             }
             if written > 0 {
-                pendingWrites.removeFirst(written)
+                pendingWrites.consume(written)
             } else if written == LIBSSH2_ERROR_EAGAIN {
                 break
             } else {
@@ -1330,7 +1269,17 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             let status = libssh2_channel_get_exit_status(channel)
             reportExit(.success(status))
             cleanup()
+            return
         }
+        do { try bufferedTransport.flush(socket: socket) } catch {
+            reportExit(.failure(Self.sessionError(session, prefix: "SSH transport write failed")))
+            cleanup()
+            return
+        }
+        let directions = libssh2_session_block_directions(session)
+        socketEvents?.update(
+            read: !bufferedTransport.isBackpressured,
+            write: bufferedTransport.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
     }
 
     private func reportExit(_ result: Result<Int32, TermindSSHError>) {
@@ -1400,7 +1349,9 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private func cleanup() {
         pumpTimer?.cancel()
         pumpTimer = nil
-        pendingWrites.removeAll(keepingCapacity: false)
+        let transport = routeTransport
+        routeTransport = nil
+        pendingWrites.removeAll()
         ptyResize.reset()
         shellIntegration = nil
         commandEventFilter = nil
@@ -1412,15 +1363,23 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             self.channel = nil
         }
         if let session {
-            _ = libssh2_session_disconnect_ex(session, SSH_DISCONNECT_BY_APPLICATION, "Termind closed the session", "")
-            _ = libssh2_session_free(session)
+            if let bufferedTransport {
+                bufferedTransport.dispose(session: session)
+            } else {
+                _ = libssh2_session_free(session)
+            }
             self.session = nil
         }
+        bufferedTransport = nil
         if socket >= 0 {
             socket = -1
         }
-        routeTransport?.close()
-        routeTransport = nil
+        if let socketEvents {
+            socketEvents.cancel { transport?.close() }
+            self.socketEvents = nil
+        } else {
+            transport?.close()
+        }
     }
 
     public static func observation(host: String, port: Int, session: OpaquePointer) throws
@@ -1677,20 +1636,3 @@ private nonisolated let secureEnclaveSignCallback:
             return -1
         }
     }
-
-/// Stops cancellation from shutting down a descriptor after it has been closed
-/// and potentially reused by another operation.
-private nonisolated final class SSHKeyExportInterruption: @unchecked Sendable {
-    private let lock = NSLock()
-    private var socket: Int32
-
-    init(socket: Int32) { self.socket = socket }
-
-    func cancel() {
-        lock.withLock {
-            if socket >= 0 { _ = Darwin.shutdown(socket, SHUT_RDWR) }
-        }
-    }
-
-    func finish() { lock.withLock { socket = -1 } }
-}

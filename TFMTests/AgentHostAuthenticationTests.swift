@@ -976,14 +976,14 @@ struct AgentHostAuthenticationTests {
     }
 
     @Test
-    func dedicatedSFTPRetriesCredentialsOnlyBeforeTheOperation() async throws {
+    func pooledSFTPRetriesCredentialsOnlyBeforeTheOperation() async throws {
         let setup = authenticationSetup(sftpAuthenticationFailures: 1)
         var prompts = 0
         let interaction = AuthenticationResponder { _ in
             prompts += 1
             return .submit(.init(username: "deploy", password: "secret-\(prompts)", save: false))
         }
-        let files = try await setup.registry.withDedicatedSFTP(
+        let files = try await setup.registry.withSFTP(
             hostID: setup.host.id, invocationID: UUID(), interaction: interaction.sshInteraction,
             pool: setup.pool, cancellation: TransferCancellationToken()
         ) { client in try await client.listDirectory(at: "/") }
@@ -991,17 +991,17 @@ struct AgentHostAuthenticationTests {
         #expect(prompts == 2)
         #expect(await setup.backend.sftpOpens == 2)
         #expect(await setup.backend.sftpOperations == 1)
-        #expect(await setup.pool.openConnectionCount == 0)
+        #expect(await setup.pool.openConnectionCount == 1)
     }
 
     @Test
-    func dedicatedSFTPOperationFailureNeverRetries() async throws {
+    func pooledSFTPOperationFailureNeverRetries() async throws {
         let setup = authenticationSetup(sftpOperationFailures: 1)
         let interaction = AuthenticationResponder { _ in
             .submit(.init(username: "deploy", password: "secret", save: false))
         }
         await #expect(throws: SFTPError.self) {
-            _ = try await setup.registry.withDedicatedSFTP(
+            _ = try await setup.registry.withSFTP(
                 hostID: setup.host.id, invocationID: UUID(), interaction: interaction.sshInteraction,
                 pool: setup.pool, cancellation: TransferCancellationToken()
             ) { client in try await client.listDirectory(at: "/") }
@@ -1012,7 +1012,7 @@ struct AgentHostAuthenticationTests {
     }
 
     @Test
-    func sameHostDedicatedConnectionsShareOnlyTheScopedAuthenticationSession() async throws {
+    func sameHostLeasesFallBackToSiblingChannelsWithOneAuthenticationSession() async throws {
         let setup = authenticationSetup()
         var prompts = 0
         let interaction = AuthenticationResponder { _ in
@@ -1023,11 +1023,11 @@ struct AgentHostAuthenticationTests {
         let pool = setup.pool
         let hostID = setup.host.id
         let cancellation = TransferCancellationToken()
-        _ = try await registry.withDedicatedSFTP(
+        _ = try await registry.withSFTP(
             hostID: hostID, invocationID: UUID(), interaction: interaction.sshInteraction,
             pool: pool, cancellation: cancellation
         ) { first in
-            try await registry.withDedicatedSFTP(
+            try await registry.withSFTP(
                 hostID: hostID, invocationID: UUID(), interaction: interaction.sshInteraction,
                 pool: pool, cancellation: cancellation
             ) { second in
@@ -1036,8 +1036,9 @@ struct AgentHostAuthenticationTests {
             }
         }
         #expect(prompts == 1)
-        #expect(await setup.backend.sftpOpens == 2)
-        #expect(await setup.pool.openConnectionCount == 0)
+        #expect(await setup.backend.sftpOpens == 1)
+        #expect(await setup.backend.sftpSiblingChannels == 1)
+        #expect(await setup.pool.openConnectionCount == 1)
     }
 
     private func authenticationSetup(
@@ -1213,6 +1214,7 @@ private actor GatedHostKeyResponder {
 private actor AuthenticationConnectionBackend {
     private(set) var execOpens = 0
     private(set) var sftpOpens = 0
+    private(set) var sftpSiblingChannels = 0
     private(set) var sftpOperations = 0
     private(set) var sftpConfigurations: [SSHConnectionConfiguration] = []
     private var sftpAuthenticationFailures: Int
@@ -1243,6 +1245,11 @@ private actor AuthenticationConnectionBackend {
             sftpAuthenticationFailures -= 1
             throw TermindSSHError.authenticationFailed("Rejected credential")
         }
+        return AuthenticationSFTPClient(backend: self)
+    }
+
+    func openSFTPSibling() -> AuthenticationSFTPClient {
+        sftpSiblingChannels += 1
         return AuthenticationSFTPClient(backend: self)
     }
 
@@ -1289,6 +1296,10 @@ private actor AuthenticationSFTPClient: SFTPClientProtocol {
     private let backend: AuthenticationConnectionBackend
 
     init(backend: AuthenticationConnectionBackend) { self.backend = backend }
+
+    func openSiblingChannel() async throws -> any SFTPClientProtocol {
+        await backend.openSFTPSibling()
+    }
 
     func connect(
         using configuration: SSHConnectionConfiguration,

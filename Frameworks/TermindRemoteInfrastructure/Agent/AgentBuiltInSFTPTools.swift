@@ -622,20 +622,21 @@ nonisolated extension AgentToolSupport {
         authentication: AgentSSHAuthenticationRegistry, pool: AgentConnectionPool,
         operation: @escaping @Sendable (any SFTPClientProtocol) async throws -> Value
     ) async throws -> Value {
-        let client = try await authentication.sftp(
+        try await authentication.withSFTP(
             hostID: hostID, invocationID: invocation.id,
             interaction: context.sshInteraction, pool: pool
-        )
-        do {
-            return try await operation(client)
-        } catch let error as SFTPError {
-            switch error {
-            case .notConnected, .connectionLost:
-                await pool.disconnect(hostID: hostID, kind: .sftp)
-            case .cancelled, .localFile, .operation:
-                break
+        ) { client in
+            do {
+                return try await operation(client)
+            } catch let error as SFTPError {
+                switch error {
+                case .notConnected, .connectionLost:
+                    await pool.disconnect(hostID: hostID, kind: .sftp)
+                case .cancelled, .localFile, .operation:
+                    break
+                }
+                throw error
             }
-            throw error
         }
     }
 

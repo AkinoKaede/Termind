@@ -22,6 +22,8 @@ public protocol SSHForwardingSessionProtocol: Actor {
 }
 
 public actor SSHForwardingSession: SSHForwardingSessionProtocol {
+    public nonisolated static let schedulingMode = SSHChannelSchedulingMode.channelsOnly
+
     public typealias ConnectionHandler = @Sendable (PortForwardingRule.ID, UUID, Int) -> Void
     public typealias FailureHandler = @Sendable (String) -> Void
 

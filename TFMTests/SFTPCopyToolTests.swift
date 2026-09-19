@@ -23,8 +23,8 @@ struct SFTPCopyToolTests {
         #expect(object["bytes"]?.integerValue == bytes.count)
         #expect(object["copied_files"]?.integerValue == 1)
         #expect(await fixture.backend.opens == 2)
-        #expect(await fixture.backend.disconnects == 2)
-        #expect(await fixture.pool.openConnectionCount == 0)
+        #expect(await fixture.backend.disconnects == 0)
+        #expect(await fixture.pool.openConnectionCount == 2)
     }
 
     @Test
@@ -156,13 +156,14 @@ struct SFTPCopyToolTests {
     }
 
     @Test
-    func copyFailureDoesNotReplayAndReleasesBothConnections() async throws {
+    func copyFailureDoesNotReplayAndReturnsBothConnectionsToThePool() async throws {
         let fixture = CopyFixture()
         await fixture.source.put("/source/a.bin", bytes: Data([1]))
         await fixture.source.failCopy()
         #expect(try await fixture.copy().isError)
         #expect(await fixture.source.copyAttempts == 1)
-        #expect(await fixture.backend.disconnects == 2)
+        #expect(await fixture.backend.disconnects == 0)
+        #expect(await fixture.pool.openConnectionCount == 2)
     }
 
     @Test
@@ -190,12 +191,12 @@ struct SFTPCopyToolTests {
         #expect(await fixture.pool.openConnectionCount == 2)
         await fixture.pool.disconnect(hostID: fixture.destinationID)
         #expect(try await task.value.isError)
-        #expect(await fixture.pool.openConnectionCount == 0)
+        #expect(await fixture.pool.openConnectionCount == 1)
         #expect(await fixture.destination.data["/target/a.bin"] == nil)
     }
 
     @Test
-    func taskCancellationReleasesConnections() async throws {
+    func taskCancellationReleasesLeasesButKeepsPooledConnections() async throws {
         let fixture = CopyFixture()
         await fixture.source.put("/source/a.bin", bytes: Data([1]))
         await fixture.source.blockCopy()
@@ -203,7 +204,8 @@ struct SFTPCopyToolTests {
         try await copyWait { await fixture.source.copyAttempts == 1 }
         task.cancel()
         #expect(try await task.value.isError)
-        #expect(await fixture.backend.disconnects == 2)
+        #expect(await fixture.backend.disconnects == 0)
+        #expect(await fixture.pool.openConnectionCount == 2)
     }
 
     @Test
@@ -262,7 +264,7 @@ struct SFTPCopyToolTests {
         try await copyWait { await fixture.source.copyAttempts == 1 }
         await server.endSession(runID: runID, secretBroker: broker)
         #expect(try await task.value.isError)
-        #expect(await fixture.pool.openConnectionCount == 0)
+        #expect(await fixture.pool.openConnectionCount == 2)
     }
 
     @Test

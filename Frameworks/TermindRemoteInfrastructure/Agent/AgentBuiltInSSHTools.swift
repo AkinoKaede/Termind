@@ -416,7 +416,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                 // connecting. Starting anyway would leave a command
                 // running, printing and finishing with nobody holding
                 // a handle to it.
-                guard retriedDeadSession || handover.beginRunning(on: session) else {
+                guard retriedDeadSession || handover.beginRunning() else {
                     throw AgentCommandNotStarted()
                 }
                 context.report(
@@ -425,13 +425,14 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                         metadata: ["presentation_phase": .string("command")]
                     ))
                 do {
-                    return try await session.execute(
-                        command, workingDirectory: cwd, stdin: stdin,
-                        timeout: AgentToolSupport.maximumCommandLifetime,
-                        outputLimit: 256 * 1_024,
-                        onOutput: stream.handler
-                    )
-                } catch SSHExecSessionError.channelUnavailable
+                    return try await pool.withExecLease(hostID: hostID, session: session) {
+                        try await session.execute(
+                            command, workingDirectory: cwd, stdin: stdin,
+                            timeout: AgentToolSupport.maximumCommandLifetime,
+                            outputLimit: 256 * 1_024,
+                            onOutput: stream.handler)
+                    }
+                } catch SSHExecSessionError.transportUnavailable
                     where !retriedDeadSession
                 {
                     // Safe because no command channel opened. The
@@ -454,7 +455,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
         }
 
         guard await AgentBackgroundCommands.settled(running, within: deadline) else {
-            guard let session = handover.giveUp() else {
+            guard handover.giveUp() else {
                 // Still connecting, so there is nothing to hand over —
                 // no session, no output, no handle worth giving. The
                 // connection is left to finish into the pool rather than
@@ -474,13 +475,10 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                             )),
                     ]), truncated: false)
             }
-            // It outlived its turn. The session goes with it — the
-            // channel is still being pumped, so it can be neither shared
-            // nor swept — and the next command for this host opens a
-            // fresh one.
-            await pool.detachExec(hostID: hostID, session: session)
+            // It outlived its turn. Only this command's Channel goes with the
+            // background handle; the transport remains available to peers.
             let handle = await background.adopt(
-                stream: stream, task: running, session: session
+                stream: stream, task: running
             )
             let captured = stream.captured
             return Self.result(

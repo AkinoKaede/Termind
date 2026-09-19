@@ -54,20 +54,17 @@ nonisolated public final class AgentIdleSweeper: @unchecked Sendable {
 ///
 /// A tool returns when it decides to, which for `ssh_exec` means reporting what
 /// it has rather than blocking a whole turn on a fifteen-minute deploy. The
-/// command keeps running on a session handed over from the pool, its output
-/// keeps arriving on the card, and this is where the model comes back for the
-/// rest of it.
+/// command keeps running on its own Channel lease, its output keeps arriving on
+/// the card, and this is where the model comes back for the rest of it. The
+/// authenticated transport remains in the Agent pool and can carry peers.
 ///
 /// Owned by `AppModel` rather than by a run, because the point is to outlive
 /// one: a handle taken in one turn is answered in a later one, and a run that
 /// ends is not a reason to stop a deploy.
 ///
-/// There is deliberately no "kill". Closing a channel does not stop the process
-/// on the far side — see the `defer` in `SSHExecSession.executeOnQueue` — so a
-/// tool by that name would promise what it cannot do. What can honestly happen
-/// is releasing the connection, and that is `sweepIdle`'s job: a handle nobody
-/// asks about again is let go, on the same principle as the connection pool's
-/// own idle sweep.
+/// There is deliberately no "kill". Closing a Channel does not prove that the
+/// process on the far side stopped, so a tool by that name would promise what
+/// it cannot do. `sweepIdle` cancels the local task and retires only its Channel.
 public actor AgentBackgroundCommands {
     /// Long enough that a model which meant to come back gets the chance, short
     /// enough that a forgotten `tail -f` does not hold a session open all day.
@@ -76,7 +73,6 @@ public actor AgentBackgroundCommands {
     private struct Entry {
         let stream: AgentCommandOutputStream
         let task: Task<SSHExecResult, any Error>
-        let session: any SSHExecSessionProtocol
         var lastAskedAt: ContinuousClock.Instant
     }
 
@@ -97,15 +93,15 @@ public actor AgentBackgroundCommands {
 
     public var count: Int { entries.count }
 
-    /// Takes ownership of a command still in flight, and of the session it is
-    /// running on.
+    /// Takes ownership of a command still in flight. Its task retains exactly
+    /// one Channel lease; the connection pool retains the shared transport.
     public func adopt(
         stream: AgentCommandOutputStream,
-        task: Task<SSHExecResult, any Error>, session: any SSHExecSessionProtocol,
+        task: Task<SSHExecResult, any Error>,
         now: ContinuousClock.Instant = .now
     ) -> UUID {
         let handle = UUID()
-        entries[handle] = Entry(stream: stream, task: task, session: session, lastAskedAt: now)
+        entries[handle] = Entry(stream: stream, task: task, lastAskedAt: now)
         startSweeping()
         return handle
     }
@@ -137,13 +133,10 @@ public actor AgentBackgroundCommands {
             )
         }
 
-        // Finished, so the handle and its session are done. Released here
-        // rather than left for the sweep: a session nobody will read from again
-        // is an authenticated connection sitting open on someone's server.
+        // Finished, so the handle is done. The task already released its
+        // Channel; the shared transport returns to the Agent pool's idle clock.
         entries.removeValue(forKey: handle)
         stopSweepingIfEmpty()
-        let session = entry.session
-        Task { await session.disconnect() }
         let result = try await entry.task.value
         return AgentCommandOutcome(
             handle: handle, standardOut: result.stdout, standardError: result.stderr,
@@ -160,7 +153,6 @@ public actor AgentBackgroundCommands {
         for (handle, entry) in expired {
             entries.removeValue(forKey: handle)
             entry.task.cancel()
-            await entry.session.disconnect()
         }
         stopSweepingIfEmpty()
         return entries.count
@@ -172,7 +164,6 @@ public actor AgentBackgroundCommands {
         stopSweepingIfEmpty()
         for entry in closing {
             entry.task.cancel()
-            await entry.session.disconnect()
         }
     }
 
@@ -253,7 +244,7 @@ public actor AgentBackgroundCommands {
 nonisolated public final class AgentCommandHandover: @unchecked Sendable {
     private enum State {
         case connecting
-        case running(any SSHExecSessionProtocol)
+        case running
         case abandoned
     }
 
@@ -263,23 +254,23 @@ nonisolated public final class AgentCommandHandover: @unchecked Sendable {
     /// The command is about to start. `false` means the call already gave up
     /// while the connection was still being made, so it must not start at all —
     /// a command nobody holds a handle to would run, print, and finish unseen.
-    public func beginRunning(on session: any SSHExecSessionProtocol) -> Bool {
+    public func beginRunning() -> Bool {
         lock.withLock {
             guard case .connecting = state else { return false }
-            state = .running(session)
+            state = .running
             return true
         }
     }
 
-    /// Stop waiting. The session comes back when the command had already
-    /// started and now needs an owner; `nil` when it never started.
-    public func giveUp() -> (any SSHExecSessionProtocol)? {
+    /// Stop waiting. `true` means the command already owns a Channel and needs
+    /// a background handle; `false` means it never started.
+    public func giveUp() -> Bool {
         lock.withLock {
             switch state {
-            case .running(let session): return session
+            case .running: return true
             case .connecting, .abandoned:
                 state = .abandoned
-                return nil
+                return false
             }
         }
     }

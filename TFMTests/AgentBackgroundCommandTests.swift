@@ -11,24 +11,6 @@ import Testing
 @testable import Termind
 @testable import TermindRemoteInfrastructure
 
-private actor StubSession: SSHExecSessionProtocol {
-    private(set) var didDisconnect = false
-
-    func connect(using configuration: SSHConnectionConfiguration) async throws {}
-
-    func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?,
-        timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
-    ) async throws -> SSHExecResult {
-        SSHExecResult(
-            stdout: "", stderr: "", exitCode: 0, signal: nil,
-            stdoutTruncated: false, stderrTruncated: false
-        )
-    }
-
-    func disconnect() async { didDisconnect = true }
-}
-
 private func exited(_ code: Int32, stdout: String = "") -> SSHExecResult {
     SSHExecResult(
         stdout: stdout, stderr: "", exitCode: code, signal: nil,
@@ -74,7 +56,7 @@ struct AgentBackgroundCommandTests {
     @Test
     func givingUpDuringTheConnectHandsOverNothing() {
         let handover = AgentCommandHandover()
-        #expect(handover.giveUp() == nil)
+        #expect(!handover.giveUp())
     }
 
     /// The half that keeps a command from being orphaned. If the call gave up
@@ -84,16 +66,15 @@ struct AgentBackgroundCommandTests {
     @Test
     func aCommandAbandonedWhileConnectingIsNotStartedAfterwards() {
         let handover = AgentCommandHandover()
-        #expect(handover.giveUp() == nil)
-        #expect(handover.beginRunning(on: StubSession()) == false)
+        #expect(!handover.giveUp())
+        #expect(handover.beginRunning() == false)
     }
 
     @Test
-    func aCommandThatStartedInTimeIsHandedOverWithItsSession() {
+    func aCommandThatStartedInTimeIsHandedOverWithItsChannel() {
         let handover = AgentCommandHandover()
-        let session = StubSession()
-        #expect(handover.beginRunning(on: session))
-        #expect(handover.giveUp() === session)
+        #expect(handover.beginRunning())
+        #expect(handover.giveUp())
     }
 
     // MARK: - The registry
@@ -101,10 +82,9 @@ struct AgentBackgroundCommandTests {
     @Test
     func waitingOnAFinishedCommandReportsItAndReleasesTheHandle() async throws {
         let commands = AgentBackgroundCommands(sweepInterval: nil)
-        let session = StubSession()
         let handle = await commands.adopt(
             stream: AgentCommandOutputStream { _, _ in },
-            task: Task { exited(0, stdout: "built") }, session: session
+            task: Task { exited(0, stdout: "built") }
         )
 
         let outcome = try await commands.wait(handle, timeout: .seconds(30))
@@ -130,7 +110,7 @@ struct AgentBackgroundCommandTests {
             task: Task {
                 await released.wait()
                 return exited(0)
-            }, session: StubSession()
+            }
         )
         stream.handler(Data("step 1 of 9\n".utf8), false)
 
@@ -164,7 +144,7 @@ struct AgentBackgroundCommandTests {
             task: Task {
                 await released.wait()
                 return exited(0)
-            }, session: StubSession()
+            }
         )
 
         let seen = Sink()
@@ -180,7 +160,6 @@ struct AgentBackgroundCommandTests {
     @Test
     func theSweepReleasesWhatNobodyAskedAboutAndLeavesTheRest() async {
         let commands = AgentBackgroundCommands(idleTimeout: .seconds(600), sweepInterval: nil)
-        let forgotten = StubSession()
         let released = AsyncRelease()
         let start = ContinuousClock.now
         let stale = await commands.adopt(
@@ -188,7 +167,7 @@ struct AgentBackgroundCommandTests {
             task: Task {
                 await released.wait()
                 return exited(0)
-            }, session: forgotten,
+            },
             now: start
         )
         _ = await commands.adopt(
@@ -196,14 +175,13 @@ struct AgentBackgroundCommandTests {
             task: Task {
                 await released.wait()
                 return exited(0)
-            }, session: StubSession(),
+            },
             now: start.advanced(by: .seconds(590))
         )
 
         let remaining = await commands.sweepIdle(now: start.advanced(by: .seconds(601)))
 
         #expect(remaining == 1, "only the one past its window is let go")
-        #expect(await forgotten.didDisconnect)
         await #expect(throws: AgentBackgroundCommandError.self) {
             try await commands.wait(stale, timeout: .seconds(1))
         }
@@ -218,14 +196,13 @@ struct AgentBackgroundCommandTests {
         let commands = AgentBackgroundCommands(
             idleTimeout: .zero, sweepInterval: .milliseconds(20)
         )
-        let session = StubSession()
         let released = AsyncRelease()
         _ = await commands.adopt(
             stream: AgentCommandOutputStream { _, _ in },
             task: Task {
                 await released.wait()
                 return exited(0)
-            }, session: session
+            }
         )
 
         for _ in 0..<50 where await commands.count > 0 {
@@ -233,7 +210,6 @@ struct AgentBackgroundCommandTests {
         }
 
         #expect(await commands.count == 0)
-        #expect(await session.didDisconnect)
         await released.release()
     }
 
@@ -254,7 +230,7 @@ struct AgentBackgroundCommandTests {
         }
         let handle = await commands.adopt(
             stream: AgentCommandOutputStream { _, _ in },
-            task: task, session: StubSession()
+            task: task
         )
 
         async let outcome = commands.wait(

@@ -39,7 +39,7 @@ final class MCPServerTools {
             cleanup: {
                 request, runID, invocationID, clientName in
                 let handler = await externalAuthentication.handler(clientName: clientName, runID: runID)
-                try await authentication.withDedicatedSFTP(
+                try await authentication.withSFTP(
                     hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
                     pool: connections, cancellation: TransferCancellationToken()
                 ) { client in try await request.resume.cleanup(using: client) }
@@ -47,7 +47,7 @@ final class MCPServerTools {
             transfer: {
                 request, runID, invocationID, client, read, token, report in
                 let handler = await externalAuthentication.handler(clientName: client, runID: runID)
-                return try await authentication.withDedicatedSFTP(
+                return try await authentication.withSFTP(
                     hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
                     pool: connections, cancellation: token
                 ) { client in
@@ -61,7 +61,7 @@ final class MCPServerTools {
         downloads = MCPDownloadCoordinator(hosts: hosts, history: history, budget: budget) {
             request, runID, invocationID, clientName, token, serve in
             let handler = await externalAuthentication.handler(clientName: clientName, runID: runID)
-            try await authentication.withDedicatedSFTP(
+            try await authentication.withSFTP(
                 hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
                 pool: connections, cancellation: token
             ) { client in

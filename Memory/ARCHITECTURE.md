@@ -128,10 +128,10 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
   Expiration/termination stop resources; Host/route edits and rule replacement stop affected runs. Generations reject stale
   opens/listeners; replacement awaits cleanup. Disconnect completes after source-cancellation descriptor closure. Local/
   SOCKS use SO_REUSEADDR for TIME_WAIT, never SO_REUSEPORT/live shared binds.
-- One serial owner per libssh2 session; DispatchSource readiness, deduplicated FIFO and bounded fair passes, not bulk
-  polling. Preserve immutable write buffers across EAGAIN, drain half-close, bound queues/DNS/connect deadlines and retain
-  session-wide pending open/listener operations. Slice deadlines include callbacks/inner loops; yielded work schedules a
-  continuation. Readiness queues its own flow; protocol progress wakes peers; remote admission precedes/follows bulk I/O.
+- One serial owner per libssh2 session across PTY, exec, SFTP, jump bridges and forwarding. Readiness, deduplicated FIFO and
+  bounded fair passes replace bulk polling; Metrics and user SSH use `SSHSingleChannelAdapter` without a topology scheduler.
+  Preserve immutable write buffers across EAGAIN, drain half-close, bound queues/DNS/connect deadlines and retain
+  session-wide pending operations. Slice deadlines include callbacks/inner loops; protocol progress wakes peers.
 - Public send/receive adapters accept complete encrypted packets and apply bounded backpressure outside library calls,
   avoiding pinned libssh2's lost forwarded-tcpip confirmation on EAGAIN. Teardown discards writes/returns EOF; descriptors
   close after cancellation handlers. See [performance](PORT_FORWARDING_PERFORMANCE.md) for budgets, rationale and measurement
@@ -165,12 +165,13 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
   Presentation symbols/kinds. Device-local History changes only after fresh successful listings/downloads, never stale/failed/
   cancelled/type-changed work.
 - Generation-scoped `SFTPTransferSession` outlives panes. First additional connection silently probes the full route: success
-  enables bounded workers; failure serially reuses the browser connection. Later failure degrades pending work without replaying
-  active operations. Cancellation caches no failure. Terminal preflight donates its successful connection. Refresh durable trust,
-  never promote once-only trust; credential persistence does not gate parallelism.
-- App queue defaults 15 active files/five per Host.ID across sessions; ranges 1–100 and 1–min(50, global). `SFTPSettingsModel`
-  scheduling outlives Settings. New limits affect future work only. Pane close releases only its ownership; queued work retains
-  the primary connection, paused work configuration/checkpoints but no connection. Retired generations cannot replace snapshots.
+  enables connection-parallel workers; failure opens sibling SFTP Channels on the primary transport, never the browser's control
+  Channel. Later failure degrades pending work without replaying active operations. Cancellation caches no failure. Terminal
+  preflight donates its successful connection. Refresh durable trust, never promote once-only trust.
+- App queue defaults 15 active files/five per Host.ID across sessions; ranges 1–100 and 1–min(50, global). The unit is an active
+  SFTP lease: an independent connection and a sibling Channel consume the same slot. `SFTPSettingsModel` scheduling outlives
+  Settings. New limits affect future work only. Pane close releases only its ownership; queued work retains the primary
+  connection, paused work configuration/checkpoints but no connection. Retired generations cannot replace snapshots.
 - Checkpoints, references, acknowledged offsets and digests are memory-only. Pause/loss retains partial destinations; explicit
   resume verifies source/prefix. No ordinary staging/bookmarks/restart recovery or silent replay. Cancel/Host delete removes
   partials and reports failed cleanup. Mobile expiration pauses upload/download, cancels copies; desktop quit allows three seconds.
@@ -196,10 +197,11 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
 
 ### Agent/MCP byte channels
 
-- Acting-only `sftp_copy` is Ask/sequential: regular trees to existing directories, preflight unsupported descendants, share browser
-  conflict/merge policy, preserve sources. Non-atomic failures disclose completed counts/failed path. Two dedicated unpooled/unswept
-  leases share the authenticated opener and cancellation for caller/Host/transport; track during open and always disconnect. No model
-  bytes/staging/scratch. Exact bytes/EOF precede commit; cancellation unblocks sockets; no credential retry after acquisition.
+- Agent SSH keeps one Host transport and multiplexes concurrent exec Channels. Agent SFTP uses connection-preferred scheduling
+  with sibling-Channel fallback and a 180-second idle pool across conversations/MCP. `sftp_copy` belongs to Agent SFTP: regular
+  trees to existing directories, browser conflict/merge policy, preserved sources and two ordered endpoint leases; same-Host
+  copies prefer two connections and fall back to two Channels. Active exec/SFTP leases block idle sweeping; background commands
+  retain only their Channel, not the whole transport. Started operations never replay. No model bytes/staging/scratch.
 - macOS MCP exposes the same definition; Bearer/tool switches/Full access remain boundaries, auth uses external interaction. Stop awaits
   copies. Audit metadata/counts/endpoints/policy, never bodies. Stdio only forwards protocol; mobile has no local MCP listener.
 - Separate loopback HTTP upload/download capabilities are ten-minute, session-bound 256-bit secrets for Host/path/intent, in headers only.
@@ -291,7 +293,8 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - Disable revokes snapshots/cancels work but preserves storage. User-only Destroy persists disablement/unfinished marker, revokes leases, joins
   work, closes/removes owned DB directory; failure stays disabled/retries launch, stale writes rejected by generation. Other records/exports
   survive. Disabled startup never opens/creates DB; explicit re-enable can backfill and relearn from old chats.
-- Tools never receive interactive PTYs: exec dedicated channels, files run-scoped SFTP. Secret handles are single-use/run-tool-Host-purpose-bound;
+- Tools never receive interactive PTYs: exec uses per-command Channels and files use exclusive leases from the Agent SFTP pool.
+  Secret handles are single-use/run-tool-Host-purpose-bound;
   plaintext never reaches model/review/events/logs/SwiftData. Original arguments are projected only for pending local approval, never retained.
   Fetch requires public HTTP(S), DNS revalidation per redirect/restricted-origin reauthorization and sensitive-header redaction. MCP metadata
   only tightens safety.

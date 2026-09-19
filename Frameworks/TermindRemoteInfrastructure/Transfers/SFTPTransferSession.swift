@@ -5,6 +5,8 @@ import TermindApplication
 /// Extra connections are always opened without interaction, using this generation's snapshot.
 @MainActor
 public final class SFTPTransferSession {
+    public nonisolated static let schedulingMode = SSHChannelSchedulingMode.connectionsPreferred
+
     public let id = UUID()
     public let configuration: SSHConnectionConfiguration
     private var clientFactory: SFTPTransferCoordinator.ClientFactory
@@ -15,7 +17,7 @@ public final class SFTPTransferSession {
     private let prefersPrimary: Bool
     private var primaryBusy = false
     private var probing = false
-    private enum Capability { case unknown, parallel, serial }
+    private enum Capability { case unknown, connections, channels }
     private var capability = Capability.unknown
     private var waiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
     var availabilityChanged: (() -> Void)?
@@ -29,14 +31,16 @@ public final class SFTPTransferSession {
         self.primary = client
         self.clientFactory = clientFactory
         self.prefersPrimary = wasOpenedSilently
-        self.capability = wasOpenedSilently ? .parallel : .unknown
+        self.capability = wasOpenedSilently ? .connections : .unknown
     }
 
     deinit {
         if let primary { Task { await primary.disconnect() } }
     }
 
-    var canStartTransfer: Bool { capability == .parallel || activeSlots == 0 }
+    /// Admission is owned by `SFTPTransferCoordinator`; a Channel consumes the
+    /// same slot as a connection, so fallback never changes capacity.
+    var canStartTransfer: Bool { true }
 
     func configureClientFactory(_ factory: @escaping SFTPTransferCoordinator.ClientFactory) {
         clientFactory = factory
@@ -80,7 +84,7 @@ public final class SFTPTransferSession {
     func acquire(cancellation: TransferCancellationToken? = nil) async throws -> SFTPTransferLease {
         try checkCancellation(cancellation)
         while probing { try await waitForPrimary(cancellation: cancellation) }
-        if capability != .serial, primary != nil, !(prefersPrimary && !primaryBusy) {
+        if capability != .channels, primary != nil, !(prefersPrimary && !primaryBusy) {
             let isProbe = capability == .unknown
             if isProbe { probing = true }
             defer {
@@ -91,16 +95,23 @@ public final class SFTPTransferSession {
             }
             do {
                 let client = try await openSilently(cancellation: cancellation)
-                if capability != .serial { capability = .parallel }
+                if capability != .channels { capability = .connections }
                 availabilityChanged?()
                 return SFTPTransferLease(client: client) { await client.disconnect() }
             } catch {
                 try checkCancellation(cancellation)
                 if error is CancellationError { throw error }
                 if let failure = error as? SFTPError, case .cancelled = failure { throw failure }
-                capability = .serial
+                capability = .channels
                 availabilityChanged?()
             }
+        }
+        if capability == .channels, let primary {
+            try checkCancellation(cancellation)
+            let client = try await primary.openSiblingChannel()
+            try checkCancellation(cancellation)
+            availabilityChanged?()
+            return SFTPTransferLease(client: client) { await client.disconnect() }
         }
         while primaryBusy {
             try await waitForPrimary(cancellation: cancellation)

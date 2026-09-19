@@ -35,18 +35,18 @@ struct SFTPTransferSessionTests {
         #expect(await primary.disconnects == 1)
     }
 
-    @Test func cancellingDetachedSerialTransfersReleasesTheLastConnection() async throws {
+    @Test func cancellingDetachedChannelTransfersReleasesTheLastConnection() async throws {
         let harness = TransferSessionHarness(behaviors: [.interactive])
         let primary = TransferSessionClient(harness: harness, primary: true)
         let (session, coordinator) = fixture(primary: primary, harness: harness)
         enqueue(3, session: session, coordinator: coordinator)
-        try await eventually { await harness.started == 1 }
+        try await eventually { await harness.started == 3 }
         await session.releaseOwner()
         coordinator.cancelAll()
         await coordinator.waitForCancellation()
         #expect(coordinator.sftpTransfers.allSatisfy { $0.state == .cancelled })
         #expect(await primary.disconnects == 1)
-        #expect(await harness.started == 1)
+        #expect(await harness.started == 3)
     }
 
     @Test func serialRemoteCopySharesOneLeaseForBothEndpoints() async throws {
@@ -68,22 +68,20 @@ struct SFTPTransferSessionTests {
         #expect(await primary.disconnects == 1)
     }
 
-    @Test func failedSilentProbeSerializesAndSurvivesBrowserClosure() async throws {
+    @Test func failedSilentProbeFallsBackToBoundedSiblingChannels() async throws {
         let harness = TransferSessionHarness(behaviors: [.interactive])
         let primary = TransferSessionClient(harness: harness, primary: true)
         let (session, coordinator) = fixture(primary: primary, harness: harness)
         enqueue(3, session: session, coordinator: coordinator)
-        try await eventually { await harness.started == 1 }
+        try await eventually { await harness.started == 3 }
         await session.releaseOwner()
         #expect(await primary.disconnects == 0)
         #expect(await harness.opens == 1)
         #expect(await harness.policies == [.forbidden])
-        #expect(coordinator.activeCount == 1)
-        for count in 1...3 {
-            try await eventually { await harness.started == count }
-            #expect(await harness.maximumActive == 1)
-            await harness.releaseOne()
-        }
+        #expect(await harness.siblingChannels == 3)
+        #expect(coordinator.activeCount == 3)
+        #expect(await harness.maximumActive == 3)
+        await harness.releaseAll()
         try await eventually { coordinator.activeCount == 0 }
         #expect(await primary.disconnects == 1)
         #expect(coordinator.sftpTransfers.allSatisfy { $0.state == .completed })
@@ -109,7 +107,7 @@ struct SFTPTransferSessionTests {
         #expect(await primary.disconnects == 1)
     }
 
-    @Test func laterConnectionFailureKeepsRunningFilesAndSerializesRemainingFiles() async throws {
+    @Test func laterConnectionFailureKeepsRunningFilesAndFallsBackToChannels() async throws {
         let harness = TransferSessionHarness(behaviors: [.success, .interactive])
         let primary = TransferSessionClient(harness: harness, primary: true)
         let (session, coordinator) = fixture(primary: primary, harness: harness, limit: 2)
@@ -117,12 +115,10 @@ struct SFTPTransferSessionTests {
         try await eventually { await harness.started == 2 }
         #expect(await harness.opens == 2)
         await harness.releaseAll()
-        try await eventually { await harness.started == 3 }
-        #expect(coordinator.activeCount == 1)
-        await harness.releaseOne()
         try await eventually { await harness.started == 4 }
-        #expect(coordinator.activeCount == 1)
-        await harness.releaseOne()
+        #expect(coordinator.activeCount == 2)
+        #expect(await harness.siblingChannels == 3)
+        await harness.releaseAll()
         try await eventually { coordinator.activeCount == 0 }
         #expect(await harness.opens == 2)
         await session.releaseOwner()
@@ -282,6 +278,7 @@ private actor TransferSessionHarness {
     private(set) var opens = 0
     private(set) var started = 0
     private(set) var maximumActive = 0
+    private(set) var siblingChannels = 0
     private var pending: [(UUID, CheckedContinuation<Void, any Error>)] = []
 
     init(behaviors: [Behavior]) { self.behaviors = behaviors }
@@ -297,6 +294,8 @@ private actor TransferSessionHarness {
         case .waitForCancellation: try await Task.sleep(for: .seconds(30))
         }
     }
+
+    func openSibling() { siblingChannels += 1 }
 
     func run(cancellation: TransferCancellationToken) async throws {
         let id = UUID()
@@ -336,6 +335,10 @@ private actor TransferSessionClient: SFTPClientProtocol {
     init(harness: TransferSessionHarness, primary: Bool = false) {
         self.harness = harness
         self.primary = primary
+    }
+    func openSiblingChannel() async throws -> any SFTPClientProtocol {
+        await harness.openSibling()
+        return TransferSessionClient(harness: harness)
     }
     func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {
         try await connect(

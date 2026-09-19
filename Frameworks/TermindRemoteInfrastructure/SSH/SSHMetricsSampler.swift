@@ -7,7 +7,7 @@ import TermindInfrastructure
 import struct TermindDomain.Host
 
 public actor SSHMetricsSampler: MetricsSampling {
-    private let session: any SSHExecSessionProtocol
+    private let adapter: SSHSingleChannelAdapter<any SSHExecSessionProtocol>
     private let logger: Logger
     private var hostID: UUID?
 
@@ -16,22 +16,22 @@ public actor SSHMetricsSampler: MetricsSampling {
         hostID: UUID? = nil,
         logger: Logger = ApplicationLogger.disabled("termind.metrics")
     ) {
-        self.session = session
+        adapter = SSHSingleChannelAdapter(channel: session) { await $0.disconnect() }
         self.hostID = hostID
         self.logger = logger
     }
     public func connect(_ configuration: SSHConnectionConfiguration) async throws {
         hostID = configuration.hostID
-        try await session.connect(using: configuration)
+        try await adapter.withChannel { try await $0.connect(using: configuration) }
     }
     public func connect(_ request: SSHConnectionRequest) async throws {
         hostID = request.configuration.hostID
-        try await session.connect(using: request)
+        try await adapter.withChannel { try await $0.connect(using: request) }
     }
-    public func disconnect() async { await session.disconnect() }
+    public func disconnect() async { await adapter.disconnect() }
 
     public func sample() async throws -> MetricsSample {
-        let result = try await session.execute(
+        let result = try await execute(
             Self.command, workingDirectory: nil, stdin: nil, timeout: 8,
             outputLimit: 262_144, onOutput: nil
         )
@@ -54,7 +54,7 @@ public actor SSHMetricsSampler: MetricsSampling {
     }
 
     public func filesystems() async throws -> [MetricsFilesystem]? {
-        let result = try await session.execute(
+        let result = try await execute(
             "LC_ALL=C; export LC_ALL; cat /proc/self/mountinfo; printf '__TERMIND_DF__\\n'; df -PTkl 2>/dev/null || df -PTk",
             workingDirectory: nil, stdin: nil, timeout: 5, outputLimit: 524_288, onOutput: nil
         )
@@ -63,7 +63,7 @@ public actor SSHMetricsSampler: MetricsSampling {
     }
 
     public func processes() async throws -> MetricsProcessSample? {
-        let result = try await session.execute(
+        let result = try await execute(
             Self.processCommand, workingDirectory: nil, stdin: nil, timeout: 5,
             outputLimit: 1_048_576, onOutput: nil
         )
@@ -83,7 +83,7 @@ public actor SSHMetricsSampler: MetricsSampling {
         """
 
     public func gpu() async throws -> NvidiaSnapshot? {
-        let result = try await session.execute(
+        let result = try await execute(
             "command -v nvidia-smi >/dev/null 2>&1 || exit 42; LC_ALL=C nvidia-smi -q -x",
             workingDirectory: nil, stdin: nil, timeout: 5,
             outputLimit: NvidiaMetricsParser.maximumBytes, onOutput: nil
@@ -124,6 +124,17 @@ public actor SSHMetricsSampler: MetricsSampling {
         printf '__TERMIND_TCP__\\n'; cat /proc/net/snmp 2>/dev/null
         exit 0
         """
+
+    private func execute(
+        _ command: String, workingDirectory: String?, stdin: Data?,
+        timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
+    ) async throws -> SSHExecResult {
+        try await adapter.withChannel { session in
+            try await session.execute(
+                command, workingDirectory: workingDirectory, stdin: stdin,
+                timeout: timeout, outputLimit: outputLimit, onOutput: onOutput)
+        }
+    }
 
     private func logInvalidPrimarySample(_ payload: String, event: Logger.Message) {
         let sanitized = Self.redactingAddresses(in: payload)

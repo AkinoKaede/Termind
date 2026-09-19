@@ -9,9 +9,37 @@ import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
+@testable import TermindRemoteInfrastructure
 
 @Suite
 struct AgentConnectionPoolTests {
+    @Test
+    func singleChannelAdapterAdmitsOnlyOneOperationAtATime() async throws {
+        let firstGate = Gate()
+        let secondGate = Gate()
+        let adapter = SSHSingleChannelAdapter(channel: 1) { _ in }
+        let first = Task {
+            try await adapter.withChannel { _ in
+                await firstGate.wait()
+                return 1
+            }
+        }
+        while await firstGate.arrivals == 0 { await Task.yield() }
+        let second = Task {
+            try await adapter.withChannel { _ in
+                await secondGate.wait()
+                return 2
+            }
+        }
+        for _ in 0..<20 { await Task.yield() }
+        #expect(await secondGate.arrivals == 0)
+        await firstGate.open()
+        while await secondGate.arrivals == 0 { await Task.yield() }
+        await secondGate.open()
+        #expect(try await first.value == 1)
+        #expect(try await second.value == 2)
+    }
+
     @Test
     func repeatedCommandsOnOneHostShareASingleConnection() async throws {
         let backend = StubBackend()
@@ -111,6 +139,30 @@ struct AgentConnectionPoolTests {
     }
 
     @Test
+    func anActiveExecChannelSurvivesTheIdleSweep() async throws {
+        let backend = StubBackend()
+        let pool = makePool(backend)
+        let host = UUID()
+        let session = try await pool.exec(hostID: host)
+        let gate = Gate()
+        let running = Task {
+            try await pool.withExecLease(hostID: host, session: session) {
+                await gate.wait()
+                return 1
+            }
+        }
+        while await gate.arrivals == 0 { await Task.yield() }
+
+        let remaining = await pool.sweepIdle(
+            now: .now.advanced(by: AgentConnectionPool.defaultIdleTimeout + .seconds(1)))
+
+        #expect(remaining == 1)
+        #expect(await backend.execDisconnects == 0)
+        await gate.open()
+        #expect(try await running.value == 1)
+    }
+
+    @Test
     func editingAHostsRouteRetiresTheConnectionBoundToTheOldOne() async throws {
         let backend = StubBackend()
         let pool = makePool(backend)
@@ -149,7 +201,7 @@ struct AgentConnectionPoolTests {
         let host = UUID()
 
         await backend.queueExecFailures([
-            SSHExecSessionError.channelUnavailable(TermindSSHError.disconnected)
+            SSHExecSessionError.transportUnavailable(TermindSSHError.disconnected)
         ])
         let result = try await pool.execute(
             "uptime", workingDirectory: nil, stdin: nil,
@@ -167,7 +219,7 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend)
         let host = UUID()
 
-        // Not `channelUnavailable`: the command reached the remote shell, so a
+        // Not `transportUnavailable`: the command reached the remote shell, so a
         // silent retry could delete something a second time.
         await backend.queueExecFailures([TermindSSHError.library("connection reset")])
         await #expect(throws: TermindSSHError.self) {

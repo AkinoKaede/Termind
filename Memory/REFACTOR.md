@@ -150,3 +150,28 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
 - **Port Forwarding:** removed unused wrappers/overload, narrowed picker/editor policy and shared typed managed-card deletion/error chrome
   with Known Hosts (−35 production, −73 test lines). Kept generation/task/Journey dictionaries: merging adds state without reduction.
   Forwarding pumps/authentication, frozen schemas, feature transactions and native cards remain separate.
+
+### 2026-09-19 — unified SSH/SFTP channel scheduling (complete)
+
+- **Evidence:** `SSHExecSession`, `SFTPClient`, `SSHSessionActor`, `SSHRoutedSocket` and `SSHForwardingSession` each own a
+  libssh2 session/queue/pump. Agent pooling separates exec/SFTP and `sftp_copy` adds two dedicated connections; user
+  transfers fall back from an additional connection to serialized use of the browser client. These owners duplicate
+  connection teardown/keepalive/EAGAIN rules and prevent same-transport Channel concurrency outside forwarding.
+- **Action:** extract one authenticated transport/Channel owner and two topology policies: Channel-only and
+  connection-preferred with Channel fallback. Agent SSH uses Channel-only; Agent SFTP (including `sftp_copy`) and user
+  transfers use connection-preferred; Port Forwarding uses Channel-only. Single-Channel consumers reuse the transport
+  core without entering the scheduler. Feature domains retain independent authentication/recovery/lifetimes.
+- **Expected reduction:** remove the dedicated Agent-copy lease path and duplicated exec/SFTP/PTY/forwarding pump and
+  teardown code. Record the measured production-line change and focused/full verification only after the migration is
+  complete; no reduction or performance claim is made while this item is in progress.
+- **Result:** added explicit Channel-only/connection-preferred policies, multiplexed Agent exec, pooled Agent SFTP
+  (including copy and MCP streams), sibling-Channel fallback, lease-based limits and a single-Channel Adapter for Metrics/
+  user SSH. Removed the old exec worker, dedicated-copy leases, whole-session background handoff and blocking key export.
+  This capability is additive: tracked production changed +987/−931 lines and three new core files add 628 lines, net
+  +684; no reduction claim.
+- **Verification:** TFM and generic iOS Simulator builds passed; 99 scheduling/auth/forwarding focused tests, 53 SFTP/
+  PTY/key tests, 13 pool/Adapter tests and the 20-test AgentRuntime suite passed. Chinese localization and changed-file
+  strict format checks passed. The full macOS run reached 1,446 TFM and 363 Framework tests but retained the unrelated,
+  reproducible `LaunchFileLogServiceTests.loggerDropsUnapprovedSensitiveValues` failure; one concurrent AgentRuntime
+  cancellation failure passed immediately when its 20-test suite was rerun. Recursive format also retains the unrelated
+  existing `LoggingFilesSettings.swift:110` finding.

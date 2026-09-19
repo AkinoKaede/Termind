@@ -5,6 +5,9 @@ macOS 26.6.2; final OpenSSH runs used Xcode 27.1 (27A9269). See [architecture](A
 
 ## Design decisions worth retaining
 
+- `SSHBufferedTransport`, socket readiness, immutable byte queues and deduplicated ready queues are now the common
+  nonblocking transport primitives for forwarding, multiplexed Agent exec, PTY and jump bridges. Port Forwarding still
+  owns its rule/listener/flow policy; sharing primitives does not merge feature authentication or recovery lifetimes.
 - Local/remote/SOCKS and jump bridges share readiness-driven pumps, one serial libssh2 owner/session. No bulk polling.
   Preserve immutable write address/length across EAGAIN, drain accepted bytes before half-close, cancel sources before
   descriptor close, and retain pending channel/listener operations across retries.

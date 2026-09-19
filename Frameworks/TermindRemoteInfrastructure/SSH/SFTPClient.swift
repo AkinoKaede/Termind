@@ -93,6 +93,10 @@ nonisolated private struct SFTPProgressMeter {
 }
 
 public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
+    /// Opens another SFTP subsystem Channel on the same authenticated SSH
+    /// transport. Connection-preferred schedulers use this only after a silent
+    /// additional connection cannot be established.
+    func openSiblingChannel() async throws -> any SFTPClientProtocol
     func uploadFile(
         from localURL: URL, to remotePath: String, overwrite: Bool,
         cancellation: TransferCancellationToken, resume: SFTPResumeState,
@@ -157,6 +161,9 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
 }
 
 nonisolated extension SFTPClientProtocol {
+    public func openSiblingChannel() async throws -> any SFTPClientProtocol {
+        throw SFTPError.notConnected
+    }
     public func uploadFile(
         from localURL: URL, to remotePath: String, overwrite: Bool,
         cancellation: TransferCancellationToken, resume: SFTPResumeState,
@@ -278,6 +285,10 @@ public nonisolated struct SFTPTemporaryFileCleanupError: LocalizedError, Sendabl
 }
 
 public actor SFTPClient: SFTPClientProtocol {
+    public func openSiblingChannel() async throws -> any SFTPClientProtocol {
+        SFTPClient(worker: try await worker.openSibling())
+    }
+
     public func uploadFile(
         from localURL: URL, to remotePath: String, overwrite: Bool,
         cancellation: TransferCancellationToken, resume: SFTPResumeState,
@@ -323,6 +334,11 @@ public actor SFTPClient: SFTPClientProtocol {
     ) {
         self.keyboardInteractive = keyboardInteractive
         worker = SFTPWorker(logger: logger)
+    }
+
+    private init(worker: SFTPWorker) {
+        keyboardInteractive = nil
+        self.worker = worker
     }
 
     public func connect(
@@ -558,6 +574,83 @@ private nonisolated final class NativeSFTPDownloadStream: SFTPDownloadStream {
     func close() async throws { try await worker.closeDownloadStream(id: id) }
 }
 
+private nonisolated final class SFTPConnectionOwner: @unchecked Sendable {
+    let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.sftp")
+    private let queueKey = DispatchSpecificKey<UInt8>()
+    var routeTransport: SSHRoutedSocket?
+    var session: OpaquePointer?
+    var keepaliveTimer: (any DispatchSourceTimer)?
+    var connectionFailure: (@Sendable (String) -> Void)?
+    var didReportConnectionFailure = false
+    var channelCount = 0
+
+    init() { queue.setSpecific(key: queueKey, value: 1) }
+
+    func performSync(_ operation: () -> Void) {
+        if DispatchQueue.getSpecific(key: queueKey) != nil {
+            operation()
+        } else {
+            queue.sync(execute: operation)
+        }
+    }
+
+    func install(_ opened: SSHOpenedSession, connectionFailure: (@Sendable (String) -> Void)?) {
+        precondition(channelCount == 0 && session == nil)
+        routeTransport = opened.transport
+        session = opened.session
+        self.connectionFailure = connectionFailure
+        didReportConnectionFailure = false
+        libssh2_keepalive_config(opened.session, 1, 15)
+        let timer = DispatchSource.makeTimerSource(queue: queue)
+        timer.schedule(deadline: .now() + 15, repeating: 15)
+        timer.setEventHandler { [weak self] in
+            guard let self, self.session == opened.session else { return }
+            var secondsToNext: Int32 = 0
+            let result = libssh2_keepalive_send(opened.session, &secondsToNext)
+            if result < 0, result != LIBSSH2_ERROR_EAGAIN {
+                let error = SSHSessionWorker.sessionError(
+                    opened.session, prefix: "SFTP keepalive failed")
+                self.reportConnectionFailure(error.localizedDescription)
+            }
+        }
+        keepaliveTimer = timer
+        timer.resume()
+    }
+
+    func retainChannel() { channelCount += 1 }
+
+    func releaseChannel() {
+        precondition(channelCount > 0)
+        channelCount -= 1
+        if channelCount == 0 { closeTransport() }
+    }
+
+    func closeIfUnused() {
+        if channelCount == 0 { closeTransport() }
+    }
+
+    func reportConnectionFailure(_ message: String) {
+        guard !didReportConnectionFailure else { return }
+        didReportConnectionFailure = true
+        connectionFailure?(message)
+    }
+
+    private func closeTransport() {
+        keepaliveTimer?.cancel()
+        keepaliveTimer = nil
+        if let session {
+            _ = libssh2_session_disconnect_ex(
+                session, SSH_DISCONNECT_BY_APPLICATION, "Termind closed SFTP", "")
+            _ = libssh2_session_free(session)
+            self.session = nil
+        }
+        routeTransport?.close()
+        routeTransport = nil
+        connectionFailure = nil
+        didReportConnectionFailure = false
+    }
+}
+
 private nonisolated final class SFTPWorker: @unchecked Sendable {
     private struct DownloadHandle {
         var handle: OpaquePointer
@@ -567,19 +660,54 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         var eof = false
         var cancellation: TransferCancellationToken
     }
+    private final class RemoteReadContext: @unchecked Sendable {
+        let handle: OpaquePointer
+        init(_ handle: OpaquePointer) { self.handle = handle }
+    }
+
+    private final class RemoteWriteContext: @unchecked Sendable {
+        let sftp: OpaquePointer
+        let handle: OpaquePointer
+        let temporary: String
+        let destination: String
+        let overwrite: Bool
+        let resume: SFTPResumeState?
+        let editPolicy: SFTPEditUploadPolicy?
+        var handleOpen = true
+
+        init(
+            sftp: OpaquePointer, handle: OpaquePointer, temporary: String,
+            destination: String, overwrite: Bool, resume: SFTPResumeState?,
+            editPolicy: SFTPEditUploadPolicy?
+        ) {
+            self.sftp = sftp
+            self.handle = handle
+            self.temporary = temporary
+            self.destination = destination
+            self.overwrite = overwrite
+            self.resume = resume
+            self.editPolicy = editPolicy
+        }
+    }
     private var downloadHandles: [UUID: DownloadHandle] = [:]
-    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.sftp")
-    private var routeTransport: SSHRoutedSocket?
-    private var session: OpaquePointer?
+    private let owner: SFTPConnectionOwner
+    private var queue: DispatchQueue { owner.queue }
+    private var session: OpaquePointer? { owner.session }
     private var sftp: OpaquePointer?
-    private var keepaliveTimer: (any DispatchSourceTimer)?
-    private var connectionFailure: (@Sendable (String) -> Void)?
-    private var didReportConnectionFailure = false
     private let logger: Logger
 
-    init(logger: Logger) { self.logger = logger }
+    init(logger: Logger) {
+        owner = SFTPConnectionOwner()
+        self.logger = logger
+    }
 
-    deinit { cleanup() }
+    private init(owner: SFTPConnectionOwner, sftp: OpaquePointer, logger: Logger) {
+        self.owner = owner
+        self.sftp = sftp
+        self.logger = logger
+    }
+
+    deinit { owner.performSync { cleanup() } }
 
     public func connect(
         using request: SSHConnectionRequest,
@@ -600,17 +728,14 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                 using: request, timeout: 20, progress: progress, logger: logger
             )
             try await queue.perform {
-                self.routeTransport = opened.transport
-                self.session = opened.session
                 let session = opened.session
+                self.owner.install(opened, connectionFailure: connectionFailure)
                 progress?(.initializing(request.configuration.hostID, String(localized: "Starting SFTP subsystem")))
                 guard let sftp = libssh2_sftp_init(session) else {
                     throw SSHSessionWorker.sessionError(session, prefix: "Unable to start SFTP")
                 }
+                self.owner.retainChannel()
                 self.sftp = sftp
-                self.connectionFailure = connectionFailure
-                self.didReportConnectionFailure = false
-                self.startKeepalive(for: session)
             }
             try Task.checkCancellation()
             logger.info(
@@ -633,6 +758,17 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     }
 
     public func disconnect() async { await queue.perform { self.cleanup() } }
+
+    func openSibling() async throws -> SFTPWorker {
+        try await queue.perform {
+            guard let session = self.session else { throw SFTPError.notConnected }
+            guard let sibling = libssh2_sftp_init(session) else {
+                throw SSHSessionWorker.sessionError(session, prefix: "Unable to start SFTP")
+            }
+            self.owner.retainChannel()
+            return SFTPWorker(owner: self.owner, sftp: sibling, logger: self.logger)
+        }
+    }
 
     public func homeDirectory() async throws -> String {
         try await queue.perform {
@@ -1024,47 +1160,53 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         cancellation: TransferCancellationToken, resume: SFTPResumeState? = nil,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
-        try await queue.perform {
-            let sftp = try self.requireSFTP()
-            let file = try FileHandle(forReadingFrom: localURL)
-            defer { try? file.close() }
-            let identity = try Self.localIdentity(localURL)
-            try resume?.validateSource(identity)
-            let offset = resume?.snapshot.offset ?? 0
-            if let resume { try Self.verifyLocalPrefix(file, snapshot: resume.snapshot, cancellation: cancellation) }
-            try self.withAtomicRemoteWrite(
-                sftp: sftp, destination: remotePath, overwrite: overwrite, resume: resume,
-                cancellation: cancellation,
-                validateCommit: {
-                    guard !cancellation.isCancelled else { throw SFTPError.cancelled }
-                    guard try Self.localIdentity(localURL) == identity else { throw SFTPResumeFailure.sourceChanged }
+        let file = try FileHandle(forReadingFrom: localURL)
+        defer { try? file.close() }
+        let identity = try Self.localIdentity(localURL)
+        try resume?.validateSource(identity)
+        let offset = resume?.snapshot.offset ?? 0
+        if let resume { try Self.verifyLocalPrefix(file, snapshot: resume.snapshot, cancellation: cancellation) }
+        guard
+            let context = try await queue.perform({
+                try self.beginRemoteWrite(
+                    destination: remotePath, overwrite: overwrite,
+                    resume: resume, cancellation: cancellation)
+            })
+        else { return }
+        do {
+            var meter = SFTPProgressMeter(total: identity.byteCount, offset: offset, report: progress)
+            while true {
+                if cancellation.isCancelled { throw SFTPError.cancelled }
+                let data = try file.read(upToCount: 32_700) ?? Data()
+                if data.isEmpty { break }
+                guard Int64(data.count) <= identity.byteCount - meter.completed else {
+                    throw SFTPResumeFailure.sourceChanged
                 }
-            ) { handle in
-                var meter = SFTPProgressMeter(total: identity.byteCount, offset: offset, report: progress)
-                while true {
+                var position = 0
+                while position < data.count {
                     if cancellation.isCancelled { throw SFTPError.cancelled }
-                    let data = try file.read(upToCount: 64 * 1024) ?? Data()
-                    if data.isEmpty { break }
-                    guard Int64(data.count) <= identity.byteCount - meter.completed else {
-                        throw SFTPResumeFailure.sourceChanged
-                    }
-                    try data.withUnsafeBytes { bytes in
-                        guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return }
-                        var position = 0
-                        while position < bytes.count {
-                            if cancellation.isCancelled { throw SFTPError.cancelled }
-                            let written = libssh2_sftp_write(
-                                handle, base.advanced(by: position), bytes.count - position)
-                            guard written > 0 else { throw self.error("Unable to upload \(remotePath)") }
-                            resume?.acknowledge(Data(bytes: base.advanced(by: position), count: written))
-                            position += written
-                            meter.add(written)
+                    let currentPosition = position
+                    let written = try await queue.perform {
+                        data.withUnsafeBytes { bytes in
+                            libssh2_sftp_write(
+                                context.handle,
+                                bytes.baseAddress!.advanced(by: currentPosition).assumingMemoryBound(to: CChar.self),
+                                bytes.count - currentPosition)
                         }
                     }
+                    guard written > 0 else { throw error("Unable to upload \(remotePath)") }
+                    resume?.acknowledge(data.subdata(in: position..<(position + written)))
+                    position += written
+                    meter.add(written)
                 }
-                guard meter.completed == identity.byteCount else { throw SFTPResumeFailure.sourceChanged }
-                meter.finish()
             }
+            guard meter.completed == identity.byteCount else { throw SFTPResumeFailure.sourceChanged }
+            guard !cancellation.isCancelled else { throw SFTPError.cancelled }
+            let sourceStillValid = try Self.localIdentity(localURL) == identity
+            try await queue.perform { try self.finishRemoteWrite(context, sourceStillValid: sourceStillValid) }
+            meter.finish()
+        } catch {
+            do { try await queue.perform { try self.abortRemoteWrite(context, cause: error) } } catch { throw error }
         }
     }
 
@@ -1073,77 +1215,79 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         cancellation: TransferCancellationToken, resume: SFTPResumeState? = nil,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
-        try await queue.perform {
-            try self.withRemoteReadHandle(at: remotePath) { handle in
-                let fm = FileManager.default
-                let temporary = URL(
-                    fileURLWithPath: resume?.temporaryPath(for: localURL.path)
-                        ?? (localURL.path + ".termind-part-" + UUID().uuidString))
-                let snapshot = resume?.snapshot
-                let offset = snapshot?.offset ?? 0
-                if snapshot?.source == nil {
-                    guard fm.createFile(atPath: temporary.path, contents: nil) else {
-                        throw SFTPError.localFile("Unable to create \(temporary.path)")
-                    }
-                }
-                var succeeded = false
-                defer { if !succeeded && resume == nil { try? fm.removeItem(at: temporary) } }
-                let file = try FileHandle(forUpdating: temporary)
-                defer { try? file.close() }
-                let identity = try self.remoteIdentity(handle)
-                try resume?.validateSource(identity)
-                if let snapshot {
-                    guard try file.seekToEnd() == UInt64(offset) else { throw SFTPResumeFailure.partialChanged }
-                    try file.seek(toOffset: 0)
-                    try Self.verifyLocalPrefix(file, snapshot: snapshot, cancellation: cancellation)
-                    try self.verifyRemotePrefix(handle, snapshot: snapshot, cancellation: cancellation)
-                }
-                var meter = SFTPProgressMeter(total: identity.byteCount, offset: offset, report: progress)
-                var buffer = [CChar](repeating: 0, count: 64 * 1024)
-                while true {
-                    if cancellation.isCancelled { throw SFTPError.cancelled }
-                    let count = libssh2_sftp_read(handle, &buffer, buffer.count)
-                    if count > 0 {
-                        guard Int64(count) <= identity.byteCount - meter.completed else {
-                            throw SFTPResumeFailure.sourceChanged
-                        }
-                        let data = Data(bytes: buffer, count: count)
-                        try file.write(contentsOf: data)
-                        resume?.acknowledge(data)
-                        meter.add(count)
-                    } else if count == 0 {
-                        break
-                    } else {
-                        throw self.error("Unable to download \(remotePath)")
-                    }
-                }
-                guard meter.completed == identity.byteCount, try self.remoteIdentity(handle) == identity else {
-                    throw SFTPResumeFailure.sourceChanged
-                }
-                if resume?.snapshot.capturesFileVersion == true {
-                    var downloaded = LIBSSH2_SFTP_ATTRIBUTES()
-                    guard libssh2_sftp_fstat_ex(handle, &downloaded, 0) == 0 else {
-                        throw self.error(String(localized: "Unable to inspect edited file"))
-                    }
-                    resume?.recordCommittedVersion(
-                        SFTPFileVersion(
-                            Self.remoteFile(
-                                path: remotePath, name: (remotePath as NSString).lastPathComponent,
-                                attributes: downloaded)))
-                }
-                guard !cancellation.isCancelled else { throw SFTPError.cancelled }
-                try file.synchronize()
-                meter.finish()
-                if fm.fileExists(atPath: localURL.path) {
-                    guard overwrite else { throw SFTPError.localFile("\(localURL.lastPathComponent) already exists.") }
-                    _ = try fm.replaceItemAt(localURL, withItemAt: temporary)
-                } else {
-                    try fm.moveItem(at: temporary, to: localURL)
-                }
-                resume?.didCommit()
-                succeeded = true
+        let context = try await queue.perform { try self.beginRemoteRead(at: remotePath) }
+        defer { queue.async { self.closeRemoteRead(context) } }
+        let fm = FileManager.default
+        let temporary = URL(
+            fileURLWithPath: resume?.temporaryPath(for: localURL.path)
+                ?? (localURL.path + ".termind-part-" + UUID().uuidString))
+        let snapshot = resume?.snapshot
+        let offset = snapshot?.offset ?? 0
+        if snapshot?.source == nil {
+            guard fm.createFile(atPath: temporary.path, contents: nil) else {
+                throw SFTPError.localFile("Unable to create \(temporary.path)")
             }
         }
+        var succeeded = false
+        defer { if !succeeded && resume == nil { try? fm.removeItem(at: temporary) } }
+        let file = try FileHandle(forUpdating: temporary)
+        defer { try? file.close() }
+        let identity = try await queue.perform { try self.remoteIdentity(context.handle) }
+        try resume?.validateSource(identity)
+        if let snapshot {
+            guard try file.seekToEnd() == UInt64(offset) else { throw SFTPResumeFailure.partialChanged }
+            try file.seek(toOffset: 0)
+            try Self.verifyLocalPrefix(file, snapshot: snapshot, cancellation: cancellation)
+            try await queue.perform {
+                try self.verifyRemotePrefix(
+                    context.handle, snapshot: snapshot, cancellation: cancellation)
+            }
+        }
+        var meter = SFTPProgressMeter(total: identity.byteCount, offset: offset, report: progress)
+        while true {
+            if cancellation.isCancelled { throw SFTPError.cancelled }
+            let data: Data? = try await queue.perform {
+                var buffer = [CChar](repeating: 0, count: 32_700)
+                let count = libssh2_sftp_read(context.handle, &buffer, buffer.count)
+                if count > 0 { return Data(bytes: buffer, count: count) }
+                if count == 0 { return nil }
+                throw self.error("Unable to download \(remotePath)")
+            }
+            guard let data else { break }
+            guard Int64(data.count) <= identity.byteCount - meter.completed else {
+                throw SFTPResumeFailure.sourceChanged
+            }
+            try file.write(contentsOf: data)
+            resume?.acknowledge(data)
+            meter.add(data.count)
+        }
+        guard meter.completed == identity.byteCount,
+            try await queue.perform({ try self.remoteIdentity(context.handle) }) == identity
+        else { throw SFTPResumeFailure.sourceChanged }
+        if resume?.snapshot.capturesFileVersion == true {
+            let fileVersion = try await queue.perform { () -> SFTPFileVersion in
+                var downloaded = LIBSSH2_SFTP_ATTRIBUTES()
+                guard libssh2_sftp_fstat_ex(context.handle, &downloaded, 0) == 0 else {
+                    throw self.error(String(localized: "Unable to inspect edited file"))
+                }
+                return SFTPFileVersion(
+                    Self.remoteFile(
+                        path: remotePath, name: (remotePath as NSString).lastPathComponent,
+                        attributes: downloaded))
+            }
+            resume?.recordCommittedVersion(fileVersion)
+        }
+        guard !cancellation.isCancelled else { throw SFTPError.cancelled }
+        try file.synchronize()
+        meter.finish()
+        if fm.fileExists(atPath: localURL.path) {
+            guard overwrite else { throw SFTPError.localFile("\(localURL.lastPathComponent) already exists.") }
+            _ = try fm.replaceItemAt(localURL, withItemAt: temporary)
+        } else {
+            try fm.moveItem(at: temporary, to: localURL)
+        }
+        resume?.didCommit()
+        succeeded = true
     }
 
     private static func localIdentity(_ url: URL) throws -> SFTPSourceIdentity {
@@ -1205,35 +1349,30 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         from remotePath: String, toSocket socket: Int32,
         cancellation: TransferCancellationToken
     ) async throws {
-        try await queue.perform {
-            try self.withRemoteReadHandle(at: remotePath) { handle in
-                var buffer = [CChar](repeating: 0, count: 64 * 1024)
-                while true {
-                    if cancellation.isCancelled { throw SFTPError.cancelled }
-                    let count = libssh2_sftp_read(handle, &buffer, buffer.count)
-                    if count > 0 {
-                        var offset = 0
-                        while offset < count {
-                            if cancellation.isCancelled { throw SFTPError.cancelled }
-                            let sent = buffer.withUnsafeBytes { bytes in
-                                Darwin.send(
-                                    socket, bytes.baseAddress!.advanced(by: offset),
-                                    count - offset, 0
-                                )
-                            }
-                            if sent > 0 {
-                                offset += sent
-                            } else if sent < 0, errno == EINTR {
-                                continue
-                            } else {
-                                throw SFTPError.operation("The SFTP copy relay was interrupted.")
-                            }
-                        }
-                    } else if count == 0 {
-                        break
-                    } else {
-                        throw self.error("Unable to read \(remotePath)")
-                    }
+        let context = try await queue.perform { try self.beginRemoteRead(at: remotePath) }
+        defer { queue.async { self.closeRemoteRead(context) } }
+        while true {
+            if cancellation.isCancelled { throw SFTPError.cancelled }
+            let data: Data? = try await queue.perform {
+                var buffer = [CChar](repeating: 0, count: 32_700)
+                let count = libssh2_sftp_read(context.handle, &buffer, buffer.count)
+                if count > 0 { return Data(bytes: buffer, count: count) }
+                if count == 0 { return nil }
+                throw self.error("Unable to read \(remotePath)")
+            }
+            guard let data else { break }
+            var offset = 0
+            while offset < data.count {
+                if cancellation.isCancelled { throw SFTPError.cancelled }
+                let sent = data.withUnsafeBytes {
+                    Darwin.send(socket, $0.baseAddress!.advanced(by: offset), data.count - offset, 0)
+                }
+                if sent > 0 {
+                    offset += sent
+                } else if sent < 0, errno == EINTR {
+                    continue
+                } else {
+                    throw SFTPError.operation("The SFTP copy relay was interrupted.")
                 }
             }
         }
@@ -1246,54 +1385,211 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         progress: @escaping @Sendable (SFTPProgress) -> Void,
         sourceSucceeded: @escaping @Sendable () -> Bool
     ) async throws {
-        try await queue.perform {
-            let sftp = try self.requireSFTP()
-            try self.withAtomicRemoteWrite(
-                sftp: sftp, destination: remotePath, overwrite: overwrite, resume: resume, cancellation: cancellation,
-                validateCommit: { guard !cancellation.isCancelled else { throw SFTPError.cancelled } }
-            ) { handle in
-                var meter = SFTPProgressMeter(total: byteCount, offset: resume?.snapshot.offset ?? 0, report: progress)
-                var buffer = [CChar](repeating: 0, count: 64 * 1024)
-                while true {
-                    if cancellation.isCancelled { throw SFTPError.cancelled }
-                    let count = Darwin.recv(socket, &buffer, buffer.count, 0)
-                    if count > 0 {
-                        guard Int64(count) <= byteCount - meter.completed else {
-                            throw SFTPError.operation(String(localized: "The SFTP copy source grew during transfer."))
-                        }
-                        try buffer.withUnsafeBytes { bytes in
-                            guard let base = bytes.baseAddress?.assumingMemoryBound(to: CChar.self)
-                            else { return }
-                            var offset = 0
-                            while offset < count {
-                                if cancellation.isCancelled { throw SFTPError.cancelled }
-                                let written = libssh2_sftp_write(
-                                    handle, base.advanced(by: offset), count - offset
-                                )
-                                guard written > 0 else {
-                                    throw self.error("Unable to copy to \(remotePath)")
-                                }
-                                resume?.acknowledge(Data(bytes: base.advanced(by: offset), count: written))
-                                offset += written
-                                meter.add(written)
+        guard
+            let context = try await queue.perform({
+                try self.beginRemoteWrite(
+                    destination: remotePath, overwrite: overwrite,
+                    resume: resume, cancellation: cancellation)
+            })
+        else { return }
+        do {
+            var meter = SFTPProgressMeter(total: byteCount, offset: resume?.snapshot.offset ?? 0, report: progress)
+            var buffer = [CChar](repeating: 0, count: 32_700)
+            while true {
+                if cancellation.isCancelled { throw SFTPError.cancelled }
+                let count = Darwin.recv(socket, &buffer, buffer.count, 0)
+                if count > 0 {
+                    guard Int64(count) <= byteCount - meter.completed else {
+                        throw SFTPError.operation(String(localized: "The SFTP copy source grew during transfer."))
+                    }
+                    let data = Data(bytes: buffer, count: count)
+                    var offset = 0
+                    while offset < data.count {
+                        if cancellation.isCancelled { throw SFTPError.cancelled }
+                        let currentOffset = offset
+                        let written = try await queue.perform {
+                            data.withUnsafeBytes {
+                                libssh2_sftp_write(
+                                    context.handle,
+                                    $0.baseAddress!.advanced(by: currentOffset).assumingMemoryBound(to: CChar.self),
+                                    data.count - currentOffset)
                             }
                         }
-                    } else if count == 0 {
-                        break
-                    } else if errno != EINTR {
-                        throw SFTPError.operation("The SFTP copy relay was interrupted.")
+                        guard written > 0 else { throw error("Unable to copy to \(remotePath)") }
+                        resume?.acknowledge(data.subdata(in: offset..<(offset + written)))
+                        offset += written
+                        meter.add(written)
+                    }
+                } else if count == 0 {
+                    break
+                } else if errno != EINTR {
+                    throw SFTPError.operation("The SFTP copy relay was interrupted.")
+                }
+            }
+            guard !cancellation.isCancelled, sourceSucceeded() else { throw SFTPError.cancelled }
+            guard meter.completed == byteCount else {
+                throw SFTPError.operation(
+                    "The source changed while it was being copied "
+                        + "(expected \(byteCount) bytes, received \(meter.completed)).")
+            }
+            try await queue.perform { try self.finishRemoteWrite(context, sourceStillValid: true) }
+            meter.finish()
+        } catch {
+            do { try await queue.perform { try self.abortRemoteWrite(context, cause: error) } } catch { throw error }
+        }
+    }
+
+    private func beginRemoteRead(at path: String) throws -> RemoteReadContext {
+        let sftp = try requireSFTP()
+        guard
+            let handle = path.withCString({
+                libssh2_sftp_open_ex(
+                    sftp, $0, UInt32(path.utf8.count), UInt(LIBSSH2_FXF_READ), 0,
+                    Int32(LIBSSH2_SFTP_OPENFILE))
+            })
+        else { throw error("Unable to open \(path)") }
+        return RemoteReadContext(handle)
+    }
+
+    private func closeRemoteRead(_ context: RemoteReadContext) {
+        _ = libssh2_sftp_close_handle(context.handle)
+    }
+
+    /// Prepares an atomic upload while holding the libssh2 owner. The returned
+    /// handle may then be advanced in bounded turns so sibling Channels share
+    /// the transport fairly.
+    private func beginRemoteWrite(
+        destination: String, overwrite: Bool, resume: SFTPResumeState?,
+        cancellation: TransferCancellationToken
+    ) throws -> RemoteWriteContext? {
+        if resume?.snapshot.committed == true { return nil }
+        let sftp = try requireSFTP()
+        let temporary = resume?.temporaryPath(for: destination) ?? (destination + ".termind-part-" + UUID().uuidString)
+        let continuing = resume?.snapshot.hasTemporaryFile == true
+        if continuing {
+            var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+            let result = temporary.withCString {
+                libssh2_sftp_stat_ex(sftp, $0, UInt32(temporary.utf8.count), Int32(LIBSSH2_SFTP_LSTAT), &attributes)
+            }
+            if result != 0 {
+                guard libssh2_sftp_last_error(sftp) == LIBSSH2_FX_NO_SUCH_FILE else {
+                    throw error("Unable to inspect incomplete file")
+                }
+                guard let resume, resume.snapshot.committing else { throw SFTPResumeFailure.partialChanged }
+                try withRemoteReadHandle(at: destination) { handle in
+                    guard try remoteIdentity(handle).byteCount == resume.snapshot.offset else {
+                        throw SFTPResumeFailure.partialChanged
+                    }
+                    try verifyRemotePrefix(handle, snapshot: resume.snapshot, cancellation: cancellation)
+                }
+                if let file = try editTarget(sftp: sftp, path: destination) {
+                    resume.recordCommittedVersion(SFTPFileVersion(file))
+                }
+                resume.didCommit()
+                return nil
+            }
+            guard attributes.flags & UInt(LIBSSH2_SFTP_ATTR_PERMISSIONS) != 0,
+                attributes.permissions & 0o170000 == 0o100000
+            else { throw SFTPResumeFailure.partialChanged }
+        }
+        let editPolicy = resume?.snapshot.editPolicy
+        if let editPolicy { try editPolicy.validate(try editTarget(sftp: sftp, path: destination)) }
+        let flags =
+            resume == nil
+            ? UInt(LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC)
+            : UInt(LIBSSH2_FXF_READ | LIBSSH2_FXF_WRITE | (continuing ? 0 : (LIBSSH2_FXF_CREAT | LIBSSH2_FXF_EXCL)))
+        guard
+            let handle = temporary.withCString({
+                libssh2_sftp_open_ex(
+                    sftp, $0, UInt32(temporary.utf8.count), flags, 0o600,
+                    Int32(LIBSSH2_SFTP_OPENFILE))
+            })
+        else { throw error("Unable to create \(destination)") }
+        resume?.createdTemporaryFile()
+        do {
+            if let resume {
+                let snapshot = resume.snapshot
+                let identity = try remoteIdentity(handle)
+                guard identity.byteCount >= snapshot.offset else { throw SFTPResumeFailure.partialChanged }
+                try verifyRemotePrefix(handle, snapshot: snapshot, cancellation: cancellation)
+                if identity.byteCount != snapshot.offset {
+                    var size = LIBSSH2_SFTP_ATTRIBUTES()
+                    size.flags = UInt(LIBSSH2_SFTP_ATTR_SIZE)
+                    size.filesize = UInt64(snapshot.offset)
+                    guard libssh2_sftp_fstat_ex(handle, &size, 1) == 0 else {
+                        throw error("Unable to trim incomplete file")
                     }
                 }
-                guard !cancellation.isCancelled, sourceSucceeded() else { throw SFTPError.cancelled }
-                guard meter.completed == byteCount else {
-                    throw SFTPError.operation(
-                        "The source changed while it was being copied "
-                            + "(expected \(byteCount) bytes, received \(meter.completed))."
-                    )
-                }
-                meter.finish()
+            }
+            return RemoteWriteContext(
+                sftp: sftp, handle: handle, temporary: temporary,
+                destination: destination, overwrite: overwrite, resume: resume,
+                editPolicy: editPolicy)
+        } catch {
+            _ = libssh2_sftp_close_handle(handle)
+            throw error
+        }
+    }
+
+    private func finishRemoteWrite(_ context: RemoteWriteContext, sourceStillValid: Bool) throws {
+        guard sourceStillValid else { throw SFTPResumeFailure.sourceChanged }
+        if let resume = context.resume {
+            guard try remoteIdentity(context.handle).byteCount == resume.snapshot.offset else {
+                throw SFTPResumeFailure.partialChanged
             }
         }
+        if let editPolicy = context.editPolicy {
+            var mode = LIBSSH2_SFTP_ATTRIBUTES()
+            mode.flags = UInt(LIBSSH2_SFTP_ATTR_PERMISSIONS)
+            mode.permissions = UInt(editPolicy.permissions & 0o7777)
+            guard libssh2_sftp_fstat_ex(context.handle, &mode, 1) == 0 else {
+                throw error(String(localized: "Unable to preserve remote file permissions"))
+            }
+            var committed = LIBSSH2_SFTP_ATTRIBUTES()
+            guard libssh2_sftp_fstat_ex(context.handle, &committed, 0) == 0 else {
+                throw error(String(localized: "Unable to inspect edited file"))
+            }
+            context.resume?.recordCommittedVersion(
+                SFTPFileVersion(
+                    Self.remoteFile(
+                        path: context.destination,
+                        name: (context.destination as NSString).lastPathComponent,
+                        attributes: committed)))
+        }
+        let closed = libssh2_sftp_close_handle(context.handle)
+        context.handleOpen = false
+        guard closed == 0 else { throw error("Unable to close \(context.temporary)") }
+        if let editPolicy = context.editPolicy {
+            try editPolicy.validate(try editTarget(sftp: context.sftp, path: context.destination))
+        }
+        var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+        let exists =
+            context.destination.withCString {
+                libssh2_sftp_stat_ex(
+                    context.sftp, $0, UInt32(context.destination.utf8.count),
+                    Int32(LIBSSH2_SFTP_LSTAT), &attributes)
+            } == 0
+        if exists && (!context.overwrite || (attributes.permissions & 0o170000) == 0o040000) {
+            throw SFTPStreamUploadOperation.Failure.targetConflict
+        }
+        context.resume?.willCommit()
+        try renameOnQueue(
+            sftp: context.sftp, from: context.temporary,
+            to: context.destination, overwrite: context.overwrite)
+        context.resume?.didCommit()
+    }
+
+    private func abortRemoteWrite(_ context: RemoteWriteContext, cause: any Error) throws {
+        if context.handleOpen {
+            _ = libssh2_sftp_close_handle(context.handle)
+            context.handleOpen = false
+        }
+        if context.resume != nil { throw cause }
+        let removed = context.temporary.withCString {
+            libssh2_sftp_unlink_ex(context.sftp, $0, UInt32(context.temporary.utf8.count))
+        }
+        if removed != 0 { throw SFTPTemporaryFileCleanupError(path: context.temporary, cause: cause) }
+        throw cause
     }
 
     private func withRemoteReadHandle<T>(
@@ -1501,48 +1797,18 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     }
 
     private func cleanup() {
-        keepaliveTimer?.cancel()
-        keepaliveTimer = nil
         for entry in downloadHandles.values { _ = libssh2_sftp_close_handle(entry.handle) }
         downloadHandles.removeAll()
         if let sftp {
             _ = libssh2_sftp_shutdown(sftp)
             self.sftp = nil
+            owner.releaseChannel()
         }
-        if let session {
-            _ = libssh2_session_disconnect_ex(session, SSH_DISCONNECT_BY_APPLICATION, "Termind closed SFTP", "")
-            _ = libssh2_session_free(session)
-            self.session = nil
-        }
-        routeTransport?.close()
-        routeTransport = nil
-        connectionFailure = nil
-        didReportConnectionFailure = false
-    }
-
-    private func startKeepalive(for session: OpaquePointer) {
-        libssh2_keepalive_config(session, 1, 15)
-        let timer = DispatchSource.makeTimerSource(queue: queue)
-        timer.schedule(deadline: .now() + 15, repeating: 15)
-        timer.setEventHandler { [weak self] in
-            guard let self, self.session == session else { return }
-            var secondsToNext: Int32 = 0
-            let result = libssh2_keepalive_send(session, &secondsToNext)
-            if result < 0, result != LIBSSH2_ERROR_EAGAIN {
-                let error = SSHSessionWorker.sessionError(
-                    session, prefix: "SFTP keepalive failed"
-                )
-                self.reportConnectionFailure(error.localizedDescription)
-            }
-        }
-        keepaliveTimer = timer
-        timer.resume()
+        owner.closeIfUnused()
     }
 
     private func reportConnectionFailure(_ message: String) {
-        guard !didReportConnectionFailure else { return }
-        didReportConnectionFailure = true
-        connectionFailure?(message)
+        owner.reportConnectionFailure(message)
     }
 
     private static func join(_ base: String, _ component: String) -> String {

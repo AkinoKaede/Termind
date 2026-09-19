@@ -96,11 +96,11 @@ nonisolated public struct SFTPCopyTool: AgentToolDefinition, AgentToolSchemaBuil
         let request = try Request(invocation)
         let cancellation = TransferCancellationToken()
         return try await withTaskCancellationHandler {
-            try await authentication.withDedicatedSFTP(
+            try await authentication.withSFTP(
                 hostID: request.sourceHostID, invocationID: invocation.id,
                 interaction: context.sshInteraction, pool: connections, cancellation: cancellation
             ) { source in
-                try await authentication.withDedicatedSFTP(
+                try await authentication.withSFTP(
                     hostID: request.destinationHostID, invocationID: invocation.id,
                     interaction: context.sshInteraction, pool: connections, cancellation: cancellation
                 ) { destination in
