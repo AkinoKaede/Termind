@@ -25,7 +25,7 @@ public nonisolated struct SSHExecResult: Hashable, Sendable {
 
 /// The one failure that is safe to retry on a replacement transport. It is
 /// emitted only before the remote process has started.
-public nonisolated enum SSHExecSessionError: LocalizedError, Sendable {
+public nonisolated enum SSHCommandExecutionError: LocalizedError, Sendable {
     case transportUnavailable(any Error)
     case channelUnavailable(any Error)
 
@@ -55,10 +55,6 @@ nonisolated extension SSHMultiplexedSessionProtocol {
     public func connect(using request: SSHConnectionRequest) async throws {
         try await connect(using: request.configuration)
     }
-
-    public func openSFTPChannel() async throws -> any SFTPClientProtocol {
-        throw SFTPError.notConnected
-    }
 }
 
 /// Called on the connection's serial libssh2 owner. It must return promptly.
@@ -70,7 +66,7 @@ public actor SSHMultiplexedSession: SSHMultiplexedSessionProtocol {
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        logger: Logger = ApplicationLogger.disabled("termind.ssh-exec")
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-multiplexed-session")
     ) {
         self.keyboardInteractive = keyboardInteractive
         worker = SSHMultiplexedSessionWorker(logger: logger)
@@ -81,7 +77,17 @@ public actor SSHMultiplexedSession: SSHMultiplexedSessionProtocol {
     }
 
     public func connect(using request: SSHConnectionRequest) async throws {
-        try await worker.connect(using: request.withKeyboardInteractiveFallback(keyboardInteractive))
+        try await connect(using: request, progress: nil, connectionFailure: nil)
+    }
+
+    public func connect(
+        using request: SSHConnectionRequest,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws {
+        try await worker.connect(
+            using: request.withKeyboardInteractiveFallback(keyboardInteractive),
+            progress: progress, connectionFailure: connectionFailure)
     }
 
     public func execute(

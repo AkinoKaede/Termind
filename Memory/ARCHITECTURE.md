@@ -166,6 +166,10 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
 - Domain owns `RemoteFile`, Application `RemoteFileSystem`/`MobileSFTPSessionModel`, Remote Infrastructure libssh2 protocols,
   Presentation symbols/kinds. Device-local History changes only after fresh successful listings/downloads, never stale/failed/
   cancelled/type-changed work.
+- `SFTPClient` is the connect/disconnect facade and owns its authenticated multiplexed SSH session; `SFTPChannel` is the sole
+  file-operation implementation. Standalone SFTP, Agent primary SFTP and terminal fallback therefore
+  share Channel open/close/EAGAIN, atomic-write, resume, edit, streaming and copy behavior; feature owners retain their distinct
+  authentication, pooling and retirement lifetimes.
 - Generation-scoped `SFTPTransferSession` outlives panes. SFTP data work resolves one topology per admitted file: Channels Only
   opens sibling SFTP Channels, Connections Preferred silently probes the full route and falls back to siblings, and Smart uses
   Channels through 64 MB/64,000,000 bytes (including unknown sizes) before preferring connections. A failed silent probe degrades later work

@@ -46,6 +46,15 @@ struct SSHKeyboardInteractiveWireTests {
         do {
             let files = try await client.listDirectory(at: "/")
             #expect(files.map(\.name) == ["fixture.txt"])
+            let localURL = FileManager.default.temporaryDirectory
+                .appending(path: "termind-sftp-version-\(UUID().uuidString.lowercased())")
+            defer { try? FileManager.default.removeItem(at: localURL) }
+            let resume = SFTPResumeState(capturesFileVersion: true)
+            try await client.downloadFile(
+                from: "/fixture.txt", to: localURL, overwrite: false,
+                cancellation: TransferCancellationToken(), resume: resume,
+                progress: { _ in })
+            #expect(resume.snapshot.committedVersion != nil)
             #expect(await recorder.challenges.count == 1)
         } catch {
             await client.disconnect()

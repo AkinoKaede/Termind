@@ -78,7 +78,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         }
     }
 
-    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.exec-multiplexer")
+    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.multiplexed-session")
     private let logger: Logger
     private var routeTransport: SSHRoutedSocket?
     private var session: OpaquePointer?
@@ -96,22 +96,41 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
     private var keepaliveDue = true
     private var nextKeepalive = DispatchTime.now()
     private var scratch = [CChar](repeating: 0, count: 16 * 1024)
-    private var sftpChannels: [UUID: OpaquePointer] = [:]
-    private var sftpOpening = false
-    private var sftpOpenWaiters: [CheckedContinuation<Void, Never>] = []
-    private let sharedSFTPIdentity = UUID()
+    private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
+    private var connectionFailure: (@Sendable (String) -> Void)?
+    private var didReportConnectionFailure = false
 
-    init(logger: Logger) { self.logger = logger }
+    init(logger: Logger) {
+        self.logger = logger
+        sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
+            queue: queue,
+            context: { [weak self] in
+                guard let self, let session = self.session,
+                    let bufferedTransport = self.bufferedTransport,
+                    let routeTransport = self.routeTransport
+                else { return nil }
+                return .init(
+                    session: session, transport: bufferedTransport,
+                    socket: routeTransport.socket)
+            },
+            updateEvents: { [weak self] session, transport in
+                self?.updateSharedTransportEvents(session: session, transport: transport)
+            })
+    }
 
     deinit {
         queue.sync { cleanup(error: CancellationError()) }
     }
 
-    func connect(using request: SSHConnectionRequest) async throws {
+    func connect(
+        using request: SSHConnectionRequest,
+        progress: SSHRouteProgressHandler? = nil,
+        connectionFailure: (@Sendable (String) -> Void)? = nil
+    ) async throws {
         let operationID = UUID().uuidString.lowercased()
         let hostID = request.configuration.hostID
         logger.info(
-            "ssh.exec.connect.started",
+            "ssh.multiplexed.connect.started",
             metadata: [
                 "host_id": RemoteLogging.hostID(hostID), "operation_id": "\(operationID)",
                 "protocol": "ssh", "stage": "connecting",
@@ -119,20 +138,22 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         await disconnect()
         do {
             let opened = try await SSHSessionWorker.openAuthenticatedSession(
-                using: request, timeout: 20, logger: logger)
+                using: request, timeout: 20, progress: progress, logger: logger)
             try await queue.perform {
                 try Task.checkCancellation()
                 self.routeTransport = opened.transport
                 self.session = opened.session
                 self.hostID = hostID
                 self.bufferedTransport = SSHBufferedTransport(session: opened.session)
+                self.connectionFailure = connectionFailure
+                self.didReportConnectionFailure = false
                 libssh2_session_set_blocking(opened.session, 0)
                 libssh2_keepalive_config(opened.session, 0, 30)
                 self.startEvents(socket: opened.transport.socket)
             }
             try Task.checkCancellation()
             logger.info(
-                "ssh.exec.connect.completed",
+                "ssh.multiplexed.connect.completed",
                 metadata: [
                     "host_id": RemoteLogging.hostID(hostID), "operation_id": "\(operationID)",
                     "outcome": "success", "protocol": "ssh", "stage": "connected",
@@ -140,7 +161,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         } catch {
             await disconnect()
             logger.error(
-                "ssh.exec.connect.failed",
+                "ssh.multiplexed.connect.failed",
                 metadata: [
                     "error_code": RemoteLogging.errorCode(error), "host_id": RemoteLogging.hostID(hostID),
                     "operation_id": "\(operationID)", "outcome": "failure", "protocol": "ssh",
@@ -171,7 +192,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
                 queue.async { [self] in
                     guard session != nil else {
                         continuation.resume(
-                            throwing: SSHExecSessionError.transportUnavailable(TermindSSHError.disconnected))
+                            throwing: SSHCommandExecutionError.transportUnavailable(TermindSSHError.disconnected))
                         return
                     }
                     let context = Command(
@@ -196,118 +217,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
     }
 
     func openSFTPChannel() async throws -> any SFTPClientProtocol {
-        let driver = SSHSharedSFTPDriver(
-            identity: sharedSFTPIdentity,
-            open: { [weak self] in
-                guard let self else { throw SFTPError.notConnected }
-                return try await self.openRawSFTPChannel()
-            },
-            close: { [weak self] id in await self?.closeSFTPChannel(id) },
-            perform: { [weak self] id, operation in
-                guard let self else { throw SFTPError.notConnected }
-                return try await self.performSharedSFTP(id, operation)
-            })
-        return try await SSHSharedSFTPClient.open(using: driver)
-    }
-
-    private func openRawSFTPChannel() async throws -> UUID {
-        await reserveSFTPOpen()
-        defer { releaseSFTPOpen() }
-        let id = UUID()
-        while true {
-            try Task.checkCancellation()
-            let attempt: SSHSharedSFTPAttempt<Void> = try await queue.perform { [self] in
-                guard let session, let bufferedTransport, let routeTransport else {
-                    throw SFTPError.notConnected
-                }
-                let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-                bufferedTransport.beginPass(deadline: deadline)
-                try bufferedTransport.flush(socket: routeTransport.socket)
-                if bufferedTransport.isBackpressured { return .again }
-                guard let sftp = libssh2_sftp_init(session) else {
-                    if libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN { return .again }
-                    throw SSHSessionWorker.sessionError(session, prefix: "Unable to start SFTP")
-                }
-                sftpChannels[id] = sftp
-                try bufferedTransport.flush(socket: routeTransport.socket)
-                updateSharedTransportEvents(session: session, transport: bufferedTransport)
-                return .value(())
-            }
-            if case .value = attempt { return id }
-            try await Task.sleep(for: .milliseconds(2))
-        }
-    }
-
-    private func reserveSFTPOpen() async {
-        await withCheckedContinuation { continuation in
-            queue.async { [self] in
-                if sftpOpening {
-                    sftpOpenWaiters.append(continuation)
-                } else {
-                    sftpOpening = true
-                    continuation.resume()
-                }
-            }
-        }
-    }
-
-    private func releaseSFTPOpen() {
-        queue.async { [self] in
-            if sftpOpenWaiters.isEmpty {
-                sftpOpening = false
-            } else {
-                sftpOpenWaiters.removeFirst().resume()
-            }
-        }
-    }
-
-    private func closeSFTPChannel(_ id: UUID) async {
-        while true {
-            let attempt: SSHSharedSFTPAttempt<Void> =
-                (try? await queue.perform { [self] in
-                    guard let sftp = sftpChannels[id] else { return .value(()) }
-                    guard let session, let bufferedTransport, let routeTransport else {
-                        sftpChannels[id] = nil
-                        return .value(())
-                    }
-                    let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-                    bufferedTransport.beginPass(deadline: deadline)
-                    try bufferedTransport.flush(socket: routeTransport.socket)
-                    let result = libssh2_sftp_shutdown(sftp)
-                    if result == LIBSSH2_ERROR_EAGAIN { return .again }
-                    sftpChannels[id] = nil
-                    try bufferedTransport.flush(socket: routeTransport.socket)
-                    updateSharedTransportEvents(session: session, transport: bufferedTransport)
-                    return .value(())
-                }) ?? .value(())
-            if case .value = attempt { return }
-            try? await Task.sleep(for: .milliseconds(2))
-        }
-    }
-
-    private func performSharedSFTP(
-        _ id: UUID, _ operation: @escaping SSHSharedSFTPDriver.RawOperation
-    ) async throws -> SSHSharedSFTPValue {
-        while true {
-            try Task.checkCancellation()
-            let attempt = try await queue.perform { [self] in
-                guard let session, let sftp = sftpChannels[id], let bufferedTransport, let routeTransport else {
-                    throw SFTPError.notConnected
-                }
-                let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-                bufferedTransport.beginPass(deadline: deadline)
-                try bufferedTransport.flush(socket: routeTransport.socket)
-                if bufferedTransport.isBackpressured { return SSHSharedSFTPAnyAttempt.again }
-                let result = try operation(session, sftp)
-                try bufferedTransport.flush(socket: routeTransport.socket)
-                updateSharedTransportEvents(session: session, transport: bufferedTransport)
-                return result
-            }
-            switch attempt {
-            case .value(let value): return value
-            case .again: try await Task.sleep(for: .milliseconds(2))
-            }
-        }
+        try await sftpChannelOwner.openClient()
     }
 
     private func updateSharedTransportEvents(session: OpaquePointer, transport: SSHBufferedTransport) {
@@ -447,7 +357,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             if isTransportError(code) {
                 failTransport(session, error: error)
             } else {
-                finish(command, throwing: SSHExecSessionError.channelUnavailable(error))
+                finish(command, throwing: SSHCommandExecutionError.channelUnavailable(error))
             }
             return true
         }
@@ -481,7 +391,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             guard result == 0 else {
                 let code = libssh2_session_last_errno(session)
                 let error = SSHSessionWorker.sessionError(session, prefix: "Unable to start remote command")
-                command.terminalError = SSHExecSessionError.channelUnavailable(error)
+                command.terminalError = SSHCommandExecutionError.channelUnavailable(error)
                 command.phase = .closing
                 if isTransportError(code) { failTransport(session, error: error) }
                 ready.insert(command.id)
@@ -657,6 +567,10 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
 
     private func failTransport(_ session: OpaquePointer, error: (any Error)? = nil) {
         let failure = error ?? SSHSessionWorker.sessionError(session, prefix: "The SSH connection closed")
+        if !didReportConnectionFailure {
+            didReportConnectionFailure = true
+            connectionFailure?(failure.localizedDescription)
+        }
         cleanup(error: failure)
     }
 
@@ -670,8 +584,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         opening = nil
         pendingOpens = SSHReadyQueue()
         ready = SSHReadyQueue()
-        for sftp in sftpChannels.values { _ = libssh2_sftp_shutdown(sftp) }
-        sftpChannels.removeAll()
+        sftpChannelOwner.closeAllOnQueue()
         let transport = routeTransport
         routeTransport = nil
         if let session {
@@ -683,6 +596,8 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         }
         session = nil
         bufferedTransport = nil
+        connectionFailure = nil
+        didReportConnectionFailure = false
         hostID = nil
         if let events = socketEvents {
             events.cancel { transport?.close() }

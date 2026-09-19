@@ -66,11 +66,11 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend, openerGate: gate)
         let host = UUID()
 
-        async let first = pool.exec(hostID: host)
+        async let first = pool.session(hostID: host)
         // Only start the second caller once the first is parked mid-connect, so
         // it is guaranteed to find work already in flight rather than racing it.
         while await gate.arrivals == 0 { await Task.yield() }
-        async let second = pool.exec(hostID: host)
+        async let second = pool.session(hostID: host)
         await gate.open()
 
         let sessions = try await [first, second]
@@ -84,8 +84,8 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend)
         let host = UUID()
 
-        _ = try await pool.exec(hostID: host)
-        _ = try await pool.sftp(hostID: host)
+        _ = try await pool.session(hostID: host)
+        _ = try await pool.sftpClient(hostID: host)
         #expect(await pool.openConnectionCount == 1)
         #expect(await backend.execOpens == 1)
         #expect(await backend.sftpOpens == 0)
@@ -102,8 +102,8 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend)
         let host = UUID()
 
-        _ = try await pool.sftp(hostID: host)
-        _ = try await pool.exec(hostID: host)
+        _ = try await pool.sftpClient(hostID: host)
+        _ = try await pool.session(hostID: host)
 
         #expect(await backend.execOpens == 1)
         #expect(await backend.sftpOpens == 0)
@@ -117,9 +117,9 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend, openerGate: gate)
         let host = UUID()
 
-        async let exec = pool.exec(hostID: host)
+        async let exec = pool.session(hostID: host)
         while await gate.arrivals == 0 { await Task.yield() }
-        async let sftp = pool.sftp(hostID: host)
+        async let sftp = pool.sftpClient(hostID: host)
         await gate.open()
         _ = try await (exec, sftp)
 
@@ -134,7 +134,7 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend)
         let host = UUID()
 
-        _ = try await pool.exec(hostID: host)
+        _ = try await pool.session(hostID: host)
         #expect(await pool.disconnect(hostID: host))
         #expect(await pool.disconnect(hostID: host) == false)
         #expect(await backend.execDisconnects == 1)
@@ -146,7 +146,7 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend)
         let host = UUID()
 
-        _ = try await pool.exec(hostID: host)
+        _ = try await pool.session(hostID: host)
         let remaining = await pool.sweepIdle(
             now: .now.advanced(by: AgentConnectionPool.defaultIdleTimeout + .seconds(1))
         )
@@ -155,7 +155,7 @@ struct AgentConnectionPoolTests {
         #expect(await backend.execDisconnects == 1)
         #expect(await pool.isConnected(hostID: host) == false)
 
-        _ = try await pool.exec(hostID: host)
+        _ = try await pool.session(hostID: host)
         #expect(await backend.execOpens == 2)
     }
 
@@ -165,7 +165,7 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend)
         let host = UUID()
 
-        _ = try await pool.exec(hostID: host)
+        _ = try await pool.session(hostID: host)
         let remaining = await pool.sweepIdle(now: .now)
 
         #expect(remaining == 1)
@@ -177,7 +177,7 @@ struct AgentConnectionPoolTests {
         let backend = StubBackend()
         let pool = makePool(backend)
         let host = UUID()
-        let session = try await pool.exec(hostID: host)
+        let session = try await pool.session(hostID: host)
         let gate = Gate()
         let running = Task {
             try await pool.withExecLease(hostID: host, session: session) {
@@ -202,9 +202,9 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend)
         let host = UUID()
 
-        let before = try await pool.exec(hostID: host)
+        let before = try await pool.session(hostID: host)
         await backend.setFingerprint("route-b", for: host)
-        let after = try await pool.exec(hostID: host)
+        let after = try await pool.session(hostID: host)
 
         // Not the same machine any more, so not the same session — otherwise a
         // command aimed at the edited host would run on the old one.
@@ -220,10 +220,10 @@ struct AgentConnectionPoolTests {
         let pool = makePool(backend)
         let host = UUID()
 
-        _ = try await pool.exec(hostID: host)
+        _ = try await pool.session(hostID: host)
         await backend.forget(host)
 
-        await #expect(throws: AgentToolError.self) { _ = try await pool.exec(hostID: host) }
+        await #expect(throws: AgentToolError.self) { _ = try await pool.session(hostID: host) }
         #expect(await backend.execDisconnects == 1)
         #expect(await pool.openConnectionCount == 0)
     }
@@ -235,7 +235,7 @@ struct AgentConnectionPoolTests {
         let host = UUID()
 
         await backend.queueExecFailures([
-            SSHExecSessionError.transportUnavailable(TermindSSHError.disconnected)
+            SSHCommandExecutionError.transportUnavailable(TermindSSHError.disconnected)
         ])
         let result = try await pool.execute(
             "uptime", workingDirectory: nil, stdin: nil,
@@ -274,8 +274,8 @@ struct AgentConnectionPoolTests {
 
         for _ in 0..<3 {
             let host = UUID()
-            _ = try await pool.exec(hostID: host)
-            _ = try await pool.sftp(hostID: host)
+            _ = try await pool.session(hostID: host)
+            _ = try await pool.sftpClient(hostID: host)
         }
         await pool.closeAll()
 
@@ -288,7 +288,7 @@ struct AgentConnectionPoolTests {
 /// Which stub connection the pool handed back. Distinguishing "reused" from
 /// "reconnected" is the whole subject of these tests.
 private func serial(_ session: any SSHMultiplexedSessionProtocol) throws -> Int {
-    try #require(session as? StubExecSession).stubSerial
+    try #require(session as? StubMultiplexedSession).stubSerial
 }
 
 /// `sweepInterval: nil` keeps the background sweeper out of the tests; every
@@ -339,7 +339,7 @@ private actor StubBackend {
     private var fingerprints: [UUID: String] = [:]
     private var forgotten: Set<UUID> = []
     private var nextExecFailures: [any Error] = []
-    private var execSessions: [StubExecSession] = []
+    private var sessions: [StubMultiplexedSession] = []
 
     func fingerprint(for hostID: UUID) throws -> String {
         guard !forgotten.contains(hostID) else { throw AgentToolError.invalidHost }
@@ -353,13 +353,13 @@ private actor StubBackend {
     /// connection to fail once and the replacement to succeed.
     func queueExecFailures(_ errors: [any Error]) { nextExecFailures = errors }
 
-    func openSession() -> StubExecSession {
+    func openSession() -> StubMultiplexedSession {
         execOpens += 1
-        let session = StubExecSession(
+        let session = StubMultiplexedSession(
             serial: execOpens, backend: self, failures: nextExecFailures
         )
         nextExecFailures = []
-        execSessions.append(session)
+        sessions.append(session)
         return session
     }
 
@@ -375,12 +375,12 @@ private actor StubBackend {
 
     func totalExecuteCount() async -> Int {
         var total = 0
-        for session in execSessions { total += await session.executeCount }
+        for session in sessions { total += await session.executeCount }
         return total
     }
 }
 
-private actor StubExecSession: SSHMultiplexedSessionProtocol {
+private actor StubMultiplexedSession: SSHMultiplexedSessionProtocol {
     nonisolated let stubSerial: Int
     private let backend: StubBackend
     private var failures: [any Error]

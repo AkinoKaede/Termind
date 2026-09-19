@@ -44,15 +44,15 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
 
     /// Mirrors `connectSFTP`, including its guarantee that a session which fails
     /// to come up is torn down here rather than handed back half-open.
-    public func connectMultiplexed(
+    public func connectMultiplexedSession(
         using configuration: SSHConnectionConfiguration
     ) async throws -> any SSHMultiplexedSessionProtocol {
-        try await connectMultiplexed(
+        try await connectMultiplexedSession(
             using: SSHConnectionRequest(configuration: configuration)
         )
     }
 
-    public func connectMultiplexed(
+    public func connectMultiplexedSession(
         using request: SSHConnectionRequest
     ) async throws -> any SSHMultiplexedSessionProtocol {
         let session = makeMultiplexedSession()

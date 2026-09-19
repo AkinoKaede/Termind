@@ -404,13 +404,13 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
         // ends on time is what lets the user be heard at all.
         let handover = AgentCommandHandover()
         let running = Task { () async throws -> SSHExecResult in
-            var connection = try await authentication.execConnection(
+            var connection = try await authentication.connection(
                 hostID: hostID, invocationID: invocation.id,
                 interaction: context.sshInteraction, pool: pool
             )
             var retriedDeadSession = false
             while true {
-                let session = connection.client
+                let session = connection.session
                 // The call may already have given up while this was
                 // connecting. Starting anyway would leave a command
                 // running, printing and finishing with nobody holding
@@ -431,7 +431,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                             outputLimit: 256 * 1_024,
                             onOutput: stream.handler)
                     }
-                } catch SSHExecSessionError.transportUnavailable
+                } catch SSHCommandExecutionError.transportUnavailable
                     where !retriedDeadSession
                 {
                     // Safe because no command channel opened. The
@@ -445,7 +445,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                             metadata: ["presentation_phase": .string("running")]
                         ))
                     await pool.disconnect(hostID: hostID)
-                    connection.client = try await authentication.openSession(
+                    connection.session = try await authentication.openSession(
                         hostID: hostID, authentication: connection.authentication,
                         pool: pool
                     )

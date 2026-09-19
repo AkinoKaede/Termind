@@ -33,7 +33,7 @@ public struct AgentHostServices {
             connections: AgentConnectionPool(
                 configuration: { try await resolver.configuration(for: $0) },
                 routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
-                openSession: { try await coordinator.connectMultiplexed(using: $0) },
+                openSession: { try await coordinator.connectMultiplexedSession(using: $0) },
                 openSFTP: { try await coordinator.connectSFTP(using: $0) },
                 sftpConcurrencyScheduler: sftpConcurrencyScheduler
             ),

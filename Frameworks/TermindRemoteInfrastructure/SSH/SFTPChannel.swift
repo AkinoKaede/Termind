@@ -6,37 +6,37 @@ import Foundation
 import TermindApplication
 import TermindDomain
 
-nonisolated enum SSHSharedSFTPAttempt<Value: Sendable>: Sendable {
+nonisolated enum SFTPChannelAttempt<Value: Sendable>: Sendable {
     case value(Value)
     case again
 }
 
-nonisolated final class SSHSharedSFTPValue: @unchecked Sendable {
+nonisolated final class SFTPChannelValue: @unchecked Sendable {
     let value: Any
     init(_ value: Any) { self.value = value }
 }
 
-nonisolated enum SSHSharedSFTPAnyAttempt: @unchecked Sendable {
-    case value(SSHSharedSFTPValue)
+nonisolated enum SFTPChannelAnyAttempt: @unchecked Sendable {
+    case value(SFTPChannelValue)
     case again
 }
 
-/// Type-erased access to a non-blocking libssh2 owner. The PTY and Agent
-/// workers keep their own pumps and lifetimes; this driver lets one complete
-/// SFTP implementation take bounded turns on either owner.
-nonisolated final class SSHSharedSFTPDriver: @unchecked Sendable {
-    typealias RawOperation = @Sendable (OpaquePointer, OpaquePointer) throws -> SSHSharedSFTPAnyAttempt
+/// Type-erased access to a non-blocking libssh2 owner. Standalone, PTY and
+/// Agent sessions keep their own lifetimes; this driver lets one SFTP
+/// implementation take bounded turns on any of those owners.
+nonisolated final class SFTPChannelDriver: @unchecked Sendable {
+    typealias RawOperation = @Sendable (OpaquePointer, OpaquePointer) throws -> SFTPChannelAnyAttempt
 
     let identity: UUID
     private let openAction: @Sendable () async throws -> UUID
     private let closeAction: @Sendable (UUID) async -> Void
-    private let performAction: @Sendable (UUID, @escaping RawOperation) async throws -> SSHSharedSFTPValue
+    private let performAction: @Sendable (UUID, @escaping RawOperation) async throws -> SFTPChannelValue
 
     init(
         identity: UUID,
         open: @escaping @Sendable () async throws -> UUID,
         close: @escaping @Sendable (UUID) async -> Void,
-        perform: @escaping @Sendable (UUID, @escaping RawOperation) async throws -> SSHSharedSFTPValue
+        perform: @escaping @Sendable (UUID, @escaping RawOperation) async throws -> SFTPChannelValue
     ) {
         self.identity = identity
         openAction = open
@@ -49,27 +49,27 @@ nonisolated final class SSHSharedSFTPDriver: @unchecked Sendable {
 
     func perform<Value: Sendable>(
         _ id: UUID,
-        _ operation: @escaping @Sendable (OpaquePointer, OpaquePointer) throws -> SSHSharedSFTPAttempt<Value>
+        _ operation: @escaping @Sendable (OpaquePointer, OpaquePointer) throws -> SFTPChannelAttempt<Value>
     ) async throws -> Value {
         let boxed = try await performAction(id) { session, sftp in
             switch try operation(session, sftp) {
-            case .value(let value): .value(SSHSharedSFTPValue(value))
+            case .value(let value): .value(SFTPChannelValue(value))
             case .again: .again
             }
         }
         guard let value = boxed.value as? Value else {
-            preconditionFailure("Shared SFTP driver returned an unexpected value type")
+            preconditionFailure("SFTP Channel driver returned an unexpected value type")
         }
         return value
     }
 }
 
-private nonisolated final class SSHSharedSFTPHandle: @unchecked Sendable {
+private nonisolated final class SFTPChannelHandle: @unchecked Sendable {
     let pointer: OpaquePointer
     init(_ pointer: OpaquePointer) { self.pointer = pointer }
 }
 
-private nonisolated final class SSHSharedSFTPWriteContext: @unchecked Sendable {
+private nonisolated final class SFTPChannelWriteContext: @unchecked Sendable {
     let handle: OpaquePointer
     let temporary: String
     let destination: String
@@ -84,7 +84,7 @@ private nonisolated final class SSHSharedSFTPWriteContext: @unchecked Sendable {
     }
 }
 
-private nonisolated struct SSHSharedSFTPProgressMeter {
+private nonisolated struct SFTPProgressMeter {
     let total: Int64
     let report: @Sendable (SFTPProgress) -> Void
     private(set) var completed: Int64
@@ -117,24 +117,24 @@ private nonisolated struct SSHSharedSFTPProgressMeter {
     }
 }
 
-/// An SFTP subsystem Channel on a shared non-blocking SSH transport.
-actor SSHSharedSFTPClient: SFTPClientProtocol {
-    private nonisolated let driver: SSHSharedSFTPDriver
+/// An opened SFTP subsystem Channel on a multiplexed non-blocking SSH transport.
+actor SFTPChannel: SFTPClientProtocol {
+    private nonisolated let driver: SFTPChannelDriver
     private let id: UUID
     private var disconnected = false
 
-    static func open(using driver: SSHSharedSFTPDriver) async throws -> any SFTPClientProtocol {
+    static func open(using driver: SFTPChannelDriver) async throws -> any SFTPClientProtocol {
         let id = try await driver.open()
         do {
             try Task.checkCancellation()
-            return SSHSharedSFTPClient(driver: driver, id: id)
+            return SFTPChannel(driver: driver, id: id)
         } catch {
             await driver.close(id)
             throw error
         }
     }
 
-    private init(driver: SSHSharedSFTPDriver, id: UUID) {
+    private init(driver: SFTPChannelDriver, id: UUID) {
         self.driver = driver
         self.id = id
     }
@@ -259,14 +259,14 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             continuing: false, snapshot: nil)
         do {
             try await write(data, to: context.handle, cancellation: nil, acknowledge: nil)
-            try await closeHandle(SSHSharedSFTPHandle(context.handle))
+            try await closeHandle(SFTPChannelHandle(context.handle))
             context.handleOpen = false
             if let existing = try await attributes(at: path), !overwrite || existing.isDirectory {
                 throw SFTPStreamUploadOperation.Failure.targetConflict
             }
             try await rename(from: temporary, to: path, overwrite: overwrite)
         } catch {
-            if context.handleOpen { try? await closeHandle(SSHSharedSFTPHandle(context.handle)) }
+            if context.handleOpen { try? await closeHandle(SFTPChannelHandle(context.handle)) }
             try? await removeFile(at: temporary)
             throw error
         }
@@ -333,7 +333,6 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         cancellation: TransferCancellationToken, resume: SFTPResumeState,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
-        guard resume.snapshot.editPolicy == nil else { throw SFTPEditFailure.unsupported }
         if resume.snapshot.committed { return }
         let values = try localURL.resourceValues(
             forKeys: [.fileSizeKey, .contentModificationDateKey, .isRegularFileKey])
@@ -343,15 +342,21 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         let identity = SFTPSourceIdentity(byteCount: Int64(size), modifiedAt: values.contentModificationDate)
         try resume.validateSource(identity)
         let snapshot = resume.snapshot
+        if try await recoverCommittedWrite(
+            destination: remotePath, resume: resume, cancellation: cancellation
+        ) {
+            return
+        }
         let file = try FileHandle(forReadingFrom: localURL)
         defer { try? file.close() }
         try Self.verifyLocalPrefix(file, snapshot: snapshot, cancellation: cancellation)
         let context = try await beginWrite(
             temporary: resume.temporaryPath(for: remotePath), destination: remotePath,
-            overwrite: overwrite, continuing: snapshot.hasTemporaryFile, snapshot: snapshot)
+            overwrite: overwrite, continuing: snapshot.hasTemporaryFile,
+            snapshot: snapshot, cancellation: cancellation)
         if !snapshot.hasTemporaryFile { resume.createdTemporaryFile() }
         do {
-            var meter = SSHSharedSFTPProgressMeter(
+            var meter = SFTPProgressMeter(
                 total: identity.byteCount, offset: snapshot.offset, report: progress)
             while true {
                 guard !cancellation.isCancelled else { throw SFTPError.cancelled }
@@ -370,7 +375,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             try await finishWrite(context, resume: resume)
             meter.finish()
         } catch {
-            if context.handleOpen { try? await closeHandle(SSHSharedSFTPHandle(context.handle)) }
+            if context.handleOpen { try? await closeHandle(SFTPChannelHandle(context.handle)) }
             throw error
         }
     }
@@ -416,7 +421,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             try Self.verifyLocalPrefix(file, snapshot: snapshot, cancellation: cancellation)
             try await verifyRemotePrefix(handle, snapshot: snapshot, cancellation: cancellation)
             try file.seek(toOffset: UInt64(snapshot.offset))
-            var meter = SSHSharedSFTPProgressMeter(
+            var meter = SFTPProgressMeter(
                 total: identity.byteCount, offset: snapshot.offset, report: progress)
             while let data = try await read(handle, maximumBytes: 32_700) {
                 guard !cancellation.isCancelled else { throw SFTPError.cancelled }
@@ -430,6 +435,11 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             guard meter.completed == identity.byteCount,
                 try await remoteIdentity(handle) == identity
             else { throw SFTPResumeFailure.sourceChanged }
+            if resume.snapshot.capturesFileVersion {
+                resume.recordCommittedVersion(
+                    SFTPFileVersion(try await remoteFile(at: remotePath, from: handle)))
+            }
+            guard !cancellation.isCancelled else { throw SFTPError.cancelled }
             try await closeHandle(handle)
             handleOpen = false
             try file.synchronize()
@@ -466,15 +476,20 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         progress: @escaping @Sendable (SFTPProgress) -> Void,
         sourceSucceeded: @escaping @Sendable () -> Bool
     ) async throws {
-        guard resume.snapshot.editPolicy == nil else { throw SFTPEditFailure.unsupported }
         if resume.snapshot.committed { return }
         let snapshot = resume.snapshot
+        if try await recoverCommittedWrite(
+            destination: remotePath, resume: resume, cancellation: cancellation
+        ) {
+            return
+        }
         let context = try await beginWrite(
             temporary: resume.temporaryPath(for: remotePath), destination: remotePath,
-            overwrite: overwrite, continuing: snapshot.hasTemporaryFile, snapshot: snapshot)
+            overwrite: overwrite, continuing: snapshot.hasTemporaryFile,
+            snapshot: snapshot, cancellation: cancellation)
         if !snapshot.hasTemporaryFile { resume.createdTemporaryFile() }
         do {
-            var meter = SSHSharedSFTPProgressMeter(total: byteCount, offset: snapshot.offset, report: progress)
+            var meter = SFTPProgressMeter(total: byteCount, offset: snapshot.offset, report: progress)
             while true {
                 guard !cancellation.isCancelled else { throw SFTPError.cancelled }
                 var buffer = [UInt8](repeating: 0, count: 32_700)
@@ -501,7 +516,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             try await finishWrite(context, resume: resume)
             meter.finish()
         } catch {
-            if context.handleOpen { try? await closeHandle(SSHSharedSFTPHandle(context.handle)) }
+            if context.handleOpen { try? await closeHandle(SFTPChannelHandle(context.handle)) }
             throw error
         }
     }
@@ -526,7 +541,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         do {
             let identity = try await remoteIdentity(handle)
             guard identity.byteCount <= maximumBytes else { throw SFTPDownloadFailure.tooLarge }
-            return SSHSharedSFTPDownloadStream(
+            return SFTPChannelDownloadStream(
                 client: self, handle: handle, identity: identity, cancellation: cancellation)
         } catch {
             try? await closeHandle(handle)
@@ -540,7 +555,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
-        if let destination = destination as? SSHSharedSFTPClient,
+        if let destination = destination as? SFTPChannel,
             destination.driver.identity == driver.identity
         {
             try await copyOnSharedTransport(
@@ -585,7 +600,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
 
     private func copyOnSharedTransport(
         from sourcePath: String, to destinationPath: String,
-        destination: SSHSharedSFTPClient, byteCount: Int64, overwrite: Bool,
+        destination: SFTPChannel, byteCount: Int64, overwrite: Bool,
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
@@ -603,7 +618,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             temporary: temporary, destination: destinationPath, overwrite: overwrite,
             continuing: false, snapshot: nil)
         do {
-            var meter = SSHSharedSFTPProgressMeter(total: byteCount, report: progress)
+            var meter = SFTPProgressMeter(total: byteCount, report: progress)
             while let data = try await read(source, maximumBytes: 64 * 1024) {
                 guard !cancellation.isCancelled else { throw SFTPError.cancelled }
                 guard Int64(data.count) <= byteCount - meter.completed else {
@@ -618,7 +633,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             }
             try await closeHandle(source)
             sourceOpen = false
-            try await destination.closeHandle(SSHSharedSFTPHandle(output.handle))
+            try await destination.closeHandle(SFTPChannelHandle(output.handle))
             output.handleOpen = false
             if let existing = try await destination.attributes(at: destinationPath),
                 !overwrite || existing.isDirectory
@@ -630,7 +645,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         } catch {
             if sourceOpen { try? await closeHandle(source) }
             if output.handleOpen {
-                try? await destination.closeHandle(SSHSharedSFTPHandle(output.handle))
+                try? await destination.closeHandle(SFTPChannelHandle(output.handle))
             }
             try? await destination.removeFile(at: temporary)
             throw error
@@ -668,39 +683,39 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
     }
 
     fileprivate func streamRead(
-        _ handle: SSHSharedSFTPHandle, cancellation: TransferCancellationToken
+        _ handle: SFTPChannelHandle, cancellation: TransferCancellationToken
     ) async throws -> Data? {
         guard !cancellation.isCancelled else { throw SFTPError.cancelled }
         return try await read(handle, maximumBytes: 64 * 1024)
     }
 
-    fileprivate func streamSeek(_ handle: SSHSharedSFTPHandle, offset: Int64) async throws {
+    fileprivate func streamSeek(_ handle: SFTPChannelHandle, offset: Int64) async throws {
         guard offset >= 0 else { throw SFTPResumeFailure.partialChanged }
         try await seek(handle, offset: offset)
     }
 
-    fileprivate func streamClose(_ handle: SSHSharedSFTPHandle) async throws {
+    fileprivate func streamClose(_ handle: SFTPChannelHandle) async throws {
         try await closeHandle(handle)
     }
 
-    fileprivate func streamIdentity(_ handle: SSHSharedSFTPHandle) async throws -> SFTPSourceIdentity {
+    fileprivate func streamIdentity(_ handle: SFTPChannelHandle) async throws -> SFTPSourceIdentity {
         try await remoteIdentity(handle)
     }
 
     private func openHandle(
         path: String, flags: UInt, mode: Int, type: Int32
-    ) async throws -> SSHSharedSFTPHandle {
+    ) async throws -> SFTPChannelHandle {
         try await driver.perform(id) { session, sftp in
             let opened = path.withCString {
                 libssh2_sftp_open_ex(sftp, $0, UInt32(path.utf8.count), flags, mode, type)
             }
-            if let opened { return .value(SSHSharedSFTPHandle(opened)) }
+            if let opened { return .value(SFTPChannelHandle(opened)) }
             if libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN { return .again }
             throw Self.error(session, sftp, "Unable to open \(path)")
         }
     }
 
-    private func closeHandle(_ handle: SSHSharedSFTPHandle) async throws {
+    private func closeHandle(_ handle: SFTPChannelHandle) async throws {
         let _: Void = try await driver.perform(id) { session, sftp in
             let result = libssh2_sftp_close_handle(handle.pointer)
             if result == LIBSSH2_ERROR_EAGAIN { return .again }
@@ -709,7 +724,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         }
     }
 
-    private func read(_ handle: SSHSharedSFTPHandle, maximumBytes: Int) async throws -> Data? {
+    private func read(_ handle: SFTPChannelHandle, maximumBytes: Int) async throws -> Data? {
         try await driver.perform(id) { session, sftp in
             var buffer = [UInt8](repeating: 0, count: maximumBytes)
             let count = libssh2_sftp_read(handle.pointer, &buffer, buffer.count)
@@ -719,7 +734,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         }
     }
 
-    private func seek(_ handle: SSHSharedSFTPHandle, offset: Int64) async throws {
+    private func seek(_ handle: SFTPChannelHandle, offset: Int64) async throws {
         let _: Void = try await driver.perform(id) { _, _ in
             libssh2_sftp_seek64(handle.pointer, UInt64(offset))
             return .value(())
@@ -730,7 +745,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         _ data: Data, to handle: OpaquePointer, cancellation: TransferCancellationToken?,
         acknowledge: ((Data) -> Void)?
     ) async throws {
-        let stableHandle = SSHSharedSFTPHandle(handle)
+        let stableHandle = SFTPChannelHandle(handle)
         var position = 0
         while position < data.count {
             if cancellation?.isCancelled == true { throw SFTPError.cancelled }
@@ -763,14 +778,50 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         }
     }
 
+    private func recoverCommittedWrite(
+        destination: String, resume: SFTPResumeState,
+        cancellation: TransferCancellationToken
+    ) async throws -> Bool {
+        let snapshot = resume.snapshot
+        guard snapshot.hasTemporaryFile, snapshot.committing,
+            let temporary = snapshot.temporaryPath,
+            try await attributes(at: temporary) == nil
+        else { return false }
+        let handle = try await openHandle(
+            path: destination, flags: UInt(LIBSSH2_FXF_READ), mode: 0,
+            type: Int32(LIBSSH2_SFTP_OPENFILE))
+        do {
+            guard try await remoteSize(handle) == snapshot.offset else {
+                throw SFTPResumeFailure.partialChanged
+            }
+            try await verifyRemotePrefix(
+                handle, snapshot: snapshot, cancellation: cancellation)
+            resume.recordCommittedVersion(
+                SFTPFileVersion(try await remoteFile(at: destination, from: handle)))
+            try await closeHandle(handle)
+            resume.didCommit()
+            return true
+        } catch {
+            try? await closeHandle(handle)
+            throw error
+        }
+    }
+
     private func beginWrite(
         temporary: String, destination: String, overwrite: Bool,
-        continuing: Bool, snapshot: SFTPResumeState.Snapshot?
-    ) async throws -> SSHSharedSFTPWriteContext {
+        continuing: Bool, snapshot: SFTPResumeState.Snapshot?,
+        cancellation: TransferCancellationToken = TransferCancellationToken()
+    ) async throws -> SFTPChannelWriteContext {
+        if let editPolicy = snapshot?.editPolicy {
+            try editPolicy.validate(try await attributes(at: destination))
+        }
+        if continuing, try await attributes(at: temporary) == nil {
+            throw SFTPResumeFailure.partialChanged
+        }
         let flags = UInt(
             LIBSSH2_FXF_READ | LIBSSH2_FXF_WRITE
                 | (continuing ? 0 : (LIBSSH2_FXF_CREAT | LIBSSH2_FXF_EXCL)))
-        let context: SSHSharedSFTPWriteContext = try await driver.perform(id) { session, sftp in
+        let context: SFTPChannelWriteContext = try await driver.perform(id) { session, sftp in
             let handle = temporary.withCString {
                 libssh2_sftp_open_ex(
                     sftp, $0, UInt32(temporary.utf8.count), flags, 0o600,
@@ -778,7 +829,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             }
             if let handle {
                 return .value(
-                    SSHSharedSFTPWriteContext(
+                    SFTPChannelWriteContext(
                         handle: handle, temporary: temporary,
                         destination: destination, overwrite: overwrite))
             }
@@ -786,23 +837,37 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
             throw Self.error(session, sftp, "Unable to create \(destination)")
         }
         if continuing, let snapshot {
-            guard try await remoteSize(SSHSharedSFTPHandle(context.handle)) == snapshot.offset else {
-                try? await closeHandle(SSHSharedSFTPHandle(context.handle))
+            let handle = SFTPChannelHandle(context.handle)
+            let size = try await remoteIdentity(handle).byteCount
+            guard size >= snapshot.offset else {
+                try? await closeHandle(SFTPChannelHandle(context.handle))
                 throw SFTPResumeFailure.partialChanged
             }
             try await verifyRemotePrefix(
-                SSHSharedSFTPHandle(context.handle), snapshot: snapshot,
-                cancellation: TransferCancellationToken())
+                handle, snapshot: snapshot, cancellation: cancellation)
+            if size != snapshot.offset {
+                try await truncate(handle, to: snapshot.offset)
+            }
         }
         return context
     }
 
-    private func finishWrite(_ context: SSHSharedSFTPWriteContext, resume: SFTPResumeState) async throws {
-        guard try await remoteSize(SSHSharedSFTPHandle(context.handle)) == resume.snapshot.offset else {
+    private func finishWrite(_ context: SFTPChannelWriteContext, resume: SFTPResumeState) async throws {
+        let handle = SFTPChannelHandle(context.handle)
+        let snapshot = resume.snapshot
+        guard try await remoteSize(handle) == snapshot.offset else {
             throw SFTPResumeFailure.partialChanged
         }
-        try await closeHandle(SSHSharedSFTPHandle(context.handle))
+        if let editPolicy = snapshot.editPolicy {
+            try await setPermissions(on: handle, to: editPolicy.permissions)
+            let committed = try await remoteFile(at: context.destination, from: handle)
+            resume.recordCommittedVersion(SFTPFileVersion(committed))
+        }
+        try await closeHandle(handle)
         context.handleOpen = false
+        if let editPolicy = snapshot.editPolicy {
+            try editPolicy.validate(try await attributes(at: context.destination))
+        }
         if let existing = try await attributes(at: context.destination),
             !context.overwrite || existing.isDirectory
         {
@@ -815,7 +880,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         resume.didCommit()
     }
 
-    private func remoteSize(_ handle: SSHSharedSFTPHandle) async throws -> Int64 {
+    private func remoteSize(_ handle: SFTPChannelHandle) async throws -> Int64 {
         try await driver.perform(id) { session, sftp in
             var attributes = LIBSSH2_SFTP_ATTRIBUTES()
             let result = libssh2_sftp_fstat_ex(handle.pointer, &attributes, 0)
@@ -827,7 +892,51 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
         }
     }
 
-    private func remoteIdentity(_ handle: SSHSharedSFTPHandle) async throws -> SFTPSourceIdentity {
+    private func truncate(_ handle: SFTPChannelHandle, to size: Int64) async throws {
+        let _: Void = try await driver.perform(id) { session, sftp in
+            var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+            attributes.flags = UInt(LIBSSH2_SFTP_ATTR_SIZE)
+            attributes.filesize = UInt64(size)
+            let result = libssh2_sftp_fstat_ex(handle.pointer, &attributes, 1)
+            if result == LIBSSH2_ERROR_EAGAIN { return .again }
+            guard result == 0 else {
+                throw Self.error(session, sftp, "Unable to trim incomplete file")
+            }
+            return .value(())
+        }
+    }
+
+    private func setPermissions(on handle: SFTPChannelHandle, to permissions: UInt32) async throws {
+        let _: Void = try await driver.perform(id) { session, sftp in
+            var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+            attributes.flags = UInt(LIBSSH2_SFTP_ATTR_PERMISSIONS)
+            attributes.permissions = UInt(permissions & 0o7777)
+            let result = libssh2_sftp_fstat_ex(handle.pointer, &attributes, 1)
+            if result == LIBSSH2_ERROR_EAGAIN { return .again }
+            guard result == 0 else {
+                throw Self.error(
+                    session, sftp,
+                    String(localized: "Unable to preserve remote file permissions"))
+            }
+            return .value(())
+        }
+    }
+
+    private func remoteFile(
+        at path: String, from handle: SFTPChannelHandle
+    ) async throws -> RemoteFile {
+        try await driver.perform(id) { session, sftp in
+            var attributes = LIBSSH2_SFTP_ATTRIBUTES()
+            let result = libssh2_sftp_fstat_ex(handle.pointer, &attributes, 0)
+            if result == LIBSSH2_ERROR_EAGAIN { return .again }
+            guard result == 0 else {
+                throw Self.error(session, sftp, "Unable to inspect remote file")
+            }
+            return .value(Self.remoteFile(path: path, attributes: attributes))
+        }
+    }
+
+    private func remoteIdentity(_ handle: SFTPChannelHandle) async throws -> SFTPSourceIdentity {
         try await driver.perform(id) { session, sftp in
             var attributes = LIBSSH2_SFTP_ATTRIBUTES()
             let result = libssh2_sftp_fstat_ex(handle.pointer, &attributes, 0)
@@ -846,7 +955,7 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
     }
 
     private func verifyRemotePrefix(
-        _ handle: SSHSharedSFTPHandle, snapshot: SFTPResumeState.Snapshot,
+        _ handle: SFTPChannelHandle, snapshot: SFTPResumeState.Snapshot,
         cancellation: TransferCancellationToken
     ) async throws {
         try await seek(handle, offset: 0)
@@ -932,9 +1041,9 @@ actor SSHSharedSFTPClient: SFTPClientProtocol {
     }
 }
 
-private actor SSHSharedSFTPDownloadStream: SFTPDownloadStream {
-    private let client: SSHSharedSFTPClient
-    private let handle: SSHSharedSFTPHandle
+private actor SFTPChannelDownloadStream: SFTPDownloadStream {
+    private let client: SFTPChannel
+    private let handle: SFTPChannelHandle
     let sourceIdentity: SFTPSourceIdentity?
     let byteCount: Int64
     private let cancellation: TransferCancellationToken
@@ -943,7 +1052,7 @@ private actor SSHSharedSFTPDownloadStream: SFTPDownloadStream {
     private var eof = false
 
     init(
-        client: SSHSharedSFTPClient, handle: SSHSharedSFTPHandle,
+        client: SFTPChannel, handle: SFTPChannelHandle,
         identity: SFTPSourceIdentity, cancellation: TransferCancellationToken
     ) {
         self.client = client

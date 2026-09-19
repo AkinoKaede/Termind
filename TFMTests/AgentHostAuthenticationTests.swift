@@ -311,7 +311,7 @@ struct AgentHostAuthenticationTests {
                 ))
         }
 
-        _ = try await registry.sftp(
+        _ = try await registry.sftpClient(
             hostID: destination.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: pool
         )
@@ -390,11 +390,11 @@ struct AgentHostAuthenticationTests {
         let setup = authenticationSetup()
         let interaction = GatedAuthenticationResponder()
 
-        async let first = setup.registry.sftp(
+        async let first = setup.registry.sftpClient(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
-        async let second = setup.registry.sftp(
+        async let second = setup.registry.sftpClient(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
@@ -416,11 +416,11 @@ struct AgentHostAuthenticationTests {
         let setup = authenticationSetup()
         let interaction = GatedAuthenticationResponder()
 
-        async let exec = setup.registry.exec(
+        async let exec = setup.registry.session(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
-        async let sftp = setup.registry.sftp(
+        async let sftp = setup.registry.sftpClient(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
@@ -444,13 +444,13 @@ struct AgentHostAuthenticationTests {
         let setup = authenticationSetup()
         let interaction = GatedAuthenticationResponder()
         let first = Task {
-            try await setup.registry.sftp(
+            try await setup.registry.sftpClient(
                 hostID: setup.host.id, invocationID: UUID(),
                 interaction: interaction.sshInteraction, pool: setup.pool
             )
         }
         let second = Task {
-            try await setup.registry.sftp(
+            try await setup.registry.sftpClient(
                 hostID: setup.host.id, invocationID: UUID(),
                 interaction: interaction.sshInteraction, pool: setup.pool
             )
@@ -479,7 +479,7 @@ struct AgentHostAuthenticationTests {
                 ))
         }
 
-        _ = try await setup.registry.sftp(
+        _ = try await setup.registry.sftpClient(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
@@ -1234,14 +1234,14 @@ private actor AuthenticationConnectionBackend {
         self.remoteFiles = remoteFiles
     }
 
-    func openSession(configuration: SSHConnectionConfiguration) throws -> AuthenticationExecSession {
+    func openSession(configuration: SSHConnectionConfiguration) throws -> AuthenticationMultiplexedSession {
         execOpens += 1
         sftpConfigurations.append(configuration)
         if sftpAuthenticationFailures > 0 {
             sftpAuthenticationFailures -= 1
             throw TermindSSHError.authenticationFailed("Rejected credential")
         }
-        return AuthenticationExecSession(backend: self)
+        return AuthenticationMultiplexedSession(backend: self)
     }
 
     func openSFTP(
@@ -1286,7 +1286,7 @@ private actor AuthenticationConnectionBackend {
     func remoteFile(at path: String) -> Data? { remoteFiles[path] }
 }
 
-private actor AuthenticationExecSession: SSHMultiplexedSessionProtocol {
+private actor AuthenticationMultiplexedSession: SSHMultiplexedSessionProtocol {
     private let backend: AuthenticationConnectionBackend
 
     init(backend: AuthenticationConnectionBackend) { self.backend = backend }

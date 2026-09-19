@@ -677,10 +677,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private var shellIntegration: RemoteShellIntegrationBootstrap?
     private var commandEventFilter: RemoteCommandEventFilter?
     private var didReportExit = false
-    private var sftpChannels: [UUID: OpaquePointer] = [:]
-    private var sftpOpening = false
-    private var sftpOpenWaiters: [CheckedContinuation<Void, Never>] = []
-    private let sharedSFTPIdentity = UUID()
+    private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
 
     public init(
         output: @escaping SSHSessionActor.OutputHandler,
@@ -693,6 +690,24 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         self.exit = exit
         self.shellIntegrationHandler = shellIntegrationHandler
         self.logger = logger
+        sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
+            queue: queue,
+            context: { [weak self] in
+                guard let self, let session = self.session,
+                    let bufferedTransport = self.bufferedTransport,
+                    self.socket >= 0
+                else { return nil }
+                return .init(
+                    session: session, transport: bufferedTransport,
+                    socket: self.socket)
+            },
+            updateEvents: { [weak self] session, transport in
+                self?.updateSharedTransportEvents(session: session, transport: transport)
+            },
+            didCloseLastChannel: { [weak self] in
+                guard let self, self.channel == nil else { return }
+                self.cleanup()
+            })
     }
 
     /// Opens a transport, handshakes, validates the host key, and authenticates —
@@ -1367,7 +1382,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             _ = libssh2_channel_free(channel)
             self.channel = nil
         }
-        if sftpChannels.isEmpty { cleanup() }
+        if sftpChannelOwner.isEmptyOnQueue { cleanup() }
     }
 
     private func cleanup() {
@@ -1386,8 +1401,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             _ = libssh2_channel_free(channel)
             self.channel = nil
         }
-        for sftp in sftpChannels.values { _ = libssh2_sftp_shutdown(sftp) }
-        sftpChannels.removeAll()
+        sftpChannelOwner.closeAllOnQueue()
         if let session {
             if let bufferedTransport {
                 bufferedTransport.dispose(session: session)
@@ -1536,137 +1550,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
 
 nonisolated extension SSHSessionWorker {
     fileprivate func openSFTPChannel() async throws -> any SFTPClientProtocol {
-        let driver = SSHSharedSFTPDriver(
-            identity: sharedSFTPIdentity,
-            open: { [weak self] in
-                guard let self else { throw SFTPError.notConnected }
-                return try await self.openRawSFTPChannel()
-            },
-            close: { [weak self] id in await self?.closeSFTPChannel(id) },
-            perform: { [weak self] id, operation in
-                guard let self else { throw SFTPError.notConnected }
-                return try await self.performSharedSFTP(id, operation)
-            })
-        return try await SSHSharedSFTPClient.open(using: driver)
-    }
-
-    private func openRawSFTPChannel() async throws -> UUID {
-        await reserveSFTPOpen()
-        defer { releaseSFTPOpen() }
-        let id = UUID()
-        while true {
-            try Task.checkCancellation()
-            let attempt: SSHSharedSFTPAttempt<Void> = try await queue.perform { [self] in
-                guard let session, let bufferedTransport else { throw SFTPError.notConnected }
-                let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-                bufferedTransport.beginPass(deadline: deadline)
-                try bufferedTransport.flush(socket: socket)
-                if bufferedTransport.isBackpressured { return .again }
-                guard let sftp = libssh2_sftp_init(session) else {
-                    if libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN { return .again }
-                    throw Self.sessionError(session, prefix: "Unable to start SFTP")
-                }
-                sftpChannels[id] = sftp
-                try bufferedTransport.flush(socket: socket)
-                updateSharedTransportEvents(session: session, transport: bufferedTransport)
-                return .value(())
-            }
-            if case .value = attempt {
-                do {
-                    try Task.checkCancellation()
-                    return id
-                } catch {
-                    await closeSFTPChannel(id)
-                    throw error
-                }
-            }
-            try await Task.sleep(for: .milliseconds(2))
-        }
-    }
-
-    private func performSharedSFTP(
-        _ id: UUID, _ operation: @escaping SSHSharedSFTPDriver.RawOperation
-    ) async throws -> SSHSharedSFTPValue {
-        try await performSFTP(id) { session, sftp in
-            switch try operation(session, sftp) {
-            case .value(let value): .value(value)
-            case .again: .again
-            }
-        }
-    }
-
-    private func reserveSFTPOpen() async {
-        await withCheckedContinuation { continuation in
-            queue.async { [self] in
-                if sftpOpening {
-                    sftpOpenWaiters.append(continuation)
-                } else {
-                    sftpOpening = true
-                    continuation.resume()
-                }
-            }
-        }
-    }
-
-    private func releaseSFTPOpen() {
-        queue.async { [self] in
-            if sftpOpenWaiters.isEmpty {
-                sftpOpening = false
-            } else {
-                sftpOpenWaiters.removeFirst().resume()
-            }
-        }
-    }
-
-    fileprivate func closeSFTPChannel(_ id: UUID) async {
-        while true {
-            let attempt: SSHSharedSFTPAttempt<Void> =
-                (try? await queue.perform { [self] in
-                    guard let sftp = sftpChannels[id] else { return .value(()) }
-                    guard let session, let bufferedTransport else {
-                        sftpChannels[id] = nil
-                        return .value(())
-                    }
-                    let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-                    bufferedTransport.beginPass(deadline: deadline)
-                    try bufferedTransport.flush(socket: socket)
-                    let result = libssh2_sftp_shutdown(sftp)
-                    if result == LIBSSH2_ERROR_EAGAIN { return .again }
-                    sftpChannels[id] = nil
-                    try bufferedTransport.flush(socket: socket)
-                    updateSharedTransportEvents(session: session, transport: bufferedTransport)
-                    if channel == nil && sftpChannels.isEmpty { cleanup() }
-                    return .value(())
-                }) ?? .value(())
-            if case .value = attempt { return }
-            try? await Task.sleep(for: .milliseconds(2))
-        }
-    }
-
-    private func performSFTP<Value: Sendable>(
-        _ id: UUID,
-        _ operation: @escaping @Sendable (OpaquePointer, OpaquePointer) throws -> SSHSharedSFTPAttempt<Value>
-    ) async throws -> Value {
-        while true {
-            try Task.checkCancellation()
-            let attempt = try await queue.perform { [self] in
-                guard let session, let sftp = sftpChannels[id], let bufferedTransport else {
-                    throw SFTPError.notConnected
-                }
-                let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-                bufferedTransport.beginPass(deadline: deadline)
-                try bufferedTransport.flush(socket: socket)
-                if bufferedTransport.isBackpressured { return SSHSharedSFTPAttempt<Value>.again }
-                let result = try operation(session, sftp)
-                try bufferedTransport.flush(socket: socket)
-                updateSharedTransportEvents(session: session, transport: bufferedTransport)
-                return result
-            }
-            switch attempt {
-            case .value(let value): return value
-            case .again: try await Task.sleep(for: .milliseconds(2))
-            }
-        }
+        try await sftpChannelOwner.openClient()
     }
 
     private func updateSharedTransportEvents(session: OpaquePointer, transport: SSHBufferedTransport) {

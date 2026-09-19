@@ -208,3 +208,19 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
   Host retirement, route changes and fatal primary failures close the shared lifetime atomically, without replaying operations.
 - **Verification:** focused pool/authentication/copy tests and macOS build passed during implementation; final cross-platform,
   localization and format status is recorded in the task handoff.
+
+### 2026-09-20 — one SFTP Channel implementation (complete)
+
+- **Evidence:** the standalone `SFTPWorker` and multiplexed `SSHSharedSFTPClient` separately implemented directory, atomic write,
+  resume, edit, streaming and copy semantics, while the Agent and terminal workers duplicated SFTP Channel ownership and EAGAIN
+  loops. The new type name also described reuse (`Shared`) rather than responsibility.
+- **Action:** keep `SFTPClient` as the public connection facade and `SSHMultiplexedSession` owner, move all file operations to
+  `SFTPChannel`, and share `SSHMultiplexedSFTPChannelOwner` across standalone, Agent and terminal transports. Rename
+  Agent pool APIs from exec-only terms to `session`, `connection` and `sftpClient`.
+- **Result:** removed the second SFTP operation engine and both feature-local Channel owners. One implementation now preserves
+  atomic rename, partial-file verification, edit permissions/version capture, streamed download validation and same-transport copy
+  for every entry point. Tracked production plus the two new files changed +1,523/−2,695 lines (net −1,172).
+- **Verification:** macOS and iOS builds, 87 focused pool/auth/edit/resume/rename/copy tests, 14 opt-in loopback SSH/SFTP wire
+  tests and all 363 Framework tests passed. The 1,465-test TFM run retained two unrelated concurrent timing failures in
+  `AgentRuntimeTests`/`MCPUploadTests`; both passed together on immediate focused rerun. Changed-file strict formatting and Chinese
+  localization checks passed; recursive formatting retains the pre-existing `LoggingFilesSettings.swift:110` finding.

@@ -698,11 +698,11 @@ public actor AgentSSHConfigurationSession {
 
 nonisolated public struct AgentSSHConnection: Sendable {
     public var authentication: AgentSSHConfigurationSession
-    public var client: any SSHMultiplexedSessionProtocol
+    public var session: any SSHMultiplexedSessionProtocol
 
-    public init(authentication: AgentSSHConfigurationSession, client: any SSHMultiplexedSessionProtocol) {
+    public init(authentication: AgentSSHConfigurationSession, session: any SSHMultiplexedSessionProtocol) {
         self.authentication = authentication
-        self.client = client
+        self.session = session
     }
 }
 
@@ -722,7 +722,7 @@ public actor AgentSSHAuthenticationRegistry {
 
     public init(resolver: AgentHostResolver) { self.resolver = resolver }
 
-    public func exec(
+    public func session(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
         interaction: AgentSSHInteraction, pool: AgentConnectionPool
     ) async throws -> any SSHMultiplexedSessionProtocol {
@@ -735,18 +735,18 @@ public actor AgentSSHAuthenticationRegistry {
         }
     }
 
-    public func execConnection(
+    public func connection(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
         interaction: AgentSSHInteraction, pool: AgentConnectionPool
     ) async throws -> AgentSSHConnection {
         try await withSession(
             hostID: hostID, invocationID: invocationID, interaction: interaction
         ) { authentication in
-            let client = try await self.openSession(
+            let session = try await self.openSession(
                 hostID: hostID, authentication: authentication, pool: pool
             )
             return AgentSSHConnection(
-                authentication: authentication, client: client
+                authentication: authentication, session: session
             )
         }
     }
@@ -759,13 +759,13 @@ public actor AgentSSHAuthenticationRegistry {
             hostID: hostID, authentication: authentication, pool: pool
         ) { attempt in
             if let attempt {
-                return try await pool.exec(hostID: hostID) { _ in attempt.request }
+                return try await pool.session(hostID: hostID) { _ in attempt.request }
             }
-            return try await pool.exec(hostID: hostID)
+            return try await pool.session(hostID: hostID)
         }
     }
 
-    public func sftp(
+    public func sftpClient(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
         interaction: AgentSSHInteraction, pool: AgentConnectionPool
     ) async throws -> any SFTPClientProtocol {
@@ -776,9 +776,9 @@ public actor AgentSSHAuthenticationRegistry {
                 hostID: hostID, authentication: authentication, pool: pool
             ) { attempt in
                 if let attempt {
-                    return try await pool.sftp(hostID: hostID) { _ in attempt.request }
+                    return try await pool.sftpClient(hostID: hostID) { _ in attempt.request }
                 }
-                return try await pool.sftp(hostID: hostID)
+                return try await pool.sftpClient(hostID: hostID)
             }
         }
     }
@@ -1030,7 +1030,7 @@ public actor AgentConnectionPool {
             _ = await disconnectSFTPState(hostID: hostID)
         }
 
-        let primary = try await sftp(hostID: hostID, configuration: override)
+        let primary = try await sftpClient(hostID: hostID, configuration: override)
         let committedFingerprint = try await routeFingerprint(hostID)
         if sftpStates[hostID] == nil {
             let record = SFTPRecord(id: UUID(), client: primary, busy: false, lastUsedAt: .now)
@@ -1200,15 +1200,15 @@ public actor AgentConnectionPool {
         onOutput: SSHExecOutputHandler? = nil
     ) async throws -> SSHExecResult {
         do {
-            let session = try await exec(hostID: hostID, configuration: override)
+            let session = try await session(hostID: hostID, configuration: override)
             return try await withExecLease(hostID: hostID, session: session) {
                 try await session.execute(
                     command, workingDirectory: workingDirectory, stdin: stdin,
                     timeout: timeout, outputLimit: outputLimit, onOutput: onOutput)
             }
-        } catch SSHExecSessionError.transportUnavailable {
+        } catch SSHCommandExecutionError.transportUnavailable {
             await disconnect(hostID: hostID)
-            let session = try await exec(hostID: hostID, configuration: override)
+            let session = try await session(hostID: hostID, configuration: override)
             return try await withExecLease(hostID: hostID, session: session) {
                 try await session.execute(
                     command, workingDirectory: workingDirectory, stdin: stdin,
@@ -1222,7 +1222,7 @@ public actor AgentConnectionPool {
         operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
         guard let pooled = entries[hostID]?.session, pooled === session else {
-            throw SSHExecSessionError.transportUnavailable(TermindSSHError.disconnected)
+            throw SSHCommandExecutionError.transportUnavailable(TermindSSHError.disconnected)
         }
         activeExecLeases[hostID, default: 0] += 1
         defer {
@@ -1236,23 +1236,25 @@ public actor AgentConnectionPool {
         return try await operation()
     }
 
-    public func exec(
+    public func session(
         hostID: UUID, configuration override: RequestResolving? = nil
     ) async throws -> any SSHMultiplexedSessionProtocol {
         try await resolve(hostID: hostID, configuration: override)
     }
 
-    public func sftp(
+    public func sftpClient(
         hostID: UUID, configuration override: RequestResolving? = nil
     ) async throws -> any SFTPClientProtocol {
         let fingerprint = try await routeFingerprint(hostID)
         if let state = sftpStates[hostID], state.fingerprint == fingerprint,
             let primary = state.records[state.primaryID]
         {
+            sftpStates[hostID]?.records[state.primaryID]?.lastUsedAt = .now
+            entries[hostID]?.lastUsedAt = .now
             return primary.client
         }
         if sftpStates[hostID] != nil { await disconnect(hostID: hostID) }
-        let session = try await exec(hostID: hostID, configuration: override)
+        let session = try await session(hostID: hostID, configuration: override)
         let opening: SFTPPrimaryOpen
         let ownsOpening: Bool
         if let existing = sftpPrimaryOpens[hostID], existing.fingerprint == fingerprint,
@@ -1286,7 +1288,7 @@ public actor AgentConnectionPool {
             guard committedFingerprint == fingerprint, entries[hostID]?.session === session else {
                 await client.disconnect()
                 await disconnect(hostID: hostID)
-                return try await sftp(hostID: hostID, configuration: override)
+                return try await sftpClient(hostID: hostID, configuration: override)
             }
             let record = SFTPRecord(id: UUID(), client: client, busy: false, lastUsedAt: .now)
             sftpStates[hostID] = SFTPState(
