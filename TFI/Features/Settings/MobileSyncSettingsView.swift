@@ -44,7 +44,7 @@ struct MobileSyncSettingsView: View {
                         app.settingsSync?.status, retry: { app.settingsSync?.retry() },
                         merge: { app.settingsSync?.confirmAccountSwitchMerge() })
                 }
-                Text("Terminal, SFTP, and AI preferences.").font(.caption).foregroundStyle(.secondary)
+                Text("Terminal, Connections, and AI preferences.").font(.caption).foregroundStyle(.secondary)
             }.disabled(!enabled || !app.pro.canUse(.vaultSync))
         }.navigationTitle("Sync")
     }

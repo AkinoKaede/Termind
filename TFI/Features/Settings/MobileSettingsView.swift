@@ -23,9 +23,9 @@ struct MobileSettingsView: View {
                     Label("Terminal", systemImage: "terminal")
                 }
                 NavigationLink {
-                    MobileSFTPSettingsView(model: app.sftpSettings)
+                    MobileConnectionSettingsView(ssh: app.sshSettings, sftp: app.sftpSettings)
                 } label: {
-                    Label("SFTP", systemImage: "arrow.up.arrow.down")
+                    Label("Connections", systemImage: "network")
                 }
                 NavigationLink {
                     MobileAISettingsView(app: app)

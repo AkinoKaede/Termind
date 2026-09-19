@@ -66,10 +66,11 @@ public actor SSHMultiplexedSession: SSHMultiplexedSessionProtocol {
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        logger: Logger = ApplicationLogger.disabled("termind.ssh-multiplexed-session")
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-multiplexed-session"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         self.keyboardInteractive = keyboardInteractive
-        worker = SSHMultiplexedSessionWorker(logger: logger)
+        worker = SSHMultiplexedSessionWorker(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
     }
 
     public func connect(using configuration: SSHConnectionConfiguration) async throws {

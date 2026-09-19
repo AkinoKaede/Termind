@@ -36,6 +36,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         let outputLimit: Int
         let onOutput: SSHExecOutputHandler?
         let continuation: CheckedContinuation<SSHExecResult, any Error>
+        let channelLease: SSHSessionChannelLease
         let input = SSHByteQueue(chunkSize: 32_700)
         var phase = Phase.opening
         var channel: OpaquePointer?
@@ -53,7 +54,8 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         init(
             command: String, workingDirectory: String?, stdin: Data?, timeout: TimeInterval,
             outputLimit: Int, cancellation: TransferCancellationToken,
-            onOutput: SSHExecOutputHandler?, continuation: CheckedContinuation<SSHExecResult, any Error>
+            onOutput: SSHExecOutputHandler?, channelLease: SSHSessionChannelLease,
+            continuation: CheckedContinuation<SSHExecResult, any Error>
         ) {
             let effective: String
             if let cwd = workingDirectory?.trimmingCharacters(in: .whitespacesAndNewlines), !cwd.isEmpty {
@@ -66,6 +68,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             deadline = .now.advanced(by: .seconds(max(1, min(timeout, 15 * 60))))
             self.outputLimit = outputLimit
             self.onOutput = onOutput
+            self.channelLease = channelLease
             self.continuation = continuation
             var input = stdin ?? Data()
             if !input.isEmpty, input.last != 0x0A { input.append(0x0A) }
@@ -80,9 +83,11 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
 
     private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.multiplexed-session")
     private let logger: Logger
+    private let maxSessionsPolicy: SSHMaxSessionsPolicy
     private var routeTransport: SSHRoutedSocket?
     private var session: OpaquePointer?
     private var bufferedTransport: SSHBufferedTransport?
+    private var channelBudget: SSHSessionChannelBudget?
     private var socketEvents: SSHSocketEvents?
     private var timer: (any DispatchSourceTimer)?
     private var hostID: UUID?
@@ -100,18 +105,20 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
     private var connectionFailure: (@Sendable (String) -> Void)?
     private var didReportConnectionFailure = false
 
-    init(logger: Logger) {
+    init(logger: Logger, maxSessionsPolicy: SSHMaxSessionsPolicy) {
         self.logger = logger
+        self.maxSessionsPolicy = maxSessionsPolicy
         sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
             queue: queue,
             context: { [weak self] in
                 guard let self, let session = self.session,
                     let bufferedTransport = self.bufferedTransport,
-                    let routeTransport = self.routeTransport
+                    let routeTransport = self.routeTransport,
+                    let channelBudget = self.channelBudget
                 else { return nil }
                 return .init(
                     session: session, transport: bufferedTransport,
-                    socket: routeTransport.socket)
+                    socket: routeTransport.socket, channelBudget: channelBudget)
             },
             updateEvents: { [weak self] session, transport in
                 self?.updateSharedTransportEvents(session: session, transport: transport)
@@ -139,12 +146,14 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         do {
             let opened = try await SSHSessionWorker.openAuthenticatedSession(
                 using: request, timeout: 20, progress: progress, logger: logger)
+            let channelBudget = maxSessionsPolicy.makeBudget()
             try await queue.perform {
                 try Task.checkCancellation()
                 self.routeTransport = opened.transport
                 self.session = opened.session
                 self.hostID = hostID
                 self.bufferedTransport = SSHBufferedTransport(session: opened.session)
+                self.channelBudget = channelBudget
                 self.connectionFailure = connectionFailure
                 self.didReportConnectionFailure = false
                 libssh2_session_set_blocking(opened.session, 0)
@@ -187,10 +196,15 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         }
         logger.debug("ssh.exec.started", metadata: metadata)
         do {
+            guard let channelBudget = try await queue.perform({ self.channelBudget }) else {
+                throw SSHCommandExecutionError.transportUnavailable(TermindSSHError.disconnected)
+            }
+            let channelLease = try await channelBudget.acquire(cancellation: cancellation)
             let result = try await withCheckedThrowingContinuation {
                 (continuation: CheckedContinuation<SSHExecResult, any Error>) in
                 queue.async { [self] in
-                    guard session != nil else {
+                    guard session != nil, self.channelBudget === channelBudget else {
+                        channelLease.release()
                         continuation.resume(
                             throwing: SSHCommandExecutionError.transportUnavailable(TermindSSHError.disconnected))
                         return
@@ -198,7 +212,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
                     let context = Command(
                         command: command, workingDirectory: workingDirectory, stdin: stdin,
                         timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
-                        onOutput: onOutput, continuation: continuation)
+                        onOutput: onOutput, channelLease: channelLease, continuation: continuation)
                     commands[context.id] = context
                     pendingOpens.insert(context.id)
                     schedulePump()
@@ -585,6 +599,8 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         pendingOpens = SSHReadyQueue()
         ready = SSHReadyQueue()
         sftpChannelOwner.closeAllOnQueue()
+        channelBudget?.close()
+        channelBudget = nil
         let transport = routeTransport
         routeTransport = nil
         if let session {

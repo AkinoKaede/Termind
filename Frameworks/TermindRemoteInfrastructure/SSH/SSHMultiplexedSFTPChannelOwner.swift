@@ -11,6 +11,12 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
         var session: OpaquePointer
         var transport: SSHBufferedTransport
         var socket: Int32
+        var channelBudget: SSHSessionChannelBudget
+    }
+
+    private struct OwnedChannel {
+        var pointer: OpaquePointer
+        var lease: SSHSessionChannelLease
     }
 
     typealias ContextProvider = @Sendable () -> Context?
@@ -21,7 +27,7 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
     private let updateEvents: EventUpdater
     private let didCloseLastChannel: @Sendable () -> Void
     private let identity = UUID()
-    private var channels: [UUID: OpaquePointer] = [:]
+    private var channels: [UUID: OwnedChannel] = [:]
     private var opening = false
     private var openWaiters: [CheckedContinuation<Void, Never>] = []
 
@@ -54,7 +60,10 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
 
     /// Called by the enclosing SSH owner while already executing on `queue`.
     func closeAllOnQueue() {
-        for channel in channels.values { _ = libssh2_sftp_shutdown(channel) }
+        for channel in channels.values {
+            _ = libssh2_sftp_shutdown(channel.pointer)
+            channel.lease.release()
+        }
         channels.removeAll()
     }
 
@@ -63,6 +72,13 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
     private func openChannel() async throws -> UUID {
         await reserveOpen()
         defer { releaseOpen() }
+        let budget = try await queue.perform { [self] in
+            guard let context = context() else { throw SFTPError.notConnected }
+            return context.channelBudget
+        }
+        let lease = try await budget.acquire()
+        var retainedLease = false
+        defer { if !retainedLease { lease.release() } }
         let id = UUID()
         while true {
             try Task.checkCancellation()
@@ -80,12 +96,19 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
                     throw SSHSessionWorker.sessionError(
                         context.session, prefix: "Unable to start SFTP")
                 }
-                channels[id] = sftp
-                try context.transport.flush(socket: context.socket)
+                channels[id] = OwnedChannel(pointer: sftp, lease: lease)
+                do {
+                    try context.transport.flush(socket: context.socket)
+                } catch {
+                    channels[id] = nil
+                    _ = libssh2_sftp_shutdown(sftp)
+                    throw error
+                }
                 updateEvents(context.session, context.transport)
                 return .value(())
             }
             if case .value = attempt {
+                retainedLease = true
                 do {
                     try Task.checkCancellation()
                     return id
@@ -125,19 +148,28 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
         while true {
             let attempt: SFTPChannelAttempt<Void> =
                 (try? await queue.perform { [self] in
-                    guard let sftp = channels[id] else { return .value(()) }
+                    guard let owned = channels[id] else { return .value(()) }
                     guard let context = context() else {
                         channels[id] = nil
+                        owned.lease.release()
                         if channels.isEmpty { didCloseLastChannel() }
                         return .value(())
                     }
                     context.transport.beginPass(
                         deadline: DispatchTime.now().uptimeNanoseconds
                             + SSHForwardingTuning.current.sliceNanoseconds)
-                    try context.transport.flush(socket: context.socket)
-                    let result = libssh2_sftp_shutdown(sftp)
+                    do {
+                        try context.transport.flush(socket: context.socket)
+                    } catch {
+                        channels[id] = nil
+                        owned.lease.release()
+                        if channels.isEmpty { didCloseLastChannel() }
+                        return .value(())
+                    }
+                    let result = libssh2_sftp_shutdown(owned.pointer)
                     if result == LIBSSH2_ERROR_EAGAIN { return .again }
                     channels[id] = nil
+                    owned.lease.release()
                     try context.transport.flush(socket: context.socket)
                     updateEvents(context.session, context.transport)
                     if channels.isEmpty { didCloseLastChannel() }
@@ -154,7 +186,7 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
         while true {
             try Task.checkCancellation()
             let attempt = try await queue.perform { [self] in
-                guard let sftp = channels[id], let context = context() else {
+                guard let owned = channels[id], let context = context() else {
                     throw SFTPError.notConnected
                 }
                 context.transport.beginPass(
@@ -162,7 +194,7 @@ nonisolated final class SSHMultiplexedSFTPChannelOwner: @unchecked Sendable {
                         + SSHForwardingTuning.current.sliceNanoseconds)
                 try context.transport.flush(socket: context.socket)
                 if context.transport.isBackpressured { return SFTPChannelAnyAttempt.again }
-                let result = try operation(context.session, sftp)
+                let result = try operation(context.session, owned.pointer)
                 try context.transport.flush(socket: context.socket)
                 updateEvents(context.session, context.transport)
                 return result

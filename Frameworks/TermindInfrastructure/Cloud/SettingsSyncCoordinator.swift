@@ -13,7 +13,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     // Keep the initial AI-sync identifiers so existing replicas remain reachable.
     public nonisolated static let zoneName = "TermindAIConfigurationV1"
     public nonisolated static let recordType = "AIConfigurationItem"
-    // Older clients filter by record type before decoding, so they can ignore SFTP safely.
+    // Older clients filter by record type before decoding, so they can ignore newer preferences safely.
+    public nonisolated static let sshRecordType = "SSHPreferencesItem"
     public nonisolated static let sftpRecordType = "SFTPPreferencesItem"
     public nonisolated static let subscriptionID = "termind-ai-configuration-v1-changes"
     public nonisolated static let inlinePayloadLimit = CloudSyncRecordCoding.inlinePayloadLimit
@@ -333,11 +334,15 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     }
 
     nonisolated static func acceptsRecordType(_ type: String) -> Bool {
-        type == recordType || type == sftpRecordType
+        type == recordType || type == sshRecordType || type == sftpRecordType
     }
 
     private nonisolated static func recordType(for kind: SettingsRecordKind) -> String {
-        kind == .sftp ? sftpRecordType : recordType
+        switch kind {
+        case .ssh: sshRecordType
+        case .sftp: sftpRecordType
+        default: recordType
+        }
     }
 
     public nonisolated static func makeRecord(

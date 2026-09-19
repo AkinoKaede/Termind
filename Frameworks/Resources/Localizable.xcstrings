@@ -5701,6 +5701,23 @@
         }
       }
     },
+    "Connections" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連線"
+          }
+        }
+      }
+    },
     "Connections Preferred" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13754,6 +13771,23 @@
         }
       }
     },
+    "Limits open shell, execute, and SFTP sessions on each SSH connection. Port forwarding does not use this limit. Changes apply to new sessions immediately; active sessions continue." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "限制每条SSH连接上打开的Shell、执行和SFTP会话数。端口转发不受此限制。更改会立即应用于新会话，活动会话将继续运行。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "限制每條SSH連線上開啟的Shell、執行和SFTP工作階段數。連接埠轉送不受此限制。變更會立即套用於新工作階段，作用中的工作階段將繼續執行。"
+          }
+        }
+      }
+    },
     "Limits" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14111,6 +14145,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "匹配fork炸彈模式。"
+          }
+        }
+      }
+    },
+    "Max Sessions" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大会话数"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大工作階段數"
           }
         }
       }
@@ -24242,18 +24293,18 @@
         }
       }
     },
-    "Terminal, SFTP, and AI preferences." : {
+    "Terminal, Connections, and AI preferences." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "终端、SFTP和AI偏好设置。"
+            "value" : "终端、连接和AI偏好设置。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "終端、SFTP和AI偏好設定。"
+            "value" : "終端、連線和AI偏好設定。"
           }
         }
       }

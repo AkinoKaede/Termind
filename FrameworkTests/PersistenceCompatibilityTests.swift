@@ -66,7 +66,9 @@ struct PersistenceCompatibilityTests {
         #expect(try second.mainContext.fetchCount(FetchDescriptor<PersistentHostGroup>()) == 0)
         #expect(Set(first.schema.entities.map(\.name)) == Set(TermindPersistence.schema.entities.map(\.name)))
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV21.versionIdentifier })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV23.versionIdentifier })
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
+        #expect(first.schema.entities.contains { $0.name == "PersistentSSHPreferences" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSFTPPreferences" })
     }
 

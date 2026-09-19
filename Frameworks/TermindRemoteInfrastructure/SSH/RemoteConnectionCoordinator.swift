@@ -8,20 +8,29 @@ import TermindDomain
 /// infrastructure clients in views.
 public nonisolated final class RemoteConnectionCoordinator: Sendable {
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
+    private let maxSessionsPolicy: SSHMaxSessionsPolicy
     let logger: Logger
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        logger: Logger = ApplicationLogger.disabled("termind.remote-connection")
+        logger: Logger = ApplicationLogger.disabled("termind.remote-connection"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         self.keyboardInteractive = keyboardInteractive
         self.logger = logger
+        self.maxSessionsPolicy = maxSessionsPolicy
+    }
+
+    public func updateSSHPreferences(_ preferences: SSHPreferences) {
+        maxSessionsPolicy.update(preferences)
     }
 
     public func withKeyboardInteractive(_ handler: @escaping SSHKeyboardInteractiveHandler)
         -> RemoteConnectionCoordinator
     {
-        RemoteConnectionCoordinator(keyboardInteractive: handler, logger: logger)
+        RemoteConnectionCoordinator(
+            keyboardInteractive: handler, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy)
     }
     public func makeSSHSession(
         output: @escaping SSHSessionActor.OutputHandler,
@@ -30,16 +39,20 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
     ) -> SSHSessionActor {
         SSHSessionActor(
             output: output, exit: exit, shellIntegration: shellIntegration, keyboardInteractive: keyboardInteractive,
-            logger: logger
+            logger: logger, maxSessionsPolicy: maxSessionsPolicy
         )
     }
 
     public func makeSFTPClient() -> any SFTPClientProtocol {
-        SFTPClient(keyboardInteractive: keyboardInteractive, logger: logger)
+        SFTPClient(
+            keyboardInteractive: keyboardInteractive, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy)
     }
 
     public func makeMultiplexedSession() -> any SSHMultiplexedSessionProtocol {
-        SSHMultiplexedSession(keyboardInteractive: keyboardInteractive, logger: logger)
+        SSHMultiplexedSession(
+            keyboardInteractive: keyboardInteractive, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy)
     }
 
     /// Mirrors `connectSFTP`, including its guarantee that a session which fails
@@ -101,7 +114,7 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         try await SSHSessionActor.installAuthorizedKey(
             publicKey, named: keyName,
             using: SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive),
-            logger: logger
+            logger: logger, maxSessionsPolicy: maxSessionsPolicy
         )
     }
 }

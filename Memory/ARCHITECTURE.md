@@ -134,6 +134,10 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
   bounded fair passes replace bulk polling; Metrics and user SSH use `SSHSingleChannelAdapter` without a topology scheduler.
   Preserve immutable write buffers across EAGAIN, drain half-close, bound queues/DNS/connect deadlines and retain
   session-wide pending operations. Slice deadlines include callbacks/inner loops; protocol progress wakes peers.
+- Every physical SSH transport has one FIFO Max Sessions budget shared by its shell, exec and SFTP subsystem Channels.
+  The synced Connections preference defaults to ten and may change from one to 100; lowering it never closes active Channels,
+  and new work waits until capacity is available. Direct/forwarded TCP Channels, remote listeners and jump-host bridges are
+  forwarding rather than sessions and never consume this budget.
 - Public send/receive adapters accept complete encrypted packets and apply bounded backpressure outside library calls,
   avoiding pinned libssh2's lost forwarded-tcpip confirmation on EAGAIN. Teardown discards writes/returns EOF; descriptors
   close after cancellation handlers. See [performance](PORT_FORWARDING_PERFORMANCE.md) for budgets, rationale and measurement

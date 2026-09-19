@@ -285,16 +285,19 @@ public nonisolated struct SFTPTemporaryFileCleanupError: LocalizedError, Sendabl
 public actor SFTPClient: SFTPClientProtocol {
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
     private let logger: Logger
+    private let maxSessionsPolicy: SSHMaxSessionsPolicy
     private var generation: UInt64 = 0
     private var session: SSHMultiplexedSession?
     private var channel: (any SFTPClientProtocol)?
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        logger: Logger = ApplicationLogger.disabled("termind.sftp")
+        logger: Logger = ApplicationLogger.disabled("termind.sftp"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         self.keyboardInteractive = keyboardInteractive
         self.logger = logger
+        self.maxSessionsPolicy = maxSessionsPolicy
     }
 
     deinit {
@@ -341,7 +344,7 @@ public actor SFTPClient: SFTPClientProtocol {
         await previousChannel?.disconnect()
         await previousSession?.disconnect()
 
-        let replacement = SSHMultiplexedSession(logger: logger)
+        let replacement = SSHMultiplexedSession(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
         do {
             try await replacement.connect(
                 using: request.withKeyboardInteractiveFallback(keyboardInteractive),

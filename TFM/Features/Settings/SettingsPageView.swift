@@ -8,7 +8,7 @@ import TermindPresentation
 import struct TermindDomain.Host
 
 nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable {
-    case pro, app, terminal, sftp, ai, sync
+    case pro, app, terminal, connections, ai, sync
     #if DEBUG
         case developer
     #endif
@@ -20,7 +20,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
         case .pro: "Termind Pro"
         case .app: "App"
         case .terminal: "Terminal"
-        case .sftp: "SFTP"
+        case .connections: "Connections"
         case .ai: "AI"
         case .sync: "Sync"
         #if DEBUG
@@ -34,7 +34,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
         case .pro: AppLocalization.string("Termind Pro", locale: locale)
         case .app: AppLocalization.string("App", locale: locale)
         case .terminal: AppLocalization.string("Terminal", locale: locale)
-        case .sftp: AppLocalization.string("SFTP", locale: locale)
+        case .connections: AppLocalization.string("Connections", locale: locale)
         case .ai: AppLocalization.string("AI", locale: locale)
         case .sync: AppLocalization.string("Sync", locale: locale)
         #if DEBUG
@@ -48,7 +48,7 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
         case .pro: "sparkles.rectangle.stack"
         case .app: "app.badge"
         case .terminal: "terminal"
-        case .sftp: "arrow.up.arrow.down"
+        case .connections: MenuSymbol.connect
         case .ai: "brain"
         case .sync: "icloud"
         #if DEBUG
@@ -167,8 +167,8 @@ struct SettingsPageView: View {
                     editConfiguration: { navigate(to: .terminalConfiguration($0)) }
                 )
             }
-        case .sftp:
-            SettingsFormPage { SFTPSettings() }
+        case .connections:
+            SettingsFormPage { ConnectionSettings() }
         case .ai:
             SettingsFormPage {
                 ModelProviderSettings { id, isNew in
@@ -657,10 +657,11 @@ private struct StartupSettings: View {
     }
 }
 
-private struct SFTPSettings: View {
+private struct ConnectionSettings: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
+        Section("SSH") { SSHSettingsFields(model: app.sshSettings) }
         Section("SFTP") { SFTPSettingsFields(model: app.sftpSettings) }
     }
 }

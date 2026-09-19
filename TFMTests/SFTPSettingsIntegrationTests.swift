@@ -8,6 +8,10 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct SFTPSettingsIntegrationTests {
+    @Test func connectionsCategoryUsesTheConnectSymbol() {
+        #expect(SettingsCategory.connections.symbol == MenuSymbol.connect)
+    }
+
     @Test func localAndRemoteChangesReachTheQueueWithoutOpeningSettings() {
         let settings = SFTPSettingsModel()
         let app = AppModel(hosts: HostLibraryModel(), sftpSettings: settings)
@@ -31,7 +35,7 @@ struct SFTPSettingsIntegrationTests {
     func sftpSettingsRenderTheDefaultsAndMaximumLimits(language: String) async throws {
         let app = AppModel(hosts: HostLibraryModel())
         let model = WindowModel(workspaces: [])
-        model.openSettings(route: .category(.sftp))
+        model.openSettings(route: .category(.connections))
         defer { app.shutdownForTermination() }
         let view = SettingsPageView().environment(app).environment(model)
             .environment(\.locale, Locale(identifier: language))

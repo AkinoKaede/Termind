@@ -2,13 +2,15 @@ import SwiftUI
 import TermindApplication
 import TermindPresentation
 
-struct MobileSFTPSettingsView: View {
-    let model: SFTPSettingsModel
+struct MobileConnectionSettingsView: View {
+    let ssh: SSHSettingsModel
+    let sftp: SFTPSettingsModel
 
     var body: some View {
         Form {
-            Section("SFTP") { SFTPSettingsFields(model: model) }
+            Section("SSH") { SSHSettingsFields(model: ssh) }
+            Section("SFTP") { SFTPSettingsFields(model: sftp) }
         }
-        .navigationTitle("SFTP")
+        .navigationTitle("Connections")
     }
 }

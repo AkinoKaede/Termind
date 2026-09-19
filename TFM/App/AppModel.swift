@@ -86,6 +86,7 @@ final class AppModel {
     /// rather than more fields on `ai`: that one is about endpoints you spend a
     /// key at, this is a library of documents. See `SkillLibraryModel`.
     let terminalSettings: TerminalSettingsModel
+    let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
     let skills: SkillLibraryModel
     let memory: MemoryModel
@@ -122,6 +123,7 @@ final class AppModel {
         skills: SkillLibraryModel = SkillLibraryModel(),
         memory: MemoryModel = MemoryModel(),
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
+        sshSettings: SSHSettingsModel = SSHSettingsModel(),
         sftpSettings: SFTPSettingsModel = SFTPSettingsModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
@@ -143,6 +145,7 @@ final class AppModel {
         self.externalAuthentication = externalAuthentication
         let connectionCoordinator = dependencies.connectionCoordinator.withKeyboardInteractive(
             externalAuthentication.keyboardInteractive)
+        connectionCoordinator.updateSSHPreferences(sshSettings.preferences)
         self.serverMetrics =
             suppliedMetrics
             ?? ServerMetricsModel(
@@ -196,6 +199,7 @@ final class AppModel {
         self.skills = skills
         self.memory = memory
         self.terminalSettings = terminalSettings
+        self.sshSettings = sshSettings
         self.sftpSettings = sftpSettings
         commandGenerator = CommandGeneratorController(ai: ai)
         conversationTitles = ConversationTitleController(ai: ai)
@@ -272,10 +276,14 @@ final class AppModel {
         sftpSettings.didChange = { [weak sftpTransfers] preferences in
             sftpTransfers?.updatePreferences(preferences)
         }
+        sshSettings.didChange = { preferences in
+            connectionCoordinator.updateSSHPreferences(preferences)
+        }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
+            self?.sshSettings.applyRemoteSnapshot(snapshot.ssh)
             self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)
         }
         metricsSync?.didApplyRemote = { [weak serverMetrics] snapshot, _ in

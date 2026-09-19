@@ -48,6 +48,7 @@ final class MobileAppModel {
     private(set) var workspaces: [MobileWorkspace] = []
     var error: String?
     let terminalSettings: TerminalSettingsModel
+    let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
@@ -146,7 +147,9 @@ final class MobileAppModel {
         try metricsPersistence.prepare()
         let aiSecrets = AISecretStore(context: settingsPersistence.context, keychain: secrets)
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
+        sshSettings = SSHSettingsModel(persistence: settingsPersistence)
         sftpSettings = SFTPSettingsModel(persistence: settingsPersistence)
+        connectionCoordinator.updateSSHPreferences(sshSettings.preferences)
         commandHistory = CommandHistoryModel(
             repository: SwiftDataCommandHistoryRepository(context: ModelContext(container)))
         sftpHistory = SFTPHistoryModel(
@@ -241,9 +244,13 @@ final class MobileAppModel {
         sftpSettings.didChange = { [weak transfers] preferences in
             transfers?.updatePreferences(preferences)
         }
+        sshSettings.didChange = { preferences in
+            connectionCoordinator.updateSSHPreferences(preferences)
+        }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
+            self?.sshSettings.applyRemoteSnapshot(snapshot.ssh)
             self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
         }

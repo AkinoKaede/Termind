@@ -567,11 +567,13 @@ public actor SSHSessionActor {
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
         shellIntegration: @escaping ShellIntegrationHandler = { _ in },
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session")
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         self.keyboardInteractive = keyboardInteractive
         worker = SSHSessionWorker(
-            output: output, exit: exit, shellIntegrationHandler: shellIntegration, logger: logger)
+            output: output, exit: exit, shellIntegrationHandler: shellIntegration, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy)
     }
 
     /// Appends a named public key to a remote account's `authorized_keys`, unless
@@ -579,17 +581,22 @@ public actor SSHSessionActor {
     /// over the channel's stdin, never as shell syntax.
     public static func installAuthorizedKey(
         _ publicKey: String, named keyName: String,
-        using configuration: SSHConnectionConfiguration
+        using configuration: SSHConnectionConfiguration,
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) async throws {
         try await installAuthorizedKey(
-            publicKey, named: keyName, using: SSHConnectionRequest(configuration: configuration))
+            publicKey, named: keyName, using: SSHConnectionRequest(configuration: configuration),
+            maxSessionsPolicy: maxSessionsPolicy)
     }
 
     public static func installAuthorizedKey(
         _ publicKey: String, named keyName: String, using request: SSHConnectionRequest,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install")
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) async throws {
-        try await SSHSessionWorker.installAuthorizedKey(publicKey, named: keyName, using: request, logger: logger)
+        try await SSHSessionWorker.installAuthorizedKey(
+            publicKey, named: keyName, using: request, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy)
     }
 
     public func connect(
@@ -663,6 +670,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private let exit: SSHSessionActor.ExitHandler
     private let shellIntegrationHandler: SSHSessionActor.ShellIntegrationHandler
     private let logger: Logging.Logger
+    private let maxSessionsPolicy: SSHMaxSessionsPolicy
 
     private var socket: Int32 = -1
     private var routeTransport: SSHRoutedSocket?
@@ -671,6 +679,8 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private var hostID: Host.ID?
     private var pumpTimer: (any DispatchSourceTimer)?
     private var bufferedTransport: SSHBufferedTransport?
+    private var channelBudget: SSHSessionChannelBudget?
+    private var terminalChannelLease: SSHSessionChannelLease?
     private var socketEvents: SSHSocketEvents?
     private let pendingWrites = SSHByteQueue(chunkSize: 32_700)
     private var ptyResize = SSHPTYResizeState()
@@ -683,23 +693,25 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         output: @escaping SSHSessionActor.OutputHandler,
         exit: @escaping SSHSessionActor.ExitHandler,
         shellIntegrationHandler: @escaping SSHSessionActor.ShellIntegrationHandler,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session")
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         _ = Self.initialization
         self.output = output
         self.exit = exit
         self.shellIntegrationHandler = shellIntegrationHandler
         self.logger = logger
+        self.maxSessionsPolicy = maxSessionsPolicy
         sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
             queue: queue,
             context: { [weak self] in
                 guard let self, let session = self.session,
                     let bufferedTransport = self.bufferedTransport,
-                    self.socket >= 0
+                    let channelBudget = self.channelBudget, self.socket >= 0
                 else { return nil }
                 return .init(
                     session: session, transport: bufferedTransport,
-                    socket: self.socket)
+                    socket: self.socket, channelBudget: channelBudget)
             },
             updateEvents: { [weak self] session, transport in
                 self?.updateSharedTransportEvents(session: session, transport: transport)
@@ -866,10 +878,11 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     public static func installAuthorizedKey(
         _ publicKey: String, named keyName: String,
         using request: SSHConnectionRequest,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install")
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) async throws {
         let input = try authorizedKeyInstallInput(publicKey: publicKey, keyName: keyName)
-        let session = SSHMultiplexedSession(logger: logger)
+        let session = SSHMultiplexedSession(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
         do {
             try await session.connect(using: request)
             let command =
@@ -927,11 +940,15 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             return generation
         }
         do {
+            let channelBudget = maxSessionsPolicy.makeBudget()
+            let terminalChannelLease = try await channelBudget.acquire()
             let opened = try await Self.openAuthenticatedSession(
                 using: request, timeout: 20, progress: progress, logger: logger
             )
             try await queue.perform { [self] in
                 guard ptyResize.generation == generation, let size = ptyResize.requestedSize else {
+                    terminalChannelLease.release()
+                    channelBudget.close()
                     _ = libssh2_session_free(opened.session)
                     opened.transport.close()
                     throw CancellationError()
@@ -940,6 +957,8 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 socket = opened.transport.socket
                 session = opened.session
                 hostID = request.configuration.hostID
+                self.channelBudget = channelBudget
+                self.terminalChannelLease = terminalChannelLease
                 let created = opened.session
                 guard
                     let opened = libssh2_channel_open_ex(
@@ -1381,6 +1400,8 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             _ = libssh2_channel_close(channel)
             _ = libssh2_channel_free(channel)
             self.channel = nil
+            terminalChannelLease?.release()
+            terminalChannelLease = nil
         }
         if sftpChannelOwner.isEmptyOnQueue { cleanup() }
     }
@@ -1402,6 +1423,10 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             self.channel = nil
         }
         sftpChannelOwner.closeAllOnQueue()
+        terminalChannelLease?.release()
+        terminalChannelLease = nil
+        channelBudget?.close()
+        channelBudget = nil
         if let session {
             if let bufferedTransport {
                 bufferedTransport.dispose(session: session)
