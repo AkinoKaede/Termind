@@ -90,7 +90,7 @@ struct MobileLoggingView: View {
         } header: {
             Text("Logging")
         } footer: {
-            Text("Logging may contain private diagnostic information. Review it before sharing.")
+            Text("Logs may contain private diagnostic information. Review them before sharing.")
         }
     }
 
@@ -98,7 +98,7 @@ struct MobileLoggingView: View {
     private var logsSection: some View {
         Section("Logs") {
             if files.isEmpty {
-                ContentUnavailableView("No Saved Logging", systemImage: "doc.text")
+                ContentUnavailableView("No Saved Logs", systemImage: "doc.text")
             } else {
                 ForEach(files) { file in
                     logRow(file)
@@ -224,7 +224,7 @@ private struct MobileLoggingShareSheet: View {
             Form {
                 Section {
                     Label(
-                        "Logging may contain private diagnostic information. Review where you send or save it.",
+                        "Logs may contain private diagnostic information. Review where you send or save them.",
                         systemImage: "hand.raised.fill"
                     )
                 }

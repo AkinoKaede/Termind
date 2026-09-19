@@ -80,7 +80,7 @@ struct LoggingFilesSettings: View {
         } header: {
             Text("Logging")
         } footer: {
-            Text("Logging may contain private diagnostic information. Review it before sharing.")
+            Text("Logs may contain private diagnostic information. Review them before sharing.")
         }
     }
 
@@ -88,7 +88,7 @@ struct LoggingFilesSettings: View {
     private var logsSection: some View {
         Section("Logs") {
             if files.isEmpty {
-                Text("No saved logging files.").foregroundStyle(.secondary)
+                Text("No saved logs.").foregroundStyle(.secondary)
             } else {
                 ForEach(files) { file in
                     logRow(file)
@@ -216,7 +216,7 @@ private struct LoggingShareSheet: View {
         VStack(alignment: .leading, spacing: 20) {
             Text("Share Logging").font(.title2.bold())
             Label(
-                "Logging may contain private diagnostic information. Review where you send or save it.",
+                "Logs may contain private diagnostic information. Review where you send or save them.",
                 systemImage: "hand.raised.fill"
             )
             .foregroundStyle(.secondary)

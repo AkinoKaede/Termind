@@ -30015,29 +30015,29 @@
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌" } }
       }
     },
-    "Logging may contain private diagnostic information. Review it before sharing." : {
+    "Logs may contain private diagnostic information. Review them before sharing." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志可能包含私密诊断信息。分享前请先检查。" } },
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌可能包含私密診斷資訊。分享前請先檢查。" } }
       }
     },
-    "Logging may contain private diagnostic information. Review where you send or save it." : {
+    "Logs may contain private diagnostic information. Review where you send or save them." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志可能包含私密诊断信息。请确认发送或保存位置。" } },
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌可能包含私密診斷資訊。請確認傳送或儲存位置。" } }
       }
     },
-    "No Saved Logging" : {
+    "No Saved Logs" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有已保存的日志" } },
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "沒有已儲存的日誌" } }
       }
     },
-    "No saved logging files." : {
-      "extractionState" : "manual",
+    "No saved logs." : {
+      "extractionState" : "extracted",
       "localizations" : {
         "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有已保存的日志文件。" } },
         "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "沒有已儲存的日誌檔案。" } }
