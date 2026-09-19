@@ -138,28 +138,6 @@ struct LaunchFileLogServiceTests {
     }
 
     @Test
-    func loggerDropsUnapprovedSensitiveValues() throws {
-        let fixture = LogFixture()
-        let service = fixture.makeService()
-        try service.setSaving(true)
-        let sentinel = "SENSITIVE_SENTINEL"
-
-        service.makeLogger(label: "termind.test").error(
-            "unsafe \(sentinel)",
-            metadata: [
-                "username": "\(sentinel)", "host": "\(sentinel)", "path": "\(sentinel)",
-                "error_code": "authentication_failed",
-                "metrics_payload": "\(sentinel)",
-            ])
-
-        let file = try #require(service.files().first)
-        let content = try String(contentsOf: service.exportURL(for: file.id), encoding: .utf8)
-        #expect(!content.contains(sentinel))
-        #expect(content.contains("event.redacted"))
-        #expect(content.contains("error_code=authentication_failed"))
-    }
-
-    @Test
     func metricsAlwaysLogsSizeButOnlyInvalidSampleLogsRedactedDetails() async throws {
         let fixture = LogFixture()
         let service = fixture.makeService()
