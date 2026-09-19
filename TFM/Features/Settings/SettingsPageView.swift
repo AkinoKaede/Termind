@@ -267,8 +267,6 @@ private struct SettingsIndexPage: View {
                     } label: {
                         Label("Taiwan Flag Available", systemImage: "touchid")
                     }
-                } header: {
-                    Text("Debug")
                 }
             }
 
