@@ -936,8 +936,10 @@ struct WelcomeView: View {
                 let greeting = welcomeGreetings.randomElement() ?? welcomeGreetings[0]
                 let prompt = welcomePrompts.randomElement() ?? welcomePrompts[0]
 
+                // Let GlyphixText mount before its first animated transition. Updating
+                // immediately can be folded into the initial render and skip the greeting.
                 if !accessibilityReduceMotion {
-                    try? await Task.sleep(for: .milliseconds(120))
+                    try? await Task.sleep(for: .milliseconds(50))
                 }
                 guard !Task.isCancelled else { return }
                 welcomeMessage = greeting
