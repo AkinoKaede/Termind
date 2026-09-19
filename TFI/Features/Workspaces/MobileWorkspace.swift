@@ -1068,7 +1068,8 @@ final class MobileWorkspace: Identifiable {
                 }
                 let session: SFTPTransferSession
                 if ownsClient {
-                    session = SFTPTransferSession(configuration: configuration, client: client, wasOpenedSilently: true)
+                    session = SFTPTransferSession(
+                        configuration: configuration, client: client, primaryRole: .donatedConnection)
                 } else {
                     guard let existing = transferSession else { throw SFTPError.notConnected }
                     session = existing

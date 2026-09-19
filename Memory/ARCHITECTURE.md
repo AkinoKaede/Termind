@@ -105,7 +105,9 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
   external-window fallback.
 - Terminal drops/additional transfer connections forbid app password/passphrase/MFA/trust forms throughout the route,
   but permit system key authorization. Username-only/SSH `none` remain eligible: actual connection success, not saved
-  credential presence, decides. Cancellation interrupts opening; interaction-required cleanup fails silently.
+  credential presence, decides. Cancellation interrupts opening. A terminal drop always tries its independent SFTP
+  preflight first; any non-cancellation connection failure, including interaction-required authentication, falls back to
+  SFTP Channels on the already authenticated terminal transport without presenting a form.
 - Username-only Identities try `none`, then advertised methods. Device-local `lastUsedAt` tracks successful saved-secret
   reads, not authentication. Batch route reads; missing/availability/edit reads do not count. First access per Identity/
   process writes directly without Vault journal/refresh; sync strips this field and preserves local values on apply.
@@ -167,8 +169,10 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
 - Generation-scoped `SFTPTransferSession` outlives panes. SFTP data work resolves one topology per admitted file: Channels Only
   opens sibling SFTP Channels, Connections Preferred silently probes the full route and falls back to siblings, and Smart uses
   Channels through 64 MB/64,000,000 bytes (including unknown sizes) before preferring connections. A failed silent probe degrades later work
-  without replaying active operations; cancellation caches no failure. Browser control Channels stay independent, terminal
-  preflight may donate its successful connection, and durable trust refresh never promotes once-only trust.
+  without replaying active operations; cancellation caches no failure. Browser control Channels stay independent. Terminal
+  preflight donates a successful independent connection; only failed preflight uses the terminal's multiplexed PTY/SFTP
+  libssh2 owner and fixes that generation to Channels. Closing the PTY does not retire transfers holding that transport.
+  Durable trust refresh never promotes once-only trust.
 - One process scheduler covers Workspace/terminal/edit transfers and Agent data operations. It defaults to 30 active files/ten
   per Host.ID (ranges 1–100 and 1–min(50, global)), rotating Hosts then Workspace/Agent-run/batch sources while retaining FIFO
   within a source. A Channel and an independent connection consume the same logical-file capacity. Cross-Host copy consumes one

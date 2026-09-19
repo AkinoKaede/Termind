@@ -66,6 +66,24 @@ struct SSHKeyboardInteractiveWireTests {
         await session.disconnect()
     }
 
+    @Test func terminalSFTPChannelReusesAuthenticationAndOutlivesThePTY() async throws {
+        let fixture = try fixture()
+        let recorder = WireChallengeRecorder()
+        let session = SSHSessionActor(output: { _ in }, exit: { _ in })
+        try await session.connect(
+            using: request(mode: "kbd", fixture: fixture, handler: recorder.handler),
+            shellIntegrationEnabled: false, columns: 80, rows: 24
+        )
+        let client = try await session.openSFTPChannel()
+        #expect(try await client.listDirectory(at: "/").map(\.name) == ["fixture.txt"])
+        #expect(await recorder.challenges.count == 1)
+
+        await session.disconnect()
+        #expect(try await client.attributes(at: "/fixture.txt")?.size == 8)
+        #expect(await recorder.challenges.count == 1)
+        await client.disconnect()
+    }
+
     @Test func forwardingAuthenticatesAndReconnectionRequestsFreshAnswers() async throws {
         let fixture = try fixture()
         let recorder = WireChallengeRecorder()

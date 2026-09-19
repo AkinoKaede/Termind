@@ -4,6 +4,38 @@ import TermindApplication
 import TermindDomain
 import TermindRemoteInfrastructure
 
+struct TerminalUploadConnection {
+    let client: any SFTPClientProtocol
+    let primaryRole: SFTPTransferPrimaryRole
+}
+
+enum TerminalUploadConnectionResolver {
+    @MainActor
+    static func resolve(
+        isCurrent: () -> Bool,
+        connectIndependent: () async throws -> any SFTPClientProtocol,
+        openTerminalChannel: () async throws -> any SFTPClientProtocol
+    ) async throws -> TerminalUploadConnection {
+        do {
+            return TerminalUploadConnection(
+                client: try await connectIndependent(), primaryRole: .donatedConnection)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch let error as SFTPError {
+            if case .cancelled = error { throw error }
+            try Task.checkCancellation()
+            guard isCurrent() else { throw CancellationError() }
+            return TerminalUploadConnection(
+                client: try await openTerminalChannel(), primaryRole: .terminalFallback)
+        } catch {
+            try Task.checkCancellation()
+            guard isCurrent() else { throw CancellationError() }
+            return TerminalUploadConnection(
+                client: try await openTerminalChannel(), primaryRole: .terminalFallback)
+        }
+    }
+}
+
 /// A libghostty terminal surface with Termind's connection and suggestion chrome.
 struct TerminalPlaceholderView: View {
     let sshSession: SSHSessionModel
@@ -197,10 +229,18 @@ struct TerminalPlaceholderView: View {
             }
             var connectedClient: (any SFTPClientProtocol)?
             do {
-                let client = try await app.connections.connectSFTP(
-                    using: SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden),
-                    progress: nil
-                )
+                let resolved = try await TerminalUploadConnectionResolver.resolve(
+                    isCurrent: { sshSession.connectionAttemptID == generation },
+                    connectIndependent: {
+                        try await app.connections.connectSFTP(
+                            using: SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden),
+                            progress: nil
+                        )
+                    },
+                    openTerminalChannel: {
+                        try await sshSession.openTerminalSFTPChannel(for: generation)
+                    })
+                let client = resolved.client
                 connectedClient = client
                 try Task.checkCancellation()
                 guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
@@ -209,7 +249,7 @@ struct TerminalPlaceholderView: View {
                     initialPath: destination,
                     client: client,
                     configuration: configuration,
-                    wasOpenedSilently: true,
+                    primaryRole: resolved.primaryRole,
                     homeResolution: sshSession.homeResolution
                 )
                 await uploadSession.prepareUpload(files)

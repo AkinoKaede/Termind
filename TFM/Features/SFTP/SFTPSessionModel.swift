@@ -178,7 +178,7 @@ final class SFTPSessionModel: Identifiable {
         initialPath: String = "",
         client: (any SFTPClientProtocol)? = nil,
         configuration: SSHConnectionConfiguration? = nil,
-        wasOpenedSilently: Bool = false,
+        primaryRole: SFTPTransferPrimaryRole = .control,
         homeResolution: RemoteHomeResolutionState = .pending,
         automaticRefreshInterval: Duration = .seconds(15)
     ) {
@@ -193,7 +193,7 @@ final class SFTPSessionModel: Identifiable {
         self.configuration = configuration
         if let client, let configuration {
             transferSession = SFTPTransferSession(
-                configuration: configuration, client: client, wasOpenedSilently: wasOpenedSilently)
+                configuration: configuration, client: client, primaryRole: primaryRole)
         }
         self.homeResolution = homeResolution
         self.automaticRefreshInterval = automaticRefreshInterval

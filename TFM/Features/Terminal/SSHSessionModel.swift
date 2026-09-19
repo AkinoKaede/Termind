@@ -261,6 +261,18 @@ final class SSHSessionModel: Identifiable {
 
     var reconnectState: ReconnectState? { connection.reconnectState }
 
+    func openTerminalSFTPChannel(for attemptID: UUID?) async throws -> any SFTPClientProtocol {
+        guard status == .connected, connectionAttemptID == attemptID, let ssh else {
+            throw SFTPError.notConnected
+        }
+        let client = try await ssh.openSFTPChannel()
+        guard status == .connected, connectionAttemptID == attemptID, self.ssh === ssh else {
+            await client.disconnect()
+            throw CancellationError()
+        }
+        return client
+    }
+
     convenience init(hostID: Host.ID, title: String, initialCommand: String? = nil) {
         self.init(
             hostID: hostID, title: title, initialCommand: initialCommand,

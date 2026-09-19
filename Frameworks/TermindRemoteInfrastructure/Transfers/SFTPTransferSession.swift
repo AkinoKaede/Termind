@@ -1,6 +1,15 @@
 import Foundation
 import TermindApplication
 
+public nonisolated enum SFTPTransferPrimaryRole: Hashable, Sendable {
+    /// A browser control Channel that data work should avoid while alternatives exist.
+    case control
+    /// An independent preflight connection that can be donated to the first transfer.
+    case donatedConnection
+    /// An authenticated terminal transport used only after independent preflight failed.
+    case terminalFallback
+}
+
 /// A browser and its queued transfers share ownership of one authenticated connection.
 /// The admitted topology decides between sibling Channels and additional connections;
 /// additional connections are always opened without interaction from this generation's snapshot.
@@ -13,7 +22,7 @@ public final class SFTPTransferSession {
     private var ownerAttached = true
     private var transfers: Set<UUID> = []
     private var activeSlots = 0
-    private let prefersPrimary: Bool
+    private let primaryRole: SFTPTransferPrimaryRole
     private var primaryBusy = false
     private var probing = false
     private enum Capability { case unknown, connections, channels }
@@ -23,14 +32,14 @@ public final class SFTPTransferSession {
 
     public init(
         configuration: SSHConnectionConfiguration, client: any SFTPClientProtocol,
-        wasOpenedSilently: Bool = false,
+        primaryRole: SFTPTransferPrimaryRole = .control,
         clientFactory: @escaping SFTPTransferCoordinator.ClientFactory = { SFTPClient() }
     ) {
         self.configuration = configuration
         self.primary = client
         self.clientFactory = clientFactory
-        self.prefersPrimary = wasOpenedSilently
-        self.capability = wasOpenedSilently ? .connections : .unknown
+        self.primaryRole = primaryRole
+        self.capability = primaryRole == .terminalFallback ? .channels : .unknown
     }
 
     deinit {
@@ -86,7 +95,10 @@ public final class SFTPTransferSession {
     ) async throws -> SFTPTransferLease {
         try checkCancellation(cancellation)
         while probing { try await waitForPrimary(cancellation: cancellation) }
-        if mode == .channelsOnly, let primary, !(prefersPrimary && !primaryBusy) {
+        if shouldLeasePrimary(mode: mode), let lease = leasePrimaryIfAvailable() {
+            return lease
+        }
+        if mode == .channelsOnly, let primary {
             do {
                 let client = try await primary.openSiblingChannel()
                 try checkCancellation(cancellation)
@@ -102,7 +114,7 @@ public final class SFTPTransferSession {
             }
         }
         if mode == .connectionsPreferred, capability != .channels, primary != nil,
-            !(prefersPrimary && !primaryBusy)
+            primaryRole != .donatedConnection || primaryBusy
         {
             let isProbe = capability == .unknown
             if isProbe { probing = true }
@@ -126,6 +138,9 @@ public final class SFTPTransferSession {
             }
         }
         if mode == .connectionsPreferred, capability == .channels, let primary {
+            if primaryRole == .terminalFallback, let lease = leasePrimaryIfAvailable() {
+                return lease
+            }
             do {
                 try checkCancellation(cancellation)
                 let client = try await primary.openSiblingChannel()
@@ -162,6 +177,28 @@ public final class SFTPTransferSession {
             primaryBusy = false
             wakeWaiters()
             throw error
+        }
+    }
+
+    private func shouldLeasePrimary(mode: SSHChannelSchedulingMode) -> Bool {
+        switch primaryRole {
+        case .control:
+            false
+        case .donatedConnection:
+            !primaryBusy
+        case .terminalFallback:
+            mode == .channelsOnly && !primaryBusy
+        }
+    }
+
+    private func leasePrimaryIfAvailable() -> SFTPTransferLease? {
+        guard !primaryBusy, let primary else { return nil }
+        primaryBusy = true
+        return SFTPTransferLease(client: primary) { [self] in
+            primaryBusy = false
+            wakeWaiters()
+            await closeIfUnused()
+            availabilityChanged?()
         }
     }
 

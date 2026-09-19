@@ -8,16 +8,59 @@ import Testing
 
 @Suite @MainActor
 struct SFTPTransferSessionTests {
+    @Test func terminalUploadKeepsASuccessfulIndependentConnection() async throws {
+        let resolution = UploadConnectionResolutionHarness(independent: .success)
+        let result = try await TerminalUploadConnectionResolver.resolve(
+            isCurrent: { true },
+            connectIndependent: { try await resolution.connectIndependent() },
+            openTerminalChannel: { await resolution.openTerminalChannel() })
+        #expect(result.primaryRole == .donatedConnection)
+        #expect(await resolution.fallbacks == 0)
+    }
+
+    @Test func terminalUploadFallsBackWhenTheIndependentConnectionNeedsInteraction() async throws {
+        let resolution = UploadConnectionResolutionHarness(independent: .interactionRequired)
+        let result = try await TerminalUploadConnectionResolver.resolve(
+            isCurrent: { true },
+            connectIndependent: { try await resolution.connectIndependent() },
+            openTerminalChannel: { await resolution.openTerminalChannel() })
+        #expect(result.primaryRole == .terminalFallback)
+        #expect(await resolution.fallbacks == 1)
+    }
+
+    @Test func terminalUploadDoesNotFallBackAfterCancellationOrRetirement() async throws {
+        let cancelled = UploadConnectionResolutionHarness(independent: .cancelled)
+        await #expect(throws: CancellationError.self) {
+            try await TerminalUploadConnectionResolver.resolve(
+                isCurrent: { true },
+                connectIndependent: { try await cancelled.connectIndependent() },
+                openTerminalChannel: { await cancelled.openTerminalChannel() })
+        }
+        #expect(await cancelled.fallbacks == 0)
+
+        let retired = UploadConnectionResolutionHarness(independent: .interactionRequired)
+        await #expect(throws: CancellationError.self) {
+            try await TerminalUploadConnectionResolver.resolve(
+                isCurrent: { false },
+                connectIndependent: { try await retired.connectIndependent() },
+                openTerminalChannel: { await retired.openTerminalChannel() })
+        }
+        #expect(await retired.fallbacks == 0)
+    }
+
     @Test func closingTheDesktopPaneKeepsItsSerialUploadAlive() async throws {
         let harness = TransferSessionHarness(behaviors: [.interactive])
         let primary = TransferSessionClient(harness: harness, primary: true)
         let configuration = SSHConnectionConfiguration(
             hostID: UUID(), host: "fixture", port: 22, username: "user", credentials: [], expectedHostKeys: [])
+        let store = HostLibraryModel()
         let coordinator = SFTPTransferCoordinator(
-            store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) },
+            store: store, clientFactory: { TransferSessionClient(harness: harness) },
             strategy: .connectionsPreferred)
         let browser = SFTPSessionModel(
             hostID: configuration.hostID, initialPath: "/", client: primary, configuration: configuration)
+        browser.bindStatus(to: store)
+        #expect(store.status(of: configuration.hostID) == .connected)
         let workspace = Workspace(pane: Pane(.sftpSession(browser)))
         let window = WindowModel(workspaces: [workspace])
         let file = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
@@ -29,10 +72,12 @@ struct SFTPTransferSessionTests {
 
         window.closePane(workspace.focusedPane.id)
         #expect(window.workspaces.isEmpty)
+        #expect(store.status(of: configuration.hostID) == .connected)
         #expect(await primary.disconnects == 0)
         await harness.releaseOne()
         try await eventually { coordinator.activeCount == 0 }
         #expect(coordinator.sftpTransfers.first?.state == .completed)
+        #expect(store.status(of: configuration.hostID) == .disconnected)
         #expect(await primary.disconnects == 1)
     }
 
@@ -104,6 +149,55 @@ struct SFTPTransferSessionTests {
         await session.releaseOwner()
     }
 
+    @Test func smartUsesChannelsOnTheDonatedConnectionThroughTheDecimalThreshold() async throws {
+        let harness = TransferSessionHarness(behaviors: [])
+        let primary = TransferSessionClient(harness: harness, primary: true)
+        let (session, coordinator) = fixture(
+            primary: primary, harness: harness, limit: 2,
+            primaryRole: .donatedConnection, strategy: .smart)
+        enqueue(
+            [SFTPConcurrencyStrategy.smartConnectionThreshold, SFTPConcurrencyStrategy.smartConnectionThreshold],
+            session: session, coordinator: coordinator)
+        try await eventually { await harness.started == 2 }
+        #expect(await harness.opens == 0)
+        #expect(await harness.siblingChannels == 1)
+        await harness.releaseAll()
+        try await eventually { coordinator.activeCount == 0 }
+        await session.releaseOwner()
+    }
+
+    @Test func smartUsesAnotherConnectionAboveTheDecimalThreshold() async throws {
+        let harness = TransferSessionHarness(behaviors: [])
+        let primary = TransferSessionClient(harness: harness, primary: true)
+        let (session, coordinator) = fixture(
+            primary: primary, harness: harness, limit: 2,
+            primaryRole: .donatedConnection, strategy: .smart)
+        let large = SFTPConcurrencyStrategy.smartConnectionThreshold + 1
+        enqueue([large, large], session: session, coordinator: coordinator)
+        try await eventually { await harness.started == 2 }
+        #expect(await harness.opens == 1)
+        #expect(await harness.siblingChannels == 0)
+        await harness.releaseAll()
+        try await eventually { coordinator.activeCount == 0 }
+        await session.releaseOwner()
+    }
+
+    @Test func terminalFallbackNeverRetriesConnectionsForLargeFiles() async throws {
+        let harness = TransferSessionHarness(behaviors: [])
+        let primary = TransferSessionClient(harness: harness, primary: true)
+        let (session, coordinator) = fixture(
+            primary: primary, harness: harness, limit: 3,
+            primaryRole: .terminalFallback, strategy: .smart)
+        let large = SFTPConcurrencyStrategy.smartConnectionThreshold + 1
+        enqueue([large, large, large], session: session, coordinator: coordinator)
+        try await eventually { await harness.started == 3 }
+        #expect(await harness.opens == 0)
+        #expect(await harness.siblingChannels == 2)
+        await harness.releaseAll()
+        try await eventually { coordinator.activeCount == 0 }
+        await session.releaseOwner()
+    }
+
     @Test func emptyCredentialsCanOpenParallelConnectionsWithinTheLimits() async throws {
         let harness = TransferSessionHarness(behaviors: [])
         let primary = TransferSessionClient(harness: harness, primary: true)
@@ -159,7 +253,8 @@ struct SFTPTransferSessionTests {
     @Test func preflightConnectionIsUsedWithoutReauthentication() async throws {
         let harness = TransferSessionHarness(behaviors: [.interactive])
         let primary = TransferSessionClient(harness: harness, primary: true)
-        let (session, coordinator) = fixture(primary: primary, harness: harness, wasOpenedSilently: true)
+        let (session, coordinator) = fixture(
+            primary: primary, harness: harness, primaryRole: .donatedConnection)
         enqueue(1, session: session, coordinator: coordinator)
         try await eventually { await harness.started == 1 }
         #expect(await harness.opens == 0)
@@ -173,7 +268,8 @@ struct SFTPTransferSessionTests {
     @Test func pausedTransfersReleaseTheDetachedPrimaryAndResumeSilently() async throws {
         let harness = TransferSessionHarness(behaviors: [])
         let primary = TransferSessionClient(harness: harness, primary: true)
-        let (session, coordinator) = fixture(primary: primary, harness: harness, wasOpenedSilently: true)
+        let (session, coordinator) = fixture(
+            primary: primary, harness: harness, primaryRole: .donatedConnection)
         let id = enqueue(1, session: session, coordinator: coordinator)[0]
         try await eventually { await harness.started == 1 }
         await session.releaseOwner()
@@ -199,7 +295,7 @@ struct SFTPTransferSessionTests {
             globalLimit: 15, perHostLimit: 5, strategy: .connectionsPreferred)
         let upload = SFTPSessionModel(
             hostID: configuration.hostID, initialPath: "/destination", client: primary,
-            configuration: configuration, wasOpenedSilently: true)
+            configuration: configuration, primaryRole: .donatedConnection)
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -237,7 +333,7 @@ struct SFTPTransferSessionTests {
         let sessions = (0..<2).map { _ in
             SFTPTransferSession(
                 configuration: configuration, client: TransferSessionClient(harness: harness),
-                wasOpenedSilently: true)
+                primaryRole: .donatedConnection)
         }
         for session in sessions { enqueue(4, session: session, coordinator: coordinator) }
         try await eventually { await harness.started == 5 }
@@ -253,14 +349,14 @@ struct SFTPTransferSessionTests {
 
     private func fixture(
         primary: TransferSessionClient, harness: TransferSessionHarness, limit: Int = 4,
-        wasOpenedSilently: Bool = false,
+        primaryRole: SFTPTransferPrimaryRole = .control,
         strategy: SFTPConcurrencyStrategy = .connectionsPreferred
     ) -> (SFTPTransferSession, SFTPTransferCoordinator) {
         let session = SFTPTransferSession(
             configuration: SSHConnectionConfiguration(
                 hostID: UUID(), host: "fixture", port: 22, username: "user",
                 credentials: [], expectedHostKeys: []),
-            client: primary, wasOpenedSilently: wasOpenedSilently)
+            client: primary, primaryRole: primaryRole)
         let coordinator = SFTPTransferCoordinator(
             store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) },
             globalLimit: limit, perHostLimit: limit, strategy: strategy)
@@ -269,11 +365,18 @@ struct SFTPTransferSessionTests {
 
     @discardableResult
     private func enqueue(_ count: Int, session: SFTPTransferSession, coordinator: SFTPTransferCoordinator) -> [UUID] {
-        (0..<count).map { index in
+        enqueue(Array(repeating: 1, count: count), session: session, coordinator: coordinator)
+    }
+
+    @discardableResult
+    private func enqueue(
+        _ byteCounts: [Int64], session: SFTPTransferSession, coordinator: SFTPTransferCoordinator
+    ) -> [UUID] {
+        byteCounts.enumerated().map { index, byteCount in
             coordinator.enqueue(
                 direction: .upload, batchID: UUID(),
                 localURL: URL(fileURLWithPath: "/tmp/termind-test-\(index)"), remotePath: "/file-\(index)",
-                byteCount: 1, hostID: session.configuration.hostID, connection: .session(session),
+                byteCount: byteCount, hostID: session.configuration.hostID, connection: .session(session),
                 scopedRoot: URL(fileURLWithPath: "/tmp"), overwrite: true)
         }
     }
@@ -284,6 +387,32 @@ struct SFTPTransferSessionTests {
             try await Task.sleep(for: .milliseconds(10))
         }
         try #require(await condition())
+    }
+}
+
+private actor UploadConnectionResolutionHarness {
+    enum Independent { case success, interactionRequired, cancelled }
+
+    let independent: Independent
+    private(set) var fallbacks = 0
+    private let client: TransferSessionClient
+
+    init(independent: Independent) {
+        self.independent = independent
+        client = TransferSessionClient(harness: TransferSessionHarness(behaviors: []))
+    }
+
+    func connectIndependent() async throws -> any SFTPClientProtocol {
+        switch independent {
+        case .success: client
+        case .interactionRequired: throw SSHInteractionRequired()
+        case .cancelled: throw CancellationError()
+        }
+    }
+
+    func openTerminalChannel() -> any SFTPClientProtocol {
+        fallbacks += 1
+        return client
     }
 }
 
