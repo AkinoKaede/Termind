@@ -12,15 +12,19 @@ struct SFTPSettingsIntegrationTests {
         let settings = SFTPSettingsModel()
         let app = AppModel(hosts: HostLibraryModel(), sftpSettings: settings)
         defer { app.shutdownForTermination() }
-        #expect(app.sftpTransfers.globalLimit == 15)
-        #expect(app.sftpTransfers.perHostLimit == 5)
+        #expect(app.sftpTransfers.globalLimit == 30)
+        #expect(app.sftpTransfers.perHostLimit == 10)
+        #expect(app.sftpTransfers.strategy == .smart)
         #expect(settings.set(100, for: \.globalLimit))
         #expect(settings.set(50, for: \.perHostLimit))
+        #expect(settings.setStrategy(.connectionsPreferred))
         #expect(app.sftpTransfers.globalLimit == 100)
         #expect(app.sftpTransfers.perHostLimit == 50)
-        settings.applyRemoteSnapshot(SFTPPreferences(globalLimit: 3, perHostLimit: 2))
+        #expect(app.sftpTransfers.strategy == .connectionsPreferred)
+        settings.applyRemoteSnapshot(SFTPPreferences(globalLimit: 3, perHostLimit: 2, strategy: .channelsOnly))
         #expect(app.sftpTransfers.globalLimit == 3)
         #expect(app.sftpTransfers.perHostLimit == 2)
+        #expect(app.sftpTransfers.strategy == .channelsOnly)
     }
 
     @Test(.requiresVisibleWindow, arguments: ["en", "zh-Hans", "zh-Hant"])

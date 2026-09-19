@@ -13,8 +13,10 @@ nonisolated public protocol SFTPToolDefinition: AgentToolDefinition, AgentToolSc
     static var extraProperties: [String: AgentJSONValue] { get }
     static var extraRequired: [String] { get }
     static var presentation: AgentToolDescriptor.Presentation { get }
+    static var schedulesDataTransfer: Bool { get }
     var authentication: AgentSSHAuthenticationRegistry { get }
     var connections: AgentConnectionPool { get }
+    func estimatedByteCount(arguments: Arguments) throws -> Int64?
     func perform(
         client: any SFTPClientProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
@@ -27,6 +29,9 @@ nonisolated extension SFTPToolDefinition {
     }
     public static var extraProperties: [String: AgentJSONValue] { [:] }
     public static var extraRequired: [String] { [] }
+    public static var schedulesDataTransfer: Bool { false }
+
+    public func estimatedByteCount(arguments _: Arguments) throws -> Int64? { nil }
 
     public var descriptor: AgentToolDescriptor {
         var properties: [String: AgentJSONValue] = [
@@ -60,7 +65,9 @@ nonisolated extension SFTPToolDefinition {
         let path = try AgentToolSupport.normalizeRemotePath(arguments.string("path"))
         return try await AgentToolSupport.withAuthenticatedSFTP(
             hostID: hostID, invocation: invocation, context: context,
-            authentication: authentication, pool: connections
+            authentication: authentication, pool: connections,
+            byteCount: try estimatedByteCount(arguments: arguments),
+            schedulesDataTransfer: Self.schedulesDataTransfer
         ) { client in
             try await perform(
                 client: client, path: path, arguments: arguments, invocation: invocation
@@ -131,6 +138,7 @@ nonisolated public struct SFTPReadTool: SFTPToolDefinition {
         "offset": integer(min: 1, max: 10_000_000), "limit": integer(min: 1, max: 2_000),
     ]
     public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .approve
+    public static let schedulesDataTransfer = true
     public static let presenter = AgentToolDetailPresenter(
         id: "builtin.sftp_read", present: present
     )
@@ -140,6 +148,7 @@ nonisolated public struct SFTPReadTool: SFTPToolDefinition {
     )
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
+    public func estimatedByteCount(arguments _: Arguments) throws -> Int64? { 50 * 1_024 }
     public func perform(
         client: any SFTPClientProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
@@ -171,6 +180,7 @@ nonisolated public struct SFTPWriteTool: SFTPToolDefinition {
     public static let name = "sftp_write"
     public static let summary = "Write a bounded UTF-8 remote file atomically."
     public static let approvalPolicy: AgentToolDescriptor.ApprovalPolicy = .ask
+    public static let schedulesDataTransfer = true
     public static let extraProperties = ["content": string(max: 131_072), "overwrite": boolean()]
     public static let extraRequired = ["content"]
     public static let presenter = AgentToolDetailPresenter(
@@ -184,6 +194,9 @@ nonisolated public struct SFTPWriteTool: SFTPToolDefinition {
     )
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
+    public func estimatedByteCount(arguments: Arguments) throws -> Int64? {
+        Int64(try arguments.string("content").utf8.count)
+    }
     public func perform(
         client: any SFTPClientProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
@@ -620,11 +633,15 @@ nonisolated extension AgentToolSupport {
         hostID: Host.ID, invocation: AgentToolInvocation,
         context: AgentToolExecutionContext,
         authentication: AgentSSHAuthenticationRegistry, pool: AgentConnectionPool,
+        byteCount: Int64? = nil,
+        schedulesDataTransfer: Bool = false,
         operation: @escaping @Sendable (any SFTPClientProtocol) async throws -> Value
     ) async throws -> Value {
         try await authentication.withSFTP(
             hostID: hostID, invocationID: invocation.id,
-            interaction: context.sshInteraction, pool: pool
+            interaction: context.sshInteraction, pool: pool,
+            runID: context.runID, byteCount: byteCount,
+            schedulesDataTransfer: schedulesDataTransfer
         ) { client in
             do {
                 return try await operation(client)

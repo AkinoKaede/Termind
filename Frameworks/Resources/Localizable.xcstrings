@@ -4486,19 +4486,19 @@
         }
       }
     },
-    "Changes apply to queued transfers. Active transfers continue unchanged. If additional connections cannot open without authentication prompts, the session transfers files one at a time." : {
+    "Changes apply to queued transfers. Active transfers continue unchanged. If additional connections cannot open without authentication prompts, transfers use parallel channels on the existing connection." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更改会应用到排队中的传输。正在进行的传输不受影响。如果额外连接需要身份验证提示，会话将逐个传输文件。"
+            "value" : "更改会应用到排队中的传输。正在进行的传输不受影响。如果额外连接无法在不显示身份验证提示的情况下打开，传输将改用现有连接上的并行通道。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "更改會套用至佇列中的傳輸。正在進行的傳輸不受影響。如果額外連線需要驗證提示，工作階段將逐一傳輸檔案。"
+            "value" : "更改會套用至佇列中的傳輸。正在進行的傳輸不受影響。如果額外連線無法在不顯示驗證提示的情況下開啟，傳輸將改用現有連線上的平行通道。"
           }
         }
       }
@@ -5667,6 +5667,57 @@
         }
       }
     },
+    "Channels Only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅通道"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅通道"
+          }
+        }
+      }
+    },
+    "Concurrent Strategy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "并发策略"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "並行策略"
+          }
+        }
+      }
+    },
+    "Connections Preferred" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接优先"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連線優先"
+          }
+        }
+      }
+    },
     "Concurrent Transfers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5680,6 +5731,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "同時傳輸"
+          }
+        }
+      }
+    },
+    "Smart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智慧"
+          }
+        }
+      }
+    },
+    "Smart uses channels for files up to 64 MB and prefers additional connections for larger files. Transfers with an unknown size use channels." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能模式对不超过64 MB的文件使用通道，对更大的文件优先使用额外连接。大小未知的传输使用通道。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智慧模式對不超過64 MB的檔案使用通道，對更大的檔案優先使用額外連線。大小未知的傳輸使用通道。"
           }
         }
       }

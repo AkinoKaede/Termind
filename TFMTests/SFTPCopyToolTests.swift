@@ -124,7 +124,7 @@ struct SFTPCopyToolTests {
 
     @Test
     func sameHostUsesIndependentConnectionsAndRejectsSelfCopies() async throws {
-        let fixture = CopyFixture(sameHost: true)
+        let fixture = CopyFixture(sameHost: true, strategy: .connectionsPreferred)
         await fixture.source.directory("/target")
         await fixture.source.put("/source/a.bin", bytes: Data([1]))
         #expect(try await !fixture.copy().isError)
@@ -137,6 +137,17 @@ struct SFTPCopyToolTests {
         await fixture.source.directory("/source/tree/nested")
         #expect(try await fixture.copy(path: "/source/tree", destination: "/source/tree/nested").isError)
         #expect(await fixture.source.nodes["/source/tree/nested/tree"] == nil)
+    }
+
+    @Test
+    func smartUnknownSameHostCopyUsesOneChannel() async throws {
+        let fixture = CopyFixture(sameHost: true)
+        await fixture.source.directory("/target")
+        await fixture.source.put("/source/a.bin", bytes: Data([1]))
+
+        #expect(try await !fixture.copy().isError)
+        #expect(await fixture.backend.opens == 1)
+        #expect(await fixture.backend.siblingChannels == 0)
     }
 
     @Test
@@ -333,7 +344,10 @@ private final class CopyFixture {
     let authentication: AgentSSHAuthenticationRegistry
     var tool: SFTPCopyTool { .init(hosts: resolver, authentication: authentication, connections: pool) }
 
-    init(sameHost: Bool = false) {
+    init(
+        sameHost: Bool = false,
+        strategy: SFTPConcurrencyStrategy = .smart
+    ) {
         destinationID = sameHost ? sourceID : UUID()
         let sourceID = sourceID
         let destinationID = destinationID
@@ -362,7 +376,10 @@ private final class CopyFixture {
         pool = AgentConnectionPool(
             configuration: { configuration($0) }, routeFingerprint: { _ in "test" },
             openExec: { _ in throw AgentToolError.invalidHost },
-            openSFTP: { try await backend.open($0.configuration.hostID) }, sweepInterval: nil
+            openSFTP: { try await backend.open($0.configuration.hostID) },
+            sftpConcurrencyScheduler: SFTPConcurrencyScheduler(
+                preferences: SFTPPreferences(strategy: strategy)),
+            sweepInterval: nil
         )
     }
 
@@ -457,12 +474,14 @@ private actor CopyBackend {
     var filesystems: [UUID: CopyFileSystem]
     var opens = 0
     var disconnects = 0
+    var siblingChannels = 0
     init(filesystems: [UUID: CopyFileSystem]) { self.filesystems = filesystems }
     func open(_ id: UUID) throws -> CopyClient {
         opens += 1
         return CopyClient(filesystem: try #require(filesystems[id]), backend: self)
     }
     func disconnected() { disconnects += 1 }
+    func openedSibling() { siblingChannels += 1 }
 }
 
 private actor CopyClient: SFTPClientProtocol {
@@ -473,6 +492,10 @@ private actor CopyClient: SFTPClientProtocol {
         self.backend = backend
     }
     func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {}
+    func openSiblingChannel() async throws -> any SFTPClientProtocol {
+        await backend.openedSibling()
+        return CopyClient(filesystem: filesystem, backend: backend)
+    }
     func disconnect() async { await backend.disconnected() }
     func homeDirectory() async throws -> String { "/" }
     func listDirectory(at path: String) async throws -> [RemoteFile] { await filesystem.children(path) }

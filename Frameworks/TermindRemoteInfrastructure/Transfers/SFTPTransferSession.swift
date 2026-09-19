@@ -2,11 +2,10 @@ import Foundation
 import TermindApplication
 
 /// A browser and its queued transfers share ownership of one authenticated connection.
-/// Extra connections are always opened without interaction, using this generation's snapshot.
+/// The admitted topology decides between sibling Channels and additional connections;
+/// additional connections are always opened without interaction from this generation's snapshot.
 @MainActor
 public final class SFTPTransferSession {
-    public nonisolated static let schedulingMode = SSHChannelSchedulingMode.connectionsPreferred
-
     public let id = UUID()
     public let configuration: SSHConnectionConfiguration
     private var clientFactory: SFTPTransferCoordinator.ClientFactory
@@ -81,10 +80,30 @@ public final class SFTPTransferSession {
         await old?.disconnect()
     }
 
-    func acquire(cancellation: TransferCancellationToken? = nil) async throws -> SFTPTransferLease {
+    func acquire(
+        mode: SSHChannelSchedulingMode,
+        cancellation: TransferCancellationToken? = nil
+    ) async throws -> SFTPTransferLease {
         try checkCancellation(cancellation)
         while probing { try await waitForPrimary(cancellation: cancellation) }
-        if capability != .channels, primary != nil, !(prefersPrimary && !primaryBusy) {
+        if mode == .channelsOnly, let primary, !(prefersPrimary && !primaryBusy) {
+            do {
+                let client = try await primary.openSiblingChannel()
+                try checkCancellation(cancellation)
+                return SFTPTransferLease(client: client) { await client.disconnect() }
+            } catch {
+                try checkCancellation(cancellation)
+                if error is CancellationError { throw error }
+                if let failure = error as? SFTPError, case .cancelled = failure { throw failure }
+                // A server may accept only the browser's original SFTP
+                // subsystem. Keep the Channel-only transport contract and
+                // serialize this lease on that primary rather than opening a
+                // second SSH connection or pausing the transfer.
+            }
+        }
+        if mode == .connectionsPreferred, capability != .channels, primary != nil,
+            !(prefersPrimary && !primaryBusy)
+        {
             let isProbe = capability == .unknown
             if isProbe { probing = true }
             defer {
@@ -106,12 +125,18 @@ public final class SFTPTransferSession {
                 availabilityChanged?()
             }
         }
-        if capability == .channels, let primary {
-            try checkCancellation(cancellation)
-            let client = try await primary.openSiblingChannel()
-            try checkCancellation(cancellation)
-            availabilityChanged?()
-            return SFTPTransferLease(client: client) { await client.disconnect() }
+        if mode == .connectionsPreferred, capability == .channels, let primary {
+            do {
+                try checkCancellation(cancellation)
+                let client = try await primary.openSiblingChannel()
+                try checkCancellation(cancellation)
+                availabilityChanged?()
+                return SFTPTransferLease(client: client) { await client.disconnect() }
+            } catch {
+                try checkCancellation(cancellation)
+                if error is CancellationError { throw error }
+                if let failure = error as? SFTPError, case .cancelled = failure { throw failure }
+            }
         }
         while primaryBusy {
             try await waitForPrimary(cancellation: cancellation)

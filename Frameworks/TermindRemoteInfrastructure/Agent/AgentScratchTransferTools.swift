@@ -54,7 +54,8 @@ nonisolated public struct ScratchPullTool: AgentToolDefinition, AgentToolSchemaB
         let hostID = try arguments.uuid("host_id")
         let data = try await AgentToolSupport.withAuthenticatedSFTP(
             hostID: hostID, invocation: invocation, context: context,
-            authentication: authentication, pool: pool
+            authentication: authentication, pool: pool,
+            schedulesDataTransfer: true
         ) { client in
             try await client.readFile(at: remote, maximumBytes: AgentScratchWorkspace.Limits.fileBytes)
         }
@@ -137,7 +138,8 @@ nonisolated public struct ScratchPushTool: AgentToolDefinition, AgentToolSchemaB
         let hostID = try arguments.uuid("host_id")
         try await AgentToolSupport.withAuthenticatedSFTP(
             hostID: hostID, invocation: invocation, context: context,
-            authentication: authentication, pool: pool
+            authentication: authentication, pool: pool,
+            byteCount: Int64(file.bytes), schedulesDataTransfer: true
         ) { client in
             try await client.writeFile(
                 file.data, at: remote, overwrite: arguments.optionalBool("overwrite") ?? false

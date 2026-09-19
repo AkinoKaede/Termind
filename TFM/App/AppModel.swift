@@ -168,7 +168,11 @@ final class AppModel {
         serialPorts = dependencies.serialPortService
         agentRunRepository = MemoryIndexedAgentRepository(
             base: dependencies.agentRunRepository ?? InMemoryAgentRunRepository(), memory: memory)
-        let agentHostServices = AgentHostServices.live(store: hosts, coordinator: connectionCoordinator)
+        let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpSettings.preferences)
+        let agentHostServices = AgentHostServices.live(
+            store: hosts,
+            coordinator: connectionCoordinator,
+            sftpConcurrencyScheduler: sftpConcurrencyScheduler)
         agentHosts = agentHostServices.resolver
         agentAuthentication = agentHostServices.authentication
         agentConnections = agentHostServices.connections
@@ -182,7 +186,10 @@ final class AppModel {
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
             clientFactory: { connectionCoordinator.makeSFTPClient() },
-            globalLimit: sftpSettings.preferences.globalLimit, perHostLimit: sftpSettings.preferences.perHostLimit
+            globalLimit: sftpSettings.preferences.globalLimit,
+            perHostLimit: sftpSettings.preferences.perHostLimit,
+            strategy: sftpSettings.preferences.strategy,
+            concurrencyScheduler: sftpConcurrencyScheduler
         )
         sftpEdits = SFTPEditService(transfers: sftpTransfers, host: { [weak hosts] in hosts?.host($0) })
         self.ai = ai
@@ -263,7 +270,7 @@ final class AppModel {
             self?.applyRemoteVaultSnapshot(snapshot, changedKeys: keys)
         }
         sftpSettings.didChange = { [weak sftpTransfers] preferences in
-            sftpTransfers?.updateLimits(global: preferences.globalLimit, perHost: preferences.perHostLimit)
+            sftpTransfers?.updatePreferences(preferences)
         }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)

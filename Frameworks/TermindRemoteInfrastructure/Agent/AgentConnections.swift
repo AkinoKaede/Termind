@@ -790,42 +790,66 @@ public actor AgentSSHAuthenticationRegistry {
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
         interaction: AgentSSHInteraction, pool: AgentConnectionPool,
         cancellation: TransferCancellationToken? = nil,
+        runID: UUID? = nil,
+        byteCount: Int64? = nil,
+        schedulesDataTransfer: Bool = false,
+        concurrencyPermit: SFTPConcurrencyPermit? = nil,
         operation: @escaping @Sendable (any SFTPClientProtocol) async throws -> Value
     ) async throws -> Value {
-        try await withSession(
-            hostID: hostID, invocationID: invocationID, interaction: interaction
-        ) { authentication in
-            let lease = try await self.openAuthenticated(
-                hostID: hostID, authentication: authentication, pool: pool, kind: .sftp,
-                evictsPooledConnection: false, cancellation: cancellation
-            ) { attempt in
-                let resolver: AgentConnectionPool.RequestResolving?
-                if let attempt {
-                    let request = attempt.request
-                    resolver = { _ in request }
-                } else {
-                    resolver = nil
-                }
-                return try await pool.acquireSFTP(
-                    hostID: hostID, cancellation: cancellation,
-                    configuration: resolver)
-            }
-            do {
-                let value = try await operation(lease.client)
-                await pool.releaseSFTP(lease.id)
-                return value
-            } catch {
-                await pool.releaseSFTP(lease.id)
-                if let failure = error as? SFTPError {
-                    switch failure {
-                    case .notConnected, .connectionLost:
-                        await pool.disconnect(hostID: hostID, kind: .sftp)
-                    case .cancelled, .localFile, .operation:
-                        break
+        let ownedPermit: SFTPConcurrencyPermit?
+        if schedulesDataTransfer, concurrencyPermit == nil {
+            ownedPermit = try await pool.sftpConcurrencyScheduler.acquire(
+                anchorHostID: hostID,
+                hostIDs: [hostID],
+                source: .agentRun(runID ?? invocationID),
+                byteCount: byteCount
+            )
+        } else {
+            ownedPermit = nil
+        }
+        let permit = concurrencyPermit ?? ownedPermit
+        do {
+            let value = try await withSession(
+                hostID: hostID, invocationID: invocationID, interaction: interaction
+            ) { authentication in
+                let lease = try await self.openAuthenticated(
+                    hostID: hostID, authentication: authentication, pool: pool, kind: .sftp,
+                    evictsPooledConnection: false, cancellation: cancellation
+                ) { attempt in
+                    let resolver: AgentConnectionPool.RequestResolving?
+                    if let attempt {
+                        let request = attempt.request
+                        resolver = { _ in request }
+                    } else {
+                        resolver = nil
                     }
+                    return try await pool.acquireSFTP(
+                        hostID: hostID, cancellation: cancellation,
+                        configuration: resolver,
+                        mode: permit?.schedulingMode ?? .channelsOnly)
                 }
-                throw error
+                do {
+                    let value = try await operation(lease.client)
+                    await pool.releaseSFTP(lease.id)
+                    return value
+                } catch {
+                    await pool.releaseSFTP(lease.id)
+                    if let failure = error as? SFTPError {
+                        switch failure {
+                        case .notConnected, .connectionLost:
+                            await pool.disconnect(hostID: hostID, kind: .sftp)
+                        case .cancelled, .localFile, .operation:
+                            break
+                        }
+                    }
+                    throw error
+                }
             }
+            await ownedPermit?.release()
+            return value
+        } catch {
+            await ownedPermit?.release()
+            throw error
         }
     }
 
@@ -907,11 +931,11 @@ public actor AgentSSHAuthenticationRegistry {
 /// is what gives it back.
 ///
 /// Exec and SFTP remain separate lifecycle domains. Exec never opens a second
-/// transport; overlapping SFTP leases prefer additional connections and fall
-/// back to sibling Channels on the primary transport.
+/// transport; SFTP data permits resolve their topology from the process-wide
+/// preference, while control work and Channel fallback use the primary transport.
 public actor AgentConnectionPool {
     public nonisolated static let execSchedulingMode = SSHChannelSchedulingMode.channelsOnly
-    public nonisolated static let sftpSchedulingMode = SSHChannelSchedulingMode.connectionsPreferred
+    public nonisolated let sftpConcurrencyScheduler: SFTPConcurrencyScheduler
 
     public nonisolated enum Kind: String, Hashable, Sendable, CaseIterable { case exec, sftp }
 
@@ -1009,7 +1033,8 @@ public actor AgentConnectionPool {
     /// SFTP Channel on the primary transport instead.
     func acquireSFTP(
         hostID: UUID, cancellation: TransferCancellationToken? = nil,
-        configuration override: RequestResolving? = nil
+        configuration override: RequestResolving? = nil,
+        mode: SSHChannelSchedulingMode = .connectionsPreferred
     ) async throws -> SFTPLease {
         try Task.checkCancellation()
         if cancellation?.isCancelled == true { throw SFTPError.cancelled }
@@ -1029,7 +1054,7 @@ public actor AgentConnectionPool {
         }
 
         if let idle = sftpStates[hostID]?.records.values
-            .filter({ !$0.busy })
+            .filter({ !$0.busy && (mode == .connectionsPreferred || $0.id == sftpStates[hostID]?.primaryID) })
             .sorted(by: { $0.lastUsedAt < $1.lastUsedAt }).first
         {
             sftpStates[hostID]?.records[idle.id]?.busy = true
@@ -1040,6 +1065,31 @@ public actor AgentConnectionPool {
 
         guard let state = sftpStates[hostID], let primaryRecord = state.records[state.primaryID] else {
             throw SFTPError.notConnected
+        }
+
+        if mode == .channelsOnly {
+            do {
+                let sibling = try await primaryRecord.client.openSiblingChannel()
+                if cancellation?.isCancelled == true {
+                    await sibling.disconnect()
+                    throw SFTPError.cancelled
+                }
+                return registerSFTPLease(
+                    hostID: hostID, recordID: nil, client: sibling, cancellation: cancellation)
+            } catch {
+                try Task.checkCancellation()
+                if cancellation?.isCancelled == true { throw SFTPError.cancelled }
+                if error is CancellationError { throw error }
+                if let failure = error as? SFTPError, case .cancelled = failure { throw failure }
+                while sftpStates[hostID]?.records[primaryRecord.id]?.busy == true {
+                    try await Task.sleep(for: .milliseconds(10))
+                    try Task.checkCancellation()
+                    if cancellation?.isCancelled == true { throw SFTPError.cancelled }
+                }
+                return try await acquireSFTP(
+                    hostID: hostID, cancellation: cancellation,
+                    configuration: override, mode: mode)
+            }
         }
 
         if state.capability == .unknown {
@@ -1068,7 +1118,7 @@ public actor AgentConnectionPool {
                 }
                 return try await acquireSFTP(
                     hostID: hostID, cancellation: cancellation,
-                    configuration: override)
+                    configuration: override, mode: mode)
             } catch {
                 if sftpProbes[hostID]?.id == probe.id {
                     sftpProbes[hostID] = nil
@@ -1138,6 +1188,7 @@ public actor AgentConnectionPool {
         routeFingerprint: @escaping FingerprintResolving,
         openExec: @escaping ExecOpening,
         openSFTP: @escaping SFTPOpening,
+        sftpConcurrencyScheduler: SFTPConcurrencyScheduler = SFTPConcurrencyScheduler(),
         idleTimeout: Duration = AgentConnectionPool.defaultIdleTimeout,
         sweepInterval: Duration? = .seconds(30)
     ) {
@@ -1145,6 +1196,7 @@ public actor AgentConnectionPool {
         self.routeFingerprint = routeFingerprint
         self.openExec = openExec
         self.openSFTP = openSFTP
+        self.sftpConcurrencyScheduler = sftpConcurrencyScheduler
         self.idleTimeout = idleTimeout
         sweeper = AgentIdleSweeper(interval: sweepInterval)
     }

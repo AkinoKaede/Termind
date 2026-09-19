@@ -99,6 +99,31 @@ import TermindRemoteInfrastructure
         }
 
         @Test
+        func internalSFTPPayloadDoesNotRequestItsPromisedLocalFile() throws {
+            let pasteboard = stagedPasteboard()
+            defer { pasteboard.releaseGlobally() }
+            let item = NSPasteboardItem()
+            let remote = try JSONEncoder().encode(SFTPRemoteItemsPayload(token: UUID()))
+            item.setData(
+                remote,
+                forType: NSPasteboard.PasteboardType(UTType.termindSFTPItems.identifier))
+            item.setString(
+                URL(fileURLWithPath: "/tmp/materialized-by-a-file-promise").absoluteString,
+                forType: .fileURL)
+            pasteboard.writeObjects([item])
+
+            let payload = FileURLDropNSView.payload(from: pasteboard)
+
+            #expect(payload.sftpItems == remote)
+            #expect(payload.fileURLs.isEmpty)
+            #expect(payload.preferredKind == .sftpItems)
+
+            let terminalPayload = FileURLDropNSView.payload(
+                from: pasteboard, preferSFTPItems: false)
+            #expect(terminalPayload.fileURLs.count == 1)
+        }
+
+        @Test
         func finderImagePrefersItsFileURLAndFilename() throws {
             let pasteboard = stagedPasteboard()
             defer { pasteboard.releaseGlobally() }

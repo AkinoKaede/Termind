@@ -164,19 +164,24 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
 - Domain owns `RemoteFile`, Application `RemoteFileSystem`/`MobileSFTPSessionModel`, Remote Infrastructure libssh2 protocols,
   Presentation symbols/kinds. Device-local History changes only after fresh successful listings/downloads, never stale/failed/
   cancelled/type-changed work.
-- Generation-scoped `SFTPTransferSession` outlives panes. First additional connection silently probes the full route: success
-  enables connection-parallel workers; failure opens sibling SFTP Channels on the primary transport, never the browser's control
-  Channel. Later failure degrades pending work without replaying active operations. Cancellation caches no failure. Terminal
-  preflight donates its successful connection. Refresh durable trust, never promote once-only trust.
-- App queue defaults 15 active files/five per Host.ID across sessions; ranges 1–100 and 1–min(50, global). The unit is an active
-  SFTP lease: an independent connection and a sibling Channel consume the same slot. `SFTPSettingsModel` scheduling outlives
-  Settings. New limits affect future work only. Pane close releases only its ownership; queued work retains the primary
-  connection, paused work configuration/checkpoints but no connection. Retired generations cannot replace snapshots.
+- Generation-scoped `SFTPTransferSession` outlives panes. SFTP data work resolves one topology per admitted file: Channels Only
+  opens sibling SFTP Channels, Connections Preferred silently probes the full route and falls back to siblings, and Smart uses
+  Channels through 64 MB/64,000,000 bytes (including unknown sizes) before preferring connections. A failed silent probe degrades later work
+  without replaying active operations; cancellation caches no failure. Browser control Channels stay independent, terminal
+  preflight may donate its successful connection, and durable trust refresh never promotes once-only trust.
+- One process scheduler covers Workspace/terminal/edit transfers and Agent data operations. It defaults to 30 active files/ten
+  per Host.ID (ranges 1–100 and 1–min(50, global)), rotating Hosts then Workspace/Agent-run/batch sources while retaining FIFO
+  within a source. A Channel and an independent connection consume the same logical-file capacity. Cross-Host copy consumes one
+  global slot and one slot on each endpoint Host. Browser and Agent metadata/control operations do not consume data slots.
+  `SFTPSettingsModel` scheduling outlives Settings; new limits/topology affect queued work only. Pane close releases only its
+  ownership; queued work retains the primary connection, paused work configuration/checkpoints but no connection.
 - Checkpoints, references, acknowledged offsets and digests are memory-only. Pause/loss retains partial destinations; explicit
   resume verifies source/prefix. No ordinary staging/bookmarks/restart recovery or silent replay. Cancel/Host delete removes
   partials and reports failed cleanup. Mobile expiration pauses upload/download, cancels copies; desktop quit allows three seconds.
   Same-connection copies alternate bounded reads/writes, validate size/metadata/EOF and atomically commit temporary files.
-- Shared planners retain directory-only batch destinations/mutation counts. Apps own UI, cancellation/errors/refresh and deletion.
+- Shared planners retain directory-only batch destinations/mutation counts. In-app SFTP-to-SFTP drag/copy consumes the private
+  remote payload before asking for its Finder file promise, streams directly between clients without local staging, and exposes
+  exactly one `.copy` queue row per regular file. Apps own UI, cancellation/errors/refresh and deletion.
   `SFTPRemoteConflictResolver` validates recursive child paths, subtree mapping/Keep Both: upload blocks strict descendants; copy
   also blocks conflicting root. Desktop context menus snapshot reconciled selection; appearance never mutates it.
 - Terminal drop preparation is cancellable/generation-scoped; late results cannot enqueue. Nonmodal notices cannot replace same-batch
@@ -197,10 +202,12 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
 
 ### Agent/MCP byte channels
 
-- Agent SSH keeps one Host transport and multiplexes concurrent exec Channels. Agent SFTP uses connection-preferred scheduling
-  with sibling-Channel fallback and a 180-second idle pool across conversations/MCP. `sftp_copy` belongs to Agent SFTP: regular
-  trees to existing directories, browser conflict/merge policy, preserved sources and two ordered endpoint leases; same-Host
-  copies prefer two connections and fall back to two Channels. Active exec/SFTP leases block idle sweeping; background commands
+- Agent SSH keeps one Host transport and multiplexes concurrent exec Channels. Agent SFTP data work shares the process SFTP
+  scheduler and resolves Smart/Channel-only/connection-preferred topology by the synced preference; metadata/control calls use
+  Channels without consuming data capacity. Additional Agent connections retain a 180-second idle pool across conversations/MCP.
+  `sftp_copy` belongs to Agent SFTP: regular trees to existing directories, browser conflict/merge policy and preserved sources.
+  Cross-Host copies take two ordered endpoint leases; same-Host copies use two leases for Connections Preferred and one SFTP
+  Channel for Channel-only/Smart-unknown work. Active exec/SFTP leases block idle sweeping; background commands
   retain only their Channel, not the whole transport. Started operations never replay. No model bytes/staging/scratch.
 - macOS MCP exposes the same definition; Bearer/tool switches/Full access remain boundaries, auth uses external interaction. Stop awaits
   copies. Audit metadata/counts/endpoints/policy, never bodies. Stdio only forwards protocol; mobile has no local MCP listener.
@@ -348,7 +355,8 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - Frozen V13 Settings; V14 terminal, V15 Metrics journal/account/quarantine, V21 SFTP. Commit data+intent atomically, then mirror defaults; remote
   apply refreshes without echo. Separate records cover providers/models/MCP/skills/roles/search/terminal/custom text/SFTP limits. First SFTP row
   imports prior local values once, missing 15/5; future preparation uses persisted truth. `v1/sftp/default` uses `SFTPPreferencesItem` in same zone/
-  V1 envelope so old clients ignore it before decode. Invalid limits/type mismatches quarantine. Running Agent snapshots remain fixed.
+  V1 envelope so old clients ignore it before decode. Missing strategy decodes as Smart; new/missing records default to 30/10 while
+  existing saved limits remain unchanged. Invalid limits/type mismatches quarantine. Running Agent snapshots remain fixed.
 - Live role records sync explicit choices, not resolved fallbacks: nil generator = Same as Chat, nil Guardian = Automatic. Read legacy
   `securityReview`, migrate to canonical `guardian` without reusing system fields. Conversations/approval mode/last-used model/listener config/
   unrelated defaults stay local. Listener token is this-device-only Data Protection Keychain.

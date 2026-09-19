@@ -15,7 +15,7 @@ struct SFTPSettingsSyncTests {
     func importsExistingValuesOnlyOnce(global: Int?) throws {
         let fixture = try Fixture(global: global, perHost: global == nil ? nil : 2)
         defer { fixture.cleanUp() }
-        let expected = SFTPPreferences(globalLimit: global ?? 15, perHostLimit: global == nil ? 5 : 2)
+        let expected = SFTPPreferences(globalLimit: global ?? 30, perHostLimit: global == nil ? 10 : 2)
         #expect(try fixture.store.loadSFTP() == expected)
         #expect(fixture.defaults.integer(forKey: SettingsKey.sftpGlobalTransferLimit) == expected.globalLimit)
         let original = try #require(try fixture.store.journal.envelope(for: key))
@@ -52,7 +52,7 @@ struct SFTPSettingsSyncTests {
         }
         var localChanges: [SettingsMutationSet] = []
         source.store.didRecordChanges = { localChanges.append($0) }
-        let value = SFTPPreferences(globalLimit: 100, perHostLimit: 50)
+        let value = SFTPPreferences(globalLimit: 100, perHostLimit: 50, strategy: .connectionsPreferred)
         try source.store.saveSFTP(value)
         #expect(localChanges.last?.keys == [key])
         let outgoing = try #require(try source.store.journal.envelope(for: key))
@@ -71,6 +71,9 @@ struct SFTPSettingsSyncTests {
         #expect(try destination.store.loadSFTP() == value)
         #expect(destination.defaults.integer(forKey: SettingsKey.sftpGlobalTransferLimit) == 100)
         #expect(destination.defaults.integer(forKey: SettingsKey.sftpPerHostTransferLimit) == 50)
+        #expect(
+            destination.defaults.string(forKey: SettingsKey.sftpConcurrencyStrategy)
+                == SFTPConcurrencyStrategy.connectionsPreferred.rawValue)
         #expect(callbacks == 0)
         #expect(result.acceptedKeys == [key])
         #expect(try !destination.store.journal.pendingEnvelopes().contains { $0.key == key })
@@ -122,7 +125,7 @@ struct SFTPSettingsSyncTests {
         #expect(try SettingsSyncCoordinator.payloadData(from: record) == bytes)
         #expect(throws: SettingsSyncPersistenceError.self) { try fixture.store.applyRemote([invalid]) }
         #expect(try fixture.store.loadSFTP() == SFTPPreferences())
-        #expect(fixture.defaults.integer(forKey: SettingsKey.sftpGlobalTransferLimit) == 15)
+        #expect(fixture.defaults.integer(forKey: SettingsKey.sftpGlobalTransferLimit) == 30)
     }
 
     @Test func cloudRecordTypeMustMatchItsPayloadAndRestoredSystemFields() throws {
@@ -154,7 +157,7 @@ struct SFTPSettingsSyncTests {
         #expect(throws: (any Error).self) { try fixture.store.saveSFTP(.init(globalLimit: 100, perHostLimit: 50)) }
         #expect(try fixture.store.loadSFTP() == SFTPPreferences())
         #expect(try fixture.store.journal.envelope(for: key) == before)
-        #expect(fixture.defaults.integer(forKey: SettingsKey.sftpGlobalTransferLimit) == 15)
+        #expect(fixture.defaults.integer(forKey: SettingsKey.sftpGlobalTransferLimit) == 30)
         #expect(callbacks == 0)
     }
 

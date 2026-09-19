@@ -96,27 +96,65 @@ nonisolated public struct SFTPCopyTool: AgentToolDefinition, AgentToolSchemaBuil
         let request = try Request(invocation)
         let cancellation = TransferCancellationToken()
         return try await withTaskCancellationHandler {
-            try await authentication.withSFTP(
-                hostID: request.sourceHostID, invocationID: invocation.id,
-                interaction: context.sshInteraction, pool: connections, cancellation: cancellation
-            ) { source in
-                try await authentication.withSFTP(
-                    hostID: request.destinationHostID, invocationID: invocation.id,
-                    interaction: context.sshInteraction, pool: connections, cancellation: cancellation
-                ) { destination in
-                    let outcome = await SFTPRemoteCopyOperation.run(
-                        sourcePath: request.sourcePath, destinationPath: request.destinationPath,
-                        sameHost: request.sourceHostID == request.destinationHostID,
-                        source: source, destination: destination, policy: request.policy, cancellation: cancellation
-                    ) { outcome, progress in
-                        context.report(Self.copyResult(invocation, request, context, outcome, progress: progress))
+            let permit = try await connections.sftpConcurrencyScheduler.acquire(
+                anchorHostID: request.destinationHostID,
+                hostIDs: [request.sourceHostID, request.destinationHostID],
+                source: .agentRun(context.runID),
+                byteCount: nil
+            )
+            do {
+                let result = try await authentication.withSFTP(
+                    hostID: request.sourceHostID, invocationID: invocation.id,
+                    interaction: context.sshInteraction, pool: connections, cancellation: cancellation,
+                    runID: context.runID, schedulesDataTransfer: true, concurrencyPermit: permit
+                ) { source in
+                    if request.sourceHostID == request.destinationHostID,
+                        permit.schedulingMode == .channelsOnly
+                    {
+                        return await performCopy(
+                            source: source, destination: source,
+                            request: request, invocation: invocation,
+                            context: context, cancellation: cancellation)
                     }
-                    return Self.copyResult(invocation, request, context, outcome)
+                    return try await authentication.withSFTP(
+                        hostID: request.destinationHostID, invocationID: invocation.id,
+                        interaction: context.sshInteraction, pool: connections, cancellation: cancellation,
+                        runID: context.runID, schedulesDataTransfer: true, concurrencyPermit: permit
+                    ) { destination in
+                        await performCopy(
+                            source: source, destination: destination,
+                            request: request, invocation: invocation,
+                            context: context, cancellation: cancellation)
+                    }
                 }
+                await permit.release()
+                return result
+            } catch {
+                await permit.release()
+                throw error
             }
         } onCancel: {
             cancellation.cancel()
         }
+    }
+
+    private func performCopy(
+        source: any SFTPClientProtocol,
+        destination: any SFTPClientProtocol,
+        request: Request,
+        invocation: AgentToolInvocation,
+        context: AgentToolExecutionContext,
+        cancellation: TransferCancellationToken
+    ) async -> AgentToolResult {
+        let outcome = await SFTPRemoteCopyOperation.run(
+            sourcePath: request.sourcePath, destinationPath: request.destinationPath,
+            sameHost: request.sourceHostID == request.destinationHostID,
+            source: source, destination: destination, policy: request.policy,
+            cancellation: cancellation
+        ) { outcome, progress in
+            context.report(Self.copyResult(invocation, request, context, outcome, progress: progress))
+        }
+        return Self.copyResult(invocation, request, context, outcome)
     }
 
     private static func copyResult(

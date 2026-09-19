@@ -24,7 +24,8 @@ public struct AgentHostServices {
 
     public static func live(
         store: HostLibraryModel,
-        coordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator()
+        coordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator(),
+        sftpConcurrencyScheduler: SFTPConcurrencyScheduler = SFTPConcurrencyScheduler()
     ) -> AgentHostServices {
         let resolver = AgentHostResolver(store: store)
         return AgentHostServices(
@@ -33,7 +34,8 @@ public struct AgentHostServices {
                 configuration: { try await resolver.configuration(for: $0) },
                 routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
                 openExec: { try await coordinator.connectExec(using: $0) },
-                openSFTP: { try await coordinator.connectSFTP(using: $0) }
+                openSFTP: { try await coordinator.connectSFTP(using: $0) },
+                sftpConcurrencyScheduler: sftpConcurrencyScheduler
             ),
             authentication: AgentSSHAuthenticationRegistry(resolver: resolver),
             background: AgentBackgroundCommands()

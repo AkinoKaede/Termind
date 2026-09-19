@@ -338,12 +338,11 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
             // turn serial, so nothing observes the host while it is
             // being changed.
             //
-            // The ceiling on what this buys is worth stating: commands
-            // aimed at one host queue behind each other inside
-            // `SSHExecSession` regardless, because a libssh2 session
-            // cannot be driven from two places at once. The win is
-            // several hosts at once, and host work overlapping `fetch`,
-            // `web_search`, and MCP.
+            // Safe commands may overlap even when aimed at one host:
+            // `SSHExecSession` gives each command its own Channel on the
+            // shared transport, while one fair owner serializes the actual
+            // libssh2 calls. Commands on separate hosts can also run at once,
+            // as can host work alongside `fetch`, `web_search`, and MCP.
             concurrency: safe ? .parallel : .sequential
         )
     }

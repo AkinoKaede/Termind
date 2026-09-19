@@ -178,12 +178,16 @@ final class MobileAppModel {
             service: AppleSpeechTranscriptionService(audioInput: speechAudio)
         )
         speechAudio.onInterruption = { [weak speech] in speech?.cancelAll() }
+        let sftpConcurrencyScheduler = SFTPConcurrencyScheduler(preferences: sftpSettings.preferences)
         assistant = MobileAssistantModel(
             configuration: ai,
             repository: MemoryIndexedAgentRepository(
                 base: SwiftDataAgentRunRepository(context: ModelContext(container)), memory: memory),
             memory: memory,
-            hostServices: AgentHostServices.live(store: library, coordinator: connectionCoordinator),
+            hostServices: AgentHostServices.live(
+                store: library,
+                coordinator: connectionCoordinator,
+                sftpConcurrencyScheduler: sftpConcurrencyScheduler),
             metrics: metrics.core, skills: skills,
             authorize: { [pro] in pro.require(.assistant) },
             speech: speech,
@@ -197,7 +201,10 @@ final class MobileAppModel {
         forwardings = dependencies.makeForwardings(library)
         transfers = SFTPTransferCoordinator(
             store: library, clientFactory: { connectionCoordinator.makeSFTPClient() },
-            globalLimit: sftpSettings.preferences.globalLimit, perHostLimit: sftpSettings.preferences.perHostLimit)
+            globalLimit: sftpSettings.preferences.globalLimit,
+            perHostLimit: sftpSettings.preferences.perHostLimit,
+            strategy: sftpSettings.preferences.strategy,
+            concurrencyScheduler: sftpConcurrencyScheduler)
         sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
         library.willDeleteHost = { [weak sftpEdits, weak forwardings] hostID, _ in
             sftpEdits?.invalidate(hostID: hostID)
@@ -232,7 +239,7 @@ final class MobileAppModel {
         }
         vaultSync?.didApplyRemote = { [weak self] in self?.applyRemoteVault($0, keys: $1) }
         sftpSettings.didChange = { [weak transfers] preferences in
-            transfers?.updateLimits(global: preferences.globalLimit, perHost: preferences.perHostLimit)
+            transfers?.updatePreferences(preferences)
         }
         settingsSync?.didApplyRemote = { [weak self] snapshot, _ in
             self?.ai.applyRemoteSnapshot(snapshot.configuration, webSearch: snapshot.webSearch)

@@ -14,7 +14,8 @@ struct SFTPTransferSessionTests {
         let configuration = SSHConnectionConfiguration(
             hostID: UUID(), host: "fixture", port: 22, username: "user", credentials: [], expectedHostKeys: [])
         let coordinator = SFTPTransferCoordinator(
-            store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) })
+            store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) },
+            strategy: .connectionsPreferred)
         let browser = SFTPSessionModel(
             hostID: configuration.hostID, initialPath: "/", client: primary, configuration: configuration)
         let workspace = Workspace(pane: Pane(.sftpSession(browser)))
@@ -86,6 +87,21 @@ struct SFTPTransferSessionTests {
         #expect(await primary.disconnects == 1)
         #expect(coordinator.sftpTransfers.allSatisfy { $0.state == .completed })
         #expect(await harness.opens == 1)
+    }
+
+    @Test func channelsOnlyUsesSiblingChannelsWithoutOpeningConnections() async throws {
+        let harness = TransferSessionHarness(behaviors: [])
+        let primary = TransferSessionClient(harness: harness, primary: true)
+        let (session, coordinator) = fixture(
+            primary: primary, harness: harness, limit: 3, strategy: .channelsOnly)
+        enqueue(3, session: session, coordinator: coordinator)
+        try await eventually { await harness.started == 3 }
+        #expect(await harness.opens == 0)
+        #expect(await harness.siblingChannels == 3)
+        #expect(await harness.maximumActive == 3)
+        await harness.releaseAll()
+        try await eventually { coordinator.activeCount == 0 }
+        await session.releaseOwner()
     }
 
     @Test func emptyCredentialsCanOpenParallelConnectionsWithinTheLimits() async throws {
@@ -180,7 +196,7 @@ struct SFTPTransferSessionTests {
             hostID: UUID(), host: "terminal", port: 22, username: "user", credentials: [], expectedHostKeys: [])
         let coordinator = SFTPTransferCoordinator(
             store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) },
-            globalLimit: 15, perHostLimit: 5)
+            globalLimit: 15, perHostLimit: 5, strategy: .connectionsPreferred)
         let upload = SFTPSessionModel(
             hostID: configuration.hostID, initialPath: "/destination", client: primary,
             configuration: configuration, wasOpenedSilently: true)
@@ -215,7 +231,7 @@ struct SFTPTransferSessionTests {
         let harness = TransferSessionHarness(behaviors: [])
         let coordinator = SFTPTransferCoordinator(
             store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) },
-            globalLimit: 15, perHostLimit: 5)
+            globalLimit: 15, perHostLimit: 5, strategy: .connectionsPreferred)
         let configuration = SSHConnectionConfiguration(
             hostID: UUID(), host: "same-host", port: 22, username: "user", credentials: [], expectedHostKeys: [])
         let sessions = (0..<2).map { _ in
@@ -237,7 +253,8 @@ struct SFTPTransferSessionTests {
 
     private func fixture(
         primary: TransferSessionClient, harness: TransferSessionHarness, limit: Int = 4,
-        wasOpenedSilently: Bool = false
+        wasOpenedSilently: Bool = false,
+        strategy: SFTPConcurrencyStrategy = .connectionsPreferred
     ) -> (SFTPTransferSession, SFTPTransferCoordinator) {
         let session = SFTPTransferSession(
             configuration: SSHConnectionConfiguration(
@@ -246,7 +263,7 @@ struct SFTPTransferSessionTests {
             client: primary, wasOpenedSilently: wasOpenedSilently)
         let coordinator = SFTPTransferCoordinator(
             store: HostLibraryModel(), clientFactory: { TransferSessionClient(harness: harness) },
-            globalLimit: limit, perHostLimit: limit)
+            globalLimit: limit, perHostLimit: limit, strategy: strategy)
         return (session, coordinator)
     }
 

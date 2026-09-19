@@ -32,6 +32,21 @@ public final class SFTPSettingsModel {
         }
     }
 
+    @discardableResult
+    public func setStrategy(_ value: SFTPConcurrencyStrategy) -> Bool {
+        var next = preferences
+        next.strategy = value
+        guard next != preferences else { return true }
+        do {
+            try persistence?.saveSFTP(next)
+            applyRemoteSnapshot(next)
+            return true
+        } catch {
+            storageError = error.localizedDescription
+            return false
+        }
+    }
+
     public func applyRemoteSnapshot(_ value: SFTPPreferences) {
         let next = value.normalized
         let changed = preferences != next

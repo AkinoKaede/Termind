@@ -6,9 +6,9 @@ import Testing
 @Suite @MainActor
 struct SFTPSettingsTests {
     @Test func defaultsAndRangesHaveOneSharedDefinition() {
-        #expect(SFTPPreferences() == SFTPPreferences(globalLimit: 15, perHostLimit: 5))
-        #expect(SettingsKey.defaultSFTPGlobalTransferLimit == 15)
-        #expect(SettingsKey.defaultSFTPPerHostTransferLimit == 5)
+        #expect(SFTPPreferences() == SFTPPreferences(globalLimit: 30, perHostLimit: 10, strategy: .smart))
+        #expect(SettingsKey.defaultSFTPGlobalTransferLimit == 30)
+        #expect(SettingsKey.defaultSFTPPerHostTransferLimit == 10)
         #expect(SettingsKey.sftpGlobalTransferLimitRange == 1...100)
         #expect(SettingsKey.sftpPerHostTransferLimitRange == 1...50)
     }
@@ -37,7 +37,7 @@ struct SFTPSettingsTests {
         persistence.fail = false
         #expect(model.set(100, for: \.globalLimit))
         #expect(model.storageError == nil)
-        #expect(received == [SFTPPreferences(globalLimit: 100, perHostLimit: 5)])
+        #expect(received == [SFTPPreferences(globalLimit: 100, perHostLimit: 10)])
     }
 
     @Test func remoteChangesNotifyOnceWithoutSavingAndLocalChangesCommitThePair() {
@@ -54,6 +54,25 @@ struct SFTPSettingsTests {
         #expect(persistence.value == SFTPPreferences(globalLimit: 3, perHostLimit: 3))
         #expect(persistence.saves == 1)
         #expect(received.last == persistence.value)
+    }
+
+    @Test func strategyPersistsAndOlderJSONDefaultsToSmart() throws {
+        let legacy = try JSONDecoder().decode(
+            SFTPPreferences.self,
+            from: Data(#"{"globalLimit":15,"perHostLimit":5}"#.utf8))
+        #expect(legacy == SFTPPreferences(globalLimit: 15, perHostLimit: 5, strategy: .smart))
+
+        let persistence = TestSFTPPreferencesPersistence()
+        let model = SFTPSettingsModel(persistence: persistence)
+        #expect(model.setStrategy(.channelsOnly))
+        #expect(persistence.value.strategy == .channelsOnly)
+        #expect(persistence.saves == 1)
+
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(
+                SFTPPreferences.self,
+                from: Data(#"{"globalLimit":30,"perHostLimit":10,"strategy":"future"}"#.utf8))
+        }
     }
 }
 

@@ -13,16 +13,21 @@ import Testing
 struct MobileSettingsPortTests {
     @Test func sftpSettingsUseTheSharedPreferencesAndUpdateWithoutOpeningSettings() throws {
         let app = try MobileAppModel(inMemory: true)
-        #expect(app.sftpSettings.preferences == SFTPPreferences(globalLimit: 15, perHostLimit: 5))
-        #expect(app.transfers.globalLimit == 15)
-        #expect(app.transfers.perHostLimit == 5)
+        #expect(app.sftpSettings.preferences == SFTPPreferences(globalLimit: 30, perHostLimit: 10))
+        #expect(app.transfers.globalLimit == 30)
+        #expect(app.transfers.perHostLimit == 10)
+        #expect(app.transfers.strategy == .smart)
         #expect(app.sftpSettings.set(100, for: \.globalLimit))
         #expect(app.sftpSettings.set(50, for: \.perHostLimit))
+        #expect(app.sftpSettings.setStrategy(.connectionsPreferred))
         #expect(app.transfers.globalLimit == 100)
         #expect(app.transfers.perHostLimit == 50)
-        app.sftpSettings.applyRemoteSnapshot(SFTPPreferences(globalLimit: 3, perHostLimit: 2))
+        #expect(app.transfers.strategy == .connectionsPreferred)
+        app.sftpSettings.applyRemoteSnapshot(
+            SFTPPreferences(globalLimit: 3, perHostLimit: 2, strategy: .channelsOnly))
         #expect(app.transfers.globalLimit == 3)
         #expect(app.transfers.perHostLimit == 2)
+        #expect(app.transfers.strategy == .channelsOnly)
     }
 
     @Test func sftpCoordinatorAppliesNormalizedSettingsImmediately() {

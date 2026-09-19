@@ -49,7 +49,9 @@ final class MCPServerTools {
                 let handler = await externalAuthentication.handler(clientName: client, runID: runID)
                 return try await authentication.withSFTP(
                     hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
-                    pool: connections, cancellation: token
+                    pool: connections, cancellation: token,
+                    runID: runID, byteCount: request.byteCount,
+                    schedulesDataTransfer: true
                 ) { client in
                     try await SFTPStreamUploadOperation.run(
                         client: client, remotePath: request.remotePath, byteCount: request.byteCount,
@@ -63,7 +65,8 @@ final class MCPServerTools {
             let handler = await externalAuthentication.handler(clientName: clientName, runID: runID)
             try await authentication.withSFTP(
                 hostID: request.hostID, invocationID: invocationID, interaction: handler.sshInteraction,
-                pool: connections, cancellation: token
+                pool: connections, cancellation: token,
+                runID: runID, schedulesDataTransfer: true
             ) { client in
                 let stream = try await client.openDownloadStream(
                     at: request.remotePath, maximumBytes: Int64(MCPTransferBudget.maximumBytes), cancellation: token

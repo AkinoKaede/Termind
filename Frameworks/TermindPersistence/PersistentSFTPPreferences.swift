@@ -19,11 +19,14 @@ extension SFTPPreferences {
             globalLimit: defaults.object(forKey: SettingsKey.sftpGlobalTransferLimit) as? Int
                 ?? Self.defaultGlobalLimit,
             perHostLimit: defaults.object(forKey: SettingsKey.sftpPerHostTransferLimit) as? Int
-                ?? Self.defaultPerHostLimit)
+                ?? Self.defaultPerHostLimit,
+            strategy: defaults.string(forKey: SettingsKey.sftpConcurrencyStrategy)
+                .flatMap(SFTPConcurrencyStrategy.init(rawValue:)) ?? .smart)
     }
 
     public func mirror(to defaults: UserDefaults) {
         defaults.set(globalLimit, forKey: SettingsKey.sftpGlobalTransferLimit)
         defaults.set(perHostLimit, forKey: SettingsKey.sftpPerHostTransferLimit)
+        defaults.set(strategy.rawValue, forKey: SettingsKey.sftpConcurrencyStrategy)
     }
 }

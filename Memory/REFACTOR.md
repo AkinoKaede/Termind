@@ -175,3 +175,22 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
   reproducible `LaunchFileLogServiceTests.loggerDropsUnapprovedSensitiveValues` failure; one concurrent AgentRuntime
   cancellation failure passed immediately when its 20-test suite was rerun. Recursive format also retains the unrelated
   existing `LoggingFilesSettings.swift:110` finding.
+
+### 2026-09-19 — fair SFTP admission and selectable topology (complete)
+
+- **Evidence:** the app transfer coordinator admitted the first eligible queued row, so one Workspace could fill every
+  Host slot, while Agent SFTP leases bypassed the 15/5 limits entirely. User and Agent pools also fixed their topology
+  at connection-preferred even when a small transfer would not repay another SSH handshake. Internal SFTP drag providers
+  advertised both a private remote payload and a Finder file promise; reading both representations could start a redundant
+  download beside the direct remote copy.
+- **Action:** add one process scheduler shared by Workspace/terminal/edit and Agent data work, rotating Hosts and then stable
+  Workspace/Agent-run/batch sources. Resolve Smart (64 MB decimal), Channels Only and Connections Preferred only after admission;
+  retain feature-owned connection lifetimes and connection-to-Channel fallback. Extend the existing synced SFTP preference
+  record compatibly and consume the private drag payload without materializing its local-file promise.
+- **Result:** new/missing settings default to Smart and 30/10 while saved values remain unchanged. Logical file operations
+  consume identical capacity whether backed by a Channel or connection; cross-Host copy counts once globally and once per
+  endpoint. Agent control operations remain outside data capacity, `sftp_copy` uses one composite permit, and in-app remote
+  copy exposes one `.copy` row per regular file without local staging. This is additive scheduling work, not a reduction claim.
+- **Verification:** macOS and generic iOS Simulator builds passed. Focused suites passed for scheduler/session topology,
+  settings persistence/sync, Agent authentication/MCP, Agent/Workspace copy and native drag payload selection. Chinese
+  localization and diff checks passed; final full-suite/format status is recorded in the task handoff.

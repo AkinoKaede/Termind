@@ -223,13 +223,28 @@ nonisolated struct NativeDropPayload: Sendable {
         /// `isEnabled` for why refusing the hit test is not enough on its own.
         func supportedPayload(from pasteboard: NSPasteboard) -> NativeDropPayload? {
             guard isEnabled else { return nil }
-            let payload = Self.payload(from: pasteboard).restricted(to: acceptedKinds)
+            let payload = Self.payload(
+                from: pasteboard,
+                preferSFTPItems: acceptedKinds.contains(.sftpItems)
+            ).restricted(to: acceptedKinds)
             return payload.preferredKind == nil ? nil : payload
         }
 
-        static func payload(from pasteboard: NSPasteboard) -> NativeDropPayload {
+        static func payload(
+            from pasteboard: NSPasteboard,
+            preferSFTPItems: Bool = true
+        ) -> NativeDropPayload {
             let sftpType = NSPasteboard.PasteboardType(UTType.termindSFTPItems.identifier)
-            var payload = NativeDropPayload(sftpItems: pasteboard.data(forType: sftpType))
+            let sftpItems = pasteboard.data(forType: sftpType)
+            if preferSFTPItems, let sftpItems {
+                // The same provider also advertises a promised local file for
+                // Finder. Asking that representation for a URL materializes
+                // the promise and starts a download. An in-app SFTP target
+                // must consume only the private payload, otherwise one drag
+                // creates both a remote copy and a redundant download/upload.
+                return NativeDropPayload(sftpItems: sftpItems)
+            }
+            var payload = NativeDropPayload(sftpItems: sftpItems)
 
             for item in pasteboard.pasteboardItems ?? [] {
                 if let value = item.string(forType: .fileURL),
