@@ -27,6 +27,10 @@ import Testing
             window.contentView?.layoutSubtreeIfNeeded()
             try await Task.sleep(for: .seconds(1))
             window.contentView?.layoutSubtreeIfNeeded()
+            if configuration.scene == .hosts {
+                window.initialFirstResponder = nil
+                window.makeFirstResponder(nil)
+            }
 
             for _ in 0..<100 {
                 NSRunningApplication.current.activate(options: [.activateAllWindows])
@@ -34,19 +38,18 @@ import Testing
                 window.orderFrontRegardless()
                 window.makeMain()
                 window.makeKey()
-                if NSApp.isActive, window.isKeyWindow { break }
+                if NSApp.isActive, window.isKeyWindow {
+                    // Activation can be transient while test hosts launch and exit.
+                    // Require the focused appearance to stay active through rendering.
+                    try await Task.sleep(for: .milliseconds(300))
+                    if NSApp.isActive, window.isKeyWindow { break }
+                }
                 try await Task.sleep(for: .milliseconds(50))
             }
             guard NSApp.isActive, window.isKeyWindow else {
                 Issue.record("Marketing window could not become the focused key window")
                 return
             }
-            if configuration.scene == .hosts {
-                window.initialFirstResponder = nil
-                window.makeFirstResponder(nil)
-            }
-            // Allow the active appearance to render before the external capture.
-            try await Task.sleep(for: .milliseconds(300))
             try #require(NSApp.isActive && window.isKeyWindow)
             try #require(window.backingScaleFactor == 2)
 

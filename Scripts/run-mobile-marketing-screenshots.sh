@@ -54,10 +54,12 @@ run_capture() {
         zh-Hans) region=CN; apple_locale=zh_CN ;;
         zh-Hant) region=TW; apple_locale=zh_TW ;;
     esac
+    local capture_id="$(uuidgen)"
     local localized_xctestrun="$derived_data/Build/Products/Marketing-TFI-$language.xctestrun"
     cp "$marketing_xctestrun" "$localized_xctestrun"
     /usr/libexec/PlistBuddy \
         -c "Add :TFITests:EnvironmentVariables:TERMIND_MARKETING_LOCALE string $language" \
+        -c "Add :TFITests:EnvironmentVariables:TERMIND_MARKETING_CAPTURE_ID string $capture_id" \
         -c "Set :TFITests:TestLanguage $language" \
         -c "Set :TFITests:TestRegion $region" \
         -c 'Add :TFITests:CommandLineArguments:0 string -AppleLanguages' \
@@ -74,25 +76,28 @@ run_capture() {
     local test_pid=$!
     local captures=0
     local last_token=""
+    local capture_directory="$derived_data/captures/$device_id-$language"
+    local -a captured_paths destinations
+    mkdir -p "$capture_directory"
 
     while kill -0 "$test_pid" 2>/dev/null; do
         local app_container
         app_container="$(xcrun simctl get_app_container "$device_id" com.akinokaede.termind data 2>/dev/null || true)"
         local ready="$app_container/Documents/marketing-capture-control/ready"
         if [[ -n "$app_container" && -f "$ready" ]]; then
-            local feature device locale token
-            IFS=$'\t' read -r feature device locale token < "$ready"
-            if [[ -n "$token" && "$token" != "$last_token" ]]; then
+            local feature device locale token request_capture_id
+            IFS=$'\t' read -r feature device locale token request_capture_id < "$ready"
+            if [[ "$request_capture_id" == "$capture_id" && -n "$token" && "$token" != "$last_token" ]]; then
                 local destination="$output_directory/$feature/$device-$locale.png"
-                mkdir -p "${destination:h}"
+                local captured="$capture_directory/$feature.png"
                 if [[ "$device" == "ipad" ]]; then
-                    rm -f "$destination"
+                    rm -f "$captured"
                     xcrun devicectl device capture screenshot \
                         --device "$device_id" \
-                        --destination "$destination" >/dev/null
+                        --destination "$captured" >/dev/null
                     local width height
-                    width="$(sips -g pixelWidth "$destination" | awk '/pixelWidth/ { print $2 }')"
-                    height="$(sips -g pixelHeight "$destination" | awk '/pixelHeight/ { print $2 }')"
+                    width="$(sips -g pixelWidth "$captured" | awk '/pixelWidth/ { print $2 }')"
+                    height="$(sips -g pixelHeight "$captured" | awk '/pixelHeight/ { print $2 }')"
                     if [[ "$width" != "2752" || "$height" != "2064" ]]; then
                         print -u2 "Unexpected iPad screenshot dimensions: ${width}x${height}"
                         kill "$test_pid" 2>/dev/null || true
@@ -101,8 +106,10 @@ run_capture() {
                         exit 70
                     fi
                 else
-                    xcrun simctl io "$device_id" screenshot --type=png "$destination" >/dev/null
+                    xcrun simctl io "$device_id" screenshot --type=png "$captured" >/dev/null
                 fi
+                captured_paths+=("$captured")
+                destinations+=("$destination")
                 touch "$app_container/Documents/marketing-capture-control/ack-$token"
                 last_token="$token"
                 (( captures += 1 ))
@@ -123,12 +130,24 @@ run_capture() {
         print -u2 "Expected $expected captures for $name ($language), received $captures. See $test_log"
         exit 70
     fi
+    for (( index = 1; index <= ${#captured_paths}; index++ )); do
+        mkdir -p "${destinations[$index]:h}"
+        cp "$captured_paths[$index]" "$destinations[$index]"
+    done
 }
 
 mkdir -p "$output_directory"
-build_device_id="$(find_device "iPhone 17 Pro Max")"
+if [[ ",$marketing_devices," == *,iphone,* ]]; then
+    build_device_name="iPhone 17 Pro Max"
+elif [[ ",$marketing_devices," == *,ipad,* ]]; then
+    build_device_name="iPad Pro 13-inch (M5)"
+else
+    print -u2 "Select at least one marketing device: iphone,ipad"
+    exit 64
+fi
+build_device_id="$(find_device "$build_device_name")"
 if [[ -z "$build_device_id" ]]; then
-    print -u2 "Required simulator is unavailable: iPhone 17 Pro Max ($marketing_runtime)"
+    print -u2 "Required simulator is unavailable: $build_device_name ($marketing_runtime)"
     exit 69
 fi
 xcodebuild \
@@ -137,7 +156,6 @@ xcodebuild \
     -destination "id=$build_device_id" \
     -onlyUsePackageVersionsFromResolvedFile \
     -derivedDataPath "$derived_data" \
-    EXCLUDED_SOURCE_FILE_NAMES=MobileNavigationParityTests.swift \
     build-for-testing
 
 generated_xctestrun="$(find "$derived_data/Build/Products" -maxdepth 1 -name 'TFI_*.xctestrun' -print -quit)"

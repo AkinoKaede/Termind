@@ -4,6 +4,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPresentation
+import TermindRemoteInfrastructure
 import Testing
 import UIKit
 
@@ -34,7 +35,9 @@ struct MobileMarketingScreenshotTests {
                 }
             }
 
-            if includes("sftp") {
+            if includes("sftp"), UIDevice.current.userInterfaceIdiom == .pad {
+                try await captureWorkspace(.sftp, language: language)
+            } else if includes("sftp") {
                 let sftp = MobileSFTPSessionModel()
                 try await sftp.attach(
                     fileSystem: MarketingFileSystem(), path: "/srv/termind/releases/2026.09",
@@ -63,8 +66,10 @@ struct MobileMarketingScreenshotTests {
                 }
             }
 
-            if includes("ssh") {
-                let terminal = makeTerminal(language: language)
+            if includes("ssh"), UIDevice.current.userInterfaceIdiom == .pad {
+                try await captureWorkspace(.ssh, language: language)
+            } else if includes("ssh") {
+                let terminal = makeTerminal()
                 try await capture("ssh", language: language) {
                     NavigationStack { MarketingTerminalScene(terminal: terminal, language: language) }
                 }
@@ -96,8 +101,10 @@ struct MobileMarketingScreenshotTests {
         }
     }
 
-    private func makeApp(language: String) throws -> MobileAppModel {
-        let app = try MobileAppModel(inMemory: true)
+    private func makeApp(
+        language: String, connectionServices: MobileWorkspaceConnectionServices = .live
+    ) throws -> MobileAppModel {
+        let app = try MobileAppModel(inMemory: true, workspaceConnectionServices: connectionServices)
         let production = HostGroup(name: text(language, "Production", "生产环境", "正式環境"))
         let edge = HostGroup(name: text(language, "Edge", "边缘节点", "邊緣節點"))
         app.library.upsert(production)
@@ -122,12 +129,52 @@ struct MobileMarketingScreenshotTests {
         return app
     }
 
-    private func makeTerminal(language: String) -> TerminalViewState {
+    private func captureWorkspace(_ kind: ConnectionHistoryEntry.Kind, language: String) async throws {
+        let output = terminalOutput
+        let services = MobileWorkspaceConnectionServices(
+            makeSSHSession: { receive, exit, shellIntegration in
+                receive(output)
+                return SSHSessionActor(output: receive, exit: exit, shellIntegration: shellIntegration)
+            },
+            connectSSH: { _, _, _, _, _, _ in },
+            connectSFTP: { _, _, _ in MarketingFileSystem() },
+            writeSSH: { _, _ in }
+        )
+        let app = try makeApp(language: language, connectionServices: services)
+        defer { app.closeAll() }
+        let identity = Identity(name: "Deploy", username: "deploy")
+        try app.library.upsert(identity, passwordUpdate: .replace("marketing-fixture-only"))
+        var host = try #require(app.library.hosts.first(where: { $0.name == "web-01" }))
+        host.identityID = identity.id
+        app.library.upsert(host)
+        let id = try #require(app.open(hostID: host.id, kind: kind))
+        let workspace = try #require(app.workspaces.first(where: { $0.id == id }))
+        for _ in 0..<200 where !workspace.connected {
+            try await Task.sleep(for: .milliseconds(25))
+        }
+        try #require(workspace.connected)
+        if kind == .sftp {
+            #expect(app.renameWorkspace(id, to: text(language, "Production files", "生产文件", "正式環境檔案")))
+            try #require(workspace.sftpSession.files.count == 6)
+        }
+        let scene = MobileSceneModel(app: app)
+        scene.selectWorkspace(id)
+        try await capture(kind == .ssh ? "ssh" : "sftp", language: language) {
+            MobileRootView(app: app, scene: scene)
+        }
+    }
+
+    private func makeTerminal() -> TerminalViewState {
         let backend = InMemoryTerminalSession(write: { _ in }, resize: { _ in })
         let terminal = TerminalViewState(configSource: .none)
         terminal.configuration = TerminalSurfaceOptions(backend: .inMemory(backend), resizeThrottleMilliseconds: 0)
         let surface = MobileTerminalSurface()
         terminal.makePlatformView = { surface.view }
+        backend.receive(terminalOutput)
+        return terminal
+    }
+
+    private var terminalOutput: Data {
         let prompt = "\u{001B}[36mdeploy@web-01\u{001B}[0m \u{001B}[34m/var/log/nginx\u{001B}[0m %"
         let lines = [
             "Last login: Sun Sep 13 14:20:06 from 10.0.0.12",
@@ -141,8 +188,7 @@ struct MobileMarketingScreenshotTests {
             "10.0.4.31  GET /assets/app  304   2ms",
             prompt,
         ]
-        backend.receive(Data(lines.joined(separator: "\r\n").utf8))
-        return terminal
+        return Data(lines.joined(separator: "\r\n").utf8)
     }
 
     private func makeMetrics(language: String) -> [ServerMetric] {
@@ -203,7 +249,7 @@ struct MobileMarketingScreenshotTests {
 
         if isPad, let tabs = tabController(in: controller) {
             // Keep each scene's navigation presentation independent of restored simulator state.
-            tabs.sidebar.isHidden = name == "metrics"
+            tabs.sidebar.isHidden = ["metrics", "ssh", "sftp"].contains(name)
             try await Task.sleep(for: .milliseconds(900))
         }
 
@@ -247,7 +293,9 @@ struct MobileMarketingScreenshotTests {
         let locale = language == "zh-Hans" ? "zh-hans" : language == "zh-Hant" ? "zh-hant" : "en"
         let ready = control.appending(path: "ready")
         let ack = control.appending(path: "ack-\(token)")
-        try "\(name)\t\(device)\t\(locale)\t\(token)\n".write(to: ready, atomically: true, encoding: .utf8)
+        let captureID = try #require(ProcessInfo.processInfo.environment["TERMIND_MARKETING_CAPTURE_ID"])
+        try "\(name)\t\(device)\t\(locale)\t\(token)\t\(captureID)\n".write(
+            to: ready, atomically: true, encoding: .utf8)
 
         for _ in 0..<300 {
             if FileManager.default.fileExists(atPath: ack.path) {
@@ -381,7 +429,7 @@ private struct MarketingMetricsScene: View {
     }
 }
 
-private actor MarketingFileSystem: RemoteFileSystem {
+private actor MarketingFileSystem: SFTPClientProtocol {
     private let files: [RemoteFile] = [
         RemoteFile(
             path: "/srv/termind/releases/2026.09/bin", name: "bin", kind: .directory, size: 0,
@@ -404,6 +452,9 @@ private actor MarketingFileSystem: RemoteFileSystem {
             modifiedAt: Date(timeIntervalSince1970: 1_788_942_000), permissions: 0o755, ownerUID: 501, ownerGID: 20),
     ]
 
+    func connect(using _: SSHConnectionConfiguration, progress _: SSHRouteProgressHandler?) async throws {}
+    func disconnect() async {}
+    func homeDirectory() async throws -> String { "/srv/termind/releases/2026.09" }
     func listDirectory(at _: String) async throws -> [RemoteFile] { files }
     func attributes(at _: String) async throws -> RemoteFile? { nil }
     func readFile(at _: String, maximumBytes _: Int) async throws -> Data { Data() }
@@ -413,4 +464,12 @@ private actor MarketingFileSystem: RemoteFileSystem {
     func rename(from _: String, to _: String, overwrite _: Bool) async throws {}
     func removeFile(at _: String) async throws {}
     func removeDirectory(at _: String) async throws {}
+    func uploadFile(
+        from _: URL, to _: String, overwrite _: Bool, cancellation _: TransferCancellationToken,
+        progress _: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {}
+    func downloadFile(
+        from _: String, to _: URL, overwrite _: Bool, cancellation _: TransferCancellationToken,
+        progress _: @escaping @Sendable (SFTPProgress) -> Void
+    ) async throws {}
 }

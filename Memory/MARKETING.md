@@ -72,6 +72,8 @@ The runner defaults to the iOS/iPadOS 26.5 simulator runtime so installing a new
 runtime cannot silently change the marketing UI or select another same-name
 device. Set `TERMIND_MARKETING_RUNTIME` to a full CoreSimulator runtime identifier
 only when intentionally updating the runtime used for a capture set.
+An iPad-only selection builds on the selected iPad and does not require an iPhone
+simulator to be installed.
 
 Each locale launches a separate test process with matching Apple language, region,
 and locale arguments. `TERMIND_MARKETING_LOCALE` selects that process's fixture
@@ -119,10 +121,32 @@ simulated sidebar or back buttons to the top-level Metrics and Assistant pages.
 Regenerate only the matching nine iPad device frames and App Store boards 04-06;
 first boards use iPad SFTP and remain unchanged.
 
+The iPad SSH and SFTP fixtures mount the production `MobileRootView` and workspace
+pages, with deterministic in-memory data supplied through the existing
+`MobileWorkspaceConnectionServices`. They select Workspaces, collapse the native
+sidebar, and show the current top tabs, workspace switcher and action menu. Keep
+the iPhone-only legacy scene wrappers out of this iPad path. Terminal output stays
+English in every locale. The approved topbar capture set uses iPadOS 27.0:
+
+```sh
+TERMIND_MARKETING_SCENES=ssh,sftp \
+TERMIND_MARKETING_DEVICES=ipad \
+TERMIND_MARKETING_RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-0 \
+Scripts/run-mobile-marketing-screenshots.sh
+```
+
+Refresh those six device frames and iPad boards 02–03, plus the iPad SFTP image in
+all nine three-device first boards. Other frames and boards are outside that set.
+
 The runner sets a deterministic `9:41` status bar, charged battery, Wi-Fi, and
 cellular state. It sets the iPad orientation and captures its landscape display
 with `devicectl`, verifying `2752x2064` before acknowledging each capture. The
 iPhone uses `simctl` screenshots. No post-capture rotation is required.
+Each locale process receives a fresh `TERMIND_MARKETING_CAPTURE_ID`; the runner
+ignores ready markers from earlier processes. Captures are staged under the
+derived-data directory and copied to the source tree only after the tests and
+expected capture count pass. Back up raw images and a SHA-256 manifest before
+running a refresh.
 
 Whenever SFTP, Metrics, Assistant navigation, or system chrome changes, recapture
 the affected device and every locale. A marketing fixture may be updated to expose
@@ -136,6 +160,8 @@ mounts a second RootView or duplicates a terminal/transcript surface. Before it
 publishes the ready marker, it requires both `NSApp.isActive` and
 `window.isKeyWindow`, allows the focused appearance to render, and requires native
 2× backing scale. Focus is checked again when the capture is acknowledged.
+The focus retry loop also requires activation to survive the 300 ms appearance
+render interval. Do not run another Mac app activation alongside a capture.
 
 Generate all three localized Workspace sources:
 
@@ -459,3 +485,57 @@ The following failures persisted in unchanged tests:
 
 Logs and `.xcresult` bundles remain in `.build/marketing-forwarding-refresh/`.
 No production behavior or unrelated tests were changed to address these failures.
+
+The later 2026-09-19 navigation topbar refresh replaced Mac Metrics overview and
+Vault in all three languages (`2360x1480`) and iPad SSH/SFTP in all three languages
+(`2752x2064`, iPadOS 27.0, iPad Pro 13-inch M5 landscape, 9:41). All six Mac sources
+passed active/key checks before capture and after acknowledgement; visual and
+pixel checks confirmed colored traffic lights and the current `plus` icons.
+The iPad captures use the actual root/workspace views, with Workspaces selected,
+the sidebar collapsed and the native topbar and bottom controls fully visible.
+
+Only the six matching iPad device frames (`2960x2290`) were regenerated. In the
+verified `Termind` Figma file, the refresh replaced Mac boards 03/05, iPad boards
+02/03 and the iPad SFTP image in every platform's board 01, across all locales.
+English was reviewed first. Readback confirmed all 21 image fills match their
+local source PNG bytes, and every other reported node property stayed unchanged,
+including copy, fonts, geometry, FIT, shadows and stacking. The 21 JPG exports use
+`save_screenshots` at 1×, retain the original dimensions and have opaque RGB pixels
+with embedded sRGB profiles. Profile metadata was added without re-encoding or
+changing decoded pixels.
+
+The complete pre-capture image backup, SHA-256 manifests, focus evidence, Figma
+readbacks, contact sheets and validation logs are in
+`.build/marketing-topbar-refresh/`. Exact-path auditing found 39 changed and 93
+unchanged images, with no additions or removals: 45 captures, 33 device frames and
+54 App Store JPGs. A profile audit also found 23 untouched baseline JPGs without an
+embedded ICC profile; this corrects the earlier blanket statement about all 54
+files being tagged. Those 23 originals remain byte-identical to the backup.
+
+The website rebuilt successfully (17 pages, no errors or warnings), using the
+existing image references. The English, Simplified Chinese and Traditional Chinese
+homepages were checked visually, including their hero and SFTP images; `/zh/`
+redirects to `/zh-hans/`. Full Swift formatting, Chinese localization, screenshot
+shell syntax, generator Python syntax and whitespace checks passed. The Xcode
+project and resolved package versions remain unchanged. Python bytecode caches
+are now ignored by Git.
+
+All nine opt-in capture runs passed (six Mac runs and three iPad locale runs,
+producing 12 sources). The complete TFM run finished with 1,719 passed tests,
+one failed test and 23 skipped tests. Its only failure is the previously recorded
+`MetricsDetailToolbarTests.legacyCompactSearchOpensTheNativeFieldAndKeepsItsQueryWhenWidened`
+in all three language cases. `ScreenshotDemoTests`, `AppLanguageTests` and all
+352 shared-framework tests passed.
+
+The TFI run completed 328 app tests and all 352 shared-framework tests: 679 passed
+tests and one failed test. The unchanged
+`MobileAssistantInteractionRenderingTests.interactionTextRemainsVisibleOnMaterial`
+reported 12 OCR mismatches on iPadOS 27.0, including `Deployment` read as
+`Deplovment` and `prod.example` read as `oroo.examole`. The existing capture build
+excluded `MobileNavigationParityTests`; a normal pinned build and separate run of
+all four tests passed, and the obsolete exclusion was removed from the runner.
+After both main suites had finished, Xcode stalled collecting simulator diagnostics;
+only its `simctl diagnose` child was stopped so the complete `.xcresult` could
+finalize. No tests were interrupted. Both full-run result bundles and the
+navigation supplement are retained in the evidence directory. Product code and
+unrelated test assertions were not changed to address the failures.
