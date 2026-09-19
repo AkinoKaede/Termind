@@ -6,17 +6,6 @@ import TermindPresentation
 
 import struct TermindDomain.Host
 
-/// Which verb the chooser was raised for.
-///
-/// One sheet, four verbs. "Which machine?" is the same question whether the
-/// answer opens a terminal or a file browser, and whether it wants one machine
-/// or a dozen; the list, the search, the keyboard handling, and the row are the
-/// same work in every case — so the difference is carried as data rather than as
-/// a second view.
-///
-/// The two batch cases both title themselves "Batch Startup", after the Rayon
-/// row they came from. What tells them apart is the confirm button, which is the
-/// last thing read before anything happens anyway.
 nonisolated struct SnippetHostChooserRequest: Hashable, Sendable {
     enum Strategy: Hashable, Sendable {
         case fillMissingTargets
@@ -71,7 +60,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     var symbol: String {
         switch self {
         case .connect: "network"
-        case .batchStartup: "wind"
+        case .batchStartup: MenuSymbol.batchStartup
         case .metrics: "waveform.path.ecg"
         case .snippet: "text.badge.play"
         }
@@ -82,17 +71,6 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     var confirmLabel: LocalizedStringKey {
         switch self {
         case .connect, .batchStartup: "Connect"
-        case .metrics: "Add Server"
-        case .snippet: "Execute"
-        }
-    }
-
-    /// The batch sheet's second verb. Spelled out the same way as
-    /// `confirmLabel`: the button is the last thing read before something
-    /// connects, so it says which thing *and* where it lands.
-    var workspaceConfirmLabel: LocalizedStringKey {
-        switch self {
-        case .connect, .batchStartup: "Connect in the same workspace"
         case .metrics: "Add Server"
         case .snippet: "Execute"
         }
@@ -113,13 +91,6 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         switch self {
         case .connect: true
         case .batchStartup, .snippet, .metrics: false
-        }
-    }
-
-    var showsWorkspaceChoice: Bool {
-        switch self {
-        case .batchStartup: true
-        case .connect, .snippet, .metrics: false
         }
     }
 
@@ -333,6 +304,7 @@ struct HostChooserView: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("host-chooser.host.\(host.id)")
                         .id(host.id)
                         .listRowBackground(
                             chooser.cursor == host.id
@@ -441,16 +413,12 @@ struct HostChooserView: View {
 
             Button("Cancel", action: close)
                 .keyboardShortcut(.cancelAction)
-
-            if purpose.showsWorkspaceChoice {
-                Button(purpose.workspaceConfirmLabel) { openChecked(as: .oneWorkspace) }
-                    .disabled(chooser.selected.count < 2)
-                    .help(workspaceHelp)
-            }
+                .accessibilityIdentifier("host-chooser.cancel")
 
             Button(purpose.confirmLabel, action: openSelected)
                 .keyboardShortcut(.defaultAction)
                 .disabled(connectIsDisabled)
+                .accessibilityIdentifier("host-chooser.confirm")
         }
         .padding(Metrics.Space.l)
     }
@@ -512,7 +480,7 @@ struct HostChooserView: View {
         dismiss()
     }
 
-    private func openChecked(as layout: BatchLayout = .separateWorkspaces) {
+    private func openChecked() {
         let batch = app.hostLibrary.searchHosts("").filter { chooser.selected.contains($0.id) }
         guard !batch.isEmpty else { return }
         if case .snippet = purpose {
@@ -524,7 +492,7 @@ struct HostChooserView: View {
             dismiss()
         } else {
             guard let target = connectionProtocol.target else { return }
-            app.open(batch, as: target, layout: layout, in: window)
+            app.open(batch, as: target, layout: .oneWorkspace, in: window)
             dismiss()
         }
     }
@@ -583,24 +551,6 @@ struct HostChooserView: View {
         switch presentation {
         case .sheet: dismiss()
         case .vaultWork: window.closeVaultWork()
-        }
-    }
-
-    private var workspaceHelp: Text {
-        if chooser.selected.count < 2 {
-            Text(
-                AppLocalization.string(
-                    "Select at least two hosts. A Workspace can contain one or more hosts.",
-                    locale: locale
-                )
-            )
-        } else {
-            Text(
-                AppLocalization.string(
-                    "Open \(chooser.selected.count) hosts as panes in one workspace.",
-                    locale: locale
-                )
-            )
         }
     }
 

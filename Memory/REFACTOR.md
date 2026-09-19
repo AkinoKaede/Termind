@@ -486,3 +486,11 @@ Formatting/localization/diff passed; full pinned macOS/iOS pending. Evidence:
 environment; production already has no idiom/model layout branches. Remove both reads and consume one shared toolbar
 policy, retaining container geometry/active reserved regions/native identity/OS API checks. Estimate −2 production
 lines/two duplicate conditions. Native title/menu transitions and fold/session lifetime verification remain pending.
+
+## Batch Startup confirmation, 2026-09-19 — implemented, verification pending
+
+`rg 'showsWorkspaceChoice|workspaceConfirmLabel|workspaceHelp|openChecked' TFM TFMTests` confirmed one chooser-only
+secondary action and layout parameter. Keep Connect/Return as the single confirmation, explicitly opening one new
+Workspace for one or more selected SSH/SFTP Hosts. Remove the redundant button/policy/help and three unused localized
+entries; retain shared BatchLayout for Host context menus. Estimate −45–60 chooser lines; actual −53 including stable
+accessibility identifiers for behavioral UI coverage. Focus/menu changes are tracked by the same regression run.

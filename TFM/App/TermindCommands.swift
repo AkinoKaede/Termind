@@ -63,22 +63,19 @@ struct TermindCommands: Commands {
 
             Divider()
 
-            // Both of these act on the host selected on the Hosts page, and fall
-            // back to that page when there is none — see `AppModel.newWorkspace`.
-            //
-            // Ordered by how often they are reached, not alphabetically: a
-            // session, then a transfer to the same kind of machine, then a chat
-            // that is attached to neither.
             Button("Connect", systemImage: MenuSymbol.ssh) {
                 guard let window else { return }
                 app.connect(in: window)
             }
             .termindShortcut("t")
+            Button("Batch Startup", systemImage: MenuSymbol.batchStartup) {
+                guard let window else { return }
+                app.batchStartup(in: window)
+            }
+            .termindShortcut("b", modifiers: [.command, .shift])
+            .disabled(window == nil)
             Button("New Chat", systemImage: MenuSymbol.newChat) { window?.openNewAssistantChat() }
                 .termindShortcut("t", modifiers: [.command, .option])
-
-            Divider()
-
             Button("New Host", systemImage: MenuSymbol.newHost) { window?.openHostEditor(host: nil) }
                 .termindShortcut("n", modifiers: [.command, .shift])
 

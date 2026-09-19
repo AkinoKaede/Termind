@@ -78,12 +78,10 @@ struct ManagedChooserTests {
         #expect(HostChooserPurpose.connect.choosesConnectionProtocol)
         #expect(!HostChooserPurpose.connect.allowsMultiple)
         #expect(HostChooserPurpose.connect.activatesHostImmediately)
-        #expect(!HostChooserPurpose.connect.showsWorkspaceChoice)
 
         #expect(HostChooserPurpose.batchStartup.choosesConnectionProtocol)
         #expect(HostChooserPurpose.batchStartup.allowsMultiple)
         #expect(!HostChooserPurpose.batchStartup.activatesHostImmediately)
-        #expect(HostChooserPurpose.batchStartup.showsWorkspaceChoice)
 
         #expect(HostChooserPurpose.metrics.allowsMultiple)
         #expect(!HostChooserPurpose.metrics.activatesHostImmediately)

@@ -284,7 +284,10 @@ final class WindowModel {
 
     var isQuickOpenPresented: Bool {
         get { presentations.isQuickOpenPresented }
-        set { presentations.isQuickOpenPresented = newValue }
+        set {
+            presentations.isQuickOpenPresented = newValue
+            if newValue { isToolbarFindFocused = false }
+        }
     }
 
     /// Closed workspaces, most recent last. ⇧⌘T pops from here. The Workspace retains
@@ -861,8 +864,7 @@ final class WindowModel {
         return open(Workspace(pane: pane))
     }
 
-    /// Batch Startup's second verb: every host becomes a pane of one Workspace,
-    /// tiled into a grid rather than opened as a workspace each.
+    /// Batch Startup opens every host as a pane of one new Workspace, tiled into a grid.
     ///
     /// Returns nil for a target that cannot be a Workspace pane — only SSH and
     /// SFTP sessions can, which is the same rule `PaneKind.isCombinable`

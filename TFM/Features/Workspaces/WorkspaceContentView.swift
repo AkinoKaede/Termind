@@ -650,7 +650,7 @@ private struct PaneView: View {
                 sshSession: sshSession,
                 workspace: workspace,
                 isVisible: isActive,
-                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused,
+                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused && !window.isQuickOpenPresented,
                 externalFileDrop: localFileDropRequest,
                 closePane: { window.closePane(pane.id) }
             )
@@ -667,7 +667,7 @@ private struct PaneView: View {
             SerialTerminalView(
                 session: serialSession,
                 isVisible: isActive,
-                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused,
+                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused && !window.isQuickOpenPresented,
                 closePane: { window.closePane(pane.id) }
             )
         case .empty:

@@ -31,6 +31,7 @@ nonisolated enum MenuSymbol {
 
     static let quickConnect = "bolt"
     static let connect = "network"
+    static let batchStartup = "wind"
     static let ssh = "apple.terminal"
     static let sftp = "folder"
 
@@ -119,7 +120,7 @@ nonisolated enum MenuSymbol {
     /// is exactly the kind of mistake no one notices in review.
     static let all: [String] = [
         settings, quickOpen, find, actions, support, showAssistant,
-        quickConnect, connect, ssh, sftp,
+        quickConnect, connect, batchStartup, ssh, sftp,
         newChat, newHost, newGroup, newPackage, newFolder, newSnippet, saveAsSnippet,
         newIdentity, generateKey, generateCommand,
         importItem, download, export, upload,

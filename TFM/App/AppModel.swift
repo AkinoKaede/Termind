@@ -720,7 +720,7 @@ final class AppModel {
         connectionHistory.mostRecentDate(for: hostID)
     }
 
-    /// Batch Startup, in either of its two shapes.
+    /// Opens multiple Hosts, with the layout chosen by the calling surface.
     ///
     /// The workspaces path is a loop over the singular `open` rather than its own code
     /// path; the Workspace path cannot be, since the whole point is that it makes
@@ -793,9 +793,8 @@ final class AppModel {
     /// same sheet again, in its multi-select
     /// mode — see `HostChooserPurpose`.
     ///
-    /// The sidebar and Welcome page raise this chooser. It is not in the File
-    /// menu or the workspace bar's `+`: bringing up a dozen machines is a deliberate
-    /// act, kept on surfaces that name Batch Startup directly.
+    /// The sidebar, Welcome page and File menu raise this chooser. Confirmation
+    /// opens the selected Hosts as panes of one new Workspace.
     func batchStartup(in window: WindowModel) {
         window.hostChooser = .batchStartup
     }

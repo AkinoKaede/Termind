@@ -56,6 +56,10 @@ the latest record counts as unchanged.
 - Repository snapshots/preferences are app-wide; shells, quick-open, search, navigation and context
   panels are window-owned. Feature Application models expose narrow intents over the shared Vault
   snapshot. `VaultStore` owns transactions; sessions receive only `RemoteSessionHostStore`.
+- Quick Open claims search focus after mounting in its own active native window; closing retires
+  pending focus requests. Its presentation releases toolbar Find and suspends terminal autofocus.
+  Batch Startup's single Connect action opens selected SSH/SFTP Hosts as panes in one new Workspace;
+  other Host menus retain their explicit layout choices.
 - Each desktop scene owns a distinct `WindowModel`. The process coordinator routes UUID-scoped
   requests and weakly tracks native windows. New windows start at Welcome; Dock reopening preserves
   the destination, Metrics entry selects Metrics. Dock New Window uses the same factory, activates

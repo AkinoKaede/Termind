@@ -193,7 +193,7 @@ struct WorkspaceNavigatorView: View {
                 // The same container as the destinations above it. Drawn by
                 // hand it sat 8pt further left than every other row and never
                 // lit up under the pointer.
-                SidebarNavigatorRow(title: "Batch Startup", symbol: "wind") {
+                SidebarNavigatorRow(title: "Batch Startup", symbol: MenuSymbol.batchStartup) {
                     workspaceExpanded = true
                     app.batchStartup(in: window)
                 }

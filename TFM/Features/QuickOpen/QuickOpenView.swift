@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import TermindPresentation
 
@@ -81,8 +82,10 @@ struct QuickOpenView: View {
         }
         .frame(maxWidth: Metrics.QuickOpen.width, maxHeight: Metrics.QuickOpen.height)
         .onAppear {
-            searchFocused = true
             selectedID = results.commands.first?.id
+        }
+        .onChange(of: window.isQuickOpenPresented) {
+            if !window.isQuickOpenPresented { searchFocused = false }
         }
         .onChange(of: query) {
             selectedID = results.commands.first?.id
@@ -102,6 +105,12 @@ struct QuickOpenView: View {
                 .textFieldStyle(.plain)
                 .font(.system(size: 17, weight: .medium))
                 .focused($searchFocused)
+                .background {
+                    QuickOpenFocusMount(isPresented: window.isQuickOpenPresented) {
+                        guard window.isQuickOpenPresented else { return }
+                        searchFocused = true
+                    }
+                }
                 .onSubmit(performSelection)
                 .onKeyPress(.upArrow) { moveSelection(by: -1) }
                 .onKeyPress(.downArrow) { moveSelection(by: 1) }
@@ -283,6 +292,57 @@ struct QuickOpenView: View {
     private func perform(_ command: AppCommandDescriptor) {
         app.commands.perform(command.target, app: app, window: window)
         dismiss()
+    }
+}
+
+/// SwiftUI can run `onAppear` before the search field joins its window. Request
+/// focus after AppKit mounts it, and retire that request even during a closing transition.
+private struct QuickOpenFocusMount: NSViewRepresentable {
+    let isPresented: Bool
+    let focus: () -> Void
+
+    func makeNSView(context: Context) -> MountView {
+        let view = MountView()
+        view.focus = focus
+        view.isPresented = isPresented
+        return view
+    }
+
+    func updateNSView(_ view: MountView, context: Context) {
+        view.focus = focus
+        view.isPresented = isPresented
+    }
+
+    static func dismantleNSView(_ view: MountView, coordinator: ()) {
+        view.isPresented = false
+        view.focus = nil
+    }
+
+    final class MountView: NSView {
+        var focus: (() -> Void)?
+        var isPresented = false {
+            didSet {
+                if isPresented != oldValue { scheduleFocus() }
+            }
+        }
+        private var generation: UInt64 = 0
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            scheduleFocus()
+        }
+
+        private func scheduleFocus() {
+            generation &+= 1
+            guard isPresented, let window else { return }
+            let request = generation
+            DispatchQueue.main.async { [weak self, weak window] in
+                guard let self, let window, self.window === window,
+                    isPresented, generation == request, window.isKeyWindow
+                else { return }
+                focus?()
+            }
+        }
     }
 }
 
