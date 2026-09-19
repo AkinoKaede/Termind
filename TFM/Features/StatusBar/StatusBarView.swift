@@ -51,6 +51,42 @@ nonisolated enum StatusBarTransferPresentation {
         if directions == [.download] { return "arrow.down" }
         return "arrow.up.arrow.down"
     }
+
+    static func route(
+        for transfer: SFTPTransfer,
+        hostName: (Host.ID) -> String?
+    ) -> String {
+        func remote(_ hostID: Host.ID?, _ path: String, home: String?) -> String {
+            let displayed = RemotePath.displayed(
+                path, home: home.map(RemoteHomeResolutionState.resolved) ?? .unavailable
+            )
+            guard let hostID, let name = hostName(hostID) else { return displayed }
+            return "\(name) · \(displayed)"
+        }
+
+        switch transfer.direction {
+        case .upload:
+            return remote(
+                transfer.destinationHostID, transfer.remotePath,
+                home: transfer.destinationHomeDirectory
+            )
+        case .download:
+            return remote(
+                transfer.sourceHostID, transfer.remotePath,
+                home: transfer.sourceHomeDirectory
+            )
+        case .copy:
+            let source = remote(
+                transfer.sourceHostID, transfer.localPath,
+                home: transfer.sourceHomeDirectory
+            )
+            let destination = remote(
+                transfer.destinationHostID, transfer.remotePath,
+                home: transfer.destinationHomeDirectory
+            )
+            return "\(source) → \(destination)"
+        }
+    }
 }
 
 /// Focused-session context and app-wide transfers, as one floating capsule.
@@ -548,40 +584,11 @@ private struct TransferCenterPopover: View {
     }
 
     private var transferItems: [TransferCenterListItem] {
-        transfers.map { TransferCenterListItem(transfer: $0, route: route(for: $0)) }
-    }
-
-    private func route(for transfer: SFTPTransfer) -> String {
-        func remote(_ hostID: Host.ID?, _ path: String, home: String?) -> String {
-            let displayed = RemotePath.displayed(
-                path, home: home.map(RemoteHomeResolutionState.resolved) ?? .unavailable
+        transfers.map { transfer in
+            TransferCenterListItem(
+                transfer: transfer,
+                route: StatusBarTransferPresentation.route(for: transfer) { hosts.host($0)?.name }
             )
-            guard let hostID, let host = hosts.host(hostID) else { return displayed }
-            return "\(host.name) · \(displayed)"
-        }
-        switch transfer.direction {
-        case .upload:
-            let destination = remote(
-                transfer.destinationHostID, transfer.remotePath,
-                home: transfer.destinationHomeDirectory
-            )
-            return "\(transfer.localPath) → \(destination)"
-        case .download:
-            let source = remote(
-                transfer.sourceHostID, transfer.remotePath,
-                home: transfer.sourceHomeDirectory
-            )
-            return "\(source) → \(transfer.localPath)"
-        case .copy:
-            let source = remote(
-                transfer.sourceHostID, transfer.localPath,
-                home: transfer.sourceHomeDirectory
-            )
-            let destination = remote(
-                transfer.destinationHostID, transfer.remotePath,
-                home: transfer.destinationHomeDirectory
-            )
-            return "\(source) → \(destination)"
         }
     }
 }
