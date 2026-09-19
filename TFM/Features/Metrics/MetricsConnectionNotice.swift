@@ -4,7 +4,6 @@ import TermindApplication
 /// Connection failures stay actionable even though healthy metrics need no status footer.
 struct MetricsConnectionNotice: View {
     let server: ServerMetric
-    let model: ServerMetricsModel
 
     var body: some View {
         if !server.status.isEmpty, server.status != String(localized: "Live") {

@@ -35,10 +35,6 @@ public actor SSHForwardingSession: SSHForwardingSessionProtocol {
         )
     }
 
-    public func connect(_ configuration: SSHConnectionConfiguration) async throws {
-        try await connect(SSHConnectionRequest(configuration: configuration))
-    }
-
     public func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler? = nil) async throws {
         try await worker.connect(request, progress: progress)
     }

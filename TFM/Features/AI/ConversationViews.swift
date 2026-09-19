@@ -340,13 +340,6 @@ struct FlowLayout: Layout {
 /// meant to read as the same object. Two hand-written copies of the same six
 /// lines drift the first time one radius changes, and the drift shows up as two
 /// blocks in one column that are almost — but not quite — the same shape.
-/// Which column the interaction surface is in. It no longer changes what the
-/// surface is *made of* — both are system glass — only how much room it has.
-enum AssistantInteractionSurfaceStyle {
-    case standard
-    case sidebar
-}
-
 /// The one interactive surface in the Assistant column.
 ///
 /// Composer, Steering and the archived-conversation notice are the same object
@@ -355,7 +348,6 @@ enum AssistantInteractionSurfaceStyle {
 /// hand-drawn stroke directly above a Composer made of system glass, which read
 /// as two unrelated panels stacked by accident.
 private struct AssistantInteractionSurface: ViewModifier {
-    let style: AssistantInteractionSurfaceStyle
     let isEmphasized: Bool
 
     func body(content: Content) -> some View {
@@ -387,12 +379,10 @@ private struct AssistantInteractionGlass: View, Equatable {
 
 extension View {
     func assistantInteractionSurface(
-        style: AssistantInteractionSurfaceStyle = .standard,
         isEmphasized: Bool = false
     ) -> some View {
         modifier(
             AssistantInteractionSurface(
-                style: style,
                 isEmphasized: isEmphasized
             )
         )
@@ -401,10 +391,9 @@ extension View {
     /// The composer's own name for the shared surface, kept so the call sites
     /// that mean "this is the composer block" still read that way.
     func composerBlock(
-        style: AssistantInteractionSurfaceStyle = .standard,
         isEmphasized: Bool = false
     ) -> some View {
-        assistantInteractionSurface(style: style, isEmphasized: isEmphasized)
+        assistantInteractionSurface(isEmphasized: isEmphasized)
     }
 }
 
@@ -510,7 +499,6 @@ struct ComposerView: View {
 
     let conversation: ConversationModel
     var prompt: LocalizedStringKey = "Ask anything…"
-    var surfaceStyle: AssistantInteractionSurfaceStyle = .standard
     /// The full Assistant destination shares one centered column with its transcript.
     /// `nil` keeps compact/sidebar composers fluid.
     var maxContentWidth: CGFloat? = nil
@@ -615,10 +603,7 @@ struct ComposerView: View {
             .frame(maxWidth: .infinity, minHeight: 32, maxHeight: 32)
             .animation(Motion.panel(reduceMotion: reduceMotion), value: showsTranscriptionControls)
         }
-        .composerBlock(
-            style: surfaceStyle,
-            isEmphasized: isFocused
-        )
+        .composerBlock(isEmphasized: isFocused)
         // Anchored to the whole surface rather than the TextEditor. The editor
         // begins inside the surface padding (and can have Context chips above
         // it), which let the palette overlap the Chat frame.
@@ -1052,10 +1037,6 @@ struct ComposerView: View {
         )
     }
 
-    private var slashCommands: [ChatSlashCommand] {
-        slashRegistry.commands(in: slashContext)
-    }
-
     private var slashOptions: (ChatSlashCommand) -> [ChatSlashCommand.Option] {
         { slashRegistry.options(for: $0, in: slashContext) }
     }
@@ -1095,7 +1076,6 @@ struct ComposerView: View {
                 completion: completion,
                 selection: min(slashSelection, completion.rows.count - 1),
                 scrollRequest: slashScrollRequest,
-                surfaceStyle: surfaceStyle,
                 contextShare: contextShare,
                 trailingText: slashTrailingText,
                 onHover: { slashSelection = $0 },

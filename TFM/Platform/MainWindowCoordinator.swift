@@ -1,6 +1,5 @@
 import AppKit
 import SwiftUI
-import TermindApplication
 
 /// Process-owned scene requests; live workspaces stay in their source until the
 /// destination has a native window. Scene restoration never replays a move.

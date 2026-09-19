@@ -1,7 +1,6 @@
 import AgentKit
 import Foundation
 import TermindApplication
-import TermindDomain
 import TermindRemoteInfrastructure
 
 nonisolated struct MCPUploadRequest: Sendable {

@@ -67,6 +67,39 @@ struct ManagedCardItemContext<Item: Identifiable> {
 /// the inherited body after the shared page has been rendered.
 protocol ManagedCardPresentationModifier: ViewModifier {}
 
+struct ManagedCardDeletionPresentation<ID: Hashable>: ManagedCardPresentationModifier {
+    @Binding var deleting: Set<ID>
+    @Binding var error: String?
+    let ids: [ID]
+    let confirmationTitle: LocalizedStringKey
+    let errorTitle: LocalizedStringKey
+    var explanation: Text? = nil
+    let prune: () -> Void
+    let delete: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .onAppear(perform: prune)
+            .onChange(of: ids) { prune() }
+            .confirmationDialog(
+                confirmationTitle,
+                isPresented: Binding(get: { !deleting.isEmpty }, set: { if !$0 { deleting = [] } })
+            ) {
+                Button("Delete", role: .destructive, action: delete)
+            } message: {
+                if let explanation { explanation }
+            }
+            .alert(
+                errorTitle,
+                isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
+            ) {
+                Button("OK") { error = nil }
+            } message: {
+                Text(error ?? "")
+            }
+    }
+}
+
 /// SwiftUI's protocol-oriented equivalent of a page base class. Conformers
 /// provide data and business views; this protocol extension owns the body.
 protocol ManagedCardPage: View {

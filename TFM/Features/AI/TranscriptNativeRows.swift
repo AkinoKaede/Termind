@@ -17,7 +17,7 @@ final class TranscriptMarkdownCache {
         init(
             source: String,
             allowsShellActions: Bool,
-            tone: TermindMarkdownView.Tone,
+            tone: TermindMarkdownTone,
             colorScheme: ColorScheme
         ) {
             self.source = source
@@ -34,7 +34,7 @@ final class TranscriptMarkdownCache {
         let slot: String
         let source: String
         let shell: Bool
-        let tone: TermindMarkdownView.Tone
+        let tone: TermindMarkdownTone
         let colorScheme: ColorScheme
     }
 
@@ -49,7 +49,7 @@ final class TranscriptMarkdownCache {
         slot: String,
         source: String,
         shell: Bool,
-        tone: TermindMarkdownView.Tone = .primary,
+        tone: TermindMarkdownTone = .primary,
         colorScheme: ColorScheme
     ) -> Package {
         let key = Key(
@@ -1234,7 +1234,7 @@ private enum NativeTranscriptFactory {
         source: String,
         slot: String,
         shell: Bool,
-        tone: TermindMarkdownView.Tone = .primary,
+        tone: TermindMarkdownTone = .primary,
         fillsWidth: Bool = true,
         horizontalInset: CGFloat = 0,
         context: NativeTranscriptContext
@@ -1630,15 +1630,6 @@ private enum NativeTranscriptFactory {
         }
     }
 
-}
-
-@MainActor
-private func nativeRiskColor(_ risk: CommandRisk) -> NSColor {
-    switch risk {
-    case .safe: .systemGreen
-    case .caution: .systemOrange
-    case .destructive: .systemRed
-    }
 }
 
 @MainActor

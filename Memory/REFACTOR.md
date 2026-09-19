@@ -494,3 +494,21 @@ secondary action and layout parameter. Keep Connect/Return as the single confirm
 Workspace for one or more selected SSH/SFTP Hosts. Remove the redundant button/policy/help and three unused localized
 entries; retain shared BatchLayout for Host context menus. Estimate −45–60 chooser lines; actual −53 including stable
 accessibility identifiers for behavioral UI coverage. Focus/menu changes are tracked by the same regression run.
+
+## Port Forwarding refactor, 2026-09-19 — completed
+
+`rg` plus Periphery on TFM/TFI confirmed the removable surface. Removed the unused forwarding-library route wrapper
+and configuration-only session overload, made the direction picker private, and replaced the stateful editor policy
+with static normalization/start validation that retains rule-ID, Host-ID, saved validity and runtime checks. Shared
+the otherwise identical Port Forwarding/Known Hosts deletion, pruning and error presentation through one typed
+managed-card modifier; feature state and transactions remain local. Actual change: −35 production and −73 test lines.
+
+Controller bookkeeping consolidation was rejected: one record would have to encode active generation, stopped-but-
+serializing work and failed-but-presented Journey state, plus an identity token to safely retire completed tasks after
+rapid stop/start. The concrete shape adds lifecycle state without reducing code, so the existing dictionaries remain.
+
+Focused 53 tests passed: Framework forwarding/editor/Known Host presentation, desktop forwarding/editor/Journey/
+selection, and mobile forwarding/Vault lifecycle. TFM and TFI pinned builds passed. The ordinary TFM test build is
+currently blocked by unrelated concurrent `ColorSystemTests` and `BroadcastInputTests` API edits; the 29 desktop tests
+passed when only those two files were excluded. Formatting, localization and diff checks passed. Retained boundaries:
+forwarding/jump pumps, frozen schemas, forwarding authentication/Journey ownership and platform-native card renderers.

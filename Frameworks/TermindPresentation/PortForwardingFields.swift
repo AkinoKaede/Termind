@@ -84,10 +84,9 @@ public struct PortForwardingFields: View {
 
 }
 
-public struct PortForwardingDirectionPicker: View {
-    @Binding private var kind: PortForwardingRule.Kind
-    public init(kind: Binding<PortForwardingRule.Kind>) { _kind = kind }
-    public var body: some View {
+private struct PortForwardingDirectionPicker: View {
+    @Binding var kind: PortForwardingRule.Kind
+    var body: some View {
         Picker("Direction", selection: $kind) {
             Text("Local").tag(PortForwardingRule.Kind.local).accessibilityLabel("Local Forward")
             Text("Remote").tag(PortForwardingRule.Kind.remote).accessibilityLabel("Remote Forward")

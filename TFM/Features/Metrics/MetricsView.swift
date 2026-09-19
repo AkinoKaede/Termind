@@ -72,7 +72,7 @@ struct MetricsDetailView: View {
 
             MetricsDetailLayout(split: split, page: window.metricsDetailPage) {
                 ScrollView {
-                    MetricsServerDetails(server: server, model: model)
+                    MetricsServerDetails(server: server)
                         .padding(1)
                 }
                 .metricsPlainScrollEdges()

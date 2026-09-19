@@ -218,8 +218,6 @@ struct SnippetsPageView: ManagedCardPage {
             state: state,
             actions: SnippetsPagePresentation.Actions(
                 store: app.snippets,
-                saveSnippet: saveSnippet,
-                savePackage: savePackage,
                 deletePackage: deletePackage,
                 deleteSnippets: deleteSnippets,
                 performExecution: performExecution,
@@ -252,10 +250,6 @@ struct SnippetsPageView: ManagedCardPage {
 
     private func duplicate(_ snippet: Snippet) {
         saveSnippet(snippet.duplicated())
-    }
-
-    private func savePackage(_ package: SnippetPackage) {
-        app.snippets.upsert(package)
     }
 
     private func deletePackage(_ package: SnippetPackage, keepSnippets: Bool) {
@@ -346,8 +340,6 @@ struct SnippetsPageView: ManagedCardPage {
 struct SnippetsPagePresentation: ManagedCardPresentationModifier {
     struct Actions {
         let store: SnippetLibraryModel
-        let saveSnippet: (Snippet) -> Void
-        let savePackage: (SnippetPackage) -> Void
         let deletePackage: (SnippetPackage, Bool) -> Void
         let deleteSnippets: ([Snippet]) -> Void
         let performExecution: ([Snippet]) -> Void

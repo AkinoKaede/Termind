@@ -1,5 +1,4 @@
 import Foundation
-import TermindDomain
 
 /// Server-authored authentication data. Neither challenges nor answers belong
 /// in an Agent transcript, connection log, or persistent credential store.

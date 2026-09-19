@@ -25,7 +25,7 @@ nonisolated enum CommandRiskRules {
         switch name {
         case "rm": return classifyRemove(args)
         case "find": return classifyFind(args)
-        case "chmod", "chown", "chgrp": return classifyPermissions(name, args)
+        case "chmod", "chown", "chgrp": return classifyPermissions(args)
         case "awk": return caution(name)
         case "sort":
             return hasFlag(args, ["-o", "--output", "--compress-program"]) ? caution(name) : .safe
@@ -157,7 +157,7 @@ nonisolated enum CommandRiskRules {
         return .safe
     }
 
-    private static func classifyPermissions(_ name: String, _ args: [String]) -> RiskAssessment {
+    private static func classifyPermissions(_ args: [String]) -> RiskAssessment {
         if shortFlags(args).contains("R") {
             return RiskAssessment(
                 risk: .destructive,

@@ -169,7 +169,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                 try lifecycle.handleAccountChange(change.changeType)
 
             case .fetchedRecordZoneChanges(let changes):
-                try handleFetchedChanges(changes, engine: engine)
+                try handleFetchedChanges(changes)
 
             case .fetchedDatabaseChanges(let changes):
                 if changes.deletions.contains(where: { $0.zoneID == zoneID }) {
@@ -177,7 +177,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                 }
 
             case .sentRecordZoneChanges(let changes):
-                try handleSentChanges(changes, engine: engine)
+                try handleSentChanges(changes)
 
             case .didFetchChanges, .didSendChanges:
                 try lifecycle.updateUpToDateStatus()
@@ -191,9 +191,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         }
     }
 
-    private func handleFetchedChanges(
-        _ changes: CKSyncEngine.Event.FetchedRecordZoneChanges, engine: CKSyncEngine
-    ) throws {
+    private func handleFetchedChanges(_ changes: CKSyncEngine.Event.FetchedRecordZoneChanges) throws {
         var recordsByKey: [VaultRecordKey: CKRecord] = [:]
         var envelopes: [VaultEnvelope] = []
         var quarantinedError: String?
@@ -239,9 +237,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         if let quarantinedError { status = .failed(quarantinedError) }
     }
 
-    private func handleSentChanges(
-        _ changes: CKSyncEngine.Event.SentRecordZoneChanges, engine: CKSyncEngine
-    ) throws {
+    private func handleSentChanges(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) throws {
         for record in changes.savedRecords where record.recordID.zoneID == zoneID {
             guard let envelope = try? Self.envelope(from: record) else { continue }
             try journal.markUploaded(envelope.key, version: envelope.version)

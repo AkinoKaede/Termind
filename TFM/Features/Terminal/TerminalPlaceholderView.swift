@@ -121,7 +121,7 @@ struct TerminalPlaceholderView: View {
                     )
                 },
                 continueHostKey: {
-                    sshSession.continueWithTemporaryHostKey($0, using: app.hostLibrary)
+                    sshSession.continueWithTemporaryHostKey($0)
                 },
                 trustHostKey: { sshSession.trustAndConnect($0, using: app.hostLibrary) },
                 denyHostKey: {

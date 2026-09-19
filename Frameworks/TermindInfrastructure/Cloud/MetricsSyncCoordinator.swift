@@ -159,13 +159,13 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
             case .accountChange(let change):
                 try lifecycle.handleAccountChange(change.changeType)
             case .fetchedRecordZoneChanges(let changes):
-                try handleFetchedChanges(changes, engine: engine)
+                try handleFetchedChanges(changes)
             case .fetchedDatabaseChanges(let changes):
                 if changes.deletions.contains(where: { $0.zoneID == zoneID }) {
                     try lifecycle.handleZoneDeletion()
                 }
             case .sentRecordZoneChanges(let changes):
-                try handleSentChanges(changes, engine: engine)
+                try handleSentChanges(changes)
             case .didFetchChanges, .didSendChanges:
                 try lifecycle.updateUpToDateStatus()
             default:
@@ -177,9 +177,7 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         }
     }
 
-    private func handleFetchedChanges(
-        _ changes: CKSyncEngine.Event.FetchedRecordZoneChanges, engine: CKSyncEngine
-    ) throws {
+    private func handleFetchedChanges(_ changes: CKSyncEngine.Event.FetchedRecordZoneChanges) throws {
         var recordsByKey: [MetricsRecordKey: CKRecord] = [:]
         var envelopes: [MetricsEnvelope] = []
         var quarantinedError: String?
@@ -217,9 +215,7 @@ public final class MetricsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unch
         if let quarantinedError { status = .failed(quarantinedError) }
     }
 
-    private func handleSentChanges(
-        _ changes: CKSyncEngine.Event.SentRecordZoneChanges, engine: CKSyncEngine
-    ) throws {
+    private func handleSentChanges(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) throws {
         for record in changes.savedRecords where record.recordID.zoneID == zoneID {
             guard let envelope = try? Self.envelope(from: record) else { continue }
             try journal.markUploaded(envelope.key, version: envelope.version)

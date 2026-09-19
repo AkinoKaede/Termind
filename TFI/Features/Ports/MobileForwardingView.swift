@@ -94,10 +94,9 @@ struct MobileForwardingView: View {
         }
     }
     private func canStart(_ rule: PortForwardingRule) -> Bool {
-        PortForwardingEditorPolicy(
-            rule: nil, savedRule: rule, savedHost: app.library.host(rule.hostID),
-            isRuntimeActive: app.forwardings.state(for: rule.id).isActive
-        ).canStart
+        PortForwardingEditorPolicy.canStart(
+            rule.id, savedRule: rule, savedHost: app.library.host(rule.hostID),
+            isRuntimeActive: app.forwardings.state(for: rule.id).isActive)
     }
     private func start(_ rule: PortForwardingRule) {
         showing = rule.id

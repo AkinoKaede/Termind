@@ -1,7 +1,6 @@
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindInfrastructure
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -511,7 +510,7 @@ final class WindowModel {
         workspaces.flatMap { workspace in
             workspace.panes
                 .filter { $0.kind == kind }
-                .map { PaneRef(workspace: workspace, pane: $0) }
+                .map(PaneRef.init(pane:))
         }
     }
 
@@ -536,7 +535,7 @@ final class WindowModel {
                     pane.kind == .sshSession || pane.kind == .sftpSession
                         || pane.kind == .serialSession
                 else { return nil }
-                return PaneRef(workspace: workspace, pane: pane)
+                return PaneRef(pane: pane)
             }
         }
     }
@@ -1483,7 +1482,6 @@ nonisolated enum DragPayload: Hashable, Sendable {
 /// to know which workspace owns it, and a reference cycle for the sake of the sidebar
 /// would be paying in the model for something the view can compute.
 struct PaneRef: Identifiable {
-    let workspace: Workspace
     let pane: Pane
 
     var id: Pane.ID { pane.id }

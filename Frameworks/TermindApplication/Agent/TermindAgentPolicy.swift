@@ -1,6 +1,5 @@
 import AgentKit
 import Foundation
-import TermindDomain
 
 /// What Termind, specifically, tells its agent.
 ///

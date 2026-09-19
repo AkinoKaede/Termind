@@ -1,172 +1,12 @@
 import AppKit
-import Combine
 import MarkdownParser
 import MarkdownView
 import SwiftUI
 import TermindPresentation
 
-/// The Markdown entry point used by the transcript.
-///
-/// MarkdownView owns parsing, block layout, tables, syntax highlighting and
-/// text selection. Termind keeps a thin policy layer around it for the two
-/// things a general renderer must not decide for this app: which links are safe
-/// to open and which assistant-authored shell fences may reach a terminal.
-struct TermindMarkdownView: View {
-    enum Tone: Hashable {
-        case primary
-        case secondary
-    }
-
-    let text: String
-    var isStreaming = false
-    var isAssistant = true
-    var tone: Tone = .primary
-
-    @Environment(\.markdownFillsWidth) private var fillsWidth
-    @Environment(\.colorScheme) private var colorScheme
-    @StateObject private var model: RenderingModel
-
-    init(
-        text: String,
-        isStreaming: Bool = false,
-        isAssistant: Bool = true,
-        isCompact _: Bool = false,
-        tone: Tone = .primary
-    ) {
-        self.text = text
-        self.isStreaming = isStreaming
-        self.isAssistant = isAssistant
-        self.tone = tone
-
-        let theme = TermindMarkdownTheme.make(tone: tone)
-        _model = StateObject(
-            wrappedValue: RenderingModel(
-                source: text,
-                allowsShellActions: isAssistant,
-                theme: theme
-            ))
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Chat.blockSpacing) {
-            ForEach(model.rendered.segments) { segment in
-                switch segment.content {
-                case .markdown(let content):
-                    TermindMarkdownNativeView(
-                        content: content,
-                        theme: model.rendered.theme,
-                        fillsWidth: fillsWidth
-                    )
-                case .shell(let language, let command):
-                    AssistantShellCodeBlockView(
-                        language: language,
-                        command: command
-                    )
-                }
-            }
-        }
-        .markdownWidth(fills: fillsWidth)
-        .onChange(
-            of: UpdateID(
-                text: text,
-                isStreaming: isStreaming,
-                isAssistant: isAssistant,
-                tone: tone,
-                colorScheme: colorScheme
-            ),
-            initial: true
-        ) { _, _ in
-            refreshIfNeeded()
-        }
-    }
-
-    /// MarkdownView is designed for streaming, but splitting actionable shell
-    /// blocks still requires a root parse. Upstream's balanced emitter already
-    /// controls the presentation cadence, so every emitted delta is rendered
-    /// immediately instead of being throttled again at the view layer.
-    private func refreshIfNeeded() {
-        guard
-            model.source != text
-                || model.rendered.allowsShellActions != isAssistant
-                || model.rendered.themeTone != tone
-                || model.rendered.themeColorScheme != colorScheme
-        else { return }
-        refresh()
-    }
-
-    private func refresh() {
-        model.refresh(
-            source: text,
-            allowsShellActions: isAssistant,
-            theme: TermindMarkdownTheme.make(tone: tone, colorScheme: colorScheme)
-        )
-    }
-
-    private struct UpdateID: Hashable {
-        let text: String
-        let isStreaming: Bool
-        let isAssistant: Bool
-        let tone: Tone
-        let colorScheme: ColorScheme
-    }
-
-    @MainActor
-    private final class RenderingModel: ObservableObject {
-        @Published private(set) var rendered: TermindMarkdownRenderedDocument
-        private(set) var source: String
-
-        init(
-            source: String,
-            allowsShellActions: Bool,
-            theme: TermindMarkdownTheme.Value
-        ) {
-            self.source = source
-            rendered = TermindMarkdownRenderedDocument(
-                source: source,
-                allowsShellActions: allowsShellActions,
-                theme: theme
-            )
-        }
-
-        func refresh(
-            source: String,
-            allowsShellActions: Bool,
-            theme: TermindMarkdownTheme.Value
-        ) {
-            rendered = TermindMarkdownRenderedDocument(
-                source: source,
-                allowsShellActions: allowsShellActions,
-                theme: theme
-            )
-            self.source = source
-        }
-    }
-}
-
-private struct MarkdownFillsWidthKey: EnvironmentKey {
-    nonisolated static let defaultValue = true
-}
-
-extension EnvironmentValues {
-    /// Assistant prose and plans fill their reading column. User messages opt
-    /// out so a short question keeps a short bubble.
-    var markdownFillsWidth: Bool {
-        get { self[MarkdownFillsWidthKey.self] }
-        set { self[MarkdownFillsWidthKey.self] = newValue }
-    }
-}
-
-extension View {
-    func markdownWidth(fills: Bool, alignment: Alignment = .leading) -> some View {
-        frame(maxWidth: fills ? .infinity : nil, alignment: alignment)
-    }
-}
-
-/// Kept as the transcript-wide type scale for non-Markdown labels and the
-/// Termind-owned shell card. MarkdownView receives matching AppKit fonts below.
-enum MarkdownTypography {
-    static let body = Font.body
-    static let monospaced = Font.system(.body, design: .monospaced)
+enum TermindMarkdownTone: Hashable {
+    case primary
+    case secondary
 }
 
 // MARK: - Parsing policy
@@ -324,9 +164,6 @@ struct TermindMarkdownRenderedDocument {
 
     let segments: [Segment]
     let theme: MarkdownTheme
-    let allowsShellActions: Bool
-    let themeTone: TermindMarkdownView.Tone
-    let themeColorScheme: ColorScheme?
 
     init(source: String, allowsShellActions: Bool, theme: TermindMarkdownTheme.Value) {
         let parserResult = MarkdownParser().parse(MarkdownSoftBreaks.hardened(source))
@@ -355,9 +192,6 @@ struct TermindMarkdownRenderedDocument {
             }
         }
         self.theme = theme.theme
-        self.allowsShellActions = allowsShellActions
-        themeTone = theme.tone
-        themeColorScheme = theme.colorScheme
     }
 }
 
@@ -365,12 +199,11 @@ struct TermindMarkdownRenderedDocument {
 enum TermindMarkdownTheme {
     struct Value {
         let theme: MarkdownTheme
-        let tone: TermindMarkdownView.Tone
         let colorScheme: ColorScheme?
     }
 
     static func make(
-        tone: TermindMarkdownView.Tone,
+        tone: TermindMarkdownTone,
         colorScheme: ColorScheme? = nil
     ) -> Value {
         var theme = MarkdownTheme()
@@ -412,7 +245,7 @@ enum TermindMarkdownTheme {
         theme.table.stripeCellBackgroundColor = resolved(
             .quaternaryLabelColor, colorScheme: colorScheme
         ).withAlphaComponent(0.06)
-        return Value(theme: theme, tone: tone, colorScheme: colorScheme)
+        return Value(theme: theme, colorScheme: colorScheme)
     }
 
     private static func resolved(_ color: NSColor, colorScheme: ColorScheme?) -> NSColor {
@@ -427,109 +260,5 @@ enum TermindMarkdownTheme {
             resolved = color.usingColorSpace(.deviceRGB) ?? color
         }
         return resolved
-    }
-}
-
-// MARK: - AppKit bridge
-
-private struct TermindMarkdownNativeView: NSViewRepresentable {
-    let content: MarkdownContent
-    let theme: MarkdownTheme
-    let fillsWidth: Bool
-
-    func makeNSView(context: Context) -> MarkdownTextView {
-        let view = MarkdownTextView()
-        view.setContentHuggingPriority(.required, for: .vertical)
-        view.setContentCompressionResistancePriority(.required, for: .vertical)
-        view.setContentHuggingPriority(fillsWidth ? .defaultLow : .required, for: .horizontal)
-        view.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        view.linkHandler = { payload, _, _ in
-            TermindMarkdownLinkOpener.open(payload)
-        }
-        context.coordinator.apply(content: content, theme: theme, to: view)
-        return view
-    }
-
-    func updateNSView(_ view: MarkdownTextView, context: Context) {
-        view.setContentHuggingPriority(fillsWidth ? .defaultLow : .required, for: .horizontal)
-        context.coordinator.apply(content: content, theme: theme, to: view)
-    }
-
-    func sizeThatFits(
-        _ proposal: ProposedViewSize,
-        nsView view: MarkdownTextView,
-        context: Context
-    ) -> CGSize? {
-        context.coordinator.sizeThatFits(
-            proposal,
-            view: view,
-            fillsWidth: fillsWidth
-        )
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    @MainActor
-    final class Coordinator {
-        private var lastContent: MarkdownContent?
-        private var lastTheme: MarkdownTheme?
-        private var concreteWidth: CGFloat = 0
-
-        func apply(content: MarkdownContent, theme: MarkdownTheme, to view: MarkdownTextView) {
-            guard lastContent !== content || lastTheme != theme else { return }
-            view.setContentImmediately(content, theme: theme)
-            view.invalidateIntrinsicContentSize()
-            lastContent = content
-            lastTheme = theme
-        }
-
-        func sizeThatFits(
-            _ proposal: ProposedViewSize,
-            view: MarkdownTextView,
-            fillsWidth: Bool
-        ) -> CGSize? {
-            if proposal.width == 0 { return .zero }
-
-            let availableWidth: CGFloat
-            if let width = proposal.width, width.isFinite, width > 0 {
-                availableWidth = width
-                concreteWidth = width
-            } else if concreteWidth > 0 {
-                availableWidth = concreteWidth
-            } else if view.bounds.width > 0 {
-                availableWidth = view.bounds.width
-            } else {
-                return nil
-            }
-
-            let bounded = view.boundingSize(for: availableWidth)
-            let width =
-                fillsWidth
-                ? availableWidth
-                : min(availableWidth, max(1, ceil(bounded.width)))
-            let height = ceil(view.boundingSize(for: width).height)
-            return CGSize(width: width, height: height)
-        }
-    }
-}
-
-@MainActor
-private enum TermindMarkdownLinkOpener {
-    static func open(_ payload: LinkPayload) {
-        let url: URL?
-        switch payload {
-        case .url(let value):
-            url = value
-        case .string(let value):
-            url = URL(string: value)
-        }
-        guard let url,
-            TermindMarkdownParser.allowedLinkSchemes.contains(
-                url.scheme?.lowercased() ?? ""
-            )
-        else { return }
-        NSWorkspace.shared.open(url)
     }
 }

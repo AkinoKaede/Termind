@@ -259,8 +259,6 @@ final class MobileAssistantSceneModel {
     var speech: SpeechTranscriptionCoordinator { runtime.speech }
     var configuration: AIConfigurationModel { runtime.configuration }
     var skills: SkillLibraryModel { runtime.skills }
-    var isRunning: Bool { runtime.isRunning }
-    var isSuspending: Bool { runtime.isSuspending }
     var error: String? {
         get { runtime.error }
         set { runtime.error = newValue }

@@ -738,9 +738,7 @@ final class SSHSessionModel: Identifiable {
         connection.trustHostKey(observation, using: store)
     }
 
-    func continueWithTemporaryHostKey(
-        _ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore
-    ) {
+    func continueWithTemporaryHostKey(_ observation: SSHHostKeyObservation) {
         _ = connection.useTemporaryHostKey(observation)
     }
 

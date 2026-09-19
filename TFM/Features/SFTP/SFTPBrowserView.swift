@@ -313,7 +313,7 @@ struct SFTPBrowserView: View {
                         )
                     },
                     continueHostKey: {
-                        sftpSession.continueWithTemporaryHostKey($0, using: app.transfers)
+                        sftpSession.continueWithTemporaryHostKey($0)
                     },
                     trustHostKey: { sftpSession.trustAndConnect($0, using: app.transfers) },
                     denyHostKey: {

@@ -163,14 +163,12 @@ struct ConversationView: View {
                     SteeringQueueView(
                         conversation: conversation,
                         isCompact: isCompact,
-                        isEmbedded: true,
-                        surfaceStyle: interactionSurfaceStyle
+                        isEmbedded: true
                     )
                 }
             }
             ComposerView(
                 conversation: conversation,
-                surfaceStyle: interactionSurfaceStyle,
                 maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
                 sessionContext: sessionContext,
                 includesTerminalSuggestion: showsTerminalActions,
@@ -185,7 +183,7 @@ struct ConversationView: View {
     private var archivedSurface: some View {
         if isCompact {
             archivedSurfaceContent
-                .composerBlock(style: interactionSurfaceStyle)
+                .composerBlock()
                 .padding(.horizontal, Metrics.Space.l)
                 .padding(.top, Metrics.Space.s)
                 .padding(.bottom, Metrics.Space.s)
@@ -207,10 +205,6 @@ struct ConversationView: View {
             }
             .transcriptProminentButtonStyle()
         }
-    }
-
-    private var interactionSurfaceStyle: AssistantInteractionSurfaceStyle {
-        isCompact ? .sidebar : .standard
     }
 
     private func chatColumn<Content: View>(
@@ -253,7 +247,7 @@ struct ConversationView: View {
                 ),
                 alignment: .top
             )
-            .composerBlock(style: interactionSurfaceStyle)
+            .composerBlock()
             .padding(.horizontal, Metrics.Space.l)
             .frame(maxWidth: isCompact ? .infinity : Metrics.Chat.contentMaxWidth)
             .frame(maxWidth: .infinity)
@@ -928,7 +922,6 @@ struct SteeringQueueView: View {
     let conversation: ConversationModel
     var isCompact = false
     var isEmbedded = false
-    var surfaceStyle: AssistantInteractionSurfaceStyle = .standard
 
     /// The rows' own height, because a `ScrollView` will not report one — left
     /// alone it takes every point it is offered, and the strip would stand at
@@ -964,7 +957,7 @@ struct SteeringQueueView: View {
         // as one object with a queue on top rather than as two panels — see
         // `assistantInteractionSurface`. No hand-drawn stroke: system glass
         // draws its own edge, and a second one on top of it reads as a seam.
-        .assistantInteractionSurface(style: surfaceStyle)
+        .assistantInteractionSurface()
         .padding(.horizontal, isEmbedded ? 0 : Metrics.Space.l)
         .padding(.top, Metrics.Space.s)
         .accessibilityElement(children: .contain)

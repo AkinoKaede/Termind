@@ -15,13 +15,6 @@ final class MetricsMenuBarController: NSObject, NSPopoverDelegate {
 
     init(defaults: UserDefaults = .standard) { self.defaults = defaults }
 
-    var isVisible: Bool { item != nil }
-    var isPopoverShown: Bool { popover.isShown }
-    var hasNeutralInitialFocus: Bool {
-        guard let window = popover.contentViewController?.view.window else { return false }
-        return window.firstResponder == nil || window.firstResponder === window
-    }
-
     func start(_ model: ServerMetricsModel) {
         self.model = model
         if observer == nil {

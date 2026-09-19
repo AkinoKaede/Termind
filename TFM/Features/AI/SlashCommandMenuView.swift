@@ -18,7 +18,6 @@ struct SlashCommandMenuView: View {
     /// Advanced only by keyboard navigation. Hover still changes the highlight,
     /// but must not recenter a list underneath a stationary pointer.
     let scrollRequest: Int
-    var surfaceStyle: AssistantInteractionSurfaceStyle = .standard
     var contextShare: Double?
     /// The value a row currently holds — the resolved effort beside
     /// `/reasoning`. Returning `nil` leaves the trailing column empty.
@@ -48,7 +47,7 @@ struct SlashCommandMenuView: View {
         // what stops a short list from rubber-banding when the pointer crosses
         // it while longer command and option lists remain scrollable.
         .frame(height: listHeight)
-        .composerBlock(style: surfaceStyle)
+        .composerBlock()
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Commands"))
     }

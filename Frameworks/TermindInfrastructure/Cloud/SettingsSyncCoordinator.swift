@@ -209,7 +209,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                 try lifecycle.handleAccountChange(change.changeType)
 
             case .fetchedRecordZoneChanges(let changes):
-                try handleFetchedChanges(changes, engine: engine)
+                try handleFetchedChanges(changes)
 
             case .fetchedDatabaseChanges(let changes):
                 if changes.deletions.contains(where: { $0.zoneID == zoneID }) {
@@ -217,7 +217,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                 }
 
             case .sentRecordZoneChanges(let changes):
-                try handleSentChanges(changes, engine: engine)
+                try handleSentChanges(changes)
 
             case .didFetchChanges, .didSendChanges:
                 try lifecycle.updateUpToDateStatus()
@@ -231,9 +231,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         }
     }
 
-    private func handleFetchedChanges(
-        _ changes: CKSyncEngine.Event.FetchedRecordZoneChanges, engine: CKSyncEngine
-    ) throws {
+    private func handleFetchedChanges(_ changes: CKSyncEngine.Event.FetchedRecordZoneChanges) throws {
         var recordsByKey: [SettingsRecordKey: CKRecord] = [:]
         var legacyGuardianKeys = Set<SettingsRecordKey>()
         var envelopes: [SettingsEnvelope] = []
@@ -294,9 +292,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         if let quarantinedError { status = .failed(quarantinedError) }
     }
 
-    private func handleSentChanges(
-        _ changes: CKSyncEngine.Event.SentRecordZoneChanges, engine: CKSyncEngine
-    ) throws {
+    private func handleSentChanges(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) throws {
         for record in changes.savedRecords where record.recordID.zoneID == zoneID {
             guard let envelope = try? Self.envelope(from: record) else { continue }
             try journal.markUploaded(envelope.key, version: envelope.version)

@@ -212,7 +212,6 @@ struct AssistantPanelView: View {
             ComposerView(
                 conversation: window.sidebar.assistantDraft,
                 prompt: "Ask anything…",
-                surfaceStyle: .sidebar,
                 sessionContext: window.sidebar.sessionContext,
                 includesTerminalSuggestion: true,
                 onSend: {
@@ -695,7 +694,7 @@ nonisolated enum AssistantConversationDropResolver {
         }
         return .init(
             section: section,
-            beforeID: nextConversation(after: index, in: section, items: items)
+            beforeID: nextConversation(after: index, items: items)
         )
     }
 
@@ -712,12 +711,11 @@ nonisolated enum AssistantConversationDropResolver {
         guard let sectionIndex = items.firstIndex(where: { $0.section == section }) else {
             return nil
         }
-        return nextConversation(after: sectionIndex, in: section, items: items)
+        return nextConversation(after: sectionIndex, items: items)
     }
 
     private static func nextConversation(
         after index: Int,
-        in section: AssistantConversationListItem.Section,
         items: [AssistantConversationListItem]
     ) -> UUID? {
         guard index + 1 < items.count else { return nil }
@@ -878,7 +876,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
                 .environment(window)
                 .environment(\.locale, locale)
                 .environment(\.colorScheme, colorScheme)
-            row.configure(id: item.id, rootView: AnyView(content))
+            row.configure(rootView: AnyView(content))
         }
     }
 }
@@ -1064,7 +1062,6 @@ final class AssistantConversationListContainer: NSView {
 @MainActor
 private final class AssistantConversationHostingRow: ListRowView {
     private let hostingView = NSHostingView(rootView: AnyView(EmptyView()))
-    private var representedID: AssistantConversationListItem.ID?
 
     override init(frame: CGRect) {
         super.init(frame: frame)
@@ -1094,13 +1091,11 @@ private final class AssistantConversationHostingRow: ListRowView {
         empty()
     }
 
-    func configure(id: AssistantConversationListItem.ID, rootView: AnyView) {
-        representedID = id
+    func configure(rootView: AnyView) {
         hostingView.rootView = rootView
     }
 
     private func empty() {
-        representedID = nil
         hostingView.rootView = AnyView(EmptyView())
     }
 }

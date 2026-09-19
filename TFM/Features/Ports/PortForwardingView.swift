@@ -16,7 +16,7 @@ struct PortForwardingPageView: ManagedCardPage {
     typealias Item = PortForwardingRule
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
-    let state: PortForwardingPageState
+    @Bindable var state: PortForwardingPageState
 
     var managedSections: [ManagedCardSection<String, PortForwardingRule>] {
         [
@@ -87,9 +87,10 @@ struct PortForwardingPageView: ManagedCardPage {
         }
     }
     func managedNoResultsState() -> some View { ContentUnavailableView.search(text: state.query) }
-    var managedPresentation: PortForwardingPagePresentation {
-        PortForwardingPagePresentation(
-            state: state, ids: app.forwardings.rules.map(\.id),
+    var managedPresentation: ManagedCardDeletionPresentation<UUID> {
+        ManagedCardDeletionPresentation(
+            deleting: $state.deleting, error: $state.error, ids: app.forwardings.rules.map(\.id),
+            confirmationTitle: "Delete Forwarding Rules?", errorTitle: "Operation Failed",
             prune: { window.pruneVaultSelections(in: app.hostLibrary) },
             delete: {
                 do { try app.forwardings.delete(state.deleting) } catch { state.error = error.localizedDescription }
@@ -132,10 +133,9 @@ struct PortForwardingPageView: ManagedCardPage {
         }
     }
     private func canStart(_ rule: Item) -> Bool {
-        PortForwardingEditorPolicy(
-            rule: nil, savedRule: rule, savedHost: app.hostLibrary.host(rule.hostID),
-            isRuntimeActive: app.forwarding.state(for: rule.id).isActive
-        ).canStart
+        PortForwardingEditorPolicy.canStart(
+            rule.id, savedRule: rule, savedHost: app.hostLibrary.host(rule.hostID),
+            isRuntimeActive: app.forwarding.state(for: rule.id).isActive)
     }
     private func open(_ rule: Item) { window.openVaultWork(.forwardingEditor(rule.id), on: .portForwarding) }
     private func start(_ rule: Item) {
@@ -150,30 +150,6 @@ struct PortForwardingPageView: ManagedCardPage {
         do {
             open(try app.forwardings.save(copy))
         } catch { state.error = error.localizedDescription }
-    }
-}
-
-struct PortForwardingPagePresentation: ManagedCardPresentationModifier {
-    @Bindable var state: PortForwardingPageState
-    let ids: [UUID]
-    let prune: () -> Void
-    let delete: () -> Void
-    func body(content: Content) -> some View {
-        content.onAppear(perform: prune).onChange(of: ids) { prune() }
-            .confirmationDialog(
-                "Delete Forwarding Rules?",
-                isPresented: Binding(get: { !state.deleting.isEmpty }, set: { if !$0 { state.deleting = [] } })
-            ) {
-                Button("Delete", role: .destructive, action: delete)
-            }
-            .alert(
-                "Operation Failed",
-                isPresented: Binding(get: { state.error != nil }, set: { if !$0 { state.error = nil } })
-            ) {
-                Button("OK") { state.error = nil }
-            } message: {
-                Text(state.error ?? "")
-            }
     }
 }
 

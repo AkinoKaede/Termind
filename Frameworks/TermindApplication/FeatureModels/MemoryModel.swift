@@ -1,6 +1,5 @@
 import AgentKit
 import Foundation
-import TermindDomain
 
 @Observable @MainActor
 public final class MemoryModel {

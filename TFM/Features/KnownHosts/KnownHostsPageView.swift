@@ -16,7 +16,7 @@ struct KnownHostsPageView: ManagedCardPage {
     typealias Item = KnownHostEntry
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
-    let state: KnownHostsPageState
+    @Bindable var state: KnownHostsPageState
 
     var managedSections: [ManagedCardSection<String, KnownHostEntry>] {
         [
@@ -74,9 +74,11 @@ struct KnownHostsPageView: ManagedCardPage {
         }
     }
     func managedNoResultsState() -> some View { ContentUnavailableView.search(text: state.query) }
-    var managedPresentation: KnownHostsPresentation {
-        KnownHostsPresentation(
-            state: state, ids: app.knownHosts.entries.map(\.id),
+    var managedPresentation: ManagedCardDeletionPresentation<UUID> {
+        ManagedCardDeletionPresentation(
+            deleting: $state.deleting, error: $state.error, ids: app.knownHosts.entries.map(\.id),
+            confirmationTitle: "Delete Host Keys?", errorTitle: "Known Hosts Operation Failed",
+            explanation: Text("The next connection will ask you to verify the server key again."),
             prune: { window.pruneVaultSelections(in: app.hostLibrary) },
             delete: {
                 if !app.knownHosts.delete(state.deleting) { state.error = app.knownHosts.storageError }
@@ -118,34 +120,6 @@ private struct KnownHostCard: View {
             }
         }
         .help(entry.displayAddress)
-    }
-}
-
-struct KnownHostsPresentation: ManagedCardPresentationModifier {
-    @Bindable var state: KnownHostsPageState
-    let ids: [UUID]
-    let prune: () -> Void
-    let delete: () -> Void
-    func body(content: Content) -> some View {
-        content
-            .onAppear(perform: prune)
-            .onChange(of: ids) { prune() }
-            .confirmationDialog(
-                "Delete Host Keys?",
-                isPresented: Binding(get: { !state.deleting.isEmpty }, set: { if !$0 { state.deleting = [] } })
-            ) {
-                Button("Delete", role: .destructive, action: delete)
-            } message: {
-                Text("The next connection will ask you to verify the server key again.")
-            }
-            .alert(
-                "Known Hosts Operation Failed",
-                isPresented: Binding(get: { state.error != nil }, set: { if !$0 { state.error = nil } })
-            ) {
-                Button("OK") { state.error = nil }
-            } message: {
-                Text(state.error ?? "")
-            }
     }
 }
 

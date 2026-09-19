@@ -54,6 +54,4 @@ nonisolated enum DesktopSettingsKey {
         UserDefaults.standard.object(forKey: openAtLoginQuietly) as? Bool
             ?? defaultOpenAtLoginQuietly
     }
-    /// The last approval posture selected in the Assistant composer.
-    static let agentPermissionMode = "assistant.permissionMode"
 }

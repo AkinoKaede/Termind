@@ -22,16 +22,6 @@ enum AppShortcutKey: Hashable, Sendable, ExpressibleByExtendedGraphemeClusterLit
         }
     }
 
-    var appKitKeyEquivalent: String {
-        switch self {
-        case .character(let character): String(character)
-        case .tab: "\t"
-        case .escape: "\u{1B}"
-        case .f3: String(Character(UnicodeScalar(NSF3FunctionKey)!))
-        case .rightArrow: String(Character(UnicodeScalar(NSRightArrowFunctionKey)!))
-        case .downArrow: String(Character(UnicodeScalar(NSDownArrowFunctionKey)!))
-        }
-    }
 }
 
 struct AppShortcutRegistration: Hashable, Sendable {
@@ -119,18 +109,5 @@ extension View {
         let shortcut = AppShortcutRegistration(key, modifiers: modifiers)
         AppShortcutRegistry.shared.register(shortcut, terminalRouting: terminalRouting)
         return keyboardShortcut(key.keyEquivalent, modifiers: modifiers)
-    }
-}
-
-extension NSMenuItem {
-    func setTermindShortcut(
-        _ key: AppShortcutKey,
-        modifiers: EventModifiers = .command,
-        terminalRouting: AppShortcutRegistry.TerminalRouting = .application
-    ) {
-        let shortcut = AppShortcutRegistration(key, modifiers: modifiers)
-        AppShortcutRegistry.shared.register(shortcut, terminalRouting: terminalRouting)
-        keyEquivalent = key.appKitKeyEquivalent
-        keyEquivalentModifierMask = shortcut.appKitModifiers
     }
 }

@@ -11,11 +11,10 @@ struct PortForwardingEditorPolicyTests {
     func onlySavedStoppedRulesCanStart(hasSavedConfiguration: Bool, isActive: Bool) {
         let host = Host(name: "Server", host: "server.invalid")
         let rule = PortForwardingRule(hostID: host.id)
-        let policy = PortForwardingEditorPolicy(
-            rule: rule, savedRule: hasSavedConfiguration ? rule : nil, savedHost: host,
-            isRuntimeActive: isActive)
-        #expect(policy.canStart == (hasSavedConfiguration && !isActive))
-        #expect(policy.canEdit == !isActive)
+        #expect(
+            PortForwardingEditorPolicy.canStart(
+                rule.id, savedRule: hasSavedConfiguration ? rule : nil, savedHost: host, isRuntimeActive: isActive)
+                == (hasSavedConfiguration && !isActive))
     }
 
     enum UnavailableConfiguration: CaseIterable {
@@ -34,13 +33,9 @@ struct PortForwardingEditorPolicyTests {
         case .mismatchedHost: savedHost = Host(name: "Other", host: "other.invalid")
         case .mismatchedRuleID: savedRule?.id = UUID()
         }
-        let policy = PortForwardingEditorPolicy(
-            rule: rule, savedRule: savedRule, savedHost: savedHost,
-            isRuntimeActive: false)
-
-        #expect(!policy.hasSavedConfiguration)
-        #expect(!policy.canStart)
-        #expect(policy.canEdit)
+        #expect(
+            !PortForwardingEditorPolicy.canStart(
+                rule.id, savedRule: savedRule, savedHost: savedHost, isRuntimeActive: false))
     }
 
     @Test(arguments: [0, 65_536])
@@ -49,12 +44,8 @@ struct PortForwardingEditorPolicyTests {
         let draft = PortForwardingRule(hostID: host.id)
         var savedRule = draft
         savedRule.bindPort = invalidPort
-        let policy = PortForwardingEditorPolicy(
-            rule: PortForwardingEditorPolicy.normalized(draft), savedRule: savedRule, savedHost: host,
-            isRuntimeActive: false)
-
-        #expect(!policy.hasSavedConfiguration)
-        #expect(!policy.canStart)
-        #expect(policy.canEdit)
+        #expect(
+            !PortForwardingEditorPolicy.canStart(
+                draft.id, savedRule: savedRule, savedHost: host, isRuntimeActive: false))
     }
 }

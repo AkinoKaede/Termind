@@ -46,7 +46,6 @@ public final class ForwardingLibraryModel {
     public func portForwarding(_ id: PortForwardingRule.ID) -> PortForwardingRule? {
         library.portForwarding(id)
     }
-    public func routeSummary(for host: Host) -> String { library.routeSummary(for: host) }
     public func sshCommand(for rule: PortForwardingRule, host: Host? = nil) -> String? {
         library.sshCommand(for: rule, host: host)
     }
