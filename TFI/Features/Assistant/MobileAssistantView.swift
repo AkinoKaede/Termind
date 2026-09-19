@@ -55,9 +55,10 @@ struct MobileAssistantView: View {
                         }
                         .labelStyle(.iconOnly)
                         .accessibilityValue(conversationTitle)
+                        .disabled(!hasSelectableConversations)
                     }
                     .mobileProminentAction()
-                } else if libraryRoute == nil {
+                } else if libraryRoute == nil && hasSelectableConversations {
                     ToolbarTitleMenu { conversationTitleMenu }
                 }
             }
@@ -155,6 +156,10 @@ struct MobileAssistantView: View {
 
     private var usesConversationIcon: Bool {
         toolbarLayout.usesIconSwitcher && libraryRoute == nil
+    }
+
+    private var hasSelectableConversations: Bool {
+        !model.library.pinnedConversations.isEmpty || !model.library.activeConversations.isEmpty
     }
 
     private var detail: some View {

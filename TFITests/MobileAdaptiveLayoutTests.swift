@@ -218,6 +218,94 @@ struct MobileAdaptiveLayoutTests {
     }
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func assistantSwitchersReflectAvailableConversationsAcrossToolbarLayouts(language: String) async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let scene = MobileSceneModel(app: app)
+        scene.selectedDestination = .assistant
+        await scene.assistant.load()
+        let conversation = scene.assistant.conversation
+        conversation.composer.draft = "Keep the draft while switchers update"
+        let regions = MobileRegionTestState()
+        var features = MobileFeatureRegistry()
+        features.register(
+            MobileFeatureRegistration(id: .assistant, title: "Assistant", symbol: "sparkles") { app, scene in
+                AnyView(
+                    MobileAssistantView(
+                        app: app, model: scene.assistant,
+                        libraryRoute: Binding(
+                            get: { scene.assistantLibraryRoute }, set: { scene.assistantLibraryRoute = $0 })
+                    )
+                    .environment(\.mobileToolbarLayout, regions.toolbarLayout))
+            })
+        try await withRoot(app: app, scene: scene, language: language, features: features, initialSizeClass: .compact) {
+            controller in
+            let navigation = try #require(navigation(titled: "Assistant", in: controller))
+            let page = try #require(navigation.topViewController)
+            for (state, enabled) in [
+                ("empty", false), ("current", true), ("pinned", true), ("archived", false), ("restored", true),
+            ] {
+                switch state {
+                case "current":
+                    conversation.appendUserTurn("The only conversation")
+                    scene.assistant.library.insertAndSelect(conversation)
+                case "pinned": conversation.isPinned = true
+                case "archived":
+                    conversation.isPinned = false
+                    conversation.archivedAt = .now
+                case "restored": conversation.archivedAt = nil
+                default: break
+                }
+                // Check a data-only update before changing toolbar placement.
+                try await settle()
+                try expectAssistantSwitcher(in: navigation, layout: regions.toolbarLayout, enabled: enabled)
+                for (name, layout) in [
+                    ("title", MobileToolbarLayout()),
+                    ("top", MobileToolbarLayout(isTopBar: true)),
+                    ("vertical", MobileToolbarLayout(verticalEdge: .trailing)),
+                ] {
+                    regions.toolbarLayout = layout
+                    try await settle()
+                    try expectAssistantSwitcher(in: navigation, layout: layout, enabled: enabled)
+                    #expect(navigation.topViewController === page)
+                    #expect(scene.assistant.conversation === conversation)
+                    #expect(conversation.composer.draft == "Keep the draft while switchers update")
+                    let newConversation = try #require(
+                        toolbarButton(namedOneOf: ["New Conversation", "新建对话", "新增對話"], in: navigation))
+                    #expect(newConversation.isEnabled)
+                    capture(controller, name: "assistant-switcher-\(state)-\(name)-\(language)")
+                }
+                if !enabled {
+                    let menu: UIMenu
+                    if #available(iOS 27.0, *) {
+                        menu = UIMenu(children: [try #require(page.navigationItem.additionalOverflowItems)])
+                    } else {
+                        menu = try #require(toolbarButton(namedOneOf: ["More", "更多"], in: navigation)?.menu)
+                    }
+                    let actions = try await resolvedMenuActions(menu, in: page.view)
+                    for names: Set<String> in [["Conversations", "对话", "對話"], ["Archived", "已归档", "已封存"]] {
+                        let action = try #require(actions.first { names.contains($0.title) })
+                        #expect(!action.attributes.contains(.disabled))
+                    }
+                }
+            }
+        }
+    }
+
+    private func expectAssistantSwitcher(
+        in navigation: UINavigationController, layout: MobileToolbarLayout, enabled: Bool
+    ) throws {
+        let page = try #require(navigation.topViewController)
+        let switcher = toolbarButton(namedOneOf: ["Conversations", "对话", "對話"], in: navigation)
+        if layout.usesIconSwitcher {
+            #expect(try #require(switcher).isEnabled == enabled)
+        } else {
+            #expect(switcher == nil)
+            #expect((page.navigationItem.titleMenuProvider != nil) == enabled)
+            #expect(visibleLabels(in: navigation.navigationBar).contains { $0.text == page.navigationItem.title })
+        }
+    }
+
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func assistantTitleAdaptsWithoutLosingItsConversationMenuOrDrafts(language: String) async throws {
         guard UIDevice.current.userInterfaceIdiom == .pad else { return }
         let app = try MobileAppModel(inMemory: true)

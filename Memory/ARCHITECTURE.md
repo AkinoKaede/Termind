@@ -978,7 +978,9 @@ instead of independently reading placement or device capabilities. Workspace det
 retain the five application tabs beside top bars and in vertical toolbars. Bottom tabs
 stay hidden in SSH/SFTP details whenever the vertical toolbar is unavailable.
 Workspace and Assistant share a `rectangle.stack` switcher in top and vertical bars,
-with a title menu elsewhere.
+with a title menu elsewhere. When Assistant has no pinned or active conversations,
+its icon switcher stays visible but disabled, and its title has no menu. A sole current
+conversation still enables switching; archived conversations do not.
 These switchers select peers within the feature; they are separate
 from the five application tabs. Assistant library pages always retain their titles.
 Metrics uses a labeled icon menu in a vertical toolbar and a principal segmented picker
