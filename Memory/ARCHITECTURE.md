@@ -1,1156 +1,733 @@
 # Termind architecture
 
-Termind is one Xcode project with macOS (`TFM`) and iOS/iPadOS (`TFI`) apps,
-shared static frameworks, platform test targets, and a macOS-only MCP bridge.
-The agent runtime is the separately versioned `AgentKit` package.
+One Xcode project contains macOS (`TFM`), iOS/iPadOS (`TFI`), shared static frameworks,
+separate platform/framework test targets, and the macOS-only `termind-mcp` bridge.
+`AgentKit` is a separately versioned package.
 
 ## Modules and dependency direction
 
-- `TermindDomain` owns platform-independent values and rules. It may use
-  Foundation, CryptoKit, and AgentKit values, but never UI or concrete I/O.
-- `TermindApplication` owns repository ports, feature models, connection policy,
-  SSH preparation/import previews, remote-file-system interfaces, sync/outbox
-  coordination, and other use cases. It depends on Domain and AgentKit.
-- `TermindInfrastructure` owns in-memory repositories, metrics parsing, StoreKit,
-  and the shared Vault/Settings/Metrics CloudKit coordinators. It depends on
-  Application, Domain, and Persistence.
-- `TermindRemoteInfrastructure` owns SSH/SFTP, Keychain, key material, remote
-  sampling, forwarding, transfers, and scoped SSH import reads. Its C libraries
-  remain outside the portable framework-test graph. It depends on Infrastructure,
-  Application, and Domain.
-- `TermindPresentation` owns reusable SwiftUI content, presentation policy,
-  Ghostty themes, and the `TerminalPreferences` bridge. It depends only on
-  Application and Domain; native surfaces, transports, and lifetimes stay in apps.
-- `TermindPersistence` exclusively owns every SwiftData model, frozen V1-V22
-  schema, migration plan, and container factory. It never depends on an app target.
-- `TFM` and `TFI` own platform UI, adapters, and lifecycle orchestration. Both use
-  `App`, `Application`, `Design`, `DesignSystem`, `Features`, `Infrastructure`,
-  `Platform`, and `UI`; frameworks never import either app.
+| Owner | Responsibilities and dependencies |
+| --- | --- |
+| `TermindDomain` | Portable values/rules; Foundation, CryptoKit and AgentKit values only, no UI or concrete I/O. |
+| `TermindApplication` | Repository ports, feature models, connection policy, SSH preparation/import previews, remote-file-system ports, sync/outbox use cases; depends on Domain and AgentKit. |
+| `TermindInfrastructure` | In-memory repositories, metrics parsing, StoreKit, Vault/Settings/Metrics CloudKit coordination; depends on Application, Domain and Persistence. |
+| `TermindRemoteInfrastructure` | SSH/SFTP, Keychain, keys, sampling, forwarding, transfers and scoped SSH imports; depends on Infrastructure, Application and Domain. C libraries stay outside the portable framework-test graph. |
+| `TermindPresentation` | Reusable SwiftUI content/policy, Ghostty themes and `TerminalPreferences` bridge; depends only on Application and Domain. |
+| `TermindPersistence` | All SwiftData models, frozen V1–V22 schemas, migrations and container construction; never depends on an app. |
+| `TFM`, `TFI` | Native UI, adapters and lifetimes, organized into App, Application, Design, DesignSystem, Features, Infrastructure, Platform and UI. Frameworks never import apps. |
 
-Frameworks expose explicit public APIs and do not re-export imports. Apps import
-canonical owner modules directly, without forwarding aliases or `Shared` type
-names. There is no generic Core module.
+Use explicit public APIs and direct owner imports: no re-exported imports, forwarding aliases,
+`Shared` type names or generic Core module. Shared resources are copied into both app bundles;
+icons, metadata and signing remain platform-owned.
 
-Persistence preserves entity identities, fields, defaults, and historical schema
-semantics even when code moves. Original-module V1/V14 fixtures guard migration.
-`makeContainer` fixes the complete schema and migration plan; each process shares
-one container across its scenes. Store failures never silently recreate data.
-macOS retains the existing `Termind` store location; mobile uses Application
-Support and an in-memory store for tests. Both apps use the same CloudKit container
-and bundle-derived Keychain access group, with target-specific signing.
+Persistence preserves entity identity, fields, defaults and historical semantics across code moves;
+original-module V1/V14 fixtures guard migration. `makeContainer` fixes the complete schema/migration
+plan, with one container per process shared across scenes. Failures never silently recreate stores.
+macOS retains its `Termind` location; mobile uses Application Support and in-memory test stores.
+Both apps use the same CloudKit container and bundle-derived Keychain access group.
 
-Shared localized resources are copied into each app bundle. Platform icons and
-metadata remain app-owned. Framework, macOS, and mobile tests stay separate;
-architecture tests fail closed when an expected production directory is absent or
-empty. Source-based checks are limited to module dependencies, native-list import
-allowlists, AgentKit type ownership, and SwiftData model ownership. They do not pin
-UI copy, source layout, call-site spellings, retired paths, or shared-component wiring;
-those concerns rely on behavioral tests or explicit visual review.
+Architecture tests fail closed on missing/empty production roots. Source checks cover only module
+dependencies, native-list import allowlists, AgentKit type ownership and SwiftData ownership;
+UI copy, source layout, call-site spelling, retired paths and component wiring require behavioral
+coverage or visual review.
 
 ## State, navigation, and ownership
 
-Single-line UI fields share Presentation's newline-to-space editing policy and
-horizontal layout. Binding reads preserve stored values; only edits are normalized.
-App-owned native rename editors apply the same policy without interrupting marked
-text. Platforms inject app-owned single-line paste adapters so normalization happens
-before native controls flatten individual line breaks. Multiline content and secrets
-are excluded. Existing validation is unchanged. No persistence migration or bulk
-cleanup is performed.
+### Editing and saved values
 
-Optional display names share Domain defaults across form hints and Application
-save boundaries. Blank or whitespace-only names become concrete Host addresses,
-Identity usernames, key algorithm names (`Secure Enclave` for enclave keys),
-Host-plus-SSH-argument forwarding names, protocol provider names, or model IDs.
-Name hints stay empty when the required source is unavailable: forwarding waits for
-a selected Host, and key imports/replacements wait for the current key's algorithm.
-Nonempty names, including previously generated ones, remain ordinary stored values;
-only explicitly clearing a name requests a fresh default. Key generation, import,
-and editing all permit blank names on both platforms. Desktop autosave keeps a
-page-owned name buffer so saving a default never interrupts text entry. Reopening
-reads the saved value. Legacy blank records and incoming replicas are not backfilled
-on load; their next local record save materializes the name in the existing transaction.
-No schema or synchronization payload change is required.
+Presentation supplies single-line horizontal layout and newline-to-space editing. Reads preserve
+stored values; only edits normalize. App-owned paste adapters normalize before native controls
+flatten breaks; native rename editors preserve marked text. Multiline content, secrets and existing
+validation are unchanged; there is no migration or bulk cleanup.
 
-Mobile provider drafts merge raw model names before materializing defaults at Save.
-An explicit clear of a saved name, including a generated name, conflicts with a
-concurrent rename. Only a legacy blank name becoming its default in the latest
-record is treated as unchanged, so unrelated remote edits still merge normally.
+Domain defines optional-name defaults used by form hints and Application saves: Host address,
+Identity username, key algorithm (`Secure Enclave` for enclave keys), Host plus SSH argument,
+provider protocol name, or model ID. Hints stay empty without their source, including an unselected
+forwarding Host or unknown imported/replacement key algorithm. Nonempty names, even generated ones,
+remain stored values; clearing requests a fresh default. Key generation/import/editing allow blank
+names. Desktop autosave uses page-owned buffers; reopening shows saved values. Legacy/replicated
+blank names materialize only on the next local record save, in its existing transaction; no schema
+or sync payload changes. Mobile provider drafts merge raw model names before defaulting at Save:
+explicit clearing conflicts with a concurrent rename; only a legacy blank becoming its default in
+the latest record counts as unchanged.
 
-- Repository snapshots and preference models are application-wide. A window owns
-  its shell, quick-open, search, navigation, and context-panel state.
-- Desktop main scenes each own a distinct `WindowModel`. The process-owned main
-  window coordinator routes UUID-scoped scene requests and weakly tracks native
-  windows. Creating a window starts on Welcome; Dock reopening preserves the
-  existing destination, while the Metrics entry explicitly selects Metrics.
-  The Dock context menu's New Window action always creates an independent Welcome
-  window through the same scene factory and activates the app, including when
-  hidden or without main windows. It is disabled until the factory is ready.
-  Restoring a scene never restores or reconnects live Workspaces.
-- Desktop new-window requests snapshot their source's ordinary content size;
-  repeated registration cannot reapply it. The native registration bridge sets
-  the full-size content style before sizing, so titlebar height never accumulates
-  across copies. Command-N opens Connect in a fullscreen source; explicit Quick
-  Open New Window still creates a window using its pre-fullscreen size.
-  The last-used main window's ordinary size is device-local UserDefaults state,
-  excluded from sync. Fullscreen transitions and auxiliary windows cannot replace
-  it, and termination freezes it before window teardown. A cold scene uses this
-  default only when macOS has no individual restored frame; restoring multiple
-  scenes never applies the shared size over their frames. Tests and screenshot
-  demos use an in-memory size store. Window positions remain system-owned.
-- Desktop Command-W closes the selected Workspace's focused pane first. Closing
-  the last pane removes its Workspace but keeps the window open. Without a selected
-  Workspace it requests native window dismissal. All user window-close paths share
-  SwiftUI's dismissal confirmation whenever that window owns any Workspaces,
-  including disconnected or hidden ones; cancellation preserves them. Closing a
-  different window never participates in that decision. Shift-Command-W remains
-  direct window dismissal, and the existing last-window background policy applies.
-  Main-window registration suppresses the native document-edited decoration that
-  SwiftUI couples to dismissal confirmation. Workspaces are not unsaved documents;
-  the confirmation condition and native dismissal delegate remain unchanged.
-  The observation follows the registration view's window and ends on detachment.
-- A Workspace can move intact to a new window through commands. Navigator drags
-  use SwiftUI's original UUID string provider for in-window ordering and pane
-  composition; releasing a drag outside the window never creates a window.
-  The destination must register before the MainActor transfers ownership; moves
-  preserve native terminal surfaces, transports, split geometry and session state,
-  and do not enter close history. Empty source windows remain on Welcome.
-  Native window closure explicitly disconnects only its owned sessions, cancels
-  pending moves, and unregisters it. Independent transfers and application-owned
-  services retain their existing lifetimes. Mounting a session cannot restart
-  an attempted connection or authentication; explicit retry/reopen still can.
-- Paywall presentation is pinned to one main window until dismissed. Speech input
-  ownership belongs to a composer instance, not a shared conversation ID, so
-  closing another view of that conversation cannot cancel the recording.
-- Desktop navigation starts with Vault and Assistant, places Metrics above Vault
-  libraries, appends dynamic SSH/SFTP Workspaces, and ends with Settings. Vault
-  owns Hosts, Keychain, Port Forwarding, Snippets, Known Hosts, Welcome, and their editor routes.
-- Desktop main pages share a 360-point detail minimum, independent of the
-  Assistant's 840-point reading maximum. Opening the Navigator grows the window
-  when necessary. Vault reserves a 280-point list and a 360–400-point editor,
-  overlaying the existing editor below 641 points of content width. The covered
-  list stays mounted at its last visible size. Opening and closing animate the
-  reserved space and editor position over 0.22 seconds without squeezing its
-  contents, respecting Reduce Motion. Below 700 points Metrics uses
-  a titlebar Status/Processes picker with the toolbar title hidden; at larger
-  widths both panels and the title are visible.
-  Covered Metrics panels retain their last visible size, table identity, sorting,
-  and scroll position. Page selection and measured detail width are window-local;
-  selecting another server resets to Status. Focusing search or narrowing while
-  search is focused reveals Processes. Compact actions group Pause/Resume into
-  More, and macOS 15 presents its search field in a toolbar popover.
-  Resizing changes layout, never route,
-  editor identity, Workspace composition, or monitoring ownership.
-- Assistant conversations are owned by `AssistantLibraryModel`; they are not
-  Workspace panes. A Workspace owns SSH/SFTP/serial panes and any session-scoped
-  conversation. A session owns live transports and terminal/browser state.
-- Assistant list ordering and pinning are metadata-only operations, independent
-  of running, approval-waiting, or compaction state. Desktop drag and pin commands
-  preserve the live conversation instance and commit ordering before publishing
-  it. Archived chats cannot move, rename editors cannot drag, and archive/delete
-  retain their active-run and compaction guards.
-- Settings data is app-wide but its navigation is window-scoped. Opening Settings
-  remembers and later restores the replaced destination.
-- Feature-specific Application models expose narrow intent surfaces even when they
-  share one Vault snapshot. `VaultStore` owns the transaction; sessions use
-  `RemoteSessionHostStore`, never the full mutation API.
-- Runtime connection state is never written onto domain records. Saved repository
-  data is persistent truth; forwarding runs and authentication exist only in memory
-  and never enter Vault/Metrics/Settings sync or UserDefaults.
-- Serial sessions are temporary and local. IOKit/termios objects remain in
-  Infrastructure; serial paths and parameters are neither persisted nor exposed
-  as Agent hosts.
-- Workspace templates are Vault-synced domain values. They preserve a named
-  SSH/SFTP/empty-pane split tree and divider fractions, while TFM alone maps
-  those values to live Workspace sessions and UI. TFI carries the records for
-  sync but exposes no template surface. Missing saved hosts restore as empty
-  panes so the stored layout is never collapsed.
+### Windows, navigation, and lifetimes
 
-Known Hosts is independent of Host records: editing or deleting a Host does not
-change trust. Plain and OpenSSH `|1|` hashed endpoints share one matcher; hashed
-records keep their wire `hostname`, and their separate port field is ignored.
+- Repository snapshots/preferences are app-wide; shells, quick-open, search, navigation and context
+  panels are window-owned. Feature Application models expose narrow intents over the shared Vault
+  snapshot. `VaultStore` owns transactions; sessions receive only `RemoteSessionHostStore`.
+- Each desktop scene owns a distinct `WindowModel`. The process coordinator routes UUID-scoped
+  requests and weakly tracks native windows. New windows start at Welcome; Dock reopening preserves
+  the destination, Metrics entry selects Metrics. Dock New Window uses the same factory, activates
+  hidden/windowless apps and is disabled until that factory is ready. Restoration never reconnects
+  or restores live Workspaces.
+- New windows snapshot the source's ordinary content size once. Registration applies full-size
+  content style before sizing to avoid accumulating titlebar height. Fullscreen Command-N opens
+  Connect; explicit Quick Open New Window uses the source's pre-fullscreen size. Last-used ordinary
+  size is device-local UserDefaults, frozen before termination teardown; fullscreen/auxiliary
+  windows cannot replace it. Cold scenes use it only without a system-restored frame; multiple
+  restored frames stay distinct. Positions remain system-owned; tests/demos use in-memory sizing.
+- Command-W closes the selected Workspace's focused pane, removing an empty Workspace but retaining
+  its window; otherwise it requests native dismissal. All user window-close paths use SwiftUI
+  confirmation if that window owns any Workspaces, including hidden/disconnected ones. Cancellation
+  preserves them; other windows are irrelevant. Shift-Command-W requests direct window dismissal;
+  the last-window background policy still applies. Main-window registration clears SwiftUI's
+  document-edited decoration without changing its confirmation condition or dismissal delegate;
+  observation follows the attached native window and ends on detachment.
+- Commands can move a Workspace intact to a registered destination window on MainActor. Navigator
+  drags keep SwiftUI's UUID-string provider for ordering/composition; dropping outside creates no
+  window. Moves preserve surfaces, transports, splits and session state without close history;
+  empty sources show Welcome. Native closure disconnects only owned sessions, cancels pending moves
+  and unregisters the window. Independent transfers/app services survive. Mounting never restarts
+  attempted connection/authentication; explicit retry/reopen may.
+- Paywalls stay pinned to one main window until dismissed. Speech belongs to a composer instance,
+  so closing another view of the same conversation cannot cancel it.
+- Desktop navigation starts with Vault/Assistant, places Metrics above Vault libraries, appends
+  dynamic SSH/SFTP Workspaces and ends with Settings. Vault owns Hosts, Keychain, Port Forwarding,
+  Snippets, Known Hosts, Welcome and editor routes. Settings data is app-wide; window-local Settings
+  navigation remembers and restores the replaced destination.
+- Desktop detail minimum is 360 points; Assistant reading maximum is independently 840. Opening
+  Navigator grows the window as needed. Vault reserves a 280-point list and 360–400-point editor,
+  overlaying below 641 points; covered lists retain their last visible size. Editor/space transitions
+  take 0.22 seconds, preserve content size and respect Reduce Motion. Metrics below 700 points uses
+  a titlebar Status/Processes picker with hidden title; wider layouts show both panels/title.
+  Covered panels retain size, table identity, sorting and scroll. Selection/width are window-local;
+  changing server selects Status, while focusing search or narrowing during search reveals Processes.
+  Compact Pause/Resume goes in More; macOS 15 search uses a toolbar popover. Resizing changes layout,
+  never routes, editor identity, Workspace composition or monitoring ownership.
+- `AssistantLibraryModel` owns standalone conversations, never Workspace panes. Workspaces own
+  SSH/SFTP/serial panes and session-scoped conversations; sessions own live transports and
+  terminal/browser state. Assistant ordering/pinning is metadata-only during runs, approvals or
+  compaction: preserve instances and commit before publishing. Archived chats cannot move, rename
+  editors cannot drag, and archive/delete retain run/compaction guards.
+- Runtime connection/authentication/forwarding state stays in memory, never on domain records or
+  in Vault/Metrics/Settings sync or UserDefaults. Serial sessions are temporary/local; Infrastructure
+  owns IOKit/termios, and serial paths/parameters are neither persisted nor Agent hosts.
+- Vault-synced Workspace templates store named SSH/SFTP/empty split trees and divider fractions.
+  TFM alone maps them to live sessions/UI; TFI only carries records for sync. Missing Hosts restore
+  as empty panes without collapsing the layout.
 
-SSH imports recursively classify files by content and stage only selectable public
-metadata in a window-owned model. Hosts, identities, and keys form an indexed preview:
-an imported identity requires its selected key, while a host uses an exact existing or
-selected imported identity and otherwise remains unbound. Selecting a host never selects
-credentials. The actor reader retains scoped source descriptors and content digests,
-never private-key text or passphrases; it rereads selected keys transiently at
-unlock/commit and fails closed if a source changed. Picking and drag-and-drop use the
-same scoped validation; config parsing never executes commands. Commit writes new
-credentials before one Vault save, cleans them up on failure, never overwrites existing
-records, and never clears an existing trust mismatch.
+Known Hosts is independent of Host records: Host edits/deletes never change trust. Plain and OpenSSH
+`|1|` hashed endpoints share a matcher; hashed records retain wire `hostname` and ignore separate port.
 
-App appearance is a global UserDefaults preference applied by the macOS app
-delegate through `NSApplication.appearance`; following System clears the override.
-Opening at login reflects `SMAppService` on every Settings visit rather than a
-mirrored preference. A quiet login hides the app without suppressing its window.
-macOS owns an explicit in-app language preference. Mobile delegates language selection
-to Apple's per-app Settings and never stores or injects its own locale override.
+SSH imports recursively classify content into a window-owned, indexed public-metadata preview.
+Imported identities require their selected keys; Hosts use an exact existing/selected imported
+Identity or remain unbound. Selecting a Host never selects credentials. The actor reader retains
+scoped descriptors/digests, never private-key text/passphrases; selected keys are reread transiently
+at unlock/commit and changed sources fail closed. Picking/drop share scoped validation; config
+parsing executes no commands. Commit creates credentials before one Vault save, cleans up on failure,
+never overwrites records or clears an existing trust mismatch.
+
+macOS appearance is global UserDefaults applied through `NSApplication.appearance`; System clears
+it. Login launch reflects `SMAppService` on each Settings visit, with no mirrored preference; quiet
+login hides the app without suppressing its window. macOS owns in-app language selection; mobile
+uses Apple's per-app Settings with no stored/injected locale override.
 
 ## Remote sessions, terminal, and files
 
-SSH, SFTP, mobile Workspaces, and Metrics share connection preparation and recovery
-policy. Interactive host-key approval remains inside the actual transport attempt:
-the same socket/libssh2 session continues from handshake through approval and
-authentication; callers never perform a separate discovery connection.
-Generation tokens prevent callbacks, credential results, and retry timers from a
-retired connection mutating its replacement.
+### Connection and authentication
 
-Desktop SSH and SFTP share authentication submission resolution and optional
-Identity/Host saving through `RemoteSessionHostStore`. Explicit passwords take
-precedence over selected-Identity lookup; custom input never inherits an unselected
-Identity's password. Saving a selection only replaces an explicitly entered password;
-custom input reuses the Host's existing Identity. Identity/secret persistence still
-precedes the separate Host association. Sessions retain validation order, passphrase
-continuation, prompt/error state, temporary credentials, transient Hosts, and reconnects.
+SSH, SFTP, mobile Workspaces and Metrics share preparation/recovery policy. Host-key approval stays
+inside the actual socket/libssh2 handshake-to-authentication attempt, never a discovery connection.
+Generation tokens reject retired callbacks, credential results and retry timers.
 
-SSH keyboard-interactive challenges use the same authenticated-opening path for
-PTY, exec, SFTP, forwarding, key installation, and each jump host. The C callback
-waits only on its transport queue while an async, cancellable application responder
-presents the server's literal name, instructions, prompts and echo flags. Rounds and
-connections have distinct request IDs; answers are ephemeral and never autofilled
-from saved passwords, cached, logged, or added to Agent/MCP history. Empty answers
-are valid; zero-question rounds complete without requiring a visible form. User
-waiting time does not consume libssh2's network timeout. Cancellation wakes the
-callback, cancels its responder, and interrupts the pending transport.
+Desktop SSH/SFTP share submission resolution and optional Identity/Host saving through
+`RemoteSessionHostStore`. Explicit passwords win over selected-Identity lookup; custom input never
+inherits an unselected Identity password. Selected credentials change only for explicit password
+input; custom input reuses the Host's Identity. Identity/secret writes precede the separate Host
+association. Sessions retain validation order, passphrase continuation, prompt/error state,
+temporary credentials, transient Hosts and reconnect sequencing.
 
-User connections own their challenge queues. Agent runs reuse their application
-interaction queue; macOS background operations and MCP share the native authentication
-window with independently cancellable origins. Stopping MCP preserves app-owned
-requests. Terminal file drops and all additional transfer connections forbid Termind
-credential, passphrase, MFA and host-key forms, including fallback responders on jump
-hosts. System key authorization such as Touch ID remains allowed. Username-only and
-SSH `none` authentication remain eligible; actual connection success decides availability.
-No app-owned mobile authentication sheet exists. Forwarding and Metrics each own
-their challenges inside Connection Journey on both platforms; forwarding never uses
-the desktop external authentication window.
-Cancellation interrupts opening, and temporary-file cleanup must also
-remain silent. Cleanup requiring new interaction retains the existing failure report.
-Port Forwarding is an independent Vault card library between Keychain and Snippets
-on both platforms. Its cards share Hosts' two-row height and show the same name,
-address, type, Host and runtime state. A blank forwarding Name previews and saves
-the Host name and SSH argument, such as `AWS (-L)`; legacy blank records retain that
-display fallback until saved. Renaming the Host does not rewrite a saved rule name.
-Desktop Journey lives in
-the same Vault detail column and follows its sizing and opening/closing animation.
-Its embedded presentation uses 16-point horizontal margins, an icon-only log
-button, and vertical scrolling for short windows. Switching between the editor
-and Journey fades within that column without replacing the connection or pending
-challenge. Other Journey surfaces retain their default presentation.
-Saving a desktop forwarding rule closes its editor after persistence succeeds and
-keeps the saved card selected; a failed save retains the draft and editor.
-Double-clicking a desktop card starts/stops it without
-an inline action button. Desktop cards use Vault's window-owned multiple and marquee
-selection; the multi-selection context menu offers Stop (disabled without active rules)
-and transactional Delete. Starting and retrying always target one rule; neither platform
-offers bulk start or Start All/Stop All controls. Mobile pushes a detail page with Start/Stop/Retry in the
-trailing toolbar. Host editors never own forwarding drafts; each rule is saved or
-deleted in its own rollback-safe Vault transaction and retains its Host reference.
-The shared color picker edits a rule's persisted palette value and both card icons
-use that color. V20 adds the color with a lightweight migration while freezing the
-V1–V19 forwarding entity; legacy JSON defaults to no color. Color travels in the
-existing Vault rule payload, with no change to record identity or Host references.
-Rules start only through explicit user actions. Startup, foregrounding, saved/synced
-configuration changes and failures never open or retry a forwarding connection; the
-legacy enabled-rule defaults are unused. Background expiration and app termination
-stop all forwarding resources. Navigation does not own transport or prompt lifetimes.
+Keyboard-interactive uses the same authenticated opener for PTY, exec, SFTP, forwarding, key
+installation and jump hosts. Its C callback waits only on the transport queue for an async,
+cancellable responder showing literal server name/instructions/prompts/echo flags. Request IDs
+separate rounds/connections. Answers are ephemeral: never autofilled, cached, logged or recorded
+in Agent/MCP history. Empty answers are valid; zero-question rounds need no form. Waiting excludes
+libssh2 network timeout; cancellation wakes the callback, cancels its responder and interrupts opening.
 
-Forwarding rules sharing a host session share authentication; a new connection must
-answer fresh challenges. Stopping one rule preserves its peers; retiring the last
-rule cancels the opening and prompts. Listener failures affect only that rule;
-transport failure fails all current rules without restarting them. Host route edits
-(including jump hosts) and rule replacement stop affected runs. Authentication's own
-Continue and Save may continue its explicitly requested opening. Connection and rule
-generations reject late callbacks, and stop/start serializes listener cleanup.
-Forwarding and jump-host bridges service sockets through DispatchSource readiness
-on their owning serial queues; every libssh2 session has exactly one queue owner.
-The shared stream pump retains stable write chunks across EAGAIN, uses a 256 KiB
-per-direction quantum, caps encrypted reads at 256 KiB per session pass (including
-reads performed internally by libssh2 writes), and pauses input at a 2 MiB high
-watermark until the queue falls below 1 MiB. A deduplicated FIFO and a 2 ms worker slice prevent a hot flow
-from monopolizing its peers. Half-close drains accepted bytes before propagating
-EOF. Remote target DNS uses at most four workers; nonblocking TCP connects and a
-five-second deadline never block SSH I/O. Channel opens and remote listener starts
-retain and retry the library's session-wide operation state.
+User connections own challenge queues; Agent runs use their interaction queue. macOS background/MCP
+operations share the native authentication window with independently cancellable origins; stopping
+MCP preserves app requests. Mobile has no app-owned authentication sheet. Forwarding/Metrics each
+own Connection Journey challenges on both platforms, never the desktop external window.
 
-Authenticated forwarding/bridge sessions install an encrypted-output adapter using
-libssh2's public send/receive callbacks. It accepts complete encrypted packets and
-applies bounded backpressure between library calls, including receive-generated
-replies. This avoids the pinned libssh2 forwarded-tcpip confirmation retry losing
-its channel on socket EAGAIN. It is installed only after authentication has released
-the session abstract context. Teardown switches the adapter to discard writes and
-return EOF, allowing session disposal without waiting on the peer. Socket descriptors
-are closed only after dispatch-source cancellation handlers retire. Timers serve
-keepalive/protocol deadlines, never bulk-data polling; count notifications occur
-only on changes, including counts received while a rule is still starting.
+Terminal drops and additional transfer connections forbid Termind credential/passphrase/MFA/host-key
+forms, including jump-host fallbacks, but permit system key authorization such as Touch ID. Username-only
+and SSH `none` remain eligible; connection success determines availability. Cancellation interrupts
+opening; cleanup stays silent and reports failure if new interaction would be required.
 
-An Identity may contain only a username: preparation
-permits an empty credential list, SSH tries `none`, then advertised methods. Missing
-configured secrets and existing authentication failure/retry behavior stay unchanged.
+Username-only identities allow empty credential lists: try SSH `none`, then advertised methods;
+missing configured secrets and existing failure/retry semantics remain. Device-local Identity
+`lastUsedAt` records successful saved-password/private-key reads for setup, not remote authentication.
+Resolvers batch destination/jump/proxy reads; missing secrets and availability/editing reads do not
+count. First access per Identity/process writes its SwiftData row directly, without Vault journal or
+refresh; retries deduplicate. Vault sync strips this metadata and preserves it on remote application.
 
-An Identity's device-local `lastUsedAt` means its saved password or private key was
-successfully read for connection setup, not that remote authentication succeeded.
-Connection-specific resolvers batch those accesses across destinations, jump hosts,
-and authenticated proxies; missing secrets and ordinary Keychain availability or
-editing reads never update usage. The first access for each Identity in an app process
-is written directly to its SwiftData row without entering the Vault journal or repository
-refresh path. Later retries are deduplicated, and Vault sync strips this local metadata
-while preserving it when applying remote Identity configuration.
+### Port Forwarding
 
-The SSH worker's serial queue owns PTY dimensions. It retains the latest valid
-viewport during authentication and uses it for the initial PTY request, including
-pixel dimensions. Nonblocking window-change requests retain their original size
-through EAGAIN; the pump finishes that packet before sending the newest viewport.
-Other channel I/O continues so an earlier blocked write can finish. Disconnect and
-connection failure clear resize state, and a retired authentication attempt cannot install a
-PTY or clear its replacement's pending dimensions. Ghostty remains the source of
-grid measurements; platform layout callbacks never compute remote rows or columns.
-Window-change failures are diagnostic logs, not connection failures or UI alerts;
-the failed packet is discarded while newer or subsequently requested sizes can proceed.
+Port Forwarding is an independent Vault library between Keychain and Snippets. Cards share Hosts'
+two-row height and name/address/type/Host/runtime-state fields. Blank names preview/save Host plus
+SSH argument, e.g. `AWS (-L)`; legacy blanks use that display fallback until saved. Host renames never
+rewrite saved rule names. Rules retain Host references and save/delete in independent rollback-safe
+transactions, outside Host editor drafts. V20 adds persisted palette color, freezes V1–V19 forwarding
+entities and defaults legacy JSON to no color; existing Vault payload/identity carries it to both icons.
 
-`RemoteFile` is a Domain value, `RemoteFileSystem` the Application port, and the
-libssh2 `SFTPClientProtocol` its Remote Infrastructure implementation. File symbols
-and localized kind names belong to Presentation. `MobileSFTPSessionModel` owns
-path, listing, navigation history, filters, mutations, and stale-request state.
+Desktop Journey uses the Vault editor column, sizing/animation, 16-point horizontal margins, icon-only
+log action and vertical scrolling. Editor/Journey fades preserve connections/challenges; other Journey
+surfaces keep their default presentation. Successful saves close the editor and select the card;
+failures retain drafts. Double-click starts/stops without inline action buttons. Desktop uses
+window-owned multiple/marquee selection with Stop (disabled without active rules) and transactional
+Delete. Start/retry always target one rule; neither platform has bulk start or Start All/Stop All.
+Mobile pushes detail with trailing Start/Stop/Retry.
 
-`TerminalCommandDraftController` owns draft requests, timeout, cancellation, and
-bracketed-paste payloads. `CommandGenerationCoordinator` adds model timeout,
-snapshot freshness, and presentation state. Platforms provide live context,
-validity, and insertion only; generated commands are inserted but never submitted.
-`TerminalFindController` is shared by desktop SSH/Serial and mobile SSH.
+Only explicit actions start/retry rules: launch, foreground, saved/synced edits and failures never do;
+legacy enabled defaults are unused. Background expiration/termination stop resources; navigation owns
+neither transport nor prompts. Shared host sessions share authentication; new connections require fresh
+challenges. Stopping one rule preserves peers; stopping the last cancels opening/prompts. Listener failure
+is rule-local; transport failure fails all without restart. Host/jump-route edits and rule replacement
+stop affected runs; authentication Continue/Save may continue its requested opening. Connection/rule
+generations reject stale results, and stop/start serializes listener cleanup.
 
-Terminal typography is device-local on both platforms. Font family, size, and
-size-follow-theme live only in UserDefaults and never enter TerminalPreferences,
-the Settings journal, or outgoing CloudKit payloads. Before sync can materialize a
-remote snapshot, missing local size keys are seeded from the pre-upgrade local
-preferences blob (existing mirrors win), or from the defaults. Legacy remote font
-fields are ignored. New terminal payloads omit them; older apps that require those
-fields must upgrade to read the new payloads. Theme/custom configuration text keeps
-its existing sync behavior, including fonts explicitly authored in that text.
-An empty local family means Follow Theme; unavailable installed fonts fall back to
-the theme without deleting the selection. Platform font catalogs refresh on Settings
-entry and foregrounding. Native font discovery stays in apps, while Presentation
-owns the local SwiftUI bindings and final Ghostty configuration. Explicit family
-and size overrides follow theme/custom commands; the family list is reset before
-applying the selected family. Changes reconfigure existing surfaces in place.
+Forwarding/jump bridges use DispatchSource readiness and exactly one serial queue per libssh2 session.
+Stream pumps retain write chunks across EAGAIN, use a 256 KiB per-direction quantum and 256 KiB/session-pass
+encrypted-read cap (including reads inside writes), and pause input at 2 MiB until below 1 MiB. A deduplicated
+FIFO/2 ms slice provides fairness; half-close drains accepted bytes before EOF. Target DNS has at most four
+workers; nonblocking TCP has a five-second deadline. Channel opens/remote listener starts retain and retry
+session-wide library operation state.
 
-macOS SSH and serial terminals share two default-off mouse preferences: copy a
-completed mouse selection and paste on right-click. They use the existing terminal
-Settings sync record and UserDefaults mirror; missing fields in older records decode
-as false. Mobile preserves the values without exposing or applying them. Preference
-changes update the persistent native view without rebuilding its Ghostty surface.
-Only a local mouse selection completion triggers automatic copying. A right-click
-chooses its route on press and pastes once on release through Ghostty's clipboard
-binding inside interactive input capture, preserving bracketed paste and broadcast
-routing. Remote mouse capture and Option-right-click retain Ghostty's original
-handling, and mouse reports never enter the broadcast input capture scope.
-Empty clipboard pastes do not arm deferred input capture. A captured bracketed paste
-retains its classification across callback chunks until its closing marker; an
-interrupted sequence expires with the existing short-lived input ticket window.
+After authentication releases the abstract context, public send/receive callbacks install an adapter
+accepting whole encrypted packets with bounded backpressure between library calls, including generated
+replies. This avoids the pinned libssh2 forwarded-tcpip confirmation losing channels on socket EAGAIN.
+Teardown discards writes/returns EOF; descriptors close only after dispatch-source cancellation handlers.
+Timers handle keepalive/protocol deadlines, never bulk polling. Count notifications fire only on changes,
+including while starting.
 
-Host Shell Integration is a Vault-synced three-state override: Follow Global Settings,
-Enable, or Disable. V22 adds its backing column without changing V1–V21 Host schemas;
-legacy stores and payloads default to following global settings. Both Host editors
-place Integration after Group (Group & Tags on desktop), show Enable / Follow Global Settings /
-Disable with the default in the middle, and retain explicit-save drafts.
-Each SSH connection attempt resolves the destination Host override and global terminal
-preference once, before authentication, and retains that value for bootstrap, History,
-Command Generator, remote system information, and integration-dependent directory actions.
-Local or synchronized Host/global edits never change a current connection. New connections
-and manual/automatic reconnects resolve the latest values; edits never initiate reconnects
-or inject scripts into an existing shell. SFTP and forwarding route identity is unchanged.
+### Terminal behavior
 
-Mobile SSH sends shell-integration and transport-exit callbacks through one ordered,
-session-scoped MainActor consumer. Close, reconnect, or background expiration ends
-it. Authenticated installation and command completion establish prompt readiness;
-following prompt markers are idempotent. Bash DEBUG fallback passes `BASH_COMMAND`
-and ignores Termind's `__termind_*` helpers so draft protocol traffic never creates
-History rows or marks the prompt busy.
+The SSH worker queue owns PTY dimensions: retain the latest valid authentication-time viewport, including
+pixels, for initial creation. Window-change packets keep their original dimensions through EAGAIN, finish
+before the newest request, and allow other I/O to progress. Disconnect/failure clears resize state; retired
+authentication cannot install a PTY or clear replacement dimensions. Ghostty alone computes the grid.
+Resize failures log diagnostics, discard that packet and permit later sizes; they never fail connections
+or alert users.
 
-Command History begins only after an authenticated start event. Completion may add
-remote exit status and duration; both remain optional and duration is never inferred
-from client receive time. Explicit backslash continuations are stored with each
-boundary normalized to one space; other line breaks remain part of the command while
-desktop and mobile History rows show only the first line with an ellipsis. History is
-capped at 1,000 rows per host.
+Application's `TerminalCommandDraftController` owns requests, timeout/cancellation and bracketed paste;
+`CommandGenerationCoordinator` adds model timeout, freshness and presentation. Apps supply context,
+validity/insertion; generated commands are inserted, never submitted. `TerminalFindController` serves
+desktop SSH/Serial and mobile SSH.
 
-SFTP History is device-local persisted truth shared across apps. Directories are
-recorded only after a fresh successful listing and files only after download.
-Failed, cancelled, stale, missing, or type-changed operations do not update it.
-Transfers retain generation-scoped `SFTPTransferSession` ownership independently of
-browser panes. The first additional connection probes the complete SFTP route silently;
-success supplies a worker and enables concurrent silent opens within the existing limits.
-Failure selects serial reuse of the authenticated browser connection. Later silent failures
-degrade pending work without replaying active file operations. Probe results are in-memory,
-shared within that generation, and cancellation does not cache a negative result. Terminal
-uploads use their successful silent preflight connection for the first transfer. Durable
-host trust is refreshed after initial authentication, but once-only approval is not promoted
-to trust for additional connections. No credential presence or persistence flag gates
-transfer eligibility or parallelism.
-The application-wide queue defaults to 15 active file transfers and 5 per Host.ID,
-including transfers from multiple terminal/browser sessions for that host. Global
-limits are configurable from 1 to 100; per-host limits from 1 to min(50, global).
-`SFTPPreferences` owns normalization. Each app wires its `SFTPSettingsModel` to the
-coordinator independently of Settings view lifetime; limit changes affect later
-scheduling and never interrupt already active transfers.
-Closing a pane releases only its ownership. Queued jobs retain the primary connection until
-completion/cancellation; paused jobs retain their configuration/checkpoint but release their
-connection ownership. Retired browser generations never replace transfer snapshots. Copies
-whose endpoints share one connection alternate bounded reads and writes on that worker,
-checking source size/metadata and EOF before the existing atomic temporary-file commit.
-Terminal preflight and batch preparation are cancellable and scoped to the terminal
-generation; late results cannot enqueue files after invalidation.
-Terminal file-drop failures, including interactive-authentication requirements and mobile
-file-provider staging failures, use the existing nonmodal upload overlay on both platforms.
-Rejections remain visible for three seconds; queued notices last two seconds and cannot
-replace a visible failure from the same batch. New drops retire earlier preparation and
-notice timers. SFTP browser operation alerts and transfer conflict choices remain app-owned.
-Upload/download checkpoints, file references, acknowledged offsets and incremental digests live only
-in memory. Pause and connection loss retain the destination partial file and release
-the connection; explicit resume verifies the source and partial prefix before seeking.
-Ordinary transfers add no source staging, bookmark persistence, or restart recovery. Cancellation
-and host deletion remove partial files, reporting a path if cleanup fails. Mobile
-background expiration pauses uploads/downloads and cancels remote copies. macOS termination gives asynchronous
-cleanup at most three seconds, so an unreachable server cannot hold up quitting.
-Nothing is silently replayed.
-Desktop and mobile upload/download and remote-copy preparation and enqueueing use
-Remote Infrastructure planners. Download batches retain their destination independently
-of file jobs, so directory-only selections still create their empty directory trees.
-Remote-copy enqueueing reports directory mutations so desktop refreshes also cover
-copies without file jobs. App sessions retain pending-batch presentation, cancellation,
-error handling, and completion refresh; interactive browser deletion stays app-owned.
-Upload and remote-copy conflict resolution share one Remote Infrastructure resolver
-over `RemoteFileSystem`. Upload retains strict-descendant preflight counting while
-copy also suppresses the conflicting root itself. Both use the same subtree mapping,
-Keep Both naming, cancellation checkpoints, and recursive child-name/path validation;
-created-directory accounting remains available to awaited copy outcomes.
+Font family/size/follow-theme-size are device-local UserDefaults, excluded from `TerminalPreferences`,
+Settings journals and CloudKit. Before remote materialization, seed missing local size keys from the
+pre-upgrade local blob or defaults; existing mirrors win. Ignore legacy remote font fields and omit them
+from new payloads (older readers requiring them must upgrade). Theme/custom text still syncs, including
+authored fonts. Empty family follows theme; unavailable fonts fall back without deleting selection.
+Apps refresh native catalogs on Settings entry/foreground; Presentation owns local bindings/final Ghostty
+configuration. Apply explicit overrides after theme/custom commands, resetting family lists first;
+reconfigure live surfaces in place.
 
-macOS SFTP file-row context menus are AppKit snapshots built on the context click,
-after reconciling selection. Their targets and native menu items survive SwiftUI
-row reconfiguration from hover, focus, selection, and directory refreshes. Menu
-presentation never mutates selection from a SwiftUI appearance callback.
+macOS SSH/Serial have default-off copy-completed-mouse-selection and right-click-paste settings in the
+existing synced terminal record/defaults mirror; missing fields decode false. Mobile preserves without
+exposing/applying them. Changes retain native views/surfaces. Only local selection completion copies.
+Right-click chooses routing on press, pastes once on release through Ghostty clipboard binding inside
+interactive input capture, retaining bracketed paste/broadcast. Remote mouse capture and Option-right-click
+keep Ghostty handling; mouse reports stay outside broadcast capture. Empty paste arms no deferred capture;
+bracketed-paste classification spans chunks through its terminator or existing short-lived ticket expiry.
 
-SFTP external edits have one process-local Application model per app, independent of
-browser/workspace lifetime. Remote Infrastructure owns managed local copies, streamed
-SHA-256 checks, file/directory observation (including atomic-save replacement), and
-immutable upload snapshots. Snapshots are an edit-specific exception to ordinary
-transfers' no-staging rule; paused uploads retain them and terminal completion removes
-them. Editing never automatically uploads. Only changed records appear in the floating
-bottom overlay; clean records remain internal so repeated opens reuse their local copy.
-The edit card overlays the full-height file viewport with native Liquid Glass on OS 26
-and later, and native material on older systems. Its row container stays transparent and
-the rounded glass is a separate backdrop, so file rows remain visible around and through
-the floating card. Only the scroll content gets a bottom inset, so files scroll behind the
-glass while the last row can still clear it; no blank safe-area region is reserved for the
-card.
-Discard stops tracking and preserves the local copy for any external editor; the next
-remote open downloads a fresh copy. iOS exposes Discard through native trailing swipe
-actions, and both platforms expose it in the row menu. Running/preparing uploads cannot
-be discarded; paused uploads are cancelled and cleaned up before their record is removed.
-Hosts own activation, background, termination and native preview/open adapters.
-The macOS edit menu uses ordinary menu actions; Keep Local Copy delegates to an app-owned
-save panel and coordinated file copy instead of embedding ShareLink in the native menu.
-macOS checks edits before quitting; iOS cannot promise a quit warning or recovery after
-process termination. Background expiration still pauses uploads, with explicit resume.
+Host Shell Integration is Vault-synced Follow Global Settings/Enable/Disable; V22 adds a column while
+freezing V1–V21 Hosts and defaults legacy data to Follow Global. Both explicit-save editors place it after
+Group (desktop Group & Tags), with Follow Global centered between Enable/Disable. Each SSH attempt resolves
+destination override/global preference once before authentication for bootstrap, History, Command Generator,
+system info and directory actions. Live edits never inject scripts/reconnect/change that attempt; new/manual/
+automatic reconnects resolve again. SFTP/forwarding route identity is unchanged.
 
-Edit upload policy validates the original destination's kind, size, modification time
-and mode both before writing and immediately before remote rename, preserving its
-permission bits on the temporary file. Overwriting commits use the OpenSSH POSIX rename
-extension; standard rename is used only when the extension is unsupported. Ordinary
-non-overwriting renames never use that extension, and failures never unlink the original
-as a replacement workaround. This is a best-effort metadata guard, not atomic
-compare-and-swap against unrelated remote writers. Missing metadata or changed/missing
-files require explicit confirmation; nonregular destinations fail closed. Successful
-commit acknowledges only the snapshot digest, so later saves remain dirty. Host removal
-or route changes invalidate old records without deleting their editable local copies.
-There are no extension allowlists: SHA-256 compares all regular-file contents. The iOS
-Quick Look delegate enables native editing where supported, receives in-place updates
-and takes ownership of temporary edited copies. Different-format copies are exported
-separately instead of overwriting the original remote format. Shared Presentation owns
-the dirty-file card; AppKit/UIKit and their lifecycle adapters stay in their apps.
+Mobile integration/exit callbacks share one ordered session MainActor consumer, ended by close/reconnect/
+background expiration. Authenticated installation and command completion establish prompt readiness;
+later prompt markers are idempotent. Bash DEBUG fallback passes `BASH_COMMAND` and ignores `__termind_*`
+helpers, preventing draft protocol traffic from creating History or marking the prompt busy.
 
-Open With uses the same managed edit copy as ordinary Open. macOS discovers applications
-by UTType and launches the one selected for that invocation without changing defaults.
-iOS retains Quick Look as its primary action and uses a workspace-owned document
-interaction controller for Open With; retired/background presentation requests cannot
-surface a late download in another workspace. The controller survives scene deactivation
-until an in-progress document handoff finishes. Receiving apps may edit an independent
-copy, so mobile offers explicit same-format edited-copy import into an existing record.
-Import preserves the original remote identity and baseline, rejects invalidated/busy
-records, and only marks local changes; the existing explicit upload/conflict flow commits them.
+Command History starts only after authenticated start. Remote exit status/duration are optional; duration
+is never inferred from receive time. Backslash-continuation boundaries normalize to one space; other
+newlines remain stored, while both UIs show first-line-plus-ellipsis. Limit: 1,000 rows per Host.
 
-`sftp_copy` is Termind-owned and acting-only in Assistant, with Ask/sequential
-policy. It copies regular files and directory trees into an existing directory;
-unsupported descendants fail before writes. Its awaited operation shares browser
-manifest and conflict helpers, including directory merging and destructive type
-replacement. Source data is never deleted. Batches are not atomic: failures retain
-completed items and disclose the failing path and completed counts.
-Two dedicated SFTP leases use the same authenticated connection opener as other
-Agent tools, but are neither pooled nor idle-swept. Their shared cancellation token
-is cancelled by host deletion, transport shutdown, or caller cancellation. Leases
-remain tracked while opening and are always disconnected after use. Credential
-retries apply only to acquisition, never to an operation that has started.
-Socket-relayed copies require successful source EOF and an exact byte count before
-the remote temporary file is committed. Cancellation shuts down the relay to unblock
-socket I/O. No scratch staging, local temporary file, or model-visible payload is used.
+### SFTP transfers and external edits
 
-The macOS MCP Server exports the same `sftp_copy` definition without a scratch
-workspace. Its existing Bearer token/tool switches and Full access execution remain
-the authorization boundary; SSH credentials and host keys still use external
-authentication. The tool is annotated as state-changing, potentially destructive,
-non-idempotent, and open-world. Session termination/server shutdown cancels and awaits
-active copies. Audit consumes byte progress and final counts only, never file bodies;
-the summary records both endpoints and the conflict policy. The stdio bridge remains
-a protocol-only forwarder. Mobile exposes Assistant tools but no local MCP listener.
+`RemoteFile` belongs to Domain, `RemoteFileSystem` to Application, and libssh2 `SFTPClientProtocol` to Remote
+Infrastructure; symbols/localized kinds belong to Presentation. `MobileSFTPSessionModel` owns paths, listings,
+history, filters, mutations and stale-request state. Persisted device-local SFTP History records directories
+only after fresh successful listings and files only after downloads; failed/cancelled/stale/missing/type-changed
+operations never update it.
 
-The macOS MCP server also owns a separate HTTP-to-SFTP byte channel. `sftp_upload`
-issues a ten-minute, session-bound 256-bit capability bound to its MCP session, host,
-full remote path, size, SHA-256, and overwrite intent. `sftp_upload_status` reads
-only that session's bounded in-memory state. Upload PUTs authenticate their own
-capability before consuming the body; ordinary MCP retains its 4 MiB body limit
-and long-lived Bearer authentication. Both routes remain loopback-only. Capabilities
-are headers, never query parameters, durable audit data, or long-lived credentials.
+Generation-scoped `SFTPTransferSession` outlives panes. Its first additional connection silently probes the
+complete route: success becomes a worker/enables bounded concurrent silent opens; failure serially reuses the
+authenticated browser connection. Later failures degrade pending work without replaying active operations.
+Results are generation-local/in-memory; cancellation never caches failure. Terminal preflight supplies its
+successful connection to the first transfer. Refresh durable trust after initial authentication, without
+promoting once-only approval. Credential presence/persistence never gates eligibility or parallelism.
 
-HTTP bodies are consumed in bounded chunks with socket-relay backpressure and no
-local file staging or scratch access. Remote Infrastructure owns the HTTP-agnostic
-stream operation and dedicated SFTP lease. Exact byte count and incrementally
-verified SHA-256 authorize source EOF; only then may the remote temporary file be
-closed and committed. Existing directories cannot be overwritten. Failed cleanup
-reports the potentially remaining remote temporary path. Interrupted writes retain an in-memory checkpoint and a remote partial file.
-Status exposes `upload_offset`, counting only acknowledged remote writes. A sequential
-retry must send `Upload-Offset` equal to it and a Content-Length covering the remaining
-suffix; parallel claims are rejected. The full-file digest includes the verified
-prefix. Completed writes are never replayed. Session retirement, host deletion, tool disablement, server shutdown, and
-token rotation cancel live work; active uploads prevent idle session expiry.
-A completed remote commit stays successful even when its HTTP response is lost.
-Retained upload completions also keep an otherwise idle session queryable for
-thirty minutes; terminal records are globally bounded to 256 entries.
-Metadata-only HTTP upload audit rows are independent of ticket-creation audit rows.
-No sandbox entitlement, persistence schema, or AgentKit dependency change is needed.
+The app-wide queue defaults to 15 active files, five per Host.ID across all sessions; limits are 1–100 global
+and 1–min(50, global) per host. `SFTPPreferences` normalizes; each app wires `SFTPSettingsModel` to scheduling
+outside Settings view lifetime. Changes affect future scheduling, never active work. Closing panes releases
+only their ownership; queued jobs retain the primary connection, paused jobs retain configuration/checkpoints
+but release connections. Retired browser generations cannot replace snapshots. Same-connection copies alternate
+bounded reads/writes, validate size/metadata/EOF, then atomically commit temporary files.
 
-`sftp_download` issues the reverse resumable HTTP capability, bound to the session,
-host, full remote path, and optional expected SHA-256. Ticket creation performs no
-remote I/O. GET authenticates and atomically claims before connecting; it supports
-regular files only, with no query credentials, request bodies or HEAD. A single
-open-ended `Range: bytes=N-` returns 206 and Content-Range, while an out-of-bounds
-offset returns 416 without consuming the ticket. The client chooses N from its
-actually saved bytes, not server send progress. A bounded prefix reread verifies
-previously read bytes before response headers and reconstructs the full-file digest;
-source metadata changes or prefix mismatches reject resumption. A dedicated SFTP lease opens a checked `SFTPDownloadStream`; the worker
-owns its handle IDs, native pointers, and queue. FSTAT on the opened handle fixes
-the reliable declared size, and EOF verifies exact byte count plus the final size
-and available modification time. This is not an atomic remote-file snapshot.
+Terminal preflight/preparation is cancellable and generation-scoped; late results cannot enqueue. Drop errors,
+including interaction requirements/mobile file-provider staging, use nonmodal upload overlays: failures stay
+three seconds, queued notices two and cannot replace same-batch failures. New drops retire prior preparation/
+notice timers. Browser alerts and conflict choices stay app-owned.
 
-The HTTP file-response body is pull-based, reading at most 64 KiB only after the
-previous network send completes; it never uses the SSE AsyncStream or local
-staging. SHA-256 covers actual transmitted bytes. A terminal success requires
-source validation, full HTTP sending, checked handle closure, and dedicated lease
-release. Pre-header failures return safe JSON; post-header failures close the
-connection without appending JSON or changing the announced status. Clients must
-poll `sftp_download_status`, compare local size/hash, and finalize their own file;
-HTTP 200 and Content-Length alone are not proof of success or local persistence.
+Checkpoints, file references, acknowledged offsets and incremental digests are memory-only. Pause/connection
+loss retains partial destinations and releases connections; explicit resume verifies source and partial prefix
+before seeking. Ordinary transfers add no staging, persistent bookmarks or restart recovery. Cancellation/Host
+delete removes partials, reporting failed cleanup paths. Mobile expiration pauses upload/download and cancels
+copies; macOS quit allows at most three seconds for async cleanup. Nothing replays silently.
 
-Upload and download compose the same MCP ticket metadata value and retention policy.
-The shared policy identifies expired waiting/paused tickets and prunes completions;
-each direction still owns its live states, claim rules, streaming, and cancellation.
-Upload expiry can start asynchronous partial-file cleanup; download success still
-permits a valid Range request. Each direction keeps its own ticket dictionary.
+Remote Infrastructure planners serve both apps' upload/download/copy preparation/enqueueing. Download batches
+retain destinations independently of file jobs so empty trees are created; copy enqueueing reports directory
+mutations for refresh even without files. Apps keep pending-state UI, cancellation/errors/completion refresh
+and interactive deletion. `SFTPRemoteConflictResolver` shares subtree mapping, Keep Both, cancellation and
+validated recursive child paths over `RemoteFileSystem`: upload preflight blocks strict descendants; copy
+also blocks the conflicting root. Awaited copies retain created-directory counts. macOS file-row menus are
+AppKit context-click snapshots after selection reconciliation; targets/items survive SwiftUI reconfiguration.
+Menu appearance callbacks never change selection.
 
-Upload and download share one four-active-transfer budget. Each direction retains
-at most 64 unfinished capabilities (including paused attempts) and 256 terminal
-records for thirty minutes. HTTP disconnect and recoverable SSH failure pause a
-transfer; explicit revocation still cancels it. Retries require the original active
-session and unexpired capability, and neither checkpoints nor capabilities survive
-process exit. Generation IDs prevent old transport callbacks affecting a new attempt. Both
-directions share session/host retirement, server-stop, token-rotation, and activity
-boundaries; disabling one direction revokes it immediately. Capacity is released
-only after cleanup. HTTP download audit rows are independent of MCP ticket calls
-and retain only endpoint metadata, sent byte counts, and terminal state, never
-file bytes or capability tokens. The existing upload and stdio bridge remain intact.
+Each app has one process-local Application edit model independent of browsers/Workspaces. Remote Infrastructure
+owns managed copies, streamed SHA-256, file/directory observation (including atomic replacement) and immutable
+upload snapshots. Edit snapshots are the staging exception: pauses retain them, terminal completion removes
+them. Upload is always explicit. Only dirty records appear in the shared floating bottom card; clean records
+remain reusable. Full-height files scroll behind a separate rounded Liquid Glass (OS 26+) or native-material
+backdrop with transparent rows; only scroll content gets a bottom inset, never a blank reserved safe area.
+
+Discard stops tracking but preserves the editor's local copy; next Open downloads anew. Both row menus and
+iOS trailing swipe expose it. Running/preparing uploads cannot discard; paused uploads cancel/clean first.
+Apps own activation/background/termination and native open/preview. macOS ordinary edit-menu actions use an
+app save panel/coordinated copy for Keep Local Copy, never ShareLink; macOS checks edits before quit. iOS
+promises neither quit warnings nor post-termination recovery; background-paused uploads require explicit resume.
+
+Edit uploads validate original kind/size/mtime/mode before writing and before rename, preserving permissions.
+Overwrite uses OpenSSH POSIX rename, falling back to standard rename only if unsupported; non-overwriting
+rename never uses it, and failure never unlinks the original as a workaround. This metadata guard is best-effort,
+not atomic compare-and-swap. Missing/changed metadata or files require confirmation; nonregular destinations
+fail closed. Success acknowledges only the snapshot digest, so later saves remain dirty. Host removal/route
+edits invalidate records but preserve copies. All regular files use SHA-256 without extension allowlists.
+Quick Look enables supported editing, receives in-place updates and owns temporary edited copies; different
+formats export separately. Presentation owns the card; native adapters remain app-owned.
+
+Open With reuses the managed copy. macOS discovers via UTType and launches the invocation's choice without
+changing defaults. iOS keeps Quick Look primary and uses a Workspace-owned document controller, rejecting
+retired/background late-download presentations in other Workspaces while retaining in-progress handoffs across
+scene deactivation. Since receivers may edit independent copies, explicit same-format import targets an existing,
+valid/nonbusy record, preserving remote identity/baseline and only marking dirty; normal upload/conflict policy commits.
+
+### Agent and MCP file channels
+
+Termind's acting-only `sftp_copy` uses Ask/sequential policy. It copies regular files/trees to an existing
+directory, rejects unsupported descendants before writing, and shares browser manifest/conflict handling,
+including directory merge/destructive type replacement. Sources remain intact. Batches are non-atomic;
+failures disclose retained completed items/counts and the failed path. Two dedicated, unpooled, unswept SFTP
+leases share the Agent authenticated opener and a cancellation token for caller/Host deletion/transport shutdown;
+track them during opening and always disconnect. Credential retries stop after acquisition. Socket relays require
+EOF/exact bytes before temp-file commit; cancellation unblocks sockets. No staging/scratch/model-visible bytes.
+
+macOS MCP exports the same definition without scratch. Bearer/tool switches and Full access remain authorization
+boundaries; credentials/host keys use external authentication. Annotations are state-changing, potentially
+destructive, non-idempotent and open-world. Session/server termination cancels and awaits copies. Audit records
+byte progress/final counts, endpoints and conflict policy, never bodies. The stdio bridge only forwards protocol;
+mobile offers Assistant tools without a local MCP listener.
+
+macOS also provides a separate loopback HTTP/SFTP byte channel. `sftp_upload` issues a ten-minute session-bound
+256-bit capability for Host/full path/size/SHA-256/overwrite intent; `sftp_upload_status` exposes only that
+session's bounded in-memory state. PUT authenticates the capability before consuming bounded body chunks with
+socket backpressure; ordinary MCP retains long-lived Bearer and its 4 MiB body cap. Capabilities appear only in
+headers, never query strings, durable audit or long-lived credentials. Remote Infrastructure owns the HTTP-neutral
+stream/dedicated lease, with no staging/scratch. Exact bytes plus incremental full SHA-256 authorize EOF/commit;
+directories cannot be overwritten, and failed cleanup reports the temporary path.
+
+Interrupted uploads retain a memory checkpoint/remote partial. `upload_offset` counts acknowledged remote writes;
+sequential retries require matching `Upload-Offset` and remaining-suffix Content-Length, rejecting parallel claims.
+Digest includes verified prefix; committed bytes never replay. Lost HTTP responses cannot undo successful commits.
+Live uploads prevent idle session expiry; retained success keeps idle sessions queryable thirty minutes. Upload
+audit is metadata-only and independent of ticket-creation audit; no entitlement/schema/AgentKit change is required.
+
+`sftp_download` issues the reverse capability for session/Host/full path/optional expected SHA-256 with no remote
+I/O at creation. GET authenticates/atomically claims before connecting; regular files only, no query credentials,
+bodies or HEAD. One open-ended `Range: bytes=N-` returns 206/Content-Range; out-of-bounds returns 416 without
+consuming the ticket. Clients choose N from saved bytes, not server progress. Bounded prefix reread verifies
+previous bytes before headers and reconstructs digest; changed metadata/prefix rejects resume. A dedicated
+`SFTPDownloadStream` worker owns handles/native pointers/queue. FSTAT fixes declared size; EOF validates exact
+bytes, final size and available mtime, without promising an atomic remote snapshot.
+
+Download HTTP bodies pull at most 64 KiB after each previous send, never via SSE AsyncStream or staging.
+SHA-256 covers transmitted bytes. Success requires source validation, completed sending, checked handle close
+and lease release. Pre-header errors return safe JSON; post-header errors close without appended JSON/status
+changes. Clients must poll `sftp_download_status`, verify local size/hash and finalize; 200/Content-Length alone
+prove neither success nor local persistence.
+
+Both directions compose shared MCP metadata/activity/retention policy for waiting/paused expiry and completion pruning,
+but retain separate dictionaries, live states, claims, errors, streaming/cancellation and task ordering. Upload
+expiry may spawn partial cleanup; download permits valid Range after success. They share four active slots;
+each keeps at most 64 unfinished tickets (paused included) and 256 terminal records for thirty minutes.
+Disconnect/recoverable SSH failure pauses; explicit revocation cancels. Retry requires the original active
+session/unexpired capability; process exit loses checkpoints/capabilities. Generation IDs reject old callbacks.
+Session/Host retirement, server stop, token rotation and direction disablement revoke live work; release capacity
+only after cleanup. Download audit is separate from MCP ticket calls and contains endpoint/sent-byte/state metadata,
+never bytes/tokens. The existing upload/stdio paths remain intact.
 
 ## Callback isolation
 
-Speech services and coordinator state are MainActor-isolated, but authorization
-callbacks may arrive on any queue. A nonisolated factory creates an explicitly
-Sendable continuation callback; dispatching from an actor-inherited closure would
-trap before its body runs. The coordinator rechecks its recording-session token
-after authorization so a late result cannot revive a cancelled session.
-
-iOS Core Audio taps follow the same rule: a nonisolated factory creates the realtime
-tap block, which calls only Sendable buffer/level handlers. Reconnect timers and
-metrics workers also enter explicit MainActor methods rather than relying on
-inherited task isolation; remote I/O stays behind asynchronous/detached boundaries.
+Speech state/services are MainActor-isolated; authorization callbacks may arrive anywhere. A nonisolated
+factory must create an explicitly Sendable callback: actor-inherited closures can trap before dispatching.
+Recheck the recording token after authorization to prevent revival. iOS Core Audio likewise creates realtime
+taps in a nonisolated factory and calls only Sendable buffer/level handlers. Reconnect timers/metrics workers
+enter explicit MainActor methods; remote I/O stays behind async/detached boundaries.
 
 ## Agent runtime and security
 
-Model-provider credentials are optional on macOS and mobile. An empty credential
-reference means anonymous requests; a nonempty reference whose secret is missing,
-empty, or unreadable remains an error. `AIConfigurationModel.modelSecret(for:)`
-shares this distinction across discovery, probes, Chat, Guardian, titles, compact,
-Command Generator, and Memory review. Anonymous resolution never reads secret
-storage or inherits another provider's storage error. Vertex still requires its
-service account and a valid project/location. AgentKit omits empty authentication headers for ordinary providers.
+### Providers and configuration
 
-Model-provider forms show protocol-specific Name and URL hints, not prefilled input.
-A shared Domain policy materializes blank/whitespace fields at the Application save
-boundary: Automatic stores OpenAI's full Responses URL; explicit protocols store
-OpenAI/Anthropic v1 or Google v1beta bases. Nonempty input never falls back or changes
-on a type switch. Runtime reads never infer public destinations for legacy empty rows.
-Desktop keeps page-owned input buffers while saving concrete defaults immediately;
-mobile previews a normalized copy and normalizes again after conflict merging at Save.
-Reopening shows saved values. Merely viewing or editing a form does not contact a provider.
+Credentials are optional: empty references mean anonymous requests; nonempty missing/empty/unreadable secrets
+are errors. `AIConfigurationModel.modelSecret(for:)` applies this to discovery, probes, Chat, Guardian, titles,
+compact, Command Generator and Memory review. Anonymous resolution neither reads storage nor inherits unrelated
+errors; ordinary AgentKit providers omit empty auth headers. Vertex still requires service account/project/location.
 
-Explicit generateContent offers a Vertex AI toggle. Project, location (blank saves
-as global), and service-account identity are independent of the retained ordinary
-URL/API key. Leaving that type disables Vertex without deleting its configuration.
-Missing Vertex credentials never fall back to an API key or anonymous access; Vertex
-models are manually added. AgentKit owns address derivation and OAuth token exchange.
-File/paste import validates bounded service-account JSON and trusted Google token URLs;
-plaintext stays in transient drafts and AISecretStore. Two-reference credential edits
-compare their original values and roll back all changed secrets on metadata failure.
-Deletion removes both references; disabling Vertex removes neither.
-V19 adds independent PersistentModelProviderVertexConfiguration backing without changing
-V1-V18 entities. Settings sync carries only metadata/references, preserves existing
-Vertex metadata when an older payload omits it, and respects explicit clears and deletes.
-The existing Keychain migration covers both references; no private key enters CloudKit
-configuration. Vertex data already discarded by V12 is not reconstructed.
+Forms show protocol Name/URL hints, never prefilled input. Domain defaulting materializes blank fields at
+Application save: Automatic stores OpenAI's complete Responses URL; explicit protocols use OpenAI/Anthropic v1
+or Google v1beta bases. Nonempty input never falls back/changes on type switch; legacy empty runtime rows never
+infer public destinations. Desktop autosaves concrete values behind page buffers; mobile normalizes previews
+and again after Save conflict merging. Reopen shows saved values; viewing/editing never contacts providers.
 
-Both apps accept user-selected HTTP and HTTPS model endpoints. Their ATS arbitrary
-loads exception supports unknown user-configured domains, including local servers;
-HTTPS keeps default certificate trust evaluation. No local-network ATS exception
-may override that setting. Local-network usage descriptions are localized. App Store
-review notes must explain that users configure arbitrary self-hosted model servers,
-including HTTP endpoints which the app does not own and cannot upgrade to HTTPS.
+Explicit generateContent offers Vertex. Project, location (blank saves `global`) and service-account identity
+are independent of retained ordinary URL/API key. Leaving the type disables Vertex without deletion; missing
+Vertex credentials never fall back, and its models are manually added. AgentKit owns addresses/OAuth. Bounded
+file/paste JSON validates trusted Google token URLs; plaintext stays in transient drafts/`AISecretStore`.
+Two-reference edits compare originals and roll back all secret changes if metadata fails. Delete removes both;
+disable removes neither. V19 adds independent `PersistentModelProviderVertexConfiguration`, freezing V1–V18.
+Settings sync carries metadata/references, preserves Vertex fields omitted by older payloads, honors clears/deletes
+and migrates both Keychain references; no private key enters CloudKit or reconstruction of V12-discarded data.
 
-`AgentKit` owns the provider adapters, loop, approval gate, MCP client, and built-in
-host-agnostic tools. Termind owns everything that reaches its machines or people:
-SSH/SFTP tools, connection pools, Vault resolution, persistence, policy, and UI.
-The additive seams are:
+Both apps permit user-selected HTTP/HTTPS endpoints with ATS arbitrary loads for unknown/self-hosted domains;
+HTTPS retains default trust, and no local-network ATS exception may override this. Local-network descriptions
+are localized. App Store notes must explain user-owned HTTP servers the app cannot upgrade to HTTPS.
 
-- `AgentToolCatalog.registry(builtIn:additional:)`: AgentKit groups first, then
-  `TermindAgentTools`; Termind and remote MCP tools cannot shadow built-ins.
-- `ChatSlashCommandRegistry`: one registration owns a command's platforms,
-  availability, options, current-value presentation, and execution. Desktop and
-  mobile composers inject only host navigation, compaction, send, and access actions.
-- `AgentToolServices`: typed host services, including `AgentSSHInteraction`, keep
-  credentials and host-key prompts outside AgentKit events and durable history.
-- `TermindAgentPolicy`: Termind's prompt, plan contract, and `ssh_exec` decision;
-  stable prompt prefixes preserve provider caching.
-- `TermindAgentPresentation`: Termind-only card values whose stable raw values keep
-  persisted cards decodable.
+### Runtime, context, and authorization
 
-`AgentRuntime` is an actor. `AgentContextPipeline` shapes only model requests;
-stored history remains complete. `AgentTurnDriver` streams a turn,
-`AgentToolScheduler` runs its batch, `AgentToolExecutor` performs schema validation,
-preflight, card creation, hooks, authorization, then execution, and
-`AgentEventChannel` serializes UI and durable events. Provider adapters include
-OpenAI Responses/Chat Completions, Anthropic Messages, and Gemini. Models without
-tool capability receive no tools; only recognized chat-purpose models appear in
-conversation pickers, and unknown purpose values safely default to chat.
-Ordinary planning and acting runs have no turn or tool-call count ceiling; they end
-when the model finishes, the user stops, a hook terminates, or an error occurs.
-Guardian remains separately bounded so unavailable or inconclusive review fails closed.
-Compact, conversation titles, and Command Generator use AgentKit's buffered-result
-interface over streaming transport, not `stream: false` requests. They collect
-validated results before applying them and never expose intermediate fragments.
-Buffered SSE responses require a terminal marker and are capped at 16 MiB of raw
-response bytes; cancellation, malformed data, and premature EOF discard partial
-results. Ordinary agent streaming retains its existing execution policy, and
-providers returning complete JSON remain supported.
-Each ordinary model turn retries only transient provider transport/service failures
-five times at 1/2/4/8/16 seconds. A retry reuses the logical message and request,
-abandons its partial presentation, and cannot replay a tool because tool dispatch begins
-only after a complete model response. Retry progress is ephemeral; final run failures
-remain durable and render as error rows rather than assistant-authored text.
-AgentKit's callable `fetch` and `scratch_fetch` tools are `.ask` because each
-contacts a caller-selected URL. Explicitly enabled `web_search` remains
-pre-approved; a provider-native search card is a post-hoc record of a search the
-selected model provider already ran.
+AgentKit owns provider adapters, loop, approval gate, MCP client and host-neutral tools; Termind owns SSH/SFTP,
+pools, Vault resolution, persistence, policy and UI. Additive seams:
 
-Guardian owns Auto-reviewing as an isolated `.reviewing` agent posture. Ordinary
-tools default only to `.planning` and `.acting`. The registry supports disjoint
-same-name registrations with independent schema, preflight, and execution for
-each run mode, but Termind currently registers no `.reviewing` tools, so every
-Guardian request is tool-free. Its in-memory per-conversation channels serialize
-reviews and retain a bounded full-to-delta transcript, while only direct authored
-user text and locally captured `request_user_input` answers may establish authorization.
-OpenAI-shaped requests use `guardian:<conversation-id>` as the stable prompt
-cache key; fixed policy, schema, and tool prefixes remain byte-identical.
-Structured Guardian decisions use provider-native JSON schema when the selected
-model declares support and strict local validation otherwise. Any unavailable,
-timed-out, malformed, recursively gated, or policy-inconsistent result fails
-closed before the pending tool executes.
-An unset Guardian role is Automatic: it prefers `codex-auto-review`, then the
-highest numeric version in the `gpt-*-luna`, `claude-sonnet-*`,
-`gemini-*-flash`, `deepseek-v*-flash`, and `glm-*-flash` families, in that
-order, before falling back to the resolved Chat model. Matching is
-case-insensitive and compares numeric version components (`0.11` is newer than
-`0.8`). An explicit Guardian assignment always wins.
+- `AgentToolCatalog.registry(builtIn:additional:)` puts built-ins before `TermindAgentTools`; neither Termind nor
+  remote MCP shadows them. `AgentToolServices`, including `AgentSSHInteraction`, keeps credentials/trust prompts
+  outside AgentKit events and durable history.
+- `ChatSlashCommandRegistry` owns command platforms, availability, options, current value and execution;
+  composers inject only navigation/compaction/send/access actions.
+- `TermindAgentPolicy` supplies prompt, plan contract and `ssh_exec` decisions with stable cacheable prefixes;
+  `TermindAgentPresentation` supplies Termind cards with stable persisted raw values.
 
-User messages carry immutable, hidden `AgentTurnContextSnapshot` metadata. Session
-facts, skill catalogs, plan contracts, and surface-tool availability are captured on
-submission, including steering and edits. Live surface state still belongs to the
-window. Replay emits an initial baseline and then only changed blocks at their original
-message boundaries; missing legacy snapshots are unknown, never reconstructed from the
-current terminal. Leaving a session or mode emits an explicit clearing transition.
-Retries retain their snapshot, forks copy it, and compaction retains context facts while
-establishing a new baseline. V16 adds independent `PersistentAgentMessageReplay` rows;
-V1-V15 message definitions remain unchanged. Deletion and truncation remove the backing.
+`AgentRuntime` is an actor; `AgentContextPipeline` changes model requests only, preserving stored history.
+`AgentTurnDriver` streams, `AgentToolScheduler` batches, `AgentToolExecutor` validates schema then preflights,
+creates cards, runs hooks, authorizes and executes; `AgentEventChannel` serializes UI/durable events. Adapters
+cover Responses/Chat Completions, Anthropic Messages and Gemini. Models lacking tool capability get no tools;
+conversation pickers show recognized chat purposes and unknown purpose values default to chat. Planning/acting
+have no turn/tool-count ceiling; model finish, user stop, hook termination or errors end them. Guardian is bounded
+and fails closed when unavailable/inconclusive.
 
-Tool model output is projected once before `toolFinished`, including a bounded preview
-and a scratch capture reference for oversized results. Result metadata preserves the
-projection across crash recovery; message backing preserves it across replay. Earlier
-results are never shortened merely because another tool finishes. Paged reads retain
-their structured continuation fields. `sftp_read` streams UTF-8 line windows; it and
-`scratch_read` report only complete returned lines and a truthful next offset.
+Compact/titles/Command Generator use buffered results over streaming, never `stream: false`, applying only
+validated complete results. Buffered SSE requires a terminal marker and caps raw response at 16 MiB; cancellation,
+malformed data/premature EOF discard partials. Complete JSON remains supported; normal streaming policy is unchanged.
+Ordinary turns retry only transient provider transport/service failures five times at 1/2/4/8/16 seconds, reusing
+the logical message/request and discarding partial presentation. Dispatch follows complete responses, so retries
+cannot replay tools. Retry progress is ephemeral; final failures persist as error rows, never assistant-authored text.
+Callable `fetch`/`scratch_fetch` are Ask (`.ask`) for caller-selected URLs; enabled `web_search` is pre-approved and native
+provider search cards record searches already performed.
 
-Terminal suggestion definitions remain stable across surfaces. The executor checks
-availability from the most recently delivered user snapshot before preflight; merely
-changing focus does not change the active run's capabilities. Termind's stable system
-prompt explains that surface availability is a partial override, not a tool catalog;
-terminal suggestion availability does not restrict independent SSH/SFTP tools.
-The standalone Assistant need not attach session context: no active session means
-no default target, not an inability to execute. Discover targets with `list_hosts`
-and ask only if the user's intended target remains ambiguous; no sidebar or
-terminal connection is a prerequisite.
-SSH/SFTP login is handled by the host configuration and app authentication UI.
-`request_user_secret` is only for command secret input, not a prerequisite for SSH;
-`ssh_exec` needs only `host_id` and `command` for ordinary commands. A terminal
-suggestion creates a user-operated card and never constitutes command execution.
-Provider tool/schema JSON is deterministic. Responses and Chat Completions requests use a conversation cache key
-without hostname restrictions; Anthropic uses
-short-lived system/message cache breakpoints, and Gemini retains implicit caching.
-Cache read/write usage is normalized without adding cached tokens twice to input totals.
+Guardian is isolated `.reviewing`; ordinary tools default to `.planning`/`.acting`. The registry permits disjoint
+same-name mode registrations with separate schemas/preflight/execution, but Termind registers no reviewing tools,
+so Guardian is tool-free. Bounded full-to-delta in-memory channels serialize each conversation's reviews. Only direct
+authored user text/local `request_user_input` answers authorize. OpenAI-shaped requests use `guardian:<conversation-id>`
+cache keys and byte-stable policy/schema/tool prefixes. Declared support uses native JSON schema; otherwise validate
+strictly locally. Unavailable/timed-out/malformed/recursive/policy-inconsistent decisions fail closed before execution.
+Automatic Guardian prefers `codex-auto-review`, then highest numeric versions in `gpt-*-luna`, `claude-sonnet-*`,
+`gemini-*-flash`, `deepseek-v*-flash`, `glm-*-flash` order, then resolved Chat. Matching ignores case and compares
+numeric components (`0.11` > `0.8`); explicit assignment wins.
 
-A batch is concurrent only if every call is parallel. Preflight may tighten this:
-`ssh_exec` is parallel only when local command classification proves it safe; an MCP
-destructive hint makes a call sequential. Results always enter the
-transcript in model order, and every call gets an answer even after cancellation or
-refusal. Approvals/questions are queued one at a time; state derives from outstanding
-work. Authorization is a structural executor stage and cannot be removed by hooks.
+Immutable hidden `AgentTurnContextSnapshot` captures session facts, skills, plan contract and surface-tool
+availability at each submission/steer/edit; live surface state remains window-owned. Replay emits baseline then
+changed blocks at original boundaries, treating absent legacy snapshots as unknown, never current terminal state.
+Leaving session/mode explicitly clears it. Retry retains, fork copies, and compaction preserves facts with a new
+baseline. V16 adds independent `PersistentAgentMessageReplay`; V1–V15 messages stay frozen, with backing removed
+on deletion/truncation.
 
-Command classification recursively unwraps supported shell wrappers and static nested
-commands, then applies argument- and subcommand-aware rules. Only explicitly proven
-read forms are locally read-only; unknown tools, options, embedded programs, excessive
-complexity, and unsupported shell syntax fail closed to a state-changing assessment.
+Project tool output once before `toolFinished`: bounded preview plus scratch reference for oversized data.
+Result metadata retains projection for crash recovery and message backing for replay; later completions never
+shorten earlier results. Paged reads retain continuation fields; `sftp_read` streams UTF-8 line windows and,
+like `scratch_read`, reports complete lines and truthful next offsets.
 
-Every call has an approval policy before the run's permission mode is consulted:
+Terminal suggestions have stable definitions across surfaces; executor availability uses the latest delivered
+user snapshot before preflight, never focus changes. Surface availability is a partial override, not a catalog
+or restriction on independent SSH/SFTP. Standalone Assistant has no default target without a session; `list_hosts`
+discovers targets and questions are needed only for remaining ambiguity, never to require sidebar/terminal attachment.
+App configuration/UI handles SSH login; `request_user_secret` is for command secrets, not SSH prerequisites.
+Ordinary `ssh_exec` needs only `host_id`/`command`; suggestions create user-operated cards, never execution.
+Provider schemas are deterministic. Responses/Chat use conversation cache keys without hostname restriction,
+Anthropic short-lived system/message breakpoints, Gemini implicit caching. Usage never double-counts cached input.
 
-- Deny refuses every permission mode while keeping the tool registered and visible
-  to the model; Approve runs without another approval step.
-- Ask for approval sends Ask calls to the user. Approve for me sends them to Security
-  Review; missing credentials,
-  timeout, transport failure, or malformed review fails closed and is recorded.
-- Full access pre-approves Ask calls but retains host-key, secret, schema,
-  path, fetch, sandbox, and capability boundaries.
-- A genuinely new MCP tool starts at Approve only when its remote
-  `readOnlyHint` is true and its `destructiveHint` is not true; every other new
-  tool starts at Ask. Rediscovery preserves the user's stored policy, including
-  an explicit Approve choice for a destructive tool.
-- MCP tools follow Deny, Ask, or Approve in both acting and planning runs.
+A batch runs concurrently only if every call is parallel. Preflight can tighten: `ssh_exec` needs locally proven
+safe classification, MCP destructive hints force sequential. Results stay model-ordered and every call gets an
+answer after cancellation/refusal. Approvals/questions queue singly; state derives from outstanding work. Hooks
+cannot remove structural authorization. Command classification recursively unwraps supported wrappers/static
+nested commands with argument/subcommand rules; unknown tools/options/programs, excess complexity or unsupported
+syntax fail closed to state-changing.
 
-Skills are global, app-managed packages. Settings imports and approved `skill_manage`
-transactions use the same user library and Settings sync journal. Skill Creator and
-Skill Installer are immutable application instructions merged into runtime snapshots;
-they appear in the catalog, `/skill`, and read tools, but never in Settings, persistence,
-or sync. Their reserved names cannot be shadowed or mutated. Existing user collisions
-remain visible and paused until renamed. There is no starter seeding or Skills Reset.
-Previously installed starter skills remain ordinary user-owned records, including
-unchanged or disabled copies. Their identities, contents, resources, and sync behavior
-are preserved without migration or special recognition; new installations start with
-an empty user library. The old starter definitions and fixtures are not shipped.
+Each tool has policy before permission mode:
 
-`skill_install` is acting-only and uses the existing Ask/Guardian/Full Access boundary.
-AgentKit resolves public GitHub skill directories to one commit, bounds and verifies
-all downloaded bytes, and rejects redirects, symlinks, submodules and incomplete packages.
-A run-owned in-memory staging area binds reviewed source, files and installation name
-to the invocation; execution commits only those bytes against the reviewed library revision.
-Termind alone persists the complete package and Settings sync intent in one transaction.
-Installation executes no scripts, never overwrites an existing name, and becomes
-available on the next run. `skills_list` snapshots
-inventory, and `skill_read_file` reads bounded SKILL.md instructions or paged supporting
-resources. Only SKILL.md is an instructional result; supporting files remain reference
-data and no frontmatter grants permission. Mutations are acting-only, Ask, atomic, and
-bound to the library revision reviewed at preflight. Running agents retain their starting
-package snapshots; edits become available on the next run. The retired `load_skill`
-name has historical presentation/replay support only. V18 adds independent package
-backing while V1-V17 models remain frozen. Complete packages sync with existing skills;
-legacy records without package fields cannot erase supporting files.
+- Deny refuses in all modes while remaining model-visible; Approve needs no further approval.
+- Ask for approval sends Ask to users; Approve for me sends it to Security Review. Missing credentials, timeout,
+  transport failure or malformed review fail closed and are recorded.
+- Full access pre-approves Ask but retains host-key/secret/schema/path/fetch/sandbox/capability boundaries.
+- New MCP tools default Approve only with `readOnlyHint == true` and `destructiveHint != true`; otherwise Ask.
+  Rediscovery preserves stored policy, even explicit Approve for destructive tools. MCP obeys policy in acting/planning.
 
-Hermes Memory (持久化记忆 / 持久化記憶 in Chinese) is a device-local, default-off feature. AgentKit owns generic memory
-values, content screening, tools, learning, and revocable prompt snapshots; Application
-owns lifecycle and UI state; Persistence alone imports GRDB. Its dedicated Application
-Support database stores bounded global `memory` (2200 Unicode scalars) and `user`
-(1375 scalars), frozen per-conversation snapshots, learning checkpoints, and the FTS5
-history index. SwiftData remains the original conversation source. Forks retain the
-snapshot reference, not a second copy of memory in SwiftData. Tool writes are atomic;
-background reviews compare their base state transactionally before committing. Skills
-always retain their separate approval boundary. Memory and credentials never sync.
+### Skills, memory, and durable data
 
-Disabling memory revokes live access and prompt snapshots and cancels learning/indexing,
-but preserves storage. Destroy is user-only: persist disablement and an unfinished-destroy
-marker, revoke all leases, cancel and join work, close GRDB, then remove its entire owned
-directory. Failed destruction remains disabled and is retried at launch. No stale task
-can write through an old generation. Skills, original messages/tool results, and exported
-files survive. Explicit re-enablement creates a new memory store and permits full history
-backfill; old chats may therefore teach the agent the same facts again. Disabled startup
-does not create or open a database. Planning can search history but cannot write memory.
+Skills are global app-managed packages; Settings imports/approved `skill_manage` use the same library/journal.
+Immutable application Skill Creator/Installer merge into runtime snapshots, catalog, `/skill` and reads, never
+Settings/persistence/sync. Reserved names cannot be shadowed/mutated; existing collisions stay visible and paused
+until renamed. No starter seeding/Reset or shipped starter definitions/fixtures. Existing starters remain ordinary
+user records, preserving disabled/unchanged content, resources, identities and sync; new libraries start empty.
 
-Tools never receive the interactive PTY. SSH exec uses a dedicated channel and file
-operations use run-scoped SFTP. User-entered secrets are single-use handles bound to
-run/tool/host/purpose; plaintext never enters model input, reviews, events, logs, or
-SwiftData. A live approval is the deliberate user-review boundary: while it is pending,
-the local UI projects the invocation's original arguments through the registered tool
-presenter so the person can inspect exactly what will run. That projection is neither
-recorded nor reused after the decision. Fetch permits proven public HTTP(S) reads, revalidates DNS on every
-redirect, reauthorizes entry into a restricted origin, follows explicit headers like
-`curl -H -L`, and redacts sensitive values. Remote MCP metadata can tighten but never
-relax local safety.
+Acting-only `skill_install` uses Ask/Guardian/Full access. AgentKit pins public GitHub directories to one commit,
+bounds/verifies all bytes and rejects redirects/symlinks/submodules/incomplete packages. Run-owned memory staging
+binds reviewed source/files/name to invocation/library revision; Termind atomically persists that package plus
+Settings intent. No scripts/overwrite; availability starts next run. `skills_list` snapshots inventory;
+`skill_read_file` provides bounded SKILL.md or paged reference resources. Only SKILL.md is instructional; supporting
+files/frontmatter grant no permission. All mutations are acting-only/Ask/atomic/revision-bound; running snapshots
+remain fixed. `load_skill` is historical presentation/replay only. V18 adds package backing while freezing V1–V17;
+legacy sync records cannot erase supporting files.
 
-Each conversation has a bounded `AgentScratchWorkspace` under app-owned Application
-Support. It rejects absolute escape, `..`, and symlinks, proves resolved containment,
-and serializes mutations per path. Pull/push move remote bytes without putting them
-in the transcript; these host-touching endpoints remain Termind-owned. Edit returns a
-diff and search bounded previews. Push approval is bound to size/digest and includes
-a redacted head, so changed content is refused.
+Hermes Memory (持久化记忆 / 持久化記憶) is device-local/default-off. AgentKit owns values, screening, tools, learning and
+revocable prompt snapshots; Application owns lifecycle/UI; only Persistence imports GRDB. Its dedicated Application
+Support database stores global `memory` (2,200 Unicode scalars), `user` (1,375), frozen conversation snapshots,
+learning checkpoints and FTS5 history. SwiftData stays the original conversation source; forks reference snapshots
+without copying memory into SwiftData. Tool writes are atomic; background reviews transactionally compare base
+state. Skills retain separate approval; memory/credentials never sync. Planning can search, never write memory.
 
-Agent conversations, runs, visible messages, tool calls/results, and reviews are
-stored after truncation/redaction. Launch marks unfinished runs interrupted and never
-replays remote actions. Restore materializes completed results missing from the last
-snapshot; remaining unanswered calls receive an explicit unknown-outcome repair so
-the model cannot assume an action was never dispatched.
+Disable revokes access/snapshots and cancels learning/indexing but preserves storage. User-only Destroy persists
+disablement/unfinished marker, revokes leases, cancels/joins work, closes GRDB and removes its owned directory.
+Failure stays disabled/retries at launch; generations reject stale writes. Skills, original messages/results and
+exports survive. Explicit enable creates a new store and allows full backfill, so old chats may reteach facts.
+Disabled startup neither creates nor opens the database.
+
+Tools never get interactive PTYs: exec uses dedicated channels and file tools run-scoped SFTP. User secrets are
+single-use handles bound to run/tool/Host/purpose; plaintext never reaches model/review/events/logs/SwiftData.
+Pending approval alone projects original arguments via the registered presenter for local inspection; never
+record/reuse that projection after decision. Fetch allows proven public HTTP(S), revalidates DNS per redirect,
+reauthorizes restricted-origin entry, follows explicit headers like `curl -H -L` and redacts sensitive values.
+Remote MCP metadata may only tighten safety.
+
+Each conversation owns a bounded Application Support `AgentScratchWorkspace` rejecting absolute escape, `..`
+and symlinks, proving containment and serializing per-path mutation. Termind pull/push moves remote bytes outside
+transcripts; edits return diffs, searches bounded previews. Push approval binds size/digest/redacted head and
+rejects changed content. Conversations/runs/messages/tool calls/results/reviews persist after redaction/truncation.
+Launch marks unfinished runs interrupted, never replaying actions. Restore materializes missing completed results;
+unanswered calls get explicit unknown-outcome repair, never an assumption they were undispatched.
+
+## Assistant presentation
+
+Presentation owns tool summaries, batch status, bounded previews, timestamps, Markdown sanitization/soft breaks
+and disclosure/deadline state. Hosts inject resolved `AgentToolDetailPresenter` from Remote Infrastructure;
+Presentation never imports its transport registry. Protocol results/persisted schemas remain unchanged.
+
+ListViewKit stays app-owned/allowlisted: macOS transcript, large SFTP lists, conversation library and tool sidebars;
+iOS transcript/large SFTP lists through UIKit. Bounded navigation/archive pages use SwiftUI `List`. TFM retains
+AppKit rows, Markdown caches and edit state; TFI hosts SwiftUI within its UIKit bridge. Presentation-only revisions
+explicitly reconfigure mobile rows, invalidate only that height and retain `UIHostingConfiguration` content views.
+Display/measurement purpose, Reduce Motion and scene activity cross the host boundary. Only displayed active
+content starts timers/scanning; shared scan parameters/three-second reasoning deadlines never restart on reuse.
+Work completion follows the shared default only after the entire row leaves the viewport, unless disclosure was
+chosen by the reader. Desktop width changes reconfigure mounted rows/constraints/Markdown geometry without
+replacing cached lists or following the tail; parsed Markdown survives width-dependent measurement changes.
+
+Direct approval callbacks idempotently stage cards before responses. Queued proposed/approval events update the
+same identity without erasing denial, regardless of MainActor arrival order. AgentKit owns UI-neutral skill/memory
+result/approval projections. Presentation repairs historical summaries only for recognized local tool/presenter
+identities, never MCP/unknown presenters matched by name. Compact previews share 600 characters/five rows across
+the card and a scaled 180-point viewport. Window-owned full expansion survives reuse; Copy keeps the full sanitized
+projection. Long approvals retain all live arguments in a scaled 240-point scroll region with actions outside.
+Neither path reads live skill/memory stores or changes protocol results, authorization or persisted data.
 
 ## Pro access and review invitations
 
-`ProAccessController` owns application-wide StoreKit state. Permanent Pro is a
-Family Sharing non-consumable; annual Pro is a Family Sharing auto-renewable
-subscription whose introductory-offer eligibility, free period, billing period,
-localized price, expiration, and renewal state come from StoreKit. Permanent access
-wins over subscription access. Subscribed, introductory-trial, and
-verified grace-period states grant Pro; billing retry without grace, expiration,
-refund, and revocation do not. Product metadata failure never replaces verified
-access. `ProOfferPresentation` derives purchase labels, disclosures, and period text
-from value inputs, never from a StoreKit controller. Native paywalls retain purchase
-and navigation state. macOS supplies explicit app-language lookup; mobile retains
-Apple's bundle lookup, independently of the locale used for duration formatting.
+App-wide `ProAccessController` owns StoreKit. Permanent Pro is Family Sharing non-consumable; annual Pro is a
+Family Sharing auto-renewable subscription. StoreKit supplies eligibility, free/billing periods, localized price,
+expiration and renewal. Permanent wins; subscribed/trial/verified grace grants access, billing retry without grace/
+expiration/refund/revocation does not. Metadata failure never replaces verified access; retired standalone-trial
+transactions are ignored. Recheck expiration on activation and at most minutely while active.
+`ProOfferPresentation` derives labels/disclosures/periods from values, never controllers; native paywalls own
+purchase/navigation. macOS injects app-language lookup, mobile Apple's bundle lookup, independent of duration locale.
 
-The retired standalone trial product and its historical transactions are not recognized.
-Entitlement expiration is checked on activation and at most minutely while active.
-Workspace composition is free on macOS, including splitting, merging, rearranging,
-duplicating, broadcasting input, batch opening, multi-host snippets, and local templates.
-It never depends on StoreKit or retains a launch-scoped Pro grant. Template iCloud sync
-and all other Pro features use the current entitlement immediately.
+Desktop Workspace composition is free: splits, merge/reorder/duplicate, broadcast, batch open, multi-host snippets
+and local templates never depend on StoreKit or sticky launch grants. Template iCloud sync/other Pro features use
+current entitlement immediately.
 
-One app-wide shared `AppReviewController` stores device-local first-use/active-day/version/
-attempt history, never syncs it, and never claims a review was shown. Desktop windows
-and mobile scenes use the same surface-based policy; their platform adapters alone own
-native focus, input, pointer, lifecycle, and modal observation. Automatic
-requests require seven elapsed days, three active dates, and five foreground
-workspace minutes, then a three-second quiet transition to a Vault list or Settings
-index/App page. Input, navigation, focus loss, sleep, or modal presentation cancels
-the attempt. Attempts are persisted before StoreKit, limited to once per marketing
-version and a 120-day cooldown; manual review restarts the cooldown. Tests and
-screenshot launches disable live requests.
+One app-wide `AppReviewController` stores device-local first-use/active-days/version/attempts, never syncs or claims
+display. Windows/scenes share surface policy; apps own native focus/input/pointer/lifecycle/modal observation.
+Automatic review requires seven elapsed days, three active dates, five foreground Workspace minutes, then three
+quiet seconds entering a Vault list or Settings index/App. Input/navigation/focus loss/sleep/modal cancels.
+Persist attempts before StoreKit; once per marketing version and 120-day cooldown, restarted by manual review.
+Tests/screenshot launches disable live requests.
 
 ## Server metrics
 
-`ServerMetricsModel` is application-owned and shares one serial SSH sampler per saved
-host across windows, menu bar, and mobile. Rows exist before secrets/networking and
-represent connecting, collecting, live, paused, sleeping, or actionable failure.
-Workers run detached and enter short, synchronous MainActor-isolated state steps; no
-long-lived async method owns observable or host-store state. Credential lookup and remote
-I/O stay off actor, and cancellation is rechecked after lookup. Secrets are cleared from
-memory on pause/removal/termination. Known-host and credential decisions remain interactive
-and scoped to the active monitor.
+App-owned `ServerMetricsModel` shares one serial SSH sampler per saved Host across windows/menu bar/mobile.
+Rows precede secrets/network and represent connecting/collecting/live/paused/sleeping/actionable failure.
+Detached workers enter short synchronous MainActor state steps, never long-lived observable/host-store async
+methods. Credential lookup/I/O stays off actor; recheck cancellation after lookup and clear secrets on pause/
+removal/termination. Trust/credential interaction belongs to the active monitor. Screenshot launches inject frozen
+in-memory metrics into the production WindowGroup with restoration off: no saved config, samplers or discovery.
 
-Screenshot launches inject a frozen, in-memory metrics model into the production
-WindowGroup with restoration disabled. It never reads saved monitor configuration,
-starts samplers, or performs host-key discovery.
+Infrastructure reads bounded Linux procfs/optional hardened `nvidia-smi` XML. Base data survives GPU/process/filesystem
+failure; invalid deltas are unknown. Rates use remote uptime, identity PID+start time, RSS remote page size; collect
+no arguments/environment. Five-minute samples stay in memory; order/pause/device selection persists. Details alone
+enable process/filesystem collection and capacity refresh. Default network aggregation prefers physical interfaces;
+explicit selection overrides it.
 
-Infrastructure reads bounded Linux procfs and optional hardened `nvidia-smi` XML.
-Base metrics survive GPU/process/filesystem failure; invalid deltas remain unknown.
-Rates use remote uptime, process identity uses PID plus start time, RSS uses remote
-page size, and no process arguments/environment are collected. Five-minute samples
-are in memory; ordered monitors, pause, and device selection persist. Filesystem
-capacity refreshes only while details are observed. Network defaults prefer physical
-interfaces, with explicit selection overriding aggregation.
+Read-only/parallel/planning-safe `get_metrics` exposes existing Sendable snapshots to Agent/authenticated MCP,
+validating Host IDs, preserving section time/age/staleness, using null for unknown/nonfinite values and limiting
+processes to 20. It cannot add/sample/observe details/read auth; monitoring itself does not depend on AgentKit.
 
-`get_metrics` exposes an existing monitor's Sendable snapshot to Agent and the
-authenticated MCP bridge. It cannot add hosts, sample, observe details, or access
-auth state. It is read-only, parallel, planning-safe, validates host IDs, preserves
-section timestamps/age/staleness, uses null for unknown/non-finite values, and limits
-processes to 20. Monitoring itself does not depend on AgentKit.
+Metrics order syncs separately from Vault; layout/sort/search/detail navigation/menu visibility do not. Authentication
+uses shared Journey while the coordinator owns transport. Each monitor supplies its own keyboard-interactive queue,
+including jumps, never app sheet/external-window fallback. Cards signal auth without navigating; opening presents
+Journey. Leaving details retains challenges; explicit cancellation pauses and returns that window to the list.
+Retirement cancels queued/not-yet-enqueued responders; generation/request IDs isolate answers/cleanup. Temporary trust
+clears on pause/removal/config change; rejection pauses. Free access atomically permits three cards including paused,
+never deleting restored cards on downgrade; Pro/trial is unlimited.
 
-Metrics order syncs independently of Vault order; local layout, process sorting,
-search, detail navigation, and menu-bar visibility do not. Detail observation alone
-enables process/filesystem collection. Authentication opens the shared Connection
-Journey while the metrics coordinator retains transport ownership. Each monitor owns
-its keyboard-interactive queue, including challenges from its jump hosts. Metrics
-always supplies its own responder, never falling back to an app-owned sheet or external
-authentication window. Cards indicate required authentication without changing navigation;
-opening a card presents its Journey. Leaving details retains the challenge, while explicit
-authentication cancellation pauses the monitor and returns that window to the list.
-Retiring an attempt cancels both queued and not-yet-enqueued responders; generation and
-request IDs prevent stale answers or cleanup from affecting another attempt. Temporary trust
-is cleared on pause/removal/configuration change; rejection pauses the monitor.
-Free access admits at most three cards (paused included), atomically and without
-deleting restored cards after downgrade; Pro/trial access is unlimited.
-
-The macOS status item/popover is process-owned and receives its model explicitly.
-Closing the last window keeps the process alive while the menu item or monitors need
-it; Quit cancels monitoring. System sleep and an inactive login session independently
-suspend monitoring; collection resumes only after the system is awake and the session
-is active, when the Data Protection Keychain is available again. Native lifecycle,
-window reopening, input modality, and screenshot fixture wiring remain in `TFM/Platform`.
+macOS process-owned status item/popover receives the model explicitly. Last-window close keeps the app alive for
+menu/monitors; Quit cancels. System sleep and inactive login independently suspend; resume only awake/active when
+Data Protection Keychain is available. Native lifecycle, reopening, input and screenshot wiring stay in `TFM/Platform`.
 
 ## Settings replication
 
-iCloud has one master switch plus independent Vault, Metrics, and Settings choices.
-Vault/Metrics default on, Settings off; disabling the master preserves selections,
-and upgrades do not re-enable it. Pro gates three independent coordinators:
-`TermindVaultV1`, `TermindMetricsV1`, and the compatibility-named
-`TermindAIConfigurationV1`.
+Master iCloud plus independent Vault/Metrics/Settings choices default on/on/off; disabling master preserves choices
+and upgrades never re-enable. Pro gates independent `TermindVaultV1`, `TermindMetricsV1`, compatibility-named
+`TermindAIConfigurationV1` coordinators. Each composes its own Infrastructure `CloudSyncLifecycle` for serialized
+operations/generations, consent, engine creation, fetch-before-send, pause/retry, resets and status precedence.
+Value-projected journal adapters preserve Persistence-only model/schema ownership. Zones/subscriptions/switches/
+account bindings/journals/engines remain independent; categories own coding/quarantine/merge/version acknowledgements.
+Settings authorizes secret upload only after successful current-engine fetch and revokes on pause/account retirement.
+Old operations cannot clear replacements or publish late results; the internal transport seam enables offline
+deterministic lifecycle tests.
 
-Each coordinator composes its own Infrastructure `CloudSyncLifecycle`. The driver
-owns serialized operations and generation checks, account consent, engine creation,
-fetch-before-send readiness, pause/retry, reset orchestration, and status precedence.
-Typed category adapters project journal state as values; persistent model types and
-schemas remain exclusively in Persistence. Zones, subscriptions, switches, account
-bindings, journals, and engine instances remain independent. Category coordinators
-retain record coding, quarantine, merge rules, and versioned acknowledgements.
-Settings authorizes secret uploads only after a successful current-engine fetch and
-revokes authorization on pause or account retirement. Retired operations cannot clear
-a replacement operation or publish a late completion/error. The transport seam is
-internal and permits deterministic lifecycle tests without contacting iCloud.
+Frozen V13 Settings shapes remain; V14 adds `PersistentTerminalPreferences`, V15 independent Metrics journal/account/quarantine,
+V21 `PersistentSFTPPreferences`. Settings commits data/upload intent atomically. Separate records cover providers/models,
+MCP clients, skills, roles, Web Search, terminal/custom text and SFTP limits. First SFTP row imports existing defaults
+(including 3/2), missing values 15/5; preparation adds missing baseline even to bootstrapped stores. Later preparation
+uses persisted truth, never reimports mirrors. `v1/sftp/default` uses distinct `SFTPPreferencesItem` in the same zone;
+older clients ignore its type before decoding. Other settings retain `AIConfigurationItem`; both keep V1 envelopes.
+Invalid limits/type mismatches quarantine at read. Local saves commit intent then mirror defaults; remote application
+refreshes models without local echo. Last-used conversation model stays local; active Agent snapshots remain fixed.
 
-V13 Settings entity names/defaults are frozen; V14 only adds
-`PersistentTerminalPreferences`; V15 adds the independent Metrics journal/account/
-quarantine. Settings persistence atomically commits data and upload intent. Separate
-records cover providers/models, MCP clients, skills, roles, Web Search, terminal
-preferences/custom text, and the two SFTP concurrency limits. V21 adds
-`PersistentSFTPPreferences` without changing historical schemas. Its first row imports
-existing UserDefaults limits (including 3/2), or 15/5 for missing values, and preparation
-adds the missing baseline record even for previously bootstrapped stores. Subsequent
-preparation uses persisted truth, never reimports the defaults mirror.
-SFTP uses one `v1/sftp/default` record in the existing Settings zone and a distinct
-`SFTPPreferencesItem` CloudKit type. Older clients ignore that type before decoding;
-existing settings keep `AIConfigurationItem`. Both record types use the unchanged V1
-envelope. Invalid SFTP limits and mismatched record types are quarantined at the
-read boundary. Local changes commit preferences and upload intent together, then
-mirror the legacy defaults keys; remote application never generates a local echo. The most recently selected conversation model remains
-device-local. Remote commits refresh models without
-re-entering local mutation. Active Agent runs keep their starting snapshot.
-Every model role has a live synced record: a nil Command Generator assignment means
-Same as Chat and a nil Guardian assignment means Automatic, while Chat's explicit
-selection is synced normally. Resolved fallback models remain local. The legacy
-`securityReview` record ID is accepted only at the CloudKit read boundary, migrated
-to `guardian` without reusing its record system fields, and all new writes use the
-canonical ID.
+Roles always have live synced records: nil Command Generator = Same as Chat, nil Guardian = Automatic; explicit Chat
+syncs, resolved fallbacks do not. Accept legacy `securityReview` only at CloudKit read, migrate to `guardian` without
+reusing system fields, write canonical IDs only. Conversations, approval mode, local MCP listener config and unrelated
+defaults never sync. Listener switches/port/tools use defaults, token this-device-only Data Protection Keychain.
+Provider/MCP secrets use `AISecretStore`; migration requires verified account/cloud copy/durable local marker. Reads
+never cache; deletion markers prevent late Keychain resurrection. Custom MCP headers/terminal text sync as ordinary
+settings; explicit credentials never enter CloudKit.
 
-Conversations, approval mode, local MCP listener settings, and unrelated defaults do
-not sync. Listener enablement, port, and tool selection remain UserDefaults; its token
-uses a this-device-only Data Protection Keychain. Explicit provider/MCP credentials
-use `AISecretStore` and migrate only after account verification, verified cloud copy,
-and a durable local marker. Reads do not cache secrets; deletion markers prevent late
-Keychain delivery from reviving cleared values. Custom MCP headers and terminal text
-are ordinary synchronized settings, but explicit credentials never enter CloudKit.
-
-Journals retain tombstones and unresolved references across partial fetches. Baseline
-defaults yield to cloud records. Application skills stay outside synchronized records; previously installed starters
-remain user-owned, and user deletions survive migration. Duplicate skill names/MCP namespaces retain data, but
-only the lowest UUID executes until resolved. Metrics keeps one versioned record per
-host; records whose Vault host is absent remain hidden, and samples, prompts, secrets,
-and UI preferences never enter its zone.
+Journals retain tombstones/unresolved references through partial fetches; cloud beats baseline defaults. Application
+skills stay excluded; user-owned starters/deletions survive migration. Duplicate skill names/MCP namespaces retain
+all data but only lowest UUID executes. Metrics keeps one versioned record/Host, hides records without Vault Hosts,
+and excludes samples/prompts/secrets/UI preferences.
 
 ## Mobile boundaries
 
-Each mobile window owns one native sidebar-adaptable TabView with five stable
-feature stacks, ordered Vault, Metrics, Workspaces, Assistant, Settings. The system
-adapts the tab bar and sidebar without replacing the root navigation tree. Width
-changes retain the selected feature, child pages, searches, scroll state, sheets and
-unsaved forms. Metrics has one independent stack in all widths; Vault search shortcuts
-select that destination rather than constructing another Metrics page. Resizing never
-restarts live connections, transfers or Agent runs, or creates a new conversation.
+### Adaptive navigation and native surfaces
 
-Mobile toolbar policy reads actual tab-bar placement and the system's preferred vertical
-toolbar edge inside each stable feature stack. Feature views consume this one policy
-instead of independently reading placement or device capabilities. Workspace details
-retain the five application tabs beside top bars and in vertical toolbars. Bottom tabs
-stay hidden in SSH/SFTP details whenever the vertical toolbar is unavailable.
-Workspace and Assistant share a `rectangle.stack` switcher in top and vertical bars,
-with a title menu elsewhere. When Assistant has no pinned or active conversations,
-its icon switcher stays visible but disabled, and its title has no menu. A sole current
-conversation still enables switching; archived conversations do not.
-These switchers select peers within the feature; they are separate
-from the five application tabs. Assistant library pages always retain their titles.
-Metrics uses a labeled icon menu in a vertical toolbar and a principal segmented picker
-in a horizontal toolbar, hiding either when both panels are visible. iOS 27 uses the
-system ToolbarOverflowMenu for secondary actions; older systems keep labeled menus.
-Save stays a standard labeled button while a form-level progress indicator shows work.
-SSH/SFTP search retains the minimized system search button in all toolbar placements;
-opening a sidebar or changing pose never activates search or takes keyboard focus.
+Each window owns one sidebar-adaptable TabView with five stable stacks: Vault, Metrics, Workspaces, Assistant,
+Settings. System adaptation never replaces the root tree; resizing preserves selection/children/search/scroll/
+sheets/drafts/connections/transfers/runs/conversations. Metrics has one independent stack; Vault shortcuts select it.
+`MobileFeatureRegistry` injects stable IDs/labels/symbols/factories and one tab/sidebar order; duplicate IDs fail
+immediately, with no global singleton or separate shell switches.
 
-Mobile content reads active division and occlusion ReservedRegions on iOS 27.1 after
-system safe-area and keyboard layout. Frames already include margins and use the same
-leading-origin coordinate convention as SwiftUI Layout, including RTL. A terminal and
-its shortcut strip and notices occupy the largest continuous unobstructed rectangle,
-with ties resolved toward the top and then leading edge. Ghostty remains the grid-size
-authority and resizes the existing PTY; invalid viewport updates are ignored. Workspace
-native surfaces and transports remain owned by their existing session, never by pose.
-Assistant keeps one native transcript and one scrollable interaction surface mounted;
-active folds place them above/below or leading/trailing, with the complete interaction
-surface (including tasks, approvals and questions) inside its region. With one remaining
-region it returns to the stacked layout. Metrics keeps both panels mounted at their last
-valid sizes, preserving native lists, sort and scroll state. An active fold assigns one
-panel to each usable region; with only one region it shows the selected page. Without a
-fold it retains the 700-point two-column threshold. Region policy and native identity
-tests exercise folding without changing navigation, drafts, focus or session ownership.
+Each feature stack derives toolbar policy from actual tab-bar placement/system preferred vertical edge; features
+consume that single policy, never device capabilities. Workspace detail retains app tabs beside top/vertical bars;
+bottom tabs hide in SSH/SFTP when vertical toolbar is unavailable. Workspace/Assistant use `rectangle.stack` peer
+switchers at top/vertical bars, title menus elsewhere, distinct from app tabs. Assistant icon remains disabled with
+no pinned/active chats; its title has no menu. One current chat enables switching, archives do not; library titles
+remain. Metrics uses vertical labeled-icon menu or horizontal principal segmented picker, hiding both when panels
+coexist. iOS 27 uses `ToolbarOverflowMenu`, older OS labeled menus. Save stays labeled with form progress. Native
+minimized SSH/SFTP search stays in every placement; sidebar/pose changes never activate search or claim focus.
 
-Editor saves do not gate layout changes. Their tasks, duplicate-submit protection,
-unsaved-dismiss confirmation and error feedback survive width changes. Sheets follow
-the presenting window's width using stable presentation modifiers. Cards use container
-width and one column at accessibility text sizes; SFTP breadcrumbs fit three or two
-trailing components to the available space. Device idiom is not a production layout
-input. Navigation and draft states remain memory-only and independent per window.
+On iOS 27.1 content reads active division/occlusion ReservedRegions after safe-area/keyboard layout. Frames include
+margins and follow SwiftUI's leading-origin convention, including RTL. Terminal/shortcuts/notices occupy the largest
+continuous unobstructed rectangle, ties top then leading. Ghostty resizes the existing PTY and rejects invalid
+viewports; session ownership survives pose. Assistant keeps one transcript and one scrollable interaction surface
+mounted, including tasks/approvals/questions, placing them across fold regions or stacking with one region. Metrics
+keeps both panels mounted at last valid sizes with list/sort/scroll identity, one per usable fold region or selected
+page with one; without folds use the 700-point threshold. Region/native-identity tests preserve navigation, drafts,
+focus and session ownership.
 
-Neither layout shows Welcome. Each Workspace owns exactly one SSH or SFTP session; mobile never composes
-panes, even with Pro. Assistant is independent. The title menu switches open peers
-without reconnecting existing sessions; selecting a Recent Workspace creates and connects it on demand.
-More owns Rename/Close and cross-opening SSH/SFTP when a live path exists. Explicit close never retries.
+Save tasks, duplicate-submit prevention, dirty-dismiss confirmation and errors survive layout changes without
+gating them. Stable sheet modifiers track window width. Cards use container width/one accessibility column;
+SFTP breadcrumbs fit three or two trailing components. Device idiom never drives production layout. Navigation/
+drafts stay memory-only and window-independent. Application derives Host/Snippet sections once; Presentation owns
+History subtitles, Vault sync/transfer labels and exported SFTP drag type. Running labels distinguish upload/download,
+completed labels upload/download/copy; other states use Domain labels. Apps retain native composition/selection/menus/
+clipboard. Host Picker/Snippet operation state belongs to mobile Application; descriptors use Domain
+`ConnectionHistoryEntry.Kind`, samplers enter via `MobileMetricsServices`, and both apps use Remote Infrastructure
+`AgentHostServices` for host resolution/auth/connections/background commands.
 
-Initial connection failure and recovery stay in Connection Journey. Background-task
-expiration closes transports but retains intent; foreground resumes existing
-workspaces. Mobile saves the full ordered list of device-local Workspace descriptors
-(stable ID, Host ID, kind, title and duplicate index) under `mobile.workspaces.v1`.
-Cold launch loads descriptors into Recent Workspaces after loading Hosts, leaving
-`workspaces` empty: no sessions, connections or history events are created. One
-MainActor open-by-ID entry point reuses an existing instance or registers and connects
-only the requested descriptor, preserving its ID and recording history once across
-scenes. Failures require explicit retry. New and restored instances share the same
-ordered saved list; saving current instances alone must never discard unopened entries.
-Commands, credentials, paths, terminal contents and transfers are excluded.
+### Workspaces, restoration, and activity
 
-The store reads both legacy bare arrays and the version-1 object envelope. Legacy
-records may lack duplicate indices; migration assigns the lowest free index per Host
-and kind in array order, reserving explicit indices, and immediately writes the envelope,
-including for an empty array. Successful loads permit later saves. Missing Hosts are
-pruned; unknown versions and corrupt snapshots retain their bytes and block writes
-until a successful load. Close, normal SSH exit and local or remote Host deletion
-remove current and unopened saved entries. Close All also clears Recent Workspaces,
-while retaining connection history. Recent Workspaces is a separate list from connection
-history, whose actions still create new sessions. The history section appears only when
-both current and Recent Workspaces are empty. Titles reserve indices across current
-and unopened entries; manual names retain the allocation, and closing releases it
-without renumbering peers. Host deletion runs the shared outbox saga and cancels
-sessions, transfers, forwarding, and local history.
+Mobile has no Welcome or pane composition, even with Pro: one SSH/SFTP session per Workspace, independent Assistant.
+Peer switching preserves connections; Recent selection creates/connects on demand. More owns Rename/Close and
+cross-open SSH/SFTP with live paths; explicit close never retries. Initial failure/recovery stays in Journey.
+Background expiration closes transports but retains intent; foreground resumes existing Workspaces.
 
-One serialized Live Activity represents only current Workspaces with counts and up to
-six distribution icons. Validated links open a Workspace by ID or navigate to the list
-without restoring sessions, and carry no secrets or commands. Cold launch ends leftover
-activities; their URLs can still restore a saved Workspace. Explicit opening retains a
-start intent until foreground conditions allow a request. Closing the last current
-Workspace clears that intent and ends the activity even when recent entries remain.
-Ordinary foreground updates cannot recreate a dismissed activity after its start intent
-has been consumed. Immutable activity snapshots are separate from observable
-Workspace/Vault state, and starts, updates and ends share one serial queue. An activity
-cannot keep SSH or Agent runs alive. A stale link with no matching entry opens the list
-with an unavailable explanation. Restoration does not distinguish system termination
-from a user force-quit.
+`mobile.workspaces.v1` stores ordered device-local descriptors (stable ID, Host ID, kind, title, duplicate index),
+never commands/credentials/paths/terminal contents/transfers. After Hosts load, cold launch fills Recent only,
+creating no sessions/connections/history. One MainActor open-by-ID reuses or registers/connects the requested entry,
+preserving ID/history-once across scenes; failures need explicit retry. Current/unopened entries share one saved
+order, and saving live instances must not discard unopened records.
 
-Mobile Settings exposes App, Terminal, SFTP, AI, and Sync. The macOS window-title
-preference stays synchronized but has no mobile control; there is no Live Activities
-settings page. AI lists Models, Skills, MCP, then Hermes Memory; user skills and MCP use explicit-save drafts. Network
-tests/discovery use ephemeral snapshots, cancel on editor/config changes, and cannot
-repopulate discarded drafts. Secrets remain in memory until atomic save and roll back
-on metadata failure. Mobile does not start the local MCP listener.
+Read legacy arrays/version-1 envelopes; missing duplicate indices get lowest free Host/kind indices in array order,
+reserving explicit ones, then immediately write the envelope even if empty. Only successful loads allow saves.
+Prune absent Hosts; corrupt/unknown-version bytes remain and block writes until successful load. Close/normal SSH
+exit/Host delete removes current and unopened entries; Close All also clears Recent, not connection history. History
+actions create new sessions and its section shows only when current/Recent are empty. Titles reserve indices across
+both; manual names keep allocation and closing releases without renumbering. Shared Host-delete outbox cancels
+sessions/transfers/forwarding/local history.
 
-Each mobile scene owns one navigation/command model and one Assistant library model,
-including its selected conversation and New Chat draft. The app-wide Assistant runtime
-and conversation store remain shared so active runs are never duplicated. The scene
-model is published as a focused value, so hardware-keyboard commands never operate
-another iPad window. Home Screen quick actions enter through a per-window scene
-delegate, are consumed once by that scene's navigation model, and never target another
-iPad window. Connect is static; up to three dynamic history actions derive from the
-shared event log. Workspace History and those actions keep the newest display row per
-Host and connection kind without deleting duplicate persisted events. Mobile
-uses the macOS shortcuts for capabilities that exist on both platforms: navigation,
-connection/creation, terminal Find and Command Generator, Workspace close/switch,
-and Assistant send/stop. Workspace switching never reconnects the session or claims
-terminal focus. The UIKit terminal surface owns F3/Shift-F3 and replaces
-Ghostty's bare/Shift-Escape commands only while Find is presented; otherwise Escape
-continues to the terminal unchanged.
+One serialized Live Activity represents current Workspaces only, counts and at most six distribution icons.
+Validated secret/command-free links select ID/list without restoring unrelated sessions; cold launch ends leftover
+activities but their URLs may restore a saved entry. Explicit open retains start intent until foreground permits;
+last current close ends activity/intent even with Recent entries. Ordinary foreground cannot recreate a dismissed
+activity after intent consumption. Immutable snapshots stay separate from observed Workspace/Vault state; start/
+update/end share one queue and never keep SSH/Agent alive. Stale links show list/unavailable explanation. Restoration
+cannot distinguish system termination from force-quit.
 
-Mobile Agent runs belong to the app, not the visible page. Conversations retain
-independent drafts/runs; archiving persists metadata before navigation and becomes
-read-only until restored. Attachment parsing and speech are injected services; speech
-appends without sending and cancels on interruption, conversation change, or
-background. Mobile shares desktop-independent tool registration and permission/
-secret interaction, but finite background expiration cancels runs, drains events,
-closes Agent transports, and never replays or auto-approves work on foreground.
+### Scene services and interactions
 
-ListViewKit is an app-owned implementation detail: macOS uses native bridges for the
-streaming transcript, large SFTP lists, conversation library, and tool sidebars; iOS
-uses one UIKit bridge for transcript and large SFTP lists. Bounded navigation and
-archive pages remain SwiftUI `List`. Shared frameworks never import ListViewKit, and
-architecture tests own its allowlist.
+Settings exposes App, Terminal, SFTP, AI, Sync; synchronized macOS window-title setting has no mobile control and
+Live Activities has no settings page. AI order: Models, Skills, MCP, Hermes Memory. Skills/MCP use explicit drafts;
+ephemeral tests/discovery cancel on editor/config changes and cannot revive discarded drafts. Secrets stay in memory
+until atomic save with rollback on metadata failure. Mobile never starts the local MCP listener.
 
-Mobile workspace file drops use one upload policy for native routing and payload
-loading. The visible workspace marks its bounds for a window drop interaction;
-the terminal adapter forwards file drops to that destination instead of Ghostty's
-local-path paste, while text and web links keep Ghostty's behavior. Leaving the
-destination restores the original interaction and clears targeting. File-provider
-representations are copied within their callbacks into app-owned staging before
-upload preparation; queued transfers retain those files after navigation away.
+Each scene owns navigation/commands and Assistant library, selection/New Chat draft; runtime/conversation store is
+app-wide to prevent duplicate runs. Focused values route keyboard commands to that scene. Per-window delegates
+consume Home Screen actions once; Connect is static and up to three dynamic history actions use the shared log.
+History/quick actions display newest Host/kind rows without deleting events. Shared capabilities use desktop
+shortcuts: navigation, connect/create, Find/Command Generator, close/switch, Assistant send/stop. Switching never
+reconnects or claims terminal focus. UIKit owns F3/Shift-F3 and overrides Ghostty bare/Shift-Escape only during Find;
+otherwise Escape passes through.
 
-Mobile top-level destinations are registered in `MobileFeatureRegistry`. A
-registration owns stable identity, label, symbol and its destination factory;
-registration order is shared by the tab bar and sidebar. The root shell renders that catalog and does not
-maintain separate tab, sidebar, and destination switches. Registries are injected
-values rather than global singletons, and duplicate feature IDs fail immediately.
+Agent runs outlive pages with independent conversation drafts/runs. Archive persists metadata before navigation
+and stays read-only until restored. Injected attachment/speech services append speech without sending; interruption,
+conversation change/background cancels it. Shared tools/permissions/secrets retain desktop-independent policy;
+finite background expiration cancels runs, drains events, closes Agent transports and never replays/auto-approves
+on foreground.
 
-Mobile Workspace descriptors use Domain's `ConnectionHistoryEntry.Kind` as the
-single SSH/SFTP kind vocabulary. Host Picker and Snippet operation state live in
-the mobile Application layer rather than beside their views. Live Metrics samplers
-enter through `MobileMetricsServices`, while both app shells obtain Agent host
-resolution, authentication, connections, and background commands from the shared
-Remote Infrastructure `AgentHostServices` composition.
-
-Application derives flattened Host and Snippet sections once for both platforms.
-Presentation owns the shared command-history subtitle, Vault sync status label,
-SFTP transfer status labels, and the exported SFTP drag type. Transfer labels distinguish
-upload/download while running and upload/download/copy on completion; other states
-reuse the generic Domain label. App targets retain native card/list composition,
-selection, menus, and clipboard behavior.
-
-### Assistant transcript presentation parity (2026-09-12)
-
-TermindPresentation owns tool summaries, batch status semantics, bounded result previews, timestamp formatting,
-Markdown sanitization/soft-break policy and the shared disclosure/deadline state. Hosts inject a resolved
-AgentToolDetailPresenter from TermindRemoteInfrastructure; Presentation never imports the registry's transport
-module. Tool protocol results and persisted schemas are unchanged.
-
-TFM retains native AppKit rows, Markdown caches and message editing state. TFI retains SwiftUI content inside
-its UIKit ListViewKit bridge. A row's presentation revision can change without its data changing: the mobile
-bridge reconfigures that row explicitly, invalidates only its height, and retains its UIHostingConfiguration
-content view. Display/measurement purpose, Reduce Motion and scene activity cross that hosting boundary.
-Only displayed active content starts timers or scanning; the shared scan parameters and three-second reasoning
-deadlines cannot restart merely because a row is recycled. Work completion follows the shared default only
-after the whole row leaves the viewport, unless the reader has already chosen its disclosure state.
-
-The direct approval callback stages a tool card idempotently before accepting a response. Queued tool-proposed
-and approval-requested notifications update that identity without erasing an already recorded denial. This keeps
-UI state independent of whether the event channel or the direct interaction reaches MainActor first.
-
-Skill and memory tools own their UI-neutral result and approval projections in AgentKit.
-Presentation repairs their historical summary semantics only for recognized local tool/presenter
-identities. Their compact result preview shares a 600-character/five-row budget across the entire
-card and a scaled 180-point viewport. Full-detail expansion is independent, window-owned transcript
-state and survives row reuse; Copy retains the full already-sanitized projection. Unknown presenter
-IDs and MCP tools never opt into this policy by name. Long approvals instead retain all live
-arguments in a scaled 240-point scroll region with actions outside it. Neither preview path reads
-live skill/memory storage or changes the original protocol result, authorization, or persisted data.
-
-Desktop transcript width changes reconfigure mounted rows without replacing the
-cached list or following the tail. Reused row constraints and Markdown geometry
-track the current content width even when message identity and text are unchanged;
-parsed Markdown remains reusable independently of width-dependent measurements.
+File drops share native routing/loading policy. Visible Workspace bounds register a window drop interaction;
+terminal forwards files there instead of Ghostty local-path paste, while text/web links keep Ghostty behavior.
+Leaving restores the original interaction/clears targets. File-provider data is copied inside callbacks to app
+staging, retained by queued transfers after navigation.

@@ -1,698 +1,488 @@
 # Termind Refactoring Backlog
 
-This English-only document is the durable record of completed redundancy removal and deliberately retained boundaries; append new findings, require a net code reduction unless the item is explicitly structural, verify references with `rg`, and preserve SwiftUI/AppKit and platform-specific lifecycle boundaries.
-
-## Completed Items
-
-1. **Delete the obsolete SwiftUI transcript tree (2026-08-30):** Removed the unreachable legacy transcript, message, command-card, compaction, and plan presentation subgraph while retaining live timestamp and risk components; the build and targeted Transcript tests passed.
-2. **Merge repeated ListView hosting bridges (2026-08-30):** Introduced `HostingListRow` and `HostingListContent` for ordinary SwiftUI-backed rows while retaining dedicated Transcript and Assistant conversation lifecycles; the app build passed before the final parser-verified Connection Log migration.
-3. **Consolidate `SSHSessionModel` initializers (2026-08-30):** Routed the two terminal entry points through one private initializer without changing temporary-host semantics; the build passed.
-4. **Merge SSH and Serial terminal appearance configuration (2026-08-30):** Centralized shared appearance application in `TerminalViewState.applyAppearance`; the build passed.
-5. **Delete redundant SFTP store overloads (2026-08-30):** Removed four `TransferLibraryModel` forwarding overloads in favor of the existing `RemoteSessionHostStore` entry points; the build passed.
-6. **Reuse the Jump Host configuration builder (2026-08-30):** Made final SSH configuration reuse `sshJumpConfigurations` instead of duplicating route validation and error wrapping; the build passed.
-7. **Share remote-session connection interaction (2026-08-30):** Moved host-key prompts, acceptance, route progress, prompt cleanup, and reconnect presentation into `RemoteSessionConnectionController` while preserving transport-specific teardown; the Debug build and targeted connection/SFTP tests passed.
-8. **Merge short tool-free model text collectors (2026-08-30):** Centralized streamed text collection and tool-call rejection for command, title, and compaction services; their targeted tests passed.
-9. **Merge provider authorization and session configuration (2026-08-30):** Added shared request authorization and ephemeral-session construction while retaining catalog-specific Vertex and empty-secret rules; targeted Provider and ChatProbe tests passed.
-10. **Consolidate SwiftData save/rollback templates (2026-08-30):** Added a narrow `ModelContext.commit` helper while retaining semantic two-stage history commits; targeted Connection and SFTP History tests passed.
-11. **Merge libssh2 queue/continuation bridges (2026-08-30):** Shared the byte-identical serial worker bridge between SSH Exec and SFTP workers; the build passed.
-12. **Delete remaining legacy Transcript helpers (2026-08-30):** Removed dead streaming, edit-binding, and SwiftUI activity helpers as part of Item 1; targeted Transcript verification passed.
-13. **Finish `ConversationComposerState` migration (2026-08-30):** Migrated callers to `conversation.composer` and deleted four compatibility accessors while preserving attachment mutation hooks; the build and Chat Composer tests passed.
-14. **Delete the unreachable toolbar search-menu pipeline (2026-08-30):** Removed unused menu-item plumbing, `NSMenuDelegate` behavior, and the unread find-context kind while preserving query and keyboard behavior; the build passed.
-15. **Share Agent SSH prompt conversion (2026-08-30):** Moved Journey prompt and passphrase derivation onto `AgentSSHAuthenticationRequest` for both presentation paths; the build passed.
-16. **Extract atomic SFTP remote writes (2026-08-30):** Centralized temporary-path creation, handle cleanup, failure unlinking, atomic rename, and progress sampling while keeping data-source loops separate; the build and SFTP tests passed.
-17. **Merge remote transfer conflict resolution (2026-08-30):** Shared Keep Both selection, remote-directory handling, and file conflict policy without merging distinct job types; the Debug build and targeted SFTP tests passed.
-18. **Consolidate SFTP client leases (2026-08-30):** Centralized saved-versus-borrowed client acquisition and conditional disconnect while retaining coordinator reservation state; the build and SFTP tests passed.
-19. **Centralize legacy tool-presentation metadata (2026-08-30):** Replaced scattered historical name mappings with one compatibility table while preserving generic MCP fallback semantics; targeted presentation tests passed.
-20. **Delete the test-only presentation action path (2026-08-30):** Removed unused automatic action-message construction and compressed English verb forms around production `actionKind` semantics; targeted presentation tests passed.
-21. **Merge tool-detail input unpacking (2026-08-30):** Added narrow object/array helpers in `AgentToolDetailFormatting` while keeping field-specific presenters local; the build passed.
-22. **Merge Agent idle sweepers (2026-08-30):** Replaced two timer loops with `AgentIdleSweeper` while callers retain their own registry and emptiness policy; targeted tests passed.
-23. **Reuse `SidebarSectionHeader` (2026-08-30):** Extended the shared header for count and collapse state and removed duplicate Assistant/Snippet layouts; the build passed.
-24. **Unify Host deletion entry points (2026-08-30):** Routed group deletion through the repository/outbox saga and removed direct snapshot-persistence deletion; the Debug build and targeted repository, Snippet, and Port Forwarding tests passed.
-25. **Remove uncalled wrappers and constants (2026-08-30):** Deleted confirmed-unused Agent preflight, settings, metrics, reconnect, and SSH-status declarations after reference scans; the build passed.
-26. **Delete `SettingsCollectionPage` (2026-08-30):** Replaced its two construction sites with the byte-identical `SettingsFormPage`; the build and focused Settings tests passed.
-27. **Merge fixed-height cursor lists (2026-08-30):** Shared the adapter used by Snippet Target, Host Chooser, and Export Host lists while excluding dynamic and specialized rows; the build and focused list/chooser tests passed.
-28. **Share Agent Exec/SFTP authentication retries (2026-08-30):** Extracted a generic authenticated-open loop while preserving explicit connection kinds and result types; the build and all 21 Agent Host Authentication tests passed.
-29. **Deduplicate native Transcript risk and confirmation helpers (2026-08-30):** Routed both row implementations through one risk-color function and one destructive-command confirmation function; the build passed.
-30. **Merge Glass shape modifiers (2026-08-30):** Replaced three copied implementations with one shape-parameterized private modifier while preserving public APIs and fallbacks; the build passed.
-31. **Consolidate Vault envelope persistence (2026-08-30):** Added one helper for insertion/update and upload-state indexing while leaving versioning and merge policy in callers; the build and Vault Sync tests passed.
-32. **Share SFTP remote-conflict preflight (2026-08-30):** Centralized remote-directory ordering, descendant skipping, and target-kind lookup while retaining separate prepared job types; the build and focused SFTP tests passed.
-33. **Centralize effective Vertex mode and credential selection (2026-09-04):** Added `usesVertexEndpoint` and `effectiveCredentialRef` to `ModelProvider`, later adapting the former to API-format-based providers; build and Provider verification passed.
-34. **Delete newly confirmed dead declarations and decoded metadata (2026-08-30):** Removed unused onboarding, Agent, color, trial-test, and runtime Linux-catalog fields while retaining provenance in generated JSON; the build passed.
-35. **Derive Conversation run presentation (2026-09-01):** Replaced manually synchronized run/streaming state with derivation from one reported state and outstanding queues; state-focused tests, localization, and diff checks passed.
-36. **Delete tests that freeze user-facing copy (2026-09-02):** Removed 20 copy-only tests and isolated literal assertions while retaining behavioral, persistence, localization-selection, and protocol coverage; the affected target compiled and focused tests passed.
-37. **Share checked provider HTTP execution (2026-09-02):** Centralized transport-error translation, HTTP validation, and non-2xx handling for model catalogs and probes while keeping request construction and parsing local; the build and all 12 focused tests passed.
-38. **Delete the Finder-only native drop wrapper (2026-09-02):** Removed the unconstructed `NativeFileURLDropTarget` while retaining the generalized target and test-facing AppKit initializer; the build and all five File Drop tests passed.
-39. **Centralize Context Chip recovery rules (2026-09-02):** Shared payload-boundary detection and fallback filename derivation between live attachments and restored references; the build and focused recovery tests passed.
-40. **Finish save-or-rollback reuse (2026-09-02):** Added `ModelContext.savePendingChanges` and reused `commit` for staged Agent, Outbox, AI snapshot, and conversation mutations without changing semantic save boundaries; all 46 focused tests passed.
-41. **Share transient overlay chrome (2026-09-02):** Replaced three identical surface modifier chains with `termindTransientOverlaySurface` while keeping content and transitions local; the Debug build passed.
-42. **Share SSH form chrome (2026-09-02):** Replaced two identical conditional padding/glass/border branches with `connectionFormChrome` while preserving separate form behavior; formatting and the Debug build passed.
-43. **Share Snippet card content (2026-09-02):** Extracted `SnippetCardContent` for the normal card and drag ghost while keeping their interaction and outer chrome distinct; formatting and the Debug build passed.
-44. **Share SFTP read-handle lifecycle (2026-09-02):** Routed inline reads and both download paths through `withRemoteReadHandle` while preserving their distinct loops and destination policies; the build and all 47 focused SFTP tests passed.
-45. **Share select/deselect-all helpers (2026-09-02):** Added `ManagedChooserState.allChecked(in:)` and `toggleAll(in:)` for the three identical-enabled-set callers while leaving restricted selection unchanged; the build, localization, and diff checks passed.
-46. **Extract AgentKit (2026-09-02):** Moved the platform-neutral Agent runtime into the separately versioned package after introducing host-tool, interaction, prompt, and presentation seams; package build/tests/formatting and the app build/full suite passed.
-47. **Collapse Workspace navigation commands (2026-09-02):** Removed commands shadowed by AppKit, kept the standard workspace shortcuts, and moved split shortcuts off system-owned keys with terminal routing coverage; the build, formatting, and localization checks passed.
-48. **Address providers by one URL and API type (2026-09-04):** Replaced vendor-kind/default-path branching with explicit inference/base URLs and `ModelAPIFormat`, migrated persisted schemas safely, and shipped AgentKit 0.4.0/0.5.0; package checks, all 994 app tests, localization, and site build passed.
-
-## Later Completed Work
-
-- **StoreKit trial consolidation (2026-09-09):** Replaced the local HMAC/Keychain/CloudKit trial system with StoreKit purchasing and a transaction-scoped clock watermark, producing a net 121-line production reduction with commerce checks passing apart from one unrelated catalog expectation.
-- **Remove the unused Show Recents preference (2026-09-09):** Deleted the unread preference, its toggle/group, and unused labels while retaining the shared Sidebar accessibility localization; builds, formatting, localization, and relevant tests passed.
-- **Remove low-value test assertions (2026-09-11):** Deleted five redundant tests and literal/enum/catalog snapshots for a net 77-line test reduction while retaining behavioral coverage; all relevant checks passed aside from an intermittent unchanged focus test that passed on rerun.
-- **Remove the duplicate screenshot window host (2026-09-11):** Deleted `ScreenshotDemoWindow` and reused the production `WindowGroup` with demo restoration disabled; the full pinned test run, native capture, formatting, and localization checks passed.
-- **Share SFTP permission controls (2026-09-11):** Moved permission draft behavior to Domain and a shared SwiftUI grid to Presentation for both editors; regression verification is recorded in `MOBILE_ROLLOUT.md`.
-- **Share mobile settings and terminal behavior (2026-09-11):** Moved CloudKit, settings transaction/journal, terminal settings, and command-history behavior into their owning frameworks with only desktop adapters retained; shared/mobile tests passed and full macOS verification retained known Agent timing failures.
-- **Share Metrics and connection presentation (2026-09-11):** Moved monitoring/Journey state to Application and portable panels/forms to Presentation while retaining native keyboard and log handling; shared/mobile and 127 focused macOS tests passed.
-- **Share AI settings business logic (2026-09-11):** Moved the skill library, importer, and role form into Application, Infrastructure, and Presentation respectively while retaining native editors and panels; the isolated build and 81 mobile/shared tests passed.
-- **Share Assistant execution (2026-09-12):** Moved runtime, tool adapters, attachments, speech, conversation projection, and transcript list behavior into owning frameworks for both apps; builds, Assistant/navigation tests, localization, and formatting passed apart from an unrelated mobile Metrics race that passed on rerun.
-- **Remove app-target forwarding aliases (2026-09-12):** Deleted 86 pure-forwarder files, 224 app aliases, and 20 Persistence compatibility aliases while preserving six responsibility-named adapters; both builds, architecture guards, and the complete TFI test action passed.
-- **Align the mobile target with desktop layers (2026-09-12):** Reorganized TFI into the shared layer model, moved connection construction to Infrastructure, and centralized interface-idiom policy; both builds, architecture tests, and the complete TFI tests passed.
-- **Share terminal draft and generation lifecycles (2026-09-12):** Extracted `TerminalCommandDraftController` and `CommandGenerationCoordinator` with shared timeouts, cancellation, and protocol constants; focused mobile and desktop tests passed.
-- **Separate remote-directory policy from SFTP transport (2026-09-12):** Moved `RemoteFile` to Domain, introduced an Application `RemoteFileSystem` port, and extracted `MobileSFTPSessionModel`, accepting a structural net increase to enforce the dependency boundary; builds, architecture guards, and SFTP tests passed.
-- **Finish mobile adoption of shared connection policy (2026-09-12):** Made `RemoteSessionConnectionController` own mobile Host Key decisions and route progress and shared temporary-key preparation between Workspace and Metrics; focused connection, Journey, Metrics, and recovery tests passed.
-- **Share terminal Find state (2026-09-12):** Replaced three desktop/mobile query state machines with one Application `TerminalFindController` while retaining platform binding closures; direct and platform tests passed.
-- **Derive remote distributions once (2026-09-12):** Centralized Linux distribution detection in Domain with explicit unavailable-versus-conclusive results; Domain, Host projection, and mobile Workspace tests passed.
-- **Share platform-neutral Connection Journey sections (2026-09-12):** Moved header and status sections to Presentation while retaining native logs, failures, backgrounds, and keyboard handling, reducing production code by 98 lines; builds and Journey tests passed.
-- **Own Ghostty appearance in Presentation (2026-09-12):** Replaced duplicated desktop/mobile theme conversion with one shared bridge while retaining desktop preference storage; both builds and terminal theme tests passed without dependency changes.
-- **Share terminal-upload availability and notices (2026-09-12):** Centralized readiness policy and notice presentation while retaining distinct desktop and mobile execution; direct policy tests and both builds passed.
-- **Share Known Host presentation titles (2026-09-12):** Moved hashed-address versus endpoint title selection to Presentation while leaving platform cards distinct; direct presentation tests and both builds passed.
-- **Restrict ListViewKit to native-list workloads (2026-09-12):** Removed eight unnecessary macOS adapters and eleven mounts, later retaining narrow UIKit transcript/history uses, for a net 611-line macOS reduction; builds, focused tests, formatting, localization, and boundary checks passed.
-- **Share Assistant transcript presentation (2026-09-12):** Moved platform-neutral tool/result, disclosure, timestamp, and Markdown policy into Presentation while retaining native renderers and viewport ownership; architecture records and both builds verify the boundary.
-- **Remove Periphery-confirmed dead code (2026-09-12):** Deleted 34 imports, three empty files, and confirmed-unused declarations for a net 150-line production reduction while preserving dynamic and protocol entry points; builds, focused tests, formatting, localization, and diff checks passed.
-- **Remove UI implementation-type assertions (2026-09-12):** Deleted tests and helpers that pinned concrete AppKit/UIKit/ListViewKit types while retaining behavioral rendering, identity, reuse, interaction, and environment coverage.
-- **Remove obsolete app localizations (2026-09-13):** Deleted 81 compiler-confirmed unused catalog entries and three obsolete test expectations and cleared only verified stale metadata; both builds and all localization/language checks passed.
-- **Register cross-platform Assistant slash commands (2026-09-13):** Replaced duplicate desktop/mobile command catalogs and execution switches with `ChatSlashCommandRegistry` and explicit platform registration; both builds and focused registry, desktop, and mobile tests passed.
-- **Register mobile feature destinations (2026-09-13):** Replaced separate tab/sidebar metadata and destination switches with an injected `MobileFeatureRegistry` while keeping it app-owned; the iOS build and all 28 focused navigation tests passed.
-- **Share remaining mobile and desktop policies (2026-09-13):** Centralized tree layout, route planning, Host deletion, display projections, Snippet/model rules, SFTP drag values, and service composition in their owning layers while retaining native UI and transport lifecycles; both builds and focused shared/mobile tests passed.
-- **Move trials to annual-subscription introductory offers (2026-09-13):** Retired the zero-price trial product for new sales, retained it only as a legacy entitlement, and made offer presence, eligibility, duration, price, period, and expiration come entirely from StoreKit annual-subscription metadata.
-- **Remove brittle and redundant unit tests (2026-09-13):** Removed 27 source-text UI snapshots from `MobileNavigationParityTests`, seven more app source snapshots, real Keychain and status-item integration tests coupled to host state, and duplicated shared permission/history coverage while retaining architecture, persistence, behavioral, and opt-in screenshot checks. Shared credential-storage compatibility, permission defaults, and History limits now live in `FrameworkTests`; the change removes a net 1,303 lines. All 1,079 macOS app tests, 13 focused shared tests, 218 iOS tests, strict formatting, localization, and diff checks passed; the pre-existing `SpeechWaveformViewTests` bitmap-equality failure remains outside this cleanup.
-- **Remove standalone-trial compatibility (2026-09-14):** A fresh reference scan confirmed that the retired product identifier, legacy domain value, clock guard, and two legacy entitlement states formed one isolated compatibility path with an estimated 90-line production reduction. Deleted that path, its local StoreKit product, UI states, tests, and copy; renamed the permanent identifier to `lifetimeProductID`; and retained annual introductory trials as the sole trial mechanism. Strict formatting, localization, site build, all 1,091 macOS app tests, the rerun Metrics suite, and all 187 shared iOS tests passed. The iOS target built, while 10 unrelated toolbar-inspection tests remained failing in both the full run and an isolated rerun.
-
-## Deliberately Retained Boundaries
-
-- Native Transcript/AppKit rendering, Assistant conversation rows, and specialized dynamic or drag/drop lists keep dedicated lifecycles instead of being forced through generic SwiftUI hosting abstractions.
-- SSH, SFTP, Serial, desktop, and mobile implementations share only platform-neutral policy; transport startup, credential persistence, teardown, logs, interaction, and native presentation remain separate where behavior differs.
-- SwiftData historical schemas remain frozen migration contracts, small structurally similar repositories and views remain separate when abstraction would not reduce code, and `RuntimeVersions` stays platform-local to avoid introducing an invalid Ghostty dependency.
-
-The 2026-09-02 completion and re-verification scans found no further independent dead-code or exact-duplication change that met the backlog's reduction and boundary-preservation rules; later work should be appended only after a fresh reference scan.
-
-## Fresh Refactoring Pass (2026-09-16)
-
-- **Reuse the shared SFTP download planner — completed.** Evidence: `rg -n 'PreparedJob|PreparedBatch|pendingBatch|keepBothLocalURL' TFM TFI Frameworks TFMTests TFITests` found only one desktop `PreparedJob`/`PreparedBatch` construction path, in `SFTPSessionModel.prepareDownload`, with direction fixed to `.download` and both remote-directory collections empty. Uploads already used `SFTPLocalUploadPlanner`. `SFTPRemoteDownloadPlanner` already owned the equivalent download traversal, local conflict policies, scoped destination access, directory creation, and transfer enqueueing for mobile. Adopted that planner in the desktop session and removed the obsolete mixed-direction batch and local helpers, retaining desktop pending-state/error handling, remote-copy policy, and transfer lifetimes. Estimated production reduction: 180 lines; actual reduction: 167 lines, or 59 lines including the added regression tests. Directory-only downloads now create their empty directory trees because the shared batch retains its destination independently of file jobs. The architecture record documents that ownership.
-
-Verification completed on 2026-09-16:
-
-- All 75 SFTP and architecture tests passed, including three new parameterized/behavioral tests covering ten file/directory conflict, subtree, empty-directory, and cancellation cases. The empty-directory regression fails against the pre-refactor `SFTPSessionModel` and passes with the final implementation.
-- The full pinned TFM test action built successfully and passed 1,337 of 1,343 tests. Four failures also reproduce with the pre-refactor production source: `SettingsSyncTests.providedDatabaseCopyMigratesWithoutReset` (expects schema 15, current schema is 17), `ModelCapabilityResolverTests.reportedFieldsWinOverCodexAutoReviewOverride`, `ScrubberWebClientTests.fetchPreflightNeverEscalatesPrivateHTTP`, and `ChatComposerStateTests.aFailureNoticeIsNotAnAnswerWorthNaming`. `MetricsJourneyTests.offlineRestoredMetricsReconcileOnMainActor` passed on rerun. `SSHImportTests.indexedIdentityPlanningHandlesTheImportFileLimit` exceeded its two-second wall-clock limit when run concurrently, but passed in isolation against both versions (0.100 seconds with the final source).
-- The full pinned TFI test action on iPhone 17 Pro / iOS 26.5 built successfully and passed 426 of 432 tests, including all 205 framework tests. The unchanged mobile graph retained five failures on isolated rerun: `MobileVaultFeatureTests.importRequiresAnExplicitUsernameWhenTheConfigurationOmitsIt` and four `MobileAssistantTests` cases (`completeRegistryIncludesRemoteAndBuiltInToolsOnlyForCapableModels`, `firstNewConversationSendPromotesDraftAndStartsRun`, `attachmentOnlyFirstSendPromotesTheConversation`, and `existingConversationSendStillUsesTheDraftExecutionPath`). `MobileEditorToolbarTests.iconButtonsKeepTheirNamesAndSaveLifecycle` passed on rerun.
-- Strict Swift formatting across all production/test targets, `Scripts/check-zh-localization.sh`, the removed-symbol reference scan, and `git diff --check` passed. Both full test actions retained `-onlyUsePackageVersionsFromResolvedFile`; no dependency, localization, or shared production source changed.
-
-## Follow-up Reuse and Test Cleanup (2026-09-16)
-
-- **Reuse the shared remote-copy planner — implemented; full verification remains partial.** Evidence: `rg -n 'PreparedRemoteCopy|pendingRemoteCopyBatch|SFTPRemoteCopyPlanner.enqueue|resolveRemoteDirectories' TFM TFI Frameworks TFMTests TFITests -g '*.swift'` confirms the desktop-only batch types and duplicated preparation, conflict resolution, and enqueue loops in `SFTPSessionModel`; mobile already uses `SFTPRemoteCopyPlanner`. Replaced the desktop path with that planner and returned directory-mutation information so empty-directory copies still refresh the browser. Retained app-owned pending state, error handling, transfer completion refresh, and the interactive deletion lifecycle. Estimated production reduction: 220 lines; actual reduction: 193 lines. Added behavioral coverage for file/directory and subtree conflicts across all three policies, empty-directory refresh, and pending-copy cancellation; retained the planner's cancellation and validated recursive deletion checks. Upload conflict helpers remain a separate candidate rather than widening this change.
-- **Remove copy-only and duplicated test expectations — implemented; full verification remains partial.** Evidence: `rg -n 'roleLabelsMatchDesktopDefaults|cautionLabelAlsoFitsUnknownCommands|copyApprovalLabelsAndOverwriteWarningUseAppResources|approvalDetailsLocalizeBothEndpointsAndDestructiveWarning|handshakeFailureDescriptionsDistinguishBannerConditions|uploadNoticePresentationUsesOneCrossPlatformMapping' FrameworkTests TFMTests TFITests -g '*.swift'` identifies role-label snapshots, a duplicate unknown-command case, repeated cross-platform approval copy checks, and mixed behavior/copy tests. Removed pure copy assertions and duplicate cases, retained unknown-command classification in its parameterized suite, and consolidated approval endpoint values and destructive-warning policy coverage across policies/locales. Preserved diagnostic context, upload gating, and notice payload/state coverage. Also dropped isolated fixed title/icon assertions from otherwise behavioral tests. Estimated test reduction: 50 lines; actual cleanup reduction: 59 lines, excluding 75 net lines of remote-copy regression coverage. Total Swift reduction: 177 lines. Retained architecture guards, language-selection/catalog validation, protocol strings, user-data round trips, and behavioral assertions that contain strings.
-
-Verification and remaining limitations (2026-09-16):
-
-- The pinned TFM focused test action passed all 200 tests, including SFTP/session/copy, architecture boundaries, tool presentation, handshake diagnostics, SSH import, toolbar behavior, app language, upload availability, and command classification. Result: `/tmp/termind-refactor-copy-focused-20260916.xcresult`.
-- The pinned full TFM test action built successfully and passed 1,436 of 1,437 tests. The sole failure is the unchanged `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable` bitmap equality assertion. An earlier backlog entry records this same test failure; no baseline or isolated rerun was performed in this pass. Result: `/tmp/termind-refactor-copy-macos-20260916.xcresult`.
-- The full TFI action did not build or execute tests: the supplied simulator destination UUID was unavailable. This is not a passing iOS verification. A fresh device listing found an available booted iPhone 17 Pro, but the owner requested an immediate commit before rerunning either platform.
-- Strict Swift formatting across all production/test targets, `Scripts/check-zh-localization.sh`, the removed desktop-helper reference scan, and `git diff --check` passed. Xcode successfully resolved modules that standalone SourceKit could not find. Existing generic SwiftLint file/type/function-size and complexity findings remain outside this independent refactor; no inline suppressions were added. Dependencies and localization catalogs are unchanged.
-- Submitted at the owner's explicit request with these verification limitations retained rather than deleting unrelated behavioral tests to obtain a green result.
-
-## Remove Low-Value UI and Source Assertions (2026-09-16)
-
-- **Implemented; full verification in progress.** Evidence: `rg -n '#filePath|sourceRoot|String\(contentsOf|source\.contains' FrameworkTests TFMTests TFITests -g '*.swift'` found 35 architecture tests plus eight source snapshots in Color System, Menu Symbol, SSH Import, Keychain Order, Commerce Configuration, and Mobile Navigation Parity. At the owner's request, removed implementation-spelling/layout snapshots, enum and palette echoes, fixed-canvas render checks, disconnected standard-library sorting tests, and orphaned helpers; trimmed literal copy from mixed behavioral tests. Removed 52 test declarations and a net 1,230 Swift lines against an estimated 1,000–1,200-line reduction. Source assertions dropped from 43 tests to nine narrow module/dependency and ownership guards. The ListViewKit import allowlist now permits removing an importer without requiring a snapshot update, while still rejecting new unapproved importers. Retained language/catalog validation, protocol/data contracts, behavioral lifecycle/rendering coverage, and opt-in screenshot capture. Grouped host-list coverage now checks row placement using fixture data rather than localized headings. No production, dependency, or localization catalog changed; existing architecture-document edits were preserved.
-
-Verification in progress:
-
-- Initial pinned Xcode checks passed all 18 selected macOS tests and five selected iOS tests, compiling both test targets. Results: `/tmp/termind-test-cleanup-initial-macos.xcresult` and `/tmp/termind-test-cleanup-initial-ios.xcresult`.
-- Strict Swift formatting across production/test targets, `Scripts/check-zh-localization.sh`, the remaining-source-assertion scan, and `git diff --check` passed. Active standalone SourceKit checks could not resolve the Xcode test module graph and were partly inconclusive; Xcode compilation is the authoritative check. Pre-existing generic SwiftLint size, tuple, pixel-coordinate naming, and force-try findings were left outside this deletion; no inline suppressions were added.
-- Full pinned macOS and iOS test actions are running sequentially. No unrelated behavioral test is being removed to hide a failing result.
-
-## Share SFTP Transfer Status Labels (2026-09-16)
-
-- **Implemented and verified with existing iOS failures.** Evidence: `rg -n 'status\(for: transfer\)|transfer\.state\.label' TFM TFI` found a mobile-only direction/state mapping and two generic desktop labels. Moved the agreed running/completed direction labels into Presentation, reused generic labels for other states, and connected both apps to the shared property. Production reduction: eight lines, matching the estimate. Existing translations and transport behavior are unchanged.
-- The pinned full TFM action passed all 1,183 app tests and 213 shared tests, including language and architecture checks. Result: `/tmp/termind-sftp-status-macos-20260916.xcresult`.
-- The pinned full TFI action compiled both targets and passed 212 of 217 app tests plus all 213 shared tests. Its five failures in `MobileAssistantTests` and `MobileVaultFeatureTests` match the pre-change `/tmp/termind-test-cleanup-full-ios.log` exactly; no unrelated tests were changed. Result: `/tmp/termind-sftp-status-ios-20260916.xcresult`.
-- Strict Swift formatting, `Scripts/check-zh-localization.sh`, and `git diff --check` passed. Visually reviewed English, Simplified Chinese, and Traditional Chinese status matrices rendered from the built shared property and app localization resources in `/tmp/termind-sftp-status-preview/`; these are label previews, not live transfer screenshots.
-
-## Retire the Desktop Forwarding Editor Adapter
-
-- **Implemented; verification pending (reproduced iOS failures).** Evidence: `rg -n 'PortForwardingEditorState|PortForwardingEditorPolicy' TFM TFI Frameworks TFMTests TFITests FrameworkTests Memory Termind.xcodeproj -g '*.swift' -g '*.md' -g '*.pbxproj'` confirms that the 43-line desktop adapter has only three production consumers, all computed state getters in `TFM/Features/Ports/PortForwardingView.swift`, and seven desktop tests. It already delegates saved eligibility and normalization to Application's existing `PortForwardingEditorPolicy`; its remaining flags derive identically from enabled intent and runtime activity. Mobile already uses the policy directly. Action: adopt that policy in the three desktop getters and delete the adapter, retaining synchronous observable saved-rule/saved-host/controller reads and full runtime values for native presentation. Preserve all callbacks, enabled intent OR activity, draft normalization, saved-host lookup by the editor host's ID, and editing locks. Retarget all seven desktop test behaviors and add shared-policy eligibility/intent/activity coverage. Estimated production reduction: 27–28 Swift lines; test additions counted separately. No architecture invariant changes, boundary-guard edits, public API, dependency, persistence, runtime, approval, secret, or localization changes are required.
-- Implementation outcome: removed the adapter without a replacement wrapper; production Swift decreased by 27 lines (43 deleted, 16 net added to the view). All seven desktop test behaviors remain, including the AppModel save-without-start integration and saved-host lookup through a changed draft host's ID. Expanded active-phase coverage across both intent values, local/remote normalization boundaries and missing targets, and invalid hidden dynamic targets. Added 14 shared-policy matrix/eligibility cases. Test Swift increased by 109 lines; total Swift increased by 82 lines, with regression additions reported separately from the production reduction. Architecture records/guards, feature integration suites, native copy, shared production code, and pinned dependencies are unchanged.
-
-- Reviews: both independent code reviews and the prior final audit found no code issue or requested revision. This documentation audit independently inspected the actual diff and unchanged shared policy and found no behavior or boundary issue. Only this appended entry was updated; every earlier entry is preserved.
-
-Verification audit (2026-09-16 UTC):
-
-- The prior pinned focused TFM action passed **33/33 tests**, zero failures/skips: 14 forwarding feature, seven editor, nine architecture, and three shared-policy tests (the latter cover 14 parameterized cases). Independently re-extracted `/tmp/termind-forwarding-adapter-verify.xMtOCK/focused.xcresult` and checked `focused.log` and `focused.command.txt` in that directory; the action was not repeated.
-- The full pinned TFM action passed **1,399/1,399 tests** (1,183 TFMTests + 216 FrameworkTests), zero failures/skips, exit 0. Result: `/tmp/termind-forwarding-adapter-recovery.eggzSE/remaining-checks.9wl35uwk/macos.xcresult`.
-- The full pinned TFI action passed **428/433 tests** (212/217 TFITests + 216/216 FrameworkTests), five failures, zero skips, exit 65. Result: `/tmp/termind-forwarding-adapter-recovery.eggzSE/remaining-checks.9wl35uwk/ios.xcresult`. The exact five-test pinned rerun passed **0/5**, with the same five identifiers and identical failure text, exit 65: `/tmp/termind-forwarding-adapter-recovery.eggzSE/remaining-checks.9wl35uwk/ios-rerun.xcresult`. Both used the freshly discovered iPhone 17 Pro / iOS 26.5 simulator, UDID `38789AE8-B5AA-46CA-A15C-77CE760FC550`.
-- Actual repeated failures (all in TFITests):
-  - `MobileAssistantTests/attachmentOnlyFirstSendPromotesTheConversation()` and `MobileAssistantTests/firstNewConversationSendPromotesDraftAndStartsRun()`: `Expectation failed: draft.messages.map(\.role) == [.user, .assistant]`.
-  - `MobileAssistantTests/completeRegistryIncludesRemoteAndBuiltInToolsOnlyForCapableModels()`: `Expectation failed: !names.contains("terminal_suggest")`.
-  - `MobileAssistantTests/existingConversationSendStillUsesTheDraftExecutionPath()`: `Expectation failed: conversation.messages.map(\.role) == [.user, .user, .assistant]`.
-  - `MobileVaultFeatureTests/importRequiresAnExplicitUsernameWhenTheConfigurationOmitsIt()`: `Expectation failed: model.canImport`.
-- These failures are **baseline-unverified**, not established pre-existing failures or proven regressions. No pre-change baseline was run for this patch; earlier backlog notes are not substituted for baseline evidence. Their triage/baseline attribution and a passing required iOS verification remain blockers to completion. All planned automated stages reached terminal completion after the prior provider interruption; none is missing, and that interruption was not a test failure or a user-requested stop.
-- Static checks passed: full strict recursive Swift formatting over `Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge`, `Scripts/check-zh-localization.sh`, and `git diff --check` (all exit 0). The first-party Swift retired-symbol scan found no `PortForwardingEditorState` (expected `rg` exit 1). The new test's whitespace checks had no diagnostics; the runner initially mislabeled no-index exit 1 (files differ), corrected in `untracked-whitespace-adjudication.json` without altering raw evidence, with a supplementary read-only scan passing at exit 0. Implementation-stage evidence remains in `/tmp/termind-forwarding-adapter-implement.aTsWRl/checks.sh` and `checks.log`.
-- Integrity: before this documentation update, the complete patch, including the untracked test, matched both the focused verifier's initial patch and `/tmp/termind-forwarding-adapter-recovery.eggzSE/partial.patch` byte-for-byte (SHA-256 `f76b9950aa3bb49140865feec1153836f59ce903d25f3a32edcbf07ab320a691`). Reviewed production/test bytes remain unchanged. `project.pbxproj` and `Package.resolved` hashes match both the saved verification evidence and HEAD; no dependency drift. The same five paths remain uncommitted on `main` at `8b01a631fefdbe14e1324d87c91d0860124d85d3`; no further builds, source/test edits, or commits were made by this audit.
-- Limitations/warnings: native manual status/toggle/edit-lock and save/cancel/back testing was **not executed**; layout and copy are unchanged, and no visual evidence is claimed. Full-suite xcresult summaries retain 166 macOS runtime warnings (88 environment-locale, 74 constraint, four StoreKit transaction-listener) and 29 iOS warnings (27 environment-locale, two publishing-during-view-update); the targeted rerun reports none. These warnings were not baseline-attributed or broadly investigated. Focused logs also retain native row-height and Xcode diagnostic warnings despite the passing result.
-- Artifacts: `/tmp/termind-forwarding-adapter-recovery.eggzSE/remaining-checks.9wl35uwk/` contains `verification-report.md`, `verification-report.json`, `runner.log`, `runner.completed.json`, per-stage `*.command.txt`/`*.record.json`/logs, `*-summary.json`, `*-tests.json`, `failure-comparison.json`, simulator selection, and postverification patch/dependency evidence. Independent re-extractions, count/failure comparisons, before/after integrity, and the post-documentation `git diff --check` result are preserved in `/tmp/termind-forwarding-adapter-recovery.eggzSE/audit-record/`.
-
-## Repair the Five Repeated iOS Test Failures (2026-09-17)
-
-- **Completed and verified.** Before editing, the exact five tests failed on clean `d582d711` using the pinned dependencies and iPhone 17 Pro / iOS 26.5. This establishes the baseline for this repair without retroactively claiming a pre-refactor baseline for earlier entries. Result: `/tmp/termind-ios-five-fixes.NfgsN4/baseline.xcresult` (0/5 passed, exit 65).
-- Three `MobileAssistantTests` send cases expected a synthetic assistant message from an in-memory app with no Chat model. `b2f05217` intentionally replaced that message with a failed run and a separate timeline failure notice. The tests now verify user-only history, failed-run metadata, prompt-to-run association, the visible failure row, and exclusion from title generation. The existing-conversation case awaits the actual failed state rather than yielding 20 times for an assistant message that must not exist.
-- The registry case expected `terminal_suggest` to be absent on mobile. `df3bd04c` intentionally stabilized definitions across surfaces; the executor gates availability from the delivered user snapshot. The test now requires the tool, compares descriptors with and without terminal availability, and still requires an empty registry for models without tool-call capability.
-- The import case directly mutated `items[0].host.username` after scanning. Since `ac165a9a`, scanning also builds indexed Identity previews, so the selected Identity retained its invalid empty username. The replacement uses a temporary config and the real `SSHImportReader` with an explicitly empty default username: invalid input cannot commit anything, then adding `User deploy` and rescanning rebuilds both previews and imports the correctly linked Host/Identity. The obsolete reader fake was removed; no production mutation API was added for a test-only path.
-- All five original test identifiers are retained; none is skipped, deleted, or marked as an expected failure. Only the two mobile test files and this record change. Production behavior, architecture invariants/guards, localization catalogs, and pinned dependencies remain unchanged.
-- Verification: all five tests passed in three separate Xcode test actions (`fixed-repeat.xcresult`, `focused-2.xcresult`, `focused-3.xcresult`), then the full pinned TFI action passed **433/433** and full TFM action passed **1,399/1,399**, both with zero failures/skips (`full-ios.xcresult`, `full-macos.xcresult`, exit 0). Although the first action supplied `-test-iterations 3`, its log contains only one Swift Testing run; two independent actions supply the actual repetition evidence. This resolves the outstanding automated iOS verification blocker in the preceding entry.
-- Full strict recursive Swift formatting, `Scripts/check-zh-localization.sh`, and whitespace checks passed. Standalone SourceKit probes could not confirm the Xcode test-module graph; the successful Xcode compilation and simulator tests are the authoritative checks. Full results retain 29 iOS and 168 macOS runtime warnings, not investigated or baseline-attributed by this test-only repair; the three focused actions have none. Artifacts and the sequential verification script are under `/tmp/termind-ios-five-fixes.NfgsN4/`.
-
-
-## 2026-09-17 — Replace the single-document skill loader
-
-- Evidence: `load_skill` had its own definition, presenter, catalog guidance, and name-based output exemptions. A package file reader now supplies the same bounded SKILL.md behavior plus supporting resources.
-- Action: remove the executable `LoadSkillTool` and register `skill_read_file`; retain only the historical presenter ID and replay compatibility.
-- Estimated reduction: remove roughly 100 lines of the superseded loader; package management is an additive feature, not a net code-reduction claim.
-- Status: implemented. AgentKit tests pass; application skill, migration, memory lifecycle, and mobile suites have been exercised.
-
-
-## 2026-09-17 — Replace seeded runbooks with immutable skill helpers
-
-- Evidence: `AgentSkillLibrary` shipped three editable runbooks; `SkillLibraryModel` and `SettingsSyncPersistence` both seeded them, and both apps exposed a destructive library-wide Reset.
-- Action: replace the seeds with two runtime-only skills and remove generation seeding, Reset, and old runbook definitions/fixtures. Previously installed starters remain ordinary user-owned records without content rewriting or automatic deletion. Keep conflict repair in native editors and use the existing atomic skill/sync persistence boundary for package installation.
-- Estimated reduction: roughly 200 production lines from retired runbooks, duplicated seeding and Reset UI, excluding the new installer capability and migration tests.
-- Status: implemented. AgentKit 0.13.0 is signed and published; 213 package tests passed. Existing skills remain user-owned and the Chinese memory label is 持久化记忆 / 持久化記憶.
-- Verification: the final iOS run passed all 452 tests. The macOS app run passed 1,183 tests; AppLanguageTests passed again independently. The refreshed shared-framework run passed 231 of 232 tests, with the existing `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable` PNG byte-equality failure remaining. New skill/library/sync tests passed, bilingual native screenshots were reviewed, and strict formatting, Chinese localization and whitespace checks passed.
-
-## Reuse and Architecture Scan (2026-09-17)
-
-**Status: discovery only; all six candidates below are pending.** Baseline: clean `main` at `8509ddd5`.
-The inventory and normalized-block scan covered 516 tracked first-party production Swift files (113,165 lines)
-under `Frameworks/`, `TFM/`, `TFI/`, and `TermindMCPBridge/`. Candidate bodies, consumers, and relevant tests
-were then inspected directly; this is not a claim that every file received a behavioral audit. A source import
-check across the 273 shared-framework Swift files found no disallowed first-party dependency edge relative to
-`ARCHITECTURE.md`. The source graph was stale and Swift structural navigation was unavailable, so neither was
-used as proof of reachability or dead code. The website's localized home routes already reuse one page.
-AgentKit and other third-party sources were not included.
-
-Estimates below are prospective **net production Swift reductions**, allowing for a narrow shared implementation
-and caller changes but excluding regression tests. They are not measured patch outcomes. Implement and verify
-one independent item at a time; abandon a reduction claim if the new abstraction costs more than it removes.
-No production, test, dependency, localization, or architecture-invariant change is made by this scan.
-
-### R1. Share CloudKit record transport coding — first implementation candidate
-
-- **Evidence:** `VaultSyncCoordinator.swift:475-548`, `SettingsSyncCoordinator.swift:519-594`, and
-  `MetricsSyncCoordinator.swift:424-498`, all under `Frameworks/TermindInfrastructure/Cloud/`, repeat CKRecord
-  restoration, metadata assignment, SHA-256 payload hashing, inline-versus-CKAsset storage, secure system-field
-  archiving, and cache-file construction. Confirm with
-  `rg -n 'static func (makeRecord|envelope|payloadData|systemFields|record|assetURL)' Frameworks/TermindInfrastructure/Cloud`.
-- **Action:** introduce an internal record-coding helper in the same Infrastructure layer. Share transport
-  mechanics, not the three envelope codecs or their semantic validation. Keep existing public entry points,
-  record/zone names, record-name casing, the 700,000-byte threshold, separate asset directories, error mapping,
-  and Settings' legacy Guardian canonicalization. Do not change persistence entities or sync engine ownership.
-- **Estimated reduction:** 70–110 lines. **Risk:** low-to-medium; wire compatibility matters even without a migration.
-- **Required verification:** retain `VaultSyncTests.cloudRecordUsesAssetForLargePayloadAndRejectsCorruption`,
-  Settings record round trips and legacy Guardian tests, and `MetricsSyncTests.recordsRoundTripAndRemoteChangesMergePerHost`.
-  Add shared boundary cases for payload sizes at/above the threshold, corrupt or missing payloads, system-field
-  restoration, and asset namespace separation; run both pinned app test actions. This estimate excludes R5.
-
-### R2. Share the remaining upload/copy remote-conflict helpers
-
-- **Evidence:** `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPLocalUploadPlanner.swift:178-310` repeats
-  preflight, subtree skip/remapping, conflict resolution, Keep Both naming, and recursive deletion from
-  `SFTPRemoteTransferPlanner.swift:311-439`. Copy helpers also serve `SFTPRemoteCopyOperation.swift:108,126`.
-  Confirm with
-  `rg -n 'remoteConflictPreflight|resolveRemoteDirectories|resolveRemoteConflict|deleteRecursively|SFTPRemoteCopyPlanner\.(resolveDirectories|resolveConflict)' Frameworks/TermindRemoteInfrastructure/Transfers`.
-  This freshly verifies the upload-helper follow-up left open in the 2026-09-16 remote-copy entry; it is not
-  another claim that desktop planner adoption remains unfinished.
-- **Action:** extract a focused Remote Infrastructure helper using the existing `RemoteFileSystem` port where
-  sufficient. Keep local upload traversal, remote manifests, their different job values/enqueue operations,
-  browser pending-state ownership, and interactive deletion separate. Preserve both directory-mutation reporting
-  and the copy operation's created-directory accounting.
-- **Behavioral caveat:** copy helpers check cancellation and validate recursive child names/paths; upload helpers
-  do not contain equivalent checks. Copy preflight uses self-or-descendant containment while upload preflight
-  checks descendants. Characterize these differences before sharing; do not weaken the copy checks or describe
-  any deliberate upload hardening as a byte-equivalent refactor. No failure or vulnerability was reproduced here.
-- **Estimated reduction:** 100–140 lines. **Risk:** medium because Replace may delete remote directories.
-- **Required verification:** extend `SFTPFeatureTests` upload preflight/subtree tests and retain copy conflict,
-  empty-directory, pending-cancellation, and `SFTPCopyToolTests` coverage. Parameterize all three conflict policies,
-  file/directory type collisions, nested path mappings, cancellation, and invalid child paths for both callers.
-  Retain mobile upload tests, including scoped symlink exclusion and directory-only uploads, and run both pinned suites.
-
-### R3. Share Pro offer presentation calculations without merging the paywalls
-
-- **Evidence:** `TFM/Features/Commerce/ProPaywallView.swift:179-219,238-248` and
-  `TFI/Features/Commerce/MobileProView.swift:212-247,290-300` independently compute purchase titles, annual/trial
-  disclosures, trial badges, billing units, and localized duration formatting. Confirm with
-  `rg -n 'purchaseButtonTitle|selectedPlanDetail|trialBadge|annualBillingUnit|func formatted' TFM/Features/Commerce TFI/Features/Commerce`.
-- **Action:** add a small value-based projection in `TermindPresentation`, receiving the selected plan, live
-  StoreKit-derived price/period/offer values, eligibility, and effective locale. Do not import
-  `TermindInfrastructure` or pass `ProAccessController` into Presentation. Both app views keep their own cards,
-  feature lists, sheet/navigation state, purchase tasks, and native subscription-management action.
-- **Estimated reduction:** 20–40 lines after projection construction at both call sites. **Risk:** low.
-- **Required verification:** cover annual versus lifetime, eligible versus unavailable trial, missing product data,
-  singular versus composite periods, and locale selection without full-copy snapshots. Retain `ProAccessTests`
-  and `StoreKitTrialTests`, run `AppLanguageTests` and both pinned suites, and review English/Chinese paywalls.
-  macOS must retain its explicit app-language choice; mobile must keep Apple's per-app language behavior.
-
-### R4. Complete the existing architectural guards — explicitly structural
-
-- **Evidence:** `TFMTests/ArchitectureBoundaryTests.swift:29-42,81-148,157-167` checks the AgentKit-owned type list
-  only under `TFM`; its SwiftData ownership scan omits Remote Infrastructure, Presentation, and the bridge.
-  The shared Application import guard does not include the full UI/native-I/O prohibition, and Presentation's
-  guard does not reject `TermindInfrastructure`. Import checks compare entire lines, so annotated or qualified
-  imports are not recognized. Confirm with
-  `rg -n 'applicationDoesNotImport|typesOwnedByTheAgentPackage|sharedFrameworksCannot|sharedPresentation|swiftDataModels|swiftFiles|text.split' TFMTests/ArchitectureBoundaryTests.swift`.
-- **Action:** centralize the production-root/dependency rules and a bounded import recognizer. Apply existing
-  ownership rules across all appropriate production roots; recognize ordinary, annotated, and symbol-qualified
-  imports. Retain fail-closed behavior for missing/empty roots and the native-list allowlist.
-- **Benefit and estimate:** no production reduction is claimed; allow approximately 20–60 net test lines if needed
-  for complete coverage. This closes test coverage gaps, not an observed production dependency violation.
-  Do not reintroduce source snapshots of UI copy, layouts, retired paths, or shared-component wiring.
-- **Required verification:** fixture-based behavioral checks must reject forbidden annotated/qualified imports
-  and out-of-owner declarations while allowing valid imports and removal of an allowed native-list importer.
-  Run `ArchitectureBoundaryTests` and both pinned suites; do not mutate production files to exercise negative cases.
-
-### R5. Reuse CloudKit engine lifecycle implementation — staged architecture follow-up
-
-- **Evidence:** the same three Cloud coordinators independently own `operationID`, operation serialization,
-  account preparation, engine creation, fetch-before-send readiness, delegate forwarding, and account/zone reset.
-  Examples: Vault `127-246,291-357`, Settings `134-247,327-393`, Metrics `129-240,275-334`.
-  Confirm with
-  `rg -n 'operationID|prepareAndSynchronize|synchronizeNow|isReadyToSend|stopEngineForAccountChange|handleZoneDeletion' Frameworks/TermindInfrastructure/Cloud`.
-  Existing sync tests primarily exercise codecs, journals, merge behavior, and preference switches rather than
-  a deterministic asynchronous engine/account lifecycle.
-- **Action:** after R1, investigate a composed, typed Infrastructure driver with per-category persistence/event
-  adapters. Share implementation, **not instances**: all three zones, journals, account bindings, subscriptions,
-  category switches, and independent coordinator lifetimes must remain. Settings retains secret migration and
-  upload authorization at the current fetch/account boundary, plus its legacy-record handling. Avoid an untyped
-  universal sync framework or changing the frozen SwiftData models to satisfy a generic protocol.
-- **Estimated reduction:** 200–350 additional lines, excluding R1's record coding. **Risk:** high; design and
-  characterization must precede migration. Update the architecture ownership record only when implemented.
-- **Required verification:** first add deterministic coverage for pause/retry and stale callbacks, account
-  switching/confirmation, zone and environment reset, failed fetch, readiness before sends, and Settings secret
-  authorization/revocation. Migrate one category at a time, retaining quarantine, tombstones, and versioned-upload
-  acknowledgement tests. Record codec round trips alone are not sufficient proof for this change.
-
-### R6. Share MCP transfer ticket policy, not transfer execution
-
-- **Evidence:** `TFM/Application/MCPServer/MCPUploadCoordinator.swift:42-135,224-246,374-409` and
-  `MCPDownloadCoordinator.swift:36-128,364-403` duplicate session/host ticket bookkeeping, ten-minute expiry,
-  64 unfinished tickets per direction, thirty-minute retention, 256 terminal records per direction, and activity
-  eligibility. Download also references `MCPUploadRequest.maximumBytes` at line 243 despite the limit applying
-  to both directions. Confirm with
-  `rg -n 'has.*Activity|count < 64|addingTimeInterval\(600\)|maximumBytes|func (endSession|revokeSession|sweep)|1_800|count - 256' TFM/Application/MCPServer/MCP{Upload,Download}Coordinator.swift`.
-- **Action:** extract only common metadata/retention/limit policy within the macOS MCP implementation, reusing
-  the existing shared `MCPTransferBudget`. Keep protocol-specific claim checks, response/error payloads, attempt
-  generations, read/write loops, cleanup, and cancellation tasks separate. Do not move the local listener into
-  a mobile/shared framework or AgentKit, and do not introduce a broad generic ticket base class merely to rename fields.
-- **Behavioral caveat:** expired uploads may need asynchronous partial-file cleanup; downloads can re-serve a
-  Range after success and retain revocation independently. The two `cancelAndWait` methods capture tasks at
-  different times, and upload cancellation can create cleanup work. These paths must not be mechanically merged.
-- **Estimated reduction:** 30–70 lines if a narrow metadata/policy extraction pays for itself. **Risk:** medium-to-high;
-  authorization, retention, and capacity release remain security/lifecycle boundaries.
-- **Required verification:** retain `MCPUploadTests`, `MCPDownloadTests`, and session teardown tests. Add shared
-  clock-boundary/retention cases while retaining the distinct range-after-success, acknowledged upload-offset,
-  late-disconnect, session/host revocation, and four-slot-until-cleanup behaviors. Preserve public protocol strings
-  and metadata-only audit behavior.
-
-### Scan disposition and verification scope
-
-- Start with **R1**, then consider R2 or the smaller R3; address R4 before expanding dependency/lifecycle ownership.
-  R5 and R6 need separate characterization/design work, not one large combined refactor.
-- Retain frozen persistence shapes, responsibility-named Vault facades, native transcript/list renderers, platform
-  terminal/session teardown, and platform-local runtime-version adapters. Large files alone are not evidence for
-  a code-reducing extraction. The small pixel-inspection duplicate does not justify merging native renderers.
-- Discovery used source reads, fresh `rg` references, normalized-block signals, and an import-direction audit.
-  No Xcode tests, application builds, or visual checks were run by this documentation-only scan; prior results
-  above are not reused as verification of these pending candidates.
-- Documentation verification passed: the previous backlog is preserved byte-for-byte, the addition is English-only,
-  referenced source paths were checked, and `git diff --check` plus `Scripts/check-zh-localization.sh` passed.
-  Only this backlog file changed; all six candidates remain unimplemented and unverified at runtime.
-
-## Ordered Implementation Follow-up (2026-09-17)
-
-The operator approved R1, R2, and R3 in that order. R4–R6 remain outside this implementation pass.
-
-### R1: CloudKit transport coding — implemented, affected checks passed
-
-- Added internal `CloudSyncRecordCoding` and adopted it in Vault, Settings, and Metrics. Record restoration,
-  secure system-field archiving, lowercase SHA-256, raw/quarantine versus validated payload reads, the exact
-  inline threshold, lazy asset creation, and namespaced asset paths now have one implementation.
-- Per-envelope metadata assignment deliberately remains at each coordinator, alongside semantic validation and
-  Settings' legacy Guardian canonicalization. This avoids a large generic metadata API. Public entry points,
-  error mapping, record/zone names, cleanup, persistence models, and independent sync lifetimes are unchanged.
-- Measured production change: **40 fewer lines**, including the new helper (1,741 to 1,701 lines across the four
-  production files), rather than the discovery estimate of 70–110. Added eight focused test functions with
-  twelve parameter-expanded cases for boundaries, hash compatibility, storage transitions, corruption/raw
-  quarantine access, missing payloads, asset I/O errors, system fields, and asset namespace isolation.
-- Pinned Xcode focused actions passed: **macOS 61/61**, **iOS 13/13**; both actually executed the new suite, and
-  source snapshots were unchanged throughout each action. Existing Vault/Settings/legacy Guardian, Metrics,
-  and architectural tests in the selected actions passed. Evidence: `/tmp/termind-refactor-three.7kUsqP/r1-focused-*`
-  contains commands, logs, `.xcresult` bundles, test trees, summaries, and source snapshots. Strict formatting
-  and whitespace checks passed. Standalone SourceKit cannot resolve Xcode test/framework imports; actual
-  Xcode compilation succeeded. Pre-existing coordinator-size advisories are not a reason to implement R5.
-- Full-suite baseline was captured before any production edit: macOS **1,502/1,505** and iOS **502/503**.
-  Failures were the parallel approval cancellation, runtime tool cancellation, metrics worker lifecycle, and
-  mobile knowledge-row expansion tests. These are separate baseline issues, not verification passes; final
-  full-suite comparison remains pending. No AgentKit dependency or unrelated production/test repair was made.
-
-### R2: Remote conflict resolution — implemented, affected checks passed
-
-- Before changing Remote Infrastructure, new mobile upload cases reproduced the two guard gaps with a fake
-  backend: a cancelled directory-only enqueue still created a directory, and Replace accepted a child outside
-  the conflicting directory. Existing copy/SFTP feature checks passed **65/65** on macOS; mobile upload checks
-  passed **5/7**, failing only the two new cases. Both action source snapshots were unchanged. Evidence:
-  `/tmp/termind-refactor-three.7kUsqP/r2-before-*` (commands, logs, result bundles, test trees, snapshots).
-- Added `SFTPRemoteConflictResolver` against the existing `RemoteFileSystem` port, retaining both preflight
-  counting modes: upload blocks strict descendants, while copy also blocks the conflicting root itself.
-  Upload deliberately gains the existing copy cancellation and recursive-entry checks; this is characterized
-  hardening, not identical old behavior. Manifests, scoped local traversal, enqueue lifetimes, created-directory
-  accounting, and existing error/context reporting remain separate. The legacy copy-source error moved to its
-  own file without changing its type or localized text.
-- Measured production change: **139 fewer lines**, including both new files (906 to 767 lines across the five
-  production files). Seven new shared test functions cover seventeen parameter-expanded cases for both preflight
-  modes, all conflict policies, subtree boundaries/mapping, overwrite flags, directory accounting, deletion order,
-  invalid child entries, and existing cancellation checkpoints. `FrameworkTests` now links Remote Infrastructure
-  to exercise the helper on both platforms; the production dependency graph and package pins did not change.
-- Post-change pinned actions passed **macOS 81/81** and **iOS 23/23**, including the two previously failing mobile
-  upload cases and the new shared suite on both platforms. Sources were unchanged throughout each action.
-  Evidence: `/tmp/termind-refactor-three.7kUsqP/r2-focused-*`. Strict formatting, project plist validation,
-  localization, and whitespace checks passed. The architecture record now documents the shared resolver and
-  retained counting rules. The unrelated full-suite baseline failures remain tracked for final comparison.
-
-### R3: Pro offer presentation — implemented, affected checks passed
-
-- Added the value-only `ProOfferPresentation` from StoreKit-derived price/period/offer data, eligibility, and
-  the selected plan. No StoreKit controller, native purchase task, layout, or navigation state moved layers.
-- The two localization policies remain separate: macOS supplies its explicit `AppLocalization` lookup; mobile
-  uses the initializer's Foundation/Apple-selected bundle lookup. Both retain their effective locale for Gregorian
-  duration formatting, full unit names, and one displayed component. Each purchase section computes the projection
-  once. The existing History duration formatter remains separate (abbreviated/two units).
-- Measured production change: **32 fewer lines**, including the new projection (602 to 570 across three files).
-  Nine new shared test functions exercise twenty parameter-expanded cases for purchase/trial branches, missing
-  product data, lifetime behavior, singular/composite periods, unit priority, and independent formatting/lookup
-  policies. An additional six-case `AppLanguageTests` check uses the app's real English, zh-Hans, and zh-Hant
-  catalogs for both plans. No catalog entries or translations changed.
-- Pinned focused actions passed **macOS 41/41** and **iOS 11/11**, including the new suite on both platforms,
-  explicit app-language cases, access/trial policies, architectural guards, and mobile language preference tests.
-  Both actions retained unchanged source snapshots. Evidence: `/tmp/termind-refactor-three.7kUsqP/r3-focused-*`.
-  Native layout/action wiring was reviewed in the diff; no interactive storefront or screenshot check is claimed.
-- Repository-wide strict Swift formatting, Chinese localization, whitespace, and project plist checks passed.
-  All three changes total **211 fewer production Swift lines**, excluding added tests/docs and the unrelated
-  worktree deletion of `.TermindPresentationQA.xcodeproj`. Full-suite results and their limitations follow below.
-
-### Final verification — full-suite gate remains blocked
-
-- The final pinned full actions built successfully and reported **macOS 1,527/1,530** and **iOS 528/529**, with
-  no skipped tests and unchanged source snapshots throughout both actions. All three new shared suites passed
-  on both platforms. Full evidence: `/tmp/termind-refactor-three.7kUsqP/final-*`.
-- Three failures repeat the immutable initial baseline: `AgentApprovalQueueTests.cancellingAParallelBatchStillAnswersEveryCall`,
-  `ServerMetricsLifecycleTests.oneWorkerSurvivesWindowsAndStopsOnPauseSleepAndRemoval`, and
-  `MobileKnowledgeToolRenderingTests.knowledgeRowsStayCompactAtPhoneWidthAndExpandOnDemand`.
-  The initial `AgentRuntimeTests.stoppingARunCancelsTheToolsItIsWaitingOn` failure did not recur; no fix is claimed.
-- The final macOS run also failed `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable`.
-  This did not fail in this pass's initial baseline, although three earlier entries record the same assertion.
-  Both its production source and test are byte-identical to `HEAD`. A minimal Swift package containing only
-  those two unchanged HEAD files passed all two tests in three independent processes; that smaller harness
-  is not equivalent to the complete Xcode target. Current Xcode isolation reproduced the macOS assertion
-  (1/2 passed), while iOS passed 2/2. Evidence: `waveform-baseline-*`, `waveform-current-*`, and the source manifest
-  under `/tmp/termind-refactor-three.7kUsqP/`.
-- A clean export of `8509ddd5` was then built with pinned dependencies and a separate DerivedData directory.
-  A framework-only diagnostic scheme passed 2/2, but the **original TFM scheme reproduced the same waveform
-  assertion (1/2 passed)** with unchanged baseline sources and without any of these refactors. Evidence:
-  `/tmp/termind-refactor-three.7kUsqP/waveform-head-tfm.*`; the passing framework-only comparison is
-  `waveform-head-xcode.*`. The failure is sensitive to the scheme/harness; its underlying cause was not repaired
-  or fully diagnosed. All four final failing cases now have pre-change evidence; a smaller harness alone
-  would have been insufficient to establish that.
-- No unrelated failing implementation/test, AgentKit source, package pin, or user's QA-project deletion was
-  changed to force a green result. The three requested implementations have passing affected checks, but this
-  is not an all-green full-suite result and the outstanding test gate remains unresolved.
-## Width-based mobile layouts (2026-09-18)
-
-- **Evidence:** `rg 'mobileInterfaceIdiom|MobileInterfaceIdiom' TFI TFITests` found
-  device-based navigation, sheets and cards, plus a duplicated workspace test shell.
-- **Action:** remove the device environment and injection; use the real root in
-  workspace tests. Native compact and regular shells may rebuild at width-class changes.
-- **Estimated reduction:** about 50 lines from the obsolete environment and test shell,
-  excluding the new width transition behavior and regression coverage.
-- **Status:** implemented and verified within the simulator coverage below; the
-  full-suite gate remains non-green because of confirmed baseline failures.
-- **Verification:** real-root tests cover repeated native sidebar/tab reconstruction,
-  actual sidebar selection, Settings depth reset, discarded unsaved forms, Metrics
-  list mapping and Back, retained Assistant drafts, independent window gates,
-  deferred successful/failed saves, and existing SSH/SFTP connections. English,
-  Simplified Chinese and Traditional Chinese snapshots are attached to the results.
-  iPhone focused checks passed 25 tests; the final breadcrumb adjustment passed
-  all four workspace rendering tests again on both iPhone and iPad. Actual
-  portrait/landscape navigation was inspected on both simulators. Device Hub did
-  not drive the system window-corner resize gesture: width changes and two-window
-  independence were verified with real roots using frame and trait changes,
-  rather than a manual Stage Manager drag. Formatting, Chinese localization and
-  whitespace checks pass. Dependencies remain pinned and unchanged.
-- **Full runs:** iPad reported 537 passed, 3 failed, 0 skipped out of 540;
-  macOS reported 1,527 passed, 1 failed, 13 skipped out of 1,541. All new tests
-  passed. Results: `/tmp/termind-width-final-ipad.xcresult`,
-  `/tmp/termind-width-rebuild-macos.xcresult`, `/tmp/termind-width-iphone.xcresult`,
-  `/tmp/termind-width-path-final.xcresult`, and
-  `/tmp/termind-width-path-final-ipad.xcresult`. An earlier mobile run interrupted
-  during cleanup of an older test process was superseded by the complete iPad run.
-- **Baseline failures:** a clean export of `c015d5f3` with the original TFI scheme
-  reproduces the iPad tab-bar visibility, host-card height and knowledge-row
-  expansion assertions. The same baseline card suite passes on iPhone. Evidence:
-  `/tmp/termind-width-baseline-ipad.xcresult` and
-  `/tmp/termind-width-baseline-cards.xcresult`. No unrelated code or assertion was
-  changed to hide these failures. The macOS full run has the previously documented
-  `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable`
-  failure; its source and test remain unchanged.
-
-## Consolidate Main Window Registration and Content Style (2026-09-18)
-
-- Evidence: `rg` found `RootView` mounting both `MainWindowRegistration` and
-  `FullHeightWindowContent`; the latter existed only to set two native window
-  properties. Separate attachment callbacks could size a window before its
-  full-size content coordinate system was established.
-- Action: set the style and titlebar transparency in the existing registration
-  bridge before registering, and remove the redundant representable and NSView.
-  Both operations remain in the macOS platform layer.
-- Reduction: remove 30 lines of bridge plumbing, adding 5 lines at registration.
-- Status: completed. All 47 focused window, lifecycle, and terminal-shortcut tests
-  passed. Strict Swift formatting, localization validation, and diff checks passed.
-- Full pinned macOS verification used the immutable `94ad70f1` snapshot because
-  concurrent Dock-menu work introduced a separate test compilation error into
-  the shared checkout. Result: 1,593 passed, 8 skipped, 5 failed. Failures were
-  `StoreKitTrialTests.annualProductSuppliesPriceBillingPeriodTrialDurationAndEntitlement`
-  (JPY storefront values instead of the test's USD values),
-  `AgentApprovalQueueTests.cancellingAParallelBatchStillAnswersEveryCall`,
-  `ServerMetricsLifecycleTests.oneWorkerSurvivesWindowsAndStopsOnPauseSleepAndRemoval`,
-  `MetricsJourneyTests.offlineRestoredMetricsReconcileOnMainActor`, and
-  `TerminalCommandDraftControllerTests.readsOneDraftAndRejectsConcurrentRequests`.
-  The Agent and server-worker failures have earlier baseline evidence above;
-  no baseline claim is made for the other three. No unrelated implementation or
-  assertion was changed. Evidence: `/tmp/termind-window-sizing-focused-fixed.xcresult`
-  and `/tmp/termind-window-sizing-snapshot-full.xcresult`.
-- Native app checks confirmed a 904-by-572 window creates another of exactly the
-  same size, fullscreen Command-N opens Connect, and leaving fullscreen retains
-  the original size. Close/reopen preserved 904 by 572; isolated quit/relaunch
-  preserved 1004 by 652. Quitting with differently sized windows and reopening
-  used the last-used 904-by-572 size. The current macOS setting reopened one scene;
-  preserving distinct restored frames is covered by the native-window tests.
-  A concurrently running same-bundle demo initially interfered with system frame
-  restoration; the relaunch checks were repeated without another instance.
-
-## Resolve Metrics Clock and Short Knowledge-Card Baseline Failures (2026-09-18)
-
-- The Metrics lifecycle test advanced its manual clock after the first base point,
-  before optional GPU collection and the sampler's next sleep had necessarily
-  finished registering. The pre-fix repeated run failed 3 of 5 iterations. A
-  controlled probe of the existing model reproduced the missed advance; another
-  0.05 seconds of simulated time released the sampler. The test now waits for
-  both maintenance and sampling sleeps, and its polling helper preserves the
-  caller's source location. Production Metrics lifecycle code is unchanged.
-- The SwiftUI compact detail's flexible maximum height accepted the test's large
-  height proposal even for short content. A trailing vertical `fixedSize` now
-  preserves natural height within the scaled preview cap. The short installation
-  fixture measures 99.33 points instead of occupying 180 points on the iPhone
-  simulator. Tests classify the fixtures by preview truncation rather than tool
-  name: short details must match natural height, while long rows must expand,
-  retain expansion across layout, and return to compact height when collapsed.
-- Focused macOS lifecycle/knowledge checks passed all 26 test functions; the
-  lifecycle case additionally passed 20 of 20 repetitions. All three mobile
-  knowledge tests passed, covering English, Simplified Chinese, Traditional
-  Chinese, phone width, and accessibility text size. Native macOS row checks
-  retain their 380- and 720-point widths. Strict Swift formatting, Chinese
-  localization validation, and whitespace checks passed.
-- Full pinned results: macOS **1,600 passed, 1 failed, 8 skipped / 1,609**;
-  iOS **584 passed, 3 failed, 0 skipped / 587**. The repaired lifecycle and all
-  knowledge rendering tests passed in these full actions. The macOS failure was
-  the previously recorded
-  `AgentApprovalQueueTests.cancellingAParallelBatchStillAnswersEveryCall`.
-  Mobile failures were
-  `MobileUploadBatchTests.sftpFolderUploadUsesTheCurrentDirectoryAndOneBatch`,
-  `MobileEditorToolbarTests.cancelOnlyDismissesUnmodifiedDrafts(isDirty:)`, and
-  `MobileAdaptiveLayoutTests.settingsDepthAndUnsavedFormsResetOnlyAcrossWidthClasses`.
-  All three mobile cases passed focused reruns. This is not an all-green full
-  suite, and those reruns do not establish a baseline or fix for unrelated cases.
-- Evidence: `/tmp/termind-metrics-knowledge-fix-{macos-focused,repeat20,ios-focused,macos-full,ios-full}.xcresult`
-  and the matching logs; mobile reruns are `ios-unrelated-rerun` (editor/settings)
-  and `ios-upload-rerun` under the same prefix. The full mobile action completed
-  both test bundles before its slow optional `simctl diagnose` collection was
-  interrupted; its finalized result retains all 587 tests and the three failures.
-  Package pins, public interfaces, and persistence were unchanged.
-
-## Preserve Mobile Navigation During Window Resizing (2026-09-18)
-
-- Evidence: `rg 'layoutTransition|compactMetrics|registrations\(on|scene\.layout' TFI TFITests`
-  found two root navigation trees, width-triggered route clearing, duplicated Metrics
-  presentation, and a save gate whose sole purpose was delaying reconstruction.
-- Action: use one native sidebar-adaptable TabView with five stable feature stacks;
-  remove width-specific registration, route migration, and reconstruction save gating.
-  Keep Metrics search shortcuts directed at its single top-level destination.
-- Estimated reduction: 150-200 production lines, excluding replacement lifecycle and
-  narrow-window label coverage. Preserve sheet save/cancel/error behavior and native
-  terminal ownership.
-- Status: implemented, reducing production code by 210 lines. Metrics navigation and
-  Vault search use the desktop `waveform.path.ecg` symbol.
-- Verification: the focused iPad action passed all 21 test functions across adaptive
-  navigation, scene/session ownership, editor saves and feature ordering. The same
-  iPhone action passed 20 of 21; its scroll fixture incorrectly forced a regular
-  size class onto a compact-only phone, changing native search-bar placement. The
-  corrected fixture uses the device's native class plus compact widths; it passed
-  three repetitions each on iPhone and iPad, retaining the iPad regular/compact
-  transitions. State checks cover selected pages, Settings depth, unsaved forms,
-  search/scroll, Assistant drafts, independent windows, saving/error feedback and
-  existing SSH/SFTP instances without reconnecting.
-- Reviewed English, Simplified Chinese and Traditional Chinese screenshots at
-  normal and accessibility text sizes. All five titles fit the 320/375-point bottom
-  bar. The regular iPad top bar scrolls at intermediate widths; entries are retained
-  and remain selectable. Tests resize the hosting window as well as its child;
-  native title scaling is not treated as truncation by comparing intrinsic widths.
-  Manual iPad rotation retained the Models child page and showed the unified icon.
-  Device Hub did not perform the system corner-resize gesture; repeated window
-  resizing remains covered by native window-frame/trait tests.
-- Full results before the fixture corrections: iPad **583 passed, 3 failed / 586**;
-  iPhone **584 passed, 2 failed / 586**; macOS **1,598 passed, 1 failed,
-  8 skipped / 1,607**. New failures were the corrected tab-label/scroll fixtures.
-  The other failures were the previously reproduced iPad tab-bar visibility and
-  host-card height cases, and the previously recorded macOS waveform bitmap case.
-  Their production code and assertions were not changed for this work. These are
-  not all-green full-suite results.
-- Evidence: `/tmp/termind-adaptive-tabs-{ipad,iphone,macos}-full.xcresult`,
-  `/tmp/termind-adaptive-tabs-final-{ipad,iphone}.xcresult`, and
-  `/tmp/termind-adaptive-tabs-scroll-native-{iphone,ipad}.xcresult`. Strict Swift
-  formatting, Chinese localization and whitespace checks passed. Package pins,
-  public interfaces and persistence remain unchanged.
-
-## Remove Desktop Window and Quit Confirmations (2026-09-18)
-
-- Evidence: `rg 'dismissalConfirmationDialog|Quit with unuploaded changes|sftpEdits.recheck' TFM`
-  found the Workspace-based window dismissal dialog and a separate SFTP edit check
-  used only to present the quit warning. Five catalog entries belong only to these dialogs.
-- Action: remove both confirmation paths and their unused copy while preserving native
-  window dismissal, pane-first Command-W, per-window session ownership, and bounded quit cleanup.
-- Estimated reduction: 25-35 production Swift lines and five localized catalog entries.
-- Status: superseded by the user's request to retain both confirmations and hide
-  only the close-button edited indicator. Both dialogs and all five strings are restored.
-
-## Hide the Desktop Close-Button Edited Indicator (2026-09-18)
-
-- Evidence: the restored SwiftUI WindowGroup sets `NSWindow.isDocumentEdited` when
-  a Workspace requires dismissal confirmation. An isolated Demo probe cleared that
-  property and still presented the original Close Window / Cancel dialog.
-- Action: observe the native edited flag only while the main-window registration
-  view is attached and clear the decoration. Retain SwiftUI's dismissal delegate,
-  Workspace condition, all confirmation copy, and SFTP quit checks.
-- This is a visual behavior correction, not a code-reduction refactor. No shared
-  API, persistence, package, or dependency change is needed.
-- Status: implemented; verification pending.
-
-## Make Workspace Composition Free (2026-09-18)
-
-- Evidence: `rg 'workspaceComposition|window.proAccess' TFM Frameworks` found
-  15 composition gates, a window-only commerce dependency, and a launch-scoped grant.
-- Action: remove composition from Pro, delete its gates and sticky authorization state,
-  and align app, website, StoreKit copy, and architecture documentation.
-- Estimated reduction: 35-45 production Swift lines plus unused localized entries.
-- Status: implemented; removed 34 production Swift lines and two unused localized entries.
-- Verification: all 28 Workspace access cases across seven non-Pro states, all six
-  remaining Pro feature gates, and entitlement assertions passed. Strict Swift formatting,
-  Chinese localization, website build, and whitespace checks passed. Visually reviewed
-  English, Simplified Chinese, and Traditional Chinese home/FAQ content at desktop and
-  mobile widths; both legacy Chinese redirects passed.
-- Full macOS and iOS tests were stopped at the user's request. Before cancellation,
-  the Mac run reported failures in AgentBackgroundCommandTests, AgentApprovalQueueTests,
-  and SpeechWaveformViewTests; these were not investigated or rerun. No all-green
-  full-suite result is claimed. App Store Connect metadata remains a release step.
-
-## Share Desktop SSH and SFTP Authentication Submission (2026-09-19)
-
-- Evidence: `rg -n 'continueAuthentication|submittedPassword|let existing = store.identity|passwordUpdate' TFM/Features/Terminal/SSHSessionModel.swift TFM/Features/SFTP/SFTPSessionModel.swift`
-  confirms duplicated saved-password fallback, submission construction, selected
-  Identity updates, custom Identity reuse, and Host association in the two desktop
-  authentication continuations.
-- Action: share submission resolution and optional saving through the existing
-  Application `RemoteSessionHostStore` port. Keep username validation, passphrase
-  continuation, prompt/error presentation, ephemeral SFTP credentials, transient
-  SSH Hosts, and reconnection sequencing in their current session owners. Preserve
-  separate Identity and Host writes and the existing secret-access bookkeeping.
-  Mobile, Metrics, and Forwarding authentication retain their distinct save rules.
-- Estimated reduction: 40-80 production Swift lines, including helper and caller
-  changes but excluding regression tests. No package, schema, or localization change
-  is needed. The existing localization-catalog edit is outside this refactor.
-- Status: implemented, reducing production Swift by 47 lines. Both sessions reuse
-  two methods on the existing port; no new model, generic base type, dependency,
-  schema, or secret-storage implementation is introduced. Architecture documentation
-  records this ownership; the existing boundary tests need no rule changes.
-- Focused verification: all 83 test functions passed (105 expanded test cases),
-  including the new shared-policy and desktop entry-point suites, credential usage,
-  connection preparation, Identity credentials, Connection Journey, SFTP sessions,
-  multi-window lifetimes, and architecture boundaries. The initial build found an
-  ambiguous `Host` import in the new desktop test fixture; an explicit Domain import
-  fixed it before the passing run. Strict Swift formatting, Chinese localization and
-  whitespace validation passed. Full pinned macOS and iOS verification is pending.
-- Evidence: `/tmp/termind-auth-refactor.uUFmoB/focused-macos-2.xcresult` and matching
-  logs/summary. Production-line counts and localization/dependency fingerprints are
-  recorded in the same directory. Existing catalog edits remain untouched.
-
-## Share MCP Transfer Retention Policy (2026-09-19)
-
-- Evidence: fresh `rg` confirms R6's duplicated activity, waiting/paused expiry,
-  unfinished capacity, completion-age pruning, and oldest-first completion cap in
-  `MCPUploadCoordinator` and `MCPDownloadCoordinator`. Request path/digest validation
-  remains direction-owned; both directions use the upload-owned byte limit.
-- Action: share ticket metadata, expiry construction, retention, and byte limits inside the desktop MCP layer.
-  Preserve per-direction dictionaries and errors, live-state definitions, Range after
-  success, upload cleanup, revocation, and the distinct cancellation/task ordering.
-- Estimated reduction: 10-40 production Swift lines after the narrow helper pays for
-  its protocol surface; regression coverage is counted separately.
-- Status: implementing. At the user's request, finish both remaining refactors before
-  running unified verification rather than testing each intermediate change.
-
-## Share CloudKit Coordinator Lifecycle (2026-09-19)
-
-- Evidence: fresh `rg` confirms R5's repeated operation generation, account checks,
-  engine setup, fetch-before-send gate, pause/retry, account/zone/environment resets,
-  completion status, and error classification in all three Cloud coordinators.
-- Action: compose one independent Infrastructure lifecycle instance per coordinator.
-  Use a small journal-state value and closures to adapt existing typed journals, and
-  an injectable account/engine transport for deterministic lifecycle tests. Keep
-  codecs, merges, quarantine, version acknowledgements, and Settings secret handling
-  in category adapters. Do not alter persistent model shapes or package dependencies.
-- Estimated reduction: 200-350 production Swift lines; adapter and driver costs are
-  included, while regression tests are counted separately.
-- Status: implementing; unified verification follows all edits, as requested.
-
-## Centralize Responsive Mobile Toolbar Decisions (2026-09-19)
-
-- Evidence: `rg -n 'tabBarPlacement|mobileToolbarLayout' TFI` finds direct placement
-  fallbacks in Assistant and Metrics alongside the shared environment already
-  provided by each stable feature stack. The production UI contains no device-idiom
-  or model-based layout branches.
-- Action: remove both feature-local placement reads and use the shared toolbar
-  layout as the sole policy input. Retain container geometry, active reserved regions,
-  native view identity, and OS availability checks at the SwiftUI API boundary.
-- Estimated reduction: two production Swift lines and two duplicated conditions.
-- Status: implementing; verify native title/menu transitions and fold/session lifetime tests.
+English-only durable history and redundancy backlog. For future work: confirm references with `rg`,
+record evidence/action/estimated net production reduction, implement one independent change, run
+risk-appropriate checks, and append status/verification. Retain completed items and native lifecycle
+boundaries. Structural changes must explicitly disclaim reduction. Test additions are counted separately.
+Historical results below describe their recorded runs, not current verification; pending work stays pending.
+“Pinned” means `-onlyUsePackageVersionsFromResolvedFile`. Formatting/localization/diff checks mean strict recursive
+Swift formatting, `Scripts/check-zh-localization.sh` and `git diff --check`; Xcode validates the app module graph.
+
+## Completed items, 2026-08-30 to 2026-09-04
+
+Items 1–32 and 34 date to August 30; later dates are explicit. “Build” means the recorded app build,
+not a full test pass. Each item retains its original ID.
+
+1. **Legacy SwiftUI transcript:** removed unreachable transcript/message/command/compaction/plan trees;
+   retained live timestamps/risk components. Build and targeted Transcript tests passed.
+2. **List hosting:** shared `HostingListRow`/`HostingListContent`; retained Transcript/conversation lifecycles.
+   Build passed before the final parser-verified Connection Log migration.
+3. **SSH initializers:** one private initializer, preserving temporary Hosts. Build passed.
+4. **Terminal appearance:** SSH/Serial reuse `TerminalViewState.applyAppearance`. Build passed.
+5. **SFTP store overloads:** removed four `TransferLibraryModel` forwarders for `RemoteSessionHostStore`. Build passed.
+6. **Jump Host builder:** reused `sshJumpConfigurations`, preserving validation/errors. Build passed.
+7. **Connection interaction:** shared trust/progress/prompt/reconnect policy in `RemoteSessionConnectionController`,
+   keeping transport teardown local. Debug build and connection/SFTP tests passed.
+8. **Tool-free text collectors:** shared streamed text/tool rejection for commands/titles/compaction. Focused tests passed.
+9. **Provider authorization:** shared auth/ephemeral sessions; retained Vertex/empty-secret rules. Provider/ChatProbe passed.
+10. **SwiftData transactions:** narrow `ModelContext.commit`, retaining two-stage history commits. Connection/SFTP History passed.
+11. **libssh2 continuations:** shared identical SSH Exec/SFTP serial-worker bridges. Build passed.
+12. **Legacy Transcript helpers:** removed dead streaming/edit-binding/activity helpers with item 1. Transcript checks passed.
+13. **Composer migration:** callers use `conversation.composer`; removed four accessors, retaining attachment hooks.
+    Build and Chat Composer tests passed.
+14. **Toolbar search:** deleted unreachable menu/delegate/find-kind plumbing; query/keyboard behavior retained. Build passed.
+15. **Agent SSH prompts:** `AgentSSHAuthenticationRequest` supplies both Journey/passphrase projections. Build passed.
+16. **Atomic SFTP writes:** shared temp paths/cleanup/unlink/rename/progress, keeping source loops separate. Build/SFTP passed.
+17. **Transfer conflicts:** shared Keep Both/directory/file policy, retaining distinct jobs. Debug build/SFTP passed.
+18. **Client leases:** shared saved/borrowed acquisition and conditional disconnect; reservation state retained. Build/SFTP passed.
+19. **Legacy tool metadata:** one compatibility table, retaining generic MCP fallback. Presentation tests passed.
+20. **Test-only presentation actions:** removed unused automatic messages/verb duplication around `actionKind`. Presentation passed.
+21. **Tool input unpacking:** narrow `AgentToolDetailFormatting` object/array helpers, local field presenters. Build passed.
+22. **Idle sweepers:** one `AgentIdleSweeper`, caller-owned registries/emptiness. Focused tests passed.
+23. **Sidebar headers:** reused `SidebarSectionHeader` for count/collapse instead of Assistant/Snippet copies. Build passed.
+24. **Host deletion:** groups use repository/outbox saga; deleted direct snapshot deletion. Debug/repository/Snippet/forwarding passed.
+25. **Unused declarations:** reference-confirmed Agent preflight/settings/metrics/reconnect/SSH-status wrappers/constants removed. Build passed.
+26. **Settings page:** two callers use identical `SettingsFormPage`; deleted `SettingsCollectionPage`. Build/Settings passed.
+27. **Cursor lists:** shared fixed-height Snippet Target/Host Chooser/Export Host adapter; specialized rows excluded. Build/list tests passed.
+28. **Agent authentication:** shared typed Exec/SFTP authenticated-open retry loop. Build and all 21 Host Authentication tests passed.
+29. **Transcript risk/confirmation:** shared native-row risk color/destructive confirmation. Build passed.
+30. **Glass shapes:** one private shape-parameterized modifier, unchanged APIs/fallbacks. Build passed.
+31. **Vault envelopes:** shared insert/update/upload indexing; callers retain versions/merge rules. Build/Vault Sync passed.
+32. **Remote preflight:** shared directory ordering/descendant skip/target-kind lookup; prepared jobs remain distinct. Build/SFTP passed.
+33. **Vertex selection (09-04):** `ModelProvider.usesVertexEndpoint`/`effectiveCredentialRef`, later adapted to API formats.
+    Build/Provider checks passed.
+34. **Dead fields:** removed unused onboarding/Agent/color/trial/runtime Linux metadata, retaining generated JSON provenance. Build passed.
+35. **Run presentation (09-01):** derive state from reported run/outstanding queues. State/localization/diff checks passed.
+36. **Copy-only tests (09-02):** removed 20 tests/literals; kept behavioral/persistence/language/protocol coverage.
+    Target compiled; focused tests passed.
+37. **Provider HTTP (09-02):** shared transport/HTTP/non-2xx validation; requests/parsing local. Build and 12 tests passed.
+38. **Finder drop wrapper (09-02):** deleted unconstructed `NativeFileURLDropTarget`, retaining general target/test initializer.
+    Build and five drop tests passed.
+39. **Context Chip recovery (09-02):** shared payload boundaries/fallback filenames for live/restored attachments. Build/recovery passed.
+40. **Save/rollback reuse (09-02):** `savePendingChanges`/`commit` cover Agent/Outbox/AI/conversation without shifting commits.
+    All 46 focused tests passed.
+41. **Overlay chrome (09-02):** three modifier chains use `termindTransientOverlaySurface`; content/transitions local. Debug passed.
+42. **SSH form chrome (09-02):** shared `connectionFormChrome`, distinct form behavior. Formatting/Debug passed.
+43. **Snippet content (09-02):** `SnippetCardContent` shared with drag ghost, separate interaction/chrome. Formatting/Debug passed.
+44. **SFTP reads (09-02):** inline/two download paths use `withRemoteReadHandle`, keeping loops/destinations. Build/47 tests passed.
+45. **Chooser selection (09-02):** shared `ManagedChooserState.allChecked(in:)`/`toggleAll(in:)` for three equal eligibility sets;
+    restricted selection retained. Build/localization/diff passed.
+46. **AgentKit extraction (09-02):** moved portable runtime behind host/interaction/prompt/presentation seams.
+    Package build/tests/formatting and app build/full suite passed.
+47. **Workspace commands (09-02):** removed AppKit-shadowed commands, retained standard shortcuts and moved split bindings
+    off system keys with terminal routing coverage. Build/formatting/localization passed.
+48. **Provider addressing (09-04):** one URL plus `ModelAPIFormat` replaces vendor/default-path branching; safe migration,
+    AgentKit 0.4.0/0.5.0. Package checks, 994 app tests, localization/site build passed.
+
+## Later completed work, 2026-09-09 to 2026-09-14
+
+| Date | Change and retained boundary | Recorded verification / reduction |
+| --- | --- | --- |
+| 09-09 | StoreKit replaces local HMAC/Keychain/CloudKit trial with transaction clock watermark. | −121 production lines; commerce passed except unrelated catalog expectation. |
+| 09-09 | Delete unread Show Recents setting/UI/labels; retain Sidebar accessibility localization. | Builds, formatting, localization and relevant tests passed. |
+| 09-11 | Remove five redundant tests and literal/enum/catalog snapshots; retain behavior. | −77 test lines; relevant checks passed, unchanged intermittent focus test passed rerun. |
+| 09-11 | Delete `ScreenshotDemoWindow`; use production WindowGroup with demo restoration off. | Full pinned tests, native capture, formatting/localization passed. |
+| 09-11 | Share SFTP permission Domain draft/Presentation grid. | Regression evidence was recorded in `MOBILE_ROLLOUT.md`. |
+| 09-11 | Move CloudKit/settings transactions/journals/terminal/history to frameworks; retain desktop adapters. | Shared/mobile passed; full macOS retained known Agent timing failures. |
+| 09-11 | Application owns Metrics/Journey state, Presentation panels/forms; native keyboard/logs stay local. | Shared/mobile and 127 focused macOS tests passed. |
+| 09-11 | Share skill library/importer/role form in Application/Infrastructure/Presentation; native editors retained. | Isolated build and 81 mobile/shared tests passed. |
+| 09-12 | Share Assistant runtime/tools/attachments/speech/conversation/list behavior. | Builds/navigation/Assistant/localization/formatting passed; unrelated mobile Metrics race passed rerun. |
+| 09-12 | Remove app forwarding aliases; retain six responsibility-named adapters. | −86 files, 224 app aliases, 20 Persistence aliases; both builds/architecture/full TFI passed. |
+| 09-12 | Align TFI layers, move connection construction to Infrastructure, centralize then-current idiom policy. | Both builds/architecture/full TFI passed; later width work supersedes idiom policy. |
+| 09-12 | Share `TerminalCommandDraftController`/`CommandGenerationCoordinator`, timeout/cancellation/protocol constants. | Focused desktop/mobile passed. |
+| 09-12 | Domain `RemoteFile`, Application `RemoteFileSystem`/`MobileSFTPSessionModel`. | Structural net increase; builds/architecture/SFTP passed. |
+| 09-12 | Mobile adopts shared trust/progress controller and Workspace/Metrics temporary-key preparation. | Connection/Journey/Metrics/recovery passed. |
+| 09-12 | Share `TerminalFindController`; platform binding closures retained. | Direct/platform tests passed. |
+| 09-12 | Domain detects Linux distribution once, distinguishing unavailable/conclusive. | Domain/Host/mobile Workspace passed. |
+| 09-12 | Share Journey header/status; native logs/failures/backgrounds/keyboard retained. | −98 production lines; builds/Journey passed. |
+| 09-12 | Presentation owns Ghostty appearance conversion; desktop preference storage retained. | Both builds/themes passed; dependencies unchanged. |
+| 09-12 | Share terminal-upload readiness/notices, distinct platform execution. | Direct policy tests/both builds passed. |
+| 09-12 | Share hashed/endpoint Known Host titles, distinct cards. | Direct presentation/both builds passed. |
+| 09-12 | Restrict ListViewKit: remove eight macOS adapters/eleven mounts, retain narrow UIKit transcript/history uses. | −611 macOS lines; builds/focused/format/localization/boundaries passed. |
+| 09-12 | Share transcript tools/results/disclosure/timestamps/Markdown, retaining native renderers/viewport ownership. | Both builds/architecture record verify boundary. |
+| 09-12 | Remove Periphery-confirmed 34 imports/three empty files/declarations; retain dynamic/protocol entry points. | −150 production lines; builds/focused/format/localization/diff passed. |
+| 09-12 | Remove concrete native/list implementation-type assertions. | Behavioral rendering/identity/reuse/interaction/environment coverage retained. |
+| 09-13 | Remove 81 compiler-confirmed unused localizations/three obsolete expectations/verified stale metadata. | Both builds and localization/language checks passed. |
+| 09-13 | Use `ChatSlashCommandRegistry` with explicit platform ownership. | Both builds and registry/desktop/mobile tests passed. |
+| 09-13 | Inject app-owned `MobileFeatureRegistry`; replace tab/sidebar/destination copies. | iOS build and 28 navigation tests passed. |
+| 09-13 | Share tree/route/deletion/display/Snippet/model/SFTP-drag/service policy; retain native lifetimes. | Both builds/shared/mobile passed. |
+| 09-13 | Annual introductory offers replace new standalone trials; legacy entitlement temporarily retained. | Offer/eligibility/duration/price/period/expiration derive from StoreKit; legacy removal follows below. |
+| 09-13 | Remove 27 mobile/seven app source snapshots, host-state Keychain/status integration, duplicate permission/history tests; compatibility/defaults/limits move to FrameworkTests. | −1,303 lines; 1,079 macOS, 13 shared, 218 iOS tests plus formatting/localization/diff passed. Existing waveform bitmap failure remains outside cleanup. |
+| 09-14 | Fresh scan removes standalone-trial ID/domain/clock/entitlements/product/UI/tests/copy; `lifetimeProductID` and annual trials remain. | Estimate −90 production lines; format/localization/site, 1,091 macOS, rerun Metrics and 187 shared iOS passed. iOS built; ten unrelated toolbar tests failed full/isolated runs. |
+
+## Retained boundaries
+
+Native transcript/conversation/dynamic/drag lists retain dedicated lifecycles. Share only portable SSH/SFTP/Serial/
+platform policy; differing startup, credential saves, teardown, logs and interaction stay separate. Frozen SwiftData
+schemas are migration contracts; small lookalike repositories/views need no abstraction without reduction.
+`RuntimeVersions` stays platform-local to avoid invalid Ghostty dependencies. The 09-02 completion/recheck found
+no further qualifying independent duplication/dead code; every later candidate needs fresh references.
+
+## Planner reuse and test cleanup, 2026-09-16
+
+### Desktop download planner — completed
+
+- Evidence: `rg 'PreparedJob|PreparedBatch|pendingBatch|keepBothLocalURL' TFM TFI Frameworks TFMTests TFITests`
+  found desktop's sole mixed batch path was download-only, with empty remote-directory collections; mobile already
+  used `SFTPRemoteDownloadPlanner` and uploads `SFTPLocalUploadPlanner`.
+- Adopt shared traversal/local conflicts/scoped destination/enqueueing; retain desktop pending/errors/copy policy/
+  lifetimes. Destination ownership now creates directory-only trees. Estimate −180, actual −167 production lines
+  (−59 including regression tests); architecture updated.
+- All 75 SFTP/architecture tests passed, including three new tests/ten conflict/subtree/empty/cancellation cases;
+  empty-directory regression fails with old production code. Full pinned macOS: 1,337/1,343. Four failures reproduce
+  before change: `SettingsSyncTests.providedDatabaseCopyMigratesWithoutReset` (schema 15 vs 17),
+  `ModelCapabilityResolverTests.reportedFieldsWinOverCodexAutoReviewOverride`,
+  `ScrubberWebClientTests.fetchPreflightNeverEscalatesPrivateHTTP`,
+  `ChatComposerStateTests.aFailureNoticeIsNotAnAnswerWorthNaming`.
+  `MetricsJourneyTests.offlineRestoredMetricsReconcileOnMainActor` passed rerun;
+  `SSHImportTests.indexedIdentityPlanningHandlesTheImportFileLimit` exceeded two seconds concurrently but passed
+  isolated against both versions (final 0.100 s).
+- Full pinned iPhone 17 Pro/iOS 26.5: 426/432, all 205 framework tests passed. Five Assistant/import failures remained
+  on rerun (identifiers below); `MobileEditorToolbarTests.iconButtonsKeepTheirNamesAndSaveLifecycle` passed rerun.
+  Formatting/localization/symbol/diff checks
+  passed; no dependency/catalog/shared production changes.
+
+### Desktop copy planner and duplicate assertions — implemented, partial verification
+
+- Evidence: `rg 'PreparedRemoteCopy|pendingRemoteCopyBatch|SFTPRemoteCopyPlanner.enqueue|resolveRemoteDirectories'`
+  across app/framework/test Swift found desktop-only preparation/conflict/enqueue copies. Adopt the existing mobile
+  planner and directory-mutation reporting, preserving pending/errors/completion refresh/interactive deletion.
+  Estimate −220, actual −193 production lines; coverage retains validated recursive deletion/cancellation and adds
+  three-policy file/directory/subtree conflicts, empty refresh and pending cancellation. Upload helpers remained R2.
+- Reference scans of role-label, unknown-command, approval-copy, handshake-description and upload-notice tests
+  removed pure literals/duplicates, keeping parameterized classification, endpoint/destructive policy, locales,
+  diagnostics and gating/payload behavior. Estimate −50, actual −59 test lines; +75 copy regression lines gives
+  −177 total Swift. Architecture/language/catalog/protocol/round-trip/behavioral string assertions remain.
+- Focused pinned TFM: 200/200; full: 1,436/1,437, unchanged
+  `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable` bitmap assertion. Earlier records
+  report it, but this pass ran no baseline/isolated rerun. TFI never built/tested: unavailable destination UUID;
+  owner requested commit before retry after discovering a booted phone. Not a passing iOS result.
+- Formatting/localization/removed-symbol/diff checks passed; Xcode resolved modules standalone SourceKit could not.
+  Existing SwiftLint size/complexity findings stayed outside scope, without suppressions. Dependencies/catalogs unchanged.
+  Evidence: `/tmp/termind-refactor-copy-{focused,macos}-20260916.xcresult`.
+
+### Low-value UI/source assertions — implemented, full verification recorded as in progress
+
+`rg '#filePath|sourceRoot|String\(contentsOf|source\.contains' FrameworkTests TFMTests TFITests` found 35 architecture
+and eight UI/source snapshots. Removed implementation/copy/layout/enum/palette/fixed-canvas/disconnected sorting
+checks and orphan helpers: 52 declarations/1,230 lines versus estimate 1,000–1,200. Source checks fell 43→9 narrow
+ownership/dependency guards; native-list allowlist permits importer removal but rejects unapproved additions.
+Grouped Host tests now use fixture placement. Behavioral/language/protocol/opt-in screenshots remain; production,
+packages/catalogs unchanged and existing architecture edits preserved. Initial pinned macOS 18/18, iOS 5/5;
+format/localization/remaining-source/diff checks passed. Standalone SourceKit partly inconclusive; generic SwiftLint
+size/tuple/pixel-name/force-try findings untouched. Full runs were proceeding sequentially; no final pass recorded
+here. Evidence: `/tmp/termind-test-cleanup-initial-{macos,ios}.xcresult`.
+
+### SFTP status labels — verified with existing iOS failures
+
+`rg 'status\(for: transfer\)|transfer\.state\.label' TFM TFI` found mobile direction mapping/two generic desktop
+labels. Presentation now supplies shared running/completed direction labels, generic other states: −8 production
+lines as estimated, unchanged translations/transports. Pinned macOS 1,183 app +213 shared passed; iOS 212/217 app
++213 shared, with the same five Assistant/import failures/text as `/tmp/termind-test-cleanup-full-ios.log`.
+Formatting/localization/diff passed; English/zh-Hans/zh-Hant resource-backed label matrices reviewed, not live
+transfers. Evidence: `/tmp/termind-sftp-status-{macos,ios}-20260916.xcresult`, `/tmp/termind-sftp-status-preview/`.
+
+### Desktop forwarding adapter — implemented; verification blocker later resolved by the 09-17 repair
+
+- `rg 'PortForwardingEditorState|PortForwardingEditorPolicy'` across sources/tests/Memory/project found a 43-line
+  adapter serving three computed desktop getters/seven tests; mobile already used shared policy. Replace with
+  `PortForwardingEditorPolicy`, preserving synchronous observed saved-rule/Host/controller reads, callbacks,
+  intent OR activity, normalization, draft Host-ID lookup, edit locks and native runtime values. No new wrapper/API/
+  schema/secret/approval/dependency/localization change. Estimate −27–28; actual −27 production (−43/+16),
+  +109 test lines, +82 total. Seven desktop behaviors retained; shared matrix adds 14 cases including hidden dynamic
+  targets, local/remote normalization, activity/intent and missing targets. Independent reviews/audit found no issue.
+- Focused pinned TFM 33/33 (14 feature, seven editor, nine architecture, three shared functions/14 cases), re-extracted
+  without rerunning: `/tmp/termind-forwarding-adapter-verify.xMtOCK/focused.xcresult`.
+  Full macOS 1,399/1,399 (1,183+216), no skips; iOS 428/433 (212/217+216), five failures/no skips, exact rerun 0/5.
+  Simulator: iPhone 17 Pro/iOS 26.5, `38789AE8-B5AA-46CA-A15C-77CE760FC550`.
+- Repeated iOS identifiers: `MobileAssistantTests.attachmentOnlyFirstSendPromotesTheConversation`,
+  `firstNewConversationSendPromotesDraftAndStartsRun` (expected user/assistant),
+  `existingConversationSendStillUsesTheDraftExecutionPath` (expected user/user/assistant),
+  `completeRegistryIncludesRemoteAndBuiltInToolsOnlyForCapableModels` (expected no `terminal_suggest`), and
+  `MobileVaultFeatureTests.importRequiresAnExplicitUsernameWhenTheConfigurationOmitsIt` (`model.canImport`).
+  No pre-refactor baseline was run; attribution was unverified, not established regression/pre-existing behavior.
+  All planned stages completed after provider interruption; it was neither test failure nor user stop.
+- Formatting/localization/diff/retired-symbol checks passed. No-index exit 1 was corrected as “files differ” in
+  `untracked-whitespace-adjudication.json`, preserving raw evidence; supplementary scan passed. Patch, including
+  untracked test, matched verifier/`partial.patch` byte-for-byte (SHA-256
+  `f76b9950aa3bb49140865feec1153836f59ce903d25f3a32edcbf07ab320a691`); dependency hashes matched HEAD/evidence.
+  Audit altered documentation only, with no rebuild/source edit/commit; five paths remained at `8b01a631fefdbe14e1324d87c91d0860124d85d3`.
+- Manual status/toggle/lock/save/cancel/back checks were not run; no visual claim. Full results retain 166 macOS
+  warnings (88 locale/74 constraint/four StoreKit listener), 29 iOS (27 locale/two view-update publishing), none in
+  targeted rerun; focused logs retain row-height/Xcode warnings. Warnings were not baseline-attributed/investigated.
+- Evidence: `/tmp/termind-forwarding-adapter-recovery.eggzSE/remaining-checks.9wl35uwk/` contains full/rerun results,
+  commands/logs/reports/test trees/comparisons/simulator/patch evidence; sibling `audit-record/` has independent
+  re-extractions/integrity/diff results. Implementation: `/tmp/termind-forwarding-adapter-implement.aTsWRl/checks.{sh,log}`.
+
+## Five repeated iOS failures, 2026-09-17 — repaired and verified
+
+Clean pinned `d582d711` reproduced all five (0/5) before this test-only repair, establishing this repair's baseline,
+not retroactively a pre-refactor baseline. Three send tests now assert user-only history, failed-run/prompt association,
+failure timeline and title exclusion: `b2f05217` intentionally stopped synthesizing replies without a Chat model.
+Existing-chat testing awaits failed state rather than 20 yields. Registry testing follows `df3bd04c`: stable
+`terminal_suggest` definition, snapshot-gated execution, equal descriptors across surfaces and no tools for incapable
+models. Import testing follows `ac165a9a`'s indexed identities: real `SSHImportReader`/temporary config/empty default
+username reject invalid commits; adding `User deploy` and rescanning imports a linked Host/Identity. Obsolete fake
+removed, without test-only production mutation API.
+
+All five identifiers remain, none skipped/deleted/expected-failing; only two test files/record changed. Three
+independent actions passed all five (`fixed-repeat`, `focused-2`, `focused-3`); the first `-test-iterations 3` actually
+ran Swift Testing once. Full pinned TFI 433/433, TFM 1,399/1,399, no failures/skips, resolve the preceding automated
+blocker. Formatting/localization/whitespace passed; Xcode, not inconclusive SourceKit, validates modules. Full runs
+retain 29 iOS/168 macOS uninvestigated/unattributed warnings, focused runs none. Evidence/scripts:
+`/tmp/termind-ios-five-fixes.NfgsN4/` (`baseline`, focused actions, `full-ios`, `full-macos` results).
+
+## Skill packages and immutable helpers, 2026-09-17
+
+- **Single-document loader — implemented.** `load_skill` duplicated definition/presenter/guidance/output exemptions.
+  Replace executable `LoadSkillTool` with `skill_read_file` for bounded instructions/supporting resources; retain
+  historical presenter/replay only. Estimate about −100 retired-loader lines; package management is additive, no
+  overall reduction claim. AgentKit tests passed; app skill/migration/memory/mobile suites exercised.
+- **Starter runbooks — implemented.** `AgentSkillLibrary` shipped three editable seeds, duplicated in library/sync
+  persistence, with destructive Reset in both apps. Replace with two immutable runtime helpers; delete seeds/Reset/
+  old fixtures, preserving installed starters as ordinary user records. Native conflict repair and atomic install/
+  sync transaction remain. Estimate about −200 retired production lines, excluding installer/migration coverage.
+  Signed/published AgentKit 0.13.0: 213 package tests passed. Memory labels remain 持久化记忆 / 持久化記憶.
+  Final iOS 452/452, macOS app 1,183 passed, AppLanguage independently passed; refreshed shared 231/232 with existing
+  waveform PNG failure. New skill/library/sync tests, bilingual native review, formatting/localization/diff passed.
+
+## Reuse and architecture scan, 2026-09-17
+
+Discovery baseline `8509ddd5`: inventory/normalized-block scan of 516 production Swift files/113,165 lines across
+frameworks/apps/bridge; inspected candidate bodies/callers/tests, not every file behavior. Import audit of 273
+framework files found no prohibited edge. Stale source graph/unavailable structural navigation were not reachability
+proof. Website localized home already shares one page; AgentKit/third parties excluded. Scan changed docs only;
+source paths, English prose, diff/localization checks passed, no builds/tests/visual verification. At discovery all
+six were pending. Estimates are net production lines including helpers/callers, excluding tests; abandon extractions
+that cost more. Operator then authorized R1→R2→R3; R4–R6 were outside that pass, with later R5/R6 updates below.
+
+### R1. CloudKit record coding — implemented, affected checks passed
+
+- Evidence: three Cloud coordinators' `makeRecord|envelope|payloadData|systemFields|record|assetURL` methods repeated
+  record restoration, hashing, inline/assets, secure fields and cache paths; confirm with `rg` in
+  `Frameworks/TermindInfrastructure/Cloud`. Estimated −70–110, low/medium wire risk.
+- `CloudSyncRecordCoding` shares mechanics, raw/quarantine vs validated reads, lowercase SHA-256, lazy assets and
+  namespaces. Coordinators retain envelope metadata/validation, legacy Guardian canonicalization, errors/public
+  entry points/zone names/casing/cleanup/independent lifetimes; exact 700,000-byte threshold and frozen models remain.
+  Actual −40 (1,741→1,701), eight new functions/12 cases covering threshold/storage transitions/hash/corruption/missing
+  payload/asset errors/secure fields/namespace boundaries. No need for a generic metadata API or R5 due to size alone.
+- Pinned macOS 61/61, iOS 13/13, new suites executed with unchanged source snapshots; Vault/Settings/legacy Guardian/
+  Metrics/architecture passed. Format/diff passed; Xcode resolved imports SourceKit could not. Evidence under
+  `/tmp/termind-refactor-three.7kUsqP/r1-focused-*`. Initial full baseline before edits: macOS 1,502/1,505, iOS 502/503;
+  approval/runtime cancellation, Metrics worker and mobile knowledge expansion failed. No unrelated fixes/package bump.
+
+### R2. Upload/copy conflicts — implemented with characterized upload hardening
+
+- Evidence: `remoteConflictPreflight|resolveRemoteDirectories|resolveRemoteConflict|deleteRecursively` in
+  `SFTPLocalUploadPlanner`, `SFTPRemoteTransferPlanner` and `SFTPRemoteCopyOperation` duplicated subtree/Keep Both/
+  delete policy. This is the 09-16 upload follow-up, not unfinished desktop planner adoption. Estimate −100–140;
+  medium risk because Replace deletes directories. Before sharing, new fake-backend tests reproduced cancelled
+  directory-only upload creating a directory and Replace accepting an outside child; macOS copy/SFTP 65/65,
+  mobile upload 5/7 (only new cases failed).
+- `SFTPRemoteConflictResolver` uses `RemoteFileSystem`, preserving strict-descendant upload preflight versus
+  self-or-descendant copy. Upload deliberately gains copy's cancellation/recursive-name/path validation; not
+  byte-equivalent old behavior. Keep manifests/local scoped traversal/jobs/enqueue/pending UI/interactive deletion/
+  directory accounting/errors separate. Copy-source error moved unchanged to its own file.
+- Actual −139 (906→767, five files); seven shared functions/17 cases cover both modes/all policies/subtree mapping/
+  overwrite/counts/delete order/invalid paths/cancellation. FrameworkTests now links Remote Infrastructure on both
+  platforms; production graph/pins unchanged. Required mobile coverage retains scoped symlink exclusion and empty
+  directory uploads. Final focused macOS 81/81, iOS 23/23 include repaired cases/shared suite with unchanged snapshots.
+  Formatting/plist/localization/diff passed; architecture records resolver/counting rules. Evidence: same root,
+  `r2-before-*`, `r2-focused-*`; unrelated full failures remain tracked.
+
+### R3. Pro offer projection — implemented, affected checks passed
+
+- Evidence: `purchaseButtonTitle|selectedPlanDetail|trialBadge|annualBillingUnit|func formatted` repeated in desktop/
+  mobile paywalls. Estimate −20–40, low risk. Value-only `ProOfferPresentation` consumes StoreKit-derived values/
+  eligibility/plan, never Infrastructure/controller. Apps retain cards/features/sheets/navigation/purchase/management.
+- macOS injects `AppLocalization`, mobile Foundation/Apple bundle lookup; both keep effective locale, Gregorian
+  full units/one component. Compute once per purchase section; History's abbreviated/two-unit formatter stays separate.
+  Actual −32 (602→570); nine functions/20 cases cover plan/trial/missing data/period priority/separate locale lookup,
+  plus six real-catalog English/zh-Hans/zh-Hant AppLanguage cases, with no catalog changes.
+- Pinned macOS 41/41, iOS 11/11 with stable sources, including new suites/access/trial/architecture/language tests.
+  Diff-reviewed native layout/actions; no interactive storefront/screenshots claimed. Evidence: same root `r3-focused-*`.
+  Repository formatting/localization/diff/plist passed. R1–R3 total −211 production lines, excluding tests/docs and
+  unrelated `.TermindPresentationQA.xcodeproj` deletion.
+
+### R1–R3 full verification — gate remained non-green
+
+Final pinned macOS 1,527/1,530, iOS 528/529, no skips, unchanged action snapshots; all three new shared suites passed
+on both. Three failures repeat immutable baseline:
+`AgentApprovalQueueTests.cancellingAParallelBatchStillAnswersEveryCall`,
+`ServerMetricsLifecycleTests.oneWorkerSurvivesWindowsAndStopsOnPauseSleepAndRemoval`,
+`MobileKnowledgeToolRenderingTests.knowledgeRowsStayCompactAtPhoneWidthAndExpandOnDemand`.
+Initial `AgentRuntimeTests.stoppingARunCancelsTheToolsItIsWaitingOn` did not recur; no fix claimed.
+
+Final macOS additionally failed `SpeechWaveformViewTests.waveformRespondsToLevelsAndReduceMotionMakesItStable`,
+absent in initial baseline despite earlier records. Unchanged HEAD source/test passed both tests in three independent
+minimal-package processes; current isolated Xcode macOS failed 1/2, iOS passed 2/2. Clean pinned `8509ddd5` export
+with separate DerivedData passed framework-only scheme 2/2 but reproduced 1/2 failure under original TFM scheme.
+Thus all four final failures have pre-change evidence; smaller harnesses alone were insufficient. Scheme sensitivity
+is established, root cause unrepaired. No unrelated tests/implementation/AgentKit/pins/QA deletion changed for green.
+Evidence: `/tmp/termind-refactor-three.7kUsqP/` (`final-*`, `waveform-{baseline,current}-*`,
+`waveform-head-tfm.*`, passing `waveform-head-xcode.*`, source manifests).
+
+### R4. Architecture guards — pending, explicitly structural
+
+`ArchitectureBoundaryTests` scans AgentKit ownership only in TFM, omits Remote Infrastructure/Presentation/bridge
+from SwiftData checks, incompletely forbids Application UI/native I/O and Presentation Infrastructure imports, and
+misses annotated/qualified imports. Confirm with `rg 'applicationDoesNotImport|typesOwnedByTheAgentPackage|sharedFrameworksCannot|sharedPresentation|swiftDataModels|swiftFiles|text.split' TFMTests/ArchitectureBoundaryTests.swift`.
+Centralize production roots/dependency rules/bounded import recognition; cover all owners, preserving fail-closed
+missing/empty roots/native-list allowlist. No production violation/reduction claimed; budget +20–60 test lines.
+Use fixtures, never production mutations, to reject annotated/qualified forbidden imports/out-of-owner declarations,
+allow valid imports/importer removal. Run boundary/both pinned suites; never restore UI/copy/layout/path/wiring snapshots.
+
+### R5. CloudKit lifecycle — discovery follow-up, implementing as of 2026-09-19
+
+`rg 'operationID|prepareAndSynchronize|synchronizeNow|isReadyToSend|stopEngineForAccountChange|handleZoneDeletion'`
+in the three Cloud coordinators confirms duplicated operation/account/engine/fetch/send/pause/reset/error policy.
+Existing codecs/journals/merges alone do not characterize async lifecycle. After R1, compose one typed Infrastructure
+lifecycle instance per category with value journal projection/closures and injectable account/engine transport.
+Keep codecs/merge/quarantine/version acknowledgements/legacy records/Settings secrets in adapters; no universal untyped
+framework or model reshaping. Zones/journals/accounts/subscriptions/switches/engines/lifetimes remain independent;
+secret uploads require current-engine fetch and revoke on pause/account retirement. Estimate −200–350 additional
+production lines including driver/adapters, high risk; package/models unchanged.
+
+Required deterministic coverage: pause/retry/stale callbacks, account switching/consent, zone/environment resets,
+failed fetch/readiness-before-send, secret authorization/revocation; migrate categories individually and retain
+tombstone/quarantine/versioned-ack tests. Fresh 09-19 scan reconfirmed evidence; implementation underway, unified
+verification follows all requested edits. Architecture ownership is recorded; no completion/result is claimed here.
+
+### R6. MCP ticket policy — discovery follow-up, implementing as of 2026-09-19
+
+`rg 'has.*Activity|count < 64|addingTimeInterval\(600\)|maximumBytes|func (endSession|revokeSession|sweep)|1_800|count - 256'`
+in `TFM/Application/MCPServer/MCP{Upload,Download}Coordinator.swift` confirms repeated metadata/activity/expiry/capacity/
+retention; download references `MCPUploadRequest.maximumBytes`. Share only desktop metadata/expiry/retention/limits, reusing
+four-slot `MCPTransferBudget`: ten-minute tickets, 64 unfinished/direction, 256 completions/direction/thirty minutes.
+Keep separate dictionaries/errors/live states/claims/generations/stream loops/revocation/cleanup/task ordering;
+no listener in mobile/frameworks/AgentKit or generic ticket superclass. Upload expiry may spawn cleanup; download
+can serve Range after success; `cancelAndWait` captures tasks differently. Estimate originally −30–70, revised on
+09-19 to −10–40 including narrow protocol cost; medium/high lifecycle/security risk.
+
+Retain `MCPUploadTests`, `MCPDownloadTests` and session-teardown tests; add clock-boundary/retention coverage and preserve Range-after-success,
+acknowledged offsets, late disconnects, Host/session revocation, slots held through cleanup, protocol strings and
+metadata-only audit. Fresh scan reconfirmed evidence; implementing. User requested finishing both remaining refactors
+before unified verification, superseding per-edit checks for this pass.
+
+Scan disposition: R1 first, then R2/R3; R4 before expanding dependency/lifecycle ownership, separate R5/R6 design/
+characterization. Retain frozen schemas, responsibility-named Vault facades, native lists/terminal teardown and local
+runtime-version adapters. File size or a small pixel-test duplicate alone never justifies merging native renderers.
+
+## Window and mobile changes, 2026-09-18
+
+### Width-based mobile layouts — implemented, later navigation design superseded below
+
+`rg 'mobileInterfaceIdiom|MobileInterfaceIdiom' TFI TFITests` found device-based shells/sheets/cards and a duplicate
+test root. Removed environment/injection, tested real roots rebuilding native compact/regular shells; estimate −50
+obsolete lines excluding transition behavior/tests. Coverage includes reconstruction/actual selection, Settings/draft
+reset, Metrics mapping/Back, Assistant drafts, window independence, deferred saves/errors and live SSH/SFTP.
+Phone focused 25 passed; final breadcrumb four Workspace tests passed on phone/tablet. English/zh-Hans/zh-Hant snapshots
+and actual rotation reviewed. Device Hub did not perform Stage Manager corner resizing; frame/trait real-root tests
+cover width/two-window behavior. Formatting/localization/diff passed, pins unchanged.
+
+Full iPad: 537 passed/3 failed/0 skipped of 540; macOS: 1,527/1/13 of 1,541, all new tests passed. Clean `c015d5f3`
+with original TFI scheme reproduced iPad tab-bar visibility/Host-card height/knowledge expansion; baseline cards pass
+on phone. Mac retained unchanged waveform failure. Earlier interrupted cleanup run was superseded by complete iPad.
+Evidence: `/tmp/termind-width-{final-ipad,rebuild-macos,iphone,path-final,path-final-ipad,baseline-ipad,baseline-cards}.xcresult`.
+Not a green full-suite claim; unrelated assertions/code were not changed.
+
+### Main-window registration/content style — completed
+
+`rg` found RootView mounting `MainWindowRegistration` plus `FullHeightWindowContent` solely for two native properties;
+independent attachment could size before the full-size coordinate system. Move style/transparency before registration
+in the existing macOS bridge, removing representable/NSView (−30/+5). All 47 window/lifecycle/shortcut checks and
+formatting/localization/diff passed. Native checks: 904×572 copies exactly, fullscreen Command-N opens Connect, exit/
+close/reopen preserves size; isolated quit/relaunch preserves 1004×652 and last-used 904×572 across differing windows.
+System restored one scene; distinct restored frames are test-covered. Same-bundle demo interference prompted clean
+relaunch repeats.
+
+Full pinned immutable `94ad70f1` avoided concurrent Dock-menu test compilation errors: 1,593 passed/5 failed/8 skipped.
+Failures: `StoreKitTrialTests.annualProductSuppliesPriceBillingPeriodTrialDurationAndEntitlement` (JPY vs USD),
+parallel approval cancellation, Metrics worker lifecycle,
+`MetricsJourneyTests.offlineRestoredMetricsReconcileOnMainActor`,
+`TerminalCommandDraftControllerTests.readsOneDraftAndRejectsConcurrentRequests`. Only Agent/worker had earlier baseline
+evidence; no baseline claim/fix for the other three. Results:
+`/tmp/termind-window-sizing-{focused-fixed,snapshot-full}.xcresult`.
+
+### Metrics clock and short knowledge cards — repaired, full suite still non-green
+
+Metrics tests advanced the manual clock before GPU work/next sleep registration; pre-fix failed 3/5 and a model probe
+needed another 0.05 s. Await both maintenance/sampling sleeps and preserve caller locations in polling; production
+Metrics unchanged. Compact SwiftUI details accepted tall proposals; trailing vertical `fixedSize` restores natural
+height within scaled cap (short phone fixture 99.33 vs 180 points). Tests classify truncation, checking natural short
+height and long expand/layout-retain/collapse, not tool names.
+
+macOS lifecycle/knowledge 26 functions passed plus 20/20 lifecycle repeats; all three mobile knowledge tests passed
+English/zh-Hans/zh-Hant, phone/accessibility; native desktop widths 380/720 retained. Format/localization/diff passed.
+Full pinned macOS 1,600 passed/1 failed/8 skipped of 1,609, iOS 584/3/0 of 587; repaired tests passed. Remaining macOS
+parallel-approval failure was recorded earlier. Mobile `MobileUploadBatchTests.sftpFolderUploadUsesTheCurrentDirectoryAndOneBatch`,
+`MobileEditorToolbarTests.cancelOnlyDismissesUnmodifiedDrafts(isDirty:)`,
+`MobileAdaptiveLayoutTests.settingsDepthAndUnsavedFormsResetOnlyAcrossWidthClasses` passed focused reruns, not proof
+of baseline/fix. Full mobile bundles finished before optional slow `simctl diagnose` was interrupted; finalized
+587-test result is intact. Pins/APIs/persistence unchanged. Evidence:
+`/tmp/termind-metrics-knowledge-fix-{macos-focused,repeat20,ios-focused,macos-full,ios-full,ios-unrelated-rerun,ios-upload-rerun}.xcresult`.
+
+### Preserve mobile navigation during resizing — implemented
+
+`rg 'layoutTransition|compactMetrics|registrations\(on|scene\.layout' TFI TFITests` found two roots, route resets,
+Metrics copies and reconstruction save gates. Replace with one native sidebar-adaptable TabView/five stable stacks;
+remove migration/registration/save gating, keep single Metrics shortcut target and save/cancel/error/native terminal
+ownership. Estimate −150–200, actual −210 production lines; Metrics/Vault search use `waveform.path.ecg`.
+
+Focused iPad 21/21; phone 20/21 because a test forced unsupported regular class, changing search placement. Corrected
+native-class/compact-width fixture passed three times on each, retaining iPad width transitions. Coverage preserves
+pages/Settings/drafts/search/scroll/window independence/save/errors/session instances. English/zh-Hans/zh-Hant normal/
+accessibility screenshots reviewed: five titles fit 320/375-point bottom bars; intermediate iPad top bar scrolls with
+all items selectable. Hosting-window/child resize tests do not mistake native title scaling for truncation. Manual
+rotation retained Models/icon; Device Hub did not perform corner resizing, covered through frame/trait tests.
+
+Full before fixture corrections: iPad 583/586, phone 584/586, macOS 1,598 passed/1 failed/8 skipped of 1,607. New label/
+scroll failures were corrected; other failures were reproduced iPad tab visibility/Host-card height and recorded Mac
+waveform. No unrelated assertions/production changed; not all-green. Format/localization/diff passed; pins/APIs/stores
+unchanged. Evidence: `/tmp/termind-adaptive-tabs-{ipad,iphone,macos}-full.xcresult`,
+`/tmp/termind-adaptive-tabs-final-{ipad,iphone}.xcresult`,
+`/tmp/termind-adaptive-tabs-scroll-native-{iphone,ipad}.xcresult`.
+
+### Window/quit confirmation removal — superseded
+
+`rg 'dismissalConfirmationDialog|Quit with unuploaded changes|sftpEdits.recheck' TFM` found Workspace close and SFTP
+quit warnings/five unique strings. Proposed removal preserved native dismissal/pane-first Command-W/ownership/bounded
+cleanup, estimated −25–35 production lines/five entries. User instead requested both confirmations retained and only
+the edited indicator hidden; both dialogs/all strings restored.
+
+### Close-button edited indicator — implemented, verification pending
+
+Restored SwiftUI WindowGroup sets `NSWindow.isDocumentEdited` for Workspace confirmation. Isolated Demo probe cleared
+it while retaining Close Window/Cancel. Attached registration now observes/clears decoration only, preserving dismissal
+delegate/condition/copy/SFTP quit checks. Visual correction, no code-reduction/API/persistence/package claim.
+
+### Free Workspace composition — implemented, full verification stopped by user
+
+`rg 'workspaceComposition|window.proAccess' TFM Frameworks` found 15 gates, window commerce dependency and launch grant.
+Remove gates/sticky state, align app/site/StoreKit/docs. Estimate −35–45 production lines plus strings; actual −34/two
+entries. All 28 composition cases/seven non-Pro states, six remaining Pro gates and entitlement checks passed, plus
+format/localization/site build/diff. English/zh-Hans/zh-Hant desktop/mobile home/FAQ and legacy Chinese redirects reviewed.
+User stopped full macOS/iOS tests; before stopping, Mac AgentBackgroundCommand/AgentApprovalQueue/SpeechWaveform failed,
+without investigation/rerun. No green full-suite claim; App Store Connect metadata remains a release step.
+
+## Desktop authentication submission, 2026-09-19 — implemented, full verification pending
+
+`rg 'continueAuthentication|submittedPassword|let existing = store.identity|passwordUpdate'` in desktop SSH/SFTP models
+confirmed duplicated fallback/submission/selected Identity updates/custom reuse/Host association. Share two methods
+on existing Application `RemoteSessionHostStore`; sessions retain username validation/passphrase continuation/prompts/
+errors/ephemeral SFTP secrets/transient SSH Hosts/reconnect ordering. Preserve separate Identity-before-Host writes and
+secret usage; mobile/Metrics/forwarding keep different save rules. Estimate −40–80, actual −47 production lines; no
+new model/base/dependency/schema/secret store or localization change. Architecture updated, boundary rules unchanged;
+existing catalog edit stays outside scope.
+
+Focused 83 functions/105 cases passed: shared policy/desktop entry points, credential usage/preparation/Identity,
+Journey/SFTP/window lifetimes/architecture. Initial fixture `Host` ambiguity was fixed with explicit Domain import.
+Formatting/localization/diff passed; full pinned macOS/iOS pending. Evidence:
+`/tmp/termind-auth-refactor.uUFmoB/focused-macos-2.xcresult` with logs/summary/line counts/dependency/catalog fingerprints.
+
+## Mobile toolbar policy, 2026-09-19 — implementing
+
+`rg 'tabBarPlacement|mobileToolbarLayout' TFI` found feature-local Assistant/Metrics fallbacks despite shared stack
+environment; production already has no idiom/model layout branches. Remove both reads and consume one shared toolbar
+policy, retaining container geometry/active reserved regions/native identity/OS API checks. Estimate −2 production
+lines/two duplicate conditions. Native title/menu transitions and fold/session lifetime verification remain pending.
