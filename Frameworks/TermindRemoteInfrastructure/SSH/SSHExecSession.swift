@@ -1,6 +1,7 @@
 import CSSH2
 import Darwin
 import Foundation
+import Logging
 import TermindApplication
 
 public nonisolated struct SSHExecResult: Hashable, Sendable {
@@ -76,10 +77,15 @@ public typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
 
 public actor SSHExecSession: SSHExecSessionProtocol {
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
-    public init(keyboardInteractive: SSHKeyboardInteractiveHandler? = nil) {
+    private nonisolated let worker: SSHExecWorker
+
+    public init(
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-exec")
+    ) {
         self.keyboardInteractive = keyboardInteractive
+        worker = SSHExecWorker(logger: logger)
     }
-    private nonisolated let worker = SSHExecWorker()
 
     public func connect(using configuration: SSHConnectionConfiguration) async throws {
         try await connect(using: SSHConnectionRequest(configuration: configuration))
@@ -118,28 +124,54 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.exec")
     private var routeTransport: SSHRoutedSocket?
     private var session: OpaquePointer?
+    private var hostID: UUID?
     private var keepaliveTimer: (any DispatchSourceTimer)?
     /// Set when the transport is known to be gone. The next `execute` reports
     /// `channelUnavailable` instead of calling into a session that cannot answer.
     private var isDead = false
+    private let logger: Logger
+
+    init(logger: Logger) { self.logger = logger }
 
     deinit { cleanup() }
 
     public func connect(using request: SSHConnectionRequest) async throws {
+        let operationID = UUID().uuidString.lowercased()
+        let hostID = request.configuration.hostID
+        logger.info(
+            "ssh.exec.connect.started",
+            metadata: [
+                "host_id": RemoteLogging.hostID(hostID), "operation_id": "\(operationID)",
+                "protocol": "ssh", "stage": "connecting",
+            ])
         await queue.perform { self.cleanup() }
-        let opened = try await SSHSessionWorker.openAuthenticatedSession(
-            using: request, timeout: 20
-        )
         do {
+            let opened = try await SSHSessionWorker.openAuthenticatedSession(
+                using: request, timeout: 20, logger: logger
+            )
             await queue.perform {
                 self.routeTransport = opened.transport
                 self.session = opened.session
+                self.hostID = hostID
                 self.isDead = false
                 self.startKeepalive(for: opened.session)
             }
             try Task.checkCancellation()
+            logger.info(
+                "ssh.exec.connect.completed",
+                metadata: [
+                    "host_id": RemoteLogging.hostID(hostID), "operation_id": "\(operationID)",
+                    "outcome": "success", "protocol": "ssh", "stage": "connected",
+                ])
         } catch {
             await queue.perform { self.cleanup() }
+            logger.error(
+                "ssh.exec.connect.failed",
+                metadata: [
+                    "error_code": RemoteLogging.errorCode(error), "host_id": RemoteLogging.hostID(hostID),
+                    "operation_id": "\(operationID)", "outcome": "failure", "protocol": "ssh",
+                    "stage": "connecting",
+                ])
             throw error
         }
     }
@@ -151,18 +183,38 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
         timeout: TimeInterval, outputLimit: Int, cancellation: TransferCancellationToken,
         onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
-        try await queue.perform {
+        let operationID = UUID().uuidString.lowercased()
+        return try await queue.perform {
+            var startedMetadata: Logger.Metadata = [
+                "operation_id": "\(operationID)", "protocol": "ssh", "stage": "executing",
+            ]
+            if let hostID = self.hostID { startedMetadata["host_id"] = RemoteLogging.hostID(hostID) }
+            self.logger.debug("ssh.exec.started", metadata: startedMetadata)
             do {
-                return try self.executeOnQueue(
+                let result = try self.executeOnQueue(
                     command, workingDirectory: workingDirectory, stdin: stdin,
                     timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
                     onOutput: onOutput
                 )
+                var completedMetadata: Logger.Metadata = [
+                    "operation_id": "\(operationID)", "outcome": "success", "protocol": "ssh",
+                    "stage": "completed",
+                ]
+                if let hostID = self.hostID { completedMetadata["host_id"] = RemoteLogging.hostID(hostID) }
+                self.logger.debug("ssh.exec.completed", metadata: completedMetadata)
+                return result
             } catch {
                 // Still on the queue, and the channel defer has already run, so
                 // this is the right moment to give the socket back rather than
                 // leave a corpse in the pool for the idle sweep to find.
+                let hostID = self.hostID
                 if self.isDead { self.cleanup() }
+                var failedMetadata: Logger.Metadata = [
+                    "error_code": RemoteLogging.errorCode(error), "operation_id": "\(operationID)",
+                    "outcome": "failure", "protocol": "ssh", "stage": "executing",
+                ]
+                if let hostID { failedMetadata["host_id"] = RemoteLogging.hostID(hostID) }
+                self.logger.error("ssh.exec.failed", metadata: failedMetadata)
                 throw error
             }
         }
@@ -394,6 +446,7 @@ private nonisolated final class SSHExecWorker: @unchecked Sendable {
     private func cleanup() {
         keepaliveTimer?.cancel()
         keepaliveTimer = nil
+        hostID = nil
         if let session {
             _ = libssh2_session_disconnect_ex(
                 session, SSH_DISCONNECT_BY_APPLICATION, "Termind closed the exec session", ""

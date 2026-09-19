@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import Logging
 import TermindDomain
 
 /// One runtime assembly and compaction policy for both app surfaces.
@@ -16,6 +17,7 @@ public final class AssistantExecutionController {
     private let authorize: @MainActor () -> Bool
     private let makeRegistry: RegistryFactory
     private let title: @MainActor (ConversationTitleContext) async throws -> String
+    private let logger: Logger
     private let agentCompaction = AgentCompactionService()
     private let guardianSessions = GuardianSessionStore()
     private var titledConversationIDs = Set<UUID>()
@@ -28,7 +30,8 @@ public final class AssistantExecutionController {
         ai: AIConfigurationModel, skills: SkillLibraryModel, repository: any AgentRunPersisting,
         memory: MemoryModel? = nil,
         authorize: @escaping @MainActor () -> Bool, makeRegistry: @escaping RegistryFactory,
-        title: @escaping @MainActor (ConversationTitleContext) async throws -> String
+        title: @escaping @MainActor (ConversationTitleContext) async throws -> String,
+        logger: Logger = ApplicationLogger.disabled("termind.agent")
     ) {
         self.ai = ai
         self.skills = skills
@@ -37,6 +40,7 @@ public final class AssistantExecutionController {
         self.authorize = authorize
         self.makeRegistry = makeRegistry
         self.title = title
+        self.logger = logger
     }
 
     public func sendAgentDraft(
@@ -155,7 +159,15 @@ public final class AssistantExecutionController {
             ?? []
         guard !userPrompt.isEmpty || !userImages.isEmpty || !userContextAttachments.isEmpty
         else { return }
+        let operationID = UUID().uuidString.lowercased()
+        let conversationID = conversation.id.uuidString.lowercased()
         guard let chat = ai.resolve(conversation: conversation.model) else {
+            logger.error(
+                "agent.run.failed",
+                metadata: [
+                    "conversation_id": "\(conversationID)", "error_code": "missing_model",
+                    "operation_id": "\(operationID)", "outcome": "failure", "stage": "preparing",
+                ])
             recordFailedRun(
                 conversation,
                 promptID: promptID ?? lastUserTurn?.id ?? UUID(),
@@ -168,6 +180,12 @@ public final class AssistantExecutionController {
             return
         }
         guard let secret = ai.modelSecret(for: chat.provider) else {
+            logger.error(
+                "agent.run.failed",
+                metadata: [
+                    "conversation_id": "\(conversationID)", "error_code": "missing_credential",
+                    "operation_id": "\(operationID)", "outcome": "failure", "stage": "preparing",
+                ])
             recordFailedRun(
                 conversation,
                 promptID: promptID ?? lastUserTurn?.id ?? UUID(),
@@ -326,7 +344,13 @@ public final class AssistantExecutionController {
                 authorizationEvidence: GuardianEvidence.collect(from: conversation.transcript),
                 sessionContext: frozenContext.sessionContext, contextSnapshot: frozenContext
             ))
-        scheduleTitle(for: conversation, isPlanning: isPlanning)
+        logger.info(
+            "agent.run.started",
+            metadata: [
+                "conversation_id": "\(conversationID)", "operation_id": "\(operationID)",
+                "planning": "\(isPlanning)", "stage": "running", "tool_count": "\(registry.registeredTools.count)",
+            ])
+        scheduleTitle(for: conversation, isPlanning: isPlanning, operationID: operationID)
     }
 
     private func recordFailedRun(
@@ -508,9 +532,18 @@ public final class AssistantExecutionController {
     /// whose rows rewrite themselves as the conversation grows is harder to scan
     /// than one whose rows stay put. `titledConversationIDs` is what makes the
     /// second run a no-op even though every run re-arms the hook.
-    private func scheduleTitle(for conversation: ConversationModel, isPlanning: Bool) {
+    private func scheduleTitle(for conversation: ConversationModel, isPlanning: Bool, operationID: String) {
+        let conversationID = conversation.id.uuidString.lowercased()
         conversation.runDidFinish = { [weak self, weak conversation] in
             guard let self, let conversation else { return }
+            let state = conversation.runState
+            logger.log(
+                level: state == .completed ? .info : state == .cancelled ? .warning : .error,
+                "agent.run.finished",
+                metadata: [
+                    "conversation_id": "\(conversationID)", "operation_id": "\(operationID)",
+                    "outcome": "\(state.rawValue)", "stage": "finished",
+                ])
             if conversation.runState == .completed, !isPlanning, let memory,
                 let model = memoryReviewModel(conversation)
             {

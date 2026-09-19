@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import TermindApplication
+import TermindInfrastructure
 import TermindRemoteInfrastructure
 
 @MainActor
@@ -12,20 +13,31 @@ struct MobileAppDependencies {
     var workspaceConnections: MobileWorkspaceConnectionServices
     var metrics: MobileMetricsServices
     var appReview: AppReviewController
+    var logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared
+    var connectionCoordinator: RemoteConnectionCoordinator = RemoteConnectionCoordinator()
     var container: ModelContainer? = nil
     var workspaceStore: MobileWorkspaceStore? = nil
     var liveActivities: MobileLiveActivityController? = nil
     var makeForwardings: (HostLibraryModel) -> PortForwardingController = { PortForwardingController(hosts: $0) }
 
     static func live() -> MobileAppDependencies {
-        MobileAppDependencies(
+        let logging = LaunchFileLogService()
+        let coordinator = RemoteConnectionCoordinator(
+            logger: logging.makeLogger(label: "termind.remote-connection"))
+        return MobileAppDependencies(
             hosts: nil,
             inMemory: false,
             defaults: .standard,
             background: MobileBackgroundController(),
-            workspaceConnections: .live,
-            metrics: .live,
-            appReview: .live()
+            workspaceConnections: .live(coordinator: coordinator),
+            metrics: .live(coordinator: coordinator),
+            appReview: .live(),
+            logging: logging,
+            connectionCoordinator: coordinator,
+            makeForwardings: {
+                PortForwardingController(
+                    hosts: $0, logger: logging.makeLogger(label: "termind.port-forwarding"))
+            }
         )
     }
 

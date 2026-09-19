@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import Logging
 import Observation
 import TermindApplication
 import TermindDomain
@@ -42,7 +43,8 @@ final class MobileAssistantModel {
         hostServices: AgentHostServices, metrics: any MetricsSnapshotReading, skills: SkillLibraryModel,
         authorize: @escaping @MainActor () -> Bool,
         speech: SpeechTranscriptionCoordinator,
-        attachmentLoader: ContextAttachmentLoading
+        attachmentLoader: ContextAttachmentLoading,
+        logger: Logger = ApplicationLogger.disabled("termind.agent")
     ) {
         self.authorize = authorize
         self.configuration = configuration
@@ -66,7 +68,7 @@ final class MobileAssistantModel {
                     conversation: conversation, model: model, provider: provider,
                     skills: catalog, channel: channel, ai: configuration, hosts: resolver, metrics: metrics,
                     connections: connections, authentication: authentication, background: background)
-            }, title: { try await titles.summarize($0) })
+            }, title: { try await titles.summarize($0) }, logger: logger)
     }
 
     func load() async {

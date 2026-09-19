@@ -3,6 +3,7 @@ import CSSH2
 import CryptoKit
 import Darwin
 import Foundation
+import Logging
 import TermindApplication
 import TermindDomain
 
@@ -314,10 +315,15 @@ public actor SFTPClient: SFTPClientProtocol {
         return NativeSFTPDownloadStream(worker: worker, id: id, identity: identity)
     }
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
-    public init(keyboardInteractive: SSHKeyboardInteractiveHandler? = nil) {
+    private nonisolated let worker: SFTPWorker
+
+    public init(
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        logger: Logger = ApplicationLogger.disabled("termind.sftp")
+    ) {
         self.keyboardInteractive = keyboardInteractive
+        worker = SFTPWorker(logger: logger)
     }
-    private nonisolated let worker = SFTPWorker()
 
     public func connect(
         using configuration: SSHConnectionConfiguration,
@@ -569,6 +575,9 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
     private var keepaliveTimer: (any DispatchSourceTimer)?
     private var connectionFailure: (@Sendable (String) -> Void)?
     private var didReportConnectionFailure = false
+    private let logger: Logger
+
+    init(logger: Logger) { self.logger = logger }
 
     deinit { cleanup() }
 
@@ -577,11 +586,19 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
         progress: SSHRouteProgressHandler?,
         connectionFailure: (@Sendable (String) -> Void)? = nil
     ) async throws {
+        let operationID = UUID().uuidString.lowercased()
+        let hostID = request.configuration.hostID
+        logger.info(
+            "sftp.connect.started",
+            metadata: [
+                "host_id": RemoteLogging.hostID(hostID), "operation_id": "\(operationID)",
+                "protocol": "sftp", "stage": "connecting",
+            ])
         await queue.perform { self.cleanup() }
-        let opened = try await SSHSessionWorker.openAuthenticatedSession(
-            using: request, timeout: 20, progress: progress
-        )
         do {
+            let opened = try await SSHSessionWorker.openAuthenticatedSession(
+                using: request, timeout: 20, progress: progress, logger: logger
+            )
             try await queue.perform {
                 self.routeTransport = opened.transport
                 self.session = opened.session
@@ -596,8 +613,21 @@ private nonisolated final class SFTPWorker: @unchecked Sendable {
                 self.startKeepalive(for: session)
             }
             try Task.checkCancellation()
+            logger.info(
+                "sftp.connect.completed",
+                metadata: [
+                    "host_id": RemoteLogging.hostID(hostID), "operation_id": "\(operationID)",
+                    "outcome": "success", "protocol": "sftp", "stage": "connected",
+                ])
         } catch {
             await queue.perform { self.cleanup() }
+            logger.error(
+                "sftp.connect.failed",
+                metadata: [
+                    "error_code": RemoteLogging.errorCode(error), "host_id": RemoteLogging.hostID(hostID),
+                    "operation_id": "\(operationID)", "outcome": "failure", "protocol": "sftp",
+                    "stage": "connecting",
+                ])
             throw error
         }
     }

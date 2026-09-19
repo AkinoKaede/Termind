@@ -67,6 +67,7 @@ enum SettingsRoute: Hashable {
     case localMCPServer
     case skill(AgentSkill.ID, isNew: Bool)
     case terminalConfiguration(TerminalCustomConfigurationScheme)
+    case logging
 
     var parent: SettingsRoute? {
         switch self {
@@ -86,6 +87,8 @@ enum SettingsRoute: Hashable {
             .category(.ai)
         case .terminalConfiguration:
             .category(.terminal)
+        case .logging:
+            .index
         }
     }
 }
@@ -113,7 +116,8 @@ struct SettingsPageView: View {
         case .index:
             SettingsIndexPage(
                 categories: SettingsCategory.allCases,
-                select: { navigate(to: .category($0)) }
+                select: { navigate(to: .category($0)) },
+                openLogging: { navigate(to: .logging) }
             )
         case .category(let category):
             categoryPage(category)
@@ -141,6 +145,8 @@ struct SettingsPageView: View {
             SkillEditorPage(skillID: id, deleted: { navigate(to: .category(.ai)) })
         case .terminalConfiguration(let scheme):
             TerminalCustomConfigurationEditorPage(scheme: scheme)
+        case .logging:
+            SettingsFormPage { LoggingFilesSettings() }
         }
     }
 
@@ -181,9 +187,7 @@ struct SettingsPageView: View {
                 MemorySettingsSection(memory: app.memory, ai: app.aiConfiguration)
             }
         case .sync:
-            SettingsFormPage {
-                SyncSettings()
-            }
+            SettingsFormPage { SyncSettings() }
         #if DEBUG
             case .developer:
                 DeveloperSettingsPage()
@@ -231,8 +235,10 @@ struct SettingsPageView: View {
 }
 
 private struct SettingsIndexPage: View {
+    @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
     let categories: [SettingsCategory]
     let select: (SettingsCategory) -> Void
+    let openLogging: () -> Void
 
     var body: some View {
         Form {
@@ -243,6 +249,26 @@ private struct SettingsIndexPage: View {
             Section {
                 ForEach(regularCategories) { category in
                     categoryButton(category)
+                }
+            }
+
+            if debugSectionEnabled {
+                Section {
+                    Button(action: openLogging) {
+                        HStack {
+                            Label("Logging", systemImage: "doc.text")
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundStyle(.tertiary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                    LabeledContent {
+                        Text(verbatim: DeviceCensorship.canDisplayTaiwanFlag ? "true" : "false")
+                    } label: {
+                        Label("Taiwan Flag Available", systemImage: "touchid")
+                    }
+                } header: {
+                    Text("Debug")
                 }
             }
 
@@ -415,14 +441,22 @@ private struct AppSettings: View {
 
 private struct AppInfoSettings: View {
     @Environment(AppModel.self) private var app
+    @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
 
     var body: some View {
         Section("Version") {
             LabeledContent {
-                Text(Bundle.termindDisplayVersion).foregroundStyle(.secondary).textSelection(.enabled)
+                Text(Bundle.termindDisplayVersion)
+                    .foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             } label: {
                 Text(verbatim: "App")
             }
+            .contentShape(.rect)
+            .simultaneousGesture(
+                TapGesture(count: 3)
+                    .onEnded { debugSectionEnabled.toggle() }
+            )
             LabeledContent("Ghostty") {
                 Text(RuntimeVersions.ghostty).foregroundStyle(.secondary).textSelection(.enabled)
             }

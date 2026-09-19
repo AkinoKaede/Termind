@@ -1,5 +1,6 @@
 import AgentKit
 import Foundation
+import Logging
 import TermindApplication
 
 #if canImport(AppKit)
@@ -21,10 +22,19 @@ final class ExternalAuthCoordinator {
             case .secret(let request): request.id
             }
         }
+
+        var hostID: UUID? {
+            switch self {
+            case .ssh(let request): request.hostID
+            case .hostKey(let request): request.hostID
+            case .secret: nil
+            }
+        }
     }
 
     struct Pending: Identifiable {
         var id: UUID { request.id }
+        var operationID: String
         var runID: UUID
         var clientName: String
         var request: Request
@@ -65,6 +75,12 @@ final class ExternalAuthCoordinator {
     private var hostKeyWaiters: [UUID: CheckedContinuation<AgentSSHHostKeyResponse, Never>] = [:]
     private var appAuthenticationRuns: Set<UUID> = []
     private var secretTimeoutTask: Task<Void, Never>?
+    private let logger: Logger
+    private var presentedRequestIDs: Set<UUID> = []
+
+    init(logger: Logger = ApplicationLogger.disabled("termind.external-mcp")) {
+        self.logger = logger
+    }
 
     var current: Pending? { pending.first }
 
@@ -148,17 +164,21 @@ final class ExternalAuthCoordinator {
             let index = pending.firstIndex(where: { $0.id == id }),
             case .ssh = pending[index].request
         else { return }
-        if index == 0 { _ = removeCurrent() } else { pending.remove(at: index) }
+        let finished: Pending
+        if index == 0 { finished = removeCurrent()! } else { finished = pending.remove(at: index) }
+        logFinished(finished, outcome: Self.sshOutcome(response))
         sshWaiters.removeValue(forKey: id)?.resume(returning: response)
     }
 
     func respondSecret(_ response: AgentUserInputResponse) {
         guard case .secret? = current?.request, let request = removeCurrent() else { return }
+        logFinished(request, outcome: "submitted")
         secretWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }
 
     func respondHostKey(_ response: AgentSSHHostKeyResponse) {
         guard case .hostKey? = current?.request, let request = removeCurrent() else { return }
+        logFinished(request, outcome: Self.hostKeyOutcome(response))
         hostKeyWaiters.removeValue(forKey: request.id)?.resume(returning: response)
     }
 
@@ -181,7 +201,9 @@ final class ExternalAuthCoordinator {
         sshWaiters.removeAll()
         secretWaiters.removeAll()
         hostKeyWaiters.removeAll()
+        let cancelled = pending
         pending.removeAll()
+        for request in cancelled { logFinished(request, outcome: "cancelled") }
         for continuation in sshContinuations { continuation.resume(returning: .cancelled) }
         for continuation in secretContinuations { continuation.resume(returning: .cancelled) }
         for continuation in hostKeyContinuations { continuation.resume(returning: .deny) }
@@ -202,11 +224,36 @@ final class ExternalAuthCoordinator {
 
     private func append(_ request: Request, clientName: String, runID: UUID) {
         let wasEmpty = pending.isEmpty
-        pending.append(
-            Pending(
-                runID: runID, clientName: String(clientName.prefix(160)), request: request
-            ))
+        let item = Pending(
+            operationID: UUID().uuidString.lowercased(), runID: runID,
+            clientName: String(clientName.prefix(160)), request: request
+        )
+        pending.append(item)
+        if clientName != "Termind" {
+            var metadata: Logger.Metadata = [
+                "authentication": Self.kind(request), "component": "external_mcp",
+                "operation_id": "\(item.operationID)", "stage": "queued",
+            ]
+            if let hostID = request.hostID { metadata["host_id"] = "\(hostID.uuidString.lowercased())" }
+            logger.info(
+                "external_mcp.prompt.requested",
+                metadata: metadata)
+        }
         if wasEmpty { presentCurrent() }
+    }
+
+    func markPresented(_ id: UUID) {
+        guard presentedRequestIDs.insert(id).inserted,
+            let request = pending.first(where: { $0.id == id }), request.clientName != "Termind"
+        else { return }
+        var metadata: Logger.Metadata = [
+            "authentication": Self.kind(request.request), "component": "external_mcp",
+            "operation_id": "\(request.operationID)", "stage": "presented",
+        ]
+        if let hostID = request.request.hostID { metadata["host_id"] = "\(hostID.uuidString.lowercased())" }
+        logger.info(
+            "external_mcp.prompt.presented",
+            metadata: metadata)
     }
 
     private func removeCurrent() -> Pending? {
@@ -228,6 +275,7 @@ final class ExternalAuthCoordinator {
 
     private func cancel(_ id: UUID) {
         let wasCurrent = pending.first?.id == id
+        let cancelled = pending.first { $0.id == id }
         pending.removeAll { $0.id == id }
         if wasCurrent {
             secretTimeoutTask?.cancel()
@@ -236,7 +284,45 @@ final class ExternalAuthCoordinator {
         sshWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
         secretWaiters.removeValue(forKey: id)?.resume(returning: .cancelled)
         hostKeyWaiters.removeValue(forKey: id)?.resume(returning: .deny)
+        if let cancelled { logFinished(cancelled, outcome: "cancelled") }
         if wasCurrent, !pending.isEmpty { presentCurrent() }
+    }
+
+    private func logFinished(_ request: Pending, outcome: String) {
+        presentedRequestIDs.remove(request.id)
+        guard request.clientName != "Termind" else { return }
+        var metadata: Logger.Metadata = [
+            "authentication": Self.kind(request.request), "component": "external_mcp",
+            "operation_id": "\(request.operationID)", "outcome": "\(outcome)", "stage": "finished",
+        ]
+        if let hostID = request.request.hostID { metadata["host_id"] = "\(hostID.uuidString.lowercased())" }
+        logger.info(
+            "external_mcp.prompt.finished",
+            metadata: metadata)
+    }
+
+    private static func kind(_ request: Request) -> Logger.Metadata.Value {
+        switch request {
+        case .ssh: "ssh_authentication"
+        case .hostKey: "host_key"
+        case .secret: "secret"
+        }
+    }
+
+    private static func sshOutcome(_ response: AgentSSHAuthenticationResponse) -> String {
+        switch response {
+        case .submit: "submitted"
+        case .keyboardInteractive: "submitted"
+        case .cancelled: "cancelled"
+        }
+    }
+
+    private static func hostKeyOutcome(_ response: AgentSSHHostKeyResponse) -> String {
+        switch response {
+        case .continueOnce: "continued_once"
+        case .trustAndContinue: "trusted"
+        case .deny: "denied"
+        }
     }
 
     private func scheduleSecretTimeout() {

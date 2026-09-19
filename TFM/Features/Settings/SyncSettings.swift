@@ -9,7 +9,6 @@ struct SyncSettings: View {
     @AppStorage(SettingsKey.vaultSyncEnabled) private var includesVault = SettingsKey.defaultVaultSyncEnabled
     @AppStorage(SettingsKey.metricsSyncEnabled) private var includesMetrics = SettingsKey.defaultMetricsSyncEnabled
     @AppStorage(SettingsKey.settingsSyncEnabled) private var includesSettings = SettingsKey.defaultSettingsSyncEnabled
-
     private var isActive: Bool { isEnabled && app.proAccess.canUse(.vaultSync) }
 
     var body: some View {

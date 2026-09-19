@@ -24092,6 +24092,22 @@
         }
       }
     },
+    "Taiwan Flag Available" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "台湾旗帜可用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "台灣旗幟可用"
+          }
+        }
+      }
+    },
     "Terminal" : {
       "localizations" : {
         "zh-Hans" : {
@@ -29842,6 +29858,146 @@
             "value" : "編輯過的檔案尚未全部上傳。下次啟動時不會還原待上傳記錄。"
           }
         }
+      }
+    },
+    "Debug" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "调试" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "偵錯" } }
+      }
+    },
+    "Delete all logging files?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除所有日志文件？" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "刪除所有日誌檔案？" } }
+      }
+    },
+    "Delete All" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部删除" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "全部刪除" } }
+      }
+    },
+    "Delete this logging file?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除此日志文件？" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "刪除此日誌檔案？" } }
+      }
+    },
+    "Error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "错误" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "錯誤" } }
+      }
+    },
+    "Info" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "信息" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "資訊" } }
+      }
+    },
+    "Level" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "级别" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "等級" } }
+      }
+    },
+    "Log Level" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志级别" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌等級" } }
+      }
+    },
+    "Logging" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志记录" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌記錄" } }
+      }
+    },
+    "Logs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌" } }
+      }
+    },
+    "Logging may contain private diagnostic information. Review it before sharing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志可能包含私密诊断信息。分享前请先检查。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌可能包含私密診斷資訊。分享前請先檢查。" } }
+      }
+    },
+    "Logging may contain private diagnostic information. Review where you send or save it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志可能包含私密诊断信息。请确认发送或保存位置。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌可能包含私密診斷資訊。請確認傳送或儲存位置。" } }
+      }
+    },
+    "No Saved Logging" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有已保存的日志" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "沒有已儲存的日誌" } }
+      }
+    },
+    "No saved logging files." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有已保存的日志文件。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "沒有已儲存的日誌檔案。" } }
+      }
+    },
+    "Save Logging" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存日志" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "儲存日誌" } }
+      }
+    },
+    "Share Logging" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分享日志" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "分享日誌" } }
+      }
+    },
+    "The selected logging file is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所选日志文件无效。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "所選日誌檔案無效。" } }
+      }
+    },
+    "The selected logging file no longer exists." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所选日志文件已不存在。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "所選日誌檔案已不存在。" } }
+      }
+    },
+    "Trace" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "跟踪" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "追蹤" } }
+      }
+    },
+    "Warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "警告" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "警告" } }
       }
     },
     "Your terminal, with judgment." : {

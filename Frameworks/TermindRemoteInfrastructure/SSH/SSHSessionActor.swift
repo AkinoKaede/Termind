@@ -1,7 +1,7 @@
 import CSSH2
 import Darwin
 import Foundation
-import OSLog
+import Logging
 import TermindApplication
 import TermindDomain
 
@@ -566,11 +566,12 @@ public actor SSHSessionActor {
     public init(
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
         shellIntegration: @escaping ShellIntegrationHandler = { _ in },
-        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session")
     ) {
         self.keyboardInteractive = keyboardInteractive
         worker = SSHSessionWorker(
-            output: output, exit: exit, shellIntegrationHandler: shellIntegration
+            output: output, exit: exit, shellIntegrationHandler: shellIntegration, logger: logger
         )
     }
 
@@ -586,9 +587,10 @@ public actor SSHSessionActor {
     }
 
     public static func installAuthorizedKey(
-        _ publicKey: String, named keyName: String, using request: SSHConnectionRequest
+        _ publicKey: String, named keyName: String, using request: SSHConnectionRequest,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install")
     ) async throws {
-        try await SSHSessionWorker.installAuthorizedKey(publicKey, named: keyName, using: request)
+        try await SSHSessionWorker.installAuthorizedKey(publicKey, named: keyName, using: request, logger: logger)
     }
 
     public func connect(
@@ -648,7 +650,6 @@ public actor SSHSessionActor {
 }
 
 public nonisolated final class SSHSessionWorker: @unchecked Sendable {
-    private static let logger = Logger(subsystem: "com.akinokaede.termind", category: "SSH")
     private static let initialization: Void = {
         precondition(libssh2_init(0) == 0, "libssh2 initialization failed")
     }()
@@ -657,11 +658,13 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private let output: SSHSessionActor.OutputHandler
     private let exit: SSHSessionActor.ExitHandler
     private let shellIntegrationHandler: SSHSessionActor.ShellIntegrationHandler
+    private let logger: Logging.Logger
 
     private var socket: Int32 = -1
     private var routeTransport: SSHRoutedSocket?
     private var session: OpaquePointer?
     private var channel: OpaquePointer?
+    private var hostID: Host.ID?
     private var pumpTimer: (any DispatchSourceTimer)?
     private var pendingWrites = Data()
     private var ptyResize = SSHPTYResizeState()
@@ -672,12 +675,14 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     public init(
         output: @escaping SSHSessionActor.OutputHandler,
         exit: @escaping SSHSessionActor.ExitHandler,
-        shellIntegrationHandler: @escaping SSHSessionActor.ShellIntegrationHandler
+        shellIntegrationHandler: @escaping SSHSessionActor.ShellIntegrationHandler,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session")
     ) {
         _ = Self.initialization
         self.output = output
         self.exit = exit
         self.shellIntegrationHandler = shellIntegrationHandler
+        self.logger = logger
     }
 
     /// Opens a transport, handshakes, validates the host key, and authenticates —
@@ -690,9 +695,17 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     public static func openAuthenticatedSession(
         using configuration: SSHConnectionConfiguration,
         timeout: TimeInterval,
-        progress: SSHRouteProgressHandler? = nil
+        progress: SSHRouteProgressHandler? = nil,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-authentication")
     ) throws -> (transport: SSHRoutedSocket, session: OpaquePointer) {
         _ = initialization
+        let operationID = UUID().uuidString.lowercased()
+        logger.info(
+            "ssh.authentication.started",
+            metadata: [
+                "host_id": RemoteLogging.hostID(configuration.hostID), "operation_id": "\(operationID)",
+                "protocol": "ssh", "stage": "opening",
+            ])
         var transport: SSHRoutedSocket?
         var session: OpaquePointer?
         do {
@@ -722,14 +735,28 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             )
             try validateHostKey(observed, expected: configuration.expectedHostKeys)
             progress?(.authenticating(configuration.hostID))
-            try authenticate(
+            let authentication = try authenticate(
                 username: configuration.username,
                 credentials: configuration.credentials,
                 session: created
             )
             progress?(.authenticated(configuration.hostID))
+            logger.info(
+                "ssh.authentication.completed",
+                metadata: [
+                    "authentication": "\(authentication)", "host_id": RemoteLogging.hostID(configuration.hostID),
+                    "operation_id": "\(operationID)", "outcome": "success", "protocol": "ssh",
+                    "stage": "authenticated",
+                ])
             return (opened, created)
         } catch {
+            logger.error(
+                "ssh.authentication.failed",
+                metadata: [
+                    "error_code": RemoteLogging.errorCode(error),
+                    "host_id": RemoteLogging.hostID(configuration.hostID), "operation_id": "\(operationID)",
+                    "outcome": "failure", "protocol": "ssh", "stage": "authentication",
+                ])
             if let session { _ = libssh2_session_free(session) }
             transport?.close()
             throw error
@@ -739,10 +766,18 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     public static func openAuthenticatedSession(
         using request: SSHConnectionRequest,
         timeout: TimeInterval,
-        progress: SSHRouteProgressHandler? = nil
+        progress: SSHRouteProgressHandler? = nil,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-authentication")
     ) async throws -> SSHOpenedSession {
+        let operationID = UUID().uuidString.lowercased()
         let request = request.enforcingInteractionPolicy()
         let configuration = request.configuration
+        logger.info(
+            "ssh.authentication.started",
+            metadata: [
+                "host_id": RemoteLogging.hostID(configuration.hostID), "operation_id": "\(operationID)",
+                "protocol": "ssh", "stage": "opening",
+            ])
         let transport = try await SSHRoutedSocket.open(
             host: configuration.host, port: configuration.port,
             proxy: configuration.proxy, jumps: configuration.jumps,
@@ -769,15 +804,30 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                     authorizer: request.authorizeHostKey
                 )
                 try Task.checkCancellation()
-                try await queue.perform {
+                let authentication = try await queue.perform {
                     try state.authenticate(
                         configuration: configuration,
                         afterHostKeyApproval: requiredApproval,
                         progress: progress, keyboardInteractive: exchange
                     )
                 }
-                return try await queue.perform { try state.takeResult() }
+                let result = try await queue.perform { try state.takeResult() }
+                logger.info(
+                    "ssh.authentication.completed",
+                    metadata: [
+                        "authentication": "\(authentication)",
+                        "host_id": RemoteLogging.hostID(configuration.hostID), "operation_id": "\(operationID)",
+                        "outcome": "success", "protocol": "ssh", "stage": "authenticated",
+                    ])
+                return result
             } catch {
+                logger.error(
+                    "ssh.authentication.failed",
+                    metadata: [
+                        "error_code": RemoteLogging.errorCode(error),
+                        "host_id": RemoteLogging.hostID(configuration.hostID), "operation_id": "\(operationID)",
+                        "outcome": "failure", "protocol": "ssh", "stage": "authentication",
+                    ])
                 await queue.perform { state.cleanup() }
                 throw error
             }
@@ -790,11 +840,12 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
 
     public static func installAuthorizedKey(
         _ publicKey: String, named keyName: String,
-        using request: SSHConnectionRequest
+        using request: SSHConnectionRequest,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install")
     ) async throws {
         _ = initialization
         let input = try authorizedKeyInstallInput(publicKey: publicKey, keyName: keyName)
-        let opened = try await openAuthenticatedSession(using: request, timeout: 20)
+        let opened = try await openAuthenticatedSession(using: request, timeout: 20, logger: logger)
         let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.key-export")
         let interruption = SSHKeyExportInterruption(socket: opened.transport.socket)
         try await withTaskCancellationHandler {
@@ -927,7 +978,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
         do {
             let opened = try await Self.openAuthenticatedSession(
-                using: request, timeout: 20, progress: progress
+                using: request, timeout: 20, progress: progress, logger: logger
             )
             try await queue.perform { [self] in
                 guard ptyResize.generation == generation, let size = ptyResize.requestedSize else {
@@ -938,6 +989,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 routeTransport = opened.transport
                 socket = opened.transport.socket
                 session = opened.session
+                hostID = request.configuration.hostID
                 let created = opened.session
                 guard
                     let opened = libssh2_channel_open_ex(
@@ -1012,13 +1064,14 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     public static func authenticate(
         username: String, credentials: [SSHCredentials], session: OpaquePointer,
         keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1
-    ) throws {
+    ) throws -> String {
         var methods = try authenticationMethods(username: username, session: session)
         // Asking for the method list sends SSH's `none` authentication request.
         // Servers that need no credential accept it there and report the
         // session as authenticated without another userauth call.
-        if libssh2_userauth_authenticated(session) == 1 { return }
+        if libssh2_userauth_authenticated(session) == 1 { return "none" }
         var attempted = false
+        var lastMethod = "none"
         var secureEnclaveError: (any Error)?
         var remaining = credentials
         var attemptedInteractive = false
@@ -1036,14 +1089,15 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                 }
                 attempted = true
                 attemptedInteractive = true
+                lastMethod = "keyboard_interactive"
                 let result = Self.keyboardInteractive(
                     username: username, exchange: keyboardInteractive, session: session, socket: socket
                 )
                 try keyboardInteractive.checkCancellation()
                 if let error = keyboardInteractive.error { throw error }
-                if result == 0 { return }
+                if result == 0 { return lastMethod }
                 methods = try authenticationMethods(username: username, session: session)
-                if libssh2_userauth_authenticated(session) == 1 { return }
+                if libssh2_userauth_authenticated(session) == 1 { return lastMethod }
                 continue
             }
             try keyboardInteractive?.checkCancellation()
@@ -1052,6 +1106,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             case .password(let password):
                 if methods.contains("password") {
                     attempted = true
+                    lastMethod = "password"
                     let result = username.withCString { user in
                         password.withCString { password in
                             libssh2_userauth_password_ex(
@@ -1060,11 +1115,12 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                             )
                         }
                     }
-                    if result == 0 { return }
+                    if result == 0 { return lastMethod }
                 }
             case .privateKey(let privateKey, let publicKey, let passphrase):
                 guard methods.contains("publickey") else { continue }
                 attempted = true
+                lastMethod = "public_key"
                 let result = username.withCString { user in
                     privateKey.withCString { privateBuffer in
                         let call: (UnsafePointer<CChar>?) -> Int32 = { publicBuffer in
@@ -1086,7 +1142,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                         return publicKey?.withCString(call) ?? call(nil)
                     }
                 }
-                if result == 0 { return }
+                if result == 0 { return lastMethod }
             case .secureEnclave(let credential, let publicKey):
                 guard methods.contains("publickey") else { continue }
                 guard let publicBlob = SecureEnclaveKey.publicBlob(from: publicKey) else {
@@ -1096,6 +1152,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                     continue
                 }
                 attempted = true
+                lastMethod = "secure_enclave"
                 let signer = SecureEnclaveSigner(credential: credential)
                 var abstract: UnsafeMutableRawPointer? = Unmanaged.passUnretained(signer).toOpaque()
                 let result = username.withCString { user in
@@ -1110,11 +1167,11 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                         )
                     }
                 }
-                if result == 0 { return }
+                if result == 0 { return lastMethod }
                 secureEnclaveError = signer.error
             }
             methods = try authenticationMethods(username: username, session: session)
-            if libssh2_userauth_authenticated(session) == 1 { return }
+            if libssh2_userauth_authenticated(session) == 1 { return lastMethod }
         }
         if let secureEnclaveError {
             throw TermindSSHError.authenticationFailed(secureEnclaveError.localizedDescription)
@@ -1133,9 +1190,9 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         username: String, credentials: [SSHCredentials],
         session: OpaquePointer, afterHostKeyApproval: Bool,
         keyboardInteractive: SSHKeyboardInteractiveExchange? = nil, socket: Int32 = -1
-    ) throws {
+    ) throws -> String {
         do {
-            try authenticate(
+            return try authenticate(
                 username: username, credentials: credentials,
                 session: session, keyboardInteractive: keyboardInteractive, socket: socket
             )
@@ -1215,7 +1272,13 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             )
         }
         if resizeResult != 0, resizeResult != LIBSSH2_ERROR_EAGAIN {
-            Self.logger.error("PTY resize failed (libssh2 code: \(resizeResult))")
+            var metadata: Logger.Metadata = [
+                "error_code": "library", "protocol": "ssh", "stage": "pty_resize",
+            ]
+            if let hostID { metadata["host_id"] = RemoteLogging.hostID(hostID) }
+            logger.error(
+                "ssh.pty_resize.failed",
+                metadata: metadata)
             ptyResize.discardFailedRequest()
         }
         // Continue other I/O on EAGAIN: window-change may itself be waiting
@@ -1341,6 +1404,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         ptyResize.reset()
         shellIntegration = nil
         commandEventFilter = nil
+        hostID = nil
         if let channel {
             _ = libssh2_channel_send_eof(channel)
             _ = libssh2_channel_close(channel)
@@ -1534,10 +1598,10 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
         configuration: SSHConnectionConfiguration,
         afterHostKeyApproval: Bool,
         progress: SSHRouteProgressHandler?, keyboardInteractive: SSHKeyboardInteractiveExchange
-    ) throws {
+    ) throws -> String {
         guard let session else { throw TermindSSHError.disconnected }
         progress?(.authenticating(configuration.hostID))
-        try SSHSessionWorker.authenticate(
+        let authentication = try SSHSessionWorker.authenticate(
             username: configuration.username,
             credentials: configuration.credentials,
             session: session,
@@ -1545,6 +1609,7 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
             keyboardInteractive: keyboardInteractive, socket: transport?.socket ?? -1
         )
         progress?(.authenticated(configuration.hostID))
+        return authentication
     }
 
     func takeResult() throws -> SSHOpenedSession {

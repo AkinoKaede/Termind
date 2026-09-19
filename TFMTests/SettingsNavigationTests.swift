@@ -61,6 +61,7 @@ struct SettingsNavigationTests {
         #expect(SettingsRoute.mcpServer(serverID, isNew: false).parent == .category(.ai))
         #expect(SettingsRoute.localMCPServer.parent == .category(.ai))
         #expect(SettingsRoute.terminalConfiguration(.dark).parent == .category(.terminal))
+        #expect(SettingsRoute.logging.parent == .index)
     }
 
     @Test @MainActor

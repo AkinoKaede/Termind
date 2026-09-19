@@ -1,6 +1,7 @@
 import CSSH2
 import Darwin
 import Foundation
+import Logging
 import TermindApplication
 import TermindDomain
 
@@ -28,10 +29,11 @@ public actor SSHForwardingSession: SSHForwardingSessionProtocol {
 
     public init(
         connectionHandler: @escaping ConnectionHandler,
-        failureHandler: @escaping FailureHandler
+        failureHandler: @escaping FailureHandler,
+        logger: Logger = ApplicationLogger.disabled("termind.port-forwarding-session")
     ) {
         worker = SSHForwardingWorker(
-            connectionHandler: connectionHandler, failureHandler: failureHandler
+            connectionHandler: connectionHandler, failureHandler: failureHandler, logger: logger
         )
     }
 
@@ -110,6 +112,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     private let closingSockets = DispatchGroup()
     private let connectionHandler: SSHForwardingSession.ConnectionHandler
     private let failureHandler: SSHForwardingSession.FailureHandler
+    private let logger: Logger
     private var socket: Int32 = -1
     private var routeTransport: SSHRoutedSocket?
     private var session: OpaquePointer?
@@ -135,20 +138,30 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     init(
         connectionHandler: @escaping SSHForwardingSession.ConnectionHandler,
-        failureHandler: @escaping SSHForwardingSession.FailureHandler
+        failureHandler: @escaping SSHForwardingSession.FailureHandler,
+        logger: Logger
     ) {
         _ = Self.initialization
         self.connectionHandler = connectionHandler
         self.failureHandler = failureHandler
+        self.logger = logger
     }
 
     deinit { cleanup() }
 
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws {
+        let operationID = UUID().uuidString.lowercased()
+        let hostID = request.configuration.hostID
+        logger.info(
+            "forwarding.connect.started",
+            metadata: [
+                "host_id": RemoteLogging.hostID(hostID), "operation_id": "\(operationID)",
+                "protocol": "ssh", "stage": "connecting",
+            ])
         await disconnect()
-        let opened = try await SSHSessionWorker.openAuthenticatedSession(
-            using: request, timeout: 20, progress: progress)
         do {
+            let opened = try await SSHSessionWorker.openAuthenticatedSession(
+                using: request, timeout: 20, progress: progress, logger: logger)
             await queue.perform {
                 self.retiredStatistics = SSHForwardingStatistics()
                 self.routeTransport = opened.transport
@@ -160,47 +173,88 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                 self.startEvents()
             }
             try Task.checkCancellation()
+            logger.info(
+                "forwarding.connect.completed",
+                metadata: [
+                    "host_id": RemoteLogging.hostID(hostID), "operation_id": "\(operationID)",
+                    "outcome": "success", "protocol": "ssh", "stage": "connected",
+                ])
         } catch {
             await disconnect()
+            logger.error(
+                "forwarding.connect.failed",
+                metadata: [
+                    "error_code": RemoteLogging.errorCode(error), "host_id": RemoteLogging.hostID(hostID),
+                    "operation_id": "\(operationID)", "outcome": "failure", "protocol": "ssh",
+                    "stage": "connecting",
+                ])
             throw error
         }
     }
 
     func start(_ rule: PortForwardingRule, generation: UUID) async throws {
-        try await withCheckedThrowingContinuation { continuation in
-            queue.async { [self] in
-                do {
-                    guard session != nil else { throw TermindSSHError.disconnected }
-                    if rules[rule.id] != nil {
-                        continuation.resume()
-                        return
-                    }
-                    let context = RuleContext(rule: rule, generation: generation)
-                    switch rule.kind {
-                    case .local, .dynamic:
-                        do { context.socket = try makeListener(host: rule.bindHost, port: rule.bindPort) } catch {
-                            throw TermindSSHError.route(
-                                String(
-                                    localized: "Unable to listen on \(rule.bindAddress): \(error.localizedDescription)")
-                            )
+        let operationID = UUID().uuidString.lowercased()
+        logger.info(
+            "forwarding.start.started",
+            metadata: [
+                "forwarding_kind": RemoteLogging.forwardingKind(rule.kind),
+                "host_id": RemoteLogging.hostID(rule.hostID), "operation_id": "\(operationID)",
+                "protocol": "ssh", "stage": "starting",
+            ])
+        do {
+            try await withCheckedThrowingContinuation { continuation in
+                queue.async { [self] in
+                    do {
+                        guard session != nil else { throw TermindSSHError.disconnected }
+                        if rules[rule.id] != nil {
+                            continuation.resume()
+                            return
                         }
-                        context.events = SSHSocketEvents(socket: context.socket, queue: queue) {
-                            [weak self, weak context] in
-                            guard let self, let context, !context.stopped else { return }
-                            self.acceptLocal(context)
+                        let context = RuleContext(rule: rule, generation: generation)
+                        switch rule.kind {
+                        case .local, .dynamic:
+                            do { context.socket = try makeListener(host: rule.bindHost, port: rule.bindPort) } catch {
+                                throw TermindSSHError.route(
+                                    String(
+                                        localized:
+                                            "Unable to listen on \(rule.bindAddress): \(error.localizedDescription)")
+                                )
+                            }
+                            context.events = SSHSocketEvents(socket: context.socket, queue: queue) {
+                                [weak self, weak context] in
+                                guard let self, let context, !context.stopped else { return }
+                                self.acceptLocal(context)
+                            }
+                            context.events?.update(read: true, write: false)
+                            rules[rule.id] = context
+                            report(context)
+                            continuation.resume()
+                        case .remote:
+                            context.start = continuation
+                            rules[rule.id] = context
+                            pendingListeners.append(context)
+                            schedulePump()
                         }
-                        context.events?.update(read: true, write: false)
-                        rules[rule.id] = context
-                        report(context)
-                        continuation.resume()
-                    case .remote:
-                        context.start = continuation
-                        rules[rule.id] = context
-                        pendingListeners.append(context)
-                        schedulePump()
-                    }
-                } catch { continuation.resume(throwing: error) }
+                    } catch { continuation.resume(throwing: error) }
+                }
             }
+            logger.info(
+                "forwarding.start.completed",
+                metadata: [
+                    "forwarding_kind": RemoteLogging.forwardingKind(rule.kind),
+                    "host_id": RemoteLogging.hostID(rule.hostID), "operation_id": "\(operationID)",
+                    "outcome": "success", "protocol": "ssh", "stage": "running",
+                ])
+        } catch {
+            logger.error(
+                "forwarding.start.failed",
+                metadata: [
+                    "error_code": RemoteLogging.errorCode(error),
+                    "forwarding_kind": RemoteLogging.forwardingKind(rule.kind),
+                    "host_id": RemoteLogging.hostID(rule.hostID), "operation_id": "\(operationID)",
+                    "outcome": "failure", "protocol": "ssh", "stage": "starting",
+                ])
+            throw error
         }
     }
 

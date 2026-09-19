@@ -1,8 +1,10 @@
 import SwiftUI
+import TermindApplication
 
 struct MobileSettingsView: View {
     let app: MobileAppModel
     var reviewScene: MobileSceneModel? = nil
+    @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
 
     var body: some View {
         Form {
@@ -34,6 +36,22 @@ struct MobileSettingsView: View {
                     MobileSyncSettingsView(app: app)
                 } label: {
                     Label("Sync", systemImage: "icloud")
+                }
+            }
+            if debugSectionEnabled {
+                Section {
+                    NavigationLink {
+                        MobileLoggingView(logging: app.logging)
+                    } label: {
+                        Label("Logging", systemImage: "doc.text")
+                    }
+                    LabeledContent {
+                        Text(verbatim: DeviceCensorship.canDisplayTaiwanFlag ? "true" : "false")
+                    } label: {
+                        Label("Taiwan Flag Available", systemImage: "touchid")
+                    }
+                } header: {
+                    Text("Debug")
                 }
             }
         }

@@ -70,6 +70,8 @@ struct SettingsWindowTitleProvider: WindowTitleProviding {
             return AppLocalization.string("Skill", locale: locale)
         case .terminalConfiguration(let scheme):
             return scheme.title
+        case .logging:
+            return AppLocalization.string("Logging", locale: locale)
         }
     }
 }

@@ -63,6 +63,7 @@ final class MobileAppModel {
     let metrics: MobileMetricsModel
     let pro: ProAccessController
     let appReview: AppReviewController
+    let logging: any ApplicationLogManaging
     let liveActivities: MobileLiveActivityController
     @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
     private let defaults: UserDefaults?
@@ -104,12 +105,14 @@ final class MobileAppModel {
         let defaults = dependencies.defaults
         let background = dependencies.background
         let workspaceConnectionServices = dependencies.workspaceConnections
+        let connectionCoordinator = dependencies.connectionCoordinator
         self.background = background
         self.workspaceConnectionServices = workspaceConnectionServices
         workspaceStore =
             dependencies.workspaceStore
             ?? MobileWorkspaceStore(defaults: inMemory || hosts != nil ? nil : defaults)
         appReview = dependencies.appReview
+        logging = dependencies.logging
         let memoryOnly = inMemory || hosts != nil
         let storeURL = URL.applicationSupportDirectory.appending(path: "Termind.store")
         if !memoryOnly {
@@ -180,10 +183,12 @@ final class MobileAppModel {
             repository: MemoryIndexedAgentRepository(
                 base: SwiftDataAgentRunRepository(context: ModelContext(container)), memory: memory),
             memory: memory,
-            hostServices: AgentHostServices.live(store: library), metrics: metrics.core, skills: skills,
+            hostServices: AgentHostServices.live(store: library, coordinator: connectionCoordinator),
+            metrics: metrics.core, skills: skills,
             authorize: { [pro] in pro.require(.assistant) },
             speech: speech,
-            attachmentLoader: .live
+            attachmentLoader: .live,
+            logger: logging.makeLogger(label: "termind.agent")
         )
         credentials = CredentialLibraryModel(library: library)
         snippets = SnippetLibraryModel(library: library)
@@ -191,7 +196,7 @@ final class MobileAppModel {
         forwardingLibrary = ForwardingLibraryModel(library: library)
         forwardings = dependencies.makeForwardings(library)
         transfers = SFTPTransferCoordinator(
-            store: library, clientFactory: { SFTPClient() },
+            store: library, clientFactory: { connectionCoordinator.makeSFTPClient() },
             globalLimit: sftpSettings.preferences.globalLimit, perHostLimit: sftpSettings.preferences.perHostLimit)
         sftpEdits = SFTPEditService(transfers: transfers, host: { [weak library] in library?.host($0) })
         library.willDeleteHost = { [weak sftpEdits, weak forwardings] hostID, _ in

@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import TermindApplication
 import TermindDomain
 
@@ -85,6 +86,7 @@ public final class PortForwardingController {
 
     private let hosts: HostLibraryModel
     private let makeSession: SessionFactory
+    private let logger: Logger
     private let makeReconnectController: @MainActor () -> SessionReconnectController
     public private(set) var states: [PortForwardingRule.ID: PortForwardingRuntimeState] = [:]
     private var connections: [Host.ID: PortForwardingConnection] = [:]
@@ -96,16 +98,20 @@ public final class PortForwardingController {
 
     public init(
         hosts: HostLibraryModel,
-        makeSession: @escaping SessionFactory = {
-            SSHForwardingSession(connectionHandler: $0, failureHandler: $1)
-        },
+        logger: Logger = ApplicationLogger.disabled("termind.port-forwarding"),
+        makeSession: SessionFactory? = nil,
         makeReconnectController: @escaping @MainActor () -> SessionReconnectController = {
             SessionReconnectController()
         }
     ) {
         self.hosts = hosts
+        self.logger = logger
         self.makeReconnectController = makeReconnectController
-        self.makeSession = makeSession
+        self.makeSession =
+            makeSession
+            ?? {
+                SSHForwardingSession(connectionHandler: $0, failureHandler: $1, logger: logger)
+            }
     }
 
     public func state(for id: PortForwardingRule.ID) -> PortForwardingRuntimeState { states[id] ?? .stopped }
@@ -115,6 +121,13 @@ public final class PortForwardingController {
         guard !state(for: id).isActive, let rule = hosts.portForwarding(id), rule.isValid,
             let host = hosts.host(rule.hostID)
         else { return }
+        logger.info(
+            "forwarding.requested",
+            metadata: [
+                "forwarding_kind": RemoteLogging.forwardingKind(rule.kind),
+                "host_id": RemoteLogging.hostID(rule.hostID),
+                "operation_id": "\(UUID().uuidString.lowercased())", "stage": "requested",
+            ])
         let context: PortForwardingConnection
         if let existing = connections[host.id], !activeIDs(existing).isEmpty {
             context = existing

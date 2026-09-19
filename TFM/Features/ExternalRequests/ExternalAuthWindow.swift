@@ -76,11 +76,13 @@ struct ExternalAuthWindow: View {
             isClosingAfterIdle = false
             displayedRequestID = pending?.id
             displayedPending = pending
+            if let id = pending?.id { app.externalAuthentication.markPresented(id) }
         }
         .onChange(of: pending?.id, initial: true) {
             if !isClosingAfterIdle, let pending {
                 displayedRequestID = pending.id
                 displayedPending = pending
+                app.externalAuthentication.markPresented(pending.id)
             }
             updateIdleDismissal()
         }

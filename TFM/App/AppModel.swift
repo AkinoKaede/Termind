@@ -64,6 +64,7 @@ final class AppModel {
     let appReview: AppReviewController
     let serverMetrics: ServerMetricsModel
     let windowSizeStore: MainWindowSizeStore
+    let logging: any ApplicationLogManaging
     @ObservationIgnored lazy var mainWindows = MainWindowCoordinator(app: self, sizes: windowSizeStore)
     let connections: RemoteConnectionCoordinator
     let serialPorts: any SerialPortServing
@@ -136,7 +137,9 @@ final class AppModel {
     ) {
         self.windowSizeStore = windowSizeStore
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
-        let externalAuthentication = ExternalAuthCoordinator()
+        logging = dependencies.logging
+        let externalAuthentication = ExternalAuthCoordinator(
+            logger: logging.makeLogger(label: "termind.external-mcp"))
         self.externalAuthentication = externalAuthentication
         let connectionCoordinator = dependencies.connectionCoordinator.withKeyboardInteractive(
             externalAuthentication.keyboardInteractive)
@@ -174,7 +177,8 @@ final class AppModel {
         vaultSync = dependencies.vaultSync
         settingsSync = dependencies.settingsSync
         metricsSync = dependencies.metricsSync
-        forwarding = PortForwardingController(hosts: hosts)
+        forwarding = PortForwardingController(
+            hosts: hosts, logger: dependencies.logging.makeLogger(label: "termind.port-forwarding"))
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
             clientFactory: { connectionCoordinator.makeSFTPClient() },
@@ -338,7 +342,8 @@ final class AppModel {
         title: { [weak self] context in
             guard let self else { throw CancellationError() }
             return try await conversationTitles.summarize(context)
-        })
+        },
+        logger: logging.makeLogger(label: "termind.agent"))
 
     func sendAgentDraft(
         _ conversation: ConversationModel, context: SessionContext = .none,

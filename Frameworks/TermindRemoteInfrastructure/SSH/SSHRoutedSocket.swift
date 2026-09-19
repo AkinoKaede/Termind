@@ -212,7 +212,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
             )
             try SSHSessionWorker.validateHostKey(observed, expected: hop.expectedHostKeys)
             progress?(.authenticating(hop.id))
-            try SSHSessionWorker.authenticate(
+            _ = try SSHSessionWorker.authenticate(
                 username: hop.username, credentials: hop.credentials, session: session
             )
             progress?(.authenticated(hop.id))
@@ -314,7 +314,7 @@ private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
         keyboardInteractive.setHop(hop)
         guard let session = pendingSession else { throw TermindSSHError.disconnected }
         progress?(.authenticating(hop.id))
-        try SSHSessionWorker.authenticate(
+        _ = try SSHSessionWorker.authenticate(
             username: hop.username, credentials: hop.credentials,
             session: session,
             afterHostKeyApproval: afterHostKeyApproval,

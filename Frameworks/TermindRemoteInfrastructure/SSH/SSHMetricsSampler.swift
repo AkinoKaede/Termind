@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
@@ -7,12 +8,24 @@ import struct TermindDomain.Host
 
 public actor SSHMetricsSampler: MetricsSampling {
     private let session: any SSHExecSessionProtocol
+    private let logger: Logger
+    private var hostID: UUID?
 
-    public init(session: any SSHExecSessionProtocol) { self.session = session }
+    public init(
+        session: any SSHExecSessionProtocol,
+        hostID: UUID? = nil,
+        logger: Logger = ApplicationLogger.disabled("termind.metrics")
+    ) {
+        self.session = session
+        self.hostID = hostID
+        self.logger = logger
+    }
     public func connect(_ configuration: SSHConnectionConfiguration) async throws {
+        hostID = configuration.hostID
         try await session.connect(using: configuration)
     }
     public func connect(_ request: SSHConnectionRequest) async throws {
+        hostID = request.configuration.hostID
         try await session.connect(using: request)
     }
     public func disconnect() async { await session.disconnect() }
@@ -22,10 +35,21 @@ public actor SSHMetricsSampler: MetricsSampling {
             Self.command, workingDirectory: nil, stdin: nil, timeout: 8,
             outputLimit: 262_144, onOutput: nil
         )
+        var metadata = primarySampleMetadata(result.stdout)
+        metadata["outcome"] = "collected"
+        logger.info("metrics.sample.collected", metadata: metadata)
         guard result.exitCode != 42 else { throw MetricsReadError.unsupported }
-        guard result.exitCode == 0, !result.stdoutTruncated else { throw MetricsReadError.output }
+        guard result.exitCode == 0, !result.stdoutTruncated else {
+            if result.stdoutTruncated {
+                logInvalidPrimarySample(result.stdout, event: "metrics.sample.oversized")
+            }
+            throw MetricsReadError.output
+        }
         let sample = LinuxMetricsParser.parse(result.stdout)
-        guard sample.uptime != nil else { throw MetricsReadError.output }
+        guard sample.uptime != nil else {
+            logInvalidPrimarySample(result.stdout, event: "metrics.sample.incomplete")
+            throw MetricsReadError.output
+        }
         return sample
     }
 
@@ -100,6 +124,74 @@ public actor SSHMetricsSampler: MetricsSampling {
         printf '__TERMIND_TCP__\\n'; cat /proc/net/snmp 2>/dev/null
         exit 0
         """
+
+    private func logInvalidPrimarySample(_ payload: String, event: Logger.Message) {
+        let sanitized = Self.redactingAddresses(in: payload)
+        var metadata = primarySampleMetadata(payload)
+        metadata["metrics_payload"] = "\(sanitized)"
+        metadata["metrics_payload_truncated"] = "\(payload.utf8.count > 8 * 1_024)"
+        metadata["outcome"] = "failure"
+        logger.error(event, metadata: metadata)
+    }
+
+    private func primarySampleMetadata(_ payload: String) -> Logger.Metadata {
+        var metadata: Logger.Metadata = [
+            "metrics_payload_bytes": "\(payload.utf8.count)",
+            "protocol": "ssh",
+            "stage": "metrics_collection",
+        ]
+        if let hostID { metadata["host_id"] = "\(hostID.uuidString.lowercased())" }
+        for (key, byteCount) in Self.componentByteCounts(in: payload) {
+            metadata[key] = "\(byteCount)"
+        }
+        return metadata
+    }
+
+    private static let componentMarkers: [(marker: String, metadataKey: String)] = [
+        ("__TERMIND_UPTIME__", "metrics_uptime_bytes"),
+        ("__TERMIND_CPU__", "metrics_cpu_bytes"),
+        ("__TERMIND_LOAD__", "metrics_load_bytes"),
+        ("__TERMIND_MEMORY__", "metrics_memory_bytes"),
+        ("__TERMIND_DISKS__", "metrics_disks_bytes"),
+        ("__TERMIND_BLOCKS__", "metrics_blocks_bytes"),
+        ("__TERMIND_NETWORK__", "metrics_network_bytes"),
+        ("__TERMIND_INTERFACES__", "metrics_interfaces_bytes"),
+        ("__TERMIND_ADDRESSES__", "metrics_addresses_bytes"),
+        ("__TERMIND_TCP__", "metrics_tcp_bytes"),
+    ]
+
+    private static func componentByteCounts(in payload: String) -> [String: Int] {
+        var result: [String: Int] = [:]
+        for (index, component) in componentMarkers.enumerated() {
+            guard let markerRange = payload.range(of: component.marker) else {
+                result[component.metadataKey] = 0
+                continue
+            }
+            var contentStart = markerRange.upperBound
+            if contentStart < payload.endIndex, payload[contentStart] == "\n" {
+                contentStart = payload.index(after: contentStart)
+            }
+            var contentEnd = payload.endIndex
+            for nextComponent in componentMarkers.dropFirst(index + 1) {
+                if let next = payload[contentStart...].range(of: nextComponent.marker) {
+                    contentEnd = next.lowerBound
+                    break
+                }
+            }
+            result[component.metadataKey] = payload[contentStart..<contentEnd].utf8.count
+        }
+        return result
+    }
+
+    private static func redactingAddresses(in payload: String) -> String {
+        guard let start = payload.range(of: "__TERMIND_ADDRESSES__") else { return payload }
+        let suffix = payload[start.upperBound...]
+        guard let end = suffix.range(of: "__TERMIND_TCP__") else {
+            return String(payload[..<start.lowerBound]) + "__TERMIND_ADDRESSES__\n[redacted]\n"
+        }
+        return String(payload[..<start.lowerBound]) + "__TERMIND_ADDRESSES__\n[redacted]\n"
+            + String(suffix[end.lowerBound...])
+    }
 }
 
 public final class MetricsPreferences: MetricsConfigurationStoring {
@@ -116,6 +208,8 @@ public final class MetricsPreferences: MetricsConfigurationStoring {
 }
 
 nonisolated extension RemoteConnectionCoordinator {
-    public func makeMetricsSampler() -> any MetricsSampling { SSHMetricsSampler(session: makeExecSession()) }
+    public func makeMetricsSampler() -> any MetricsSampling {
+        SSHMetricsSampler(session: makeExecSession(), logger: logger)
+    }
 
 }

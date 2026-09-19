@@ -78,6 +78,12 @@
 		F996BFD771BC77E67AB91FFB /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		FACB579B671967F922A33CD9 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
 		FB01141D5DD3036A40889B76 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
+		LOGG00000000000000000101 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
+		LOGG00000000000000000102 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
+		LOGG00000000000000000103 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
+		LOGG00000000000000000104 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
+		LOGG00000000000000000105 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
+		LOGG00000000000000000106 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
 		TRMD00000000000000030001 /* termind-mcp in Embed MCP Bridge */ = {isa = PBXBuildFile; fileRef = TRMD00000000000000030002 /* termind-mcp */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		TRMD00000000000000100002 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
 		TRMD00000000000000100003 /* GhosttyTheme in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100013 /* GhosttyTheme */; };
@@ -578,6 +584,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				LOGG00000000000000000101 /* Logging in Frameworks */,
 				38462C442F34CFDE6FF4661D /* AgentKit in Frameworks */,
 				EF2F88E4809C845C3F1BBF63 /* TermindDomain.framework in Frameworks */,
 			);
@@ -587,6 +594,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				LOGG00000000000000000103 /* Logging in Frameworks */,
 				ABCDEF020000000000000002 /* AgentKitScrubber in Frameworks */,
 				0C77A0D7A810A78DA1F6CD93 /* CSSH2 in Frameworks */,
 				0D54DF6508C7918D7D5B9D5A /* OpenSSL in Frameworks */,
@@ -600,6 +608,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				LOGG00000000000000000105 /* Logging in Frameworks */,
 				BAAD00000000000000000011 /* GRDB in Frameworks */,
 				AA1300000000000000000001 /* ListViewKit in Frameworks */,
 				C4AD00000000000000000002 /* MarkdownView in Frameworks */,
@@ -621,6 +630,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				LOGG00000000000000000102 /* Logging in Frameworks */,
 				ABCDEF020000000000000001 /* ZIPFoundation in Frameworks */,
 				ABCDEF010000000000000001 /* TermindPersistence.framework in Frameworks */,
 				7DE0BDBF5E7A76602DDD443D /* TermindDomain.framework in Frameworks */,
@@ -659,6 +669,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				LOGG00000000000000000106 /* Logging in Frameworks */,
 				BAAD00000000000000000012 /* GRDB in Frameworks */,
 				AA1200000000000000000010 /* MarkdownView in Frameworks */,
 				AA1200000000000000000013 /* TermindPresentation.framework in Frameworks */,
@@ -683,6 +694,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				LOGG00000000000000000104 /* Logging in Frameworks */,
 				BAAD00000000000000000010 /* GRDB in Frameworks */,
 				26C689ECB8B41A357765CCF1 /* TermindRemoteInfrastructure.framework in Frameworks */,
 				08620C447AFE3884EA26ADCC /* TermindPresentation.framework in Frameworks */,
@@ -818,6 +830,7 @@
 			);
 			name = TFI;
 			packageProductDependencies = (
+				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
 				TRMD00000000000000100018 /* ListViewKit */,
 				TRMD00000000000000100017 /* MarkdownView */,
@@ -855,6 +868,7 @@
 			);
 			name = FrameworkTests;
 			packageProductDependencies = (
+				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
 				TRMD0000000000000010001B /* AgentKit */,
 				TRMD00000000000000100017 /* MarkdownView */,
@@ -909,6 +923,7 @@
 			);
 			name = TermindApplication;
 			packageProductDependencies = (
+				LOGG00000000000000000002 /* Logging */,
 				TRMD0000000000000010001B /* AgentKit */,
 			);
 			productName = TermindApplication;
@@ -935,6 +950,7 @@
 			);
 			name = TermindInfrastructure;
 			packageProductDependencies = (
+				LOGG00000000000000000002 /* Logging */,
 				TRMD00000000000000100015 /* ZIPFoundation */,
 			);
 			productName = TermindInfrastructure;
@@ -1009,6 +1025,7 @@
 			);
 			name = TermindRemoteInfrastructure;
 			packageProductDependencies = (
+				LOGG00000000000000000002 /* Logging */,
 				TRMD0000000000000010001C /* AgentKitScrubber */,
 				TRMD00000000000000100011 /* CSSH2 */,
 				TRMD00000000000000100014 /* OpenSSL */,
@@ -1102,6 +1119,7 @@
 			);
 			name = TFM;
 			packageProductDependencies = (
+				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
 				TRMD0000000000000010001B /* AgentKit */,
 				TRMD0000000000000010001C /* AgentKitScrubber */,
@@ -1229,6 +1247,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
+				LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */,
 				TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */,
 				TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */,
 				TRMD00000000000000100028 /* XCRemoteSwiftPackageReference "GlyphixTextFx" */,
@@ -2598,6 +2617,14 @@
 				version = 7.11.1;
 			};
 		};
+		LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-log.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.15.1;
+			};
+		};
 		TRMD00000000000000100021 /* XCRemoteSwiftPackageReference "libssh2-spm" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Lakr233/libssh2-spm.git";
@@ -2669,6 +2696,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
+		};
+		LOGG00000000000000000002 /* Logging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */;
+			productName = Logging;
 		};
 		TRMD00000000000000100011 /* CSSH2 */ = {
 			isa = XCSwiftPackageProductDependency;

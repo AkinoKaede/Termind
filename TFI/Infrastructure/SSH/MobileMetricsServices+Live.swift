@@ -2,6 +2,10 @@ import TermindRemoteInfrastructure
 
 extension MobileMetricsServices {
     static var live: MobileMetricsServices {
-        MobileMetricsServices(makeSampler: { SSHMetricsSampler(session: SSHExecSession()) })
+        live(coordinator: RemoteConnectionCoordinator())
+    }
+
+    static func live(coordinator: RemoteConnectionCoordinator) -> MobileMetricsServices {
+        MobileMetricsServices(makeSampler: { coordinator.makeMetricsSampler() })
     }
 }

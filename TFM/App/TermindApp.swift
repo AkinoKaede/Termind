@@ -86,6 +86,10 @@ struct TermindApp: App {
                 isRunningTests
                 ? .unrestrictedForTesting()
                 : .live()
+            let logging: any ApplicationLogManaging =
+                isRunningTests ? DisabledApplicationLogManager.shared : LaunchFileLogService()
+            let connectionCoordinator = RemoteConnectionCoordinator(
+                logger: logging.makeLogger(label: "termind.remote-connection"))
             _app = State(
                 initialValue: AppModel(
                     hosts: hosts,
@@ -111,12 +115,14 @@ struct TermindApp: App {
                     dependencies: AppDependencies(
                         hostRepository: repository,
                         outboxRunner: outboxRunner,
+                        connectionCoordinator: connectionCoordinator,
                         agentRunRepository: SwiftDataAgentRunRepository(
                             context: container.mainContext
                         ),
                         vaultSync: vaultSync, settingsSync: settingsSync,
                         metricsSync: metricsSync, metricsPreferences: metricsPersistence,
-                        mcpServerSecrets: secrets
+                        mcpServerSecrets: secrets,
+                        logging: logging
                     ),
                     proAccess: proAccess,
                     appReview: .live(),

@@ -5,6 +5,7 @@ struct MobileAppSettingsView: View {
     var appReview: AppReviewController?
     var reviewScene: MobileSceneModel?
     @AppStorage("mobile.appearance") private var appearance = "system"
+    @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
 
     var body: some View {
         Form {
@@ -18,7 +19,10 @@ struct MobileAppSettingsView: View {
             Section("Version") {
                 LabeledContent(
                     "App",
-                    value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0")
+                    value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
+                )
+                .contentShape(Rectangle())
+                .onTapGesture(count: 3) { debugSectionEnabled.toggle() }
                 LabeledContent("Ghostty", value: MobileRuntimeVersions.ghostty)
                 LabeledContent("libssh2", value: MobileRuntimeVersions.libssh2)
                 LabeledContent("OpenSSL", value: MobileRuntimeVersions.openSSL)

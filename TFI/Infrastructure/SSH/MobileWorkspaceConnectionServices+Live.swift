@@ -3,7 +3,10 @@ import TermindRemoteInfrastructure
 
 extension MobileWorkspaceConnectionServices {
     static var live: MobileWorkspaceConnectionServices {
-        let coordinator = RemoteConnectionCoordinator()
+        live(coordinator: RemoteConnectionCoordinator())
+    }
+
+    static func live(coordinator: RemoteConnectionCoordinator) -> MobileWorkspaceConnectionServices {
         return MobileWorkspaceConnectionServices(
             makeSSHSession: { output, exit, shellIntegration in
                 coordinator.makeSSHSession(output: output, exit: exit, shellIntegration: shellIntegration)

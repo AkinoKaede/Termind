@@ -2,6 +2,11 @@ import Foundation
 import TermindDomain
 
 public nonisolated enum SettingsKey {
+    // Debug visibility and logging are device-local and never included in Settings sync.
+    public static let debugSectionEnabled = "debug.section.enabled"
+    public static let loggingSavingEnabled = "debug.logging.savingEnabled"
+    public static let loggingLevel = "debug.logging.level"
+
     // Device-local review invitation history; never included in Settings sync.
     public static let reviewFirstUse = "app.review.firstUse"
     public static let reviewActiveDays = "app.review.activeDays"

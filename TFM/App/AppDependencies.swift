@@ -19,6 +19,7 @@ struct AppDependencies {
     let vaultSync: VaultSyncCoordinator?
     let metricsPreferences: (any MetricsConfigurationStoring)?
     let mcpServerSecrets: any SecretStoring
+    let logging: any ApplicationLogManaging
 
     init(
         hostRepository: any HostRepository, outboxRunner: OutboxRunner?,
@@ -29,7 +30,8 @@ struct AppDependencies {
         settingsSync: SettingsSyncCoordinator? = nil,
         metricsSync: MetricsSyncCoordinator? = nil,
         metricsPreferences: (any MetricsConfigurationStoring)? = nil,
-        mcpServerSecrets: any SecretStoring = InMemorySecretStore()
+        mcpServerSecrets: any SecretStoring = InMemorySecretStore(),
+        logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared
     ) {
         self.hostRepository = hostRepository
         self.outboxRunner = outboxRunner
@@ -41,6 +43,7 @@ struct AppDependencies {
         self.metricsSync = metricsSync
         self.metricsPreferences = metricsPreferences
         self.mcpServerSecrets = mcpServerSecrets
+        self.logging = logging
     }
 
     static func inMemory(hosts: [Host], groups: [HostGroup]) -> Self {

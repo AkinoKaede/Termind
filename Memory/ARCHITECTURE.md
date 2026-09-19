@@ -132,6 +132,20 @@ it. Login launch reflects `SMAppService` on each Settings visit, with no mirrore
 login hides the app without suppressing its window. macOS owns in-app language selection; mobile
 uses Apple's per-app Settings with no stored/injected locale override.
 
+Debug visibility and Logging preferences are device-local UserDefaults and never participate in
+Settings sync. Both apps reveal the Debug section on the Settings index, immediately after Sync, by
+triple-tapping the App version; on macOS it remains immediately before the Developer section.
+Application and remote business objects receive SwiftLog `Logger` values through their constructors;
+Termind never installs a process-global SwiftLog bootstrap. Infrastructure owns one lock-protected
+writer shared by every logger label: saving defaults off, and when enabled one file is used for the
+entire app launch. Disabling preserves and closes it; re-enabling resumes it; deletion recreates the
+current empty launch file only while saving remains enabled. Files have no retention policy and are
+exported or deleted without an in-app content viewer. Debug builds also emit the same sanitized lines
+to stderr. Logged events and fields are stable English codes; each business-layer logging call supplies
+only non-sensitive workflow metadata, never credentials, prompts, user/host/address/port/path identities,
+remote output, process names or raw errors. Primary Metrics samples always log received byte size; their capped diagnostic
+payload is logged only for incomplete or oversized samples, with the address section redacted.
+
 ## Remote sessions, terminal, and files
 
 ### Connection and authentication

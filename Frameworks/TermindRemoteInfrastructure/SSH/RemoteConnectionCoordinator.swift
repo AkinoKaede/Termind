@@ -1,4 +1,5 @@
 import Foundation
+import Logging
 import TermindApplication
 import TermindDomain
 
@@ -7,15 +8,20 @@ import TermindDomain
 /// infrastructure clients in views.
 public nonisolated final class RemoteConnectionCoordinator: Sendable {
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
+    let logger: Logger
 
-    public init(keyboardInteractive: SSHKeyboardInteractiveHandler? = nil) {
+    public init(
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        logger: Logger = ApplicationLogger.disabled("termind.remote-connection")
+    ) {
         self.keyboardInteractive = keyboardInteractive
+        self.logger = logger
     }
 
     public func withKeyboardInteractive(_ handler: @escaping SSHKeyboardInteractiveHandler)
         -> RemoteConnectionCoordinator
     {
-        RemoteConnectionCoordinator(keyboardInteractive: handler)
+        RemoteConnectionCoordinator(keyboardInteractive: handler, logger: logger)
     }
     public func makeSSHSession(
         output: @escaping SSHSessionActor.OutputHandler,
@@ -23,14 +29,17 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         shellIntegration: @escaping SSHSessionActor.ShellIntegrationHandler = { _ in }
     ) -> SSHSessionActor {
         SSHSessionActor(
-            output: output, exit: exit, shellIntegration: shellIntegration, keyboardInteractive: keyboardInteractive
+            output: output, exit: exit, shellIntegration: shellIntegration, keyboardInteractive: keyboardInteractive,
+            logger: logger
         )
     }
 
-    public func makeSFTPClient() -> any SFTPClientProtocol { SFTPClient(keyboardInteractive: keyboardInteractive) }
+    public func makeSFTPClient() -> any SFTPClientProtocol {
+        SFTPClient(keyboardInteractive: keyboardInteractive, logger: logger)
+    }
 
     public func makeExecSession() -> any SSHExecSessionProtocol {
-        SSHExecSession(keyboardInteractive: keyboardInteractive)
+        SSHExecSession(keyboardInteractive: keyboardInteractive, logger: logger)
     }
 
     /// Mirrors `connectSFTP`, including its guarantee that a session which fails
@@ -91,7 +100,8 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
     ) async throws {
         try await SSHSessionActor.installAuthorizedKey(
             publicKey, named: keyName,
-            using: SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive)
+            using: SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive),
+            logger: logger
         )
     }
 }
