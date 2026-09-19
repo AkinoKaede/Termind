@@ -39,6 +39,8 @@ nonisolated enum StatusBarPresentation {
 /// transfers still contribute to the transfer center's existing counts and
 /// state, but they must not make a running upload or download look mixed.
 nonisolated enum StatusBarTransferPresentation {
+    static let idleDirectionSymbol = "arrow.up.arrow.down"
+
     static func runningDirectionSymbol(for transfers: [SFTPTransfer]) -> String {
         let directions = Set(
             transfers.lazy
@@ -412,8 +414,9 @@ struct TransferGlyph: View {
                     } else {
                         ProgressView().controlSize(.mini)
                     }
-                    Image(systemName: StatusBarTransferPresentation.runningDirectionSymbol(for: transfers))
-                        .font(.system(size: 8, weight: .bold))
+                    directionGlyph(
+                        StatusBarTransferPresentation.runningDirectionSymbol(for: transfers)
+                    )
                 }
             } else if summary.failedCount > 0 {
                 Image(systemName: "exclamationmark.circle.fill")
@@ -421,12 +424,15 @@ struct TransferGlyph: View {
                     .scaledToFit()
                     .foregroundStyle(.orange)
             } else {
-                Image(systemName: "arrow.up.arrow.down.circle")
-                    .resizable()
-                    .scaledToFit()
+                directionGlyph(StatusBarTransferPresentation.idleDirectionSymbol)
             }
         }
         .frame(width: Self.size, height: Self.size)
+    }
+
+    private func directionGlyph(_ symbol: String) -> some View {
+        Image(systemName: symbol)
+            .font(.system(size: 8, weight: .bold))
     }
 }
 

@@ -124,6 +124,11 @@ struct StatusBarPresentationTests {
     }
 
     @Test
+    func idleTransfersUseTheBidirectionalSymbolWithoutACircle() {
+        #expect(StatusBarTransferPresentation.idleDirectionSymbol == "arrow.up.arrow.down")
+    }
+
+    @Test
     func runningDownloadsUseTheDownloadSymbol() {
         let transfers = [
             transfer(direction: .download, state: .running),
