@@ -99,7 +99,7 @@ struct TerminalPlaceholderView: View {
     @ViewBuilder
     private var uploadDecoration: some View {
         if let uploadNotice {
-            TerminalUploadOverlay(notice: uploadNotice)
+            TerminalUploadOverlay(notice: uploadNotice, homeResolution: sshSession.homeResolution)
                 // Above the floating status capsule, not on top of it.
                 .padding(.bottom, Metrics.StatusBar.overlayClearance)
                 .transition(.opacity.combined(with: .scale(scale: 0.97)))
@@ -346,12 +346,13 @@ struct TerminalPlaceholderView: View {
 
 private struct TerminalUploadOverlay: View {
     let notice: WorkspaceUploadNotice
+    let homeResolution: RemoteHomeResolutionState
 
     var body: some View {
         VStack(spacing: Metrics.Space.s) {
             symbol
             Text(notice.title).font(.headline)
-            Text(notice.detail)
+            Text(notice.detail(home: homeResolution))
                 .font(notice.isRejected ? .caption : .caption.monospaced())
                 .foregroundStyle(.secondary)
                 .lineLimit(2)

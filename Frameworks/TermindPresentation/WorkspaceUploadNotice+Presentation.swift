@@ -1,5 +1,6 @@
 import Foundation
 import TermindApplication
+import TermindDomain
 
 extension WorkspaceUploadNotice {
     public var isRejected: Bool {
@@ -29,6 +30,13 @@ extension WorkspaceUploadNotice {
     public var detail: String {
         switch self {
         case .preparing(let path), .queued(_, let path): path
+        case .rejected(let reason): reason
+        }
+    }
+
+    public func detail(home: RemoteHomeResolutionState) -> String {
+        switch self {
+        case .preparing(let path), .queued(_, let path): RemotePath.displayed(path, home: home)
         case .rejected(let reason): reason
         }
     }
