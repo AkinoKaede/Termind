@@ -1609,7 +1609,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 username: identity(for: node)?.username, bracketsIPv6: true
             )
         }
-        var arguments = ["ssh"] + additionalArguments
+        var arguments = additionalArguments
         if !jumps.isEmpty { arguments += ["-J", jumps.joined(separator: ",")] }
         if destination.port != 22 { arguments += ["-p", String(destination.port)] }
         arguments.append(
@@ -1618,7 +1618,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 username: identity(for: destination)?.username, bracketsIPv6: false
             )
         )
-        return arguments.map(Self.shellQuoted).joined(separator: " ")
+        let suffix = arguments.map(Self.shellQuoted).joined(separator: " ")
+        return suffix.isEmpty ? "ssh" : "ssh \(suffix)"
     }
 
     private static func openSSHAddress(

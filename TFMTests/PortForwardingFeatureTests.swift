@@ -236,17 +236,17 @@ struct PortForwardingFeatureTests {
     }
 
     @Test
-    func sshCommandKeepsAnOrdinaryLoginAddressReadable() {
-        let identity = Identity(name: "Developer", username: "developer")
+    func sshCommandDoesNotQuoteExecutableOrOrdinaryLoginAddress() {
+        let identity = Identity(name: "Deploy", username: "deploy-user")
         let host = Host(
-            name: "Example Server", host: "server.example.com",
+            name: "Documentation Server", host: "192.0.2.10",
             identityID: identity.id
         )
         let store = HostLibraryModel(hosts: [host], identities: [identity])
 
         #expect(
             store.sshCommand(for: host)
-                == "ssh developer@server.example.com"
+                == "ssh deploy-user@192.0.2.10"
         )
     }
 
