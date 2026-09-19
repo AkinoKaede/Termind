@@ -31,6 +31,17 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy
     ) throws -> [SSHRouteHopConfiguration]
+    func prepareSSHConnection(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation
+    func sshJumpConfigurations(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy
+    ) throws -> [SSHRouteHopConfiguration]
+    func saveConnectionRoute(
+        _ route: SSHConnectionRoute, authentication: SSHAuthenticationSubmission?,
+        authenticationHostID: Host.ID?, suppliedPassword: String?
+    ) throws -> SSHConnectionRoute
     func transportProxy(for host: Host) throws -> SSHTransportProxy?
     func sshCredentials(for identity: Identity) -> SSHCredentialResolution
     func passwordCredential(for identity: Identity) throws -> String?

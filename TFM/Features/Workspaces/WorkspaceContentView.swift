@@ -878,9 +878,12 @@ private struct PaneView: View {
 struct WelcomeView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
 
     @State private var query = ""
+    @State private var hasSubmitted = false
+    @State private var actionError: String?
     @State private var welcomeMessage = " "
     @FocusState private var isSearchFocused: Bool
 
@@ -949,18 +952,23 @@ struct WelcomeView: View {
 
     private var searchField: some View {
         TermindSearchField(
-            text: $query, prompt: "Search hosts or templates, or type user@host", density: .prominent
+            text: $query, prompt: "Search hosts or templates, or type ssh user@host", density: .prominent
         )
         .focused($isSearchFocused)
         .onSubmit(submit)
+        .onChange(of: query) { _, _ in
+            hasSubmitted = false
+            actionError = nil
+        }
+        .help("SSH options: -p port, -l user, -J jump; -o HostName, User, Port, ProxyJump.")
     }
 
     private var matches: [Host] {
-        query.isEmpty ? [] : app.hostLibrary.searchHosts(query)
+        query.isEmpty || isSSHCommand ? [] : app.hostLibrary.searchHosts(query)
     }
 
     private var matchingTemplates: [WorkspaceTemplate] {
-        guard !query.isEmpty else { return [] }
+        guard !query.isEmpty, !isSSHCommand else { return [] }
         return app.hostLibrary.sortedWorkspaceTemplates.filter { template in
             template.name.localizedCaseInsensitiveContains(query)
                 || template.layout.hostIDs.contains { hostID in
@@ -969,27 +977,55 @@ struct WelcomeView: View {
         }
     }
 
-    /// An ad-hoc destination parsed from the field, offered only when nothing
-    /// saved destination or template matches — either is a better answer than
-    /// treating the same text as a one-off hostname.
-    private var adHoc: QuickConnectTarget? {
-        guard matches.isEmpty, matchingTemplates.isEmpty else { return nil }
-        return app.parseQuickConnect(query)
+    private var isSSHCommand: Bool { QuickConnectParser.isCommand(query) }
+
+    private var resolution: Result<QuickConnectTarget, any Error>? {
+        guard matches.isEmpty, matchingTemplates.isEmpty,
+            case .connection(let input) = QuickConnectParser.parse(query, locale: locale)
+        else { return nil }
+        return Result { try app.resolveQuickConnect(input, locale: locale) }
     }
 
-    /// Return opens the best interpretation of what was typed, so the
-    /// launcher can be driven without ever reaching for the mouse.
+    private var adHoc: QuickConnectTarget? { try? resolution?.get() }
+
+    private var connectionError: String? {
+        if let actionError { return actionError }
+        switch QuickConnectParser.parse(query, locale: locale) {
+        case .invalid(let message): return message
+        case .incomplete(let message): return hasSubmitted ? message : nil
+        default: break
+        }
+        if case .failure(let error) = resolution { return error.localizedDescription }
+        return nil
+    }
+
     private func submit() {
+        hasSubmitted = true
         if let template = matchingTemplates.first {
             window.openWorkspaceTemplate(template)
         } else if let host = matches.first {
             app.open(host, as: .sshSession, in: window)
         } else if let adHoc {
-            app.openQuickConnect(adHoc, in: window)
+            connect(adHoc)
+            return
         } else {
             return
         }
         query = ""
+    }
+
+    private func connect(_ target: QuickConnectTarget) {
+        app.openQuickConnect(target, in: window)
+        query = ""
+    }
+
+    private func save(_ target: QuickConnectTarget) {
+        do {
+            let host = try app.saveQuickConnect(target)
+            query = host.name
+        } catch {
+            actionError = error.localizedDescription
+        }
     }
 
     // MARK: - Actions
@@ -1042,10 +1078,14 @@ struct WelcomeView: View {
                 }
             }
             if let adHoc {
-                section("Connect Once") {
-                    WelcomeQuickConnectRow(target: adHoc)
+                section(adHoc.isSaved ? "Hosts" : "Connect Once") {
+                    WelcomeQuickConnectRow(target: adHoc, connect: connect, save: save)
                 }
-            } else if matchingTemplates.isEmpty, matches.isEmpty {
+            }
+            if let connectionError {
+                Text(connectionError)
+                    .foregroundStyle(.secondary)
+            } else if adHoc == nil, !isSSHCommand, matchingTemplates.isEmpty, matches.isEmpty {
                 Text("No hosts or Workspace templates match “\(query)”.")
                     .foregroundStyle(.secondary)
             }
@@ -1250,13 +1290,11 @@ private struct WelcomeHostRow: View {
     }
 }
 
-/// A parsed `user@host` that has not been persisted. Connect keeps it
-/// transient; Save creates the Host (and username Identity) in one click.
+/// A resolved command preview. Only the explicit actions open or save it.
 private struct WelcomeQuickConnectRow: View {
     let target: QuickConnectTarget
-
-    @Environment(AppModel.self) private var app
-    @Environment(WindowModel.self) private var window
+    var connect: (QuickConnectTarget) -> Void
+    var save: (QuickConnectTarget) -> Void
 
     var body: some View {
         HStack(spacing: Metrics.Space.m) {
@@ -1267,26 +1305,28 @@ private struct WelcomeQuickConnectRow: View {
                 Text(target.loginAddress)
                     .font(.callout.monospaced())
                     .lineLimit(1)
-                Text("Not saved")
+                    .help(target.loginAddress)
+                if target.route.hosts.count > 1 {
+                    Text(target.routeSummary)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                        .help(target.routeSummary)
+                }
+                Text(target.isSaved ? LocalizedStringKey("Saved") : LocalizedStringKey("Not saved"))
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
             Spacer(minLength: Metrics.Space.m)
-            Button("Connect") {
-                app.openQuickConnect(target, in: window)
+            Button("Connect") { connect(target) }
+            if !target.isSaved {
+                Button("Save") { save(target) }
+                    .buttonStyle(.borderedProminent)
             }
-            Button("Save") {
-                app.saveQuickConnect(target)
-            }
-            .buttonStyle(.borderedProminent)
         }
         .padding(.horizontal, Metrics.Space.l)
-        .frame(
-            maxWidth: .infinity,
-            minHeight: Metrics.Welcome.rowHeight,
-            maxHeight: Metrics.Welcome.rowHeight,
-            alignment: .leading
-        )
+        .padding(.vertical, Metrics.Space.s)
+        .frame(maxWidth: .infinity, minHeight: Metrics.Welcome.rowHeight, alignment: .leading)
         .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.medium))
     }
 }

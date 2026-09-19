@@ -291,7 +291,7 @@ struct HostsPageView: ManagedCardPage {
         ContentUnavailableView {
             Label("No Hosts", systemImage: "server.rack")
         } description: {
-            Text("Save a host here, or enter user@host on the Welcome page to connect once.")
+            Text("Save a host here, or enter ssh user@host on the Welcome page to connect once.")
         } actions: {
             Button("New Host") { openHostEditor(nil) }
         }

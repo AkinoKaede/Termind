@@ -233,6 +233,7 @@ final class SSHSessionModel: Identifiable {
     /// asking for credentials a second time. Cleared with the SSH connection.
     private(set) var transferConfiguration: SSHConnectionConfiguration?
     private var latestViewport = InMemoryTerminalViewport(columns: 80, rows: 24)
+    var connectionRoute: SSHConnectionRoute?
     private var transientHost: Host?
     private var usernameHint: String?
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
@@ -444,7 +445,7 @@ final class SSHSessionModel: Identifiable {
         connectionAttemptID = attemptID
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
-        guard let host = store.host(hostID) ?? transientHost else {
+        guard let host = connectionHost(hostID, using: store) else {
             connection.stopRecovery()
             pendingInitialCommand = nil
             connectionAttemptID = nil
@@ -455,7 +456,7 @@ final class SSHSessionModel: Identifiable {
         isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
             globalSetting: DesktopSettingsKey.isShellIntegrationEnabled)
         homeResolution = isShellIntegrationEnabled ? .pending : .unavailable
-        let route = store.route(for: host)
+        let route = connectionRoute?.hosts ?? store.route(for: host)
         let identity = store.identity(for: host)
         let suppliedAuthentication = suppliedAuthentications[host.id]
         let username =
@@ -559,11 +560,17 @@ final class SSHSessionModel: Identifiable {
         let expectedHostKeys: Set<SSHHostKeyIdentity>
         do {
             proxy = try store.transportProxy(for: host)
-            jumps = try store.sshJumpConfigurations(
-                for: host, submissions: suppliedAuthentications,
-                temporaryHostKeys: temporaryHostKeys,
-                trustPolicy: .allowChallenge
-            )
+            if let connectionRoute {
+                jumps = try store.sshJumpConfigurations(
+                    for: connectionRoute, submissions: suppliedAuthentications,
+                    temporaryHostKeys: temporaryHostKeys, trustPolicy: .allowChallenge
+                )
+            } else {
+                jumps = try store.sshJumpConfigurations(
+                    for: host, submissions: suppliedAuthentications,
+                    temporaryHostKeys: temporaryHostKeys, trustPolicy: .allowChallenge
+                )
+            }
             expectedHostKeys = try store.expectedHostKeys(
                 for: host, temporaryHostKeys: temporaryHostKeys,
                 trustPolicy: .allowChallenge
@@ -572,7 +579,7 @@ final class SSHSessionModel: Identifiable {
             if let sshError = error as? TermindSSHError,
                 sshError.shouldRequestAuthentication,
                 let id = sshError.routeHostID,
-                let jump = store.host(id)
+                let jump = connectionHost(id, using: store)
             {
                 let identity = store.identity(for: jump)
                 let submitted = suppliedAuthentications[jump.id]
@@ -582,7 +589,8 @@ final class SSHSessionModel: Identifiable {
                         .flatMap { store.key($0) }?.requiresPassphraseEntry == true
                 connectionAttemptID = nil
                 requestAuthentication(
-                    for: jump, username: identity?.username ?? "",
+                    for: jump,
+                    username: submitted?.username ?? identity?.username ?? connectionRoute?.usernames[jump.id] ?? "",
                     selectedKeyID: submitted?.keyID ?? identity?.keyID,
                     failureMessage: sshError.localizedDescription,
                     requiresPassphrase: retryNeedsPassphrase,
@@ -626,7 +634,7 @@ final class SSHSessionModel: Identifiable {
                     sshError.shouldRequestAuthentication
                 {
                     let authenticationHost: Host
-                    if let id = sshError.routeHostID, let jump = store.host(id) {
+                    if let id = sshError.routeHostID, let jump = connectionHost(id, using: store) {
                         authenticationHost = jump
                     } else {
                         authenticationHost = host
@@ -635,7 +643,7 @@ final class SSHSessionModel: Identifiable {
                     let submitted = suppliedAuthentications[authenticationHost.id]
                     let authenticationKeyID =
                         submitted?.keyID
-                        ?? authenticationIdentity?.keyID ?? selectedKeyID
+                        ?? authenticationIdentity?.keyID ?? (authenticationHost.id == host.id ? selectedKeyID : nil)
                     let retryNeedsPassphrase =
                         submitted?.passphrase == nil
                         && authenticationKeyID.flatMap { store.key($0) }?
@@ -643,7 +651,9 @@ final class SSHSessionModel: Identifiable {
                     let returnsToIdentity = submitted?.passphrase != nil
                     requestAuthentication(
                         for: authenticationHost,
-                        username: authenticationIdentity?.username ?? username,
+                        username: submitted?.username ?? authenticationIdentity?.username
+                            ?? connectionRoute?.usernames[authenticationHost.id]
+                            ?? (authenticationHost.id == host.id ? username : ""),
                         selectedKeyID: authenticationKeyID,
                         failureMessage: (credentialFailures
                             + [sshError.localizedDescription]).joined(separator: "\n"),
@@ -671,7 +681,7 @@ final class SSHSessionModel: Identifiable {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedUsername.isEmpty else { return }
         guard let prompt = pendingAuthentication,
-            var host = store.host(prompt.host.id) ?? (prompt.host.id == hostID ? transientHost : nil)
+            var host = connectionHost(prompt.host.id, using: store)
         else { return }
 
         if prompt.requiresPassphrase,
@@ -694,14 +704,22 @@ final class SSHSessionModel: Identifiable {
             )
             suppliedAuthentications[host.id] = submission
             if host.id == hostID { usernameHint = trimmedUsername }
+            connectionRoute?.usernames[host.id] = trimmedUsername
             pendingAuthentication = nil
             connectionJourney.resume()
 
             if save {
-                host = try store.saveAuthentication(
-                    submission, for: host, selectedIdentity: selectedIdentity, suppliedPassword: password
-                )
-                if host.id == hostID { transientHost = host }
+                if let route = connectionRoute {
+                    let saved = try store.saveConnectionRoute(
+                        route, authentication: submission, authenticationHostID: host.id, suppliedPassword: password
+                    )
+                    adoptSavedRoute(saved, replacing: route, using: store)
+                } else {
+                    host = try store.saveAuthentication(
+                        submission, for: host, selectedIdentity: selectedIdentity, suppliedPassword: password
+                    )
+                    if host.id == hostID { transientHost = host }
+                }
             }
         } catch {
             requestAuthentication(
@@ -895,11 +913,18 @@ final class SSHSessionModel: Identifiable {
         ssh = nil
         transferConfiguration = nil
         status = .reconnecting
-        let host = store.host(hostID) ?? transientHost
-        connection.presentReconnectJourney(
-            host: host, using: store, purpose: .sshSession,
-            username: host.flatMap { store.identity(for: $0)?.username } ?? usernameHint
-        )
+        let host = connectionHost(hostID, using: store)
+        if let connectionRoute, let host {
+            connectionJourney.begin(
+                host: host, route: connectionRoute.hosts, purpose: .sshSession,
+                username: connectionRoute.usernames[host.id], mode: .reconnection
+            )
+        } else {
+            connection.presentReconnectJourney(
+                host: host, using: store, purpose: .sshSession,
+                username: host.flatMap { store.identity(for: $0)?.username } ?? usernameHint
+            )
+        }
         connection.scheduleRecovery(after: message) { [weak self, weak store] in
             guard let self, let store else { return }
             self.startConnection(using: store)
@@ -951,9 +976,37 @@ final class SSHSessionModel: Identifiable {
         }
     }
 
+    func connectionHost(_ id: Host.ID, using store: any RemoteSessionHostStore) -> Host? {
+        connectionRoute?.host(id) ?? store.host(id) ?? (id == hostID ? transientHost : nil)
+    }
+
+    private func adoptSavedRoute(
+        _ saved: SSHConnectionRoute, replacing route: SSHConnectionRoute, using store: any RemoteSessionHostStore
+    ) {
+        let mapping = Dictionary(uniqueKeysWithValues: zip(route.hosts, saved.hosts).map { ($0.id, $1.id) })
+        suppliedAuthentications = Dictionary(
+            uniqueKeysWithValues: suppliedAuthentications.map {
+                (mapping[$0.key] ?? $0.key, $0.value)
+            })
+        temporaryHostKeys = Dictionary(
+            uniqueKeysWithValues: temporaryHostKeys.map {
+                (mapping[$0.key] ?? $0.key, $0.value)
+            })
+        if let destination = saved.hosts.last {
+            if hostID != destination.id {
+                store.setConnectionStatus(.disconnected, connectionID: id, hostID: hostID)
+            }
+            hostID = destination.id
+            transientHost = destination
+            usernameHint = saved.usernames[destination.id]
+        }
+        connectionRoute = saved
+    }
+
     func copyForReconnect() -> SSHSessionModel {
         let host = transientHost ?? Host(id: hostID, name: title, host: title)
         let copy = SSHSessionModel(host: host, usernameHint: usernameHint)
+        copy.connectionRoute = connectionRoute
         copy.connectionCoordinator = connectionCoordinator
         copy.commandHistoryStore = commandHistoryStore
         return copy

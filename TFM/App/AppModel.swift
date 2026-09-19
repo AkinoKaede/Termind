@@ -30,19 +30,6 @@ nonisolated enum HostOpenTarget: Hashable, Sendable {
     case sftpSession
 }
 
-/// A destination typed into Welcome. The username belongs to this one attempt
-/// until the user explicitly saves it; keeping it beside the Host avoids
-/// inventing a persisted Identity just because somebody typed `user@host`.
-nonisolated struct QuickConnectTarget: Hashable, Sendable {
-    var host: Host
-    var username: String?
-
-    var loginAddress: String {
-        guard let username, !username.isEmpty else { return host.displayAddress }
-        return "\(username)@\(host.displayAddress)"
-    }
-}
-
 /// App-wide state shared by every window: the saved hosts, and the one code path
 /// for opening them.
 ///
@@ -660,32 +647,26 @@ final class AppModel {
         }
     }
 
-    /// Opens an unsaved Welcome destination without putting it into SwiftData.
-    /// Its username travels with the SSH session and seeds the credential
-    /// prompt when there is no saved Identity to resolve.
     @discardableResult
     func openQuickConnect(_ target: QuickConnectTarget, in window: WindowModel) -> Workspace {
+        if target.isSaved {
+            return open(target.host, as: .sshSession, in: window)
+        }
         hosts.setStatus(.connecting, for: target.host.id)
-        return window.openSSHSession(host: target.host, usernameHint: target.username)
+        return window.openSSHSession(
+            host: target.host, usernameHint: target.username, connectionRoute: target.route
+        )
     }
 
-    /// Turns one Welcome destination into an ordinary saved Host. A typed
-    /// username is saved as an Identity only when no existing Identity was
-    /// resolved for it; authentication can then be completed by the session's
-    /// Continue and Save prompt.
     @discardableResult
-    func saveQuickConnect(_ target: QuickConnectTarget) -> Host {
-        var host = target.host
-        if host.identityID == nil,
-            let username = target.username?.trimmingCharacters(in: .whitespaces),
-            !username.isEmpty
-        {
-            let identity = Identity(name: username, username: username)
-            hosts.upsert(identity)
-            host.identityID = identity.id
-        }
-        hosts.upsert(host)
+    func saveQuickConnect(_ target: QuickConnectTarget) throws -> Host {
+        let route = try hosts.saveConnectionRoute(target.route)
+        guard let host = route.hosts.last else { throw SSHConnectionRoute.invalidRouteError }
         return host
+    }
+
+    func resolveQuickConnect(_ input: QuickConnectInput, locale: Locale = .current) throws -> QuickConnectTarget {
+        try QuickConnectResolver.resolve(input, in: hosts, locale: locale)
     }
 
     /// Mark as recently used, and flip the status dot.
@@ -819,76 +800,4 @@ final class AppModel {
         window.hostChooser = .batchStartup
     }
 
-    /// Parses `user@host:port` typed into the quick-connect field. Returns nil
-    /// when the input is not a plausible destination, so the field can stay
-    /// quiet rather than flashing an error on every keystroke.
-    ///
-    /// A typed login name is resolved when exactly one saved Identity uses it.
-    /// It also remains on the transient target so `a@b` always connects as `a`,
-    /// even when no Identity exists yet. Nothing is persisted until Save or
-    /// Continue and Save is chosen.
-    func parseQuickConnect(_ input: String) -> QuickConnectTarget? {
-        let trimmed = input.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty, !trimmed.contains(" ") else { return nil }
-
-        var username: String?
-        var remainder = trimmed[...]
-        if let at = trimmed.lastIndex(of: "@") {
-            let typed = String(trimmed[trimmed.startIndex..<at])
-            guard !typed.isEmpty else { return nil }
-            username = typed
-            remainder = trimmed[trimmed.index(after: at)...]
-        }
-
-        guard let (host, port) = Self.splitPort(String(remainder)) else { return nil }
-        guard !host.isEmpty, host.contains(where: { $0.isLetter || $0.isNumber }) else {
-            return nil
-        }
-
-        // Ambiguity is left unresolved rather than guessed at: two identities
-        // named `root` differ in which key they present, and picking one for the
-        // user would be picking a credential for them.
-        let matches = username.map { name in hosts.identities.filter { $0.username == name } }
-        let identityID = matches?.count == 1 ? matches?.first?.id : nil
-
-        return QuickConnectTarget(
-            host: Host(name: host, host: host, port: port, identityID: identityID),
-            username: username
-        )
-    }
-
-    /// Splits `host`, `host:port`, or `[v6]:port` into its two halves.
-    ///
-    /// The bracket case is the reason this is not one `lastIndex(of: ":")`: a bare
-    /// IPv6 literal is *all* colons, and naive splitting turns `2001:db8::1` into
-    /// the host `2001:db8:` on port 1 — a plausible-looking address that is not
-    /// the one anybody typed. So brackets mean "port follows", more than one colon
-    /// without them means "this is IPv6, no port".
-    private static func splitPort(_ input: String) -> (host: String, port: Int)? {
-        if input.hasPrefix("[") {
-            guard let close = input.firstIndex(of: "]") else { return nil }
-            let host = String(input[input.index(after: input.startIndex)..<close])
-            let rest = input[input.index(after: close)...]
-            if rest.isEmpty { return (host, 22) }
-            guard rest.hasPrefix(":"), let port = parsePort(rest.dropFirst()) else { return nil }
-            return (host, port)
-        }
-
-        let colons = input.filter { $0 == ":" }.count
-        switch colons {
-        case 0:
-            return (input, 22)
-        case 1:
-            let parts = input.split(separator: ":", maxSplits: 1, omittingEmptySubsequences: false)
-            guard let port = parsePort(parts[1]) else { return nil }
-            return (String(parts[0]), port)
-        default:
-            return (input, 22)
-        }
-    }
-
-    private static func parsePort(_ text: Substring) -> Int? {
-        guard let value = Int(text), (1...65_535).contains(value) else { return nil }
-        return value
-    }
 }

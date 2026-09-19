@@ -57,6 +57,28 @@ extension TransferLibraryModel: RemoteSessionHostStore {
             trustPolicy: trustPolicy
         )
     }
+    func prepareSSHConnection(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation {
+        try library.prepareSSHConnection(for: route, submissions: submissions)
+    }
+    func sshJumpConfigurations(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy
+    ) throws -> [SSHRouteHopConfiguration] {
+        try library.sshJumpConfigurations(
+            for: route, submissions: submissions, temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy
+        )
+    }
+    func saveConnectionRoute(
+        _ route: SSHConnectionRoute, authentication: SSHAuthenticationSubmission?,
+        authenticationHostID: Host.ID?, suppliedPassword: String?
+    ) throws -> SSHConnectionRoute {
+        try library.saveConnectionRoute(
+            route, authentication: authentication, authenticationHostID: authenticationHostID,
+            suppliedPassword: suppliedPassword
+        )
+    }
     func transportProxy(for host: Host) throws -> SSHTransportProxy? {
         try library.transportProxy(for: host)
     }

@@ -162,6 +162,15 @@ Resolvers batch destination/jump/proxy reads; missing secrets and availability/e
 count. First access per Identity/process writes its SwiftData row directly, without Vault journal or
 refresh; retries deduplicate. Vault sync strips this metadata and preserves it on remote application.
 
+Welcome parses a bounded SSH command grammar without invoking a shell or reading OpenSSH config.
+Exact saved aliases supply metadata; command overrides create session-owned route snapshots, including
+unsaved jump Hosts and per-hop login hints. The snapshot drives authentication, Journey and reconnects;
+no lookup may replace an overridden endpoint with the original saved Host. Routes remain bounded to
+eight Hosts and reject cycles before copying aliases. Connect never saves Hosts or Identities. Explicit
+Save copies changed records and adds necessary route prerequisites in one Vault transaction, rolling
+back newly written passwords on failure. Original Hosts/Identities remain unchanged; ordinary saved
+sessions retain their existing credential-save policy. Host-key decisions remain in the live handshake.
+
 ### Port Forwarding
 
 Port Forwarding is an independent Vault library between Keychain and Snippets. Cards share Hosts'

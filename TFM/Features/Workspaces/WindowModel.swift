@@ -837,6 +837,7 @@ final class WindowModel {
     func openSSHSession(
         host: Host,
         usernameHint: String? = nil,
+        connectionRoute: SSHConnectionRoute? = nil,
         initialPath: String? = nil,
         placement: SessionOpenPlacement = .newWorkspace
     ) -> Workspace {
@@ -846,6 +847,7 @@ final class WindowModel {
             initialCommand: initialPath.flatMap(RemoteShellCommand.changeDirectory),
             recordsInitialCommandInHistory: initialPath == nil
         )
+        pane.sshSession?.connectionRoute = connectionRoute
         numberPane(pane)
 
         if placement == .currentWorkspace,

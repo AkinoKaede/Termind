@@ -386,8 +386,16 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard let route = validatedRoute(for: host) else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
+        return try prepareSSHConnection(for: SSHConnectionRoute(hosts: route), submissions: submissions)
+    }
+
+    public func prepareSSHConnection(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation {
+        guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
+        let submissions = route.submissions(merging: submissions)
         return SSHConnectionPreparation(
-            nodes: route.map { node in
+            nodes: route.hosts.map { node in
                 let submission = submissions[node.id]
                 let identity = submission?.identityID.flatMap { self.identity($0) } ?? identity(for: node)
                 let keyID = submission != nil ? submission?.keyID : identity?.keyID
@@ -501,6 +509,32 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard let route = validatedRoute(for: host) else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
+        return try sshJumpConfigurations(
+            route: route, submissions: submissions, temporaryHostKeys: temporaryHostKeys,
+            trustPolicy: trustPolicy, accessedIdentityIDs: &accessedIdentityIDs
+        )
+    }
+
+    public func sshJumpConfigurations(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
+        trustPolicy: SSHHostTrustPolicy = .requireKnownHost
+    ) throws -> [SSHRouteHopConfiguration] {
+        guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
+        var accessedIdentityIDs: Set<Identity.ID> = []
+        defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
+        return try sshJumpConfigurations(
+            route: route.hosts, submissions: route.submissions(merging: submissions),
+            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy,
+            accessedIdentityIDs: &accessedIdentityIDs
+        )
+    }
+
+    private func sshJumpConfigurations(
+        route: [Host], submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy,
+        accessedIdentityIDs: inout Set<Identity.ID>
+    ) throws -> [SSHRouteHopConfiguration] {
         return try route.dropLast().enumerated().map { offset, jump in
             do {
                 if let submission = submissions[jump.id] {
@@ -1729,6 +1763,90 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             return false
         }
         return true
+    }
+
+    /// Saves a complete temporary route in one Vault transaction. Existing Hosts
+    /// and Identities are reused or copied, never edited by a one-off command.
+    public func saveConnectionRoute(
+        _ route: SSHConnectionRoute, authentication: SSHAuthenticationSubmission? = nil,
+        authenticationHostID: Host.ID? = nil, suppliedPassword: String? = nil
+    ) throws -> SSHConnectionRoute {
+        guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
+        var batch = SSHImportBatch()
+        var saved: [Host] = []
+        var usernames: [Host.ID: String] = [:]
+        var passwords: [(Identity, String)] = []
+        var usedNames = Set(hosts.map(\.name))
+        for var node in route.hosts {
+            let originalID = node.id
+            let source = route.sourceHostIDs[originalID].flatMap(host) ?? host(originalID)
+            let username = route.usernames[originalID] ?? identity(for: node)?.username
+            if node.id == authenticationHostID, let authentication {
+                if let selected = authentication.identityID.flatMap(identity), suppliedPassword == nil {
+                    node.identityID = selected.id
+                } else {
+                    let login = Identity(
+                        name: authentication.username, username: authentication.username,
+                        credentialRef: suppliedPassword == nil ? "" : "termind.password.\(UUID().uuidString)",
+                        keyID: authentication.keyID
+                    )
+                    batch.identities.append(login)
+                    if let suppliedPassword { passwords.append((login, suppliedPassword)) }
+                    node.identityID = login.id
+                }
+            } else if node.identityID == nil, let username, !username.isEmpty {
+                let matches = (identities + batch.identities).filter { $0.username == username }
+                if matches.count == 1 {
+                    node.identityID = matches[0].id
+                } else {
+                    let login = Identity(name: username, username: username)
+                    batch.identities.append(login)
+                    node.identityID = login.id
+                }
+            }
+            node.jumpHostID = saved.last?.id
+            if let existing = host(originalID), existing != node { node.id = UUID() }
+            if host(node.id) == nil {
+                let base = source.map { String(localized: "\($0.name) copy") } ?? node.name
+                var name = base
+                var suffix = 2
+                while usedNames.contains(name) {
+                    name = "\(base) (\(suffix))"
+                    suffix += 1
+                }
+                node.name = name
+                usedNames.insert(name)
+                batch.hosts.append(node)
+            }
+            usernames[node.id] = originalID == authenticationHostID ? authentication?.username : username
+            saved.append(node)
+        }
+        var written: [Identity] = []
+        do {
+            for (identity, password) in passwords {
+                try keychain.setString(password, for: identity.credentialRef, storage: identity.passwordStorage)
+                written.append(identity)
+            }
+            if !batch.hosts.isEmpty || !batch.identities.isEmpty { try commitSSHImport(batch) }
+        } catch {
+            let saveError = error
+            for identity in written {
+                do {
+                    try keychain.removePassword(identity.credentialRef, storage: identity.passwordStorage)
+                } catch {
+                    throw TermindSSHError.library(
+                        String(
+                            localized:
+                                "The database save and Keychain rollback both failed: \(error.localizedDescription)")
+                    )
+                }
+            }
+            throw saveError
+        }
+        return SSHConnectionRoute(
+            hosts: saved.map { host($0.id) ?? $0 }, usernames: usernames,
+            sourceHostIDs: Dictionary(uniqueKeysWithValues: saved.map { ($0.id, $0.id) })
+        )
     }
 
     /// New records only. Existing credentials and host configurations are never overwritten.

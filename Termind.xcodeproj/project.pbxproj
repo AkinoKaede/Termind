@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		F04700000000000000000001 /* SSHForwardingPumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000011 /* SSHForwardingPumpTests.swift */; };
-		F04700000000000000000002 /* SSHForwardingWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000012 /* SSHForwardingWireTests.swift */; };
 		0202B16D630CC57432748F0C /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		03892FFD3F1E351BD2C296E4 /* TermindWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 32414DBD2157FBAD4D00056D /* TermindWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		082994E88792AF7D1F99B147 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
@@ -74,6 +72,8 @@
 		D7D1BBB65020F61F7EFDDFD7 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
 		E635C54CA9F1A63D909CFCE6 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
 		EF2F88E4809C845C3F1BBF63 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
+		F04700000000000000000001 /* TFMTests/SSHForwardingPumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */; };
+		F04700000000000000000002 /* TFMTests/SSHForwardingWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */; };
 		F6ACDF3012081771F6C8F659 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		F996BFD771BC77E67AB91FFB /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		FACB579B671967F922A33CD9 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
@@ -423,8 +423,6 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		F04700000000000000000011 /* SSHForwardingPumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingPumpTests.swift; sourceTree = SOURCE_ROOT; };
-		F04700000000000000000012 /* SSHForwardingWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingWireTests.swift; sourceTree = SOURCE_ROOT; };
 		01FFEA64B9D6E13E50664FB8 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		10111AE8F047FB59B318813A /* TermindApplication.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TermindApplication.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		13753997381D54B4D92FDDD5 /* TFITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -436,6 +434,8 @@
 		7A62058825D6607920F1E2A1 /* TermindDomain.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TermindDomain.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		8C9A1D5C026A485801BF7908 /* FrameworkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FrameworkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		DBE378B130478CFB00B16AA1 /* Termind.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; name = Termind.storekit; path = StoreKit/Termind.storekit; sourceTree = "<group>"; };
+		F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingPumpTests.swift; sourceTree = SOURCE_ROOT; };
+		F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingWireTests.swift; sourceTree = SOURCE_ROOT; };
 		TRMD00000000000000000001 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000020001 /* TFMTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFMTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		TRMD00000000000000030002 /* termind-mcp */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "termind-mcp"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -727,15 +727,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		F04700000000000000000010 /* Forwarding Test Support */ = {
-			isa = PBXGroup;
-			children = (
-				F04700000000000000000011 /* SSHForwardingPumpTests.swift */,
-				F04700000000000000000012 /* SSHForwardingWireTests.swift */,
-			);
-			name = "Forwarding Test Support";
-			sourceTree = "<group>";
-		};
 		CDDB75F14F753E46BB14D972 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -748,6 +739,15 @@
 				A93D181DCED7ACF38C25FA9E /* TermindPersistence */,
 			);
 			path = Frameworks;
+			sourceTree = "<group>";
+		};
+		F04700000000000000000010 /* Forwarding Test Support */ = {
+			isa = PBXGroup;
+			children = (
+				F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */,
+				F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */,
+			);
+			name = "Forwarding Test Support";
 			sourceTree = "<group>";
 		};
 		TRMD00000000000000000030 = {
@@ -1366,8 +1366,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F04700000000000000000001 /* SSHForwardingPumpTests.swift in Sources */,
-				F04700000000000000000002 /* SSHForwardingWireTests.swift in Sources */,
+				F04700000000000000000001 /* TFMTests/SSHForwardingPumpTests.swift in Sources */,
+				F04700000000000000000002 /* TFMTests/SSHForwardingWireTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
