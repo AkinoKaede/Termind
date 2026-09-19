@@ -1062,7 +1062,7 @@ private enum Fixture {
                 )
             },
             routeFingerprint: { _ in "fingerprint" },
-            openExec: { _ in throw AgentToolError.invalidHost },
+            openSession: { _ in StubTransferMultiplexedSession(client: client) },
             openSFTP: { _ in client },
             sweepInterval: nil
         )
@@ -1130,6 +1130,22 @@ private actor CountingGuardianReviewer: GuardianReviewing {
             verdict: .approve, risk: .low, userAuthorization: .high, reason: "fine"
         )
     }
+}
+
+private actor StubTransferMultiplexedSession: SSHMultiplexedSessionProtocol {
+    let client: StubTransferSFTPClient
+
+    init(client: StubTransferSFTPClient) { self.client = client }
+
+    func connect(using configuration: SSHConnectionConfiguration) async throws {}
+    func execute(
+        _ command: String, workingDirectory: String?, stdin: Data?, timeout: TimeInterval,
+        outputLimit: Int, onOutput: SSHExecOutputHandler?
+    ) async throws -> SSHExecResult {
+        throw AgentToolError.invalidArguments("Unexpected exec in scratch transfer test")
+    }
+    func openSFTPChannel() async throws -> any SFTPClientProtocol { client }
+    func disconnect() async {}
 }
 
 private actor StubTransferSFTPClient: SFTPClientProtocol {

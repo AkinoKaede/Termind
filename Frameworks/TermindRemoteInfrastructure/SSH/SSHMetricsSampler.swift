@@ -7,12 +7,12 @@ import TermindInfrastructure
 import struct TermindDomain.Host
 
 public actor SSHMetricsSampler: MetricsSampling {
-    private let adapter: SSHSingleChannelAdapter<any SSHExecSessionProtocol>
+    private let adapter: SSHSingleChannelAdapter<any SSHMultiplexedSessionProtocol>
     private let logger: Logger
     private var hostID: UUID?
 
     public init(
-        session: any SSHExecSessionProtocol,
+        session: any SSHMultiplexedSessionProtocol,
         hostID: UUID? = nil,
         logger: Logger = ApplicationLogger.disabled("termind.metrics")
     ) {
@@ -220,7 +220,7 @@ public final class MetricsPreferences: MetricsConfigurationStoring {
 
 nonisolated extension RemoteConnectionCoordinator {
     public func makeMetricsSampler() -> any MetricsSampling {
-        SSHMetricsSampler(session: makeExecSession(), logger: logger)
+        SSHMetricsSampler(session: makeMultiplexedSession(), logger: logger)
     }
 
 }

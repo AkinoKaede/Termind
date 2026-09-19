@@ -199,7 +199,7 @@ private final class LogFixture: @unchecked Sendable {
     }
 }
 
-private actor MetricsLogExecSession: SSHExecSessionProtocol {
+private actor MetricsLogExecSession: SSHMultiplexedSessionProtocol {
     let result: SSHExecResult
     init(result: SSHExecResult) { self.result = result }
     func connect(using _: SSHConnectionConfiguration) async throws {}

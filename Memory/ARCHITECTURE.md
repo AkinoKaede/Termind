@@ -206,9 +206,11 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
 
 ### Agent/MCP byte channels
 
-- Agent SSH keeps one Host transport and multiplexes concurrent exec Channels. Agent SFTP data work shares the process SFTP
+- Agent SSH and the primary Agent SFTP subsystem share one pooled Host transport and one fair libssh2 owner; concurrent exec and
+  SFTP work use separate Channels on it regardless of which tool connects first. Agent SFTP data work shares the process SFTP
   scheduler and resolves Smart/Channel-only/connection-preferred topology by the synced preference; metadata/control calls use
-  Channels without consuming data capacity. Additional Agent connections retain a 180-second idle pool across conversations/MCP.
+  Channels without consuming data capacity. Connection-preferred work may add silent SFTP transports, which retain the same
+  180-second idle pool across conversations/MCP and fall back to Channels on the shared primary.
   `sftp_copy` belongs to Agent SFTP: regular trees to existing directories, browser conflict/merge policy and preserved sources.
   Cross-Host copies take two ordered endpoint leases; same-Host copies use two leases for Connections Preferred and one SFTP
   Channel for Channel-only/Smart-unknown work. Active exec/SFTP leases block idle sweeping; background commands

@@ -412,7 +412,7 @@ struct AgentHostAuthenticationTests {
     }
 
     @Test
-    func concurrentExecAndSFTPShareOnePromptButOpenSeparateSessions() async throws {
+    func concurrentExecAndSFTPShareOnePromptAndOneSession() async throws {
         let setup = authenticationSetup()
         let interaction = GatedAuthenticationResponder()
 
@@ -436,6 +436,7 @@ struct AgentHostAuthenticationTests {
         #expect(await interaction.requestCount == 1)
         #expect(await setup.backend.execOpens == 1)
         #expect(await setup.backend.sftpOpens == 1)
+        #expect(await setup.pool.openConnectionCount == 1)
     }
 
     @Test
@@ -487,7 +488,8 @@ struct AgentHostAuthenticationTests {
         #expect(requests[0].failureMessage == nil)
         #expect(requests[1].failureMessage?.contains("Rejected") == true)
         #expect(requests[1].username == "deploy")
-        #expect(await setup.backend.sftpOpens == 2)
+        #expect(await setup.backend.execOpens == 2)
+        #expect(await setup.backend.sftpOpens == 1)
         let configurations = await setup.backend.sftpConfigurations
         #expect(password(in: configurations[0]) == "old-secret")
         #expect(password(in: configurations[1]) == "new-secret")
@@ -581,9 +583,7 @@ struct AgentHostAuthenticationTests {
             _ = try await tool.execute(first, context: context(for: first))
         }
         #expect(await setup.backend.sftpOperations == 1)
-        let remainedConnected = await setup.pool.isConnected(
-            hostID: setup.host.id, kind: .sftp
-        )
+        let remainedConnected = await setup.pool.isConnected(hostID: setup.host.id)
         #expect(!remainedConnected)
 
         let second = invocation("second")
@@ -952,7 +952,7 @@ struct AgentHostAuthenticationTests {
 
         // A live SFTP session is reused without another card. Once evicted, the
         // push is a new authentication wave and must not inherit Custom secrets.
-        _ = await setup.pool.disconnect(hostID: setup.host.id, kind: .sftp)
+        _ = await setup.pool.disconnect(hostID: setup.host.id)
         let pushInvocation = AgentToolInvocation(
             runID: UUID(),
             call: AgentToolCall(
@@ -972,6 +972,7 @@ struct AgentHostAuthenticationTests {
 
         #expect(await setup.backend.remoteFile(at: "/etc/copy.conf") == source)
         #expect(requestCount == 2)
+        #expect(await setup.backend.execOpens == 2)
         #expect(await setup.backend.sftpOpens == 2)
     }
 
@@ -989,7 +990,8 @@ struct AgentHostAuthenticationTests {
         ) { client in try await client.listDirectory(at: "/") }
         #expect(files.isEmpty)
         #expect(prompts == 2)
-        #expect(await setup.backend.sftpOpens == 2)
+        #expect(await setup.backend.execOpens == 2)
+        #expect(await setup.backend.sftpOpens == 1)
         #expect(await setup.backend.sftpOperations == 1)
         #expect(await setup.pool.openConnectionCount == 1)
     }
@@ -1073,7 +1075,7 @@ struct AgentHostAuthenticationTests {
         AgentConnectionPool(
             configuration: { try await resolver.configuration(for: $0) },
             routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
-            openExec: { await backend.openExec(configuration: $0.configuration) },
+            openSession: { try await backend.openSession(configuration: $0.configuration) },
             openSFTP: { try await backend.openSFTP(configuration: $0.configuration) },
             sweepInterval: nil
         )
@@ -1214,6 +1216,7 @@ private actor GatedHostKeyResponder {
 private actor AuthenticationConnectionBackend {
     private(set) var execOpens = 0
     private(set) var sftpOpens = 0
+    private(set) var auxiliarySFTPOpens = 0
     private(set) var sftpSiblingChannels = 0
     private(set) var sftpOperations = 0
     private(set) var sftpConfigurations: [SSHConnectionConfiguration] = []
@@ -1231,20 +1234,25 @@ private actor AuthenticationConnectionBackend {
         self.remoteFiles = remoteFiles
     }
 
-    func openExec(configuration: SSHConnectionConfiguration) -> AuthenticationExecSession {
+    func openSession(configuration: SSHConnectionConfiguration) throws -> AuthenticationExecSession {
         execOpens += 1
-        return AuthenticationExecSession()
-    }
-
-    func openSFTP(
-        configuration: SSHConnectionConfiguration
-    ) throws -> AuthenticationSFTPClient {
-        sftpOpens += 1
         sftpConfigurations.append(configuration)
         if sftpAuthenticationFailures > 0 {
             sftpAuthenticationFailures -= 1
             throw TermindSSHError.authenticationFailed("Rejected credential")
         }
+        return AuthenticationExecSession(backend: self)
+    }
+
+    func openSFTP(
+        configuration: SSHConnectionConfiguration
+    ) throws -> AuthenticationSFTPClient {
+        auxiliarySFTPOpens += 1
+        return AuthenticationSFTPClient(backend: self)
+    }
+
+    func openPrimarySFTP() -> AuthenticationSFTPClient {
+        sftpOpens += 1
         return AuthenticationSFTPClient(backend: self)
     }
 
@@ -1278,7 +1286,11 @@ private actor AuthenticationConnectionBackend {
     func remoteFile(at path: String) -> Data? { remoteFiles[path] }
 }
 
-private actor AuthenticationExecSession: SSHExecSessionProtocol {
+private actor AuthenticationExecSession: SSHMultiplexedSessionProtocol {
+    private let backend: AuthenticationConnectionBackend
+
+    init(backend: AuthenticationConnectionBackend) { self.backend = backend }
+
     func connect(using configuration: SSHConnectionConfiguration) async throws {}
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
@@ -1288,6 +1300,9 @@ private actor AuthenticationExecSession: SSHExecSessionProtocol {
             stdout: "", stderr: "", exitCode: 0, signal: nil,
             stdoutTruncated: false, stderrTruncated: false
         )
+    }
+    func openSFTPChannel() async throws -> any SFTPClientProtocol {
+        await backend.openPrimarySFTP()
     }
     func disconnect() async {}
 }

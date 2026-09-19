@@ -15,7 +15,7 @@ struct SSHKeyboardInteractiveWireTests {
         let fixture = try fixture()
         let recorder = WireChallengeRecorder()
         let request = request(mode: mode, fixture: fixture, handler: recorder.handler)
-        let session = SSHExecSession()
+        let session = SSHMultiplexedSession()
         do {
             try await session.connect(using: request)
             let result = try await session.execute(
@@ -52,6 +52,41 @@ struct SSHKeyboardInteractiveWireTests {
             throw error
         }
         await client.disconnect()
+    }
+
+    @Test func multiplexedSessionRunsExecAndCompleteSFTPOnOneAuthentication() async throws {
+        let fixture = try fixture()
+        let recorder = WireChallengeRecorder()
+        let session = SSHMultiplexedSession()
+        try await session.connect(
+            using: request(mode: "kbd", fixture: fixture, handler: recorder.handler))
+        let client = try await session.openSFTPChannel()
+        do {
+            async let command = session.execute(
+                "fixture", workingDirectory: nil, stdin: nil, timeout: 5,
+                outputLimit: 1_024, onOutput: nil)
+            async let listing = client.listDirectory(at: "/")
+            #expect(try await command.stdout == "fixture\n")
+            #expect(try await listing.map(\.name).contains("fixture.txt"))
+            #expect(try await client.readFile(at: "/fixture.txt", maximumBytes: 100) == Data("fixture\n".utf8))
+
+            let path = "/agent-shared-\(UUID().uuidString.lowercased()).txt"
+            try await client.writeFile(Data("shared\n".utf8), at: path, overwrite: false)
+            #expect(try await client.readFile(at: path, maximumBytes: 100) == Data("shared\n".utf8))
+            let stream = try await client.openDownloadStream(
+                at: path, maximumBytes: 100, cancellation: TransferCancellationToken())
+            #expect(try await stream.readChunk() == Data("shared\n".utf8))
+            #expect(try await stream.readChunk() == nil)
+            try await stream.close()
+            try await client.removeFile(at: path)
+            #expect(await recorder.challenges.count == 1)
+        } catch {
+            await client.disconnect()
+            await session.disconnect()
+            throw error
+        }
+        await client.disconnect()
+        await session.disconnect()
     }
 
     @Test func terminalUsesInteractiveAuthentication() async throws {
@@ -109,7 +144,7 @@ struct SSHKeyboardInteractiveWireTests {
                 username: "kbd", credentials: [], expectedHostKeys: []
             )
         ]
-        let session = SSHExecSession()
+        let session = SSHMultiplexedSession()
         try await session.connect(using: request)
         await session.disconnect()
         let challenges = await recorder.challenges
@@ -121,7 +156,7 @@ struct SSHKeyboardInteractiveWireTests {
         let fixture = try fixture()
         let queue = SSHKeyboardInteractiveQueue()
         let request = request(mode: "kbd", fixture: fixture, handler: queue.handler)
-        let session = SSHExecSession()
+        let session = SSHMultiplexedSession()
         let opening = Task { try await session.connect(using: request) }
         for _ in 0..<500 where queue.current == nil { try await Task.sleep(for: .milliseconds(10)) }
         #expect(queue.current != nil)
@@ -154,7 +189,7 @@ struct SSHKeyboardInteractiveWireTests {
 
     @Test func rejectedChallengeRetainsAuthenticationFailureClassification() async throws {
         let fixture = try fixture()
-        let session = SSHExecSession()
+        let session = SSHMultiplexedSession()
         do {
             try await session.connect(using: request(mode: "kbd", fixture: fixture, handler: { _ in ["wrong"] }))
             Issue.record("Expected an authentication failure")

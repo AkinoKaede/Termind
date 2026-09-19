@@ -38,24 +38,24 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         SFTPClient(keyboardInteractive: keyboardInteractive, logger: logger)
     }
 
-    public func makeExecSession() -> any SSHExecSessionProtocol {
-        SSHExecSession(keyboardInteractive: keyboardInteractive, logger: logger)
+    public func makeMultiplexedSession() -> any SSHMultiplexedSessionProtocol {
+        SSHMultiplexedSession(keyboardInteractive: keyboardInteractive, logger: logger)
     }
 
     /// Mirrors `connectSFTP`, including its guarantee that a session which fails
     /// to come up is torn down here rather than handed back half-open.
-    public func connectExec(
+    public func connectMultiplexed(
         using configuration: SSHConnectionConfiguration
-    ) async throws -> any SSHExecSessionProtocol {
-        try await connectExec(
+    ) async throws -> any SSHMultiplexedSessionProtocol {
+        try await connectMultiplexed(
             using: SSHConnectionRequest(configuration: configuration)
         )
     }
 
-    public func connectExec(
+    public func connectMultiplexed(
         using request: SSHConnectionRequest
-    ) async throws -> any SSHExecSessionProtocol {
-        let session = makeExecSession()
+    ) async throws -> any SSHMultiplexedSessionProtocol {
+        let session = makeMultiplexedSession()
         do {
             try await session.connect(using: request)
             return session

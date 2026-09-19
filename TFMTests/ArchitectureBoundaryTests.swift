@@ -192,7 +192,7 @@ struct ArchitectureBoundaryTests {
     private func assertNoConcreteImplementations(in directory: String) throws {
         let forbidden = [
             "ModelContext", "FetchDescriptor", "KeychainSecretStore",
-            "SFTPClient()", "SSHExecSession()", "URLSession(",
+            "SFTPClient()", "SSHMultiplexedSession()", "URLSession(",
         ]
         for file in try swiftFiles(in: directory) {
             let text = try String(contentsOf: file, encoding: .utf8)

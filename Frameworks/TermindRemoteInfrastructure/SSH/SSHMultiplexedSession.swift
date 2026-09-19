@@ -37,38 +37,43 @@ public nonisolated enum SSHExecSessionError: LocalizedError, Sendable {
     }
 }
 
-/// A long-lived authenticated transport that opens a private non-PTY Channel
-/// for every command. Concurrent calls share the transport and are advanced by
-/// one fair libssh2 owner; shell state and working directories never leak.
-public nonisolated protocol SSHExecSessionProtocol: AnyObject, Sendable {
+/// A long-lived authenticated SSH transport that multiplexes non-PTY exec and
+/// SFTP subsystem Channels through one fair libssh2 owner. Every command uses
+/// a private Channel, so shell state and working directories never leak.
+public nonisolated protocol SSHMultiplexedSessionProtocol: AnyObject, Sendable {
     func connect(using configuration: SSHConnectionConfiguration) async throws
     func connect(using request: SSHConnectionRequest) async throws
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult
+    func openSFTPChannel() async throws -> any SFTPClientProtocol
     func disconnect() async
 }
 
-nonisolated extension SSHExecSessionProtocol {
+nonisolated extension SSHMultiplexedSessionProtocol {
     public func connect(using request: SSHConnectionRequest) async throws {
         try await connect(using: request.configuration)
+    }
+
+    public func openSFTPChannel() async throws -> any SFTPClientProtocol {
+        throw SFTPError.notConnected
     }
 }
 
 /// Called on the connection's serial libssh2 owner. It must return promptly.
 public typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
 
-public actor SSHExecSession: SSHExecSessionProtocol {
+public actor SSHMultiplexedSession: SSHMultiplexedSessionProtocol {
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
-    private nonisolated let worker: SSHMultiplexedExecWorker
+    private nonisolated let worker: SSHMultiplexedSessionWorker
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
         logger: Logger = ApplicationLogger.disabled("termind.ssh-exec")
     ) {
         self.keyboardInteractive = keyboardInteractive
-        worker = SSHMultiplexedExecWorker(logger: logger)
+        worker = SSHMultiplexedSessionWorker(logger: logger)
     }
 
     public func connect(using configuration: SSHConnectionConfiguration) async throws {
@@ -92,6 +97,10 @@ public actor SSHExecSession: SSHExecSessionProtocol {
         } onCancel: {
             cancellation.cancel()
         }
+    }
+
+    public func openSFTPChannel() async throws -> any SFTPClientProtocol {
+        try await worker.openSFTPChannel()
     }
 
     public func disconnect() async { await worker.disconnect() }

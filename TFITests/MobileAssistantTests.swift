@@ -333,7 +333,7 @@ struct MobileAssistantTests {
         let hosts = AgentHostResolver(store: app.library)
         let connections = AgentConnectionPool(
             configuration: { _ in throw CancellationError() },
-            routeFingerprint: { _ in "" }, openExec: { _ in throw CancellationError() },
+            routeFingerprint: { _ in "" }, openSession: { _ in throw CancellationError() },
             openSFTP: { _ in throw CancellationError() }, sweepInterval: nil)
         let authentication = AgentSSHAuthenticationRegistry(resolver: hosts)
         let background = AgentBackgroundCommands(sweepInterval: nil)

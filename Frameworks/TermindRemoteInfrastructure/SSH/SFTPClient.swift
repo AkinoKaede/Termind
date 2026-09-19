@@ -456,10 +456,7 @@ public actor SFTPClient: SFTPClientProtocol {
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
-        guard let destination = destination as? SFTPClient else {
-            throw SFTPError.operation("The destination cannot receive a streamed SFTP copy.")
-        }
-        if self === destination {
+        if let destination = destination as? SFTPClient, self === destination {
             try await worker.copyFile(
                 from: sourcePath, to: destinationPath, byteCount: byteCount,
                 overwrite: overwrite, cancellation: cancellation, progress: progress)
@@ -487,12 +484,10 @@ public actor SFTPClient: SFTPClientProtocol {
                     }
                 }
                 group.addTask {
-                    try await destination.worker.uploadFile(
-                        fromSocket: relay.reader, to: destinationPath,
-                        byteCount: byteCount, overwrite: overwrite,
-                        cancellation: cancellation, progress: progress,
-                        sourceSucceeded: { relay.sourceSucceeded }
-                    )
+                    try await destination.uploadStream(
+                        fromSocket: relay.reader, to: destinationPath, byteCount: byteCount,
+                        overwrite: overwrite, cancellation: cancellation, progress: progress,
+                        sourceSucceeded: { relay.sourceSucceeded })
                 }
                 do {
                     while try await group.next() != nil {}

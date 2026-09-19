@@ -339,7 +339,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
             // being changed.
             //
             // Safe commands may overlap even when aimed at one host:
-            // `SSHExecSession` gives each command its own Channel on the
+            // `SSHMultiplexedSession` gives each command its own Channel on the
             // shared transport, while one fair owner serializes the actual
             // libssh2 calls. Commands on separate hosts can also run at once,
             // as can host work alongside `fetch`, `web_search`, and MCP.
@@ -444,8 +444,8 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                             callID: invocation.call.id, content: "",
                             metadata: ["presentation_phase": .string("running")]
                         ))
-                    await pool.disconnect(hostID: hostID, kind: .exec)
-                    connection.client = try await authentication.openExec(
+                    await pool.disconnect(hostID: hostID)
+                    connection.client = try await authentication.openSession(
                         hostID: hostID, authentication: connection.authentication,
                         pool: pool
                     )

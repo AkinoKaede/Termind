@@ -194,3 +194,17 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
 - **Verification:** macOS and generic iOS Simulator builds passed. Focused suites passed for scheduler/session topology,
   settings persistence/sync, Agent authentication/MCP, Agent/Workspace copy and native drag payload selection. Chinese
   localization and diff checks passed; final full-suite/format status is recorded in the task handoff.
+
+### 2026-09-19 — shared Agent SSH/SFTP primary transport (complete)
+
+- **Evidence:** Agent exec and the primary Agent SFTP client still used separate authenticated transports even though the
+  non-blocking connection owner could host both Channel types. A first exec followed by SFTP therefore performed two handshakes,
+  while connection-preferred SFTP concurrency correctly needed its independent auxiliary transports.
+- **Action:** rename the exec-only session abstraction to `SSHMultiplexedSession`, expose SFTP Channel creation on it, and key the
+  Agent pool's primary entry/in-flight open by Host only. Keep SFTP admission, Smart thresholds, auxiliary connections and silent
+  Channel fallback unchanged.
+- **Result:** exec and primary SFTP now share one authentication and physical connection in either call order. A reusable full
+  non-blocking SFTP Channel client serves PTY and Agent owners; only scheduler-selected auxiliary SFTP work opens more transports.
+  Host retirement, route changes and fatal primary failures close the shared lifetime atomically, without replaying operations.
+- **Verification:** focused pool/authentication/copy tests and macOS build passed during implementation; final cross-platform,
+  localization and format status is recorded in the task handoff.

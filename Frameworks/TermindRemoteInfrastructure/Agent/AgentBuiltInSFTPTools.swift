@@ -648,7 +648,7 @@ nonisolated extension AgentToolSupport {
             } catch let error as SFTPError {
                 switch error {
                 case .notConnected, .connectionLost:
-                    await pool.disconnect(hostID: hostID, kind: .sftp)
+                    await pool.disconnect(hostID: hostID)
                 case .cancelled, .localFile, .operation:
                     break
                 }

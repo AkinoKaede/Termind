@@ -12,7 +12,7 @@ struct MobileSFTPCopyAvailabilityTests {
         let hosts = AgentHostResolver(store: HostLibraryModel())
         let connections = AgentConnectionPool(
             configuration: { _ in throw AgentToolError.invalidHost }, routeFingerprint: { _ in "test" },
-            openExec: { _ in throw AgentToolError.invalidHost }, openSFTP: { _ in throw AgentToolError.invalidHost },
+            openSession: { _ in throw AgentToolError.invalidHost }, openSFTP: { _ in throw AgentToolError.invalidHost },
             sweepInterval: nil
         )
         let registry = AgentToolRegistry(
