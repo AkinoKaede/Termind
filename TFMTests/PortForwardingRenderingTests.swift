@@ -123,7 +123,7 @@ struct PortForwardingRenderingTests {
         let prompt = try #require(context.authenticationPrompt)
         navigation.openVaultWork(.forwardingEditor(rules[0].id), on: .portForwarding)
         var passwordField: NSSecureTextField?
-        for width in [960.0, 360.0, 640.0, 641.0, 681.0, 960.0] {
+        for width in [960.0, 360.0, 600.0, 601.0, 640.0, 641.0, 681.0, 960.0] {
             window.setContentSize(NSSize(width: width, height: 440))
             controller.view.frame = NSRect(x: 0, y: 0, width: width, height: 440)
             try await Task.sleep(for: .milliseconds(300))
@@ -172,7 +172,8 @@ struct PortForwardingRenderingTests {
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func embeddedJourneyDecisionsAndLogsFitShortNarrowColumns(_ language: String) async throws {
-        let host = Host(name: "Production Database Gateway with a Long Name", host: "gateway.example.invalid")
+        let host = Host(
+            name: "AWS US-West-1 Production Database Gateway with a Long Name", host: "gateway.example.invalid")
         let jump = Host(name: "Jump Host", host: "jump.example.invalid")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host, jump]))
         defer { app.shutdownForTermination() }
@@ -208,7 +209,7 @@ struct PortForwardingRenderingTests {
                 journey.showsLogs = true
             }
             let controller = NSHostingController(
-                rootView: VaultDetailScaffold(title: "Port Forwarding", symbol: "arrow.left.arrow.right", close: {}) {
+                rootView: VaultDetailScaffold(title: "\(host.name)", symbol: "arrow.left.arrow.right", close: {}) {
                     ConnectionJourneyView(
                         journey: journey, hostKey: hostKey,
                         submitAuthentication: { _, _, _, _, _, _ in actions += 1 },
@@ -224,7 +225,7 @@ struct PortForwardingRenderingTests {
                 .environment(app)
                 .environment(\.locale, Locale(identifier: language)))
             let window = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 400, height: 440),
+                contentRect: NSRect(x: 0, y: 0, width: 320, height: 440),
                 styleMask: [.titled, .resizable], backing: .buffered, defer: false)
             window.isReleasedWhenClosed = false
             controller.sizingOptions = []
@@ -238,7 +239,7 @@ struct PortForwardingRenderingTests {
                 window.close()
             }
             var fields: [NSTextField]?
-            for width in [400.0, 360.0, 400.0] {
+            for width in [320.0, 360.0, 320.0] {
                 window.setContentSize(NSSize(width: width, height: 440))
                 controller.view.frame = NSRect(x: 0, y: 0, width: width, height: 440)
                 try await Task.sleep(for: .milliseconds(100))

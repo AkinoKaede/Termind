@@ -35,13 +35,15 @@ public struct ConnectionJourneyHeader: View {
                 }
 
             VStack(alignment: .leading, spacing: 3) {
-                Text(journey.destination?.name ?? String(localized: "SSH Connection"))
+                Text(title)
                     .font(.title3.weight(.semibold))
                     .lineLimit(1)
+                    .help(title)
                 Text(detail)
                     .font(.callout.monospaced())
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
+                    .help(detail)
             }
 
             Spacer(minLength: 6)
@@ -62,6 +64,8 @@ public struct ConnectionJourneyHeader: View {
         .padding(.top, isEmbedded ? 16 : 30)
         .padding(.horizontal, isEmbedded ? 16 : 34)
     }
+
+    private var title: String { journey.destination?.name ?? String(localized: "SSH Connection") }
 
     private var detail: String {
         let protocolName: String =

@@ -141,7 +141,10 @@ struct VaultDetailScaffold<Content: View, Footer: View>: View {
 
                 Label(title, systemImage: symbol)
                     .font(.headline)
-                Spacer()
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .help(title)
+                Spacer(minLength: 0)
             }
             .padding(.horizontal, Metrics.Space.l)
             .padding(.vertical, Metrics.Space.m)

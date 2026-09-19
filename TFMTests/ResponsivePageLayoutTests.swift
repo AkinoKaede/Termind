@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import TermindApplication
+import TermindDomain
 import Testing
 
 @testable import Termind
@@ -8,6 +9,65 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct ResponsivePageLayoutTests {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func vaultEditorsKeepFieldsInsideNarrowColumns(_ language: String) async throws {
+        let host = TermindDomain.Host(name: "Production Database Gateway with a Long Name", host: "server.invalid")
+        let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
+        let navigation = WindowModel()
+        defer { app.shutdownForTermination() }
+        let editors: [(String, VaultWorkRoute)] = [
+            ("host", .hostEditor(host.id)),
+            ("group", .hostGroupEditor(groupID: nil, parentID: nil)),
+            ("identity", .identityEditor(nil)),
+            ("known-host", .knownHostEditor(nil)),
+            ("forwarding", .forwardingEditor(nil)),
+            ("snippet", .snippetEditor(snippetID: nil, packageID: nil)),
+            ("package", .snippetPackageEditor(packageID: nil, parentID: nil)),
+            ("generate-key", .generateKey),
+        ]
+        for (name, route) in editors {
+            let controller = NSHostingController(
+                rootView: VaultWorkDetailView(route: route).environment(app).environment(navigation)
+                    .environment(\.locale, Locale(identifier: language)))
+            let window = NSWindow(
+                contentRect: CGRect(x: 0, y: 0, width: 320, height: 640),
+                styleMask: .borderless, backing: .buffered, defer: false)
+            window.isReleasedWhenClosed = false
+            controller.sizingOptions = []
+            window.contentViewController = controller
+            window.setContentSize(CGSize(width: 320, height: 640))
+            controller.view.frame = CGRect(x: 0, y: 0, width: 320, height: 640)
+            window.orderFront(nil)
+            defer {
+                window.orderOut(nil)
+                window.contentViewController = nil
+                window.close()
+            }
+            await layout(controller.view)
+            #expect(abs(controller.view.bounds.width - 320) <= 1)
+            let scroll = try #require(descendant(in: controller.view, ofType: NSScrollView.self))
+            let document = try #require(scroll.documentView)
+            #expect(document.frame.width <= scroll.contentView.bounds.width + 1, "\(name) overflows horizontally")
+            #expect(scroll.contentInsets.left >= 0 && scroll.contentInsets.right >= 0)
+            #expect(!scroll.hasHorizontalScroller)
+            let fields = descendants(in: controller.view).compactMap { $0 as? NSTextField }
+                .filter { $0.isEditable && !$0.isHiddenOrHasHiddenAncestor }
+            #expect(!fields.isEmpty)
+            for field in fields {
+                let frame = field.convert(field.bounds, to: controller.view)
+                #expect(frame.minX >= 0 && frame.maxX <= 321, "\(name): \(frame)")
+            }
+            let bitmap = try #require(controller.view.bitmapImageRepForCachingDisplay(in: controller.view.bounds))
+            controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
+            let data = try #require(bitmap.representation(using: .png, properties: [:]))
+            let filename = "macos-vault-\(name)-\(language)-320.png"
+            Attachment.record(data, named: filename)
+            let directory = FileManager.default.temporaryDirectory.appending(path: "termind-vault-ui")
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try data.write(to: directory.appending(path: filename))
+        }
+    }
+
     @Test
     func metricsPagesAndResizeKeepTheProcessTableAndBothScrollPositions() async throws {
         let configuration = ScreenshotDemoConfiguration(scene: .metricsDetail, language: .english)
@@ -97,10 +157,10 @@ struct ResponsivePageLayoutTests {
         let listView = try #require(list.view)
         let editorView = try #require(editor.view)
         editorView.stringValue = "Unsaved host name"
-        #expect(abs(editorView.bounds.width - 400) <= 1)
+        #expect(abs(editorView.bounds.width - 320) <= 1)
         let listSize = listView.bounds.size
 
-        for width in [360.0, 640.0] {
+        for width in [360.0, 600.0] {
             host.frame.size.width = width
             await layout(host)
             #expect(editor.view === editorView)
@@ -109,17 +169,17 @@ struct ResponsivePageLayoutTests {
             #expect(listView.bounds.size == listSize)
         }
 
-        host.frame.size.width = 641
+        host.frame.size.width = 601
         await layout(host)
         #expect(editorView.stringValue == "Unsaved host name")
-        #expect(abs(editorView.bounds.width - 360) <= 1)
+        #expect(abs(editorView.bounds.width - 320) <= 1)
         #expect(abs(listView.bounds.width - 280) <= 1)
 
-        for width in [681.0, 900.0] {
+        for width in [640.0, 641.0, 681.0, 900.0] {
             host.frame.size.width = width
             await layout(host)
-            #expect(abs(editorView.bounds.width - 400) <= 1)
-            #expect(abs(listView.bounds.width - (width - 401)) <= 1)
+            #expect(abs(editorView.bounds.width - 320) <= 1)
+            #expect(abs(listView.bounds.width - (width - 321)) <= 1)
             #expect(editorView.stringValue == "Unsaved host name")
         }
 
@@ -133,7 +193,7 @@ struct ResponsivePageLayoutTests {
         #expect(editor.creations == 1)
     }
 
-    @Test(arguments: [360.0, 900.0])
+    @Test(arguments: [360.0, 600.0, 601.0, 900.0])
     func vaultOpeningAndClosingSlideWithoutSqueezingTheEditor(_ width: CGFloat) async throws {
         let list = Probe()
         let editor = Probe()
@@ -154,8 +214,8 @@ struct ResponsivePageLayoutTests {
             let frame = editorView.convert(editorView.bounds, to: host)
             if progress == 0.5 {
                 #expect(frame.minX > width - editorWidth && frame.minX < width)
-                if width == 900 {
-                    #expect(listView.bounds.width > 499 && listView.bounds.width < 900)
+                if width >= 601 {
+                    #expect(abs(listView.bounds.width - (width - 321 * progress)) <= 1)
                 }
             } else if progress == 1 {
                 #expect(abs(frame.maxX - width) <= 1)
@@ -179,6 +239,10 @@ struct ResponsivePageLayoutTests {
     private func descendant<T: NSView>(in view: NSView, ofType type: T.Type) -> T? {
         if let result = view as? T { return result }
         return view.subviews.lazy.compactMap { descendant(in: $0, ofType: type) }.first
+    }
+
+    private func descendants(in view: NSView) -> [NSView] {
+        [view] + view.subviews.flatMap { descendants(in: $0) }
     }
 
     private final class Probe {

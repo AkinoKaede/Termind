@@ -87,14 +87,19 @@ the latest record counts as unchanged.
   Snippets, Known Hosts, Welcome and editor routes. Settings data is app-wide; window-local Settings
   navigation remembers and restores the replaced destination.
 - Desktop detail minimum is 360 points; Assistant reading maximum is independently 840. Opening
-  Navigator grows the window as needed. Vault reserves a 280-point list and 360–400-point editor,
-  overlaying below 641 points; covered lists retain their last visible size. Editor/space transitions
-  take 0.22 seconds, preserve content size and respect Reduce Motion. Metrics below 700 points uses
+  Navigator grows the window as needed. Vault reserves a 280-point list, one-point divider and fixed
+  320-point editor (including the embedded forwarding Journey), overlaying below 601 content points;
+  the full-page editor fills available width and covered lists retain their last visible size. Editor/space
+  transitions take 0.22 seconds, preserve content size and respect Reduce Motion. Metrics below 700 points uses
   a titlebar Status/Processes picker with hidden title; wider layouts show both panels/title.
   Covered panels retain size, table identity, sorting and scroll. Selection/width are window-local;
   changing server selects Status, while focusing search or narrowing during search reveals Processes.
   Compact Pause/Resume goes in More; macOS 15 search uses a toolbar popover. Resizing changes layout,
   never routes, editor identity, Workspace composition or monitoring ownership.
+  Vault grouped forms retain native horizontal insets without expanding their scroll content; only
+  vertical scrolling is allowed. The embedded Journey retains 16-point horizontal insets and a horizontal
+  route scroller. Host integration uses a native labeled menu on both platforms, fitting narrow editors
+  without widening them or clipping their footers.
 - `AssistantLibraryModel` owns standalone conversations, never Workspace panes. Workspaces own
   SSH/SFTP/serial panes and session-scoped conversations; sessions own live transports and
   terminal/browser state. Assistant ordering/pinning is metadata-only during runs, approvals or
@@ -251,9 +256,10 @@ interactive input capture, retaining bracketed paste/broadcast. Remote mouse cap
 keep Ghostty handling; mouse reports stay outside broadcast capture. Empty paste arms no deferred capture;
 bracketed-paste classification spans chunks through its terminator or existing short-lived ticket expiry.
 
-Host Shell Integration is Vault-synced Follow Global Settings/Enable/Disable; V22 adds a column while
-freezing V1–V21 Hosts and defaults legacy data to Follow Global. Both explicit-save editors place it after
-Group (desktop Group & Tags), with Follow Global centered between Enable/Disable. Each SSH attempt resolves
+Host Shell Integration is Vault-synced Default/Enable/Disable; V22 adds a column while
+freezing V1–V21 Hosts and defaults legacy data to follow global settings. Both explicit-save editors place it after
+Group (desktop Group & Tags), with a native menu ordered Default, Enable, Disable. Default follows the global
+preference without changing persisted values. Each SSH attempt resolves
 destination override/global preference once before authentication for bootstrap, History, Command Generator,
 system info and directory actions. Live edits never inject scripts/reconnect/change that attempt; new/manual/
 automatic reconnects resolve again. SFTP/forwarding route identity is unchanged.

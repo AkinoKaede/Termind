@@ -15,9 +15,7 @@ struct MobileHostIntegrationRenderingTests {
         let controller = UIHostingController(
             rootView: Form {
                 Section("Group") { Text("Production") }
-                HostIntegrationSection {
-                    MobileHostIntegrationPicker(mode: Binding(get: { draft.mode }, set: { draft.mode = $0 }))
-                }
+                HostIntegrationSection(mode: Binding(get: { draft.mode }, set: { draft.mode = $0 }))
             }
             .environment(\.locale, Locale(identifier: language)))
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
@@ -34,22 +32,32 @@ struct MobileHostIntegrationRenderingTests {
         }
         try await Task.sleep(for: .milliseconds(500))
         controller.view.layoutIfNeeded()
-        let picker = try #require(descendants(controller.view).compactMap { $0 as? UISegmentedControl }.first)
-        #expect(picker.numberOfSegments == 3)
-        #expect(picker.apportionsSegmentWidthsByContent)
-        #expect(picker.selectedSegmentIndex == 1)
-        #expect(
-            picker.titleForSegment(at: 1)
-                == AppLocalization.string("Follow Global Settings", locale: Locale(identifier: language)))
-        picker.selectedSegmentIndex = 0
-        picker.sendActions(for: .valueChanged)
+        #expect(descendants(controller.view).compactMap { $0 as? UISegmentedControl }.isEmpty)
+        let picker = try #require(
+            descendants(controller.view).compactMap { $0 as? UIButton }.first { $0.showsMenuAsPrimaryAction })
+        let labels = ["Default", "Enable", "Disable"].map {
+            AppLocalization.string($0, locale: Locale(identifier: language))
+        }
+        let actions = try await menuActions(in: picker)
+        #expect(actions.map(\.title) == labels)
+        #expect(actions.map(\.state) == [.on, .off, .off])
+        picker.sendAction(actions[1])
         #expect(draft.mode == .enabled)
-        picker.selectedSegmentIndex = 2
-        picker.sendActions(for: .valueChanged)
+        controller.view.frame.size.width = 600
+        controller.view.layoutIfNeeded()
+        let enabledActions = try await menuActions(in: picker)
+        #expect(enabledActions.map(\.title) == labels)
+        #expect(enabledActions.map(\.state) == [.off, .on, .off])
+        picker.sendAction(enabledActions[2])
         #expect(draft.mode == .disabled)
-        picker.selectedSegmentIndex = 1
-        picker.sendActions(for: .valueChanged)
+        controller.view.frame.size.width = 375
+        controller.view.layoutIfNeeded()
+        let disabledActions = try await menuActions(in: picker)
+        #expect(disabledActions.map(\.title) == labels)
+        #expect(disabledActions.map(\.state) == [.off, .off, .on])
+        picker.sendAction(disabledActions[0])
         #expect(draft.mode == .followGlobalSettings)
+        try await Task.sleep(for: .milliseconds(300))
         let image = UIGraphicsImageRenderer(bounds: window.bounds).image { _ in
             #expect(window.drawHierarchy(in: window.bounds, afterScreenUpdates: true))
         }
@@ -62,6 +70,29 @@ struct MobileHostIntegrationRenderingTests {
 
     private func descendants(_ view: UIView) -> [UIView] {
         [view] + view.subviews.flatMap(descendants)
+    }
+
+    private func menuActions(in button: UIButton) async throws -> [UIAction] {
+        button.performPrimaryAction()
+        try await Task.sleep(for: .milliseconds(500))
+        let interaction = try #require(button.contextMenuInteraction)
+        var actions: [UIAction] = []
+        interaction.updateVisibleMenu { menu in
+            actions = self.menuActions(menu)
+            return menu
+        }
+        interaction.dismissMenu()
+        try await Task.sleep(for: .milliseconds(300))
+        try #require(actions.count == 3)
+        return actions
+    }
+
+    private func menuActions(_ menu: UIMenu) -> [UIAction] {
+        menu.children.flatMap { element -> [UIAction] in
+            if let action = element as? UIAction { return [action] }
+            if let submenu = element as? UIMenu { return menuActions(submenu) }
+            return []
+        }
     }
 }
 

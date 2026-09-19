@@ -167,7 +167,7 @@ struct HostEditorView: View {
                 }
             }
 
-            HostIntegrationSection { HostShellIntegrationPicker(mode: $draft.shellIntegrationMode) }
+            HostIntegrationSection(mode: $draft.shellIntegrationMode)
 
             if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Section("SSH Command") {

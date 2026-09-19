@@ -80,8 +80,7 @@ struct VaultWorkspaceLayout: Layout {
         let progress = min(1, max(0, expansion))
         // Keep the editor at its open width even while it leaves. Only its
         // position and the list's reserved space animate, never the form's width.
-        let detailWidth =
-            split ? min(Metrics.VaultDetail.ideal, bounds.width - Metrics.VaultContent.min - 1) : bounds.width
+        let detailWidth = split ? Metrics.VaultDetail.width : bounds.width
         let listWidth = split ? bounds.width - (detailWidth + 1) * progress : bounds.width
         let listIsVisible = !showsDetail || split
         let listSize = listIsVisible ? CGSize(width: listWidth, height: bounds.height) : cache.listSize ?? bounds.size

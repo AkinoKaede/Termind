@@ -7295,6 +7295,23 @@
         }
       }
     },
+    "Default" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "默认"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "預設"
+          }
+        }
+      }
+    },
     "Default Network Interfaces" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10703,22 +10720,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "存取過的資料夾和開啟過的檔案會顯示在這裡。"
-          }
-        }
-      }
-    },
-    "Follow Global Settings" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "跟随全局设置"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "跟隨全域設定"
           }
         }
       }
