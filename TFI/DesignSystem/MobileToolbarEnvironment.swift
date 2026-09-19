@@ -18,27 +18,35 @@ private struct MobileToolbarEnvironment: ViewModifier {
     @Environment(\.tabBarPlacement) private var placement
 
     func body(content: Content) -> some View {
-        if #available(iOS 27.1, *) {
-            content.modifier(MobileVerticalToolbarEnvironment(isTopBar: placement == .topBar))
-        } else {
+        #if TERMIND_HAS_IOS_27_1_SDK
+            if #available(iOS 27.1, *) {
+                content.modifier(MobileVerticalToolbarEnvironment(isTopBar: placement == .topBar))
+            } else {
+                content.environment(
+                    \.mobileToolbarLayout,
+                    MobileToolbarLayout(isTopBar: placement == .topBar))
+            }
+        #else
             content.environment(
                 \.mobileToolbarLayout,
                 MobileToolbarLayout(isTopBar: placement == .topBar))
+        #endif
+    }
+}
+
+#if TERMIND_HAS_IOS_27_1_SDK
+    @available(iOS 27.1, *)
+    private struct MobileVerticalToolbarEnvironment: ViewModifier {
+        let isTopBar: Bool
+        @Environment(\.toolbarVerticalEdge) private var edge
+
+        func body(content: Content) -> some View {
+            content.environment(
+                \.mobileToolbarLayout,
+                MobileToolbarLayout(isTopBar: isTopBar, verticalEdge: edge))
         }
     }
-}
-
-@available(iOS 27.1, *)
-private struct MobileVerticalToolbarEnvironment: ViewModifier {
-    let isTopBar: Bool
-    @Environment(\.toolbarVerticalEdge) private var edge
-
-    func body(content: Content) -> some View {
-        content.environment(
-            \.mobileToolbarLayout,
-            MobileToolbarLayout(isTopBar: isTopBar, verticalEdge: edge))
-    }
-}
+#endif
 
 extension View {
     func mobileToolbarEnvironment() -> some View {

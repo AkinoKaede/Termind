@@ -697,7 +697,8 @@ remain. Metrics uses vertical labeled-icon menu or horizontal principal segmente
 coexist. iOS 27 uses `ToolbarOverflowMenu`, older OS labeled menus. Save stays labeled with form progress. Native
 minimized SSH/SFTP search stays in every placement; sidebar/pose changes never activate search or claim focus.
 
-On iOS 27.1 content reads active division/occlusion ReservedRegions after safe-area/keyboard layout. Frames include
+When built with the iOS 27.1 SDK, iOS 27.1 content reads active division/occlusion ReservedRegions after
+safe-area/keyboard layout. Frames include
 margins and follow SwiftUI's leading-origin convention, including RTL. Terminal/shortcuts/notices occupy the largest
 continuous unobstructed rectangle, ties top then leading. Ghostty resizes the existing PTY and rejects invalid
 viewports; session ownership survives pose. Assistant keeps one transcript and one scrollable interaction surface

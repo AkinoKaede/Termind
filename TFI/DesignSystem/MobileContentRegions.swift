@@ -122,15 +122,17 @@ struct MobileRegionReader<Content: View>: View {
 
     private func regions(in geometry: GeometryProxy) -> [MobileReservedRegion] {
         if let override { return override }
-        if #available(iOS 27.1, *) {
-            // The default mirrored query matches Layout placement in both LTR and RTL.
-            return geometry.reservedRegions(kind: .division).map {
-                MobileReservedRegion(kind: .division, frame: $0.frame, isActive: $0.isActive)
-            }
-                + geometry.reservedRegions(kind: .occlusion).map {
-                    MobileReservedRegion(kind: .occlusion, frame: $0.frame, isActive: $0.isActive)
+        #if TERMIND_HAS_IOS_27_1_SDK
+            if #available(iOS 27.1, *) {
+                // The default mirrored query matches Layout placement in both LTR and RTL.
+                return geometry.reservedRegions(kind: .division).map {
+                    MobileReservedRegion(kind: .division, frame: $0.frame, isActive: $0.isActive)
                 }
-        }
+                    + geometry.reservedRegions(kind: .occlusion).map {
+                        MobileReservedRegion(kind: .occlusion, frame: $0.frame, isActive: $0.isActive)
+                    }
+            }
+        #endif
         return []
     }
 }
