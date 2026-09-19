@@ -9,6 +9,55 @@ import Testing
 /// Uses the loopback Paramiko or forwarding-only OpenSSH fixture in Scripts/.
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_SSH_FIXTURE"] != nil), .serialized)
 nonisolated struct SSHForwardingWireTests {
+    @Test(arguments: [PortForwardingRule.Kind.local, .dynamic])
+    func disconnectReleasesThePortBeforeReturningEvenWithEstablishedStreams(_ kind: PortForwardingRule.Kind)
+        async throws
+    {
+        let fixture = try fixture()
+        let rule = try rule(kind, fixture: fixture)
+        for _ in 0..<5 {
+            let count = ForwardingWireConnectionCount()
+            let session = SSHForwardingSession(
+                connectionHandler: { _, _, value in count.set(value) }, failureHandler: { _ in })
+            try await session.connect(request(fixture, jumps: 0))
+            do {
+                try await session.start(rule)
+                var duplicate = rule
+                duplicate.id = UUID()
+                await #expect(throws: TermindSSHError.self) { try await session.start(duplicate) }
+                let client = try SSHSocketConnector.open(host: "127.0.0.1", port: rule.bindPort, timeout: 5)
+                defer { Darwin.close(client) }
+                for _ in 0..<1000 where count.value == 0 { try await Task.sleep(for: .milliseconds(1)) }
+                try #require(count.value == 1)
+                // Close the server side first so its accepted stream can enter TIME_WAIT.
+                await session.disconnect()
+                _ = Darwin.shutdown(client, SHUT_RDWR)
+
+                let candidate = Darwin.socket(AF_INET, SOCK_STREAM, 0)
+                try #require(candidate >= 0)
+                defer { Darwin.close(candidate) }
+                var yes: Int32 = 1
+                try #require(
+                    setsockopt(candidate, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size)) == 0)
+                var address = sockaddr_in()
+                address.sin_len = UInt8(MemoryLayout<sockaddr_in>.size)
+                address.sin_family = sa_family_t(AF_INET)
+                address.sin_addr.s_addr = inet_addr("127.0.0.1")
+                address.sin_port = UInt16(rule.bindPort).bigEndian
+                let bound = withUnsafePointer(to: &address) {
+                    $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                        Darwin.bind(candidate, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+                    }
+                }
+                try #require(bound == 0, "The previous forwarding listener must have released its port")
+                try #require(Darwin.listen(candidate, 1) == 0)
+            } catch {
+                await session.disconnect()
+                throw error
+            }
+        }
+    }
+
     @Test(arguments: [PortForwardingRule.Kind.local, .remote, .dynamic], [1, 16, 64])
     func concurrentStreamsKeepTheirPayloadsAndHalfClose(_ kind: PortForwardingRule.Kind, _ concurrency: Int)
         async throws
@@ -24,7 +73,7 @@ nonisolated struct SSHForwardingWireTests {
     @Test func stoppingOneRulePreservesItsPeerAndReleasesItsListener() async throws {
         let fixture = try fixture()
         let session = SSHForwardingSession(
-            connectionHandler: { _, _ in }, failureHandler: { Issue.record(Comment(rawValue: $0)) })
+            connectionHandler: { _, _, _ in }, failureHandler: { Issue.record(Comment(rawValue: $0)) })
         try await session.connect(request(fixture, jumps: 0))
         do {
             let first = try rule(.local, fixture: fixture)
@@ -58,7 +107,7 @@ nonisolated struct SSHForwardingWireTests {
 
     @Test func slowConsumerPreservesPayloadWhileItsPeerProgresses() async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(connectionHandler: { _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         try await session.connect(request(fixture, jumps: 2))
         do {
             let rule = try rule(.local, fixture: fixture)
@@ -78,7 +127,7 @@ nonisolated struct SSHForwardingWireTests {
 
     @Test func disconnectUnderBackpressureReleasesTheListenerAcrossRepeatedStarts() async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(connectionHandler: { _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         let rule = try rule(.local, fixture: fixture)
         for _ in 0..<5 {
             try await session.connect(request(fixture, jumps: 1))
@@ -113,7 +162,7 @@ nonisolated struct SSHForwardingWireTests {
         let fixture = try fixture()
         // Only Paramiko provides the deliberately delayed listener reply.
         guard fixture.server != "openssh" else { return }
-        let session = SSHForwardingSession(connectionHandler: { _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         try await session.connect(request(fixture, jumps: 0, username: "none-slow-forward"))
         do {
             let rule = try rule(.remote, fixture: fixture)
@@ -135,7 +184,7 @@ nonisolated struct SSHForwardingWireTests {
 
     @Test func multipleRemoteListenersCanStopAndRestartIndependently() async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(connectionHandler: { _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         try await session.connect(request(fixture, jumps: 1))
         do {
             let first = try rule(.remote, fixture: fixture)
@@ -158,7 +207,7 @@ nonisolated struct SSHForwardingWireTests {
     @Test(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_FORWARDING_BENCHMARK"] == "1"))
     func idleForwardingCPU() async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(connectionHandler: { _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         try await session.connect(request(fixture, jumps: 2))
         let rule = try rule(.local, fixture: fixture)
         try await session.start(rule)
@@ -182,7 +231,7 @@ nonisolated struct SSHForwardingWireTests {
     ) async throws {
         let fixture = try fixture()
         let session = SSHForwardingSession(
-            connectionHandler: { _, _ in }, failureHandler: { Issue.record(Comment(rawValue: $0)) })
+            connectionHandler: { _, _, _ in }, failureHandler: { Issue.record(Comment(rawValue: $0)) })
         try await session.connect(request(fixture, jumps: jumps))
         do {
             let rule = try rule(kind, fixture: fixture)
@@ -420,4 +469,11 @@ nonisolated struct SSHForwardingWireTests {
         }
         return data
     }
+}
+
+private nonisolated final class ForwardingWireConnectionCount: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    var value: Int { lock.withLock { count } }
+    func set(_ value: Int) { lock.withLock { count = value } }
 }

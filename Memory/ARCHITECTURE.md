@@ -197,13 +197,23 @@ window-owned multiple/marquee selection with Stop (disabled without active rules
 Delete. Start/retry always target one rule; neither platform has bulk start or Start All/Stop All.
 Mobile pushes detail with trailing Start/Stop/Retry.
 
-Only explicit actions start/retry rules: launch, foreground, saved/synced edits and failures never do;
-legacy enabled defaults are unused. Background expiration/termination stop resources; navigation owns
-neither transport nor prompts. Shared host sessions share authentication; new connections require fresh
-challenges. Stopping one rule preserves peers; stopping the last cancels opening/prompts. Listener failure
-is rule-local; transport failure fails all without restart. Host/jump-route edits and rule replacement
-stop affected runs; authentication Continue/Save may continue its requested opening. Connection/rule
-generations reject stale results, and stop/start serializes listener cleanup.
+Only explicit actions create rule-running intent; launch, foreground and saved/synced edits never do.
+After a listener has run, transport loss preserves that intent and silently recovers all active rules on
+one shared Host connection. Retry delays are 1/2/5/10/30 seconds, capped at 30, reset after 60 stable seconds.
+Recovery reuses an in-memory authenticated configuration with durable trust refreshed after initial login;
+once-only trust and keyboard-interactive answers never authorize another connection. Like SFTP workers,
+the complete route forbids app authentication/trust forms, permits system key authorization and does not
+gate eligibility on saved credentials. Authentication/trust/interaction failures end recovery with an inline
+error; only explicit Retry opens Journey again. Recovery shows Reconnecting and Stop, never Journey or alerts.
+Initial failures still need manual Retry. Listener failure is rule-local; old TCP streams are not replayed.
+
+Legacy enabled defaults are unused. Background expiration/termination stop resources and retries; navigation
+owns neither transport nor prompts. Stopping one rule preserves peers; stopping the last cancels opening,
+prompts and retries and releases credential snapshots. Host/jump-route edits and rule replacement stop affected
+runs; authentication Continue/Save may continue its requested opening. Connection/rule generations reject stale
+results, including pending listener completions, and replacement sessions await old transport/listener cleanup.
+Disconnect returns only after socket cancellation handlers close descriptors. Local/SOCKS listeners use
+SO_REUSEADDR to permit rebinding after closed streams enter TIME_WAIT, never SO_REUSEPORT or shared live binds.
 
 Forwarding/jump bridges use DispatchSource readiness and exactly one serial queue per libssh2 session.
 Stream pumps retain write chunks across EAGAIN, use a 256 KiB per-direction quantum and 256 KiB/session-pass

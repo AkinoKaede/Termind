@@ -69,7 +69,7 @@ struct SSHKeyboardInteractiveWireTests {
     @Test func forwardingAuthenticatesAndReconnectionRequestsFreshAnswers() async throws {
         let fixture = try fixture()
         let recorder = WireChallengeRecorder()
-        let session = SSHForwardingSession(connectionHandler: { _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         let request = request(mode: "kbd", fixture: fixture, handler: recorder.handler)
         try await session.connect(request)
         await session.disconnect()

@@ -189,7 +189,7 @@ final class MobileAppModel {
         snippets = SnippetLibraryModel(library: library)
         knownHosts = KnownHostsLibraryModel(library: library)
         forwardingLibrary = ForwardingLibraryModel(library: library)
-        forwardings = PortForwardingController(hosts: library)
+        forwardings = dependencies.makeForwardings(library)
         transfers = SFTPTransferCoordinator(
             store: library, clientFactory: { SFTPClient() },
             globalLimit: sftpSettings.preferences.globalLimit, perHostLimit: sftpSettings.preferences.perHostLimit)

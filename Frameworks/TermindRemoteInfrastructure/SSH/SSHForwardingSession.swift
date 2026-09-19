@@ -15,13 +15,13 @@ nonisolated struct SSHForwardingStatistics: Sendable {
 
 public protocol SSHForwardingSessionProtocol: Actor {
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws
-    func start(_ rule: PortForwardingRule) async throws
+    func start(_ rule: PortForwardingRule, generation: UUID) async throws
     func stop(_ id: PortForwardingRule.ID) async
     func disconnect() async
 }
 
 public actor SSHForwardingSession: SSHForwardingSessionProtocol {
-    public typealias ConnectionHandler = @Sendable (PortForwardingRule.ID, Int) -> Void
+    public typealias ConnectionHandler = @Sendable (PortForwardingRule.ID, UUID, Int) -> Void
     public typealias FailureHandler = @Sendable (String) -> Void
 
     private let worker: SSHForwardingWorker
@@ -39,8 +39,8 @@ public actor SSHForwardingSession: SSHForwardingSessionProtocol {
         try await worker.connect(request, progress: progress)
     }
 
-    public func start(_ rule: PortForwardingRule) async throws {
-        try await worker.start(rule)
+    public func start(_ rule: PortForwardingRule, generation: UUID = UUID()) async throws {
+        try await worker.start(rule, generation: generation)
     }
 
     public func stop(_ id: PortForwardingRule.ID) async {
@@ -61,6 +61,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     private final class RuleContext: @unchecked Sendable {
         let rule: PortForwardingRule
+        let generation: UUID
         var socket: Int32 = -1
         var events: SSHSocketEvents?
         var remoteListener: OpaquePointer?
@@ -70,7 +71,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         var stop: (@Sendable () -> Void)?
         var reportedCount = -1
 
-        init(rule: PortForwardingRule) { self.rule = rule }
+        init(rule: PortForwardingRule, generation: UUID) {
+            self.rule = rule
+            self.generation = generation
+        }
     }
 
     private final class Flow: @unchecked Sendable {
@@ -103,6 +107,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     }
 
     private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.forwarding")
+    private let closingSockets = DispatchGroup()
     private let connectionHandler: SSHForwardingSession.ConnectionHandler
     private let failureHandler: SSHForwardingSession.FailureHandler
     private var socket: Int32 = -1
@@ -140,7 +145,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     deinit { cleanup() }
 
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws {
-        await queue.perform { self.cleanup() }
+        await disconnect()
         let opened = try await SSHSessionWorker.openAuthenticatedSession(
             using: request, timeout: 20, progress: progress)
         do {
@@ -156,12 +161,12 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             }
             try Task.checkCancellation()
         } catch {
-            await queue.perform { self.cleanup() }
+            await disconnect()
             throw error
         }
     }
 
-    func start(_ rule: PortForwardingRule) async throws {
+    func start(_ rule: PortForwardingRule, generation: UUID) async throws {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [self] in
                 do {
@@ -170,7 +175,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                         continuation.resume()
                         return
                     }
-                    let context = RuleContext(rule: rule)
+                    let context = RuleContext(rule: rule, generation: generation)
                     switch rule.kind {
                     case .local, .dynamic:
                         do { context.socket = try makeListener(host: rule.bindHost, port: rule.bindPort) } catch {
@@ -212,7 +217,14 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         }
     }
 
-    func disconnect() async { await queue.perform { self.cleanup() } }
+    func disconnect() async {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                cleanup()
+                closingSockets.notify(queue: queue) { continuation.resume() }
+            }
+        }
+    }
 
     func statistics() async -> SSHForwardingStatistics {
         await withCheckedContinuation { continuation in
@@ -387,15 +399,25 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             }
             return true
         }
-        if libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN {
+        let code = libssh2_session_last_errno(session)
+        if code == LIBSSH2_ERROR_EAGAIN {
             blocked(session)
             return false
         }
         listening = nil
         if rules[context.rule.id] === context { rules[context.rule.id] = nil }
-        context.start?.resume(
-            throwing: SSHSessionWorker.sessionError(
-                session, prefix: String(localized: "Unable to start remote forwarding")))
+        let error: TermindSSHError
+        switch code {
+        case LIBSSH2_ERROR_SOCKET_NONE, LIBSSH2_ERROR_SOCKET_SEND, LIBSSH2_ERROR_SOCKET_RECV,
+            LIBSSH2_ERROR_SOCKET_DISCONNECT, LIBSSH2_ERROR_SOCKET_TIMEOUT, LIBSSH2_ERROR_BAD_SOCKET,
+            LIBSSH2_ERROR_TIMEOUT:
+            // A lost transport must not turn a pending listener into a rule-local failure.
+            error = .disconnected
+        default:
+            error = SSHSessionWorker.sessionError(
+                session, prefix: String(localized: "Unable to start remote forwarding"))
+        }
+        context.start?.resume(throwing: error)
         context.start = nil
         context.stop?()
         context.stop = nil
@@ -571,7 +593,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     private func report(_ context: RuleContext) {
         guard !context.stopped, context.start == nil, context.reportedCount != context.flows.count else { return }
         context.reportedCount = context.flows.count
-        connectionHandler(context.rule.id, context.reportedCount)
+        connectionHandler(context.rule.id, context.generation, context.reportedCount)
     }
 
     private func close(_ flow: Flow) {
@@ -587,7 +609,11 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         let descriptor = flow.stream.socket
         flow.stream.socket = -1
         if let events = flow.events {
-            events.cancel { Darwin.close(descriptor) }
+            closingSockets.enter()
+            events.cancel { [closingSockets] in
+                Darwin.close(descriptor)
+                closingSockets.leave()
+            }
             flow.events = nil
         } else if descriptor >= 0 {
             Darwin.close(descriptor)
@@ -613,9 +639,11 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             let descriptor = context.socket
             context.socket = -1
             context.events = nil
-            events.cancel {
+            closingSockets.enter()
+            events.cancel { [closingSockets] in
                 Darwin.close(descriptor)
                 completion()
+                closingSockets.leave()
             }
         } else {
             completion()
@@ -685,7 +713,15 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         ready = SSHReadyQueue()
         pendingOpens = SSHReadyQueue()
         if let transport = routeTransport {
-            if let events = transportEvents { events.cancel { transport.close() } } else { transport.close() }
+            if let events = transportEvents {
+                closingSockets.enter()
+                events.cancel { [closingSockets] in
+                    transport.close()
+                    closingSockets.leave()
+                }
+            } else {
+                transport.close()
+            }
         }
         transportEvents = nil
         routeTransport = nil
@@ -782,7 +818,10 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             if candidate >= 0 {
                 var yes: Int32 = 1
                 setsockopt(candidate, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
-                if Darwin.bind(candidate, info.ai_addr, info.ai_addrlen) == 0,
+                // Closed streams can remain in TIME_WAIT after the listener is released.
+                // REUSEADDR permits rebinding then without sharing an active listener.
+                if setsockopt(candidate, SOL_SOCKET, SO_REUSEADDR, &yes, socklen_t(MemoryLayout<Int32>.size)) == 0,
+                    Darwin.bind(candidate, info.ai_addr, info.ai_addrlen) == 0,
                     Darwin.listen(candidate, 128) == 0
                 {
                     makeNonblocking(candidate)

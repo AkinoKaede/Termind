@@ -1,6 +1,7 @@
 import Foundation
 import SwiftData
 import TermindApplication
+import TermindRemoteInfrastructure
 
 @MainActor
 struct MobileAppDependencies {
@@ -14,6 +15,7 @@ struct MobileAppDependencies {
     var container: ModelContainer? = nil
     var workspaceStore: MobileWorkspaceStore? = nil
     var liveActivities: MobileLiveActivityController? = nil
+    var makeForwardings: (HostLibraryModel) -> PortForwardingController = { PortForwardingController(hosts: $0) }
 
     static func live() -> MobileAppDependencies {
         MobileAppDependencies(

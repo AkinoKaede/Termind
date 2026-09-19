@@ -9,9 +9,12 @@ struct ArchitectureBoundaryTests {
             contentsOf: sourceRoot.appending(
                 path: "../Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift"),
             encoding: .utf8)
-        for symbol in ["UserDefaults", "SettingsKey", "SessionReconnectController", "ExternalAuthentication"] {
+        for symbol in ["UserDefaults", "SettingsKey", "ExternalAuthentication"] {
             #expect(!containsToken(symbol, in: controller))
         }
+        #expect(containsToken("SessionReconnectController", in: controller))
+        #expect(controller.contains("interactionPolicy: .forbidden"))
+        #expect(containsToken("enforcingInteractionPolicy", in: controller))
         for path in ["../TFI/App/MobileAppModel.swift", "../TFI/App/MobileRootView.swift"] {
             let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
             #expect(!containsToken("SSHKeyboardInteractiveQueue", in: source))

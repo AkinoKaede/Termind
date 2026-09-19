@@ -42,7 +42,7 @@ struct PortForwardingJourneyTests {
         #expect(app.forwarding.connection(for: rule.id) == nil)
     }
 
-    @Test func savedRulesNeverStartUntilRequestedAndFailureNeverRetries() async throws {
+    @Test func savedRulesNeverStartUntilRequestedAndInitialFailureNeverRetries() async throws {
         let fixture = Fixture(mode: .failure)
         let rule = fixture.rules[0]
         #expect(fixture.sessions.isEmpty)
@@ -226,7 +226,7 @@ struct PortForwardingJourneyTests {
         #expect(fixture.sessions.count == 1)
     }
 
-    @Test func listenerFailureDoesNotDisconnectAnExistingRuleAndDisconnectNeverRestarts() async throws {
+    @Test func listenerFailureDoesNotDisconnectAnExistingRuleAndOnlyItsPeerRecovers() async throws {
         let fixture = Fixture(mode: .listenerFailure)
         defer { fixture.controller.stopAll() }
         let first = fixture.rules[0]
@@ -243,12 +243,14 @@ struct PortForwardingJourneyTests {
         let session = try #require(fixture.sessions.first)
         #expect(await session.disconnects == 0)
         await session.fail()
-        try await wait {
-            if case .failed = fixture.controller.state(for: first.id) { return true }
-            return false
-        }
+        try await wait { fixture.controller.state(for: first.id) == .reconnecting }
         fixture.controller.reconcileConfiguration()
         #expect(fixture.sessions.count == 1)
+        fixture.controller.connection(for: first.id)?.connection.reconnect.retryNow()
+        try await wait { fixture.controller.state(for: first.id) == .running(activeConnections: 0) }
+        #expect(fixture.sessions.count == 2)
+        #expect(await fixture.sessions[1].starts == [first.id])
+        #expect(fixture.controller.state(for: second.id).isFailed)
     }
 
     @Test func rapidStopAndStartCannotLeaveTheNewListenerStopped() async throws {
@@ -362,10 +364,10 @@ private actor ForwardingTestSession: SSHForwardingSessionProtocol {
         try Task.checkCancellation()
         progress?(.connected(configuration.hostID))
     }
-    func start(_ rule: PortForwardingRule) async throws {
+    func start(_ rule: PortForwardingRule, generation: UUID) async throws {
         if mode == .listenerFailure && rule.bindPort == 9000 { throw TermindSSHError.route("Port in use") }
         if mode == .countDuringStart {
-            count(rule.id, 3)
+            count(rule.id, generation, 3)
             try await Task.sleep(for: .milliseconds(20))
         }
         starts.append(rule.id)
