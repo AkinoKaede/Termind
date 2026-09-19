@@ -2,10 +2,11 @@ import Darwin
 import Foundation
 import TermindApplication
 import TermindDomain
-import TermindRemoteInfrastructure
 import Testing
 
-/// Uses only the loopback fixture from Scripts/ssh-authentication-fixture.py.
+@testable import TermindRemoteInfrastructure
+
+/// Uses the loopback Paramiko or forwarding-only OpenSSH fixture in Scripts/.
 @Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_SSH_FIXTURE"] != nil), .serialized)
 nonisolated struct SSHForwardingWireTests {
     @Test(arguments: [PortForwardingRule.Kind.local, .remote, .dynamic], [1, 16, 64])
@@ -110,6 +111,8 @@ nonisolated struct SSHForwardingWireTests {
 
     @Test func stoppingAnInFlightRemoteListenDrainsItBeforeRebinding() async throws {
         let fixture = try fixture()
+        // Only Paramiko provides the deliberately delayed listener reply.
+        guard fixture.server != "openssh" else { return }
         let session = SSHForwardingSession(connectionHandler: { _, _ in }, failureHandler: { _ in })
         try await session.connect(request(fixture, jumps: 0, username: "none-slow-forward"))
         do {
@@ -203,7 +206,7 @@ nonisolated struct SSHForwardingWireTests {
             let elapsed = seconds(start.duration(to: .now))
             let usageAfter = usage()
             let payloadBytes = results.reduce(0) { $0 + $1.bytes }
-            let record: [String: Any] = [
+            var record: [String: Any] = [
                 "kind": kind.rawValue, "streams": concurrency, "jumps": jumps,
                 "workload": mixed ? "mixed" : streaming ? "duplex" : "request_response",
                 "successful_streams": results.count, "payload_bytes_per_direction": payloadBytes,
@@ -214,6 +217,13 @@ nonisolated struct SSHForwardingWireTests {
                 "cpu_s": usageAfter.cpu - usageBefore.cpu,
                 "process_peak_rss_mib": Double(usageAfter.rss) / 1_048_576,
             ]
+            // Diagnostic counts belong to the destination session, not its jump bridges.
+            let statistics = await session.statistics()
+            record["pump_passes"] = statistics.passes
+            record["plaintext_socket_write_calls"] = statistics.plaintextSocketWriteCalls
+            record["encrypted_socket_write_calls"] = statistics.encryptedSocketWriteCalls
+            record["peak_plaintext_queue_bytes"] = statistics.peakPlaintextQueueBytes
+            record["peak_encrypted_queue_bytes"] = statistics.peakEncryptedQueueBytes
             print(
                 "FORWARDING_METRIC "
                     + String(
@@ -230,6 +240,9 @@ nonisolated struct SSHForwardingWireTests {
     private struct Fixture: Decodable {
         let port: Int
         let echoPort: Int
+        let server: String?
+        let username: String?
+        let privateKey: String?
     }
 
     private func fixture() throws -> Fixture {
@@ -238,13 +251,18 @@ nonisolated struct SSHForwardingWireTests {
     }
 
     private func request(_ fixture: Fixture, jumps: Int, username: String = "none") -> SSHConnectionRequest {
+        let user = fixture.username ?? username
+        let credentials: [SSHCredentials] =
+            fixture.username.flatMap { _ in fixture.privateKey }.map {
+                [.privateKey(privateKey: $0, publicKey: nil, passphrase: nil)]
+            } ?? []
         var configuration = SSHConnectionConfiguration(
-            hostID: UUID(), host: "127.0.0.1", port: fixture.port, username: username, credentials: [],
+            hostID: UUID(), host: "127.0.0.1", port: fixture.port, username: user, credentials: credentials,
             expectedHostKeys: [])
         configuration.jumps = (0..<jumps).map { _ in
             SSHRouteHopConfiguration(
-                id: UUID(), name: "Fixture", host: "127.0.0.1", port: fixture.port, username: "none",
-                credentials: [], expectedHostKeys: [])
+                id: UUID(), name: "Fixture", host: "127.0.0.1", port: fixture.port, username: user,
+                credentials: credentials, expectedHostKeys: [])
         }
         return SSHConnectionRequest(configuration: configuration, authorizeHostKey: { _ in .accept })
     }

@@ -4,6 +4,15 @@ import Foundation
 import TermindApplication
 import TermindDomain
 
+/// Queue-owned diagnostic totals for tests; excludes jump sessions and kernel/libssh2 buffers.
+nonisolated struct SSHForwardingStatistics: Sendable {
+    var passes = 0
+    var plaintextSocketWriteCalls = 0
+    var encryptedSocketWriteCalls = 0
+    var peakPlaintextQueueBytes = 0
+    var peakEncryptedQueueBytes = 0
+}
+
 public protocol SSHForwardingSessionProtocol: Actor {
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws
     func start(_ rule: PortForwardingRule) async throws
@@ -45,6 +54,8 @@ public actor SSHForwardingSession: SSHForwardingSessionProtocol {
     public func disconnect() async {
         await worker.disconnect()
     }
+
+    func statistics() async -> SSHForwardingStatistics { await worker.statistics() }
 }
 
 private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
@@ -113,6 +124,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     private var listening: RuleContext?
     private var retiredFlows: [Flow] = []
     private var retiredListeners: [RetiredListener] = []
+    private var retiredStatistics = SSHForwardingStatistics()
     private var scratch = [UInt8](repeating: 0, count: 32 * 1024)
     private var scheduled = false
     private var generation = 0
@@ -137,6 +149,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             using: request, timeout: 20, progress: progress)
         do {
             await queue.perform {
+                self.retiredStatistics = SSHForwardingStatistics()
                 self.routeTransport = opened.transport
                 self.socket = opened.transport.socket
                 self.session = opened.session
@@ -205,6 +218,22 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     func disconnect() async { await queue.perform { self.cleanup() } }
 
+    func statistics() async -> SSHForwardingStatistics {
+        await withCheckedContinuation { continuation in
+            queue.async {
+                var result = self.retiredStatistics
+                for flow in self.flows.values {
+                    result.plaintextSocketWriteCalls += flow.stream.socketWriteCalls
+                    result.peakPlaintextQueueBytes = max(result.peakPlaintextQueueBytes, flow.stream.peakQueuedBytes)
+                }
+                result.passes = self.bufferedTransport?.passes ?? 0
+                result.encryptedSocketWriteCalls = self.bufferedTransport?.socketWriteCalls ?? 0
+                result.peakEncryptedQueueBytes = self.bufferedTransport?.peakQueuedBytes ?? 0
+                continuation.resume(returning: result)
+            }
+        }
+    }
+
     private func startEvents() {
         let token = generation
         transportEvents = SSHSocketEvents(socket: socket, queue: queue) { [weak self] in
@@ -248,6 +277,8 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     private func pump() {
         guard let session, let bufferedTransport else { return }
+        let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
+        bufferedTransport.beginPass(deadline: deadline)
         do { try bufferedTransport.flush(socket: socket) } catch {
             fail(session)
             return
@@ -257,15 +288,19 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             transportEvents?.update(read: false, write: true)
             return
         }
-        bufferedTransport.beginPass()
-        let deadline = DispatchTime.now().uptimeNanoseconds + 2_000_000
         controlDirections = 0
         var progressed = advanceListeners(session)
         if advanceOpen(session) { progressed = true }
+        // Give forwarded-tcpip opens receive budget before bulk streams spend
+        // the slice. The post-I/O sweep also handles opens decoded by stream I/O.
+        for context in rules.values where context.remoteListener != nil {
+            if acceptRemote(context) { progressed = true }
+        }
         while !bufferedTransport.isBackpressured, DispatchTime.now().uptimeNanoseconds < deadline, let id = ready.pop()
         {
             guard let flow = flows[id] else { continue }
-            if pump(flow, session: session) { progressed = true }
+            if pump(flow, session: session, deadline: deadline) { progressed = true }
+            if flow.stream.yielded && !flow.retired { ready.insert(id) }
         }
         // Any channel read/write can consume packets for another channel,
         // including forwarded-tcpip opens and control replies. Service those
@@ -473,7 +508,8 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     private func watch(_ flow: Flow) {
         flow.events = SSHSocketEvents(socket: flow.stream.socket, queue: queue) { [weak self, weak flow] in
             guard let self, let flow, !flow.retired else { return }
-            self.wakeAll()
+            self.ready.insert(flow.id)
+            self.schedulePump()
         }
         updateInterest(flow)
     }
@@ -488,13 +524,14 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         flow.events?.update(read: reading, write: flow.stream.socketWriteBlocked)
     }
 
-    private func pump(_ flow: Flow, session: OpaquePointer) -> Bool {
+    private func pump(_ flow: Flow, session: OpaquePointer, deadline: UInt64) -> Bool {
         guard !flow.retired else { return false }
+        flow.stream.beginTurn()
         var progressed = false
         do {
             switch flow.phase {
             case .forwarding:
-                progressed = try flow.stream.pump(session: session, scratch: &scratch)
+                progressed = try flow.stream.pump(session: session, scratch: &scratch, deadline: deadline)
                 if flow.stream.finished {
                     close(flow)
                     return true
@@ -518,13 +555,13 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                         return true
                     }
                 }
-                if try flow.stream.flushSocket() { progressed = true }
+                if try flow.stream.flushSocket(deadline: deadline) { progressed = true }
                 if flow.stream.socketEOF && flow.stream.toSocket.isEmpty {
                     close(flow)
                     return true
                 }
             case .opening:
-                if try flow.stream.flushSocket() { progressed = true }
+                if try flow.stream.flushSocket(deadline: deadline) { progressed = true }
             case .connecting: break
             }
         } catch {
@@ -544,6 +581,9 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     private func close(_ flow: Flow) {
         guard !flow.retired else { return }
         flow.retired = true
+        retiredStatistics.plaintextSocketWriteCalls += flow.stream.socketWriteCalls
+        retiredStatistics.peakPlaintextQueueBytes = max(
+            retiredStatistics.peakPlaintextQueueBytes, flow.stream.peakQueuedBytes)
         flows[flow.id] = nil
         flow.context.flows[flow.id] = nil
         flow.connector?.cancel()

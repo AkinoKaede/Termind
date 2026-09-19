@@ -452,6 +452,7 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
 
         var yes: Int32 = 1
         for descriptor in pair {
+            SSHForwardingTuning.current.configureBridgeSocket(descriptor)
             setsockopt(
                 descriptor, SOL_SOCKET, SO_NOSIGPIPE, &yes,
                 socklen_t(MemoryLayout<Int32>.size)
@@ -505,6 +506,8 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
 
     private func pump() {
         guard !isClosed, let session else { return }
+        let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
+        bufferedTransport.beginPass(deadline: deadline)
         do {
             try bufferedTransport.flush(socket: transportSocket)
             if bufferedTransport.isBackpressured {
@@ -512,8 +515,7 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
                 socketEvents?.update(read: false, write: stream.socketWriteBlocked)
                 return
             }
-            bufferedTransport.beginPass()
-            let progressed = try stream.pump(session: session, scratch: &scratch)
+            let progressed = try stream.pump(session: session, scratch: &scratch, deadline: deadline)
             if stream.finished {
                 closeOnQueue()
                 return
@@ -535,7 +537,7 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
             transportEvents?.update(
                 read: !bufferedTransport.isBackpressured && (stream.wantsChannelRead || !stream.toChannel.isEmpty),
                 write: bufferedTransport.wantsWrite || stream.blockDirections & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
-            if progressed || bufferedTransport.exhaustedReadBudget { schedule() }
+            if progressed || stream.yielded || bufferedTransport.exhaustedReadBudget { schedule() }
         } catch { closeOnQueue() }
     }
 

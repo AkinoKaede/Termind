@@ -176,3 +176,125 @@ alongside builds, simulator rendering tests, or other traffic generators.
   and `MobileForwardingRenderingTests`. Its observer remained running after test
   output and was interrupted. These failures were not repaired as part of this
   transport change; the full repository suite is **not all green**.
+
+## Follow-up: bounded batching and jump socket capacity (2026-09-19)
+
+The next optimization keeps the 256 KiB session receive allowance. It batches
+socket output with up to 16 iovecs using `sendmsg(MSG_DONTWAIT)`, limits queued
+encrypted flushing to 256 KiB across both flushes in a pass, and checks the shared
+2 ms deadline inside stream loops and receive callbacks. Deadline continuations
+and control-only turns explicitly reset yield state. Local socket events enqueue
+their own flow; SSH progress still wakes peers because libssh2 can decode packets
+for another channel. Remote accepts now run before and after bulk I/O.
+
+Channel input uses 32,700-byte chunks, matching the write clamp in the bundled
+libssh2 source (`libssh2-spm` package 2.0.3, library header `1.11.1_DEV`). The old
+32,768-byte chunks generated another encrypted packet for each 68-byte tail.
+Single-stream encrypted socket writes fell from approximately 66.5 to 38.6 per
+payload MiB in the packet-alignment comparison. Immutable write addresses/lengths
+across EAGAIN, half-close draining and complete encrypted-packet acceptance remain
+unchanged.
+
+The actual Unix socketpair defaults on this Mac were only 8 KiB for both send and
+receive. Jump bridges request 256 KiB on macOS and 64 KiB on iOS on both endpoints,
+preserving larger existing defaults and tolerating rejected options. This changes
+neither global system settings nor TCP buffer policy. These kernel buffers are
+separate from the 256 KiB read allowance and 2/1 MiB application watermarks.
+
+### OpenSSH method and retained evidence
+
+The follow-up uses `Scripts/ssh-forwarding-openssh-fixture.py`, a temporary,
+loopback-only OpenSSH server with ephemeral keys and public-key authentication.
+It restricts direct destinations to its SSH and echo endpoints, disables shell,
+command and subsystem sessions (`MaxSessions 0`), and changes no system SSH
+configuration or user authorized_keys. The deliberately delayed remote-listen
+case remains Paramiko-only; other wire/lifecycle cases run against both fixtures.
+
+Hardware was the same M3 Pro/36 GiB Mac, macOS 26.6.2 (25G83), Xcode 27.1 (27A9269),
+on AC power without reported thermal warnings. The workload, payload/EOF checking,
+metric definitions and isolated Release harness adjustments described above apply.
+Builds and other suites were stopped during measurements; ordinary desktop apps
+remained active. The baseline is the four forwarding implementation files at
+`d53f37cd`, not the much older bridge baseline in the preceding report.
+
+`PORT_FORWARDING_OPTIMIZATION_BENCHMARK.json` retains **1,512 workload records from
+56 successful full runs**: five runs for each of nine progressive variants, three
+alternating baseline/candidate pairs, and five final runs after the remote-admission
+adjustment. Every run produced 27 records and passed the wire suite's lifecycle and
+idle cases. Variant definitions and measurement limitations accompany the records.
+Zero-test filter attempts were excluded. An early Debug/Paramiko baseline timed out
+on remote64 EOF; an initial OpenSSH smoke attempted the unsupported delayed-listener
+case. Neither is presented as a successful performance measurement.
+
+### Final measurements
+
+Medians of five runs; throughput is useful MiB/s **per direction**. CPU includes
+the entire app/test host and clients, excluding the server. Comparisons are against
+the same OpenSSH baseline, not the earlier Paramiko results.
+
+| Workload | Baseline MiB/s | Final MiB/s | Baseline CPU ms/total MiB | Final CPU ms/total MiB |
+|---|---:|---:|---:|---:|
+| Local, 64 duplex streams | 159.2 | 176.1 | 2.82 | 2.70 |
+| Dynamic, 64 duplex streams | 159.6 | 178.2 | 2.84 | 2.68 |
+| Remote, 64 duplex streams | 159.5 | 158.6 | 3.00 | 2.96 |
+| Mixed, direct | 163.5 | 175.4 | 3.15 | 3.06 |
+| Mixed, one jump | 94.6 | 175.7 | 8.09 | 5.78 |
+| Mixed, two jumps | 94.4 | 164.1 | 11.82 | 8.40 |
+
+| Mixed workload | Ready p95 ms, baseline → final | Small request p95 ms, baseline → final |
+|---|---:|---:|
+| Direct | 205.3 → 213.9 | 18.1 → 16.5 |
+| One jump | 570.8 → 330.8 | 16.9 → 5.1 |
+| Two jumps | 470.3 → 295.2 | 19.2 → 11.7 |
+
+The robust result is improved jump throughput with less CPU per transferred byte.
+Direct throughput changes are smaller. Remote64 throughput is essentially flat;
+its readiness p95 increased from 11.5 to 14.1 ms. The pre-I/O accept sweep prevents
+systematic deferral behind bulk I/O but does not establish an across-the-board
+latency win. Local64/dynamic64 readiness remains substantial under sustained load
+(1,873/1,721 ms final medians versus 2,238/2,442 ms baseline).
+
+The earlier five-run conservative candidate gave 165.8/148.4 MiB/s for one/two-jump
+mixed traffic. Three alternating old/new checks reproduced the jump improvement:
+93.8 → 173.3 and 89.2 → 156.1 MiB/s; CPU 8.11 → 5.82 and 12.22 → 9.05 ms/total MiB.
+Two-jump small-request p95 was 15.8 → 10.1 ms. Direct local/dynamic/remote64 throughput
+was 153.0 → 167.8, 157.9 → 173.0 and 149.5 → 152.4 MiB/s. This comparison predates
+only the extra remote-accept sweep; its remote readiness p95 was 11.1 → 18.4 ms,
+which motivated that adjustment. Chronological/environmental variation is visible;
+the final sweep alone must not be credited with the later throughput differences.
+
+### Why 4 MiB was not selected
+
+A 4 MiB receive allowance improved some direct admission and throughput results,
+but did not materially improve jumps until the socketpair bottleneck was addressed.
+It also raised whole-process peak RSS: the median per-run peak was 505 MiB for the
+4 MiB receive variant versus 262 MiB baseline. Even the 1 MiB candidate had a
+464 MiB median peak. The 256 KiB conservative candidate was 261 MiB, with the
+alternating baseline/candidate maxima 262/262 MiB. Final-run peaks were 228–243 MiB;
+these include the app, test clients, library buffers and prior cases, and do not
+prove a transport-only memory reduction.
+
+Increasing socketpair buffers further from 256 KiB to 4 MiB offered no consistent
+benefit: at the same 4 MiB receive allowance, the 4 MiB socketpair candidate reached
+152.8/140.8 MiB/s in one/two-jump mixed traffic, below the chosen smaller-buffer
+candidates. Higher read-ahead and kernel capacity are therefore not shipped merely
+because the operating system accepts them. The current choice favors bounded
+memory and the repeatable jump-path gain. iOS uses a smaller 64 KiB socketpair
+request; simulator correctness does not establish physical-device speed or memory.
+
+Single-stream transfers last only around 40 ms and are noisy. This is encrypted
+loopback data, not a WAN/physical-iOS capacity claim. No dependency, cipher policy,
+SSH session-sharing policy or authentication behavior was changed.
+
+### Reproduce the OpenSSH fixture
+
+```sh
+python3 Scripts/ssh-forwarding-openssh-fixture.py --metadata /tmp/termind-openssh.json
+```
+
+Use `/tmp/termind-openssh.json` as `TEST_RUNNER_TERMIND_SSH_FIXTURE` with the existing
+wire-suite command above. Keep the metadata private: it contains the temporary
+client key and is created mode 0600. Stop the fixture normally to remove it and its
+temporary keys. Release runs need the same isolated-harness adjustments documented
+above. Both forwarding test sources are now also compiled by TFITests so the shared
+pump and fixture can be exercised on iOS Simulator.

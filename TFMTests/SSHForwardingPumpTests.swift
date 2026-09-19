@@ -55,6 +55,31 @@ struct SSHForwardingPumpTests {
         #expect(ready.pop() == nil)
     }
 
+    @Test func bridgeBufferGrowthPreservesNonblockingIOAndLargerExistingBuffers() throws {
+        let sockets = try pair()
+        defer { for socket in sockets { Darwin.close(socket) } }
+        _ = fcntl(sockets[0], F_SETFL, O_NONBLOCK)
+        let tuning = SSHForwardingTuning.current
+        tuning.configureBridgeSocket(sockets[0])
+        #expect(fcntl(sockets[0], F_GETFL) & O_NONBLOCK != 0)
+        var size = socklen_t(MemoryLayout<Int32>.size)
+        var previous: Int32 = 0
+        try #require(getsockopt(sockets[0], SOL_SOCKET, SO_SNDBUF, &previous, &size) == 0)
+        var smaller = tuning
+        smaller.bridgeSocketBuffer = 4096
+        smaller.configureBridgeSocket(sockets[0])
+        var current: Int32 = 0
+        try #require(getsockopt(sockets[0], SOL_SOCKET, SO_SNDBUF, &current, &size) == 0)
+        #expect(current == previous)
+        var byte: UInt8 = 42
+        try #require(Darwin.send(sockets[0], &byte, 1, 0) == 1)
+        byte = 0
+        try #require(Darwin.recv(sockets[1], &byte, 1, 0) == 1)
+        #expect(byte == 42)
+        // A failed option query is best-effort and must not become a connection error.
+        tuning.configureBridgeSocket(-1)
+    }
+
     @Test func cancellingSuspendedSourcesClosesOnlyAfterBothHandlersRetire() async throws {
         let descriptors = try pair()
         defer { Darwin.close(descriptors[1]) }
@@ -132,9 +157,9 @@ struct SSHForwardingPumpTests {
         let handle = OpaquePointer(bitPattern: 1)!
         let stream = SSHStreamPump(socket: sockets[0], channel: handle, io: io)
         var scratch = [UInt8](repeating: 0, count: 32768)
-        stream.toChannel.append(Data(repeating: 42, count: SSHStreamPump.highWater))
+        stream.toChannel.append(Data(repeating: 42, count: SSHForwardingTuning.current.highWater))
         _ = try stream.pump(session: handle, scratch: &scratch)
-        #expect(stream.toChannel.count == SSHStreamPump.highWater)
+        #expect(stream.toChannel.count == SSHForwardingTuning.current.highWater)
         #expect(!stream.wantsSocketRead)
         blocked = false
         for _ in 0..<10 { _ = try stream.pump(session: handle, scratch: &scratch) }
@@ -227,17 +252,48 @@ struct SSHForwardingPumpTests {
             #expect(result == packet.count)
         }
         #expect(transport.isBackpressured)
-        #expect(expected.count <= SSHStreamPump.highWater + 65536)
+        #expect(expected.count <= SSHForwardingTuning.current.highWater + 65536)
         var actual = Data()
         var scratch = [UInt8](repeating: 0, count: 32768)
         for _ in 0..<1000 {
             let count = Darwin.recv(sockets[1], &scratch, scratch.count, 0)
             if count > 0 { actual.append(contentsOf: scratch.prefix(count)) }
+            transport.beginPass()
             try transport.flush(socket: sockets[0])
             if actual.count == expected.count { break }
         }
         #expect(actual == expected)
         #expect(!transport.wantsWrite)
+    }
+
+    @Test func encryptedFlushesShareOneAllowanceUntilTheNextPass() throws {
+        let sockets = try pair()
+        defer { for socket in sockets { Darwin.close(socket) } }
+        for socket in sockets { _ = fcntl(socket, F_SETFL, O_NONBLOCK) }
+        let session = try #require(libssh2_session_init_ex(nil, nil, nil, nil))
+        let transport = SSHBufferedTransport(session: session, tuning: SSHForwardingTuning(quantum: 100))
+        defer { transport.dispose(session: session) }
+        let callback = try #require(libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_SEND, nil))
+        libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_SEND, callback)
+        typealias Send =
+            @convention(c) (
+                Int32, UnsafeRawPointer?, Int, Int32, UnsafeMutablePointer<UnsafeMutableRawPointer?>?
+            ) -> Int
+        let send = unsafeBitCast(callback, to: Send.self)
+        var bytes = [UInt8](repeating: 42, count: 4096)
+        // Fill the kernel socket first, so the complete encrypted packet is queued.
+        while Darwin.send(sockets[0], &bytes, bytes.count, MSG_DONTWAIT) > 0 {}
+        try #require(errno == EAGAIN || errno == EWOULDBLOCK)
+        try #require(send(sockets[0], &bytes, bytes.count, 0, libssh2_session_abstract(session)) == bytes.count)
+        while Darwin.recv(sockets[1], &bytes, bytes.count, MSG_DONTWAIT) > 0 {}
+        transport.beginPass()
+        try transport.flush(socket: sockets[0])
+        try transport.flush(socket: sockets[0])
+        #expect(Darwin.recv(sockets[1], &bytes, bytes.count, MSG_DONTWAIT) == 100)
+        #expect(transport.wantsWrite)
+        transport.beginPass()
+        try transport.flush(socket: sockets[0])
+        #expect(Darwin.recv(sockets[1], &bytes, bytes.count, MSG_DONTWAIT) == 100)
     }
 
     @Test func cancellingAZeroWindowWriteDoesNotWaitForThePeerToRead() throws {
@@ -262,10 +318,136 @@ struct SSHForwardingPumpTests {
         #expect(writes == 1)
     }
 
-    @Test func continuousEncryptedInputYieldsAtTheSessionReadBudget() throws {
+    @Test(arguments: [256 * 1024, 1024 * 1024, 4 * 1024 * 1024])
+    func continuousEncryptedInputYieldsAtTheSessionReadBudget(_ budget: Int) throws {
         let sockets = try pair()
         defer { for socket in sockets { Darwin.close(socket) } }
         for socket in sockets { _ = fcntl(socket, F_SETFL, O_NONBLOCK) }
+        let session = try #require(libssh2_session_init_ex(nil, nil, nil, nil))
+        let transport = SSHBufferedTransport(session: session, tuning: SSHForwardingTuning(readBudget: budget))
+        defer { transport.dispose(session: session) }
+        let callback = try #require(libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_RECV, nil))
+        libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_RECV, callback)
+        typealias Receive =
+            @convention(c) (
+                Int32, UnsafeMutableRawPointer?, Int, Int32, UnsafeMutablePointer<UnsafeMutableRawPointer?>?
+            ) -> Int
+        let receive = unsafeBitCast(callback, to: Receive.self)
+        var packet = [UInt8](repeating: 42, count: 4096)
+        for _ in 0..<(budget / packet.count) {
+            try #require(Darwin.send(sockets[1], &packet, packet.count, 0) == packet.count)
+            try #require(
+                receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == packet.count)
+        }
+        #expect(transport.exhaustedReadBudget)
+        try #require(Darwin.send(sockets[1], &packet, packet.count, 0) == packet.count)
+        #expect(receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == -Int(EAGAIN))
+        transport.beginPass()
+        #expect(receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == packet.count)
+    }
+
+    @Test func vectoredWritesRespectByteAndChunkLimitsAfterACrossChunkShortWrite() {
+        let bytes = SSHByteQueue()
+        for value in UInt8(0)..<20 { bytes.append(Data(repeating: value, count: 100)) }
+        bytes.withVectors(limit: 10000) { vectors in
+            #expect(vectors.count == 16)
+            #expect(vectors.reduce(0) { $0 + $1.iov_len } == 1600)
+        }
+        // A short send accepted two whole chunks and part of the third.
+        bytes.consume(237)
+        bytes.withVectors(limit: 120) { vectors in
+            #expect(vectors.map(\.iov_len) == [63, 57])
+            let actual = vectors.reduce(into: Data()) {
+                $0.append($1.iov_base!.assumingMemoryBound(to: UInt8.self), count: $1.iov_len)
+            }
+            #expect(actual == Data(repeating: 2, count: 63) + Data(repeating: 3, count: 57))
+        }
+        bytes.consume(1763)
+        #expect(bytes.isEmpty)
+        bytes.withVectors(limit: 1) { #expect($0.isEmpty) }
+    }
+
+    @Test func channelInputDoesNotCreateATinyTailForEveryLibssh2Write() throws {
+        let sockets = try pair()
+        defer { for socket in sockets { Darwin.close(socket) } }
+        var capacity: Int32 = 128 * 1024
+        for socket in sockets {
+            try #require(setsockopt(socket, SOL_SOCKET, SO_SNDBUF, &capacity, socklen_t(MemoryLayout<Int32>.size)) == 0)
+            try #require(setsockopt(socket, SOL_SOCKET, SO_RCVBUF, &capacity, socklen_t(MemoryLayout<Int32>.size)) == 0)
+        }
+        _ = fcntl(sockets[0], F_SETFL, O_NONBLOCK)
+        var sizes: [Int] = []
+        var io = idleIO()
+        io.write = { _, bytes in
+            sizes.append(bytes.count)
+            return min(bytes.count, 32_700)
+        }
+        let handle = OpaquePointer(bitPattern: 1)!
+        let stream = SSHStreamPump(socket: sockets[0], channel: handle, io: io)
+        let payload = [UInt8](repeating: 42, count: 2 * 32_700)
+        try #require(payload.withUnsafeBytes { Darwin.send(sockets[1], $0.baseAddress!, $0.count, 0) } == payload.count)
+        var scratch = [UInt8](repeating: 0, count: 32 * 1024)
+        #expect(try stream.pump(session: handle, scratch: &scratch))
+        #expect(sizes == [32_700, 32_700])
+        #expect(stream.toChannel.isEmpty)
+        // SOCKS payload already read alongside the handshake uses the same split.
+        stream.toChannel.append(Data(payload))
+        sizes.removeAll()
+        #expect(try stream.pump(session: handle, scratch: &scratch))
+        #expect(sizes == [32_700, 32_700])
+    }
+
+    @Test func socketOutputBatchesChunksAndResumesAfterItsQuantum() throws {
+        let sockets = try pair()
+        defer { for socket in sockets { Darwin.close(socket) } }
+        let stream = SSHStreamPump(socket: sockets[0], tuning: SSHForwardingTuning(quantum: 100))
+        for value in UInt8(0)..<10 { stream.toSocket.append(Data(repeating: value, count: 20)) }
+        #expect(try stream.flushSocket())
+        #expect(stream.socketWriteCalls == 1)
+        #expect(stream.toSocket.count == 100)
+        #expect(try stream.flushSocket())
+        #expect(stream.socketWriteCalls == 2)
+        var received = [UInt8](repeating: 0, count: 200)
+        #expect(Darwin.recv(sockets[1], &received, received.count, MSG_WAITALL) == 200)
+        #expect(received == (UInt8(0)..<10).flatMap { Array(repeating: $0, count: 20) })
+    }
+
+    @Test func anExpiredSlicePreservesQueuedDataAndResumesWithoutASocketEdge() throws {
+        let sockets = try pair()
+        defer { for socket in sockets { Darwin.close(socket) } }
+        _ = fcntl(sockets[0], F_SETFL, O_NONBLOCK)
+        let handle = OpaquePointer(bitPattern: 1)!
+        let stream = SSHStreamPump(socket: sockets[0], channel: handle, io: idleIO())
+        stream.toChannel.append(contentsOf: [42])
+        var scratch = [UInt8](repeating: 0, count: 32)
+        #expect(try !stream.pump(session: handle, scratch: &scratch, deadline: 0))
+        #expect(stream.yielded)
+        #expect(stream.toChannel.count == 1)
+        #expect(try stream.pump(session: handle, scratch: &scratch))
+        #expect(!stream.yielded)
+        #expect(stream.toChannel.isEmpty)
+    }
+
+    @Test func aDeferredControlReplyDoesNotKeepReschedulingAfterItDrains() throws {
+        let sockets = try pair()
+        defer { for socket in sockets { Darwin.close(socket) } }
+        let stream = SSHStreamPump(socket: sockets[0])
+        stream.toSocket.append(contentsOf: [5, 0])
+        stream.beginTurn()
+        #expect(try !stream.flushSocket(deadline: 0))
+        #expect(stream.yielded)
+        stream.beginTurn()
+        #expect(try stream.flushSocket())
+        #expect(!stream.yielded)
+        #expect(stream.toSocket.isEmpty)
+        stream.beginTurn()
+        #expect(try !stream.flushSocket())
+        #expect(!stream.yielded)
+    }
+
+    @Test func encryptedReceiveYieldsAtTheDeadlineBeforeSpendingItsByteBudget() throws {
+        let sockets = try pair()
+        defer { for socket in sockets { Darwin.close(socket) } }
         let session = try #require(libssh2_session_init_ex(nil, nil, nil, nil))
         let transport = SSHBufferedTransport(session: session)
         defer { transport.dispose(session: session) }
@@ -276,17 +458,14 @@ struct SSHForwardingPumpTests {
                 Int32, UnsafeMutableRawPointer?, Int, Int32, UnsafeMutablePointer<UnsafeMutableRawPointer?>?
             ) -> Int
         let receive = unsafeBitCast(callback, to: Receive.self)
-        var packet = [UInt8](repeating: 42, count: 4096)
-        for _ in 0..<(SSHStreamPump.quantum / packet.count) {
-            try #require(Darwin.send(sockets[1], &packet, packet.count, 0) == packet.count)
-            try #require(
-                receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == packet.count)
-        }
+        var byte: UInt8 = 42
+        try #require(Darwin.send(sockets[1], &byte, 1, 0) == 1)
+        transport.beginPass(deadline: 0)
+        #expect(receive(sockets[0], &byte, 1, 0, libssh2_session_abstract(session)) == -Int(EAGAIN))
         #expect(transport.exhaustedReadBudget)
-        try #require(Darwin.send(sockets[1], &packet, packet.count, 0) == packet.count)
-        #expect(receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == -Int(EAGAIN))
         transport.beginPass()
-        #expect(receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == packet.count)
+        #expect(receive(sockets[0], &byte, 1, 0, libssh2_session_abstract(session)) == 1)
+        #expect(!transport.exhaustedReadBudget)
     }
 
     private func idleIO() -> SSHChannelIO {

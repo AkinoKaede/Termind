@@ -192,7 +192,17 @@ Stream pumps retain write chunks across EAGAIN, use a 256 KiB per-direction quan
 encrypted-read cap (including reads inside writes), and pause input at 2 MiB until below 1 MiB. A deduplicated
 FIFO/2 ms slice provides fairness; half-close drains accepted bytes before EOF. Target DNS has at most four
 workers; nonblocking TCP has a five-second deadline. Channel opens/remote listener starts retain and retry
-session-wide library operation state.
+session-wide library operation state. Receive callbacks and inner data loops honor the same slice deadline;
+yielded work schedules a continuation without waiting for another socket edge. Local socket readiness
+queues its own flow; transport/protocol progress still wakes peers. Remote channel admission runs before
+and after bulk I/O so an exhausted slice does not consistently defer new connections.
+
+Socket output batches up to 16 immutable chunks with nonblocking `sendmsg`; queued encrypted output has
+a shared 256 KiB flush allowance across both ends of a pass. Complete encrypted-packet acceptance remains
+mandatory. Channel input chunks are at most 32,700 bytes, matching the pinned libssh2 write clamp and
+avoiding a separate packet for a 68-byte tail. Jump socketpairs request send/receive buffers of 256 KiB
+on macOS and 64 KiB on iOS, best-effort and without shrinking larger defaults. This is kernel socket
+capacity, separate from application watermarks and the encrypted-read allowance; no global sysctl changes.
 
 After authentication releases the abstract context, public send/receive callbacks install an adapter
 accepting whole encrypted packets with bounded backpressure between library calls, including generated

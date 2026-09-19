@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		F04700000000000000000001 /* SSHForwardingPumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000011 /* SSHForwardingPumpTests.swift */; };
+		F04700000000000000000002 /* SSHForwardingWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000012 /* SSHForwardingWireTests.swift */; };
 		0202B16D630CC57432748F0C /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		03892FFD3F1E351BD2C296E4 /* TermindWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 32414DBD2157FBAD4D00056D /* TermindWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		082994E88792AF7D1F99B147 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
@@ -421,6 +423,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		F04700000000000000000011 /* SSHForwardingPumpTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingPumpTests.swift; sourceTree = SOURCE_ROOT; };
+		F04700000000000000000012 /* SSHForwardingWireTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TFMTests/SSHForwardingWireTests.swift; sourceTree = SOURCE_ROOT; };
 		01FFEA64B9D6E13E50664FB8 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		10111AE8F047FB59B318813A /* TermindApplication.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TermindApplication.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		13753997381D54B4D92FDDD5 /* TFITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -723,6 +727,15 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F04700000000000000000010 /* Forwarding Test Support */ = {
+			isa = PBXGroup;
+			children = (
+				F04700000000000000000011 /* SSHForwardingPumpTests.swift */,
+				F04700000000000000000012 /* SSHForwardingWireTests.swift */,
+			);
+			name = "Forwarding Test Support";
+			sourceTree = "<group>";
+		};
 		CDDB75F14F753E46BB14D972 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -751,6 +764,7 @@
 				0FE0DF713B1C0832D76696AF /* TFI */,
 				BA4A4EAD7B8B3A380C9ED1C2 /* FrameworkTests */,
 				A102A7EA2C3532D7FA88B0A4 /* TFITests */,
+				F04700000000000000000010 /* Forwarding Test Support */,
 			);
 			sourceTree = "<group>";
 		};
@@ -1352,6 +1366,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F04700000000000000000001 /* SSHForwardingPumpTests.swift in Sources */,
+				F04700000000000000000002 /* SSHForwardingWireTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

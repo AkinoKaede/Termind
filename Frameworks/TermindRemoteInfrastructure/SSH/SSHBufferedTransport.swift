@@ -10,14 +10,31 @@ import Foundation
 nonisolated final class SSHBufferedTransport {
     private let output = SSHByteQueue()
     private var disposed = false
-    private var readAllowance = SSHStreamPump.quantum
-    var exhaustedReadBudget: Bool { readAllowance == 0 }
+    private let tuning: SSHForwardingTuning
+    private var readAllowance: Int
+    private var writeAllowance: Int
+    private var deadline: UInt64 = .max
+    private var yielded = false
+    private(set) var passes = 0
+    private(set) var socketWriteCalls = 0
+    private(set) var peakQueuedBytes = 0
+    var exhaustedReadBudget: Bool { readAllowance == 0 || yielded }
 
-    func beginPass() { readAllowance = SSHStreamPump.quantum }
-    var isBackpressured: Bool { output.count >= SSHStreamPump.highWater }
+    func beginPass(deadline: UInt64 = .max) {
+        readAllowance = tuning.readBudget
+        writeAllowance = tuning.quantum
+        self.deadline = deadline
+        yielded = false
+        passes += 1
+    }
+
+    var isBackpressured: Bool { output.count >= tuning.highWater }
     var wantsWrite: Bool { !output.isEmpty }
 
-    init(session: OpaquePointer) {
+    init(session: OpaquePointer, tuning: SSHForwardingTuning = .current) {
+        self.tuning = tuning
+        readAllowance = tuning.readBudget
+        writeAllowance = tuning.quantum
         libssh2_session_abstract(session)?.pointee = Unmanaged.passUnretained(self).toOpaque()
         libssh2_session_callback_set2(
             session, LIBSSH2_CALLBACK_SEND, unsafeBitCast(Self.send, to: (@convention(c) () -> Void).self))
@@ -26,10 +43,12 @@ nonisolated final class SSHBufferedTransport {
     }
 
     func flush(socket: Int32) throws {
-        while !output.isEmpty {
-            let count = output.withFirstBytes { Darwin.send(socket, $0.baseAddress!, $0.count, MSG_DONTWAIT) }
+        while !output.isEmpty && writeAllowance > 0 && withinDeadline() {
+            socketWriteCalls += 1
+            let count = output.send(socket: socket, limit: writeAllowance)
             if count > 0 {
                 output.consume(count)
+                writeAllowance -= count
             } else if count < 0 && errno == EINTR {
                 continue
             } else if count < 0 && (errno == EAGAIN || errno == EWOULDBLOCK) {
@@ -38,6 +57,12 @@ nonisolated final class SSHBufferedTransport {
                 throw SSHStreamPump.StreamError.closed
             }
         }
+    }
+
+    private func withinDeadline() -> Bool {
+        if deadline == .max || DispatchTime.now().uptimeNanoseconds < deadline { return true }
+        yielded = true
+        return false
     }
 
     /// Teardown cannot wait on a peer. Discard final protocol writes and return
@@ -58,6 +83,7 @@ nonisolated final class SSHBufferedTransport {
             var sent = 0
             if transport.output.isEmpty {
                 repeat {
+                    transport.socketWriteCalls += 1
                     sent = Darwin.send(socket, bytes, count, flags | MSG_DONTWAIT)
                 } while sent < 0 && errno == EINTR
                 if sent < 0 {
@@ -67,6 +93,7 @@ nonisolated final class SSHBufferedTransport {
             }
             if sent < count {
                 transport.output.append(UnsafeRawBufferPointer(start: bytes + sent, count: count - sent))
+                transport.peakQueuedBytes = max(transport.peakQueuedBytes, transport.output.count)
             }
             return count
         }
@@ -78,7 +105,9 @@ nonisolated final class SSHBufferedTransport {
             guard let opaque = abstract?.pointee else { return -Int(EINVAL) }
             let transport = Unmanaged<SSHBufferedTransport>.fromOpaque(opaque).takeUnretainedValue()
             if transport.disposed { return 0 }
-            if transport.isBackpressured || transport.exhaustedReadBudget { return -Int(EAGAIN) }
+            if transport.isBackpressured || transport.exhaustedReadBudget || !transport.withinDeadline() {
+                return -Int(EAGAIN)
+            }
             let received = Darwin.recv(socket, bytes, min(count, transport.readAllowance), flags | MSG_DONTWAIT)
             if received > 0 { transport.readAllowance -= received }
             return received < 0 ? -Int(errno) : received
