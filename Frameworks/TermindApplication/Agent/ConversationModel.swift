@@ -1871,9 +1871,17 @@ public final class ConversationModel: Identifiable {
         eventTask = Task { [weak self] in
             guard !Task.isCancelled, self?.runtimeGeneration == generation else { return }
             let events = await runtime.start(request)
-            if Task.isCancelled || self?.runtimeGeneration != generation { await runtime.cancel() }
+            guard !Task.isCancelled, self?.runtimeGeneration == generation else {
+                await runtime.cancel()
+                return
+            }
             for await event in events {
-                guard let self else { return }
+                guard !Task.isCancelled, let self,
+                    self.runtimeGeneration == generation
+                else {
+                    await runtime.cancel()
+                    return
+                }
                 handle(event)
             }
         }
@@ -1905,9 +1913,10 @@ public final class ConversationModel: Identifiable {
             return
         }
         let consumer = eventTask
-        runtimeGeneration &+= 1
+        let generation = runtimeGeneration
         await runtime.cancel()
         await consumer?.value
+        guard runtimeGeneration == generation else { return }
         stop()
     }
 

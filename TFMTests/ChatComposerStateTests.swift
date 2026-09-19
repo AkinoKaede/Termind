@@ -46,8 +46,38 @@ private actor ConversationExecutionCounter {
 private actor ConversationCancellationProbe {
     var started = false
     var cancelled = false
-    func markStarted() { started = true }
-    func markCancelled() { cancelled = true }
+    private var startWaiters: [CheckedContinuation<Void, Never>] = []
+    private var cancellationWaiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
+
+    func waitUntilStarted() async {
+        if started { return }
+        await withCheckedContinuation { startWaiters.append($0) }
+    }
+
+    func startAndWaitForCancellation() async throws {
+        started = true
+        let waiters = startWaiters
+        startWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                cancellationWaiters[id] = continuation
+                if Task.isCancelled {
+                    cancelWaiter(id)
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelWaiter(id) }
+        }
+    }
+
+    private func cancelWaiter(_ id: UUID) {
+        guard let waiter = cancellationWaiters.removeValue(forKey: id) else { return }
+        cancelled = true
+        waiter.resume(throwing: CancellationError())
+    }
 }
 
 @Suite
@@ -898,13 +928,7 @@ struct ChatComposerStateTests {
                 target: .local, approvalPolicy: .approve
             )
         ) { invocation, _ in
-            await probe.markStarted()
-            do {
-                try await Task.sleep(for: .seconds(10))
-            } catch {
-                await probe.markCancelled()
-                throw error
-            }
+            try await probe.startAndWaitForCancellation()
             return AgentToolResult(callID: invocation.call.id, content: "never")
         }
         let conversation = ConversationModel()
@@ -925,8 +949,10 @@ struct ChatComposerStateTests {
                 permissionMode: .askForApproval
             )
         )
-        await wait { await probe.started }
+        await probe.waitUntilStarted()
         #expect(await probe.started)
+        await wait { conversation.workGroups.first?.run != nil }
+        #expect(conversation.workGroups.first?.run != nil)
 
         conversation.stop()
 

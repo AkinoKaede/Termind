@@ -14,8 +14,47 @@ import Testing
 private actor CallLog {
     private(set) var started: [String] = []
     private(set) var finished: [String] = []
-    func start(_ name: String) { started.append(name) }
+    private var expectedStartCount: Int?
+    private var startWaiter: CheckedContinuation<Void, Never>?
+    private var cancellationWaiters: [UUID: CheckedContinuation<Void, any Error>] = [:]
+
+    func start(_ name: String) {
+        started.append(name)
+        if let expectedStartCount, started.count >= expectedStartCount {
+            self.expectedStartCount = nil
+            startWaiter?.resume()
+            startWaiter = nil
+        }
+    }
+
     func finish(_ name: String) { finished.append(name) }
+
+    func waitUntilStarted(_ count: Int) async {
+        if started.count >= count { return }
+        expectedStartCount = count
+        await withCheckedContinuation { startWaiter = $0 }
+    }
+
+    func startAndWaitForCancellation(_ name: String) async throws {
+        start(name)
+        let id = UUID()
+        try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                cancellationWaiters[id] = continuation
+                if Task.isCancelled {
+                    cancellationWaiters.removeValue(forKey: id)?.resume(
+                        throwing: CancellationError()
+                    )
+                }
+            }
+        } onCancel: {
+            Task { await self.cancelWaiter(id) }
+        }
+    }
+
+    private func cancelWaiter(_ id: UUID) {
+        cancellationWaiters.removeValue(forKey: id)?.resume(throwing: CancellationError())
+    }
 }
 
 private actor QueueScriptedModel: AgentModelStreaming {
@@ -80,8 +119,7 @@ private func hangingTool(_ name: String, log: CallLog) -> AnyAgentTool {
             target: .local, approvalPolicy: .approve, concurrency: .parallel
         )
     ) { invocation, _ in
-        await log.start(name)
-        try await Task.sleep(for: .seconds(30))
+        try await log.startAndWaitForCancellation(name)
         return AgentToolResult(callID: invocation.call.id, content: name)
     }
 }
@@ -279,9 +317,7 @@ struct AgentApprovalQueueTests {
             return events
         }
 
-        for _ in 0..<400 where await log.started.count < 2 {
-            try? await Task.sleep(for: .milliseconds(5))
-        }
+        await log.waitUntilStarted(2)
         await runtime.cancel()
         let events = await collector.value
 

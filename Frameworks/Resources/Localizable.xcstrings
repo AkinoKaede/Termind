@@ -15913,6 +15913,7 @@
       }
     },
     "No shell in the foreground" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
