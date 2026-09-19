@@ -201,7 +201,6 @@ struct StatusBarView: View {
                         summary: app.sftpTransfers.summary,
                         transfers: app.sftpTransfers.sftpTransfers
                     )
-                    .frame(width: 18, height: 18)
                 }
             }
             .frame(
@@ -391,35 +390,43 @@ private struct StatusBarPathLabel: View {
 /// Its own view because the collapsed capsule shows it too, in the one case
 /// where there is no session to describe — a transfer running with no pane in
 /// front of it.
-private struct TransferGlyph: View {
+struct TransferGlyph: View {
+    static let size: CGFloat = 18
+
     let summary: SFTPTransferSummary
     let transfers: [SFTPTransfer]
 
-    @ViewBuilder
     var body: some View {
-        if summary.activeCount > 0 {
-            ZStack {
-                Circle().stroke(.primary.opacity(0.14), lineWidth: 2)
-                if let aggregateProgress = summary.aggregateProgress {
-                    Circle()
-                        .trim(from: 0, to: aggregateProgress)
-                        .stroke(
-                            Color.accentColor,
-                            style: StrokeStyle(lineWidth: 2, lineCap: .round)
-                        )
-                        .rotationEffect(.degrees(-90))
-                } else {
-                    ProgressView().controlSize(.mini)
+        Group {
+            if summary.activeCount > 0 {
+                ZStack {
+                    Circle().stroke(.primary.opacity(0.14), lineWidth: 2)
+                    if let aggregateProgress = summary.aggregateProgress {
+                        Circle()
+                            .trim(from: 0, to: aggregateProgress)
+                            .stroke(
+                                Color.accentColor,
+                                style: StrokeStyle(lineWidth: 2, lineCap: .round)
+                            )
+                            .rotationEffect(.degrees(-90))
+                    } else {
+                        ProgressView().controlSize(.mini)
+                    }
+                    Image(systemName: StatusBarTransferPresentation.runningDirectionSymbol(for: transfers))
+                        .font(.system(size: 8, weight: .bold))
                 }
-                Image(systemName: StatusBarTransferPresentation.runningDirectionSymbol(for: transfers))
-                    .font(.system(size: 8, weight: .bold))
+            } else if summary.failedCount > 0 {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.orange)
+            } else {
+                Image(systemName: "arrow.up.arrow.down.circle")
+                    .resizable()
+                    .scaledToFit()
             }
-        } else if summary.failedCount > 0 {
-            Image(systemName: "exclamationmark.circle.fill")
-                .foregroundStyle(.orange)
-        } else {
-            Image(systemName: "arrow.up.arrow.down.circle")
         }
+        .frame(width: Self.size, height: Self.size)
     }
 }
 
@@ -437,7 +444,6 @@ private struct TransferCenterButton: View {
         } label: {
             HStack(spacing: Metrics.Space.xs) {
                 TransferGlyph(summary: summaryValue, transfers: coordinator.sftpTransfers)
-                    .frame(width: 18, height: 18)
                 if summaryValue.activeCount > 0 {
                     Text(summaryValue.activeCount, format: .number)
                         .monospacedDigit()

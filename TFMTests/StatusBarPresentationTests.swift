@@ -1,4 +1,5 @@
 import Foundation
+import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
@@ -84,6 +85,35 @@ struct StatusBarPresentationTests {
     }
 
     @Test
+    @MainActor
+    func transferGlyphKeepsTheSameSizeAcrossStates() throws {
+        let running = transfer(
+            direction: .upload,
+            state: .running,
+            byteCount: 100,
+            transferredBytes: 50
+        )
+        let indeterminate = transfer(direction: .download, state: .running)
+        let failed = transfer(direction: .download, state: .failed("Offline"))
+        let completed = transfer(direction: .upload, state: .completed)
+
+        for transfers in [[running], [indeterminate], [failed], [completed]] {
+            let coordinator = SFTPTransferCoordinator(
+                store: HostLibraryModel(sftpTransfers: transfers)
+            )
+            let renderer = ImageRenderer(
+                content: TransferGlyph(summary: coordinator.summary, transfers: transfers)
+            )
+            let image = try #require(renderer.nsImage)
+
+            #expect(
+                image.size
+                    == CGSize(width: TransferGlyph.size, height: TransferGlyph.size)
+            )
+        }
+    }
+
+    @Test
     func runningUploadsUseTheUploadSymbol() {
         let transfers = [
             transfer(direction: .upload, state: .running),
@@ -141,12 +171,16 @@ struct StatusBarPresentationTests {
 
     private func transfer(
         direction: SFTPTransfer.Direction,
-        state: SFTPTransfer.State
+        state: SFTPTransfer.State,
+        byteCount: Int64 = 0,
+        transferredBytes: Int64 = 0
     ) -> SFTPTransfer {
         SFTPTransfer(
             direction: direction,
             localPath: "/tmp/file.txt",
             remotePath: "/srv/file.txt",
+            byteCount: byteCount,
+            transferredBytes: transferredBytes,
             state: state
         )
     }
