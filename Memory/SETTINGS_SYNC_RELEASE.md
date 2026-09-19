@@ -1,88 +1,53 @@
-# Settings sync release verification
+# Settings sync release checks
 
-Settings sync ships off by default; Vault and Metrics are selected, Settings is
-opt-in. Vault keeps its existing protocol, Settings keeps its original AI-sync
-identifiers, and no AgentKit bump is required. V13 names/defaults are frozen; V14
-adds Terminal preferences. Migration of a copied installed V13 store preserved row
-counts and SQLite integrity, and the live store was observed healthy at V14.
+Master iCloud and Vault/Metrics/Settings selections currently default on (`SettingsKey`); existing explicit choices
+survive upgrades. Categories/account state remain independent and Pro-gated. Architecture, local-only fields and
+journal rules: [ARCHITECTURE.md](ARCHITECTURE.md). Build success does not establish CloudKit production deployment.
 
 ## CloudKit deployment
 
-In private container `iCloud.com.akinokaede.termind`, create/validate Development
-schemas and deploy them to Production:
+Private container `iCloud.com.akinokaede.termind`; validate Development schema and deploy to Production:
 
 | Category | Zone | Record type | Subscription |
 | --- | --- | --- | --- |
 | Settings | `TermindAIConfigurationV1` | `AIConfigurationItem` | `termind-ai-configuration-v1-changes` |
-| SFTP settings | `TermindAIConfigurationV1` | `SFTPPreferencesItem` | `termind-ai-configuration-v1-changes` |
+| SFTP settings | same | `SFTPPreferencesItem` | same |
 | Metrics | `TermindMetricsV1` | `MetricsItem` | `termind-metrics-v1-changes` |
 
-All record types use the Vault envelope: integer `formatVersion`, `counter`,
-`isDeleted`; string `kind`, `entityID`, `writerID`, `payloadHash`; date
-`modifiedAt`; bytes `payload`; asset `payloadAsset`. No public database access
-is needed.
+Vault envelope: integer `formatVersion`, `counter`, `isDeleted`; string `kind`, `entityID`, `writerID`, `payloadHash`;
+date `modifiedAt`; bytes `payload`; asset `payloadAsset`. No public database access. Compatibility zone/subscription/
+format stay unchanged; SFTP's distinct type lets older clients ignore it before decoding.
 
-The implementation environment had no CloudKit management token
-(`cktool get-teams` found none), so local tests do not establish production schema
-deployment or real delivery.
+**Unverified prerequisite:** the last recorded `xcrun cktool get-teams` check (2026-09-19) had no management token.
+Local tests did not prove Production deployment or signed-device delivery. Recheck credentials/deployment at release.
 
-## Signed-device release checks
+## Signed-device matrix
 
-- On two Macs with one Apple account, add/edit/delete providers, roles, MCP clients,
-  skills, and Terminal configuration; include offline edits, category/master pause
-  and resume, delayed Keychain delivery, and key rotation.
-- Switch one Mac's iCloud account and ensure upload waits for merge. Confirm each
-  category's selection/account state is independent; repeat with master sync off and
-  after Pro expiration.
-- Confirm theme/font/custom terminal/shell-integration changes reach existing
-  windows, while conversations and approval mode remain local.
-- Give each Mac different local MCP listener enablement, port, tools, and token.
-  Verify independence and verify an old synchronized token locally before removing
-  its iCloud Keychain copy.
-- Across signed macOS/iOS devices, verify Metrics order, pause state, and disk/network
-  filters. A Metrics record received before its Vault Host must stay hidden until the
-  Host arrives.
-- Release privacy policy 1.5 with the app and replace its prepared September 12,
-  2026 effective date with the actual publication date.
+Use two Macs and an iPhone/iPad on one Apple account, then exercise an account switch:
 
-## SFTP settings release (2026-09-19)
+- Add/edit/delete providers, roles, MCP clients, skills and terminal configuration. Include offline edits, independent
+  category/master pause/resume, delayed Keychain delivery, key rotation and Pro expiration.
+- Account switch must merge before upload; category choices/account bindings must remain independent.
+- Theme/custom terminal text/shell integration should update existing windows. Font family/size/follow-theme-size remain
+  **device-local**; distinguish local controls from fonts authored inside synced theme/custom text. Conversations,
+  approval mode and local MCP listener enablement/port/tools/token must not sync.
+- Before removing an old synchronized MCP token's iCloud Keychain copy, verify the local migrated token works.
+- Metrics order/pause/disk/network choices cross platforms; records arriving before their Vault Hosts remain hidden.
+- Confirm published privacy policy version/effective date matches the actual release, not an old prepared date.
 
-V21 adds local SFTP preferences and imports existing global/per-host UserDefaults
-values once. Unset values default to 15/5; ranges are 1–100 and 1–min(50, global).
-The existing Settings selection, master switch and Pro gating govern replication.
-The two limits travel together as `v1/sftp/default`, using the same version/conflict
-rules and baseline precedence as other settings. Transfer jobs and file contents
-are not settings records.
+### SFTP limits
 
-Deploy `SFTPPreferencesItem` with the envelope fields above to Production before
-releasing clients that upload it. The distinct type lets installed older clients
-ignore SFTP records without quarantining the new payload or reporting a sync error.
-The zone, subscription and format version remain unchanged. No AgentKit change is needed.
+V21 imports existing local limits once (including 3/2); missing values default 15/5. Ranges: global 1–100,
+per-host 1–min(50, global). Both travel together as `v1/sftp/default`; transfer jobs/bytes are never settings records.
+Deploy `SFTPPreferencesItem` **before** clients upload it.
 
-Release verification must include a signed Mac and iPhone/iPad on one Apple account:
-change 15/5 to 100/50, close Settings, and confirm the other device's queue adopts
-the limits without interrupting active transfers. Repeat while offline, with Settings
-or master sync paused, then resumed. Include a device retaining 3/2 and an older
-client that continues syncing existing record types.
+Change 15/5 → 100/50, close Settings and verify the other device's queue adopts limits without interrupting active
+transfers. Repeat offline, category/master paused then resumed; include a device retaining 3/2 and an older client
+still syncing existing types.
 
-The implementation environment's `xcrun cktool get-teams` on 2026-09-19 reports no
-management token. Production schema deployment and signed-device delivery remain
-release prerequisites, separate from local codec, persistence and scheduler tests.
+## Historical verification limits
 
-### Local verification
-
-- TFI full suite: 652 tests passed on iPhone 17 Pro (iOS 26.5 Simulator).
-- iPad Pro 11-inch (iOS 26.5 Simulator): 29 settings, upload, and rendering tests passed.
-- TFM focused verification: 127 tests passed, covering SFTP settings/sync, migration,
-  transfer scheduling/session lifetime, architecture boundaries, and localization.
-- Manually inspected English, Simplified Chinese, and Traditional Chinese screenshots
-  on macOS, iPhone, and iPad at 15/5 and 100/50. macOS values use the original trailing
-  alignment; iOS retains native labeled-value layout beside the stepper.
-- Strict Swift formatting, Chinese localization checks, and `git diff --check` passed.
-
-All Xcode runs retained `-onlyUsePackageVersionsFromResolvedFile`. The initial full
-TFM run had 1,661 passed, 13 failed, and 13 skipped tests. Its stale schema assertion
-and SFTP test wait-timeout failures were corrected and passed focused verification.
-Failures outside this change included StoreKit trial expectations, Agent cancellation,
-Metrics toolbar rendering, single-line field editing, and forwarding editor rendering;
-the complete macOS suite has not been established green by this verification.
+The 2026-09-19 implementation passed TFI full, iPad focused and TFM focused checks plus multilingual visual/format/
+localization checks. The initial full macOS run was not green: schema/timeout issues passed focused fixes, while
+StoreKit/Agent/Metrics/field/forwarding failures remained outside scope. No complete macOS pass, production schema
+or real delivery was established by that record. Rerun current release checks with pinned dependencies.

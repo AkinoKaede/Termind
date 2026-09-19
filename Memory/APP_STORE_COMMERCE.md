@@ -1,77 +1,42 @@
-# App Store commerce configuration
+# App Store commerce
 
-Termind Pro offers an annual auto-renewable subscription and a permanent
-non-consumable. Both support Family Sharing. The annual subscription owns its
-introductory free trial; StoreKit metadata and verified transactions are the sole
-sources for eligibility, offer duration, price, billing period, and expiration.
+App Store Connect owns production metadata; `StoreKit/Termind.storekit` is local test data only. No App Review/demo
+entitlement override: use StoreKit configuration, Sandbox or Apple's review environment.
 
 ## Products
 
 | Field | Annual | Lifetime |
 | --- | --- | --- |
 | Product ID | `com.akinokaede.termind.pro.annual` | `com.akinokaede.termind.pro` |
-| Reference name | Termind Pro Annual | Termind Pro Lifetime |
-| US price | $3.99/year | $9.99 |
-| Type | Auto-renewable, one year | Non-consumable |
-| Family Sharing | Enabled | Enabled |
-| English name | Termind Pro Annual | Termind Pro Lifetime |
+| Reference / English name | Termind Pro Annual | Termind Pro Lifetime |
+| US price / type | $3.99/year, auto-renewable | $9.99, non-consumable |
 | Simplified Chinese name | Termind Pro 年度订阅 | Termind Pro 永久版 |
 | Traditional Chinese name | Termind Pro 年度訂閱 | Termind Pro 永久版 |
+| English description | Annual AI, MCP & iCloud sync access. | Lifetime AI, MCP & iCloud sync access. |
+| Simplified description | 按年使用AI、MCP与iCloud同步功能。 | 永久使用AI、MCP与iCloud同步功能。 |
+| Traditional description | 按年使用AI、MCP與iCloud同步功能。 | 永久使用AI、MCP與iCloud同步功能。 |
 
-Annual descriptions:
+Both enable Family Sharing. Annual belongs to one `Termind Pro` subscription group with an introductory free trial
+(currently two weeks); app eligibility/duration/price/billing period come from StoreKit, never hard-coded. Billing
+Grace Period: 16 days, paid-to-paid only; Sandbox-test before Production.
 
-- English: `Annual AI, MCP & iCloud sync access.`
-- Simplified Chinese: `按年使用AI、MCP与iCloud同步功能。`
-- Traditional Chinese: `按年使用AI、MCP與iCloud同步功能。`
+## Access rules
 
-Lifetime descriptions:
+- Permanent wins. Verified subscribed/trial/grace grants Pro; cancellation retains it through verified expiration.
+  Billing retry without grace, expiration, upgrade-away, refund or revocation denies access. Metadata failure never
+  removes verified access. Refresh on activation and consume `Transaction.updates` (including Ask to Buy completion).
+- Features use current entitlement immediately. Mac Workspace composition, broadcast, batch opening, multi-host
+  snippets and local templates are free; template iCloud sync remains Pro. Retired standalone trials do not grant access.
 
-- English: `Lifetime AI, MCP & iCloud sync access.`
-- Simplified Chinese: `永久使用AI、MCP与iCloud同步功能。`
-- Traditional Chinese: `永久使用AI、MCP與iCloud同步功能。`
+## Release checklist
 
-Configure the annual product in one `Termind Pro` subscription group. Its
-introductory offer is free and currently lasts two weeks, but the app never
-hard-codes that duration. Billing Grace Period is 16 days, applies only to
-paid-to-paid renewals, and must be tested in Sandbox before enabling Production.
-
-`StoreKit/Termind.storekit` is local test data only. App Store Connect remains the
-source of production product metadata and cannot be changed by the repository.
-
-There is no review-demo access override. App Review and release verification use
-the StoreKit configuration, Sandbox accounts, or Apple's review environment.
-
-## Entitlement rules
-
-Permanent access wins over every subscription state. A verified annual transaction
-grants Pro while subscribed, during its introductory trial, or during a verified
-billing grace period. Cancellation keeps access through the verified expiration.
-Billing retry without grace, expiration, upgrade-away, refund, or revocation denies
-access. Pro features use the current entitlement immediately. Mac Workspace
-composition, broadcast input, batch opening, multi-host snippets, and local templates
-are free regardless of entitlement; template iCloud sync still requires Pro.
-
-Product metadata failure never removes already verified access. macOS and mobile
-refresh on foreground activation, and `Transaction.updates` handles purchases,
-renewals, refunds, revocations, and Ask to Buy completion.
-
-## Release verification
-
-Automated `StoreKitTrialTests` use `SKTestSession` and the local configuration.
-Coordinate the website copy with the app release that makes Workspace composition
-free. Update both products' English, Simplified Chinese, and Traditional Chinese
-descriptions in App Store Connect to the text above; repository changes do not update
-production metadata. Keep product IDs, prices, and offer configuration unchanged.
-
-Before submission, verify with a new Sandbox account:
-
-1. The paywall obtains the localized annual/lifetime prices, annual billing period,
-   introductory-offer eligibility, and offer duration from StoreKit.
-2. Trial purchase, renewal, cancellation, restore, expiration, billing retry, paid-
-   to-paid grace, refund, revocation, Ask to Buy, and transaction updates.
-3. Same-account access across Mac, iPhone, and iPad, plus Family Sharing.
+- Run `StoreKitTrialTests`/`SKTestSession`. Repository changes do not update App Store Connect: explicitly apply all
+  three localized descriptions above, coordinate website/free-Workspace copy, retain product IDs/prices/offers.
+- With a new Sandbox account verify localized annual/lifetime price, period, introductory eligibility/duration;
+  purchase/trial/renewal/cancel/restore/expiration/retry/paid-to-paid grace/refund/revocation/Ask to Buy/updates.
+- Verify same-account Mac/iPhone/iPad access and Family Sharing. Local tests alone do not prove production metadata.
 
 References: [subscriptions](https://developer.apple.com/app-store/subscriptions/),
-[`isEligibleForIntroOffer`](https://developer.apple.com/documentation/storekit/product/subscriptioninfo/iseligibleforintrooffer),
-[`currentEntitlements`](https://developer.apple.com/documentation/storekit/transaction/currententitlements),
-and [transaction history](https://developer.apple.com/documentation/storekit/transaction/all).
+[intro eligibility](https://developer.apple.com/documentation/storekit/product/subscriptioninfo/iseligibleforintrooffer),
+[entitlements](https://developer.apple.com/documentation/storekit/transaction/currententitlements),
+[transaction history](https://developer.apple.com/documentation/storekit/transaction/all).
