@@ -31,6 +31,7 @@ nonisolated enum AppCommandTarget: Hashable, Sendable {
     case settings
     case assistantConversation(ConversationModel.ID)
     case workspace(Workspace.ID)
+    case workspaceTemplate(WorkspaceTemplate.ID)
     case connectHost(Host.ID, HostOpenTarget)
     case newWindow
     case moveWorkspaceToNewWindow(UUID)
@@ -65,6 +66,9 @@ final class AppCommandRegistry {
         fixedCommands + vaultCommands
             + conversationCommands(window.assistantLibrary)
             + window.workspaces.map { workspaceCommand($0, store: app.hostLibrary) }
+            + app.hostLibrary.sortedWorkspaceTemplates.map {
+                workspaceTemplateCommand($0, store: app.hostLibrary)
+            }
             + app.hostLibrary.searchHosts("").flatMap(hostCommands)
             + actionCommands(workspaceID: window.selectedWorkspaceID)
     }
@@ -83,6 +87,9 @@ final class AppCommandRegistry {
             window.openAssistantFullScreen(id)
         case .workspace(let id):
             window.select(id)
+        case .workspaceTemplate(let id):
+            guard let template = app.hostLibrary.workspaceTemplate(id) else { return }
+            window.openWorkspaceTemplate(template)
         case .connectHost(let id, let target):
             guard let host = app.hostLibrary.host(id) else { return }
             app.open(host, as: target, in: window)
@@ -165,6 +172,20 @@ final class AppCommandRegistry {
             section: .workspaces,
             keywords: workspace.panes.map { $0.sidebarTitle(in: store) },
             target: .workspace(workspace.id)
+        )
+    }
+
+    private func workspaceTemplateCommand(
+        _ template: WorkspaceTemplate, store: HostLibraryModel
+    ) -> AppCommandDescriptor {
+        AppCommandDescriptor(
+            id: "workspace-template.\(template.id.uuidString)",
+            title: template.name,
+            subtitle: String(localized: "Workspace Template"),
+            symbol: "rectangle.split.2x1",
+            section: .workspaces,
+            keywords: template.layout.hostIDs.compactMap { store.host($0)?.name },
+            target: .workspaceTemplate(template.id)
         )
     }
 
