@@ -11,7 +11,7 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct SFTPEditRenderingTests {
-    @Test func menuHoverInspection() async throws {
+    @Test(.requiresVisibleWindow) func menuHoverInspection() async throws {
         let model = SFTPEditModel()
         let hostID = UUID()
         let file = RemoteFile(
@@ -80,7 +80,7 @@ struct SFTPEditRenderingTests {
             })
     }
 
-    @Test func floatingChangesFitNarrowPanesAndRenderOverFileRows() throws {
+    @Test(.requiresVisibleWindow) func floatingChangesFitNarrowPanesAndRenderOverFileRows() throws {
         let model = SFTPEditModel()
         let hostID = UUID()
         for index in 0..<5 {

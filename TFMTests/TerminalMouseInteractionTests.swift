@@ -12,7 +12,8 @@ private nonisolated let terminalMouseHasDisplay: Bool = {
     return CGGetActiveDisplayList(0, nil, &count) == .success && count > 0
 }()
 
-@Suite(.serialized, .disabled(if: !terminalMouseHasDisplay, "Ghostty requires an active display"))
+@Suite(
+    .requiresVisibleWindow, .serialized, .disabled(if: !terminalMouseHasDisplay, "Ghostty requires an active display"))
 @MainActor
 struct TerminalMouseInteractionTests {
     @Test func dragCopiesChineseAndMultipleLinesOnlyAfterRelease() async throws {

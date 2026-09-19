@@ -9,7 +9,7 @@ import Testing
 @MainActor
 @Suite(.serialized)
 struct ResponsivePageLayoutTests {
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresVisibleWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func vaultEditorsKeepFieldsInsideNarrowColumns(_ language: String) async throws {
         let host = TermindDomain.Host(name: "Production Database Gateway with a Long Name", host: "server.invalid")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))

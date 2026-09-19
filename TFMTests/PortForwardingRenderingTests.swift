@@ -8,7 +8,7 @@ import struct TermindDomain.Host
 
 @testable import Termind
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct PortForwardingRenderingTests {
     @Test(arguments: [false, true])
     func saveClosesTheEditorOnlyAfterPersistenceSucceeds(_ fails: Bool) async throws {

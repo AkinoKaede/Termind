@@ -7,7 +7,9 @@ import Testing
 
 @testable import Termind
 
-@Suite(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_SSH_FIXTURE"] != nil), .serialized)
+@Suite(
+    .requiresVisibleWindow, .enabled(if: ProcessInfo.processInfo.environment["TERMIND_SSH_FIXTURE"] != nil), .serialized
+)
 @MainActor
 struct TerminalUploadNoticeTests {
     @Test(arguments: ["kbd", "none"])

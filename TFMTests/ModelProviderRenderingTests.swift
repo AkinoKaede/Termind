@@ -10,7 +10,7 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct ModelProviderRenderingTests {
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresVisibleWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func blankNameFormsPreviewTheSavedDefaults(_ language: String) async throws {
         let host = TermindDomain.Host(name: "AWS", host: "example.invalid")
         let enclave = SSHKeyRef(label: "", algorithm: .ecdsa256, storage: .secureEnclave)
@@ -32,7 +32,7 @@ struct ModelProviderRenderingTests {
             language: language, name: "enclave-name-hint")
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresVisibleWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func anonymousProviderSettingsAndModelsRender(_ language: String) async throws {
         let provider = ModelProvider(
             name: "Local Model", inferenceURL: "http://localhost:11434/v1/chat/completions",
@@ -50,7 +50,7 @@ struct ModelProviderRenderingTests {
             language: language, name: "provider-list")
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresVisibleWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func newProviderHintsAndVertexFieldsRender(_ language: String) async throws {
         let ai = AIConfigurationModel(persistsSecrets: false)
         let provider = ModelProvider(name: "")

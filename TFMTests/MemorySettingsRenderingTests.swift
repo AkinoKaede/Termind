@@ -8,7 +8,7 @@ import Testing
 
 @testable import Termind
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct MemorySettingsRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [false, true])
     func memorySettingsRenderWithCapacity(_ language: String, dark: Bool) async throws {

@@ -9,7 +9,7 @@ import struct TermindDomain.Host
 
 @testable import Termind
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct ChooserInteractionTests {
     @Test(arguments: ["toolbar", "ssh", "serial"])
     func quickOpenTakesFocusAndHandlesTypingNavigationAndReopening(_ source: String) async throws {
@@ -230,12 +230,12 @@ private final class ChooserFixture {
             print(
                 "CHOOSER VIEWS",
                 views.map {
-                    "\(type(of: $0)): \(($0 as? NSButton)?.title ?? "") \($0.accessibilityIdentifier() ?? "")"
+                    "\(Swift.type(of: $0)): \(($0 as? NSButton)?.title ?? "") \($0.accessibilityIdentifier())"
                 })
             print(
                 "CHOOSER AX",
                 elements.map {
-                    "\(type(of: $0)): \($0.accessibilityLabel?() ?? "") \($0.accessibilityIdentifier?() ?? "")"
+                    "\(Swift.type(of: $0)): \($0.accessibilityLabel?() ?? "") \($0.accessibilityIdentifier?() ?? "")"
                 })
         }
         return try #require(elements.first { $0.accessibilityIdentifier?() == identifier }, "Missing \(identifier)")

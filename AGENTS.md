@@ -28,7 +28,7 @@ Treat `Memory/` as durable engineering context. Read `ARCHITECTURE.md` before ch
 - `xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile build` builds the app, the MCP bridge, and AgentKit. Keep the flag: resolving without it silently bumps pinned dependencies.
 - `xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'generic/platform=iOS Simulator' -onlyUsePackageVersionsFromResolvedFile build` builds the mobile app and shared frameworks. Run its tests with an available iPhone or iPad simulator destination.
 - `cd ../AgentKit && swift build && swift test` builds and tests the agent package on its own.
-- `xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test` runs all Swift tests.
+- `xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test` runs the default macOS and shared Swift tests. Tests that show windows or take focus are opt-in.
 - `xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests TFMTests TFITests TermindMCPBridge` checks Swift formatting. AgentKit passes the same command over `Sources Tests` and must keep passing it.
 - `cd LandingPage && npm ci && npm run dev` installs locked web dependencies and starts Astro locally.
 - `cd LandingPage && npm run build` type-checks and emits the production site to `LandingPage/dist/`.
@@ -39,7 +39,9 @@ Follow `.swift-format`: four spaces and 120 columns. Use PascalCase types, camel
 
 ## Testing Guidelines
 
-Use Swift Testing (`@Suite`, `@Test`, `#expect`) in the three test directories. Add regression coverage and run all tests before submission. Web changes must pass `npm run build`; verify English and `/zh/` routes visually.
+Use Swift Testing (`@Suite`, `@Test`, `#expect`) in the three test directories. Add regression coverage and run the default test suite before submission. Web changes must pass `npm run build`; verify English and `/zh/` routes visually.
+
+macOS tests that present windows or activate the app must use `.requiresVisibleWindow` on their suite or individual test. They are skipped by default; keep this opt-in off for routine verification. To opt in from the command line, prefix the test command with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (Xcode forwards it as `TERMIND_WINDOW_TESTS=1` to the test host), preferably with `-only-testing:TFMTests/<Suite>` to limit the run. In Xcode, set `TERMIND_WINDOW_TESTS=1` in the test action's environment. Screenshot tests with existing dedicated opt-in variables keep those gates. Offscreen layout and logic tests remain enabled by default.
 
 ## Localization Guidelines
 

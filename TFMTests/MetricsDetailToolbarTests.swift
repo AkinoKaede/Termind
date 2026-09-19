@@ -8,7 +8,7 @@ import Testing
 @testable import Termind
 
 @MainActor
-@Suite(.serialized)
+@Suite(.requiresVisibleWindow, .serialized)
 struct MetricsDetailToolbarTests {
     @Test(arguments: [AppLanguage.english, .simplifiedChinese, .traditionalChinese])
     func compactToolbarSwitchesPagesAndSearchRevealsProcesses(language: AppLanguage) async throws {

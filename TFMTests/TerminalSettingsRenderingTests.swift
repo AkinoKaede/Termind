@@ -6,7 +6,7 @@ import Testing
 @testable import Termind
 @testable import TermindPresentation
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct TerminalSettingsRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], ["", "Menlo"])
     func terminalSettingsRenderInSupportedLanguages(_ language: String, family: String) async throws {

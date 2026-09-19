@@ -23,7 +23,7 @@ struct SFTPSettingsIntegrationTests {
         #expect(app.sftpTransfers.perHostLimit == 2)
     }
 
-    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    @Test(.requiresVisibleWindow, arguments: ["en", "zh-Hans", "zh-Hant"])
     func sftpSettingsRenderTheDefaultsAndMaximumLimits(language: String) async throws {
         let app = AppModel(hosts: HostLibraryModel())
         let model = WindowModel(workspaces: [])

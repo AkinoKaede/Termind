@@ -6,7 +6,7 @@ import Testing
 
 @testable import Termind
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct WelcomeQuickConnectRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func welcomePreviewsCommandsAndRejectsRemoteCommands(_ language: String) async throws {

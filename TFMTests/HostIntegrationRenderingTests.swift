@@ -6,7 +6,7 @@ import Testing
 
 @testable import Termind
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct HostIntegrationRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [320.0, 360.0, 480.0])
     func hostEditorShowsIntegrationBelowGroupingAtNarrowWidth(language: String, width: CGFloat) async throws {

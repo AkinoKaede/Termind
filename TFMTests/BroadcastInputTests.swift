@@ -324,6 +324,7 @@ struct BroadcastInputTests {
 
     #if canImport(AppKit)
         @Test(
+            .requiresVisibleWindow,
             .disabled(
                 if: !ghosttyHasActiveDisplay,
                 "Ghostty's Metal surface requires an active display"
@@ -485,6 +486,7 @@ struct BroadcastInputTests {
         }
 
         @Test(
+            .requiresVisibleWindow,
             .disabled(
                 if: !ghosttyHasActiveDisplay,
                 "Ghostty's Metal surface requires an active display"

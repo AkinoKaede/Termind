@@ -4,7 +4,7 @@ import TermindApplication
 import TermindPresentation
 import Testing
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct SSHKeyboardInteractiveRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func rendersEchoAndSecretPrompts(_ language: String) async throws {

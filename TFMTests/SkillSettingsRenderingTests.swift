@@ -5,7 +5,7 @@ import Testing
 
 @testable import Termind
 
-@Suite(.serialized) @MainActor struct SkillSettingsRenderingTests {
+@Suite(.requiresVisibleWindow, .serialized) @MainActor struct SkillSettingsRenderingTests {
     @Test(arguments: ["en", "zh-Hans"])
     func aiSettingsShowUserSkillsAndMemoryAfterMCP(_ language: String) async throws {
         let app = AppModel(hosts: HostLibraryModel(), skills: SkillLibraryModel())

@@ -63,6 +63,7 @@ struct RemoteWindowTitleTests {
     }
 
     @Test(
+        .requiresVisibleWindow,
         .disabled(
             if: !ghosttyHasActiveDisplay,
             "Ghostty's Metal surface requires an active display"

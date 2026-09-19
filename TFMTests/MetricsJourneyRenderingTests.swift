@@ -8,7 +8,7 @@ import struct TermindDomain.Host
 
 @testable import Termind
 
-@Suite(.serialized) @MainActor
+@Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct MetricsJourneyRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func metricsAuthenticateInsideTheirJourneyWithoutOpeningAnExternalWindow(_ language: String) async throws {
