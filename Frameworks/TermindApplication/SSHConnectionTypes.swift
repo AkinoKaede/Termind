@@ -114,11 +114,13 @@ public nonisolated struct SSHConnectionRequest: Sendable {
 nonisolated extension SSHCredentials {
     fileprivate var withoutInteraction: SSHCredentials {
         switch self {
-        case .privateKey(_, _, _, requiresPassphrase: true),
-            .secureEnclave(_, _, requiresUserPresence: true):
-            .interactionRequired
+        case .privateKey(_, _, _, requiresPassphrase: true):
+            clearSecrets()
+            return .interactionRequired
+        case .secureEnclave(_, _, requiresUserPresence: true):
+            return .interactionRequired
         default:
-            self
+            return self
         }
     }
 }
@@ -215,9 +217,9 @@ public nonisolated struct SSHHostKeyPrompt: Hashable, Sendable {
 }
 
 public nonisolated enum SSHCredentials: Sendable {
-    case password(String)
+    case password(SSHSecret)
     case privateKey(
-        privateKey: String, publicKey: String?, passphrase: String?,
+        privateKey: SSHSecret, publicKey: String?, passphrase: SSHSecret?,
         requiresPassphrase: Bool = false
     )
     case secureEnclave(
@@ -227,6 +229,60 @@ public nonisolated enum SSHCredentials: Sendable {
     /// A public-key credential exists, but the current policy may not obtain it
     /// without presenting Touch ID, a device-password prompt, or a passphrase form.
     case interactionRequired
+
+    public static func password(_ value: String) -> Self {
+        .password(SSHSecret(value))
+    }
+
+    public static func privateKey(
+        privateKey: String, publicKey: String?, passphrase: String?,
+        requiresPassphrase: Bool = false
+    ) -> Self {
+        .privateKey(
+            privateKey: SSHSecret(privateKey), publicKey: publicKey,
+            passphrase: passphrase.map(SSHSecret.init),
+            requiresPassphrase: requiresPassphrase
+        )
+    }
+
+    public func clearSecrets() {
+        switch self {
+        case .password(let password):
+            password.clear()
+        case .privateKey(let privateKey, _, let passphrase, _):
+            privateKey.clear()
+            passphrase?.clear()
+        case .secureEnclave, .interactionRequired:
+            break
+        }
+    }
+}
+
+public nonisolated enum SSHResolvedKeyCredential: Sendable {
+    case software(SSHSecret)
+    case secureEnclave(SecureEnclaveKeyCredential)
+
+    public func sshCredential(
+        publicKey: String, certificate: String = "", passphraseOverride: String? = nil,
+        requiresPassphrase: Bool = false, requiresUserPresence: Bool = false
+    ) -> SSHCredentials {
+        switch self {
+        case .software(let privateKey):
+            .privateKey(
+                privateKey: privateKey,
+                publicKey: certificate.isEmpty
+                    ? (publicKey.isEmpty ? nil : publicKey)
+                    : certificate,
+                passphrase: passphraseOverride.map(SSHSecret.init),
+                requiresPassphrase: requiresPassphrase
+            )
+        case .secureEnclave(let credential):
+            .secureEnclave(
+                credential: credential, publicKey: publicKey,
+                requiresUserPresence: requiresUserPresence
+            )
+        }
+    }
 }
 
 nonisolated extension StoredSSHKeyCredential {
@@ -236,17 +292,17 @@ nonisolated extension StoredSSHKeyCredential {
     ) -> SSHCredentials {
         switch self {
         case .software(let secret):
-            .privateKey(
-                privateKey: secret.privateKey,
-                publicKey: certificate.isEmpty
-                    ? (publicKey.isEmpty ? nil : publicKey)
-                    : certificate,
-                passphrase: passphraseOverride,
-                requiresPassphrase: requiresPassphrase
+            SSHResolvedKeyCredential.software(SSHSecret(secret.privateKey)).sshCredential(
+                publicKey: publicKey, certificate: certificate,
+                passphraseOverride: passphraseOverride,
+                requiresPassphrase: requiresPassphrase,
+                requiresUserPresence: requiresUserPresence
             )
         case .secureEnclave(let credential):
-            .secureEnclave(
-                credential: credential, publicKey: publicKey,
+            SSHResolvedKeyCredential.secureEnclave(credential).sshCredential(
+                publicKey: publicKey, certificate: certificate,
+                passphraseOverride: passphraseOverride,
+                requiresPassphrase: requiresPassphrase,
                 requiresUserPresence: requiresUserPresence
             )
         }
@@ -310,6 +366,14 @@ public nonisolated struct SSHConnectionConfiguration: Sendable {
                 permitsNone: credentials.isEmpty,
                 hasEphemeralSecret: !credentials.isEmpty
             )
+    }
+
+    /// Invalidates every authentication secret shared by copies of this
+    /// one-shot configuration. Network and provenance fields remain readable.
+    public func clearSecrets() {
+        for credential in credentials { credential.clearSecrets() }
+        proxy?.clearSecret()
+        for jump in jumps { jump.clearSecrets() }
     }
 
 }

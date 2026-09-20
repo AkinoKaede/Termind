@@ -632,6 +632,7 @@ public actor SSHPTYChannel {
         rows: UInt16,
         progress: SSHRouteProgressHandler? = nil
     ) async throws {
+        defer { request.configuration.clearSecrets() }
         try await worker.connect(
             using: request.withKeyboardInteractiveFallback(keyboardInteractive),
             shellIntegrationEnabled: shellIntegrationEnabled,
@@ -734,6 +735,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-authentication")
     ) throws -> SSHAuthenticatedConnection {
         _ = initialization
+        defer { configuration.clearSecrets() }
         let operationID = UUID().uuidString.lowercased()
         logger.info(
             "ssh.authentication.started",
@@ -808,6 +810,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         let operationID = UUID().uuidString.lowercased()
         let request = request.enforcingInteractionPolicy()
         let configuration = request.configuration
+        defer { configuration.clearSecrets() }
         logger.info(
             "ssh.authentication.started",
             metadata: [
@@ -1071,11 +1074,11 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 if methods.contains("password") {
                     attempted = true
                     lastMethod = "password"
-                    let result = username.withCString { user in
-                        password.withCString { password in
+                    let result = try username.withCString { user in
+                        try password.withUnsafeCStringAndConsume { password, passwordLength in
                             libssh2_userauth_password_ex(
                                 session, user, UInt32(username.utf8.count),
-                                password, UInt32(strlen(password)), nil
+                                password, UInt32(passwordLength), nil
                             )
                         }
                     }
@@ -1085,25 +1088,25 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 guard methods.contains("publickey") else { continue }
                 attempted = true
                 lastMethod = "public_key"
-                let result = username.withCString { user in
-                    privateKey.withCString { privateBuffer in
-                        let call: (UnsafePointer<CChar>?) -> Int32 = { publicBuffer in
+                let result = try username.withCString { user in
+                    try privateKey.withUnsafeCStringAndConsume { privateBuffer, privateKeyLength in
+                        let call: (UnsafePointer<CChar>?) throws -> Int32 = { publicBuffer in
                             if let passphrase {
-                                return passphrase.withCString { passphraseBuffer in
+                                return try passphrase.withUnsafeCStringAndConsume { passphraseBuffer, _ in
                                     libssh2_userauth_publickey_frommemory(
                                         session, user, username.utf8.count,
                                         publicBuffer, publicKey?.utf8.count ?? 0,
-                                        privateBuffer, privateKey.utf8.count, passphraseBuffer
+                                        privateBuffer, privateKeyLength, passphraseBuffer
                                     )
                                 }
                             }
                             return libssh2_userauth_publickey_frommemory(
                                 session, user, username.utf8.count,
                                 publicBuffer, publicKey?.utf8.count ?? 0,
-                                privateBuffer, privateKey.utf8.count, nil
+                                privateBuffer, privateKeyLength, nil
                             )
                         }
-                        return publicKey?.withCString(call) ?? call(nil)
+                        return try publicKey?.withCString(call) ?? call(nil)
                     }
                 }
                 if result == 0 { return lastMethod }

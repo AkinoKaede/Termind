@@ -185,6 +185,62 @@ struct SSHInteractionPolicyTests {
         }
         #expect(password == "saved-password")
     }
+
+    @Test func runtimeSecretCanBeConsumedOnlyOnceAcrossAllReferences() throws {
+        let secret = SSHSecret("one-use")
+        let alias = secret
+        var observedCount = 0
+
+        try secret.withUnsafeCStringAndConsume { buffer, count in
+            observedCount = count
+            #expect(buffer[0] == CChar(bitPattern: Character("o").asciiValue!))
+        }
+
+        #expect(observedCount == 7)
+        #expect(secret.isConsumed)
+        #expect(alias.isConsumed)
+        #expect(throws: SSHSecret.Consumed.self) {
+            try alias.withUnsafeCStringAndConsume { _, _ in }
+        }
+    }
+
+    @Test func clearingAConfigurationInvalidatesEveryCredentialCopy() {
+        let password = SSHSecret("password")
+        let privateKey = SSHSecret("private-key")
+        let passphrase = SSHSecret("passphrase")
+        let proxyPassword = SSHSecret("proxy-password")
+        let configuration = SSHConnectionConfiguration(
+            hostID: UUID(), host: "example.invalid", port: 22, username: "user",
+            credentials: [
+                .password(password),
+                .privateKey(
+                    privateKey: privateKey, publicKey: nil,
+                    passphrase: passphrase, requiresPassphrase: true
+                ),
+            ], expectedHostKeys: [],
+            proxy: SSHTransportProxy(
+                kind: .socks5, hostname: "proxy.invalid", port: 1080,
+                username: "proxy", password: proxyPassword
+            )
+        )
+        let copy = configuration
+
+        copy.clearSecrets()
+
+        #expect(password.isConsumed)
+        #expect(privateKey.isConsumed)
+        #expect(passphrase.isConsumed)
+        #expect(proxyPassword.isConsumed)
+        #expect(
+            configuration.credentials.allSatisfy { credential in
+                switch credential {
+                case .password(let value): value.isConsumed
+                case .privateKey(let value, _, let phrase, _):
+                    value.isConsumed && phrase?.isConsumed == true
+                case .secureEnclave, .interactionRequired: true
+                }
+            })
+    }
 }
 
 private nonisolated final class CountingSecretStore: SecretStoring, @unchecked Sendable {

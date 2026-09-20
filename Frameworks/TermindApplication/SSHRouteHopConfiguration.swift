@@ -35,4 +35,9 @@ public nonisolated struct SSHRouteHopConfiguration: Sendable {
             )
     }
 
+    public func clearSecrets() {
+        for credential in credentials { credential.clearSecrets() }
+        proxy?.clearSecret()
+    }
+
 }

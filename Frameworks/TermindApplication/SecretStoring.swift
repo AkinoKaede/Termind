@@ -11,15 +11,35 @@ public nonisolated struct SSHPrivateKeySecret: Codable, Hashable, Sendable {
 
 public nonisolated protocol SecretStoring: Sendable {
     func string(for account: String, storage: PasswordStorage) throws -> String?
+    func sshSecret(for account: String, storage: PasswordStorage) throws -> SSHSecret?
     func setString(_ value: String?, for account: String, storage: PasswordStorage) throws
     func keyCredential(
         for account: String, storage: KeyStorage
     ) throws -> StoredSSHKeyCredential?
+    func sshKeyCredential(
+        for account: String, storage: KeyStorage
+    ) throws -> SSHResolvedKeyCredential?
     func setKeyCredential(
         _ value: StoredSSHKeyCredential?, for account: String, storage: KeyStorage
     ) throws
     func removePassword(_ account: String, storage: PasswordStorage) throws
     func removeKeyCredential(_ account: String, storage: KeyStorage) throws
+}
+
+nonisolated extension SecretStoring {
+    public func sshSecret(for account: String, storage: PasswordStorage) throws -> SSHSecret? {
+        try string(for: account, storage: storage).map(SSHSecret.init)
+    }
+
+    public func sshKeyCredential(
+        for account: String, storage: KeyStorage
+    ) throws -> SSHResolvedKeyCredential? {
+        switch try keyCredential(for: account, storage: storage) {
+        case .software(let secret): .software(SSHSecret(secret.privateKey))
+        case .secureEnclave(let credential): .secureEnclave(credential)
+        case nil: nil
+        }
+    }
 }
 
 public nonisolated final class InMemorySecretStore: SecretStoring, @unchecked Sendable {

@@ -59,6 +59,7 @@ public actor SSHForwardingConnection: SSHForwardingConnectionProtocol {
     }
 
     public func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler? = nil) async throws {
+        defer { request.configuration.clearSecrets() }
         try await worker.connect(request, progress: progress)
     }
 

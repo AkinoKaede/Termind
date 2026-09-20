@@ -480,15 +480,24 @@ final class SSHSessionModel: Identifiable {
         homeResolution = isShellIntegrationEnabled ? .pending : .unavailable
         let route = connectionRoute?.hosts ?? store.route(for: host)
         let identity = store.identity(for: host)
-        let suppliedAuthentication = suppliedAuthentications[host.id]
+        let stagedAuthentication = suppliedAuthentications[host.id]
         let username =
-            suppliedAuthentication?.username
+            stagedAuthentication?.username
             ?? identity?.username
             ?? usernameHint
         connectionJourney.begin(
             host: host, route: route, purpose: .sshSession, username: username,
             mode: reconnecting ? .reconnection : .connection
         )
+        if let passwordHost = route.first(where: { routeHost in
+            suppliedAuthentications[routeHost.id]?.requiresPasswordReentry == true
+        }), let submission = suppliedAuthentications[passwordHost.id] {
+            requestAuthentication(
+                for: passwordHost, username: submission.username,
+                selectedKeyID: submission.keyID, requiresPassphrase: false
+            )
+            return
+        }
         if let passphraseHost = route.first(where: { routeHost in
             guard let submission = suppliedAuthentications[routeHost.id],
                 submission.passphrase == nil,
@@ -511,6 +520,8 @@ final class SSHSessionModel: Identifiable {
             )
             return
         }
+        let attemptAuthentications = suppliedAuthentications.takeAuthenticationSecrets()
+        let suppliedAuthentication = attemptAuthentications[host.id]
         var credentials: [SSHCredentials] = []
         var credentialFailures: [String] = []
         var hasConfiguredCredential = false
@@ -524,10 +535,11 @@ final class SSHSessionModel: Identifiable {
             hasConfiguredCredential =
                 suppliedAuthentication.keyID != nil
                 || suppliedAuthentication.password != nil
+                || suppliedAuthentication.identityID.flatMap(store.identity)?.hasSecret == true
             if let keyID = suppliedAuthentication.keyID {
                 if let key = store.key(keyID) {
                     do {
-                        if let credential = try store.connectionKeyCredential(
+                        if let credential = try store.connectionKeySecretCredential(
                             for: key, identityID: suppliedAuthentication.identityID
                         ) {
                             credentials.append(
@@ -554,6 +566,20 @@ final class SSHSessionModel: Identifiable {
             }
             if let password = suppliedAuthentication.password {
                 credentials.append(.password(password))
+            } else if let identityID = suppliedAuthentication.identityID,
+                let selectedIdentity = store.identity(identityID), selectedIdentity.usesPassword
+            {
+                do {
+                    if let password = try store.connectionPasswordSecret(for: selectedIdentity) {
+                        credentials.append(.password(password))
+                    } else {
+                        credentialFailures.append(
+                            String(localized: "The saved password is no longer available.")
+                        )
+                    }
+                } catch {
+                    credentialFailures.append(error.localizedDescription)
+                }
             }
         } else if let identity {
             let resolution = store.sshCredentials(for: identity)
@@ -586,12 +612,12 @@ final class SSHSessionModel: Identifiable {
             proxy = try store.transportProxy(for: host)
             if let connectionRoute {
                 jumps = try store.sshJumpConfigurations(
-                    for: connectionRoute, submissions: suppliedAuthentications,
+                    for: connectionRoute, submissions: attemptAuthentications,
                     temporaryHostKeys: temporaryHostKeys, trustPolicy: .allowChallenge
                 )
             } else {
                 jumps = try store.sshJumpConfigurations(
-                    for: host, submissions: suppliedAuthentications,
+                    for: host, submissions: attemptAuthentications,
                     temporaryHostKeys: temporaryHostKeys, trustPolicy: .allowChallenge
                 )
             }
@@ -687,7 +713,8 @@ final class SSHSessionModel: Identifiable {
                         submitted?.keyID
                         ?? authenticationIdentity?.keyID ?? (authenticationHost.id == host.id ? selectedKeyID : nil)
                     let retryNeedsPassphrase =
-                        submitted?.passphrase == nil
+                        submitted?.requiresPasswordReentry != true
+                        && submitted?.passphrase == nil
                         && authenticationKeyID.flatMap { store.key($0) }?
                             .requiresPassphraseEntry == true
                     let returnsToIdentity = submitted?.passphrase != nil

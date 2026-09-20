@@ -93,6 +93,11 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - SSH/SFTP/mobile Workspaces/Metrics share preparation/recovery policy. Host-key approval occurs inside the actual
   socket/libssh2 handshake-to-auth attempt, never a discovery connection. Generations reject retired callbacks,
   credential results and timers.
+- Every resolved Password, software Private Key, Key Passphrase and proxy Password is one-shot per physical connection
+  attempt. Runtime copies share a wipeable byte buffer; the transport clears it after the authentication call and every
+  success, failure and cancellation boundary clears it again. Retry/session/Agent/Metrics/transfer state retains only
+  non-secret Identity/Key provenance. Saved material is reread from Keychain for another physical connection; temporary
+  Passwords and every Passphrase must be entered again. UI authentication fields clear synchronously on submission.
 - Desktop SSH/SFTP submission uses `RemoteSessionHostStore`: explicit password wins; custom input never borrows an
   unselected Identity password. Only explicit input changes selected credentials; custom input reuses the Host Identity.
   Identity/secret writes precede separate Host association. Keep temporary credentials, validation/passphrase ordering,

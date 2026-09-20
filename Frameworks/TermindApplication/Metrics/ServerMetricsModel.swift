@@ -80,7 +80,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
     private nonisolated struct RunAttempt: Sendable {
         var host: Host
-        var preparation: SSHConnectionPreparation
+        var preparation: SSHConnectionPreparation?
         var sampler: any MetricsSampling
     }
     private nonisolated struct HostKeyAuthorization: Sendable {
@@ -307,10 +307,13 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         finishHostKeyAuthorization(for: server.id, decision: .accept)
     }
 
-    private func preparation(for host: Host, server: ServerMetric) throws -> SSHConnectionPreparation {
+    private func preparation(
+        for host: Host, server: ServerMetric,
+        submissions: [UUID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation {
         try hosts.prepareSSHConnection(
             for: host,
-            submissions: submissions[server.id] ?? [:],
+            submissions: submissions,
             temporaryHostKeys: temporaryKeys[server.id] ?? [:]
         )
     }
@@ -320,7 +323,10 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         let staged = submissions[server.id]?[host.id]
         let identity = staged?.identityID.flatMap { hosts.identity($0) } ?? hosts.identity(for: host)
         let keyID = staged?.keyID ?? identity?.keyID
-        let passphrase = keyID.flatMap { hosts.key($0) }?.requiresPassphraseEntry == true && staged?.passphrase == nil
+        let passphrase =
+            staged?.requiresPasswordReentry != true
+            && keyID.flatMap { hosts.key($0) }?.requiresPassphraseEntry == true
+            && staged?.passphrase == nil
         server.authenticationHost = host
         server.authenticationPrompt = SSHAuthenticationPrompt(
             host: host, selectedIdentityID: identity?.id, username: staged?.username ?? identity?.username ?? "",
@@ -339,6 +345,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
 
     public func suspend() {
         sleeping = true
+        submissions.removeAll()
         for server in servers {
             cancel(server.id)
             server.isConnecting = false
@@ -533,7 +540,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private nonisolated func run(_ serverID: UUID, token: UUID, clock: MetricsClock) async {
         var delay = 2.0
         while await isCurrent(serverID, token: token) {
-            let attempt: RunAttempt
+            var attempt: RunAttempt
             do {
                 guard let next = try await beginRunAttempt(serverID, token: token) else { return }
                 attempt = next
@@ -547,7 +554,9 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
 
             let sampler = attempt.sampler
             do {
-                let configuration = try await attempt.preparation.resolve(
+                guard let preparation = attempt.preparation else { throw CancellationError() }
+                attempt.preparation = nil
+                let configuration = try await preparation.resolve(
                     trustPolicy: .allowChallenge
                 )
                 guard await isCurrent(serverID, token: token) else {
@@ -659,7 +668,36 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         server.status = String(localized: "Connecting…")
         server.collectionState = .connecting
         server.isConnecting = true
-        let preparation = try preparation(for: host, server: server)
+        let route = hosts.route(for: host)
+        if let passwordHost = route.first(where: { routeHost in
+            submissions[server.id]?[routeHost.id]?.requiresPasswordReentry == true
+        }) {
+            throw TermindSSHError.routeHost(
+                hostID: passwordHost.id, authentication: true,
+                serverChallenge: false, hostKey: false,
+                message: TermindSSHError.missingCredential.localizedDescription
+            )
+        }
+        if let passphraseHost = route.first(where: { routeHost in
+            guard let submission = submissions[server.id]?[routeHost.id],
+                submission.passphrase == nil,
+                let keyID = submission.keyID,
+                let key = hosts.key(keyID)
+            else { return false }
+            return key.requiresPassphraseEntry
+        }) {
+            throw TermindSSHError.routeHost(
+                hostID: passphraseHost.id, authentication: true,
+                serverChallenge: false, hostKey: false,
+                message: TermindSSHError.keyPassphraseRequired.localizedDescription
+            )
+        }
+        var retained = submissions[server.id] ?? [:]
+        let attemptSubmissions = retained.takeAuthenticationSecrets()
+        submissions[server.id] = retained
+        let preparation = try preparation(
+            for: host, server: server, submissions: attemptSubmissions
+        )
         let sampler = makeSampler()
         samplers[serverID] = sampler
         return RunAttempt(host: host, preparation: preparation, sampler: sampler)

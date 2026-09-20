@@ -6,7 +6,7 @@ import Testing
 @Suite @MainActor
 struct SSHAuthenticationSubmissionTests {
     @Test(arguments: [String?.none, "", "supplied"])
-    func selectedPasswordFallbackRecordsOnlySavedCredentialAccess(_ password: String?) throws {
+    func selectedPasswordRemainsReferenceOnlyUnlessExplicitlySupplied(_ password: String?) throws {
         let secrets = InMemorySecretStore()
         let identity = Identity(name: "Deploy", username: "deploy", credentialRef: "password")
         let store = HostLibraryModel(identities: [identity], secrets: secrets)
@@ -16,10 +16,10 @@ struct SSHAuthenticationSubmissionTests {
             username: "deploy", password: password, passphrase: "one-use", keyID: identity.keyID,
             selectedIdentity: identity)
 
-        #expect(submission.password == (password ?? "saved"))
+        #expect(submission.password == password)
         #expect(submission.passphrase == "one-use")
         #expect(submission.identityID == identity.id)
-        #expect((store.identity(identity.id)?.lastUsedAt != nil) == (password == nil))
+        #expect(store.identity(identity.id)?.lastUsedAt == nil)
         #expect(try store.passwordCredential(for: identity) == "saved")
     }
 
@@ -41,14 +41,14 @@ struct SSHAuthenticationSubmissionTests {
     }
 
     @Test
-    func failedPasswordReadThrowsButExplicitInputBypassesIt() throws {
+    func selectingIdentityDefersUnreadablePasswordUntilConnectionResolution() throws {
         let identity = Identity(name: "Deploy", username: "deploy", credentialRef: "unreadable")
         let store = HostLibraryModel(identities: [identity], secrets: UnreadableAuthenticationSecrets())
 
-        #expect(throws: CocoaError.self) {
-            try store.authenticationSubmission(
-                username: "deploy", password: nil, passphrase: nil, keyID: nil, selectedIdentity: identity)
-        }
+        let referenced = try store.authenticationSubmission(
+            username: "deploy", password: nil, passphrase: nil, keyID: nil, selectedIdentity: identity)
+        #expect(referenced.password == nil)
+        #expect(referenced.identityID == identity.id)
         let submission = try store.authenticationSubmission(
             username: "deploy", password: "supplied", passphrase: nil, keyID: nil, selectedIdentity: identity)
         #expect(submission.password == "supplied")
@@ -138,6 +138,26 @@ struct SSHAuthenticationSubmissionTests {
         #expect(store.host(host.id) == updated)
         #expect(updated.identityID == identity.id)
         #expect(try store.passwordCredential(for: identity) == "replacement")
+    }
+
+    @Test
+    func takingAttemptSecretsLeavesOnlyReentryMarkersInSessionState() {
+        let hostID = UUID()
+        var retained = [
+            hostID: SSHAuthenticationSubmission(
+                username: "deploy", password: "one-use-password",
+                passphrase: "one-use-passphrase", keyID: UUID()
+            )
+        ]
+
+        let attempt = retained.takeAuthenticationSecrets()
+
+        #expect(attempt[hostID]?.password == "one-use-password")
+        #expect(attempt[hostID]?.passphrase == "one-use-passphrase")
+        #expect(retained[hostID]?.password == nil)
+        #expect(retained[hostID]?.passphrase == nil)
+        #expect(retained[hostID]?.requiresPasswordReentry == true)
+        #expect(retained[hostID]?.requiresPassphraseReentry == true)
     }
 }
 

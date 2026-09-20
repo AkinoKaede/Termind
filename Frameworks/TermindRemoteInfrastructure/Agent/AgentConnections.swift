@@ -354,14 +354,13 @@ public final class AgentHostResolver: Sendable {
             guard let identity = store.identity(identityID) else {
                 throw TermindSSHError.missingCredential
             }
-            let password = try store.connectionPasswordCredential(for: identity)
             if answer.save {
                 var updated = host
                 updated.identityID = identity.id
                 store.upsert(updated)
             }
             return SSHAuthenticationSubmission(
-                username: identity.username, password: password,
+                username: identity.username,
                 passphrase: answer.passphrase, keyID: identity.keyID,
                 identityID: identity.id
             )
@@ -560,16 +559,25 @@ public actor AgentSSHAuthenticationContext {
         guard failedGeneration == generation else { return }
         let target = error.routeHostID ?? hostID
         if var retained = submissions[target] {
-            retained.password = nil
-            retained.passphrase = nil
+            retained.clearSecrets()
             submissions[target] = retained
         }
         generation &+= 1
+        cached?.clearSecrets()
         cached = nil
         pending?.task.cancel()
         pending = nil
         forcedHostID = target
         failure = error.localizedDescription
+    }
+
+    public func didAuthenticate(generation authenticatedGeneration: UInt64) {
+        guard authenticatedGeneration == generation else { return }
+        submissions.removeAll()
+        cached?.clearSecrets()
+        cached = nil
+        pending?.task.cancel()
+        pending = nil
     }
 
     private func makeAttempt(
@@ -861,7 +869,9 @@ public actor AgentSSHAuthenticationRegistry {
         open: @Sendable (AgentSSHAuthenticationContext.Attempt?) async throws -> Client
     ) async throws -> Client {
         var attempt: AgentSSHAuthenticationContext.Attempt?
-        if await authentication.canResolveTarget() {
+        if await pool.isConnected(hostID: hostID) {
+            attempt = nil
+        } else if await authentication.canResolveTarget() {
             attempt = try await authentication.configurationAttempt()
         }
         while true {
@@ -874,7 +884,9 @@ public actor AgentSSHAuthenticationRegistry {
                 attemptedGeneration = await authentication.currentGeneration
             }
             do {
-                return try await open(attempt)
+                let client = try await open(attempt)
+                await authentication.didAuthenticate(generation: attemptedGeneration)
+                return client
             } catch let error as TermindSSHError where error.shouldRequestAuthentication {
                 if cancellation?.isCancelled == true { throw SFTPError.cancelled }
                 if evictsPooledConnection { await pool.disconnect(hostID: hostID) }

@@ -133,7 +133,7 @@ struct SSHConnectionPreparationTests {
     }
 
     @Test
-    func protectedKeyReadIsReportedBeforePassphraseIsRequested() async {
+    func protectedKeyIsNotReadBeforePassphraseIsRequested() async {
         let key = SSHKeyRef(
             label: "Protected", publicKey: "ssh-ed25519 test",
             credentialRef: "key.protected", hasPassphrase: true
@@ -155,8 +155,8 @@ struct SSHConnectionPreparationTests {
         await #expect(throws: TermindSSHError.self) {
             _ = try await preparation.resolve(trustPolicy: .allowChallenge)
         }
-        #expect(recorder.identityIDs == [identity.id])
-        #expect(recorder.callCount == 1)
+        #expect(recorder.identityIDs.isEmpty)
+        #expect(recorder.callCount == 0)
     }
 
     @Test

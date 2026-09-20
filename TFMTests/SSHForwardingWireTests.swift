@@ -125,9 +125,12 @@ nonisolated struct SSHForwardingWireTests {
         primary.authorizeHostKey = nil
         try await pool.connect(primary, progress: nil)
         await pool.configureAdditionalConnections {
-            SSHConnectionRequest(
-                configuration: primary.configuration, interactionPolicy: .forbidden
-            ).enforcingInteractionPolicy()
+            var additional = request(fixture, jumps: 0)
+            additional.configuration.expectedHostKeys = [
+                SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: fingerprint)
+            ]
+            additional.interactionPolicy = .forbidden
+            return additional.enforcingInteractionPolicy()
         }
         let local = try rule(.local, fixture: fixture)
         try await pool.start(local, generation: UUID())
@@ -276,21 +279,22 @@ nonisolated struct SSHForwardingWireTests {
 
     private func request(_ fixture: Fixture, jumps: Int, username: String = "none") -> SSHConnectionRequest {
         let user = fixture.username ?? username
-        let credentials: [SSHCredentials] =
+        func credentials() -> [SSHCredentials] {
             fixture.username.flatMap { _ in fixture.privateKey }.map {
                 [.privateKey(privateKey: $0, publicKey: nil, passphrase: nil)]
             } ?? []
+        }
         let expectedHostKeys: Set<SSHHostKeyIdentity> =
             fixture.hostKeyFingerprint.map {
                 [SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: $0)]
             } ?? []
         var configuration = SSHConnectionConfiguration(
-            hostID: UUID(), host: "127.0.0.1", port: fixture.port, username: user, credentials: credentials,
+            hostID: UUID(), host: "127.0.0.1", port: fixture.port, username: user, credentials: credentials(),
             expectedHostKeys: expectedHostKeys)
         configuration.jumps = (0..<jumps).map { _ in
             SSHRouteHopConfiguration(
                 id: UUID(), name: "Fixture", host: "127.0.0.1", port: fixture.port, username: user,
-                credentials: credentials, expectedHostKeys: expectedHostKeys)
+                credentials: credentials(), expectedHostKeys: expectedHostKeys)
         }
         return SSHConnectionRequest(configuration: configuration, authorizeHostKey: { _ in .accept })
     }

@@ -11,6 +11,7 @@ public nonisolated enum SSHSocketConnector {
         host: String, port: Int, proxy: SSHTransportProxy? = nil,
         timeout: TimeInterval = 20
     ) throws -> Int32 {
+        defer { proxy?.clearSecret() }
         let socket = try openTCP(
             host: proxy?.hostname ?? host,
             port: proxy?.port ?? port,
@@ -72,6 +73,7 @@ public nonisolated enum SSHSocketConnector {
     public static func negotiate(
         socket: Int32, host: String, port: Int, proxy: SSHTransportProxy
     ) throws {
+        defer { proxy.clearSecret() }
         switch proxy.kind {
         case .http:
             try negotiateHTTP(socket: socket, host: host, port: port, proxy: proxy)
@@ -84,13 +86,31 @@ public nonisolated enum SSHSocketConnector {
         socket: Int32, host: String, port: Int, proxy: SSHTransportProxy
     ) throws {
         let authority = host.contains(":") ? "[\(host)]:\(port)" : "\(host):\(port)"
-        var request = "CONNECT \(authority) HTTP/1.1\r\nHost: \(authority)\r\nProxy-Connection: Keep-Alive\r\n"
-        if let password = proxy.password, !proxy.username.isEmpty {
-            let token = Data("\(proxy.username):\(password)".utf8).base64EncodedString()
-            request += "Proxy-Authorization: Basic \(token)\r\n"
-        }
-        request += "\r\n"
-        try writeAll(socket, Data(request.utf8))
+        try {
+            var request = Data(
+                "CONNECT \(authority) HTTP/1.1\r\nHost: \(authority)\r\nProxy-Connection: Keep-Alive\r\n".utf8
+            )
+            defer { wipe(&request) }
+            if let password = proxy.password, !proxy.username.isEmpty {
+                var plaintext = Data(proxy.username.utf8)
+                plaintext.append(UInt8(ascii: ":"))
+                defer { wipe(&plaintext) }
+                try password.withUnsafeCStringAndConsume { buffer, count in
+                    plaintext.append(
+                        buffer.withMemoryRebound(to: UInt8.self, capacity: count) {
+                            UnsafeBufferPointer(start: $0, count: count)
+                        }
+                    )
+                }
+                var token = plaintext.base64EncodedData()
+                defer { wipe(&token) }
+                request.append(Data("Proxy-Authorization: Basic ".utf8))
+                request.append(token)
+                request.append(Data("\r\n".utf8))
+            }
+            request.append(Data("\r\n".utf8))
+            try writeAll(socket, request)
+        }()
 
         var response = Data()
         while response.range(of: Data("\r\n\r\n".utf8)) == nil {
@@ -127,15 +147,21 @@ public nonisolated enum SSHSocketConnector {
                 throw TermindSSHError.proxy("The SOCKS5 proxy requires a password.")
             }
             let username = Data(proxy.username.utf8)
-            let secret = Data(password.utf8)
-            guard username.count <= 255, secret.count <= 255 else {
-                throw TermindSSHError.proxy("The SOCKS5 username or password is too long.")
+            try password.withUnsafeCStringAndConsume { buffer, count in
+                guard username.count <= 255, count <= 255 else {
+                    throw TermindSSHError.proxy("The SOCKS5 username or password is too long.")
+                }
+                var auth = Data([0x01, UInt8(username.count)])
+                defer { wipe(&auth) }
+                auth.append(username)
+                auth.append(UInt8(count))
+                auth.append(
+                    buffer.withMemoryRebound(to: UInt8.self, capacity: count) {
+                        UnsafeBufferPointer(start: $0, count: count)
+                    }
+                )
+                try writeAll(socket, auth)
             }
-            var auth = Data([0x01, UInt8(username.count)])
-            auth.append(username)
-            auth.append(UInt8(secret.count))
-            auth.append(secret)
-            try writeAll(socket, auth)
             let result = try readExactly(socket, count: 2)
             guard result[1] == 0 else {
                 throw TermindSSHError.proxy("SOCKS5 proxy authentication failed.")
@@ -178,6 +204,14 @@ public nonisolated enum SSHSocketConnector {
         default: throw TermindSSHError.proxy("The SOCKS5 proxy returned an invalid address type.")
         }
         _ = try readExactly(socket, count: addressLength + 2)
+    }
+
+    private static func wipe(_ data: inout Data) {
+        data.withUnsafeMutableBytes { (raw: UnsafeMutableRawBufferPointer) in
+            guard let base = raw.baseAddress, raw.count > 0 else { return }
+            _ = memset_s(base, raw.count, 0, raw.count)
+        }
+        data.removeAll(keepingCapacity: false)
     }
 
     private static func openTCP(host: String, port: Int, timeout: TimeInterval) throws -> Int32 {

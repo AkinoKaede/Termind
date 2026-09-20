@@ -308,12 +308,21 @@ final class SFTPChannelModel: Identifiable {
         let attemptID = UUID()
         connectionAttemptID = attemptID
         let route = store.route(for: host)
-        let suppliedAuthentication = suppliedAuthentications[host.id]
+        let stagedAuthentication = suppliedAuthentications[host.id]
         connectionJourney.begin(
             host: host, route: route, purpose: .sftpChannel,
-            username: suppliedAuthentication?.username ?? store.identity(for: host)?.username,
+            username: stagedAuthentication?.username ?? store.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection
         )
+        if let passwordHost = route.first(where: { routeHost in
+            suppliedAuthentications[routeHost.id]?.requiresPasswordReentry == true
+        }) {
+            requestAuthentication(
+                host: passwordHost, store: store,
+                requiresPassphrase: false
+            )
+            return
+        }
         if let passphraseHost = route.first(where: { routeHost in
             guard let submission = suppliedAuthentications[routeHost.id],
                 submission.passphrase == nil,
@@ -328,10 +337,12 @@ final class SFTPChannelModel: Identifiable {
             )
             return
         }
-        if reconnecting, usesEphemeralCredentials, suppliedAuthentication == nil {
+        if reconnecting, usesEphemeralCredentials {
             requestAuthentication(host: host, store: store)
             return
         }
+        let attemptAuthentications = suppliedAuthentications.takeAuthenticationSecrets()
+        let suppliedAuthentication = attemptAuthentications[host.id]
         status = reconnecting ? .reconnecting : .connecting
         hint =
             reconnecting
@@ -348,7 +359,7 @@ final class SFTPChannelModel: Identifiable {
                     var credentials: [SSHCredentials] = []
                     if let keyID = suppliedAuthentication.keyID,
                         let key = store.key(keyID),
-                        let stored = try? store.connectionKeyCredential(
+                        let stored = try? store.connectionKeySecretCredential(
                             for: key, identityID: suppliedAuthentication.identityID
                         )
                     {
@@ -362,6 +373,13 @@ final class SFTPChannelModel: Identifiable {
                     }
                     if let password = suppliedAuthentication.password {
                         credentials.append(.password(password))
+                    } else if let identityID = suppliedAuthentication.identityID,
+                        let selectedIdentity = store.identity(identityID), selectedIdentity.usesPassword
+                    {
+                        guard let password = try store.connectionPasswordSecret(for: selectedIdentity) else {
+                            throw TermindSSHError.missingCredential
+                        }
+                        credentials.append(.password(password))
                     }
                     configuration = SSHConnectionConfiguration(
                         hostID: host.id, host: host.host, port: host.port,
@@ -370,7 +388,7 @@ final class SFTPChannelModel: Identifiable {
                         expectedHostKeys: expectedHostKeys,
                         proxy: try store.transportProxy(for: host),
                         jumps: try store.sshJumpConfigurations(
-                            for: host, submissions: suppliedAuthentications,
+                            for: host, submissions: attemptAuthentications,
                             temporaryHostKeys: temporaryHostKeys,
                             trustPolicy: .allowChallenge
                         ),
@@ -387,7 +405,7 @@ final class SFTPChannelModel: Identifiable {
                     )
                 } else {
                     configuration = try store.sshConnectionConfiguration(
-                        for: host, submissions: suppliedAuthentications,
+                        for: host, submissions: attemptAuthentications,
                         temporaryHostKeys: temporaryHostKeys,
                         trustPolicy: .allowChallenge
                     )
@@ -470,7 +488,8 @@ final class SFTPChannelModel: Identifiable {
                 }
                 let submitted = self.suppliedAuthentications[authenticationHost.id]
                 let retryNeedsPassphrase =
-                    submitted?.passphrase == nil
+                    submitted?.requiresPasswordReentry != true
+                    && submitted?.passphrase == nil
                     && (submitted?.keyID ?? store.identity(for: authenticationHost)?.keyID)
                         .flatMap { store.key($0) }?.requiresPassphraseEntry == true
                 let returnsToIdentity = submitted?.passphrase != nil

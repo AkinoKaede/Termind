@@ -19,6 +19,8 @@ public nonisolated struct SSHAuthenticationSubmission: Hashable, Sendable {
     public var passphrase: String?
     public var keyID: SSHKeyRef.ID?
     public var identityID: Identity.ID? = nil
+    public var requiresPasswordReentry = false
+    public var requiresPassphraseReentry = false
     public init(
         username: String, password: String? = nil, passphrase: String? = nil, keyID: SSHKeyRef.ID? = nil,
         identityID: Identity.ID? = nil
@@ -30,4 +32,23 @@ public nonisolated struct SSHAuthenticationSubmission: Hashable, Sendable {
         self.identityID = identityID
     }
 
+    public mutating func clearSecrets() {
+        if password != nil { requiresPasswordReentry = true }
+        if passphrase != nil { requiresPassphraseReentry = true }
+        password = nil
+        passphrase = nil
+    }
+
+}
+
+nonisolated extension Dictionary where Value == SSHAuthenticationSubmission {
+    /// Moves plaintext answers into one connection attempt while leaving only
+    /// non-secret selection metadata in the session's retry state.
+    public mutating func takeAuthenticationSecrets() -> Self {
+        let result = self
+        for key in keys {
+            self[key]?.clearSecrets()
+        }
+        return result
+    }
 }

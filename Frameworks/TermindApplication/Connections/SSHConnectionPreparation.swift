@@ -132,9 +132,12 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         var result: [SSHCredentials] = []
         var retrievalFailure: (any Error)?
         if let key = node.key {
-            let stored: StoredSSHKeyCredential?
+            if key.requiresPassphraseEntry, node.submission?.passphrase?.isEmpty != false {
+                throw TermindSSHError.keyPassphraseRequired
+            }
+            let stored: SSHResolvedKeyCredential?
             do {
-                stored = try secrets.keyCredential(for: key.credentialRef, storage: key.storage)
+                stored = try secrets.sshKeyCredential(for: key.credentialRef, storage: key.storage)
                 if stored != nil, let identity = connectionIdentity(for: node) {
                     accessedIdentityIDs.insert(identity.id)
                 }
@@ -143,9 +146,6 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                 retrievalFailure = error
             }
             if let stored {
-                if key.requiresPassphraseEntry, node.submission?.passphrase?.isEmpty != false {
-                    throw TermindSSHError.keyPassphraseRequired
-                }
                 result.append(
                     stored.sshCredential(
                         publicKey: key.publicKey, certificate: key.certificate,
@@ -162,7 +162,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             let identity = node.identity, identity.usesPassword
         {
             do {
-                if let password = try secrets.string(
+                if let password = try secrets.sshSecret(
                     for: identity.credentialRef, storage: identity.passwordStorage
                 ) {
                     result.append(.password(password))
@@ -187,12 +187,12 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         guard proxy.isValid else {
             throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
         }
-        var password: String?
+        var password: SSHSecret?
         if proxy.identityID != nil {
             guard let identity = node.proxyIdentity, identity.usesPassword else {
                 throw TermindSSHError.proxy(String(localized: "The proxy password identity is unavailable."))
             }
-            password = try secrets.string(for: identity.credentialRef, storage: identity.passwordStorage)
+            password = try secrets.sshSecret(for: identity.credentialRef, storage: identity.passwordStorage)
             guard password != nil else {
                 throw TermindSSHError.proxy(String(localized: "The proxy password is unavailable."))
             }

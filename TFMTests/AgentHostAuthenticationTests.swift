@@ -199,7 +199,7 @@ struct AgentHostAuthenticationTests {
             Issue.record("Expected a private-key credential")
             return
         }
-        #expect(passphrase == "one-use")
+        #expect(passphrase?.matches("one-use") == true)
         guard configuration.credentials.count == 2,
             case .password(let password) = configuration.credentials[1]
         else {
@@ -280,7 +280,7 @@ struct AgentHostAuthenticationTests {
             Issue.record("Expected a private-key credential")
             return
         }
-        #expect(passphrase == "one-use")
+        #expect(passphrase?.matches("one-use") == true)
         #expect(coordinator.pending.isEmpty)
     }
 
@@ -318,8 +318,10 @@ struct AgentHostAuthenticationTests {
 
         #expect(requestedHosts == [jump.id, destination.id])
         let configuration = try #require(await backend.sftpConfigurations.first)
+        let destinationPassword = try #require(await backend.observedDestinationPasswords.first)
+        let jumpPasswords = try #require(await backend.observedJumpPasswords.first)
         #expect(configuration.username == "files-user")
-        #expect(password(in: configuration) == "files-secret")
+        #expect(destinationPassword == "files-secret")
         #expect(configuration.jumps.count == 1)
         #expect(configuration.jumps[0].id == jump.id)
         #expect(configuration.jumps[0].username == "jump-user")
@@ -328,7 +330,8 @@ struct AgentHostAuthenticationTests {
             Issue.record("Expected a jump-host password")
             return
         }
-        #expect(jumpPassword == "jump-secret")
+        #expect(jumpPasswords == ["jump-secret"])
+        #expect(jumpPassword.isConsumed)
     }
 
     @Test
@@ -377,12 +380,14 @@ struct AgentHostAuthenticationTests {
         #expect(!result.isError)
         #expect(await backend.sftpOpens == 1)
         let configuration = try #require(await backend.sftpConfigurations.first)
+        let observedPassword = try #require(await backend.observedDestinationPasswords.first)
         #expect(configuration.username == "deploy")
         guard case .password(let password) = configuration.credentials.first else {
             Issue.record("Expected the one-use password in the SFTP configuration")
             return
         }
-        #expect(password == "secret")
+        #expect(observedPassword == "secret")
+        #expect(password.isConsumed)
     }
 
     @Test
@@ -491,8 +496,14 @@ struct AgentHostAuthenticationTests {
         #expect(await setup.backend.execOpens == 2)
         #expect(await setup.backend.sftpOpens == 1)
         let configurations = await setup.backend.sftpConfigurations
-        #expect(password(in: configurations[0]) == "old-secret")
-        #expect(password(in: configurations[1]) == "new-secret")
+        #expect(await setup.backend.observedDestinationPasswords == ["old-secret", "new-secret"])
+        #expect(
+            configurations.allSatisfy { configuration in
+                configuration.credentials.allSatisfy { credential in
+                    guard case .password(let password) = credential else { return true }
+                    return password.isConsumed
+                }
+            })
     }
 
     @Test
@@ -536,8 +547,48 @@ struct AgentHostAuthenticationTests {
         )
         let retained = try await session.configurationAttempt()
         #expect(retained.generation == second.generation)
-        #expect(password(in: retained.configuration) == "new-secret")
+        #expect(password(in: retained.configuration, matches: "new-secret"))
         #expect(await interaction.requestCount == 2)
+    }
+
+    @Test
+    func successfulAuthenticationConsumesAgentSecretsAndPromptsForAnotherConnection() async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let store = HostLibraryModel(
+            hosts: [host],
+            knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")]
+        )
+        var requests = 0
+        let interaction = AuthenticationResponder { _ in
+            requests += 1
+            return .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "one-use-\(requests)", save: false
+                ))
+        }
+        let session = AgentSSHAuthenticationContext(
+            resolver: AgentHostResolver(store: store), hostID: host.id,
+            invocationID: UUID(), interaction: interaction.sshInteraction
+        )
+
+        let first = try await session.configurationAttempt()
+        guard case .password(let firstPassword) = first.configuration.credentials.first else {
+            Issue.record("Expected the first one-shot password")
+            return
+        }
+        #expect(firstPassword.matches("one-use-1"))
+
+        await session.didAuthenticate(generation: first.generation)
+        #expect(firstPassword.isConsumed)
+
+        let second = try await session.configurationAttempt()
+        guard case .password(let secondPassword) = second.configuration.credentials.first else {
+            Issue.record("Expected a newly entered password")
+            return
+        }
+        #expect(requests == 2)
+        #expect(secondPassword.matches("one-use-2"))
+        #expect(!secondPassword.isConsumed)
     }
 
     @Test
@@ -1081,11 +1132,13 @@ struct AgentHostAuthenticationTests {
         )
     }
 
-    private func password(in configuration: SSHConnectionConfiguration) -> String? {
+    private func password(
+        in configuration: SSHConnectionConfiguration, matches expected: String
+    ) -> Bool {
         for credential in configuration.credentials {
-            if case .password(let password) = credential { return password }
+            if case .password(let password) = credential { return password.matches(expected) }
         }
-        return nil
+        return false
     }
 }
 
@@ -1220,6 +1273,8 @@ private actor AuthenticationConnectionBackend {
     private(set) var sftpSiblingChannels = 0
     private(set) var sftpOperations = 0
     private(set) var sftpConfigurations: [SSHConnectionConfiguration] = []
+    private(set) var observedDestinationPasswords: [String?] = []
+    private(set) var observedJumpPasswords: [[String?]] = []
     private var sftpAuthenticationFailures: Int
     private var sftpOperationFailures: Int
     private var remoteFiles: [String: Data]
@@ -1236,12 +1291,27 @@ private actor AuthenticationConnectionBackend {
 
     func openConnection(configuration: SSHConnectionConfiguration) throws -> AuthenticationSSHConnection {
         execOpens += 1
+        observedDestinationPasswords.append(Self.passwordLabel(in: configuration.credentials))
+        observedJumpPasswords.append(
+            configuration.jumps.map { Self.passwordLabel(in: $0.credentials) }
+        )
         sftpConfigurations.append(configuration)
         if sftpAuthenticationFailures > 0 {
             sftpAuthenticationFailures -= 1
             throw TermindSSHError.authenticationFailed("Rejected credential")
         }
         return AuthenticationSSHConnection(backend: self)
+    }
+
+    private static func passwordLabel(in credentials: [SSHCredentials]) -> String? {
+        guard
+            case .password(let password)? = credentials.first(where: {
+                if case .password = $0 { return true }
+                return false
+            })
+        else { return nil }
+        return ["files-secret", "jump-secret", "secret", "old-secret", "new-secret", "fallback-password"]
+            .first(where: password.matches)
     }
 
     func openSFTP(

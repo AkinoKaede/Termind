@@ -165,10 +165,11 @@ private struct BenchmarkRunner {
         let connectionRequest = request(jumps: jumps)
         try await session.connect(connectionRequest, progress: nil)
         if effectiveMaximum > 1 {
-            await session.configureAdditionalConnections(
-                SSHConnectionRequest(
-                    configuration: connectionRequest.configuration,
-                    interactionPolicy: .forbidden))
+            await session.configureAdditionalConnections {
+                var request = self.request(jumps: jumps)
+                request.interactionPolicy = .forbidden
+                return request.enforcingInteractionPolicy()
+            }
         }
         do {
             let rule = try rule(kind)
@@ -268,10 +269,11 @@ private struct BenchmarkRunner {
 
     private func request(jumps: Int) -> SSHConnectionRequest {
         let username = fixture.username ?? "none"
-        let credentials: [SSHCredentials] =
+        func credentials() -> [SSHCredentials] {
             fixture.username.flatMap { _ in fixture.privateKey }.map {
                 [.privateKey(privateKey: $0, publicKey: nil, passphrase: nil)]
             } ?? []
+        }
         let expectedHostKeys: Set<SSHHostKeyIdentity> =
             fixture.hostKeyFingerprint.map {
                 [SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: $0)]
@@ -281,7 +283,7 @@ private struct BenchmarkRunner {
             host: "127.0.0.1",
             port: fixture.port,
             username: username,
-            credentials: credentials,
+            credentials: credentials(),
             expectedHostKeys: expectedHostKeys)
         configuration.jumps = (0..<jumps).map { _ in
             SSHRouteHopConfiguration(
@@ -290,7 +292,7 @@ private struct BenchmarkRunner {
                 host: "127.0.0.1",
                 port: fixture.port,
                 username: username,
-                credentials: credentials,
+                credentials: credentials(),
                 expectedHostKeys: expectedHostKeys)
         }
         return SSHConnectionRequest(configuration: configuration, authorizeHostKey: { _ in .accept })

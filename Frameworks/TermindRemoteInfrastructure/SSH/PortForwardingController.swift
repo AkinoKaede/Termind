@@ -327,7 +327,41 @@ public final class PortForwardingController {
                 host: host, route: hosts.route(for: host), purpose: .portForwarding,
                 username: context.submissions[host.id]?.username ?? hosts.identity(for: host)?.username)
             update(context, state: .preparing)
+            if let passwordHost = context.route.first(where: { routeHost in
+                context.submissions[routeHost.id]?.requiresPasswordReentry == true
+            }) {
+                requestAuthentication(
+                    context,
+                    error: .routeHost(
+                        hostID: passwordHost.id, authentication: true,
+                        serverChallenge: false, hostKey: false,
+                        message: TermindSSHError.missingCredential.localizedDescription
+                    )
+                )
+                context.attemptID = nil
+                return
+            }
+            if let passphraseHost = context.route.first(where: { routeHost in
+                guard let submission = context.submissions[routeHost.id],
+                    submission.passphrase == nil,
+                    let keyID = submission.keyID,
+                    let key = hosts.key(keyID)
+                else { return false }
+                return key.requiresPassphraseEntry
+            }) {
+                requestAuthentication(
+                    context,
+                    error: .routeHost(
+                        hostID: passphraseHost.id, authentication: true,
+                        serverChallenge: false, hostKey: false,
+                        message: TermindSSHError.keyPassphraseRequired.localizedDescription
+                    )
+                )
+                context.attemptID = nil
+                return
+            }
         }
+        let attemptSubmissions = silently ? [:] : context.submissions.takeAuthenticationSecrets()
         let forwardingConnection = makeConnection(
             context.maximumConnections,
             { [weak self, weak context] id, generation, count in
@@ -365,7 +399,7 @@ public final class PortForwardingController {
                     configuration = try hosts.additionalConnectionRequest(from: snapshot).configuration
                 } else {
                     let preparation = try hosts.prepareSSHConnection(
-                        for: host, submissions: context.submissions,
+                        for: host, submissions: attemptSubmissions,
                         temporaryHostKeys: context.connection.temporaryHostKeys)
                     configuration = try await preparation.resolve(trustPolicy: .allowChallenge)
                 }
@@ -472,7 +506,10 @@ public final class PortForwardingController {
         let staged = context.submissions[host.id]
         let identity = staged?.identityID.flatMap(hosts.identity) ?? hosts.identity(for: host)
         let keyID = staged?.keyID ?? identity?.keyID
-        let passphrase = keyID.flatMap(hosts.key)?.requiresPassphraseEntry == true && staged?.passphrase == nil
+        let passphrase =
+            staged?.requiresPasswordReentry != true
+            && keyID.flatMap(hosts.key)?.requiresPassphraseEntry == true
+            && staged?.passphrase == nil
         context.setPrompt(
             SSHAuthenticationPrompt(
                 host: host, selectedIdentityID: identity?.id, username: staged?.username ?? identity?.username ?? "",

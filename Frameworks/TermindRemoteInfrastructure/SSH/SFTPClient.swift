@@ -246,6 +246,7 @@ nonisolated extension SFTPClientProtocol {
         progress: SSHRouteProgressHandler?,
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
+        defer { request.configuration.clearSecrets() }
         try await connect(
             using: request.configuration, progress: progress,
             connectionFailure: connectionFailure
@@ -342,6 +343,7 @@ public actor SFTPClient: SFTPClientProtocol {
         progress: SSHRouteProgressHandler?,
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
+        defer { request.configuration.clearSecrets() }
         generation &+= 1
         let token = generation
         let previousChannel = channel

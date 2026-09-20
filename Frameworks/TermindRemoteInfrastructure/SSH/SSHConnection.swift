@@ -53,6 +53,7 @@ public nonisolated protocol SSHConnectionProtocol: AnyObject, Sendable {
 
 nonisolated extension SSHConnectionProtocol {
     public func connect(using request: SSHConnectionRequest) async throws {
+        defer { request.configuration.clearSecrets() }
         try await connect(using: request.configuration)
     }
 }
@@ -86,6 +87,7 @@ public actor SSHConnection: SSHConnectionProtocol {
         progress: SSHRouteProgressHandler?,
         connectionFailure: (@Sendable (String) -> Void)?
     ) async throws {
+        defer { request.configuration.clearSecrets() }
         try await worker.connect(
             using: request.withKeyboardInteractiveFallback(keyboardInteractive),
             progress: progress, connectionFailure: connectionFailure)

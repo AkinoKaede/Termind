@@ -88,8 +88,16 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     func passwordCredential(for identity: Identity) throws -> String? {
         try library.passwordCredential(for: identity)
     }
+
+    func passwordSecret(for identity: Identity) throws -> SSHSecret? {
+        try library.passwordSecret(for: identity)
+    }
     func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential? {
         try library.keyCredential(for: key)
+    }
+
+    func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential? {
+        try library.keySecretCredential(for: key)
     }
     func recordIdentityCredentialAccess(_ identityIDs: Set<Identity.ID>, at date: Date) {
         library.recordIdentityCredentialAccess(identityIDs, at: date)

@@ -662,14 +662,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     ) throws -> [SSHCredentials] {
         var credentials: [SSHCredentials] = []
         if let keyID = submission.keyID, let key = key(keyID) {
-            if let stored = try keyCredential(for: key) {
+            if key.requiresPassphraseEntry,
+                submission.passphrase?.isEmpty != false
+            {
+                throw TermindSSHError.keyPassphraseRequired
+            }
+            if let stored = try keySecretCredential(for: key) {
                 if let identityID = submission.identityID {
                     accessedIdentityIDs.insert(identityID)
-                }
-                if key.requiresPassphraseEntry,
-                    submission.passphrase?.isEmpty != false
-                {
-                    throw TermindSSHError.keyPassphraseRequired
                 }
                 credentials.append(
                     stored.sshCredential(
@@ -681,7 +681,15 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 )
             }
         }
-        if let password = submission.password { credentials.append(.password(password)) }
+        if let password = submission.password {
+            credentials.append(.password(password))
+        } else if let identityID = submission.identityID,
+            let identity = identity(identityID), identity.usesPassword,
+            let password = try passwordSecret(for: identity)
+        {
+            credentials.append(.password(password))
+            accessedIdentityIDs.insert(identityID)
+        }
         return credentials
     }
 
@@ -700,12 +708,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard proxy.isValid else {
             throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
         }
-        var password: String?
+        var password: SSHSecret?
         if let identityID = proxy.identityID {
             guard let identity = identity(identityID), identity.usesPassword else {
                 throw TermindSSHError.proxy(String(localized: "The proxy password identity is unavailable."))
             }
-            password = try passwordCredential(for: identity)
+            password = try passwordSecret(for: identity)
             guard password != nil else {
                 throw TermindSSHError.proxy(String(localized: "The proxy password is unavailable."))
             }
@@ -737,12 +745,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
         if let keyID = identity.keyID {
             if let key = key(keyID) {
-                do {
-                    if let credential = try keyCredential(for: key) {
-                        accessedIdentityIDs.insert(identity.id)
-                        if key.requiresPassphraseEntry {
-                            requiredPassphraseKeyID = key.id
-                        } else {
+                if key.requiresPassphraseEntry {
+                    requiredPassphraseKeyID = key.id
+                } else {
+                    do {
+                        if let credential = try keySecretCredential(for: key) {
+                            accessedIdentityIDs.insert(identity.id)
                             credentials.append(
                                 credential.sshCredential(
                                     publicKey: key.publicKey, certificate: key.certificate,
@@ -750,15 +758,15 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                                     requiresUserPresence: key.requiresUserPresence
                                 )
                             )
+                        } else {
+                            failures.append(
+                                String(localized: "The selected key has no saved private key.")
+                            )
                         }
-                    } else {
-                        failures.append(
-                            String(localized: "The selected key has no saved private key.")
-                        )
+                    } catch {
+                        storageError = error.localizedDescription
+                        failures.append(error.localizedDescription)
                     }
-                } catch {
-                    storageError = error.localizedDescription
-                    failures.append(error.localizedDescription)
                 }
             } else {
                 failures.append(
@@ -769,7 +777,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
         if identity.usesPassword {
             do {
-                if let password = try passwordCredential(for: identity) {
+                if let password = try passwordSecret(for: identity) {
                     credentials.append(.password(password))
                     accessedIdentityIDs.insert(identity.id)
                 } else {
@@ -1215,6 +1223,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         )
     }
 
+    public func passwordSecret(for identity: Identity) throws -> SSHSecret? {
+        guard identity.usesPassword else { return nil }
+        return try keychain.sshSecret(
+            for: identity.credentialRef, storage: identity.passwordStorage
+        )
+    }
+
     public func passwordAvailability(for identity: Identity) -> SecretAvailability {
         guard identity.usesPassword else { return .notConfigured }
         do {
@@ -1392,6 +1407,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential? {
         try keychain.keyCredential(for: key.credentialRef, storage: key.storage)
+    }
+
+    public func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential? {
+        try keychain.sshKeyCredential(for: key.credentialRef, storage: key.storage)
     }
 
     public func keyAvailability(for key: SSHKeyRef) -> SecretAvailability {

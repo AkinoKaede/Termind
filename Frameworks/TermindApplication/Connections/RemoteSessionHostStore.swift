@@ -45,7 +45,9 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func transportProxy(for host: Host) throws -> SSHTransportProxy?
     func sshCredentials(for identity: Identity) -> SSHCredentialResolution
     func passwordCredential(for identity: Identity) throws -> String?
+    func passwordSecret(for identity: Identity) throws -> SSHSecret?
     func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential?
+    func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential?
     func recordIdentityCredentialAccess(_ identityIDs: Set<Identity.ID>, at date: Date)
     func setConnectionStatus(_ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID)
     func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID)
@@ -57,15 +59,16 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
-    /// Resolves a desktop authentication form without saving its input. Only a
-    /// selected Identity can supply a saved password; explicit input wins.
+    /// Captures a desktop authentication form without saving its input. A
+    /// selected Identity stays reference-only so its saved password is read
+    /// directly into a one-shot buffer only when the connection is resolved.
     public func authenticationSubmission(
         username: String, password: String?, passphrase: String?, keyID: SSHKeyRef.ID?,
         selectedIdentity: Identity?
     ) throws -> SSHAuthenticationSubmission {
         SSHAuthenticationSubmission(
             username: username,
-            password: try password ?? selectedIdentity.flatMap { try connectionPasswordCredential(for: $0) },
+            password: password,
             passphrase: passphrase, keyID: keyID, identityID: selectedIdentity?.id
         )
     }
@@ -162,7 +165,7 @@ extension RemoteSessionHostStore {
             guard let identity = identity(identityID) else {
                 throw TermindSSHError.missingCredential
             }
-            let password = try connectionPasswordCredential(for: identity)
+            let password = try connectionPasswordSecret(for: identity)
             guard let password else { throw TermindSSHError.missingCredential }
             return SSHTransportProxy(
                 kind: value.kind, hostname: value.hostname, port: value.port,
@@ -193,7 +196,7 @@ extension RemoteSessionHostStore {
                         credentials.append(.interactionRequired)
                     } else {
                         do {
-                            if let stored = try connectionKeyCredential(
+                            if let stored = try connectionKeySecretCredential(
                                 for: key, identityID: resolvedIdentity?.id
                             ) {
                                 credentials.append(
@@ -218,7 +221,7 @@ extension RemoteSessionHostStore {
 
             if let resolvedIdentity, resolvedIdentity.usesPassword {
                 do {
-                    if let password = try connectionPasswordCredential(for: resolvedIdentity) {
+                    if let password = try connectionPasswordSecret(for: resolvedIdentity) {
                         credentials.append(.password(password))
                     } else {
                         failures.append(TermindSSHError.missingCredential)
@@ -267,10 +270,28 @@ extension RemoteSessionHostStore {
         return password
     }
 
+    public func connectionPasswordSecret(for identity: Identity) throws -> SSHSecret? {
+        let password = try passwordSecret(for: identity)
+        if password != nil {
+            recordIdentityCredentialAccess([identity.id], at: Date())
+        }
+        return password
+    }
+
     public func connectionKeyCredential(
         for key: SSHKeyRef, identityID: Identity.ID?
     ) throws -> StoredSSHKeyCredential? {
         let credential = try keyCredential(for: key)
+        if credential != nil, let identityID {
+            recordIdentityCredentialAccess([identityID], at: Date())
+        }
+        return credential
+    }
+
+    public func connectionKeySecretCredential(
+        for key: SSHKeyRef, identityID: Identity.ID?
+    ) throws -> SSHResolvedKeyCredential? {
+        let credential = try keySecretCredential(for: key)
         if credential != nil, let identityID {
             recordIdentityCredentialAccess([identityID], at: Date())
         }

@@ -284,13 +284,16 @@ final class MobileWorkspace: Identifiable {
             host: host, selectedIdentityID: identity?.id, username: username,
             selectedKeyID: keyID, failureMessage: connectionFailure,
             requiresPassphrase: keyID.flatMap { hosts.key($0) }?.requiresPassphraseEntry == true
+                && staged?.requiresPasswordReentry != true
                 && staged?.passphrase == nil,
             mode: authenticationMode)
     }
 
     var hostKeyPrompt: SSHHostKeyPrompt? { connection.pendingHostKey }
 
-    private func preparation(for host: Host) throws -> SSHConnectionPreparation {
+    private func preparation(
+        for host: Host, submissions: [UUID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation {
         try hosts.prepareSSHConnection(
             for: host,
             submissions: submissions,
@@ -306,6 +309,7 @@ final class MobileWorkspace: Identifiable {
         let name = (identity?.username ?? username).trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
         if authenticationPrompt?.requiresPassphrase == true, var staged = submissions[host.id] {
+            guard let passphrase, !passphrase.isEmpty else { return }
             staged.passphrase = passphrase
             submissions[host.id] = staged
         } else {
@@ -555,6 +559,40 @@ final class MobileWorkspace: Identifiable {
             purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
             username: hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
+        if let passwordHost = route.first(where: { routeHost in
+            submissions[routeHost.id]?.requiresPasswordReentry == true
+        }) {
+            authenticationRequired = true
+            authenticationMode = .localIdentity
+            authenticationHostID = passwordHost.id
+            username =
+                submissions[passwordHost.id]?.username
+                ?? hosts.identity(for: passwordHost)?.username ?? ""
+            authenticationPrompt = makeAuthenticationPrompt()
+            journey.waitForLocalIdentity(at: passwordHost.id)
+            busy = false
+            return
+        }
+        if let passphraseHost = route.first(where: { routeHost in
+            guard let submission = submissions[routeHost.id],
+                submission.passphrase == nil,
+                let keyID = submission.keyID,
+                let key = hosts.key(keyID)
+            else { return false }
+            return key.requiresPassphraseEntry
+        }) {
+            authenticationRequired = true
+            authenticationMode = .localIdentity
+            authenticationHostID = passphraseHost.id
+            username =
+                submissions[passphraseHost.id]?.username
+                ?? hosts.identity(for: passphraseHost)?.username ?? ""
+            authenticationPrompt = makeAuthenticationPrompt()
+            journey.waitForLocalPassphrase(at: passphraseHost.id)
+            busy = false
+            return
+        }
+        let attemptSubmissions = submissions.takeAuthenticationSecrets()
         let progressHandler = connection.progressHandler(attemptID: token) { [weak self] in
             self?.generation == $0
         }
@@ -564,7 +602,7 @@ final class MobileWorkspace: Identifiable {
             defer { if generation == token { busy = false } }
             guard generation == token, !Task.isCancelled else { return }
             do {
-                let preparation = try preparation(for: host)
+                let preparation = try preparation(for: host, submissions: attemptSubmissions)
                 let config = try await preparation.resolve(
                     trustPolicy: .allowChallenge
                 )

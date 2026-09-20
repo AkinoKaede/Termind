@@ -269,9 +269,13 @@ public struct SSHAuthenticationForm: View {
     }
 
     private func commit(save: Bool) {
+        let submittedPassword = password.isEmpty ? nil : password
+        let submittedPassphrase = passphrase.isEmpty ? nil : passphrase
+        password = ""
+        passphrase = ""
         submit(
-            identityID, username, password.isEmpty ? nil : password,
-            passphrase.isEmpty ? nil : passphrase, keyID, save
+            identityID, username, submittedPassword,
+            submittedPassphrase, keyID, save
         )
     }
 
