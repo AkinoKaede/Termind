@@ -25,14 +25,13 @@ struct MobileKeyEditor: View {
                     }
                     if !model.isEnclave {
                         Picker("Store in", selection: $model.storage) {
-                            Text("This Device")
-                                .tag(KeyStorage.thisDevice)
-                                .disabled(!model.canSelectThisDevice)
+                            Text("This Device").tag(KeyStorage.thisDevice)
                             Text("iCloud").tag(KeyStorage.iCloud)
                             if model.mode == .generate && model.canUseEnclave {
                                 Text("Secure Enclave").tag(KeyStorage.secureEnclave)
                             }
                         }
+                        .disabled(!model.canSelectThisDevice)
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Color")
