@@ -7,6 +7,16 @@ import TermindInfrastructure
 import struct TermindDomain.Host
 
 public actor SSHMetricsSampler: MetricsSampling {
+    private enum MetricsFrameFailure {
+        case missing, oversized
+    }
+
+    private struct MetricsCommandResult {
+        var raw: SSHExecResult
+        var payload: String?
+        var frameFailure: MetricsFrameFailure?
+    }
+
     private let adapter: SSHSingleChannelAdapter<any SSHMultiplexedSessionProtocol>
     private let logger: Logger
     private var hostID: UUID?
@@ -35,19 +45,25 @@ public actor SSHMetricsSampler: MetricsSampling {
             Self.command, workingDirectory: nil, stdin: nil, timeout: 8,
             outputLimit: 262_144, onOutput: nil
         )
-        var metadata = primarySampleMetadata(result.stdout)
+        var metadata = primarySampleMetadata(result.raw.stdout, components: result.payload)
         metadata["outcome"] = "collected"
         logger.info("metrics.sample.collected", metadata: metadata)
-        guard result.exitCode != 42 else { throw MetricsReadError.unsupported }
-        guard result.exitCode == 0, !result.stdoutTruncated else {
-            if result.stdoutTruncated {
-                logInvalidPrimarySample(result.stdout, event: "metrics.sample.oversized")
+        guard result.raw.exitCode != 42 else { throw MetricsReadError.unsupported }
+        guard result.raw.exitCode == 0, !result.raw.stdoutTruncated else {
+            if result.raw.stdoutTruncated {
+                logInvalidPrimarySample(result.raw.stdout, event: "metrics.sample.oversized")
             }
             throw MetricsReadError.output
         }
-        let sample = LinuxMetricsParser.parse(result.stdout)
+        guard let payload = result.payload else {
+            let event: Logger.Message =
+                result.frameFailure == .oversized ? "metrics.sample.oversized" : "metrics.sample.incomplete"
+            logInvalidPrimarySample(result.raw.stdout, event: event)
+            throw MetricsReadError.output
+        }
+        let sample = LinuxMetricsParser.parse(payload)
         guard sample.uptime != nil else {
-            logInvalidPrimarySample(result.stdout, event: "metrics.sample.incomplete")
+            logInvalidPrimarySample(result.raw.stdout, event: "metrics.sample.incomplete", components: payload)
             throw MetricsReadError.output
         }
         return sample
@@ -58,8 +74,10 @@ public actor SSHMetricsSampler: MetricsSampling {
             "LC_ALL=C; export LC_ALL; cat /proc/self/mountinfo; printf '__TERMIND_DF__\\n'; df -PTkl 2>/dev/null || df -PTk",
             workingDirectory: nil, stdin: nil, timeout: 5, outputLimit: 524_288, onOutput: nil
         )
-        guard result.exitCode == 0, !result.stdoutTruncated else { throw MetricsReadError.output }
-        return try LinuxFilesystemParser.parse(result.stdout)
+        guard result.raw.exitCode == 0, !result.raw.stdoutTruncated, let payload = result.payload else {
+            throw MetricsReadError.output
+        }
+        return try LinuxFilesystemParser.parse(payload)
     }
 
     public func processes() async throws -> MetricsProcessSample? {
@@ -67,8 +85,10 @@ public actor SSHMetricsSampler: MetricsSampling {
             Self.processCommand, workingDirectory: nil, stdin: nil, timeout: 5,
             outputLimit: 1_048_576, onOutput: nil
         )
-        guard result.exitCode == 0, !result.stdoutTruncated else { throw MetricsReadError.output }
-        return try LinuxProcessParser.parse(result.stdout)
+        guard result.raw.exitCode == 0, !result.raw.stdoutTruncated, let payload = result.payload else {
+            throw MetricsReadError.output
+        }
+        return try LinuxProcessParser.parse(payload)
     }
 
     private static let processCommand = """
@@ -89,9 +109,11 @@ public actor SSHMetricsSampler: MetricsSampling {
             outputLimit: NvidiaMetricsParser.maximumBytes, onOutput: nil
         )
         // NVIDIA exit code 6 means no device was found; other errors remain errors.
-        if result.exitCode == 42 || result.exitCode == 6 { return nil }
-        guard result.exitCode == 0, !result.stdoutTruncated else { throw MetricsReadError.output }
-        return try NvidiaMetricsParser.parse(Data(result.stdout.utf8))
+        if result.raw.exitCode == 42 || result.raw.exitCode == 6 { return nil }
+        guard result.raw.exitCode == 0, !result.raw.stdoutTruncated, let payload = result.payload else {
+            throw MetricsReadError.output
+        }
+        return try NvidiaMetricsParser.parse(Data(payload.utf8))
     }
 
     private static let command = """
@@ -128,34 +150,80 @@ public actor SSHMetricsSampler: MetricsSampling {
     private func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
-    ) async throws -> SSHExecResult {
-        try await adapter.withChannel { session in
+    ) async throws -> MetricsCommandResult {
+        // A remote login shell may emit OSC frames or banners before this command and exit hooks may emit more
+        // afterward. Keep that transport output available for diagnostics, but parse only our structured frame.
+        let framedCommand = """
+            printf '\(Self.frameBegin)\\n'
+            (
+            \(command)
+            )
+            __termind_metrics_status=$?
+            printf '\\n\(Self.frameEnd)\\n'
+            exit "$__termind_metrics_status"
+            """
+        let transportLimit = outputLimit.addingReportingOverflow(Self.framingAllowance)
+        let raw = try await adapter.withChannel { session in
             try await session.execute(
-                command, workingDirectory: workingDirectory, stdin: stdin,
-                timeout: timeout, outputLimit: outputLimit, onOutput: onOutput)
+                framedCommand, workingDirectory: workingDirectory, stdin: stdin,
+                timeout: timeout, outputLimit: transportLimit.overflow ? outputLimit : transportLimit.partialValue,
+                onOutput: onOutput)
         }
+        guard !raw.stdoutTruncated else {
+            return MetricsCommandResult(raw: raw, payload: nil, frameFailure: nil)
+        }
+        guard let payload = Self.framedPayload(in: raw.stdout) else {
+            return MetricsCommandResult(raw: raw, payload: nil, frameFailure: .missing)
+        }
+        guard payload.utf8.count <= outputLimit else {
+            return MetricsCommandResult(raw: raw, payload: nil, frameFailure: .oversized)
+        }
+        return MetricsCommandResult(raw: raw, payload: payload, frameFailure: nil)
     }
 
-    private func logInvalidPrimarySample(_ payload: String, event: Logger.Message) {
+    private func logInvalidPrimarySample(
+        _ payload: String, event: Logger.Message, components: String? = nil
+    ) {
         let sanitized = Self.redactingAddresses(in: payload)
-        var metadata = primarySampleMetadata(payload)
+        var metadata = primarySampleMetadata(payload, components: components)
         metadata["metrics_payload"] = "\(sanitized)"
         metadata["metrics_payload_truncated"] = "\(payload.utf8.count > 8 * 1_024)"
         metadata["outcome"] = "failure"
         logger.error(event, metadata: metadata)
     }
 
-    private func primarySampleMetadata(_ payload: String) -> Logger.Metadata {
+    private func primarySampleMetadata(_ payload: String, components: String? = nil) -> Logger.Metadata {
         var metadata: Logger.Metadata = [
             "metrics_payload_bytes": "\(payload.utf8.count)",
             "protocol": "ssh",
             "stage": "metrics_collection",
         ]
         if let hostID { metadata["host_id"] = "\(hostID.uuidString.lowercased())" }
-        for (key, byteCount) in Self.componentByteCounts(in: payload) {
+        for (key, byteCount) in Self.componentByteCounts(in: components ?? payload) {
             metadata[key] = "\(byteCount)"
         }
         return metadata
+    }
+
+    private static let frameBegin = "__TERMIND_METRICS_BEGIN__"
+    private static let frameEnd = "__TERMIND_METRICS_END__"
+    private static let framingAllowance = 8 * 1_024
+
+    private static func framedPayload(in output: String) -> String? {
+        guard let begin = output.range(of: frameBegin),
+            let end = output.range(of: frameEnd, options: .backwards),
+            begin.upperBound <= end.lowerBound
+        else { return nil }
+        var lowerBound = begin.upperBound
+        if lowerBound < end.lowerBound, output[lowerBound] == "\n" {
+            lowerBound = output.index(after: lowerBound)
+        }
+        var upperBound = end.lowerBound
+        if lowerBound < upperBound {
+            let previous = output.index(before: upperBound)
+            if output[previous] == "\n" { upperBound = previous }
+        }
+        return String(output[lowerBound..<upperBound])
     }
 
     private static let componentMarkers: [(marker: String, metadataKey: String)] = [
