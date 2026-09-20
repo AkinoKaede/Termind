@@ -85,7 +85,7 @@ nonisolated enum VaultDestination: Hashable, Sendable {
 /// middle-column concern; only explicit New, Edit, Export and Execute actions
 /// create a work route.
 nonisolated enum VaultWorkRoute: Hashable, Sendable {
-    case hostEditor(Host.ID?)
+    case hostEditor(Host.ID?, groupID: HostGroup.ID? = nil)
     case hostGroupEditor(groupID: HostGroup.ID?, parentID: HostGroup.ID?)
     case forwardingEditor(PortForwardingRule.ID?)
     case identityEditor(Identity.ID?)

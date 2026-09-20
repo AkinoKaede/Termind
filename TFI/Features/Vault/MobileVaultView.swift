@@ -81,6 +81,12 @@ private struct MobileVaultLinkDivider: View {
 }
 
 struct MobileVaultView: View {
+    private struct GroupEditorRequest: Identifiable {
+        let id = UUID()
+        let groupID: HostGroup.ID?
+        let parentID: HostGroup.ID?
+    }
+
     private enum SearchDestination {
         case keychain(useQuery: Bool)
         case portForwarding(useQuery: Bool)
@@ -109,8 +115,8 @@ struct MobileVaultView: View {
     @Binding var editingHost: Host?
     @State private var query = ""
     @State private var deletingHost: Host?
-    @State private var groupName = ""
-    @State private var addingGroup = false
+    @State private var groupEditorRequest: GroupEditorRequest?
+    @State private var deletingGroup: HostGroup?
 
     init(
         app: MobileAppModel,
@@ -266,23 +272,20 @@ struct MobileVaultView: View {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
                     Button("New Host", systemImage: "server.rack") { editingHost = Host(name: "", host: "") }
-                    Button("New Group", systemImage: "folder.badge.plus") { addingGroup = true }
+                    Button("New Group", systemImage: "folder.badge.plus") {
+                        groupEditorRequest = GroupEditorRequest(groupID: nil, parentID: nil)
+                    }
                 } label: {
                     Label("Add", systemImage: "plus").labelStyle(.iconOnly)
                 }
             }
         }
         .sheet(item: $editingHost) { MobileHostEditor(app: app, host: $0) }
-        .sheet(isPresented: $addingGroup) {
-            MobileEditorSheet(
-                title: String(localized: "New Group"), isDirty: !groupName.isEmpty,
-                canSave: !groupName.isEmpty, compact: true,
-                save: {
-                    app.library.upsert(HostGroup(name: groupName))
-                    if let error = app.library.storageError { throw MobileEditorError.message(error) }
-                    groupName = ""
-                }
-            ) { TextField("Name", text: $groupName.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1) }
+        .sheet(item: $groupEditorRequest) { request in
+            MobileHostGroupEditor(
+                app: app,
+                group: request.groupID.flatMap(app.library.group),
+                parentID: request.parentID)
         }
         .confirmationDialog(
             "Delete Host?", isPresented: Binding(get: { deletingHost != nil }, set: { if !$0 { deletingHost = nil } }),
@@ -294,6 +297,21 @@ struct MobileVaultView: View {
             }
         } message: {
             Text("Open connections and references to this host will be removed.")
+        }
+        .confirmationDialog(
+            groupDeletionTitle,
+            isPresented: Binding(
+                get: { deletingGroup != nil },
+                set: { if !$0 { deletingGroup = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Delete Group and Hosts", role: .destructive) {
+                deleteGroup(keepingHosts: false)
+            }
+            Button("Keep Hosts") { deleteGroup(keepingHosts: true) }
+            Button("Cancel", role: .cancel) { deletingGroup = nil }
+        } message: {
+            Text(groupDeletionMessage)
         }
         .mobileReviewPage("vault.hosts", scene: reviewScene)
     }
@@ -445,8 +463,66 @@ struct MobileVaultView: View {
             Text(section.hosts.count, format: .number)
                 .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
             Spacer()
+            if case .group(let id) = section.id, let group = app.library.group(id) {
+                Menu {
+                    Button("New Host", systemImage: "server.rack") {
+                        editingHost = Host(name: "", host: "", groupID: group.id)
+                    }
+                    Button("New Subgroup", systemImage: "folder.badge.plus") {
+                        groupEditorRequest = GroupEditorRequest(groupID: nil, parentID: group.id)
+                    }
+                    Button("Edit", systemImage: "pencil") {
+                        groupEditorRequest = GroupEditorRequest(groupID: group.id, parentID: group.parentID)
+                    }
+                    Divider()
+                    Button("Delete Group", systemImage: "trash", role: .destructive) {
+                        requestDelete(group)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(.secondary)
+                }
+                .accessibilityLabel("More")
+            }
         }
         .accessibilityElement(children: .contain)
+    }
+
+    private func requestDelete(_ group: HostGroup) {
+        if app.library.hosts(inTreeOf: group.id).isEmpty {
+            app.deleteHostGroup(group.id, keepHosts: false)
+        } else {
+            deletingGroup = group
+        }
+    }
+
+    private var groupDeletionTitle: String {
+        guard let group = deletingGroup else { return "" }
+        return String(
+            localized: "Delete “\(group.name)”?"
+        )
+    }
+
+    private var groupDeletionMessage: String {
+        guard let group = deletingGroup else { return "" }
+        let hosts = app.library.hosts(inTreeOf: group.id).count
+        let nested = app.library.descendantGroups(of: group.id).count
+        let hostCount = String(localized: "\(hosts) hosts")
+        if nested == 0 {
+            return String(localized: "This group contains \(hostCount).")
+        }
+        let groupCount =
+            nested == 1
+            ? String(localized: "1 nested group")
+            : String(localized: "\(nested) nested groups")
+        return String(localized: "This group contains \(hostCount) and \(groupCount). Nested groups will be deleted.")
+    }
+
+    private func deleteGroup(keepingHosts: Bool) {
+        guard let group = deletingGroup else { return }
+        app.deleteHostGroup(group.id, keepHosts: keepingHosts)
+        deletingGroup = nil
     }
 
     private func toggle(_ section: HostLibrarySection) {
@@ -530,5 +606,78 @@ struct MobileVaultView: View {
         case .delete:
             Button("Delete", systemImage: "trash", role: .destructive) { deletingHost = host }
         }
+    }
+}
+
+struct MobileHostGroupEditor: View {
+    let app: MobileAppModel
+    let original: HostGroup
+    let existing: Bool
+    let didSave: (HostGroup) -> Void
+    @State private var draft: HostGroup
+    @Environment(\.dismiss) private var dismiss
+
+    init(
+        app: MobileAppModel, group: HostGroup?, parentID: HostGroup.ID?,
+        didSave: @escaping (HostGroup) -> Void = { _ in }
+    ) {
+        self.app = app
+        let initial = group ?? HostGroup(name: "", parentID: parentID)
+        original = initial
+        existing = group != nil
+        self.didSave = didSave
+        _draft = State(initialValue: initial)
+    }
+
+    private var trimmedName: String {
+        draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        MobileEditorSheet(
+            title: existing ? String(localized: "Edit Group") : String(localized: "New Group"),
+            isDirty: draft != original, canSave: !trimmedName.isEmpty, compact: true,
+            save: save
+        ) {
+            TextField("Name", text: $draft.name.singleLineText, axis: .horizontal)
+                .singleLinePaste()
+                .lineLimit(1)
+            Picker("Inside", selection: $draft.parentID) {
+                Text("Top Level").tag(HostGroup.ID?.none)
+                ForEach(parentChoices, id: \.group.id) { choice in
+                    Text(choice.path).tag(HostGroup.ID?.some(choice.group.id))
+                }
+            }
+        }
+        .onChange(of: app.library.groups.map(\.id)) {
+            if existing && !app.library.groups.contains(where: { $0.id == original.id }) {
+                dismiss()
+            }
+        }
+    }
+
+    private var parentChoices: [(group: HostGroup, path: String)] {
+        let forbidden = Set([draft.id] + app.library.descendantGroups(of: draft.id).map(\.id))
+        return app.library.groups.filter { !forbidden.contains($0.id) }
+            .map { ($0, path(to: $0)) }
+            .sorted { $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending }
+    }
+
+    private func path(to group: HostGroup) -> String {
+        var names = [group.name]
+        var parentID = group.parentID
+        var visited: Set<HostGroup.ID> = [group.id]
+        while let id = parentID, let parent = app.library.group(id), visited.insert(id).inserted {
+            names.append(parent.name)
+            parentID = parent.parentID
+        }
+        return names.reversed().joined(separator: " / ")
+    }
+
+    private func save() async throws {
+        draft.name = trimmedName
+        app.library.upsert(draft)
+        if let error = app.library.storageError { throw MobileEditorError.message(error) }
+        didSave(draft)
     }
 }

@@ -6,9 +6,10 @@ import TermindPresentation
 import struct TermindDomain.Host
 
 struct MobileHostEditor: View {
-    private enum IdentityEditorRoute: String, Identifiable {
-        case host
-        case proxy
+    private enum EditorRoute: String, Identifiable {
+        case hostIdentity
+        case proxyIdentity
+        case group
 
         var id: String { rawValue }
     }
@@ -23,7 +24,7 @@ struct MobileHostEditor: View {
     private var library: HostLibraryModel { app.library }
     let original: Host
     @State private var draft: Host
-    @State private var identityEditorRoute: IdentityEditorRoute?
+    @State private var editorRoute: EditorRoute?
 
     init(app: MobileAppModel, host: Host) {
         self.app = app
@@ -106,28 +107,36 @@ struct MobileHostEditor: View {
                     ColorTagPicker(selection: $draft.colorTag, layout: .touch)
                 }
                 Section("Group") {
-                    Picker("Group", selection: $draft.groupID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(library.groups) { Text($0.name).tag(Optional($0.id)) }
+                    Picker("Group", selection: groupChoice) {
+                        Text("None").tag(Choice<HostGroup.ID>.unset)
+                        ForEach(library.groups) { group in
+                            Text(group.name).tag(Choice.existing(group.id))
+                        }
+                        Divider()
+                        Text("New Group").tag(Choice<HostGroup.ID>.new)
                     }
                 }
                 HostIntegrationSection(mode: $draft.shellIntegrationMode)
             }
         )
-        .sheet(item: $identityEditorRoute) { route in
+        .sheet(item: $editorRoute) { route in
             switch route {
-            case .host:
+            case .hostIdentity:
                 MobileIdentityEditor(
                     app: app, identity: Identity(name: "", username: "")
                 ) { identity in
                     draft = MobileHostEditorPolicy.selectIdentity(identity, current: draft)
                 }
-            case .proxy:
+            case .proxyIdentity:
                 MobileIdentityEditor(
                     app: app, identity: Identity(name: "", username: ""),
                     configuration: .proxy
                 ) { identity in
                     draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(identity, current: draft.proxy)
+                }
+            case .group:
+                MobileHostGroupEditor(app: app, group: nil, parentID: nil) { group in
+                    draft.groupID = group.id
                 }
             }
         }
@@ -140,7 +149,19 @@ struct MobileHostEditor: View {
             switch choice {
             case .unset: draft.identityID = nil
             case .existing(let id): draft.identityID = id
-            case .new: identityEditorRoute = .host
+            case .new: editorRoute = .hostIdentity
+            }
+        }
+    }
+
+    private var groupChoice: Binding<Choice<HostGroup.ID>> {
+        Binding {
+            draft.groupID.map(Choice.existing) ?? .unset
+        } set: { choice in
+            switch choice {
+            case .unset: draft.groupID = nil
+            case .existing(let id): draft.groupID = id
+            case .new: editorRoute = .group
             }
         }
     }
@@ -177,7 +198,7 @@ struct MobileHostEditor: View {
             case .existing(let id):
                 draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(library.identity(id), current: draft.proxy)
             case .new:
-                identityEditorRoute = .proxy
+                editorRoute = .proxyIdentity
             }
         }
     }

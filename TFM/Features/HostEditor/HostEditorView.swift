@@ -16,14 +16,25 @@ struct HostEditorView: View {
     }
 
     let hostID: Host.ID?
+    let initialGroupID: HostGroup.ID?
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
 
-    @State private var draft = Host(name: "", host: "")
+    @State private var draft: Host
     @State private var route: Route?
     @State private var saveError: String?
     @State private var didLoad = false
+
+    init(hostID: Host.ID?, initialGroupID: HostGroup.ID? = nil) {
+        self.hostID = hostID
+        self.initialGroupID = initialGroupID
+        _draft = State(
+            initialValue: Host(
+                name: "", host: "",
+                groupID: hostID == nil ? initialGroupID : nil
+            ))
+    }
 
     var body: some View {
         ZStack {

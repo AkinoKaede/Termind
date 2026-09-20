@@ -953,13 +953,14 @@ final class WindowModel {
     }
 
     /// Opens the host editor, reusing the workspace that already holds one for the
-    /// same host — and "no host" counts as a host here, so New Host twice means
-    /// "show me the New Host form" rather than handing back a second empty copy
-    /// of it. The same reasoning as `openPage`, and the same reason two of them
-    /// were worth avoiding: a half-typed form is easier to find again than to
-    /// tell apart from its twin in the workspace bar.
-    func openHostEditor(host: Host?) {
-        openVaultWork(.hostEditor(host?.id), on: .hosts)
+    /// same host — and the same initial group counts as the same new Host form.
+    /// The same reasoning as `openPage`: a half-typed form is easier to find
+    /// again than to tell apart from another empty copy.
+    func openHostEditor(host: Host?, groupID: HostGroup.ID? = nil) {
+        openVaultWork(
+            .hostEditor(host?.id, groupID: host == nil ? groupID : nil),
+            on: .hosts
+        )
     }
 
     // MARK: - Combining
@@ -1369,7 +1370,7 @@ final class WindowModel {
     func closeWorkspaces(for hostID: Host.ID) {
         let paneIDs = workspaces.flatMap(\.panes).filter { $0.hostID == hostID }.map(\.id)
         for paneID in paneIDs { closePane(paneID) }
-        if case .hostEditor(let editingID) = vaultWorkRoute,
+        if case .hostEditor(let editingID, _) = vaultWorkRoute,
             editingID == hostID
         {
             closeVaultWork()

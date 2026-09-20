@@ -234,7 +234,9 @@ struct MobileSnippetsView: View {
                         deletingPackage = package
                     }
                 } label: {
-                    Image(systemName: "ellipsis").frame(width: 44, height: 44)
+                    Image(systemName: "ellipsis")
+                        .frame(width: 44, height: 44)
+                        .foregroundStyle(.secondary)
                 }
                 .accessibilityLabel("More")
             }
@@ -582,12 +584,19 @@ extension CommandRisk {
 }
 
 struct MobileSnippetEditor: View {
+    private enum PackageChoice: Hashable {
+        case ungrouped
+        case existing(SnippetPackage.ID)
+        case new
+    }
+
     let app: MobileAppModel
     let original: Snippet
     let existing: Bool
     let didSave: (Snippet) -> Void
     @State private var draft: Snippet
     @State private var choosingTargets = false
+    @State private var creatingPackage = false
     @Environment(\.dismiss) private var dismiss
 
     init(
@@ -625,11 +634,13 @@ struct MobileSnippetEditor: View {
                 }
             }
             Section("Package") {
-                Picker("Package", selection: $draft.packageID) {
-                    Text("Ungrouped").tag(SnippetPackage.ID?.none)
+                Picker("Package", selection: packageChoice) {
+                    Text("Ungrouped").tag(PackageChoice.ungrouped)
                     ForEach(packageChoices, id: \.package.id) { choice in
-                        Text(choice.path).tag(SnippetPackage.ID?.some(choice.package.id))
+                        Text(choice.path).tag(PackageChoice.existing(choice.package.id))
                     }
+                    Divider()
+                    Text("New Package").tag(PackageChoice.new)
                 }
             }
             Section("Targets") {
@@ -676,6 +687,11 @@ struct MobileSnippetEditor: View {
                 choosingTargets = false
             }
         }
+        .sheet(isPresented: $creatingPackage) {
+            MobileSnippetPackageEditor(app: app, package: nil, parentID: nil) { package in
+                draft.packageID = package.id
+            }
+        }
         .onChange(of: app.snippets.snippets.map(\.id)) {
             if existing && !app.snippets.snippets.contains(where: { $0.id == original.id }) {
                 dismiss()
@@ -687,6 +703,18 @@ struct MobileSnippetEditor: View {
         app.snippets.snippetPackages.compactMap { package in
             app.snippets.snippetPackagePath(package.id).map { (package, $0) }
         }.sorted { $0.path.localizedCaseInsensitiveCompare($1.path) == .orderedAscending }
+    }
+
+    private var packageChoice: Binding<PackageChoice> {
+        Binding {
+            draft.packageID.map(PackageChoice.existing) ?? .ungrouped
+        } set: { choice in
+            switch choice {
+            case .ungrouped: draft.packageID = nil
+            case .existing(let id): draft.packageID = id
+            case .new: creatingPackage = true
+            }
+        }
     }
 
     private var selectedHosts: [Host] {
@@ -708,14 +736,19 @@ struct MobileSnippetPackageEditor: View {
     let app: MobileAppModel
     let original: SnippetPackage
     let existing: Bool
+    let didSave: (SnippetPackage) -> Void
     @State private var draft: SnippetPackage
     @Environment(\.dismiss) private var dismiss
 
-    init(app: MobileAppModel, package: SnippetPackage?, parentID: SnippetPackage.ID?) {
+    init(
+        app: MobileAppModel, package: SnippetPackage?, parentID: SnippetPackage.ID?,
+        didSave: @escaping (SnippetPackage) -> Void = { _ in }
+    ) {
         self.app = app
         let initial = package ?? SnippetPackage(name: "", parentID: parentID)
         original = initial
         existing = package != nil
+        self.didSave = didSave
         _draft = State(initialValue: initial)
     }
 
@@ -758,6 +791,7 @@ struct MobileSnippetPackageEditor: View {
         draft.name = trimmedName
         app.snippets.upsert(draft)
         if let error = app.library.storageError { throw MobileEditorError.message(error) }
+        didSave(draft)
     }
 }
 

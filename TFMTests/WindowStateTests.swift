@@ -918,6 +918,19 @@ struct WindowStateTests {
     }
 
     @Test
+    func newHostEditorCarriesOnlyCreationGroupContext() {
+        let window = WindowModel()
+        let groupID = UUID()
+
+        window.openHostEditor(host: nil, groupID: groupID)
+        #expect(window.vaultWorkRoute == .hostEditor(nil, groupID: groupID))
+
+        let host = Host(name: "Server", host: "server.example", groupID: UUID())
+        window.openHostEditor(host: host, groupID: groupID)
+        #expect(window.vaultWorkRoute == .hostEditor(host.id, groupID: nil))
+    }
+
+    @Test
     func changingVaultPageClosesRightColumnWork() {
         let window = WindowModel(vaultDestination: .hosts)
 

@@ -37,8 +37,8 @@ struct VaultWorkDetailView: View {
     @ViewBuilder
     var body: some View {
         switch route {
-        case .hostEditor(let id):
-            HostEditorView(hostID: id)
+        case .hostEditor(let id, let groupID):
+            HostEditorView(hostID: id, initialGroupID: groupID)
         case .hostGroupEditor(let groupID, let parentID):
             NewGroupSheet(
                 group: groupID.flatMap(app.hostLibrary.group), parentID: parentID,

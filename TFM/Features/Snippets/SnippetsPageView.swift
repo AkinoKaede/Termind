@@ -120,6 +120,9 @@ struct SnippetsPageView: ManagedCardPage {
                     isDropTarget: isDropTarget
                 )
                 .contextMenu {
+                    Button("New Snippet", systemImage: MenuSymbol.newSnippet) {
+                        openSnippetEditor(snippetID: nil, packageID: package.id)
+                    }
                     Button("New Subpackage", systemImage: MenuSymbol.newPackage) {
                         openPackageEditor(packageID: nil, parentID: package.id)
                     }

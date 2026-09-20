@@ -50,6 +50,41 @@ struct MobileVaultFeatureTests {
         app.outbox.stop()
     }
 
+    @Test func deletingAGroupTreeCanKeepOrRemoveItsHosts() throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.outbox.stop() }
+
+        let keptRoot = HostGroup(name: "Keep")
+        let keptChild = HostGroup(name: "Child", parentID: keptRoot.id)
+        let keptHost = TermindDomain.Host(
+            name: "Kept", host: "kept.example.invalid", groupID: keptChild.id)
+        app.library.upsert(keptRoot)
+        app.library.upsert(keptChild)
+        app.library.upsert(keptHost)
+
+        app.deleteHostGroup(keptRoot.id, keepHosts: true)
+
+        #expect(app.library.groups.isEmpty)
+        #expect(app.library.host(keptHost.id)?.groupID == nil)
+
+        let removedRoot = HostGroup(name: "Remove")
+        let removedChild = HostGroup(name: "Child", parentID: removedRoot.id)
+        let removedHost = TermindDomain.Host(
+            name: "Removed", host: "removed.example.invalid", groupID: removedChild.id)
+        app.library.upsert(removedRoot)
+        app.library.upsert(removedChild)
+        app.library.upsert(removedHost)
+
+        app.deleteHostGroup(removedRoot.id, keepHosts: false)
+
+        #expect(app.library.groups.isEmpty)
+        #expect(app.library.host(removedHost.id) == nil)
+        let stored = try HostPersistence(context: ModelContext(app.container)).load()
+        #expect(stored.groups.isEmpty)
+        #expect(stored.hosts.map(\.id) == [keptHost.id])
+        #expect(stored.hosts.first?.groupID == nil)
+    }
+
     @Test func editingAHostPreservesTheMacForwardingPoolLimit() throws {
         let app = try MobileAppModel(inMemory: true)
         var host = TermindDomain.Host(

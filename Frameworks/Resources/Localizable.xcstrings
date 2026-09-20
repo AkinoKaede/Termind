@@ -15224,6 +15224,22 @@
         }
       }
     },
+    "New Subgroup" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建子组"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增子組"
+          }
+        }
+      }
+    },
     "New Window" : {
       "localizations" : {
         "zh-Hans" : {

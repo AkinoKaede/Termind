@@ -134,6 +134,12 @@ struct HostsPageView: ManagedCardPage {
                 isDropTarget: isDropTarget
             )
             .contextMenu {
+                Button("New Host", systemImage: MenuSymbol.newHost) {
+                    openHostEditor(nil, groupID: group.id)
+                }
+                Button("New Subgroup", systemImage: MenuSymbol.newGroup) {
+                    openWork(.hostGroupEditor(groupID: nil, parentID: group.id))
+                }
                 Button("Edit", systemImage: MenuSymbol.edit) { editGroup(group) }
                 Divider()
                 DestructiveMenuButton("Delete Group") { requestDelete(group) }
@@ -177,7 +183,7 @@ struct HostsPageView: ManagedCardPage {
         let groupID = section?.groupID
         return [
             NativeMenuEntry(title: String(localized: "New Host"), symbol: MenuSymbol.newHost) {
-                openHostEditor(nil)
+                openHostEditor(nil, groupID: groupID)
             },
             NativeMenuEntry(title: String(localized: "New Group"), symbol: MenuSymbol.newGroup) {
                 openWork(.hostGroupEditor(groupID: nil, parentID: groupID))
@@ -328,8 +334,8 @@ struct HostsPageView: ManagedCardPage {
         openWork(.hostGroupEditor(groupID: group.id, parentID: group.parentID))
     }
 
-    private func openHostEditor(_ host: Host?) {
-        window.openHostEditor(host: host)
+    private func openHostEditor(_ host: Host?, groupID: HostGroup.ID? = nil) {
+        window.openHostEditor(host: host, groupID: groupID)
     }
 
     private func openWork(_ route: VaultWorkRoute) {

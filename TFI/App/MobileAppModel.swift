@@ -333,7 +333,8 @@ final class MobileAppModel {
         for descriptor in savedWorkspaceDescriptors where descriptor.hostID == hostID { close(descriptor.id) }
     }
 
-    func deleteHost(_ id: UUID) {
+    @discardableResult
+    func deleteHost(_ id: UUID) -> Bool {
         do {
             assistant.disconnectHost(id)
             closeWorkspaces(for: id)
@@ -345,7 +346,20 @@ final class MobileAppModel {
             try hosts.requestHostDeletion(id)
             library.projectHostDeletion(id)
             outbox.start()
-        } catch { self.error = error.localizedDescription }
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+
+    func deleteHostGroup(_ id: HostGroup.ID, keepHosts: Bool) {
+        if !keepHosts {
+            let hosts = library.hosts(inTreeOf: id)
+            guard hosts.allSatisfy({ deleteHost($0.id) }) else { return }
+        }
+        library.deleteGroupProjection(id)
+        if let storageError = library.storageError { error = storageError }
     }
 
     func duplicateHost(_ host: Host) {
