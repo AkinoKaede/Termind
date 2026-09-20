@@ -33,6 +33,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
     private var counts: [UUID: [PortForwardingRule.ID: Int]] = [:]
     private var additionalRequest: SSHConnectionRequest?
     private var opening: [UUID: Slot] = [:]
+    private var installing: [UUID: Slot] = [:]
     private var retryTask: Task<Void, Never>?
     private var stabilityTasks: [UUID: Task<Void, Never>] = [:]
     private var retryAttempt = 0
@@ -132,8 +133,9 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
         retryTask = nil
         for task in stabilityTasks.values { task.cancel() }
         stabilityTasks.removeAll()
-        let pending = Array(opening.values)
+        let pending = Array(opening.values) + Array(installing.values)
         opening.removeAll()
+        installing.removeAll()
         await listeners.disconnect()
         let active = Array(slots.values)
         slots.removeAll()
@@ -164,9 +166,9 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
 
     private func fillPool() {
         guard !disconnecting, needsPool, additionalRequest != nil else { return }
-        let missing = desiredConnections - slots.count - opening.count
+        let missing = desiredConnections - slots.count - opening.count - installing.count
         guard missing > 0 else { return }
-        for _ in 0..<min(missing, max(0, 4 - opening.count)) {
+        for _ in 0..<min(missing, max(0, 4 - opening.count - installing.count)) {
             let id = UUID()
             let slot = makeSlot(id: id)
             opening[id] = slot
@@ -184,14 +186,23 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
     }
 
     private func opened(_ slot: Slot) async {
-        guard opening.removeValue(forKey: slot.id) != nil, !disconnecting, slots.count < desiredConnections else {
+        guard opening.removeValue(forKey: slot.id) != nil, !disconnecting,
+            slots.count + installing.count < desiredConnections
+        else {
             await slot.session.disconnect()
             return
         }
+        installing[slot.id] = slot
         do {
             for registration in registrations.values where registration.rule.kind != .remote {
                 try await slot.session.registerShared(registration.rule, generation: registration.generation)
                 slot.rules.insert(registration.rule.id)
+            }
+            guard installing.removeValue(forKey: slot.id) != nil, !disconnecting,
+                slots.count < desiredConnections
+            else {
+                await slot.session.disconnect()
+                return
             }
             slots[slot.id] = slot
             stabilityTasks[slot.id] = Task { [weak self] in
@@ -202,8 +213,9 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
             publishPoolCounts()
             fillPool()
         } catch {
+            let wasInstalling = installing.removeValue(forKey: slot.id) != nil
             await slot.session.disconnect()
-            scheduleRetry(for: error)
+            if wasInstalling { scheduleRetry(for: error) }
         }
     }
 
@@ -237,6 +249,10 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
 
     private func failed(slotID: UUID, message: String) async {
         guard !disconnecting else { return }
+        if opening.removeValue(forKey: slotID) != nil || installing.removeValue(forKey: slotID) != nil {
+            scheduleRetry(for: TermindSSHError.disconnected)
+            return
+        }
         let wasPrimary = primaryID == slotID
         stabilityTasks.removeValue(forKey: slotID)?.cancel()
         counts[slotID] = nil
@@ -264,8 +280,9 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
     private func retireAuxiliaries() async {
         retryTask?.cancel()
         retryTask = nil
-        let pending = Array(opening.values)
+        let pending = Array(opening.values) + Array(installing.values)
         opening.removeAll()
+        installing.removeAll()
         let primaryID = self.primaryID
         let auxiliaries = slots.values.filter { $0.id != primaryID }
         for slot in auxiliaries {

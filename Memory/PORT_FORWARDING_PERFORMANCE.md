@@ -30,8 +30,9 @@ macOS 26.6.2; final OpenSSH runs used Xcode 27.1 (27A9269). See [architecture](A
 
 ## Workload and measurement limits
 
-`TFMTests/SSHForwardingWireTests.swift` validates every payload and EOF before printing metrics; dedicated client
-threads avoid Dispatch worker starvation. The forwarding test sources also compile in TFITests.
+`Benchmarks/PortForwarding/main.swift` validates every payload and EOF before printing metrics from a standalone
+Release command-line target; dedicated client threads avoid Dispatch worker starvation. Functional forwarding wire
+coverage remains in TFMTests and TFITests, but neither test bundle nor Termind.app hosts the benchmark.
 
 - Request/response: 1/16/64 streams, nine 64 KiB exchanges each.
 - Duplex: 1/16/64 streams, 129 × 64 KiB per direction/stream, independent producers/consumers.
@@ -47,17 +48,21 @@ Encrypted loopback does not establish WAN, physical-iOS or proportional multi-co
 
 ## Multi-connection and system SSH comparison
 
-`Scripts/benchmark-port-forwarding.py` runs the current wire harness with Termind Max Connections set to one and four,
-then measures macOS `/usr/bin/ssh` against the same OpenSSH fixture, key, echo target and stream matrix. The single-process
-system baselines use `ssh -N -L`, `-D` and `-R`. The four-process Local/Dynamic reference binds four distinct local ports
-and round-robins clients, so it represents a raw multi-transport ceiling rather than Termind's single-port product behavior.
-Remote forwarding remains a single-connection comparison.
+`Scripts/benchmark-port-forwarding.py` builds the standalone Release runner once and accepts any ordered, deduplicated
+list of Termind Max Connections values from one through 64. The default is one. Remote forwarding remains single-worker
+regardless of the configured maximum.
+
+`Scripts/benchmark-external-port-forwarding.py system-ssh` automatically measures one macOS `/usr/bin/ssh` process and
+one direct SSH connection for Local, Dynamic and Remote using `ssh -N -L`, `-D` and `-R`. Its `external` mode measures one
+already-running third-party listener as a direct, single-connection black box. The manual mode reports network metrics
+only; it cannot include application startup, CPU or RSS without owning that process. Both scripts emit the same records
+and median JSON shape for offline comparison.
 
 ### Release connection-pool result (2026-09-20)
 
 Five-run medians on Apple M3 Pro, macOS 26.6.2, Xcode 27.0 Release (`-O`, `ENABLE_TESTABILITY=YES`), using the
 loopback OpenSSH fixture. Throughput is useful MiB/s per direction; these results compare Termind with itself, not the
-four-port system SSH reference.
+current single-connection system SSH baseline.
 
 | Direct workload | 1 connection | 4 connections | Ratio |
 | --- | ---: | ---: | ---: |
@@ -78,12 +83,18 @@ throughput/concurrency control rather than a universal per-request latency win.
 
 The JSON output retains every sample plus five-run medians for useful MiB/s/direction, ready/request p95, aggregate CPU
 and peak RSS. It records macOS and OpenSSH versions. Compression is disabled. Do not treat loopback medians or the
-four-port system reference as universal WAN results or CI thresholds.
+system reference as universal WAN results or CI thresholds.
 
 ```sh
 python3 Scripts/benchmark-port-forwarding.py \
   --metadata /tmp/termind-openssh.json \
-  --output /tmp/termind-forwarding-comparison.json
+  --output /tmp/termind-forwarding.json \
+  --termind-connections 1 4 16 64
+
+python3 Scripts/benchmark-external-port-forwarding.py \
+  --metadata /tmp/termind-openssh.json \
+  --output /tmp/system-ssh-forwarding.json \
+  system-ssh
 ```
 
 ## Final OpenSSH comparison
@@ -145,21 +156,29 @@ fixture normally to remove it/keys.
 python3 Scripts/ssh-forwarding-openssh-fixture.py --metadata /tmp/termind-openssh.json
 ```
 
-In another terminal:
+In another terminal, run Termind's complete Release matrix:
 
 ```sh
-TEST_RUNNER_TERMIND_SSH_FIXTURE=/tmp/termind-openssh.json \
-TEST_RUNNER_TERMIND_FORWARDING_BENCHMARK=1 \
-xcodebuild -project Termind.xcodeproj -scheme TFM \
-  -destination 'platform=macOS,arch=arm64' \
-  -onlyUsePackageVersionsFromResolvedFile \
-  -only-testing:TFMTests/SSHForwardingWireTests test
+python3 Scripts/benchmark-port-forwarding.py \
+  --metadata /tmp/termind-openssh.json \
+  --output /tmp/termind-forwarding.json \
+  --termind-connections 1 4
 ```
 
-This command is Debug. Recorded Release runs used an isolated worktree with
-`-configuration Release ENABLE_TESTABILITY=YES ONLY_ACTIVE_ARCH=YES`, excluding FrameworkTests/unrelated Debug-only
-TFM tests and linking existing ScrubberKit into the Release test host equally for both versions. These harness-only
-changes were not submitted. Repetitions used `test-without-building`; do not benchmark beside builds/other traffic.
+The script builds `TermindPortForwardingBenchmark` with ordinary Release optimization, without `ENABLE_TESTABILITY`,
+Termind.app or XCTest. It then launches a fresh runner process for every connection limit and repetition. `--quick`
+reduces repetitions to one but retains the complete Termind workload matrix. Do not benchmark beside builds or other
+traffic.
+
+For a manually configured client, create a direct Local or Remote forward to the metadata file's `echoPort`, or a
+Dynamic SOCKS5 listener, then run one kind at a time:
+
+```sh
+python3 Scripts/benchmark-external-port-forwarding.py \
+  --metadata /tmp/termind-openssh.json \
+  --output /tmp/external-forwarding.json \
+  external --name "External SSH Client" --kind local --port 50000
+```
 
 For the deliberately delayed remote-listener case, use a temporary venv with `paramiko==4.0.0` and
 `python Scripts/ssh-authentication-fixture.py --metadata /tmp/ssh-fixture.json`, substituting that metadata path above.

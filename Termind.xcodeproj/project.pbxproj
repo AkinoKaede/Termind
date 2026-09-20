@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BENC00000000000000000001 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = BENC00000000000000000011 /* main.swift */; };
+		BENC00000000000000000002 /* TermindRemoteInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21951230A1FF30987ADC3B6B /* TermindRemoteInfrastructure.framework */; };
+		BENC00000000000000000003 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
+		BENC00000000000000000004 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		0202B16D630CC57432748F0C /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		03892FFD3F1E351BD2C296E4 /* TermindWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 32414DBD2157FBAD4D00056D /* TermindWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		082994E88792AF7D1F99B147 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
@@ -101,6 +105,27 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		BENC00000000000000000091 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = BDA6B93652DE90AEBDA7090E;
+			remoteInfo = TermindRemoteInfrastructure;
+		};
+		BENC00000000000000000092 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A5F3ED08556B8962920EF788;
+			remoteInfo = TermindApplication;
+		};
+		BENC00000000000000000093 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = TRMD00000000000000000090 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B243FDB536F5111B356353DA;
+			remoteInfo = TermindDomain;
+		};
 		0A35D3902E3320DBDB756D0B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = TRMD00000000000000000090 /* Project object */;
@@ -430,6 +455,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		BENC00000000000000000011 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
+		BENC00000000000000000012 /* termind-port-forwarding-benchmark */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "termind-port-forwarding-benchmark"; sourceTree = BUILT_PRODUCTS_DIR; };
 		01FFEA64B9D6E13E50664FB8 /* Termind.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Termind.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		10111AE8F047FB59B318813A /* TermindApplication.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = TermindApplication.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		13753997381D54B4D92FDDD5 /* TFITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TFITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -560,6 +587,16 @@
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		BENC00000000000000000020 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BENC00000000000000000002 /* TermindRemoteInfrastructure.framework in Frameworks */,
+				BENC00000000000000000003 /* TermindApplication.framework in Frameworks */,
+				BENC00000000000000000004 /* TermindDomain.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		250F72DDA471D831C5727455 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -741,6 +778,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		BENC00000000000000000010 /* PortForwarding */ = {
+			isa = PBXGroup;
+			children = (
+				BENC00000000000000000011 /* main.swift */,
+			);
+			path = Benchmarks/PortForwarding;
+			sourceTree = SOURCE_ROOT;
+		};
 		CDDB75F14F753E46BB14D972 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
@@ -767,6 +812,7 @@
 		TRMD00000000000000000030 = {
 			isa = PBXGroup;
 			children = (
+				BENC00000000000000000010 /* PortForwarding */,
 				CB622EAF077B1253532F1E18 /* TFIWidgets */,
 				FD8DC40513A4A80A71C41FCA /* WorkspaceActivitySupport */,
 				DBE378B130478CFB00B16AA1 /* Termind.storekit */,
@@ -785,6 +831,7 @@
 		TRMD00000000000000000040 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				BENC00000000000000000012 /* termind-port-forwarding-benchmark */,
 				32414DBD2157FBAD4D00056D /* TermindWidgets.appex */,
 				TRMD00000000000000000001 /* Termind.app */,
 				TRMD00000000000000020001 /* TFMTests.xctest */,
@@ -805,6 +852,27 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		BENC00000000000000000050 /* TermindPortForwardingBenchmark */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BENC00000000000000000060 /* Build configuration list for PBXNativeTarget "TermindPortForwardingBenchmark" */;
+			buildPhases = (
+				BENC00000000000000000070 /* Sources */,
+				BENC00000000000000000020 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				BENC00000000000000000081 /* PBXTargetDependency */,
+				BENC00000000000000000082 /* PBXTargetDependency */,
+				BENC00000000000000000083 /* PBXTargetDependency */,
+			);
+			name = TermindPortForwardingBenchmark;
+			packageProductDependencies = (
+			);
+			productName = "termind-port-forwarding-benchmark";
+			productReference = BENC00000000000000000012 /* termind-port-forwarding-benchmark */;
+			productType = "com.apple.product-type.tool";
+		};
 		1EAB6B47E04D61C8CFC54762 /* TFI */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 20CE6E8A93D697985F372EA6 /* Build configuration list for PBXNativeTarget "TFI" */;
@@ -1200,6 +1268,9 @@
 				LastSwiftUpdateCheck = 2660;
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
+					BENC00000000000000000050 = {
+						CreatedOnToolsVersion = 27.0;
+					};
 					1EAB6B47E04D61C8CFC54762 = {
 						SystemCapabilities = {
 							com.apple.Push = {
@@ -1265,6 +1336,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
+				BENC00000000000000000050 /* TermindPortForwardingBenchmark */,
 				BDA6B93652DE90AEBDA7090E /* TermindRemoteInfrastructure */,
 				B34524427DC3DF7A5835776C /* TermindWidgets */,
 				727F565FD44C8D180B283598 /* TermindPresentation */,
@@ -1370,6 +1442,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		BENC00000000000000000070 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BENC00000000000000000001 /* main.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		01260326BA2579B3E3586B26 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1466,6 +1546,21 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		BENC00000000000000000081 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = BDA6B93652DE90AEBDA7090E /* TermindRemoteInfrastructure */;
+			targetProxy = BENC00000000000000000091 /* PBXContainerItemProxy */;
+		};
+		BENC00000000000000000082 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A5F3ED08556B8962920EF788 /* TermindApplication */;
+			targetProxy = BENC00000000000000000092 /* PBXContainerItemProxy */;
+		};
+		BENC00000000000000000083 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B243FDB536F5111B356353DA /* TermindDomain */;
+			targetProxy = BENC00000000000000000093 /* PBXContainerItemProxy */;
+		};
 		00758A789ECB9643122A60EC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = B243FDB536F5111B356353DA /* TermindDomain */;
@@ -1684,6 +1779,44 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		BENC000000000000000000D0 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
+				PRODUCT_NAME = "termind-port-forwarding-benchmark";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		BENC000000000000000000E0 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGN_IDENTITY = "";
+				CREATE_INFOPLIST_SECTION_IN_BINARY = YES;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.0;
+				OTHER_SWIFT_FLAGS = "-parse-as-library";
+				PRODUCT_NAME = "termind-port-forwarding-benchmark";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = macosx;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = nonisolated;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 		00A459BF9EBF49731B530B7A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2483,6 +2616,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		BENC00000000000000000060 /* Build configuration list for PBXNativeTarget "TermindPortForwardingBenchmark" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BENC000000000000000000D0 /* Debug */,
+				BENC000000000000000000E0 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		12F5D040E2844B6FD884BF65 /* Build configuration list for PBXNativeTarget "TermindRemoteInfrastructure" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

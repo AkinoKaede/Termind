@@ -68,6 +68,8 @@ struct PersistenceCompatibilityTests {
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV21.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV23.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV24.versionIdentifier })
+        #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
+        #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSSHPreferences" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSFTPPreferences" })

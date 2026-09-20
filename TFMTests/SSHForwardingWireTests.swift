@@ -92,19 +92,6 @@ nonisolated struct SSHForwardingWireTests {
         await session.disconnect()
     }
 
-    @Test(
-        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_FORWARDING_BENCHMARK"] == "1"),
-        arguments: [PortForwardingRule.Kind.local, .remote, .dynamic], [1, 16, 64])
-    func sustainedDuplexTransfer(_ kind: PortForwardingRule.Kind, _ concurrency: Int) async throws {
-        try await exercise(kind: kind, concurrency: concurrency, jumps: 0, rounds: 128, streaming: true)
-    }
-
-    @Test(
-        .enabled(if: ProcessInfo.processInfo.environment["TERMIND_FORWARDING_BENCHMARK"] == "1"), arguments: [0, 1, 2])
-    func smallRequestsProgressBesideBulkStreams(_ jumps: Int) async throws {
-        try await exercise(kind: .local, concurrency: 24, jumps: jumps, rounds: 128, mixed: true)
-    }
-
     @Test func slowConsumerPreservesPayloadWhileItsPeerProgresses() async throws {
         let fixture = try fixture()
         let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
@@ -146,6 +133,8 @@ nonisolated struct SSHForwardingWireTests {
             if await pool.connectionPoolStatus().connected == 4 { break }
             try await Task.sleep(for: .milliseconds(5))
         }
+        #expect(await pool.connectionPoolStatus() == SSHForwardingPoolStatus(connected: 4, target: 4))
+        try await Task.sleep(for: .milliseconds(200))
         #expect(await pool.connectionPoolStatus() == SSHForwardingPoolStatus(connected: 4, target: 4))
 
         var clients: [Int32] = []
@@ -237,105 +226,29 @@ nonisolated struct SSHForwardingWireTests {
         await session.disconnect()
     }
 
-    @Test(.enabled(if: ProcessInfo.processInfo.environment["TERMIND_FORWARDING_BENCHMARK"] == "1"))
-    func idleForwardingCPU() async throws {
-        let fixture = try fixture()
-        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
-        try await session.connect(request(fixture, jumps: 2))
-        let rule = try rule(.local, fixture: fixture)
-        try await session.start(rule)
-        let socket = try SSHSocketConnector.open(host: "127.0.0.1", port: rule.bindPort, timeout: 5)
-        try send(socket, Data([42]))
-        try #require(try receive(socket, count: 1) == Data([42]))
-        try await Task.sleep(for: .milliseconds(300))
-        let before = usage()
-        let began = ContinuousClock.now
-        try await Task.sleep(for: .seconds(5))
-        let elapsed = seconds(began.duration(to: .now))
-        let after = usage()
-        print("FORWARDING_IDLE cpu_s=\(after.cpu - before.cpu) elapsed_s=\(elapsed) jumps=2")
-        Darwin.close(socket)
-        await session.disconnect()
-    }
-
     private func exercise(
-        kind: PortForwardingRule.Kind, concurrency: Int, jumps: Int,
-        rounds: Int = 8, streaming: Bool = false, mixed: Bool = false
+        kind: PortForwardingRule.Kind, concurrency: Int, jumps: Int, rounds: Int = 8
     ) async throws {
         let fixture = try fixture()
-        let maximumConnections =
-            Int(
-                ProcessInfo.processInfo.environment["TERMIND_FORWARDING_MAX_CONNECTIONS"] ?? "1") ?? 1
-        let session: any SSHForwardingSessionProtocol =
-            maximumConnections > 1 && kind != .remote
-            ? SSHForwardingPoolSession(
-                maximumConnections: maximumConnections, connectionHandler: { _, _, _ in },
-                failureHandler: { Issue.record(Comment(rawValue: $0)) })
-            : SSHForwardingSession(
-                connectionHandler: { _, _, _ in },
-                failureHandler: { Issue.record(Comment(rawValue: $0)) })
-        let connectionRequest = request(fixture, jumps: jumps)
-        try await session.connect(connectionRequest, progress: nil)
-        if maximumConnections > 1 && kind != .remote {
-            await session.configureAdditionalConnections(
-                SSHConnectionRequest(
-                    configuration: connectionRequest.configuration, interactionPolicy: .forbidden))
-        }
+        let session = SSHForwardingSession(
+            connectionHandler: { _, _, _ in },
+            failureHandler: { Issue.record(Comment(rawValue: $0)) })
+        try await session.connect(request(fixture, jumps: jumps), progress: nil)
         do {
             let rule = try rule(kind, fixture: fixture)
             try await session.start(rule, generation: UUID())
-            if maximumConnections > 1 && kind != .remote {
-                for _ in 0..<4_000 {
-                    if await session.connectionPoolStatus().connected == maximumConnections { break }
-                    try await Task.sleep(for: .milliseconds(5))
-                }
-                try #require(await session.connectionPoolStatus().connected == maximumConnections)
-            }
-            let start = ContinuousClock.now
-            let usageBefore = usage()
-            let results = try await withThrowingTaskGroup(of: Measurement.self) { group in
+            _ = try await withThrowingTaskGroup(of: Measurement.self) { group in
                 for index in 0..<concurrency {
                     group.addTask {
                         try await exchange(
                             port: rule.bindPort, target: kind == .dynamic ? fixture.echoPort : nil,
-                            seed: UInt8(index), rounds: rounds,
-                            payloadSize: mixed && index >= 8 ? 64 : 65536,
-                            streaming: streaming || (mixed && index < 8))
+                            seed: UInt8(index), rounds: rounds)
                     }
                 }
                 var results: [Measurement] = []
                 for try await result in group { results.append(result) }
                 return results
             }
-            let elapsed = seconds(start.duration(to: .now))
-            let usageAfter = usage()
-            let payloadBytes = results.reduce(0) { $0 + $1.bytes }
-            var record: [String: Any] = [
-                "kind": kind.rawValue, "streams": concurrency, "jumps": jumps,
-                "workload": mixed ? "mixed" : streaming ? "duplex" : "request_response",
-                "successful_streams": results.count, "payload_bytes_per_direction": payloadBytes,
-                "elapsed_s": elapsed, "payload_mib_s_per_direction": Double(payloadBytes) / 1_048_576 / elapsed,
-                "ready_p95_ms": percentile(results.map(\.connect)) * 1000,
-                "request_p95_ms": percentile(results.filter { !$0.streaming }.flatMap(\.latencies)) * 1000,
-                "small_request_p95_ms": percentile(results.filter { $0.small }.flatMap(\.latencies)) * 1000,
-                "cpu_s": usageAfter.cpu - usageBefore.cpu,
-                "process_peak_rss_mib": Double(usageAfter.rss) / 1_048_576,
-            ]
-            // Diagnostic counts belong to the destination session, not its jump bridges.
-            record["ssh_connections"] = await session.connectionPoolStatus().connected
-            if let single = session as? SSHForwardingSession {
-                let statistics = await single.statistics()
-                record["pump_passes"] = statistics.passes
-                record["plaintext_socket_write_calls"] = statistics.plaintextSocketWriteCalls
-                record["encrypted_socket_write_calls"] = statistics.encryptedSocketWriteCalls
-                record["peak_plaintext_queue_bytes"] = statistics.peakPlaintextQueueBytes
-                record["peak_encrypted_queue_bytes"] = statistics.peakEncryptedQueueBytes
-            }
-            print(
-                "FORWARDING_METRIC "
-                    + String(
-                        decoding: try JSONSerialization.data(
-                            withJSONObject: record, options: [.sortedKeys]), as: UTF8.self))
             await session.stop(rule.id)
         } catch {
             await session.disconnect()
@@ -413,21 +326,6 @@ nonisolated struct SSHForwardingWireTests {
 
     private func seconds(_ duration: Duration) -> Double {
         Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
-    }
-
-    private func percentile(_ values: [Double]) -> Double {
-        guard !values.isEmpty else { return 0 }
-        let sorted = values.sorted()
-        return sorted[min(sorted.count - 1, Int(ceil(Double(sorted.count) * 0.95)) - 1)]
-    }
-
-    private func usage() -> (cpu: Double, rss: Int) {
-        var value = rusage()
-        getrusage(RUSAGE_SELF, &value)
-        let cpu =
-            Double(value.ru_utime.tv_sec + value.ru_stime.tv_sec)
-            + Double(value.ru_utime.tv_usec + value.ru_stime.tv_usec) / 1e6
-        return (cpu, value.ru_maxrss)
     }
 
     @discardableResult private func exchange(

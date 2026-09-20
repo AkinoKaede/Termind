@@ -5,9 +5,10 @@ Current ownership and safety contracts; implementation details belong in code/te
 
 ## Modules and persistence
 
-One Xcode project builds TFM (macOS), TFI (iOS/iPadOS), separate test targets and the macOS-only `termind-mcp` bridge.
-AgentKit is a separately versioned remote package; its sibling working tree is not the app dependency. Follow
-`AGENTS.md` for package releases and pinned builds.
+One Xcode project builds TFM (macOS), TFI (iOS/iPadOS), separate test targets, the macOS-only `termind-mcp` bridge and
+the standalone macOS `termind-port-forwarding-benchmark` tool. The benchmark depends on shared frameworks through a
+narrow SPI; apps and test bundles never host or depend on it. AgentKit is a separately versioned remote package; its
+sibling working tree is not the app dependency. Follow `AGENTS.md` for package releases and pinned builds.
 
 | Owner | Responsibilities / dependencies |
 | --- | --- |

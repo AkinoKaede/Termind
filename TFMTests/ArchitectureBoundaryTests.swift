@@ -4,6 +4,23 @@ import Testing
 @Suite
 struct ArchitectureBoundaryTests {
     @Test
+    func forwardingBenchmarkRemainsIndependentFromAppsAndTests() throws {
+        let repositoryRoot = sourceRoot.deletingLastPathComponent().standardizedFileURL
+        let project = try String(
+            contentsOf: repositoryRoot.appending(path: "Termind.xcodeproj/project.pbxproj"), encoding: .utf8)
+        let app = try String(contentsOf: sourceRoot.appending(path: "App/TermindApp.swift"), encoding: .utf8)
+        let benchmark = try String(
+            contentsOf: repositoryRoot.appending(path: "Benchmarks/PortForwarding/main.swift"), encoding: .utf8)
+
+        #expect(project.contains("BENC00000000000000000050 /* TermindPortForwardingBenchmark */"))
+        #expect(!project.contains("target = BENC00000000000000000050"))
+        #expect(!app.contains("TERMIND_FORWARDING_BENCHMARK"))
+        for module in ["Testing", "XCTest", "Termind"] {
+            #expect(!benchmark.split(separator: "\n").contains("import \(module)"))
+        }
+    }
+
+    @Test
     func forwardingAndMobileAuthenticationRemainFeatureOwned() throws {
         let controller = try String(
             contentsOf: sourceRoot.appending(

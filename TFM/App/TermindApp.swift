@@ -20,9 +20,7 @@ struct TermindApp: App {
 
     init() {
         ContextAttachmentOpener.cleanPreviousSession()
-        #if !TERMIND_FORWARDING_BENCHMARK
-            ScrubberWebClient.setup()
-        #endif
+        ScrubberWebClient.setup()
         #if DEBUG
             let screenshotDemo = ScreenshotDemoConfiguration.active
             launchLanguage = screenshotDemo?.language ?? AppLanguage.stored()

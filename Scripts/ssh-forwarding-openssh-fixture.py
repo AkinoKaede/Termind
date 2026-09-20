@@ -3,7 +3,7 @@
 
 No system SSH configuration or authorized_keys files are changed. Only forwarding
 is allowed; MaxSessions=0 disables shell, command and subsystem sessions.
-Pass --metadata to TERMIND_SSH_FIXTURE in SSHForwardingWireTests.
+Pass the metadata path to the standalone benchmark or TERMIND_SSH_FIXTURE in wire tests.
 """
 
 import argparse

@@ -717,7 +717,7 @@ public enum TermindSchemaV22: VersionedSchema {
     public static var models: [any PersistentModel.Type] {
         TermindSchemaV21.models.filter {
             $0 != TermindSchemaV8Models.PersistentHost.self
-        } + [PersistentHost.self]
+        } + [TermindSchemaV22HostModels.PersistentHost.self]
     }
 }
 
