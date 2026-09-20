@@ -18,8 +18,6 @@ final class HostsPageState {
     }
 
     var query = ""
-    var selectedGroupID: HostGroup.ID?
-    var isUngroupedSelected = false
     /// Which tags the grid is narrowed to, ticked in the titlebar search
     /// field's magnifier menu. Several at once means "carries all of these".
     var selectedTags: Set<String> = []
@@ -126,13 +124,12 @@ struct HostsPageView: ManagedCardPage {
     ) -> some View {
         if case .group(let groupID) = section.id, let group = app.hostLibrary.group(groupID) {
             let isExpanded = app.hostLibrary.isHostGroupExpanded(group.id)
+            let toggle = { app.hostLibrary.setExpanded(!isExpanded, for: group.id) }
             CardSectionHeader(
                 title: section.title,
                 count: section.items.count,
-                toggle: { app.hostLibrary.setExpanded(!isExpanded, for: group.id) },
+                toggle: toggle,
                 isCollapsed: !isExpanded,
-                select: { selectGroup(group.id) },
-                isSelected: state.selectedGroupID == group.id,
                 isDropTarget: isDropTarget
             )
             .contextMenu {
@@ -147,15 +144,13 @@ struct HostsPageView: ManagedCardPage {
                 DestructiveMenuButton("Delete Group") { requestDelete(group) }
             }
         } else if case .ungrouped = section.id {
+            let isExpanded = section.isExpanded ?? true
+            let toggle = { app.hostLibrary.setUngroupedExpanded(!isExpanded) }
             CardSectionHeader(
                 title: section.title,
                 count: section.items.count,
-                toggle: section.isExpanded.map { expanded in
-                    { app.hostLibrary.setUngroupedExpanded(!expanded) }
-                },
-                isCollapsed: !(section.isExpanded ?? true),
-                select: selectUngrouped,
-                isSelected: state.isUngroupedSelected,
+                toggle: toggle,
+                isCollapsed: !isExpanded,
                 isDropTarget: isDropTarget
             )
             .contextMenu {
@@ -269,7 +264,6 @@ struct HostsPageView: ManagedCardPage {
         state.confirmation = nil
         pruneHostSelection()
 
-        if state.selectedGroupID == group.id { state.selectedGroupID = nil }
         window.pruneVaultSelections(in: app.hostLibrary)
     }
 
@@ -295,22 +289,8 @@ struct HostsPageView: ManagedCardPage {
 
     private func setHostSelection(_ ids: Set<Host.ID>) {
         let valid = ids.intersection(Set(app.hostLibrary.hosts.map(\.id)))
-        state.selectedGroupID = nil
-        state.isUngroupedSelected = false
         let ordered = visibleHosts.filter { valid.contains($0.id) }.map { VaultSelectionID.host($0.id) }
         window.setVaultSelection(ordered, for: .hosts)
-    }
-
-    private func selectGroup(_ id: HostGroup.ID) {
-        window.clearVaultSelection(for: .hosts)
-        state.isUngroupedSelected = false
-        state.selectedGroupID = id
-    }
-
-    private func selectUngrouped() {
-        window.clearVaultSelection(for: .hosts)
-        state.selectedGroupID = nil
-        state.isUngroupedSelected = true
     }
 
     private func pruneHostSelection() {

@@ -35,8 +35,6 @@ final class SnippetsPageState {
     }
 
     var query = ""
-    var selectedPackageID: SnippetPackage.ID?
-    var isUngroupedSelected = false
     var confirmation: ConfirmationRoute?
 }
 
@@ -109,16 +107,13 @@ struct SnippetsPageView: ManagedCardPage {
         case .package(let id):
             if let package = app.snippets.snippetPackage(id) {
                 let isExpanded = app.snippets.isSnippetPackageExpanded(id)
+                let toggle = {
+                    app.snippets.setSnippetPackageExpanded(!isExpanded, for: package.id)
+                }
                 CardSectionHeader(
                     title: section.title, count: section.items.count,
-                    toggle: {
-                        app.snippets.setSnippetPackageExpanded(
-                            !isExpanded, for: package.id
-                        )
-                    },
+                    toggle: toggle,
                     isCollapsed: !isExpanded,
-                    select: { selectPackage(package.id) },
-                    isSelected: state.selectedPackageID == package.id,
                     isDropTarget: isDropTarget
                 )
                 .contextMenu {
@@ -138,16 +133,12 @@ struct SnippetsPageView: ManagedCardPage {
                 }
             }
         case .ungrouped:
+            let isExpanded = app.snippets.isSnippetsUngroupedExpanded
+            let toggle = { app.snippets.setSnippetsUngroupedExpanded(!isExpanded) }
             CardSectionHeader(
                 title: section.title, count: section.items.count,
-                toggle: {
-                    app.snippets.setSnippetsUngroupedExpanded(
-                        !app.snippets.isSnippetsUngroupedExpanded
-                    )
-                },
-                isCollapsed: !app.snippets.isSnippetsUngroupedExpanded,
-                select: selectUngrouped,
-                isSelected: state.isUngroupedSelected,
+                toggle: toggle,
+                isCollapsed: !isExpanded,
                 isDropTarget: isDropTarget
             )
             .contextMenu {
@@ -247,23 +238,9 @@ struct SnippetsPageView: ManagedCardPage {
 
     private func setSelection(_ ids: Set<Snippet.ID>) {
         let valid = ids.intersection(Set(app.snippets.snippets.map(\.id)))
-        state.selectedPackageID = nil
-        state.isUngroupedSelected = false
         let ordered = visibleSnippets.filter { valid.contains($0.id) }
             .map { VaultSelectionID.snippet($0.id) }
         window.setVaultSelection(ordered, for: .snippets)
-    }
-
-    private func selectPackage(_ id: SnippetPackage.ID) {
-        window.clearVaultSelection(for: .snippets)
-        state.isUngroupedSelected = false
-        state.selectedPackageID = id
-    }
-
-    private func selectUngrouped() {
-        window.clearVaultSelection(for: .snippets)
-        state.selectedPackageID = nil
-        state.isUngroupedSelected = true
     }
 
     private func saveSnippet(_ snippet: Snippet) {
@@ -276,16 +253,8 @@ struct SnippetsPageView: ManagedCardPage {
     }
 
     private func deletePackage(_ package: SnippetPackage, keepSnippets: Bool) {
-        let deletedPackageIDs = Set(
-            [package.id] + app.snippets.descendantSnippetPackages(of: package.id).map(\.id)
-        )
         app.snippets.delete(snippetPackageID: package.id, keepSnippets: keepSnippets)
         state.confirmation = nil
-        if let selectedPackageID = state.selectedPackageID,
-            deletedPackageIDs.contains(selectedPackageID)
-        {
-            state.selectedPackageID = nil
-        }
         window.pruneVaultSelections(in: app.snippets)
     }
 

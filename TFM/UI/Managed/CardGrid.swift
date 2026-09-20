@@ -386,17 +386,46 @@ struct CardSectionHeader: View {
     @State private var isHovering = false
 
     var body: some View {
+        Group {
+            if select == nil, let toggle {
+                Button(action: toggle) { paddedLabel }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(title))
+                    .accessibilityHint(Text(isCollapsed ? "Expand" : "Collapse"))
+            } else {
+                paddedLabel.onTapGesture { select?() }
+            }
+        }
+        // Same fill as `SidebarRow`, and fixed for the same reason: derived from
+        // the text color rather than the accent, so it does not change with the
+        // accent or with which view happens to hold focus.
+        .background(fill, in: .rect(cornerRadius: Metrics.Radius.medium))
+        .contentShape(.rect(cornerRadius: Metrics.Radius.medium))
+        .cardInteractiveFrame()
+        .onHover { isHovering = $0 }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [])
+    }
+
+    private var label: some View {
         HStack(spacing: Metrics.Space.s) {
             if let toggle {
-                Button(action: toggle) {
+                if select == nil {
                     Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .rotationEffect(.degrees(isCollapsed ? 0 : 90))
-                        .contentShape(.rect)
+                } else {
+                    Button(action: toggle) {
+                        Image(systemName: "chevron.right")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .rotationEffect(.degrees(isCollapsed ? 0 : 90))
+                            .contentShape(.rect)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(Text(isCollapsed ? "Expand" : "Collapse"))
                 }
-                .buttonStyle(.plain)
-                .accessibilityLabel(Text(isCollapsed ? "Expand" : "Collapse"))
             }
 
             Text(title)
@@ -411,19 +440,15 @@ struct CardSectionHeader: View {
                     .background(.quaternary.opacity(0.6), in: .capsule)
             }
         }
-        .padding(.horizontal, select == nil ? 0 : Metrics.Space.s)
-        .padding(.vertical, select == nil ? 0 : Metrics.Space.xs)
-        // Same fill as `SidebarRow`, and fixed for the same reason: derived from
-        // the text color rather than the accent, so it does not change with the
-        // accent or with which view happens to hold focus.
-        .background(fill, in: .rect(cornerRadius: Metrics.Radius.medium))
-        .contentShape(.rect(cornerRadius: Metrics.Radius.medium))
-        .onTapGesture { select?() }
-        .cardInteractiveFrame()
-        .onHover { isHovering = $0 }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : [])
     }
+
+    private var paddedLabel: some View {
+        label
+            .padding(.horizontal, isInteractive ? Metrics.Space.s : 0)
+            .padding(.vertical, isInteractive ? Metrics.Space.xs : 0)
+    }
+
+    private var isInteractive: Bool { select != nil || toggle != nil }
 
     private var fill: Color {
         if isDropTarget {
