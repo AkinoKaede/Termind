@@ -12224,6 +12224,22 @@
         }
       }
     },
+    "iCloud credentials cannot be moved to This Device." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法将iCloud凭据移到此设备。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法將iCloud憑證移到此裝置。"
+          }
+        }
+      }
+    },
     "iCloud access is restricted on this Mac." : {
       "extractionState" : "stale",
       "localizations" : {

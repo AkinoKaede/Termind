@@ -66,6 +66,7 @@ final class MobileKeyEditorModel: Identifiable {
             || (!privateKey.isEmpty && (mode != .edit || didLoadPrivateKey))
         return encryptionIsValid && privateKeyIsValid && !isLoadingPrivateKey
             && (storage != .secureEnclave || isEnclave || canUseEnclave)
+            && (storage != .thisDevice || canSelectThisDevice)
     }
     var defaultName: String {
         let selectedAlgorithm: SSHKeyAlgorithm =
@@ -106,6 +107,7 @@ final class MobileKeyEditorModel: Identifiable {
     var publicKey: String? { inspectedMaterial?.publicKey ?? original?.publicKey }
     var fingerprint: String? { inspectedMaterial?.fingerprint ?? original?.fingerprint }
     var isEnclave: Bool { original?.storage == .secureEnclave }
+    var canSelectThisDevice: Bool { original?.storage != .iCloud }
     var canUseEnclave: Bool { SecureEnclaveKey.isAvailable }
     var replacesPublicKey: Bool {
         guard let original, let inspectedMaterial else { return false }

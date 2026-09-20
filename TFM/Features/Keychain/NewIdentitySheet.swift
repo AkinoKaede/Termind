@@ -147,7 +147,13 @@ struct NewIdentitySheet: View {
 
                 Picker("Store password in", selection: $passwordStorage) {
                     ForEach(PasswordStorage.allCases) { storage in
-                        Label(storage.displayName, systemImage: storage.symbol).tag(storage)
+                        Label(storage.displayName, systemImage: storage.symbol)
+                            .tag(storage)
+                            .disabled(
+                                existing?.usesPassword == true
+                                    && existing?.passwordStorage == .iCloud
+                                    && storage == .thisDevice
+                            )
                     }
                 }
 

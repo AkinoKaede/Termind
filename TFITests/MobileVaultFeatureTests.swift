@@ -474,7 +474,7 @@ struct MobileVaultFeatureTests {
         #expect(try app.credentials.keyCredential(for: original) == .software(secret))
     }
 
-    @Test func editingSoftwareKeyMovesItsCredentialBetweenStorageClasses() async throws {
+    @Test func editingICloudSoftwareKeyCannotMoveItToThisDevice() async throws {
         let secrets = MobileStorageAwareSecretStore()
         let material = try SSHKeyMaterial.generate(.ed25519, comment: "move", passphrase: nil)
         let original = SSHKeyRef(
@@ -488,13 +488,15 @@ struct MobileVaultFeatureTests {
 
         let editor = MobileKeyEditorModel(mode: .edit, credentials: credentials, key: original)
         await editor.loadPrivateKey()
+        #expect(!editor.canSelectThisDevice)
         editor.storage = .thisDevice
-        try await editor.save()
+        #expect(!editor.canSave)
+        await #expect(throws: (any Error).self) { try await editor.save() }
 
         let updated = try #require(credentials.key(original.id))
-        #expect(updated.storage == .thisDevice)
-        #expect(try secrets.keyCredential(for: original.credentialRef, storage: .thisDevice) == secret)
-        #expect(try secrets.keyCredential(for: original.credentialRef, storage: .iCloud) == nil)
+        #expect(updated.storage == .iCloud)
+        #expect(try secrets.keyCredential(for: original.credentialRef, storage: .thisDevice) == nil)
+        #expect(try secrets.keyCredential(for: original.credentialRef, storage: .iCloud) == secret)
     }
 
     @Test func importRequiresAnExplicitUsernameWhenTheConfigurationOmitsIt() async throws {

@@ -66,6 +66,52 @@ struct IdentityCredentialTests {
     }
 
     @Test
+    func iCloudPasswordCannotMoveToThisDevice() throws {
+        let keychain = InMemorySecretStore()
+        let reference = "termind.password.\(UUID().uuidString)"
+        let original = Identity(
+            name: "Deploy", username: "deploy", credentialRef: reference,
+            passwordStorage: .iCloud
+        )
+        let store = HostLibraryModel(identities: [original], secrets: keychain)
+        try keychain.setString("secret", for: reference, storage: .iCloud)
+
+        var moved = original
+        moved.passwordStorage = .thisDevice
+        #expect(throws: (any Error).self) {
+            try store.upsert(moved, passwordUpdate: .keep)
+        }
+        #expect(!store.upsert(moved))
+
+        #expect(store.identity(original.id)?.passwordStorage == .iCloud)
+        #expect(try keychain.string(for: reference, storage: .iCloud) == "secret")
+    }
+
+    @Test
+    func iCloudKeyCannotMoveToThisDevice() throws {
+        let keychain = InMemorySecretStore()
+        let reference = "termind.key.\(UUID().uuidString)"
+        let original = SSHKeyRef(
+            label: "Deploy", publicKey: "ssh-ed25519 test", fingerprint: "SHA256:test",
+            credentialRef: reference, storage: .iCloud
+        )
+        let secret = StoredSSHKeyCredential.software(
+            SSHPrivateKeySecret(privateKey: "private")
+        )
+        let store = HostLibraryModel(keys: [original], secrets: keychain)
+        try keychain.setKeyCredential(secret, for: reference, storage: .iCloud)
+
+        var moved = original
+        moved.storage = .thisDevice
+        #expect(throws: (any Error).self) {
+            try store.upsert(moved)
+        }
+
+        #expect(store.key(original.id)?.storage == .iCloud)
+        #expect(try keychain.keyCredential(for: reference, storage: .iCloud) == secret)
+    }
+
+    @Test
     func missingKeyDoesNotSuppressAnAvailablePassword() throws {
         let keychain = InMemorySecretStore()
         let passwordReference = "termind.password.\(UUID().uuidString)"

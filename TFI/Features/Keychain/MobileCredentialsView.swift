@@ -360,7 +360,9 @@ struct MobileIdentityEditor: View {
                     }
                     if original.usesPassword { Toggle("Remove Password", isOn: $removePassword) }
                     Picker("Store password in", selection: $draft.passwordStorage) {
-                        Text("This Device").tag(PasswordStorage.thisDevice)
+                        Text("This Device")
+                            .tag(PasswordStorage.thisDevice)
+                            .disabled(original.usesPassword && original.passwordStorage == .iCloud)
                         Text("iCloud").tag(PasswordStorage.iCloud)
                     }
                     if configuration.showsKey {

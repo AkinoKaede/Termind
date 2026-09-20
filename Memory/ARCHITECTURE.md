@@ -104,6 +104,9 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   provenance. Saved material is reread from Keychain for another physical connection; temporary Passwords and every
   Passphrase must be entered again. UI authentication fields clear synchronously on submission. Availability checks query
   Keychain metadata without reading secret data; the legacy software-Key JSON envelope is parsed strictly and fails closed.
+- Saved iCloud Passwords and software Keys cannot be moved to device-only storage: editors disable that destination and
+  application writes reject it before touching Keychain. New credentials may start device-only, and device-only credentials
+  may move to iCloud.
 - Desktop SSH/SFTP submission uses `RemoteSessionHostStore`: explicit password wins; custom input never borrows an
   unselected Identity password. Only explicit input changes selected credentials; custom input reuses the Host Identity.
   Identity/secret writes precede separate Host association. Keep temporary credentials, validation/passphrase ordering,

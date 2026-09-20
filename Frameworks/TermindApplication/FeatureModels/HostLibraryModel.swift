@@ -1085,6 +1085,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public func upsert(_ identity: Identity) -> Bool {
         var identity = identity
         identity.name = SavedName.resolve(identity.name, default: identity.defaultName)
+        if let previous = self.identity(identity.id),
+            previous.usesPassword,
+            previous.passwordStorage == .iCloud,
+            identity.passwordStorage == .thisDevice
+        {
+            storageError = String(localized: "iCloud credentials cannot be moved to This Device.")
+            return false
+        }
         let identitySnapshot = identities
         let hostSnapshot = hosts
         var resetsCredentialAccess = false
@@ -1131,6 +1139,15 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         let previousReference = previousIdentity?.credentialRef ?? identity.credentialRef
         let previousStorage = previousIdentity?.passwordStorage ?? identity.passwordStorage
         var updated = identity
+
+        if previousIdentity?.usesPassword == true,
+            previousStorage == .iCloud,
+            updated.passwordStorage == .thisDevice
+        {
+            throw TermindSSHError.library(
+                String(localized: "iCloud credentials cannot be moved to This Device.")
+            )
+        }
 
         let oldPassword =
             previousReference.isEmpty
@@ -1308,6 +1325,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         var key = key
         key.label = SavedName.resolve(key.label, default: key.defaultName)
         let previousKey = self.key(key.id)
+        if previousKey?.storage == .iCloud, key.storage == .thisDevice {
+            throw TermindSSHError.library(
+                String(localized: "iCloud credentials cannot be moved to This Device.")
+            )
+        }
         let resetsCredentialAccess =
             credential != nil || previousKey.map { Self.keyConnectionFieldsChanged($0, key) } == true
         if key.storage == .secureEnclave, !key.certificate.isEmpty {

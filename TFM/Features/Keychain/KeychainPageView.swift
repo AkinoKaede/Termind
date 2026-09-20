@@ -428,7 +428,9 @@ private struct SoftwareKeyEditor: View {
                         .singleLinePaste().lineLimit(1)
                         Picker("Store in", selection: $storage) {
                             Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
-                            Label("This Mac", systemImage: "lock.laptopcomputer").tag(KeyStorage.thisDevice)
+                            Label("This Mac", systemImage: "lock.laptopcomputer")
+                                .tag(KeyStorage.thisDevice)
+                                .disabled(existing?.storage == .iCloud)
                         }
                         LabeledContent("Color") {
                             ColorTagPicker(selection: $colorTag, layout: .compact)
