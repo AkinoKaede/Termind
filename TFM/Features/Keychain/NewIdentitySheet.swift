@@ -149,13 +149,9 @@ struct NewIdentitySheet: View {
                     ForEach(PasswordStorage.allCases) { storage in
                         Label(storage.displayName, systemImage: storage.symbol)
                             .tag(storage)
-                            .disabled(
-                                existing?.usesPassword == true
-                                    && existing?.passwordStorage == .iCloud
-                                    && storage == .thisDevice
-                            )
                     }
                 }
+                .disabled(existing?.usesPassword == true && existing?.passwordStorage == .iCloud)
 
                 if configuration.showsKey {
                     Picker("Key", selection: $keyID) {

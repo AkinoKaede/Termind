@@ -430,8 +430,8 @@ private struct SoftwareKeyEditor: View {
                             Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
                             Label("This Mac", systemImage: "lock.laptopcomputer")
                                 .tag(KeyStorage.thisDevice)
-                                .disabled(existing?.storage == .iCloud)
                         }
+                        .disabled(existing?.storage == .iCloud)
                         LabeledContent("Color") {
                             ColorTagPicker(selection: $colorTag, layout: .compact)
                         }
