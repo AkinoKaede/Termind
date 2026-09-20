@@ -8,6 +8,18 @@ import Testing
 
 @Suite @MainActor
 struct SFTPTransferContextTests {
+    @Test func terminalRemoteDropRejectsMalformedAndExpiredPayloadsBeforeConnecting() throws {
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) {
+            TransferChannelClient(harness: TransferChannelHarness(behaviors: []))
+        }
+        let expired = try JSONEncoder().encode(SFTPRemoteItemsPayload(token: UUID()))
+
+        #expect(TerminalTransferRequest.remote(data: Data("invalid".utf8), coordinator: coordinator) == nil)
+        #expect(TerminalTransferRequest.remote(data: expired, coordinator: coordinator) == nil)
+        #expect(coordinator.sftpTransfers.isEmpty)
+        #expect(coordinator.activeCount == 0)
+    }
+
     @Test func terminalUploadKeepsASuccessfulIndependentConnection() async throws {
         let resolution = UploadConnectionResolutionHarness(independent: .success)
         let result = try await TerminalUploadConnectionResolver.resolve(

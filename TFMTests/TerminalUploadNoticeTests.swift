@@ -121,6 +121,6 @@ private struct UploadHarness: View {
     var body: some View {
         TerminalPlaceholderView(
             sshSession: session, workspace: workspace, isVisible: true, requestsFocus: true,
-            externalFileDrop: drop.request, closePane: {})
+            externalFileDrop: drop.request, externalRemoteDrop: nil, closePane: {})
     }
 }

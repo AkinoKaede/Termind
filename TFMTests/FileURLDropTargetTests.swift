@@ -118,9 +118,19 @@ import TermindRemoteInfrastructure
             #expect(payload.fileURLs.isEmpty)
             #expect(payload.preferredKind == .sftpItems)
 
-            let terminalPayload = FileURLDropNSView.payload(
+            let fileOnlyPayload = FileURLDropNSView.payload(
                 from: pasteboard, preferSFTPItems: false)
-            #expect(terminalPayload.fileURLs.count == 1)
+            #expect(fileOnlyPayload.fileURLs.count == 1)
+
+            let terminalTarget = FileURLDropNSView(
+                acceptedKinds: [.files, .sftpItems],
+                targetedKind: { _ in },
+                receivePayload: { _ in true }
+            )
+            let terminalPayload = try #require(terminalTarget.supportedPayload(from: pasteboard))
+            #expect(terminalPayload.sftpItems == remote)
+            #expect(terminalPayload.fileURLs.isEmpty)
+            #expect(terminalPayload.preferredKind == .sftpItems)
         }
 
         @Test

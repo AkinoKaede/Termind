@@ -1161,6 +1161,7 @@ final class MobileWorkspace: Identifiable {
             do {
                 let batch = try await SFTPRemoteCopyPlanner.prepare(
                     payload, destination: sftpChannel.path,
+                    destinationHostID: descriptor.hostID,
                     client: sftp, coordinator: transfers
                 )
                 try Task.checkCancellation()

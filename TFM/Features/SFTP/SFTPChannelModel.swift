@@ -862,7 +862,8 @@ final class SFTPChannelModel: Identifiable {
         do {
             pendingUploadBatch = nil
             let batch = try await SFTPRemoteCopyPlanner.prepare(
-                payload, destination: path, client: client, coordinator: coordinator
+                payload, destination: path, destinationHostID: hostID,
+                client: client, coordinator: coordinator
             )
             pendingDownloadBatch = nil
             pendingRemoteCopyBatch = batch

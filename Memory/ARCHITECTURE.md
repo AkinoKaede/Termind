@@ -207,6 +207,9 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   preflight donates a successful independent connection; only failed preflight uses the terminal's multiplexed PTY/SFTP
   libssh2 owner and fixes that generation to Channels. Closing the PTY does not retire transfers holding that transport.
   Durable trust refresh never promotes once-only trust.
+- Desktop terminals accept process-local SFTP browser drag payloads and stream remote items directly into the shell's
+  current directory through the remote-copy scheduler; they never materialize the provider's promised local file.
+  Same-Host copies reject a source copied onto itself or into its own subtree before conflict resolution can mutate it.
 - One process scheduler covers Workspace/terminal/edit transfers and Agent data operations. It defaults to 30 active files/ten
   per Host.ID (ranges 1–100 and 1–min(50, global)), rotating Hosts then Workspace/Agent-run/batch sources while retaining FIFO
   within a source. A Channel and an independent connection consume the same logical-file capacity. Cross-Host copy consumes one

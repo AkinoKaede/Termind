@@ -214,10 +214,21 @@ public nonisolated enum SFTPRemoteCopyPlanner {
     public static func prepare(
         _ payload: SFTPRemoteItemsPayload,
         destination: String,
+        destinationHostID: Host.ID,
         client: any SFTPChannelProtocol,
         coordinator: SFTPTransferCoordinator
     ) async throws -> SFTPRemoteCopyBatch {
         let manifest = try await coordinator.remoteManifest(for: payload)
+        if manifest.source.hostID == destinationHostID {
+            for file in manifest.source.files {
+                let target = RemotePath.join(destination, file.name)
+                guard target != file.path,
+                    !file.isDirectory || !contains(target, in: file.path)
+                else {
+                    throw SFTPError.operation(String(localized: "A path cannot be copied into itself."))
+                }
+            }
+        }
         var jobs: [SFTPRemoteCopyBatch.Job] = []
         var directories: [String] = []
         for entry in manifest.entries {
@@ -247,6 +258,10 @@ public nonisolated enum SFTPRemoteCopyPlanner {
             directoryConflicts: preflight.directoryConflicts,
             conflictCount: preflight.conflictCount
         )
+    }
+
+    private static func contains(_ path: String, in directory: String) -> Bool {
+        directory == "/" || path.hasPrefix(directory + "/")
     }
 
     /// Returns whether resolving the batch changed remote directories, even without file jobs.

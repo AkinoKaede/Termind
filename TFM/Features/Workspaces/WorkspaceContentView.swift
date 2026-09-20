@@ -508,7 +508,7 @@ private struct PaneView: View {
         case .sshSession:
             NativeDropTarget(
                 targetedKind: $nativeDropKind,
-                acceptedKinds: [.files],
+                acceptedKinds: [.files, .sftpItems],
                 isEnabled: isActive && window.dragging == nil,
                 receive: receivePaneDrop
             )
@@ -549,11 +549,14 @@ private struct PaneView: View {
             }
             let hostName = app.hostLibrary.host(sshSession.hostID)?.name ?? sshSession.title
             return DropTargetPresentation(
-                title: String(localized: "Upload to \(hostName)"),
+                title: nativeDropKind == .sftpItems
+                    ? String(localized: "Copy to \(hostName)")
+                    : String(localized: "Upload to \(hostName)"),
                 detail: sshSession.displayPath(
                     RemotePath.normalized(sshSession.workingDirectory ?? "/")
                 ),
-                systemImage: "arrow.up.doc.fill"
+                systemImage: nativeDropKind == .sftpItems
+                    ? "doc.on.doc.fill" : "arrow.up.doc.fill"
             )
         case .sftpChannel(let sftpChannel):
             guard sftpChannel.status == .connected else {
@@ -581,9 +584,14 @@ private struct PaneView: View {
     }
 
     private func receivePaneDrop(_ payload: NativeDropPayload) -> Bool {
-        if let data = payload.sftpItems, case .sftpChannel = pane.content {
-            sftpRemoteDropRequest = SFTPRemoteDropRequest(data: data)
-            return true
+        if let data = payload.sftpItems {
+            switch pane.content {
+            case .sshSession, .sftpChannel:
+                sftpRemoteDropRequest = SFTPRemoteDropRequest(data: data)
+                return true
+            case .serialSession, .empty:
+                return false
+            }
         }
         guard !payload.fileURLs.isEmpty else { return false }
         localFileDropRequest = LocalFileDropRequest(urls: payload.fileURLs)
@@ -652,6 +660,7 @@ private struct PaneView: View {
                 isVisible: isActive,
                 requestsFocus: isActive && isFocused && !window.isToolbarFindFocused && !window.isQuickOpenPresented,
                 externalFileDrop: localFileDropRequest,
+                externalRemoteDrop: sftpRemoteDropRequest,
                 closePane: { window.closePane(pane.id) }
             )
         case .sftpChannel(let sftpChannel):

@@ -36,6 +36,41 @@ enum TerminalUploadConnectionResolver {
     }
 }
 
+enum TerminalTransferRequest {
+    case local([URL])
+    case remote(SFTPRemoteItemsPayload, itemCount: Int)
+
+    var itemCount: Int {
+        switch self {
+        case .local(let files): files.count
+        case .remote(_, let itemCount): itemCount
+        }
+    }
+
+    static func remote(
+        data: Data,
+        coordinator: SFTPTransferCoordinator
+    ) -> TerminalTransferRequest? {
+        guard let payload = try? JSONDecoder().decode(SFTPRemoteItemsPayload.self, from: data),
+            let source = coordinator.remoteCopySource(for: payload),
+            !source.files.isEmpty
+        else { return nil }
+        return .remote(payload, itemCount: source.files.count)
+    }
+
+    func prepare(
+        on channel: SFTPChannelModel,
+        coordinator: SFTPTransferCoordinator
+    ) async {
+        switch self {
+        case .local(let files):
+            await channel.prepareUpload(files)
+        case .remote(let payload, _):
+            await channel.prepareRemoteCopy(payload, coordinator: coordinator)
+        }
+    }
+}
+
 /// A libghostty terminal surface with Termind's connection and suggestion chrome.
 struct TerminalPlaceholderView: View {
     let sshSession: SSHSessionModel
@@ -48,6 +83,7 @@ struct TerminalPlaceholderView: View {
     /// focus. A split can keep several surfaces visible at once.
     let requestsFocus: Bool
     let externalFileDrop: LocalFileDropRequest?
+    let externalRemoteDrop: SFTPRemoteDropRequest?
     /// Connection cancellation removes the pane instead of revealing the
     /// retained pre-journey terminal surface underneath it.
     let closePane: () -> Void
@@ -102,6 +138,10 @@ struct TerminalPlaceholderView: View {
             .onChange(of: externalFileDrop?.id) {
                 guard let externalFileDrop else { return }
                 _ = receiveDroppedURLs(externalFileDrop.urls)
+            }
+            .onChange(of: externalRemoteDrop?.id) {
+                guard let externalRemoteDrop else { return }
+                _ = receiveRemoteDrop(externalRemoteDrop.data)
             }
             .onChange(of: sshSession.connectionAttemptID) { cancelPendingUpload() }
             .onDisappear {
@@ -199,6 +239,19 @@ struct TerminalPlaceholderView: View {
         guard app.proAccess.require(.terminalFileUpload) else { return false }
         let files = urls.filter(\.isFileURL)
         guard !files.isEmpty else { return false }
+        return prepareTerminalTransfer(.local(files))
+    }
+
+    private func receiveRemoteDrop(_ data: Data) -> Bool {
+        guard app.proAccess.require(.terminalFileUpload) else { return false }
+        guard let request = TerminalTransferRequest.remote(data: data, coordinator: app.sftpTransfers) else {
+            showUploadNotice(.rejected(String(localized: "The copied SFTP items are invalid.")))
+            return false
+        }
+        return prepareTerminalTransfer(request)
+    }
+
+    private func prepareTerminalTransfer(_ request: TerminalTransferRequest) -> Bool {
         cancelPendingUpload()
         guard uploadTargetProblem == nil,
             let snapshot = sshSession.transferSnapshot,
@@ -217,7 +270,7 @@ struct TerminalPlaceholderView: View {
         let generation = sshSession.connectionAttemptID
         let preparationID = UUID()
         uploadPreparationID = preparationID
-        pendingUploadItemCount = files.count
+        pendingUploadItemCount = request.itemCount
         uploadNotice = .preparing(destination)
 
         uploadPreparationTask = Task {
@@ -253,7 +306,7 @@ struct TerminalPlaceholderView: View {
                     primaryRole: resolved.primaryRole,
                     homeResolution: sshSession.homeResolution
                 )
-                await uploadChannel.prepareUpload(files)
+                await request.prepare(on: uploadChannel, coordinator: app.sftpTransfers)
                 try Task.checkCancellation()
                 guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
                 if let error = uploadChannel.operationError {
@@ -296,10 +349,17 @@ struct TerminalPlaceholderView: View {
         let generation = sshSession.connectionAttemptID
         uploadConflictPresented = false
         uploadEnqueueTask = Task {
-            await uploadChannel.enqueuePending(
-                policy: policy,
-                coordinator: app.sftpTransfers
-            )
+            if uploadChannel.pendingRemoteCopyBatch != nil {
+                await uploadChannel.enqueuePendingRemoteCopy(
+                    policy: policy,
+                    coordinator: app.sftpTransfers
+                )
+            } else {
+                await uploadChannel.enqueuePending(
+                    policy: policy,
+                    coordinator: app.sftpTransfers
+                )
+            }
             let error = uploadChannel.operationError
             uploadChannel.disconnect()
             guard !Task.isCancelled, pendingUploadChannel === uploadChannel,

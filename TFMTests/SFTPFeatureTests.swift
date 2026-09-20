@@ -829,6 +829,36 @@ struct SFTPFeatureTests {
             ])
     }
 
+    @Test(arguments: [false, true])
+    func sameHostRemoteCopyRejectsItsSourceAndDescendants(_ intoDescendant: Bool) async throws {
+        let hostID = UUID()
+        let sourcePath = "/source/bundle"
+        let bundle = remoteFile(path: sourcePath, kind: .directory)
+        let source = TreeSFTPClient(listings: ["/source": [bundle], sourcePath: []])
+        let destinationPath = intoDescendant ? "/source/bundle/nested" : "/source"
+        let destination = ManifestSFTPClient(entries: [
+            destinationPath: remoteFile(path: destinationPath, kind: .directory)
+        ])
+        let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { source }
+        let payload = coordinator.registerRemoteCopySource(
+            SFTPRemoteCopySource(
+                hostID: hostID,
+                configuration: makeTestConfiguration(hostID: hostID, host: "same-host"),
+                files: [bundle]
+            ))
+        let channel = SFTPChannelModel(
+            hostID: hostID, initialPath: destinationPath, client: destination,
+            configuration: makeTestConfiguration(hostID: hostID, host: "same-host")
+        )
+
+        await channel.prepareRemoteCopy(payload, coordinator: coordinator)
+
+        #expect(channel.operationError == String(localized: "A path cannot be copied into itself."))
+        #expect(!channel.hasPendingBatch)
+        #expect(coordinator.sftpTransfers.isEmpty)
+        #expect(try await source.listDirectory(at: "/source").map(\.path) == [sourcePath])
+    }
+
     @Test
     func remoteDownloadPlannerPreservesHierarchyAndEmptyDirectories() async throws {
         let bundle = remoteFile(path: "/source/bundle", kind: .directory)
