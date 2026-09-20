@@ -124,11 +124,12 @@ struct HostsPageView: ManagedCardPage {
         for section: ManagedCardSection<HostLibrarySection.ID, Host>, isDropTarget: Bool
     ) -> some View {
         if case .group(let groupID) = section.id, let group = app.hostLibrary.group(groupID) {
+            let isExpanded = app.hostLibrary.isHostGroupExpanded(group.id)
             CardSectionHeader(
                 title: section.title,
                 count: section.items.count,
-                toggle: { app.hostLibrary.setExpanded(!group.isExpanded, for: group.id) },
-                isCollapsed: !group.isExpanded,
+                toggle: { app.hostLibrary.setExpanded(!isExpanded, for: group.id) },
+                isCollapsed: !isExpanded,
                 select: { selectGroup(group.id) },
                 isSelected: state.selectedGroupID == group.id,
                 isDropTarget: isDropTarget

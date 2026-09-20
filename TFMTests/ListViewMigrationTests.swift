@@ -244,6 +244,23 @@ struct ListViewMigrationTests {
         #expect(restored.isExpanded(.results))
     }
 
+    @Test @MainActor
+    func snippetSidebarAndMainPageKeepSeparateExpansionState() {
+        let package = SnippetPackage(name: "Operations")
+        let library = HostLibraryModel(snippetPackages: [package])
+        let section = SidebarListItem.SectionID.package(package.id)
+        var sidebar = SnippetSidebarExpansionState()
+
+        sidebar.setExpanded(false, for: section)
+        #expect(!sidebar.isExpanded(section))
+        #expect(library.isSnippetPackageExpanded(package.id))
+
+        library.setSnippetPackageExpanded(false, for: package.id)
+        sidebar.setExpanded(true, for: section)
+        #expect(sidebar.isExpanded(section))
+        #expect(!library.isSnippetPackageExpanded(package.id))
+    }
+
     @Test
     func snippetSidebarBuilderFoldsOnlyTheRequestedGroup() {
         let firstID = UUID()

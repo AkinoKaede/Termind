@@ -46,12 +46,13 @@ public enum HostLibrarySectionLayout {
         var result: [HostLibrarySection] = []
         func append(_ group: HostGroup, prefix: String) {
             let title = prefix.isEmpty ? group.name : "\(prefix) / \(group.name)"
+            let isExpanded = library.isHostGroupExpanded(group.id)
             result.append(
                 HostLibrarySection(
                     id: .group(group.id), title: title,
-                    hosts: library.hosts(in: group.id), isExpanded: group.isExpanded
+                    hosts: library.hosts(in: group.id), isExpanded: isExpanded
                 ))
-            guard group.isExpanded else { return }
+            guard isExpanded else { return }
             for child in library.childGroups(of: group.id) {
                 append(child, prefix: title)
             }
@@ -111,12 +112,13 @@ public enum SnippetLibrarySectionLayout {
         var result: [SnippetLibrarySection] = []
         func append(_ package: SnippetPackage, prefix: String) {
             let title = prefix.isEmpty ? package.name : "\(prefix) / \(package.name)"
+            let isExpanded = library.isSnippetPackageExpanded(package.id)
             result.append(
                 SnippetLibrarySection(
                     id: .package(package.id), title: title,
-                    snippets: library.snippets(in: package.id), isExpanded: package.isExpanded
+                    snippets: library.snippets(in: package.id), isExpanded: isExpanded
                 ))
-            guard package.isExpanded else { return }
+            guard isExpanded else { return }
             for child in library.childSnippetPackages(of: package.id) {
                 append(child, prefix: title)
             }

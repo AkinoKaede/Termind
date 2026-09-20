@@ -21,6 +21,9 @@ public final class SnippetLibraryModel {
     public func snippetPackage(_ id: SnippetPackage.ID) -> SnippetPackage? {
         library.snippetPackage(id)
     }
+    public func isSnippetPackageExpanded(_ id: SnippetPackage.ID) -> Bool {
+        library.isSnippetPackageExpanded(id)
+    }
     public func childSnippetPackages(of parent: SnippetPackage.ID) -> [SnippetPackage] {
         library.childSnippetPackages(of: parent)
     }

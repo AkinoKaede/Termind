@@ -69,7 +69,8 @@ struct TermindApp: App {
             let metricsSync: MetricsSyncCoordinator? =
                 isRunningTests ? nil : MetricsSyncCoordinator(persistence: metricsPersistence)
             let hosts = HostLibraryModel(
-                modelContext: container.mainContext, secrets: secrets
+                modelContext: container.mainContext, secrets: secrets,
+                localDefaults: isRunningTests ? nil : .standard
             )
             let repository = SwiftDataHostRepository(context: container.mainContext)
             let outboxStore = SwiftDataOutboxStore(context: container.mainContext)

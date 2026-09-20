@@ -25,6 +25,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public private(set) var storageError: String?
     private let vault: VaultStore
     private let keychain: any SecretStoring
+    private var expansionState = LibraryExpansionState()
     @ObservationIgnored private var recordedIdentityCredentialAccesses: Set<Identity.ID> = []
     /// Runtime resources live in AppModel, so deletion announces before model
     /// references are removed and the controller can stop listeners cleanly.
@@ -50,15 +51,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public private(set) var statuses: [Host.ID: ConnectionStatus] = [:]
     private var connectionStatuses: [UUID: (hostID: Host.ID, status: ConnectionStatus)] = [:]
 
-    /// Whether the Hosts page's Ungrouped section is open.
-    ///
-    /// Lives here rather than as view state because a real group keeps its
-    /// `isExpanded` on the model: if this were a `@State` on the page, folding
-    /// Ungrouped would spring back open on the next rebuild while folding
-    /// Production stayed folded, and there would be no way to explain the
-    /// difference to whoever noticed.
-    public private(set) var isUngroupedExpanded = true
-    public private(set) var isSnippetsUngroupedExpanded = true
+    public var isUngroupedExpanded: Bool { expansionState.isHostsUngroupedExpanded }
+    public var isSnippetsUngroupedExpanded: Bool { expansionState.isSnippetsUngroupedExpanded }
 
     public init(
         hosts: [Host] = [],
@@ -72,7 +66,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         knownHosts: [KnownHostEntry] = [],
         workspaceTemplates: [WorkspaceTemplate] = [],
         persistence: (any VaultPersisting)? = nil,
-        secrets: any SecretStoring = InMemorySecretStore()
+        secrets: any SecretStoring = InMemorySecretStore(),
+        localDefaults: UserDefaults? = nil
     ) {
         self.hosts = hosts
         self.groups = groups
@@ -115,6 +110,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         } catch {
             storageError = error.localizedDescription
         }
+        expansionState = LibraryExpansionState(
+            defaults: localDefaults,
+            legacyGroups: self.groups,
+            legacySnippetPackages: self.snippetPackages
+        )
+        reconcileExpansionState()
     }
 
     // MARK: - Reads
@@ -127,6 +128,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         groups.first { $0.id == id }
     }
 
+    public func isHostGroupExpanded(_ id: HostGroup.ID) -> Bool {
+        expansionState.isHostGroupExpanded(id)
+    }
+
     public func snippet(_ id: Snippet.ID) -> Snippet? {
         snippets.first { $0.id == id }
     }
@@ -137,6 +142,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func snippetPackage(_ id: SnippetPackage.ID) -> SnippetPackage? {
         snippetPackages.first { $0.id == id }
+    }
+
+    public func isSnippetPackageExpanded(_ id: SnippetPackage.ID) -> Bool {
+        expansionState.isSnippetPackageExpanded(id)
     }
 
     public var rootSnippetPackages: [SnippetPackage] {
@@ -1053,23 +1062,21 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func setExpanded(_ expanded: Bool, for groupID: HostGroup.ID) {
-        guard let index = groups.firstIndex(where: { $0.id == groupID }) else { return }
-        groups[index].isExpanded = expanded
-        persistCore()
+        guard group(groupID) != nil else { return }
+        expansionState.setHostGroupExpanded(expanded, for: groupID)
     }
 
     public func setUngroupedExpanded(_ expanded: Bool) {
-        isUngroupedExpanded = expanded
+        expansionState.setHostsUngroupedExpanded(expanded)
     }
 
     public func setSnippetPackageExpanded(_ expanded: Bool, for packageID: SnippetPackage.ID) {
-        guard let index = snippetPackages.firstIndex(where: { $0.id == packageID }) else { return }
-        snippetPackages[index].isExpanded = expanded
-        persistCore()
+        guard snippetPackage(packageID) != nil else { return }
+        expansionState.setSnippetPackageExpanded(expanded, for: packageID)
     }
 
     public func setSnippetsUngroupedExpanded(_ expanded: Bool) {
-        isSnippetsUngroupedExpanded = expanded
+        expansionState.setSnippetsUngroupedExpanded(expanded)
     }
 
     /// Adds or updates an identity. New ones land at the end of the list, which
@@ -1475,6 +1482,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             hosts[index].groupID = nil
         }
         groups.removeAll { doomed.contains($0.id) }
+        reconcileExpansionState()
         persistCore()
     }
 
@@ -1535,6 +1543,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             snippets.removeAll { $0.packageID.map(doomed.contains) == true }
         }
         snippetPackages.removeAll { doomed.contains($0.id) }
+        reconcileExpansionState()
         persistCore()
     }
 
@@ -1995,12 +2004,19 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private func expandSnippetPackageAncestors(_ packageID: SnippetPackage.ID?) {
         var current = packageID
         var visited: Set<SnippetPackage.ID> = []
-        while let id = current, let index = snippetPackages.firstIndex(where: { $0.id == id }),
+        while let id = current, let package = snippetPackage(id),
             visited.insert(id).inserted
         {
-            snippetPackages[index].isExpanded = true
-            current = snippetPackages[index].parentID
+            current = package.parentID
         }
+        expansionState.setSnippetPackagesExpanded(visited)
+    }
+
+    private func reconcileExpansionState() {
+        expansionState.reconcile(
+            hostGroupIDs: Set(groups.map(\.id)),
+            snippetPackageIDs: Set(snippetPackages.map(\.id))
+        )
     }
 
     @discardableResult
@@ -2060,6 +2076,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         connectionStatuses = connectionStatuses.filter { _, value in
             hosts.contains { $0.id == value.hostID }
         }
+        reconcileExpansionState()
         storageError = nil
         vault.didApplyRemoteSnapshot()
     }

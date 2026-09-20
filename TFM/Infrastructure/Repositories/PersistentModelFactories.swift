@@ -7,11 +7,13 @@ import TermindRemoteInfrastructure
 extension HostLibraryModel {
     convenience init(
         modelContext: ModelContext,
-        secrets: any SecretStoring = KeychainSecretStore()
+        secrets: any SecretStoring = KeychainSecretStore(),
+        localDefaults: UserDefaults? = nil
     ) {
         self.init(
             persistence: HostPersistence(context: modelContext),
-            secrets: secrets
+            secrets: secrets,
+            localDefaults: localDefaults
         )
     }
 }

@@ -107,14 +107,15 @@ struct SnippetsPageView: ManagedCardPage {
         switch section.id {
         case .package(let id):
             if let package = app.snippets.snippetPackage(id) {
+                let isExpanded = app.snippets.isSnippetPackageExpanded(id)
                 CardSectionHeader(
                     title: section.title, count: section.items.count,
                     toggle: {
                         app.snippets.setSnippetPackageExpanded(
-                            !package.isExpanded, for: package.id
+                            !isExpanded, for: package.id
                         )
                     },
-                    isCollapsed: !package.isExpanded,
+                    isCollapsed: !isExpanded,
                     select: { selectPackage(package.id) },
                     isSelected: state.selectedPackageID == package.id,
                     isDropTarget: isDropTarget

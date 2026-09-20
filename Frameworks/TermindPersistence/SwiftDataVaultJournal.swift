@@ -35,7 +35,8 @@ extension VaultSnapshot {
     public nonisolated var recordPayloads: [VaultRecordKey: VaultRecordPayload] {
         var result: [VaultRecordKey: VaultRecordPayload] = [:]
         for value in hosts { result[VaultRecordKey(kind: .host, id: value.id)] = .host(value) }
-        for value in groups {
+        for var value in groups {
+            value.isExpanded = true
             result[VaultRecordKey(kind: .hostGroup, id: value.id)] = .hostGroup(value)
         }
         for var value in identities {
@@ -51,7 +52,8 @@ extension VaultSnapshot {
         for value in snippets {
             result[VaultRecordKey(kind: .snippet, id: value.id)] = .snippet(value)
         }
-        for value in snippetPackages {
+        for var value in snippetPackages {
+            value.isExpanded = true
             result[VaultRecordKey(kind: .snippetPackage, id: value.id)] = .snippetPackage(value)
         }
         for value in portForwardings {
@@ -120,9 +122,19 @@ extension VaultSnapshot {
 
 extension VaultRecordPayload {
     fileprivate var withoutDeviceLocalMetadata: Self {
-        guard case .identity(var value) = self else { return self }
-        value.lastUsedAt = nil
-        return .identity(value)
+        switch self {
+        case .hostGroup(var value):
+            value.isExpanded = true
+            return .hostGroup(value)
+        case .identity(var value):
+            value.lastUsedAt = nil
+            return .identity(value)
+        case .snippetPackage(var value):
+            value.isExpanded = true
+            return .snippetPackage(value)
+        default:
+            return self
+        }
     }
 }
 

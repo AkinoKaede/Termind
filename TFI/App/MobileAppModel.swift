@@ -173,7 +173,10 @@ final class MobileAppModel {
         skills = SkillLibraryModel(persistence: SyncedSkillLibraryPersistence(settingsPersistence))
         memory = MemoryModel(
             storage: GRDBMemoryStore(directory: GRDBMemoryStore.defaultDirectory), defaults: settingsDefaults)
-        library = HostLibraryModel(persistence: persistence, secrets: secrets)
+        library = HostLibraryModel(
+            persistence: persistence, secrets: secrets,
+            localDefaults: memoryOnly ? nil : settingsDefaults
+        )
         metrics = MobileMetricsModel(
             preferences: metricsPersistence, hosts: library, services: dependencies.metrics)
         let speechAudio = IOSSpeechAudioInput()

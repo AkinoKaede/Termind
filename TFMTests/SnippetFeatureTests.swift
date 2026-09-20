@@ -56,8 +56,8 @@ struct SnippetFeatureTests {
 
         store.move(snippetIDs: [snippet.id], into: child.id)
 
-        #expect(store.snippetPackage(root.id)?.isExpanded == true)
-        #expect(store.snippetPackage(child.id)?.isExpanded == true)
+        #expect(store.isSnippetPackageExpanded(root.id))
+        #expect(store.isSnippetPackageExpanded(child.id))
     }
 
     @Test
@@ -97,7 +97,7 @@ struct SnippetFeatureTests {
     }
 
     @Test
-    func snippetPersistenceRoundTripKeepsPackagesTargetsAndExpansion() throws {
+    func snippetPersistenceRoundTripKeepsPackagesTargetsAndLocalExpansion() throws {
         let configuration = localModelConfiguration(
             "SnippetFeatureTests", schema: HostPersistence.schema,
             isStoredInMemoryOnly: true
@@ -106,7 +106,13 @@ struct SnippetFeatureTests {
             for: HostPersistence.schema,
             configurations: [configuration]
         )
-        let store = HostLibraryModel(modelContext: container.mainContext)
+        let defaultsName = "SnippetFeatureTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: defaultsName))
+        defer { defaults.removePersistentDomain(forName: defaultsName) }
+        let store = HostLibraryModel(
+            modelContext: container.mainContext,
+            localDefaults: defaults
+        )
         let host = Host(name: "Web", host: "web.example")
         let package = SnippetPackage(name: "Operations", isExpanded: false)
         let script = """
@@ -124,8 +130,11 @@ struct SnippetFeatureTests {
         store.setSnippetPackageExpanded(false, for: package.id)
         store.upsert(snippet)
 
-        let reloaded = HostLibraryModel(modelContext: container.mainContext)
-        #expect(reloaded.snippetPackage(package.id)?.isExpanded == false)
+        let reloaded = HostLibraryModel(
+            modelContext: container.mainContext,
+            localDefaults: defaults
+        )
+        #expect(!reloaded.isSnippetPackageExpanded(package.id))
         #expect(reloaded.snippet(snippet.id)?.packageID == package.id)
         #expect(reloaded.snippet(snippet.id)?.targetHostIDs == [host.id])
         #expect(reloaded.snippet(snippet.id)?.body == script)

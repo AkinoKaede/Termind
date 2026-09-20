@@ -58,10 +58,11 @@ struct MobileSnippetTests {
         app.snippets.setSnippetPackageExpanded(false, for: root.id)
 
         #expect(app.snippets.searchSnippets("Operations / Database").map(\.id) == [snippet.id])
-        #expect(app.snippets.snippetPackage(root.id)?.isExpanded == false)
+        #expect(!app.snippets.isSnippetPackageExpanded(root.id))
 
         app.snippets.move(snippetIDs: [snippet.id], into: root.id)
         #expect(app.snippets.snippets(in: root.id).map(\.id) == [snippet.id])
+        #expect(app.snippets.isSnippetPackageExpanded(root.id))
 
         let stored = try HostPersistence(context: ModelContext(app.container)).load()
         #expect(stored.snippets.first?.packageID == root.id)

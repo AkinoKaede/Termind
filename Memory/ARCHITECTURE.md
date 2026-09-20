@@ -80,6 +80,9 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - macOS appearance/language are local; System appearance clears `NSApplication.appearance`. Login launch reads
   `SMAppService`, not mirrored preferences; quiet launch hides the app without suppressing its window. Mobile uses
   Apple's per-app language settings without an injected locale override.
+- Hosts group, Snippets package and both Ungrouped expansion states are device-local and survive relaunch without
+  entering Vault persistence or sync. TFM's compact Snippets sidebar keeps a separate device-local expansion state.
+  Legacy synced expansion values seed each installation once; new groups and packages start expanded.
 - Debug visibility/logging are device-local/default-off for saving. Inject SwiftLog `Logger`; no process-global
   bootstrap. Infrastructure owns one locked writer/file per launch: disable closes but preserves, re-enable resumes,
   deletion recreates only when enabled. No retention policy or in-app viewer. Debug stderr uses the same sanitization.

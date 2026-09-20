@@ -177,6 +177,59 @@ struct VaultSyncTests {
     }
 
     @Test
+    func libraryExpansionMetadataNeverChangesVaultRecords() throws {
+        let container = try makeContainer("LocalLibraryExpansion")
+        let context = container.mainContext
+        let persistence = HostPersistence(context: context)
+        var group = HostGroup(name: "Production", isExpanded: false)
+        var package = SnippetPackage(name: "Operations", isExpanded: false)
+        let groupKey = VaultRecordKey(kind: .hostGroup, id: group.id)
+        let packageKey = VaultRecordKey(kind: .snippetPackage, id: package.id)
+
+        let initial = try persistence.save(
+            VaultSnapshot(groups: [group], snippetPackages: [package])
+        )
+        #expect(initial.keys == [groupKey, packageKey])
+        let journal = VaultSyncJournal(context: context)
+        if case .hostGroup(let payload) = try journal.envelope(for: groupKey)?.payload {
+            #expect(payload.isExpanded)
+        } else {
+            Issue.record("Expected a Host Group payload")
+        }
+        if case .snippetPackage(let payload) = try journal.envelope(for: packageKey)?.payload {
+            #expect(payload.isExpanded)
+        } else {
+            Issue.record("Expected a Snippet Package payload")
+        }
+
+        group.isExpanded = true
+        package.isExpanded = true
+        #expect(
+            try persistence.save(
+                VaultSnapshot(groups: [group], snippetPackages: [package])
+            ).isEmpty
+        )
+
+        var remoteGroup = group
+        remoteGroup.isExpanded = false
+        var remotePackage = package
+        remotePackage.isExpanded = false
+        let remoteVersion = VaultVersion(
+            modifiedAt: Date().addingTimeInterval(60), counter: 0, writerID: UUID()
+        )
+        let result = try persistence.applyRemote([
+            VaultEnvelope(key: groupKey, version: remoteVersion, payload: .hostGroup(remoteGroup)),
+            VaultEnvelope(
+                key: packageKey, version: remoteVersion,
+                payload: .snippetPackage(remotePackage)
+            ),
+        ])
+
+        #expect(result.snapshot.groups.first?.isExpanded == true)
+        #expect(result.snapshot.snippetPackages.first?.isExpanded == true)
+    }
+
+    @Test
     func identityUsageStaysLocalAndDoesNotCreateVaultMutations() throws {
         let container = try makeContainer("LocalIdentityUsage")
         let context = container.mainContext

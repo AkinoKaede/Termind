@@ -107,7 +107,7 @@ struct MobileCardTests {
                 .first(where: { $0.id == .ungrouped })?.isExpanded == false)
 
         let stored = try HostPersistence(context: ModelContext(app.container)).load()
-        #expect(stored.groups.first(where: { $0.id == root.id })?.isExpanded == false)
+        #expect(stored.groups.first(where: { $0.id == root.id })?.isExpanded == true)
     }
 
     @Test func distributionBrandColorsAreValidAndReadableOnHostIconSurfaces() throws {
