@@ -54,22 +54,6 @@ struct HostEditorView: View {
         Form {
             HostConnectionFields(host: $draft)
 
-            Section("Port Forwarding") {
-                Stepper(
-                    value: $draft.portForwardingMaxConnections,
-                    in: Host.portForwardingMaxConnectionsRange
-                ) {
-                    HStack {
-                        Text("Max Connections")
-                        Spacer()
-                        Text(draft.portForwardingMaxConnections, format: .number).monospacedDigit()
-                    }
-                }
-                Text("Local and dynamic forwards share this connection pool. Changes apply after restart.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
             Section("Authentication") {
                 // One control, because a host says *where* and an identity says
                 // *who*. The login name and the secret travel together — a
@@ -181,6 +165,22 @@ struct HostEditorView: View {
                     Text("Tags")
                     TagField(tags: $draft.tags, suggestions: app.hostLibrary.allTags)
                 }
+            }
+
+            Section("Port Forwarding") {
+                Stepper(
+                    value: $draft.portForwardingMaxConnections,
+                    in: Host.portForwardingMaxConnectionsRange
+                ) {
+                    HStack {
+                        Text("Max Connections")
+                        Spacer()
+                        Text(draft.portForwardingMaxConnections, format: .number).monospacedDigit()
+                    }
+                }
+                Text("Local and dynamic forwards share this connection pool. Changes apply after restart.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             HostIntegrationSection(mode: $draft.shellIntegrationMode)

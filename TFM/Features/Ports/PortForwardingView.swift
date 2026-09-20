@@ -126,7 +126,7 @@ struct PortForwardingPageView: ManagedCardPage {
                         .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     Spacer(minLength: 0)
                     CardChip(
-                        text: runtime.label, symbol: runtime.isActive ? "circle.fill" : "circle",
+                        text: runtime.compactLabel, symbol: runtime.isActive ? "circle.fill" : "circle",
                         tint: runtime.isActive ? .green : nil)
                 }
             }

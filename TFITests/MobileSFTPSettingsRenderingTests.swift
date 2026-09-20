@@ -8,14 +8,16 @@ import UIKit
 @Suite(.serialized) @MainActor
 struct MobileSFTPSettingsRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
-    func settingsRenderDefaultsAndMaximumLimits(language: String) async throws {
+    func connectionSettingsRenderSFTPDefaultsAndMaximumLimits(language: String) async throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previous = scene.keyWindow
         let window = UIWindow(windowScene: scene)
         let controller = UIHostingController(
-            rootView: NavigationStack { MobileSFTPSettingsView(model: app.sftpSettings) }
-                .environment(\.locale, Locale(identifier: language)))
+            rootView: NavigationStack {
+                MobileConnectionSettingsView(ssh: app.sshSettings, sftp: app.sftpSettings)
+            }
+            .environment(\.locale, Locale(identifier: language)))
         window.rootViewController = controller
         window.windowLevel = .alert + 1
         window.makeKeyAndVisible()
@@ -33,7 +35,7 @@ struct MobileSFTPSettingsRenderingTests {
                 window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
             }
             let data = try #require(image.pngData())
-            Attachment.record(data, named: "mobile-sftp-settings-\(language)-\(value.globalLimit).png")
+            Attachment.record(data, named: "mobile-connection-settings-\(language)-\(value.globalLimit).png")
             #expect(data.count > 10_000)
         }
     }

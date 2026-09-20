@@ -9,7 +9,7 @@ import Testing
 @Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct HostIntegrationRenderingTests {
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [320.0, 360.0, 480.0])
-    func hostEditorShowsIntegrationBelowGroupingAtNarrowWidth(language: String, width: CGFloat) async throws {
+    func hostEditorShowsForwardingAboveIntegrationAtNarrowWidth(language: String, width: CGFloat) async throws {
         let host = TermindDomain.Host(name: "Production", host: "server.invalid")
         let app = AppModel(hosts: HostLibraryModel(hosts: [host]))
         let navigation = WindowModel()
@@ -34,12 +34,20 @@ struct HostIntegrationRenderingTests {
         try await Task.sleep(for: .milliseconds(500))
         controller.view.layoutSubtreeIfNeeded()
         let defaultLabel = AppLocalization.string("Default", locale: Locale(identifier: language))
-        #expect(descendants(controller.view).compactMap { $0 as? NSStepper }.count == 1)
+        let steppers = descendants(controller.view).compactMap { $0 as? NSStepper }
+        #expect(steppers.count == 1)
         #expect(descendants(controller.view).compactMap { $0 as? NSSegmentedControl }.isEmpty)
         let control = try #require(
             descendants(controller.view).compactMap { $0 as? NSPopUpButton }.first { $0.title == defaultLabel })
         let frame = control.convert(control.bounds, to: controller.view)
         #expect(frame.minX >= 16 && frame.maxX <= width - 16)
+        let stepper = try #require(steppers.first)
+        let forwardingFrame = stepper.convert(stepper.bounds, to: controller.view)
+        if controller.view.isFlipped {
+            #expect(forwardingFrame.midY < frame.midY)
+        } else {
+            #expect(forwardingFrame.midY > frame.midY)
+        }
         let bitmap = try #require(controller.view.bitmapImageRepForCachingDisplay(in: controller.view.bounds))
         controller.view.cacheDisplay(in: controller.view.bounds, to: bitmap)
         let data = try #require(bitmap.representation(using: .png, properties: [:]))

@@ -107,7 +107,9 @@ struct LoggingFilesSettings: View {
     }
 
     private func logRow(_ file: ApplicationLogFile) -> some View {
-        Button { selectedFile = file } label: {
+        Button {
+            selectedFile = file
+        } label: {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 6) {

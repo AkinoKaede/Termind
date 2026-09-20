@@ -50,6 +50,14 @@ public nonisolated enum PortForwardingRuntimeState: Hashable, Sendable {
         case .failed(let message): message
         }
     }
+
+    public var compactLabel: String {
+        switch self {
+        case .running: String(localized: "Running")
+        case .failed: String(localized: "Failed")
+        default: label
+        }
+    }
 }
 
 /// A host's manually opened transport and its shared authentication surface.

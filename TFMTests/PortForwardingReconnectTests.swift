@@ -8,6 +8,21 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct PortForwardingReconnectTests {
+    @Test func compactLabelsHideConnectionCountsAndFailureDetails() {
+        let running = PortForwardingRuntimeState.running(
+            activeConnections: 37, sshConnections: 3, targetSSHConnections: 8)
+        let failureMessage = "The forwarding transport closed unexpectedly."
+        let failed = PortForwardingRuntimeState.failed(failureMessage)
+
+        #expect(running.compactLabel == String(localized: "Running"))
+        #expect(
+            running.label
+                == String(localized: "Running · SSH \(3)/\(8) · \(37) TCP flows"))
+        #expect(failed.compactLabel == String(localized: "Failed"))
+        #expect(failed.label == failureMessage)
+        #expect(PortForwardingRuntimeState.reconnecting.compactLabel == String(localized: "Reconnecting"))
+    }
+
     @Test func sharedHostRestoresEveryKindAndJoinsNewRulesWithoutPresentingJourney() async throws {
         let fixture = ReconnectFixture()
         defer { fixture.stop() }

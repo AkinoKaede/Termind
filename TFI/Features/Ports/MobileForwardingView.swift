@@ -131,7 +131,7 @@ struct MobileForwardingCardContent: View {
                 MobileCardChip(text: rule.kind.shortDisplayName)
                 Text(hostName).font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                 Spacer(minLength: 0)
-                MobileCardChip(text: runtime.label, symbol: runtime.isActive ? "circle.fill" : "circle")
+                MobileCardChip(text: runtime.compactLabel, symbol: runtime.isActive ? "circle.fill" : "circle")
             }
         }.accessibilityElement(children: .combine)
     }

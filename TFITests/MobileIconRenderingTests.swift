@@ -132,8 +132,11 @@ struct MobileIconRenderingTests {
                 }
                 .environment(\.locale, locale)
             }
-            try await capture("sftp-settings-\(suffix)", language: language, scheme: scheme) {
-                NavigationStack { MobileSFTPSettingsView(model: app.sftpSettings) }.environment(\.locale, locale)
+            try await capture("connection-settings-\(suffix)", language: language, scheme: scheme) {
+                NavigationStack {
+                    MobileConnectionSettingsView(ssh: app.sshSettings, sftp: app.sftpSettings)
+                }
+                .environment(\.locale, locale)
             }
             try await capture("editor-\(suffix)", language: language, scheme: scheme) {
                 MobileHostEditor(app: app, host: Host(name: "Example", host: "example.invalid"))
@@ -184,9 +187,11 @@ struct MobileIconRenderingTests {
             }
             .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
         }
-        try await capture("sftp-settings-large-type", language: language, scheme: .light) {
-            NavigationStack { MobileSFTPSettingsView(model: app.sftpSettings) }
-                .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
+        try await capture("connection-settings-large-type", language: language, scheme: .light) {
+            NavigationStack {
+                MobileConnectionSettingsView(ssh: app.sshSettings, sftp: app.sftpSettings)
+            }
+            .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
         }
         try await capture("editor-large-type", language: language, scheme: .light) {
             MobileHostEditor(app: app, host: Host(name: "Example", host: "example.invalid"))
