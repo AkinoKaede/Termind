@@ -21,26 +21,26 @@ struct SFTPFeatureTests {
         let first = remoteFile(path: "/home/a.txt", kind: .file)
         let second = remoteFile(path: "/home/b.txt", kind: .file)
         let third = remoteFile(path: "/home/c.txt", kind: .file)
-        let session = SFTPSessionModel(
+        let channel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home",
             client: SnapshotSFTPClient(responses: [.success([first, second, third])]))
-        await session.reload(silently: true)
+        await channel.reload(silently: true)
 
-        #expect(session.selectForContextMenu(first))
-        #expect(session.selection == [first.id])
-        #expect(session.menuTargets(for: first) == [first])
+        #expect(channel.selectForContextMenu(first))
+        #expect(channel.selection == [first.id])
+        #expect(channel.menuTargets(for: first) == [first])
 
-        session.selection = [first.id, second.id]
-        #expect(!session.selectForContextMenu(second))
-        #expect(session.selection == [first.id, second.id])
-        let targets = session.menuTargets(for: second)
+        channel.selection = [first.id, second.id]
+        #expect(!channel.selectForContextMenu(second))
+        #expect(channel.selection == [first.id, second.id])
+        let targets = channel.menuTargets(for: second)
         #expect(targets == [first, second])
 
-        #expect(session.selectForContextMenu(third))
-        #expect(session.selection == [third.id])
-        #expect(session.menuTargets(for: third) == [third])
+        #expect(channel.selectForContextMenu(third))
+        #expect(channel.selection == [third.id])
+        #expect(channel.menuTargets(for: third) == [third])
         #expect(targets == [first, second])
-        #expect(!session.selectForContextMenu(third))
+        #expect(!channel.selectForContextMenu(third))
     }
 
     @Test
@@ -144,32 +144,32 @@ struct SFTPFeatureTests {
         let client = SnapshotSFTPClient(
             responses: [.success([folderZ, missingDate, large, folderA, small])]
         )
-        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home", client: client)
+        let channel = SFTPChannelModel(hostID: UUID(), initialPath: "/home", client: client)
 
-        await session.reload(silently: true)
+        await channel.reload(silently: true)
         #expect(
-            session.filteredFiles.map(\.name) == [
+            channel.filteredFiles.map(\.name) == [
                 "a-folder", "z-folder", "large.txt", "small.txt", "undated.log",
             ])
 
-        session.sort(by: .modified)
-        #expect(session.sortDirection == .descending)
+        channel.sort(by: .modified)
+        #expect(channel.sortDirection == .descending)
         #expect(
-            session.filteredFiles.map(\.name) == [
+            channel.filteredFiles.map(\.name) == [
                 "a-folder", "z-folder", "large.txt", "small.txt", "undated.log",
             ])
 
-        session.sort(by: .size)
-        #expect(session.sortDirection == .descending)
+        channel.sort(by: .size)
+        #expect(channel.sortDirection == .descending)
         #expect(
-            session.filteredFiles.map(\.name) == [
+            channel.filteredFiles.map(\.name) == [
                 "a-folder", "z-folder", "large.txt", "undated.log", "small.txt",
             ])
 
-        session.sort(by: .kind)
-        #expect(session.sortDirection == .ascending)
+        channel.sort(by: .kind)
+        #expect(channel.sortDirection == .ascending)
         #expect(
-            session.filteredFiles.map(\.name) == [
+            channel.filteredFiles.map(\.name) == [
                 "a-folder", "z-folder", "undated.log", "large.txt", "small.txt",
             ])
     }
@@ -183,27 +183,27 @@ struct SFTPFeatureTests {
         let report = remoteFile(path: "/home/report.txt", kind: .file, size: 100)
         let archive = remoteFile(path: "/home/archive", kind: .directory)
         let client = SnapshotSFTPClient(responses: [.success([report, notes, archive])])
-        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home", client: client)
+        let channel = SFTPChannelModel(hostID: UUID(), initialPath: "/home", client: client)
 
-        await session.reload(silently: true)
-        #expect(session.visibleRows.map(\.file.name) == ["archive", "notes.txt", "report.txt"])
-        #expect(session.visibleRows.map(\.sizeText) == ["", "10 bytes", "100 bytes"])
+        await channel.reload(silently: true)
+        #expect(channel.visibleRows.map(\.file.name) == ["archive", "notes.txt", "report.txt"])
+        #expect(channel.visibleRows.map(\.sizeText) == ["", "10 bytes", "100 bytes"])
 
-        session.selection = [notes.id, report.id]
-        #expect(session.visibleRows.map(\.file.name) == ["archive", "notes.txt", "report.txt"])
-        #expect(session.selectedFiles == [notes, report])
+        channel.selection = [notes.id, report.id]
+        #expect(channel.visibleRows.map(\.file.name) == ["archive", "notes.txt", "report.txt"])
+        #expect(channel.selectedFiles == [notes, report])
 
-        session.query = "report"
-        #expect(session.visibleRows.map(\.file.name) == ["report.txt"])
+        channel.query = "report"
+        #expect(channel.visibleRows.map(\.file.name) == ["report.txt"])
         // The filter dropped a selected row, so the selection follows it out.
-        #expect(session.selectedFiles == [report])
+        #expect(channel.selectedFiles == [report])
 
-        session.sort(by: .size)
-        #expect(session.sortDirection == .descending)
-        #expect(session.visibleRows.map(\.file.name) == ["report.txt"])
+        channel.sort(by: .size)
+        #expect(channel.sortDirection == .descending)
+        #expect(channel.visibleRows.map(\.file.name) == ["report.txt"])
 
-        session.query = ""
-        #expect(session.visibleRows.map(\.file.name) == ["archive", "report.txt", "notes.txt"])
+        channel.query = ""
+        #expect(channel.visibleRows.map(\.file.name) == ["archive", "report.txt", "notes.txt"])
     }
 
     @Test
@@ -214,18 +214,18 @@ struct SFTPFeatureTests {
         let client = SnapshotSFTPClient(
             responses: [.success([visibleFile, hiddenFile, hiddenFolder])]
         )
-        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home", client: client)
+        let channel = SFTPChannelModel(hostID: UUID(), initialPath: "/home", client: client)
 
-        await session.reload(silently: true)
-        #expect(session.visibleRows.map(\.file.name) == ["readme.md"])
+        await channel.reload(silently: true)
+        #expect(channel.visibleRows.map(\.file.name) == ["readme.md"])
 
-        session.showsHiddenFiles = true
-        #expect(session.visibleRows.map(\.file.name) == [".git", ".env", "readme.md"])
+        channel.showsHiddenFiles = true
+        #expect(channel.visibleRows.map(\.file.name) == [".git", ".env", "readme.md"])
 
-        session.selection = [hiddenFile.id]
-        session.showsHiddenFiles = false
-        #expect(session.visibleRows.map(\.file.name) == ["readme.md"])
-        #expect(session.selection.isEmpty)
+        channel.selection = [hiddenFile.id]
+        channel.showsHiddenFiles = false
+        #expect(channel.visibleRows.map(\.file.name) == ["readme.md"])
+        #expect(channel.selection.isEmpty)
     }
 
     @Test
@@ -305,45 +305,45 @@ struct SFTPFeatureTests {
     func permissionUpdateWritesModeAndRefreshesDirectory() async {
         let file = remoteFile(path: "/home/tool", kind: .file)
         let client = PermissionSFTPClient(file: file)
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
 
-        let saved = await sftpSession.updatePermissions(for: file, to: 0o104755)
+        let saved = await sftpChannel.updatePermissions(for: file, to: 0o104755)
 
         #expect(saved)
         #expect(await client.lastPermissionUpdate == .init(path: "/home/tool", mode: 0o4755))
-        #expect(sftpSession.files.first?.permissionMode == 0o4755)
-        #expect(sftpSession.operationError == nil)
+        #expect(sftpChannel.files.first?.permissionMode == 0o4755)
+        #expect(sftpChannel.operationError == nil)
     }
 
     @Test
     func permissionUpdateFailureKeepsEditorOpenThroughFalseResult() async {
         let file = remoteFile(path: "/home/tool", kind: .file)
         let client = PermissionSFTPClient(file: file, rejectsUpdate: true)
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
 
-        let saved = await sftpSession.updatePermissions(for: file, to: 0o755)
+        let saved = await sftpChannel.updatePermissions(for: file, to: 0o755)
 
         #expect(!saved)
-        #expect(sftpSession.files.isEmpty)
-        #expect(sftpSession.operationError == "Permission denied")
+        #expect(sftpChannel.files.isEmpty)
+        #expect(sftpChannel.operationError == "Permission denied")
     }
 
     @Test
-    func hostDefaultsToRemoteHomeForSFTPSession() {
+    func hostDefaultsToRemoteHomeForSFTPChannel() {
         let host = Host(name: "Server", host: "server.example")
-        #expect(host.sftpSessionInitialPath.isEmpty)
-        let pane = Pane.sftpSession(host: host)
-        guard case .sftpSession(let sftpSession) = pane.content else {
-            Issue.record("Expected SFTP session pane")
+        #expect(host.sftpChannelInitialPath.isEmpty)
+        let pane = Pane.sftpChannel(host: host)
+        guard case .sftpChannel(let sftpChannel) = pane.content else {
+            Issue.record("Expected SFTP channel pane")
             return
         }
-        #expect(sftpSession.path == "/")
+        #expect(sftpChannel.path == "/")
     }
 
     @Test
@@ -360,38 +360,38 @@ struct SFTPFeatureTests {
     @Test
     func emptyInitialPathResolvesRemoteHomeOnlyOnce() async throws {
         let client = ManifestSFTPClient(entries: [:], home: "/home/deploy/")
-        let sftpSession = SFTPSessionModel(hostID: UUID(), initialPath: "")
+        let sftpChannel = SFTPChannelModel(hostID: UUID(), initialPath: "")
 
-        try await sftpSession.resolveInitialPathIfNeeded(using: client)
-        try await sftpSession.resolveInitialPathIfNeeded(using: client)
+        try await sftpChannel.resolveInitialPathIfNeeded(using: client)
+        try await sftpChannel.resolveInitialPathIfNeeded(using: client)
 
-        #expect(sftpSession.path == "/home/deploy")
-        #expect(sftpSession.pathText == "/home/deploy")
+        #expect(sftpChannel.path == "/home/deploy")
+        #expect(sftpChannel.pathText == "/home/deploy")
         #expect(await client.homeDirectoryRequestCount == 1)
-        #expect(sftpSession.displayedPath == "~")
+        #expect(sftpChannel.displayedPath == "~")
     }
 
     @Test
     func configuredInitialPathStillResolvesHomeWithoutChangingNavigation() async throws {
         let client = ManifestSFTPClient(entries: [:], home: "/home/deploy")
-        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/home/deploy/project")
+        let channel = SFTPChannelModel(hostID: UUID(), initialPath: "/home/deploy/project")
 
-        try await session.resolveInitialPathIfNeeded(using: client)
+        try await channel.resolveInitialPathIfNeeded(using: client)
 
-        #expect(session.path == "/home/deploy/project")
-        #expect(session.displayedPath == "~/project")
+        #expect(channel.path == "/home/deploy/project")
+        #expect(channel.displayedPath == "~/project")
         #expect(await client.homeDirectoryRequestCount == 1)
     }
 
     @Test
     func configuredInitialPathFallsBackToAbsoluteWhenHomeIsUnavailable() async throws {
         let client = ManifestSFTPClient(entries: [:], rejectsHome: true)
-        let session = SFTPSessionModel(hostID: UUID(), initialPath: "/srv/project")
+        let channel = SFTPChannelModel(hostID: UUID(), initialPath: "/srv/project")
 
-        try await session.resolveInitialPathIfNeeded(using: client)
+        try await channel.resolveInitialPathIfNeeded(using: client)
 
-        #expect(session.homeResolution == .unavailable)
-        #expect(session.displayedPath == "/srv/project")
+        #expect(channel.homeResolution == .unavailable)
+        #expect(channel.displayedPath == "/srv/project")
     }
 
     @Test
@@ -399,18 +399,18 @@ struct SFTPFeatureTests {
         let initial = remoteFile(path: "/home/old.txt", kind: .file)
         let updated = remoteFile(path: "/home/new.txt", kind: .file)
         let client = SnapshotSFTPClient(responses: [.success([initial]), .failure, .success([updated])])
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
 
-        await sftpSession.reload(silently: true)
-        #expect(sftpSession.files == [initial])
-        await sftpSession.reload(silently: true)
-        #expect(sftpSession.files == [initial])
-        #expect(sftpSession.operationError == nil)
-        await sftpSession.reload(silently: true)
-        #expect(sftpSession.files == [updated])
+        await sftpChannel.reload(silently: true)
+        #expect(sftpChannel.files == [initial])
+        await sftpChannel.reload(silently: true)
+        #expect(sftpChannel.files == [initial])
+        #expect(sftpChannel.operationError == nil)
+        await sftpChannel.reload(silently: true)
+        #expect(sftpChannel.files == [updated])
     }
 
     @Test
@@ -420,17 +420,17 @@ struct SFTPFeatureTests {
         let client = SnapshotSFTPClient(
             responses: [.success([retained, removed]), .success([retained])]
         )
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
 
-        await sftpSession.reload(silently: true)
-        sftpSession.selection = [retained.id, removed.id]
-        await sftpSession.reload(silently: true)
+        await sftpChannel.reload(silently: true)
+        sftpChannel.selection = [retained.id, removed.id]
+        await sftpChannel.reload(silently: true)
 
-        #expect(sftpSession.files == [retained])
-        #expect(sftpSession.selection == [retained.id])
+        #expect(sftpChannel.files == [retained])
+        #expect(sftpChannel.selection == [retained.id])
     }
 
     @Test
@@ -438,31 +438,31 @@ struct SFTPFeatureTests {
         let visible = remoteFile(path: "/home/visible.txt", kind: .file)
         let hidden = remoteFile(path: "/home/hidden.log", kind: .file)
         let client = SnapshotSFTPClient(responses: [.success([visible, hidden])])
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
 
-        await sftpSession.reload(silently: true)
-        sftpSession.selection = [hidden.id]
-        sftpSession.query = "visible"
+        await sftpChannel.reload(silently: true)
+        sftpChannel.selection = [hidden.id]
+        sftpChannel.query = "visible"
 
-        #expect(sftpSession.filteredFiles == [visible])
-        #expect(sftpSession.selection.isEmpty)
+        #expect(sftpChannel.filteredFiles == [visible])
+        #expect(sftpChannel.selection.isEmpty)
     }
 
     @Test
     func automaticRefreshRepeatsUntilDisconnect() async {
         let client = SnapshotSFTPClient(responses: [.success([])])
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration,
             automaticRefreshInterval: .milliseconds(10)
         )
 
-        sftpSession.startAutomaticRefresh()
+        sftpChannel.startAutomaticRefresh()
         while await client.listRequestCount < 2 { await Task.yield() }
-        sftpSession.disconnect()
+        sftpChannel.disconnect()
         let countAfterDisconnect = await client.listRequestCount
         try? await Task.sleep(for: .milliseconds(30))
 
@@ -477,22 +477,22 @@ struct SFTPFeatureTests {
             responses: [.success([existing]), .connectionLost]
         )
         let store = HostLibraryModel(hosts: [host])
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: host.id, initialPath: "/home", client: client,
             configuration: testConfiguration
         )
-        sftpSession.bindStatus(to: store)
+        sftpChannel.bindStatus(to: store)
 
-        await sftpSession.reload()
-        await sftpSession.reload(silently: true)
+        await sftpChannel.reload()
+        await sftpChannel.reload(silently: true)
 
-        #expect(sftpSession.status == .reconnecting)
-        #expect(sftpSession.reconnectState?.attempt == 1)
-        #expect(sftpSession.connectionJourney.mode == .reconnection)
-        #expect(sftpSession.connectionJourney.isPresented)
-        #expect(sftpSession.files == [existing])
-        #expect(sftpSession.path == "/home")
-        sftpSession.disconnect()
+        #expect(sftpChannel.status == .reconnecting)
+        #expect(sftpChannel.reconnectState?.attempt == 1)
+        #expect(sftpChannel.connectionJourney.mode == .reconnection)
+        #expect(sftpChannel.connectionJourney.isPresented)
+        #expect(sftpChannel.files == [existing])
+        #expect(sftpChannel.path == "/home")
+        sftpChannel.disconnect()
     }
 
     @Test
@@ -500,18 +500,18 @@ struct SFTPFeatureTests {
         let host = Host(name: "Files", host: "files.example")
         let client = SnapshotSFTPClient(responses: [.failure])
         let store = HostLibraryModel(hosts: [host])
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: host.id, initialPath: "/home", client: client,
             configuration: testConfiguration
         )
-        sftpSession.bindStatus(to: store)
+        sftpChannel.bindStatus(to: store)
 
-        await sftpSession.reload()
+        await sftpChannel.reload()
 
-        #expect(sftpSession.status == .connected)
-        #expect(sftpSession.reconnectState == nil)
-        #expect(sftpSession.operationError == "Refresh failed")
-        sftpSession.disconnect()
+        #expect(sftpChannel.status == .connected)
+        #expect(sftpChannel.reconnectState == nil)
+        #expect(sftpChannel.operationError == "Refresh failed")
+        sftpChannel.disconnect()
     }
 
     @Test
@@ -524,19 +524,19 @@ struct SFTPFeatureTests {
         try Data("termind".utf8).write(to: localFile)
         let uploaded = remoteFile(path: "/home/report.txt", kind: .file)
         let client = SnapshotSFTPClient(responses: [.success([uploaded])])
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
-        await sftpSession.prepareUpload([localFile])
-        await sftpSession.enqueuePending(policy: .replace, coordinator: coordinator)
-        for _ in 0..<100 where sftpSession.files.isEmpty {
+        await sftpChannel.prepareUpload([localFile])
+        await sftpChannel.enqueuePending(policy: .replace, coordinator: coordinator)
+        for _ in 0..<100 where sftpChannel.files.isEmpty {
             try await Task.sleep(for: .milliseconds(10))
         }
 
-        #expect(sftpSession.files == [uploaded])
+        #expect(sftpChannel.files == [uploaded])
     }
 
     @Test
@@ -618,7 +618,7 @@ struct SFTPFeatureTests {
                 direction: .download, batchID: UUID(),
                 localURL: root.appendingPathComponent("borrowed-\(index)"),
                 remotePath: "/borrowed-\(index)", byteCount: 1,
-                hostID: hostID, connection: .borrowed(id: connectionID, client: client),
+                hostID: hostID, connection: .borrowed(id: connectionID, channel: client),
                 scopedRoot: root, overwrite: true
             )
         }
@@ -720,43 +720,43 @@ struct SFTPFeatureTests {
     }
 
     @Test
-    func sshAndSFTPSessionStatusesAggregateForHostDots() {
+    func sshAndSFTPChannelStatusesAggregateForHostDots() {
         let hostID = UUID()
         let sshSessionID = UUID()
-        let sftpSessionID = UUID()
+        let sftpChannelID = UUID()
         let store = HostLibraryModel()
 
         store.setConnectionStatus(.connected, connectionID: sshSessionID, hostID: hostID)
-        store.setConnectionStatus(.connecting, connectionID: sftpSessionID, hostID: hostID)
+        store.setConnectionStatus(.connecting, connectionID: sftpChannelID, hostID: hostID)
         #expect(store.status(of: hostID) == .connected)
 
         store.setConnectionStatus(.disconnected, connectionID: sshSessionID, hostID: hostID)
         #expect(store.status(of: hostID) == .connecting)
 
-        store.setConnectionStatus(.reconnecting, connectionID: sftpSessionID, hostID: hostID)
+        store.setConnectionStatus(.reconnecting, connectionID: sftpChannelID, hostID: hostID)
         #expect(store.status(of: hostID) == .reconnecting)
 
-        store.setConnectionStatus(.connected, connectionID: sftpSessionID, hostID: hostID)
+        store.setConnectionStatus(.connected, connectionID: sftpChannelID, hostID: hostID)
         #expect(store.status(of: hostID) == .connected)
 
-        store.setConnectionStatus(.disconnected, connectionID: sftpSessionID, hostID: hostID)
+        store.setConnectionStatus(.disconnected, connectionID: sftpChannelID, hostID: hostID)
         #expect(store.status(of: hostID) == .disconnected)
     }
 
     @Test
-    func sftpSessionPublishesItsStatusToHostStore() {
+    func sftpChannelPublishesItsStatusToHostStore() {
         let hostID = UUID()
         let store = HostLibraryModel()
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: hostID, initialPath: "/home",
             client: SnapshotSFTPClient(responses: [.success([])]),
             configuration: testConfiguration
         )
 
-        sftpSession.bindStatus(to: store)
+        sftpChannel.bindStatus(to: store)
         #expect(store.status(of: hostID) == .connected)
 
-        sftpSession.disconnect()
+        sftpChannel.disconnect()
         #expect(store.status(of: hostID) == .disconnected)
     }
 
@@ -765,28 +765,28 @@ struct SFTPFeatureTests {
         let first = remoteFile(path: "/home/a.txt", kind: .file)
         let second = remoteFile(path: "/home/b.txt", kind: .file)
         let client = SnapshotSFTPClient(responses: [.success([first, second])])
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
 
-        await sftpSession.reload(silently: true)
-        sftpSession.selection = [second.id, first.id]
+        await sftpChannel.reload(silently: true)
+        sftpChannel.selection = [second.id, first.id]
 
-        #expect(sftpSession.selectedFiles == [first, second])
+        #expect(sftpChannel.selectedFiles == [first, second])
     }
 
     @Test(arguments: [".bashrc", "README.md"])
     func finderDragRepresentationPreservesExactBasename(_ name: String) async {
         let client = WritingSFTPClient()
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/home", client: client,
             configuration: testConfiguration
         )
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
         let file = remoteFile(path: "/home/\(name)", kind: .file)
         let provider = SFTPBrowserView.promisedFileProvider(
-            for: file, sftpSession: sftpSession, coordinator: coordinator
+            for: file, sftpChannel: sftpChannel, coordinator: coordinator
         )
 
         let representedName = await withCheckedContinuation { continuation in
@@ -863,14 +863,14 @@ struct SFTPFeatureTests {
         let preserved = existingIsDirectory ? original.appending(path: "keep.txt") : original
         try Data("original".utf8).write(to: preserved)
         let client = WritingSFTPClient()
-        let session = SFTPSessionModel(
+        let channel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/source", client: client, configuration: testConfiguration
         )
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
-        await session.prepareDownload([remoteFile(path: "/source/report.txt", kind: .file)], to: root)
-        #expect(session.conflictCount == 1)
-        await session.enqueuePending(policy: policy, coordinator: coordinator)
+        await channel.prepareDownload([remoteFile(path: "/source/report.txt", kind: .file)], to: root)
+        #expect(channel.conflictCount == 1)
+        await channel.enqueuePending(policy: policy, coordinator: coordinator)
         for _ in 0..<200 {
             guard coordinator.sftpTransfers.contains(where: { $0.state == .queued || $0.state == .running }) else {
                 break
@@ -878,8 +878,8 @@ struct SFTPFeatureTests {
             try await Task.sleep(for: .milliseconds(10))
         }
 
-        #expect(session.operationError == nil)
-        #expect(!session.hasPendingBatch)
+        #expect(channel.operationError == nil)
+        #expect(!channel.hasPendingBatch)
         if policy != .replace { #expect(try Data(contentsOf: preserved) == Data("original".utf8)) }
         if policy == .skip {
             #expect(coordinator.sftpTransfers.isEmpty)
@@ -904,17 +904,17 @@ struct SFTPFeatureTests {
         let file = remoteFile(path: "/source/bundle/nested/payload.txt", kind: .file)
         let sibling = remoteFile(path: "/source/bundle-other", kind: .directory)
         let client = TreeSFTPClient(listings: [bundle.path: [nested], nested.path: [file]])
-        let session = SFTPSessionModel(
+        let channel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/source", client: client, configuration: testConfiguration
         )
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
-        await session.prepareDownload([bundle, sibling], to: root)
-        #expect(session.conflictCount == 1)
-        await session.enqueuePending(policy: policy, coordinator: coordinator)
+        await channel.prepareDownload([bundle, sibling], to: root)
+        #expect(channel.conflictCount == 1)
+        await channel.enqueuePending(policy: policy, coordinator: coordinator)
 
-        #expect(session.operationError == nil)
-        #expect(!session.hasPendingBatch)
+        #expect(channel.operationError == nil)
+        #expect(!channel.hasPendingBatch)
         #expect(try root.appending(path: "bundle-other").resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true)
         if policy != .replace { #expect(try Data(contentsOf: original) == Data("original".utf8)) }
         if policy == .skip {
@@ -937,22 +937,22 @@ struct SFTPFeatureTests {
         let bundle = remoteFile(path: "/source/bundle", kind: .directory)
         let empty = remoteFile(path: "/source/bundle/empty", kind: .directory)
         let client = TreeSFTPClient(listings: [bundle.path: [empty]])
-        let session = SFTPSessionModel(
+        let channel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/source", client: client, configuration: testConfiguration
         )
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
-        await session.prepareDownload([bundle], to: root)
-        #expect(session.hasPendingBatch)
-        session.cancelPendingBatch()
-        await session.enqueuePending(policy: .skip, coordinator: coordinator)
+        await channel.prepareDownload([bundle], to: root)
+        #expect(channel.hasPendingBatch)
+        channel.cancelPendingBatch()
+        await channel.enqueuePending(policy: .skip, coordinator: coordinator)
         #expect(!FileManager.default.fileExists(atPath: root.path))
 
-        await session.prepareDownload([bundle], to: root)
-        await session.enqueuePending(policy: .skip, coordinator: coordinator)
+        await channel.prepareDownload([bundle], to: root)
+        await channel.enqueuePending(policy: .skip, coordinator: coordinator)
 
-        #expect(session.operationError == nil)
-        #expect(!session.hasPendingBatch)
+        #expect(channel.operationError == nil)
+        #expect(!channel.hasPendingBatch)
         #expect(coordinator.sftpTransfers.isEmpty)
         #expect(try root.appending(path: "bundle/empty").resourceValues(forKeys: [.isDirectoryKey]).isDirectory == true)
     }
@@ -978,7 +978,7 @@ struct SFTPFeatureTests {
                 configuration: makeTestConfiguration(hostID: sourceHostID, host: "source"),
                 files: [bundle]
             ))
-        let target = SFTPSessionModel(
+        let target = SFTPChannelModel(
             hostID: targetHostID, initialPath: "/incoming", client: targetClient,
             configuration: makeTestConfiguration(hostID: targetHostID, host: "target")
         )
@@ -1012,16 +1012,16 @@ struct SFTPFeatureTests {
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { source }
         let payload = coordinator.registerRemoteCopySource(
             SFTPRemoteCopySource(hostID: UUID(), configuration: testConfiguration, files: [bundle, sibling]))
-        let session = SFTPSessionModel(
+        let channel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/incoming", client: destination, configuration: testConfiguration
         )
 
-        await session.prepareRemoteCopy(payload, coordinator: coordinator)
-        #expect(session.conflictCount == 1)
-        await session.enqueuePendingRemoteCopy(policy: policy, coordinator: coordinator)
+        await channel.prepareRemoteCopy(payload, coordinator: coordinator)
+        #expect(channel.conflictCount == 1)
+        await channel.enqueuePendingRemoteCopy(policy: policy, coordinator: coordinator)
 
-        #expect(session.operationError == nil)
-        #expect(!session.hasPendingBatch)
+        #expect(channel.operationError == nil)
+        #expect(!channel.hasPendingBatch)
         #expect(await destination.rejectedAttributeRequestCount == 0)
         #expect(try await destination.attributes(at: "/incoming/bundle-other")?.isDirectory == true)
         let directory = policy == .keepBoth ? "/incoming/bundle.2" : "/incoming/bundle"
@@ -1038,24 +1038,24 @@ struct SFTPFeatureTests {
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { source }
         let payload = coordinator.registerRemoteCopySource(
             SFTPRemoteCopySource(hostID: UUID(), configuration: testConfiguration, files: [empty]))
-        let session = SFTPSessionModel(
+        let channel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/incoming", client: destination, configuration: testConfiguration
         )
 
-        await session.prepareRemoteCopy(payload, coordinator: coordinator)
-        session.cancelPendingBatch()
-        await session.enqueuePendingRemoteCopy(policy: .replace, coordinator: coordinator)
+        await channel.prepareRemoteCopy(payload, coordinator: coordinator)
+        channel.cancelPendingBatch()
+        await channel.enqueuePendingRemoteCopy(policy: .replace, coordinator: coordinator)
         #expect(await destination.createdDirectories.isEmpty)
 
-        await session.prepareRemoteCopy(payload, coordinator: coordinator)
-        await session.enqueuePendingRemoteCopy(policy: .replace, coordinator: coordinator)
+        await channel.prepareRemoteCopy(payload, coordinator: coordinator)
+        await channel.enqueuePendingRemoteCopy(policy: .replace, coordinator: coordinator)
         for _ in 0..<200 {
-            if !session.files.isEmpty { break }
+            if !channel.files.isEmpty { break }
             try await Task.sleep(for: .milliseconds(10))
         }
-        #expect(session.files.map(\.path) == ["/incoming/empty"])
-        #expect(session.operationError == nil)
-        #expect(!session.hasPendingBatch)
+        #expect(channel.files.map(\.path) == ["/incoming/empty"])
+        #expect(channel.operationError == nil)
+        #expect(!channel.hasPendingBatch)
         #expect(coordinator.sftpTransfers.isEmpty)
     }
 
@@ -1101,15 +1101,15 @@ struct SFTPFeatureTests {
         let client = ManifestSFTPClient(entries: [
             "/incoming/report.txt": remoteFile(path: "/incoming/report.txt", kind: .file)
         ])
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/incoming", client: client,
             configuration: testConfiguration
         )
 
-        await sftpSession.prepareUpload([localFile])
+        await sftpChannel.prepareUpload([localFile])
 
-        #expect(sftpSession.pendingUploadBatch?.conflictCount == 1)
-        #expect(sftpSession.pendingUploadBatch?.transferCount == 1)
+        #expect(sftpChannel.pendingUploadBatch?.conflictCount == 1)
+        #expect(sftpChannel.pendingUploadBatch?.transferCount == 1)
     }
 
     @Test
@@ -1126,17 +1126,17 @@ struct SFTPFeatureTests {
             entries: ["/incoming/bundle": remoteFile(path: "/incoming/bundle", kind: .file)],
             rejectedAttributePrefix: "/incoming/bundle/"
         )
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/incoming", client: client,
             configuration: testConfiguration
         )
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
-        await sftpSession.prepareUpload([upload])
-        #expect(sftpSession.pendingUploadBatch?.conflictCount == 1)
-        #expect(sftpSession.operationError == nil)
+        await sftpChannel.prepareUpload([upload])
+        #expect(sftpChannel.pendingUploadBatch?.conflictCount == 1)
+        #expect(sftpChannel.operationError == nil)
 
-        await sftpSession.enqueuePending(policy: .skip, coordinator: coordinator)
+        await sftpChannel.enqueuePending(policy: .skip, coordinator: coordinator)
 
         #expect(coordinator.sftpTransfers.isEmpty)
         #expect(await client.createdDirectories.isEmpty)
@@ -1157,14 +1157,14 @@ struct SFTPFeatureTests {
             entries: ["/incoming/bundle": remoteFile(path: "/incoming/bundle", kind: .file)],
             rejectedAttributePrefix: "/incoming/bundle/"
         )
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: UUID(), initialPath: "/incoming", client: client,
             configuration: testConfiguration
         )
         let coordinator = SFTPTransferCoordinator(store: HostLibraryModel()) { client }
 
-        await sftpSession.prepareUpload([upload])
-        await sftpSession.enqueuePending(policy: .keepBoth, coordinator: coordinator)
+        await sftpChannel.prepareUpload([upload])
+        await sftpChannel.enqueuePending(policy: .keepBoth, coordinator: coordinator)
 
         #expect(coordinator.sftpTransfers.map(\.remotePath) == ["/incoming/bundle.2/nested/payload.txt"])
         #expect(
@@ -1554,7 +1554,7 @@ private actor RemoteCopyTrackingClient: SFTPClientProtocol {
     func copyFile(
         from sourcePath: String,
         to destinationPath: String,
-        on destination: any SFTPClientProtocol,
+        on destination: any SFTPChannelProtocol,
         byteCount: Int64,
         overwrite: Bool,
         cancellation: TransferCancellationToken,

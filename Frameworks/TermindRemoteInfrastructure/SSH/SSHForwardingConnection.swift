@@ -26,7 +26,7 @@ public nonisolated struct SSHForwardingPoolStatus: Hashable, Sendable {
     public static let single = SSHForwardingPoolStatus(connected: 1, target: 1)
 }
 
-public protocol SSHForwardingSessionProtocol: Actor {
+public protocol SSHForwardingConnectionProtocol: Actor {
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws
     func configureAdditionalConnections(_ request: SSHConnectionRequest) async
     func connectionPoolStatus() async -> SSHForwardingPoolStatus
@@ -35,12 +35,12 @@ public protocol SSHForwardingSessionProtocol: Actor {
     func disconnect() async
 }
 
-extension SSHForwardingSessionProtocol {
+extension SSHForwardingConnectionProtocol {
     public func configureAdditionalConnections(_ request: SSHConnectionRequest) async {}
     public func connectionPoolStatus() async -> SSHForwardingPoolStatus { .single }
 }
 
-public actor SSHForwardingSession: SSHForwardingSessionProtocol {
+public actor SSHForwardingConnection: SSHForwardingConnectionProtocol {
     public nonisolated static let schedulingMode = SSHChannelSchedulingMode.channelsOnly
 
     public typealias ConnectionHandler = @Sendable (PortForwardingRule.ID, UUID, Int) -> Void
@@ -71,7 +71,7 @@ public actor SSHForwardingSession: SSHForwardingSessionProtocol {
         try await worker.registerShared(rule, generation: generation)
     }
 
-    /// Transfers ownership of an accepted descriptor to this physical SSH session.
+    /// Transfers ownership of an accepted descriptor to this physical SSH connection.
     func acceptShared(_ descriptor: Int32, ruleID: PortForwardingRule.ID, generation: UUID) async -> Bool {
         await worker.acceptShared(descriptor, ruleID: ruleID, generation: generation)
     }
@@ -141,15 +141,14 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
 
     private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.forwarding")
     private let closingSockets = DispatchGroup()
-    private let connectionHandler: SSHForwardingSession.ConnectionHandler
-    private let failureHandler: SSHForwardingSession.FailureHandler
+    private let connectionHandler: SSHForwardingConnection.ConnectionHandler
+    private let failureHandler: SSHForwardingConnection.FailureHandler
     private let logger: Logger
-    private var socket: Int32 = -1
-    private var routeTransport: SSHRoutedSocket?
-    private var session: OpaquePointer?
+    private var connection: SSHAuthenticatedConnection?
+    private var socket: Int32 { connection?.byteTransport.socket ?? -1 }
     private var rules: [PortForwardingRule.ID: RuleContext] = [:]
     private var flows: [UUID: Flow] = [:]
-    private var bufferedTransport: SSHBufferedTransport?
+    private var buffer: SSHConnectionBuffer?
     private var transportEvents: SSHSocketEvents?
     private var timer: (any DispatchSourceTimer)?
     private var ready = SSHReadyQueue<UUID>()
@@ -168,8 +167,8 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     private var nextKeepalive = DispatchTime.now()
 
     init(
-        connectionHandler: @escaping SSHForwardingSession.ConnectionHandler,
-        failureHandler: @escaping SSHForwardingSession.FailureHandler,
+        connectionHandler: @escaping SSHForwardingConnection.ConnectionHandler,
+        failureHandler: @escaping SSHForwardingConnection.FailureHandler,
         logger: Logger
     ) {
         _ = Self.initialization
@@ -191,16 +190,14 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             ])
         await disconnect()
         do {
-            let opened = try await SSHSessionWorker.openAuthenticatedSession(
+            let opened = try await SSHConnectionOpener.openAuthenticatedConnection(
                 using: request, timeout: 20, progress: progress, logger: logger)
             await queue.perform {
                 self.retiredStatistics = SSHForwardingStatistics()
-                self.routeTransport = opened.transport
-                self.socket = opened.transport.socket
-                self.session = opened.session
-                self.bufferedTransport = SSHBufferedTransport(session: opened.session)
-                libssh2_session_set_blocking(opened.session, 0)
-                libssh2_keepalive_config(opened.session, 0, 20)
+                self.connection = opened
+                self.buffer = opened.installBuffer()
+                libssh2_session_set_blocking(opened.libssh2Session, 0)
+                libssh2_keepalive_config(opened.libssh2Session, 0, 20)
                 self.startEvents()
             }
             try Task.checkCancellation()
@@ -236,7 +233,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             try await withCheckedThrowingContinuation { continuation in
                 queue.async { [self] in
                     do {
-                        guard session != nil else { throw TermindSSHError.disconnected }
+                        guard connection != nil else { throw TermindSSHError.disconnected }
                         if rules[rule.id] != nil {
                             continuation.resume()
                             return
@@ -293,7 +290,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         try await withCheckedThrowingContinuation { continuation in
             queue.async { [self] in
                 do {
-                    guard session != nil else { throw TermindSSHError.disconnected }
+                    guard connection != nil else { throw TermindSSHError.disconnected }
                     guard rule.kind != .remote else {
                         throw TermindSSHError.route(String(localized: "Remote forwarding requires an SSH listener."))
                     }
@@ -316,7 +313,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     func acceptShared(_ descriptor: Int32, ruleID: PortForwardingRule.ID, generation: UUID) async -> Bool {
         await withCheckedContinuation { continuation in
             queue.async { [self] in
-                guard session != nil, let context = rules[ruleID], context.generation == generation,
+                guard connection != nil, let context = rules[ruleID], context.generation == generation,
                     !context.stopped, context.rule.kind != .remote
                 else {
                     continuation.resume(returning: false)
@@ -365,9 +362,9 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                     result.plaintextSocketWriteCalls += flow.stream.socketWriteCalls
                     result.peakPlaintextQueueBytes = max(result.peakPlaintextQueueBytes, flow.stream.peakQueuedBytes)
                 }
-                result.passes = self.bufferedTransport?.passes ?? 0
-                result.encryptedSocketWriteCalls = self.bufferedTransport?.socketWriteCalls ?? 0
-                result.peakEncryptedQueueBytes = self.bufferedTransport?.peakQueuedBytes ?? 0
+                result.passes = self.buffer?.passes ?? 0
+                result.encryptedSocketWriteCalls = self.buffer?.socketWriteCalls ?? 0
+                result.peakEncryptedQueueBytes = self.buffer?.peakQueuedBytes ?? 0
                 continuation.resume(returning: result)
             }
         }
@@ -404,7 +401,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     }
 
     private func schedulePump() {
-        guard session != nil, !scheduled else { return }
+        guard connection != nil, !scheduled else { return }
         scheduled = true
         let token = generation
         queue.async { [weak self] in
@@ -415,14 +412,15 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     }
 
     private func pump() {
-        guard let session, let bufferedTransport else { return }
+        guard let connection, let buffer else { return }
+        let session = connection.libssh2Session
         let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-        bufferedTransport.beginPass(deadline: deadline)
-        do { try bufferedTransport.flush(socket: socket) } catch {
+        buffer.beginPass(deadline: deadline)
+        do { try buffer.flush(socket: socket) } catch {
             fail(session)
             return
         }
-        if bufferedTransport.isBackpressured {
+        if buffer.isBackpressured {
             for flow in flows.values { flow.events?.update(read: false, write: false) }
             transportEvents?.update(read: false, write: true)
             return
@@ -435,8 +433,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         for context in rules.values where context.remoteListener != nil {
             if acceptRemote(context) { progressed = true }
         }
-        while !bufferedTransport.isBackpressured, DispatchTime.now().uptimeNanoseconds < deadline, let id = ready.pop()
-        {
+        while !buffer.isBackpressured, DispatchTime.now().uptimeNanoseconds < deadline, let id = ready.pop() {
             guard let flow = flows[id] else { continue }
             if pump(flow, session: session, deadline: deadline) { progressed = true }
             if flow.stream.yielded && !flow.retired { ready.insert(id) }
@@ -488,14 +485,14 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                 $0.phase == .forwarding && ($0.stream.wantsChannelRead || !$0.stream.toChannel.isEmpty)
             } || rules.values.contains { $0.remoteListener != nil }
             || opening != nil || listening != nil || !retiredFlows.isEmpty || !retiredListeners.isEmpty
-        do { try bufferedTransport.flush(socket: socket) } catch {
+        do { try buffer.flush(socket: socket) } catch {
             fail(session)
             return
         }
         transportEvents?.update(
-            read: canRead && !bufferedTransport.isBackpressured,
-            write: bufferedTransport.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
-        if progressed || bufferedTransport.exhaustedReadBudget { wakeAll() } else if !ready.isEmpty { schedulePump() }
+            read: canRead && !buffer.isBackpressured,
+            write: buffer.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+        if progressed || buffer.exhaustedReadBudget { wakeAll() } else if !ready.isEmpty { schedulePump() }
     }
 
     private func blocked(_ session: OpaquePointer) {
@@ -545,7 +542,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
             // A lost transport must not turn a pending listener into a rule-local failure.
             error = .disconnected
         default:
-            error = SSHSessionWorker.sessionError(
+            error = SSHConnectionOpener.connectionError(
                 session, prefix: String(localized: "Unable to start remote forwarding"))
         }
         context.start?.resume(throwing: error)
@@ -620,7 +617,11 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         var progressed = false
         for _ in 0..<32 {
             guard let channel = libssh2_channel_forward_accept(listener) else {
-                if let session, libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN { blocked(session) }
+                if let session = connection?.libssh2Session,
+                    libssh2_session_last_errno(session) == LIBSSH2_ERROR_EAGAIN
+                {
+                    blocked(session)
+                }
                 break
             }
             progressed = true
@@ -813,7 +814,7 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
     }
 
     private func fail(_ session: OpaquePointer) {
-        let message = SSHSessionWorker.sessionError(
+        let message = SSHConnectionOpener.connectionError(
             session, prefix: String(localized: "The forwarding SSH connection closed")
         ).localizedDescription
         cleanup()
@@ -827,11 +828,11 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         timer = nil
         for context in rules.values { close(context, completion: {}) }
         rules.removeAll()
+        let connection = connection
+        self.connection = nil
         // Shutdown makes disposal nonblocking even if a peer stopped reading.
-        if socket >= 0 { _ = Darwin.shutdown(socket, SHUT_RDWR) }
-        if let session { bufferedTransport?.dispose(session: session) }
-        bufferedTransport = nil
-        session = nil
+        if let connection { _ = Darwin.shutdown(connection.byteTransport.socket, SHUT_RDWR) }
+        buffer = nil
         for entry in retiredListeners { entry.completion() }
         retiredListeners.removeAll()
         retiredFlows.removeAll()
@@ -843,20 +844,18 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
         flows.removeAll()
         ready = SSHReadyQueue()
         pendingOpens = SSHReadyQueue()
-        if let transport = routeTransport {
+        if let connection {
             if let events = transportEvents {
                 closingSockets.enter()
                 events.cancel { [closingSockets] in
-                    transport.close()
+                    connection.close()
                     closingSockets.leave()
                 }
             } else {
-                transport.close()
+                connection.close()
             }
         }
         transportEvents = nil
-        routeTransport = nil
-        socket = -1
     }
     private func handleSOCKSHandshake(_ flow: Flow, session: OpaquePointer) {
         switch flow.phase {

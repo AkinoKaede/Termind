@@ -126,7 +126,7 @@ struct WindowSidebarTests {
     @Test
     func statusBarBelongsOnlyToWorkPanes() {
         #expect(PaneKind.sshSession.showsStatusBar)
-        #expect(PaneKind.sftpSession.showsStatusBar)
+        #expect(PaneKind.sftpChannel.showsStatusBar)
         #expect(!PaneKind.empty.showsStatusBar)
     }
 }

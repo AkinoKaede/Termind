@@ -27,9 +27,9 @@ struct MobileRemoteFileEditor: View {
             compact: mode == .rename,
             save: {
                 if mode == .rename {
-                    try await workspace.sftpSession.rename(file, to: name)
+                    try await workspace.sftpChannel.rename(file, to: name)
                 } else {
-                    try await workspace.sftpSession.setPermissions(file, mode: permissions.mode)
+                    try await workspace.sftpChannel.setPermissions(file, mode: permissions.mode)
                 }
             },
             content: {

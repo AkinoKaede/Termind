@@ -14,10 +14,10 @@ import struct TermindDomain.Host
 enum PaneContent {
     // Work, created on demand and listed in the sidebar.
     //
-    // `sftpSession` requires a host — there is no host-less SFTP session,
+    // `sftpChannel` requires a host — there is no host-less SFTP channel,
     // because a transfer is a conversation with one machine about one path.
     case sshSession(SSHSessionModel)
-    case sftpSession(SFTPSessionModel)
+    case sftpChannel(SFTPChannelModel)
     case serialSession(SerialSessionModel)
     /// A slot that has been carved out and not filled yet.
     ///
@@ -41,7 +41,7 @@ nonisolated enum PaneKind: Hashable, Sendable {
     case sshSession
     /// One host's SFTP browser. It shares the Sessions section with SSH while
     /// retaining its own kind for protocol-specific actions and iconography.
-    case sftpSession
+    case sftpChannel
     /// A temporary terminal attached directly to a local serial device.
     case serialSession
     /// An unfilled split. Belongs in no sidebar section — it is a hole in a
@@ -63,7 +63,7 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// `.empty` is not combinable, which is what stops a half-arranged Workspace
     /// from being dragged into another one before it has been filled.
     var isCombinable: Bool {
-        self == .sshSession || self == .sftpSession || self == .serialSession
+        self == .sshSession || self == .sftpChannel || self == .serialSession
     }
 
     /// Whether a pane of this kind may be given a name.
@@ -78,14 +78,14 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// and an unfilled slot are the same story: both are named after the state
     /// they are in, and both stop existing when that state ends.
     var isRenameable: Bool {
-        self == .sshSession || self == .sftpSession || self == .serialSession
+        self == .sshSession || self == .sftpChannel || self == .serialSession
     }
 
     /// Only work panes have transient context worth reserving a footer for.
     /// Manager pages, forms and empty slots should use the full content height
     /// instead of permanently reporting the fallback "Not connected" state.
     var showsStatusBar: Bool {
-        self == .sshSession || self == .sftpSession || self == .serialSession
+        self == .sshSession || self == .sftpChannel || self == .serialSession
     }
 }
 
@@ -120,7 +120,7 @@ final class Pane: Identifiable {
     func configureConnections(using coordinator: RemoteConnectionCoordinator) {
         switch content {
         case .sshSession(let session): session.connectionCoordinator = coordinator
-        case .sftpSession(let session): session.connectionCoordinator = coordinator
+        case .sftpChannel(let session): session.connectionCoordinator = coordinator
         case .serialSession: break
         case .empty: break
         }
@@ -132,13 +132,13 @@ final class Pane: Identifiable {
     }
 
     func configureSFTPHistory(using store: SFTPHistoryModel) {
-        guard case .sftpSession(let session) = content else { return }
+        guard case .sftpChannel(let session) = content else { return }
         session.historyStore = store
     }
 
     var kind: PaneKind {
         switch content {
-        case .sftpSession: .sftpSession
+        case .sftpChannel: .sftpChannel
         case .sshSession: .sshSession
         case .serialSession: .serialSession
         case .empty: .empty
@@ -158,7 +158,7 @@ final class Pane: Identifiable {
     var symbol: String {
         switch content {
         case .sshSession: "apple.terminal"
-        case .sftpSession: "folder"
+        case .sftpChannel: "folder"
         case .serialSession: "cable.connector"
         case .empty: "rectangle.dashed"
         }
@@ -171,8 +171,8 @@ final class Pane: Identifiable {
         return nil
     }
 
-    var sftpSession: SFTPSessionModel? {
-        if case .sftpSession(let sftpSession) = content { return sftpSession }
+    var sftpChannel: SFTPChannelModel? {
+        if case .sftpChannel(let sftpChannel) = content { return sftpChannel }
         return nil
     }
 
@@ -187,14 +187,14 @@ final class Pane: Identifiable {
     func disconnectConnection() {
         switch content {
         case .sshSession(let sshSession): sshSession.disconnect()
-        case .sftpSession(let sftpSession): sftpSession.disconnect()
+        case .sftpChannel(let sftpChannel): sftpChannel.disconnect()
         case .serialSession(let serialSession): serialSession.disconnect()
         default: break
         }
     }
 
     /// Reopening a closed terminal means starting another SSH session, not
-    /// remounting the model whose channel and connection task were torn down by
+    /// remounting the model whose session and connection task were torn down by
     /// `disconnectConnection`. Keep the Pane itself so its name, duplicate
     /// index, focus identity, and place in the split tree all survive.
     func prepareForReopen() {
@@ -206,8 +206,8 @@ final class Pane: Identifiable {
             content = .sshSession(replacement)
         case .serialSession(let serialSession):
             serialSession.prepareForReopen()
-        case .sftpSession(let sftpSession):
-            sftpSession.prepareForReopen()
+        case .sftpChannel(let sftpChannel):
+            sftpChannel.prepareForReopen()
         case .empty:
             break
         }
@@ -216,7 +216,7 @@ final class Pane: Identifiable {
     var status: ConnectionStatus {
         switch content {
         case .sshSession(let sshSession): sshSession.status
-        case .sftpSession(let sftpSession): sftpSession.status
+        case .sftpChannel(let sftpChannel): sftpChannel.status
         case .serialSession(let serialSession): serialSession.status
         default: .disconnected
         }
@@ -235,7 +235,7 @@ final class Pane: Identifiable {
     var hostID: Host.ID? {
         switch content {
         case .sshSession(let sshSession): sshSession.hostID
-        case .sftpSession(let sftpSession): sftpSession.hostID
+        case .sftpChannel(let sftpChannel): sftpChannel.hostID
         case .serialSession: nil
         case .empty: nil
         }
@@ -244,7 +244,7 @@ final class Pane: Identifiable {
     var workingDirectory: String? {
         switch content {
         case .sshSession(let sshSession): sshSession.workingDirectory
-        case .sftpSession(let sftpSession): sftpSession.path
+        case .sftpChannel(let sftpChannel): sftpChannel.path
         case .serialSession: nil
         default: nil
         }
@@ -253,7 +253,7 @@ final class Pane: Identifiable {
     var displayedWorkingDirectory: String? {
         switch content {
         case .sshSession(let sshSession): sshSession.displayedWorkingDirectory
-        case .sftpSession(let sftpSession): sftpSession.displayedPath
+        case .sftpChannel(let sftpChannel): sftpChannel.displayedPath
         case .serialSession: nil
         default: nil
         }
@@ -282,8 +282,8 @@ final class Pane: Identifiable {
             let clone = sshSession.copyForReconnect()
             clone.status = .connecting
             return Pane(.sshSession(clone))
-        case .sftpSession(let sftpSession):
-            return Pane(.sftpSession(sftpSession.copyForBrowsing()))
+        case .sftpChannel(let sftpChannel):
+            return Pane(.sftpChannel(sftpChannel.copyForBrowsing()))
         case .serialSession:
             return nil
         case .empty:
@@ -309,8 +309,8 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession(let sshSession):
             sshSession.title
-        case .sftpSession(let sftpSession):
-            store.host(sftpSession.hostID)?.name
+        case .sftpChannel(let sftpChannel):
+            store.host(sftpChannel.hostID)?.name
                 ?? AppLocalization.string("SFTP", locale: locale)
         case .serialSession(let serialSession):
             serialSession.title
@@ -325,8 +325,8 @@ final class Pane: Identifiable {
     /// protocol. The row therefore keeps the host name concise and unprefixed.
     func sidebarTitle(in store: HostLibraryModel, locale: Locale = .current) -> String {
         if let customTitle { return customTitle }
-        if case .sftpSession(let sftpSession) = content,
-            let host = store.host(sftpSession.hostID)
+        if case .sftpChannel(let sftpChannel) = content,
+            let host = store.host(sftpChannel.hostID)
         {
             return numbered(host.name)
         }
@@ -335,8 +335,8 @@ final class Pane: Identifiable {
 
     func subtitle(in store: HostLibraryModel) -> String? {
         switch content {
-        case .sftpSession(let sftpSession):
-            sftpSession.displayedPath
+        case .sftpChannel(let sftpChannel):
+            sftpChannel.displayedPath
         case .serialSession(let serialSession):
             serialSession.subtitle
         case .sshSession(let sshSession):
@@ -379,11 +379,11 @@ extension Pane {
         return Pane(.sshSession(sshSession))
     }
 
-    static func sftpSession(host: Host, initialPath: String? = nil) -> Pane {
+    static func sftpChannel(host: Host, initialPath: String? = nil) -> Pane {
         Pane(
-            .sftpSession(
-                SFTPSessionModel(
-                    hostID: host.id, initialPath: initialPath ?? host.sftpSessionInitialPath
+            .sftpChannel(
+                SFTPChannelModel(
+                    hostID: host.id, initialPath: initialPath ?? host.sftpChannelInitialPath
                 )))
     }
 

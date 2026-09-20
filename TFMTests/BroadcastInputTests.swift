@@ -121,7 +121,7 @@ struct BroadcastInputTests {
         let firstHost = Host(name: "first", host: "first.example")
         let secondHost = Host(name: "second", host: "second.example")
         let workspace = Workspace.sshSession(host: firstHost)
-        let sftpPane = Pane.sftpSession(host: firstHost)
+        let sftpPane = Pane.sftpChannel(host: firstHost)
         workspace.splitFocusedPane(axis: .horizontal, with: sftpPane)
         let secondPane = Pane.sshSession(host: secondHost)
         workspace.splitFocusedPane(axis: .vertical, with: secondPane)
@@ -149,7 +149,7 @@ struct BroadcastInputTests {
         let host = Host(name: "host", host: "host.example")
         let source = Workspace.sshSession(host: host)
         let sshSession = source.focusedPane.sshSession!
-        let destination = Workspace.sftpSession(host: host)
+        let destination = Workspace.sftpChannel(host: host)
 
         destination.replacePane(destination.focusedPaneID, with: source.layout)
 

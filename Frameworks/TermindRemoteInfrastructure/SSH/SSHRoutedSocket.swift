@@ -145,7 +145,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                             )
                         }
                         let requiredApproval = !hop.expectedHostKeys.contains(observed.identity)
-                        try await SSHSessionWorker.authorizeHostKey(
+                        try await SSHConnectionOpener.authorizeHostKey(
                             hostID: hop.id, observed: observed,
                             expected: hop.expectedHostKeys,
                             authorizer: authorizeHostKey
@@ -200,20 +200,20 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         }
         do {
             libssh2_session_set_blocking(session, 1)
-            try SSHSessionWorker.performHandshake(
+            try SSHConnectionOpener.performHandshake(
                 session, socket: socket,
                 peer: SSHSocketConnector.peerDescription(
                     socket: socket, fallbackHost: hop.host, port: hop.port
                 ),
                 timeout: timeout
             )
-            let observed = try SSHSessionWorker.observation(
-                host: hop.host, port: hop.port, session: session
+            let observed = try SSHConnectionOpener.observation(
+                host: hop.host, port: hop.port, libssh2Session: session
             )
-            try SSHSessionWorker.validateHostKey(observed, expected: hop.expectedHostKeys)
+            try SSHConnectionOpener.validateHostKey(observed, expected: hop.expectedHostKeys)
             progress?(.authenticating(hop.id))
-            _ = try SSHSessionWorker.authenticate(
-                username: hop.username, credentials: hop.credentials, session: session
+            _ = try SSHConnectionOpener.authenticate(
+                username: hop.username, credentials: hop.credentials, libssh2Session: session
             )
             progress?(.authenticated(hop.id))
             return session
@@ -291,15 +291,15 @@ private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
         }
         pendingSession = session
         libssh2_session_set_blocking(session, 1)
-        try SSHSessionWorker.performHandshake(
+        try SSHConnectionOpener.performHandshake(
             session, socket: currentSocket,
             peer: SSHSocketConnector.peerDescription(
                 socket: currentSocket, fallbackHost: hop.host, port: hop.port
             ),
             timeout: timeout
         )
-        return try SSHSessionWorker.observation(
-            host: hop.host, port: hop.port, session: session
+        return try SSHConnectionOpener.observation(
+            host: hop.host, port: hop.port, libssh2Session: session
         )
     }
 
@@ -314,9 +314,9 @@ private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
         keyboardInteractive.setHop(hop)
         guard let session = pendingSession else { throw TermindSSHError.disconnected }
         progress?(.authenticating(hop.id))
-        _ = try SSHSessionWorker.authenticate(
+        _ = try SSHConnectionOpener.authenticate(
             username: hop.username, credentials: hop.credentials,
-            session: session,
+            libssh2Session: session,
             afterHostKeyApproval: afterHostKeyApproval,
             keyboardInteractive: keyboardInteractive, socket: currentSocket
         )
@@ -423,7 +423,7 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.route-bridge")
     private var transportSocket: Int32
     private var session: OpaquePointer?
-    private let bufferedTransport: SSHBufferedTransport
+    private let buffer: SSHConnectionBuffer
     private let stream: SSHStreamPump
     private var transportEvents: SSHSocketEvents?
     private var socketEvents: SSHSocketEvents?
@@ -446,7 +446,7 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
         }
         self.transportSocket = transportSocket
         self.session = session
-        bufferedTransport = SSHBufferedTransport(session: session)
+        buffer = SSHConnectionBuffer(libssh2Session: session)
         stream = SSHStreamPump(socket: pair[0], channel: channel)
         clientSocket = pair[1]
 
@@ -507,10 +507,10 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
     private func pump() {
         guard !isClosed, let session else { return }
         let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-        bufferedTransport.beginPass(deadline: deadline)
+        buffer.beginPass(deadline: deadline)
         do {
-            try bufferedTransport.flush(socket: transportSocket)
-            if bufferedTransport.isBackpressured {
+            try buffer.flush(socket: transportSocket)
+            if buffer.isBackpressured {
                 transportEvents?.update(read: false, write: true)
                 socketEvents?.update(read: false, write: stream.socketWriteBlocked)
                 return
@@ -532,12 +532,12 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
                     keepaliveDue = false
                 }
             }
-            try bufferedTransport.flush(socket: transportSocket)
+            try buffer.flush(socket: transportSocket)
             socketEvents?.update(read: stream.wantsSocketRead, write: stream.socketWriteBlocked)
             transportEvents?.update(
-                read: !bufferedTransport.isBackpressured && (stream.wantsChannelRead || !stream.toChannel.isEmpty),
-                write: bufferedTransport.wantsWrite || stream.blockDirections & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
-            if progressed || stream.yielded || bufferedTransport.exhaustedReadBudget { schedule() }
+                read: !buffer.isBackpressured && (stream.wantsChannelRead || !stream.toChannel.isEmpty),
+                write: buffer.wantsWrite || stream.blockDirections & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+            if progressed || stream.yielded || buffer.exhaustedReadBudget { schedule() }
         } catch { closeOnQueue() }
     }
 
@@ -553,7 +553,7 @@ private nonisolated final class SSHChannelSocketBridge: @unchecked Sendable {
         let remote = transportSocket
         transportSocket = -1
         _ = Darwin.shutdown(remote, SHUT_RDWR)
-        if let session { bufferedTransport.dispose(session: session) }
+        if let session { buffer.dispose(libssh2Session: session) }
         session = nil
         stream.channel = nil
         if let transportEvents { transportEvents.cancel { Darwin.close(remote) } } else { Darwin.close(remote) }

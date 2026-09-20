@@ -108,7 +108,7 @@ private actor DesktopJourneyMetricsSampler: MetricsSampling {
     func connect(_ configuration: SSHConnectionConfiguration) async throws { throw CancellationError() }
     func connect(_ request: SSHConnectionRequest) async throws {
         connections += 1
-        // Match the live exec session's fallback path: Metrics must always override it.
+        // Match the live exec Channel's fallback path: Metrics must always override it.
         let handler = try #require(request.withKeyboardInteractiveFallback(fallback).keyboardInteractive)
         _ = try await handler(
             SSHKeyboardInteractiveChallenge(

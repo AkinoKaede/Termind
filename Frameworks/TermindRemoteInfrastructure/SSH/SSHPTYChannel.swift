@@ -555,30 +555,30 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
     }
 }
 
-public actor SSHSessionActor {
+public actor SSHPTYChannel {
     public typealias OutputHandler = @Sendable (Data) -> Void
     public typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void
     public typealias ShellIntegrationHandler = @Sendable (SSHShellIntegrationEvent) -> Void
 
-    private nonisolated let worker: SSHSessionWorker
+    private nonisolated let worker: SSHPTYChannelWorker
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
 
     public init(
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
         shellIntegration: @escaping ShellIntegrationHandler = { _ in },
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session"),
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-pty-channel"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         self.keyboardInteractive = keyboardInteractive
-        worker = SSHSessionWorker(
+        worker = SSHPTYChannelWorker(
             output: output, exit: exit, shellIntegrationHandler: shellIntegration, logger: logger,
             maxSessionsPolicy: maxSessionsPolicy)
     }
 
     /// Appends a named public key to a remote account's `authorized_keys`, unless
     /// the exact key line is already present. The generated comment and key travel
-    /// over the channel's stdin, never as shell syntax.
+    /// over the PTY Channel's stdin, never as shell syntax.
     public static func installAuthorizedKey(
         _ publicKey: String, named keyName: String,
         using configuration: SSHConnectionConfiguration,
@@ -594,7 +594,7 @@ public actor SSHSessionActor {
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) async throws {
-        try await SSHSessionWorker.installAuthorizedKey(
+        try await SSHConnectionOpener.installAuthorizedKey(
             publicKey, named: keyName, using: request, logger: logger,
             maxSessionsPolicy: maxSessionsPolicy)
     }
@@ -643,10 +643,10 @@ public actor SSHSessionActor {
         worker.write(data)
     }
 
-    /// Opens an SFTP subsystem on the already authenticated terminal transport.
+    /// Opens an SFTP subsystem Channel on the PTY Channel's authenticated connection.
     /// This is a fallback only: callers must first attempt their ordinary
     /// independent SFTP connection.
-    public func openSFTPChannel() async throws -> any SFTPClientProtocol {
+    public func openSFTPChannel() async throws -> any SFTPChannelProtocol {
         try await worker.openSFTPChannel()
     }
 
@@ -660,27 +660,25 @@ public actor SSHSessionActor {
     public func disconnect() async { await worker.disconnect() }
 }
 
-public nonisolated final class SSHSessionWorker: @unchecked Sendable {
+nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private static let initialization: Void = {
         precondition(libssh2_init(0) == 0, "libssh2 initialization failed")
     }()
 
-    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.session")
-    private let output: SSHSessionActor.OutputHandler
-    private let exit: SSHSessionActor.ExitHandler
-    private let shellIntegrationHandler: SSHSessionActor.ShellIntegrationHandler
+    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.pty-channel")
+    private let output: SSHPTYChannel.OutputHandler
+    private let exit: SSHPTYChannel.ExitHandler
+    private let shellIntegrationHandler: SSHPTYChannel.ShellIntegrationHandler
     private let logger: Logging.Logger
     private let maxSessionsPolicy: SSHMaxSessionsPolicy
 
-    private var socket: Int32 = -1
-    private var routeTransport: SSHRoutedSocket?
-    private var session: OpaquePointer?
-    private var channel: OpaquePointer?
+    private var connection: SSHAuthenticatedConnection?
+    private var ptyChannel: OpaquePointer?
     private var hostID: Host.ID?
     private var pumpTimer: (any DispatchSourceTimer)?
-    private var bufferedTransport: SSHBufferedTransport?
-    private var channelBudget: SSHSessionChannelBudget?
-    private var terminalChannelLease: SSHSessionChannelLease?
+    private var buffer: SSHConnectionBuffer?
+    private var channelBudget: SSHChannelBudget?
+    private var ptyChannelLease: SSHChannelLease?
     private var socketEvents: SSHSocketEvents?
     private let pendingWrites = SSHByteQueue(chunkSize: 32_700)
     private var ptyResize = SSHPTYResizeState()
@@ -689,11 +687,11 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private var didReportExit = false
     private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
 
-    public init(
-        output: @escaping SSHSessionActor.OutputHandler,
-        exit: @escaping SSHSessionActor.ExitHandler,
-        shellIntegrationHandler: @escaping SSHSessionActor.ShellIntegrationHandler,
-        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-session"),
+    init(
+        output: @escaping SSHPTYChannel.OutputHandler,
+        exit: @escaping SSHPTYChannel.ExitHandler,
+        shellIntegrationHandler: @escaping SSHPTYChannel.ShellIntegrationHandler,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-pty-channel"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         _ = Self.initialization
@@ -705,36 +703,36 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
             queue: queue,
             context: { [weak self] in
-                guard let self, let session = self.session,
-                    let bufferedTransport = self.bufferedTransport,
-                    let channelBudget = self.channelBudget, self.socket >= 0
+                guard let self, let connection = self.connection,
+                    let buffer = self.buffer,
+                    let channelBudget = self.channelBudget
                 else { return nil }
                 return .init(
-                    session: session, transport: bufferedTransport,
-                    socket: self.socket, channelBudget: channelBudget)
+                    connection: connection, buffer: buffer,
+                    channelBudget: channelBudget)
             },
-            updateEvents: { [weak self] session, transport in
-                self?.updateSharedTransportEvents(session: session, transport: transport)
+            updateEvents: { [weak self] session, buffer in
+                self?.updateSharedConnectionEvents(session: session, buffer: buffer)
             },
             didCloseLastChannel: { [weak self] in
-                guard let self, self.channel == nil else { return }
+                guard let self, self.ptyChannel == nil else { return }
                 self.cleanup()
             })
     }
 
-    /// Opens a transport, handshakes, validates the host key, and authenticates —
+    /// Opens a byte transport, handshakes, validates the host key, and authenticates —
     /// the identical prologue every non-PTY entry point needs before it can open
-    /// a channel. On any failure it frees what it created and rethrows, so a
-    /// caller only owns the pair once it has been handed one.
+    /// a Channel. On any failure it frees what it created and rethrows, so a
+    /// caller only owns the resulting connection once it has been handed one.
     ///
-    /// The returned session is left in blocking mode. Callers that want the
-    /// non-blocking pump switch it themselves once their channel is running.
-    public static func openAuthenticatedSession(
+    /// The connection's libssh2 handle is left in blocking mode. Callers that want the
+    /// non-blocking pump switch it themselves once their Channel is running.
+    public static func openAuthenticatedConnection(
         using configuration: SSHConnectionConfiguration,
         timeout: TimeInterval,
         progress: SSHRouteProgressHandler? = nil,
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-authentication")
-    ) throws -> (transport: SSHRoutedSocket, session: OpaquePointer) {
+    ) throws -> SSHAuthenticatedConnection {
         _ = initialization
         let operationID = UUID().uuidString.lowercased()
         logger.info(
@@ -785,7 +783,8 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
                     "operation_id": "\(operationID)", "outcome": "success", "protocol": "ssh",
                     "stage": "authenticated",
                 ])
-            return (opened, created)
+            return SSHAuthenticatedConnection(
+                byteTransport: opened, libssh2Session: created)
         } catch {
             logger.error(
                 "ssh.authentication.failed",
@@ -800,12 +799,12 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
     }
 
-    public static func openAuthenticatedSession(
+    public static func openAuthenticatedConnection(
         using request: SSHConnectionRequest,
         timeout: TimeInterval,
         progress: SSHRouteProgressHandler? = nil,
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-authentication")
-    ) async throws -> SSHOpenedSession {
+    ) async throws -> SSHAuthenticatedConnection {
         let operationID = UUID().uuidString.lowercased()
         let request = request.enforcingInteractionPolicy()
         let configuration = request.configuration
@@ -882,7 +881,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) async throws {
         let input = try authorizedKeyInstallInput(publicKey: publicKey, keyName: keyName)
-        let session = SSHMultiplexedSession(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
+        let session = SSHConnection(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
         do {
             try await session.connect(using: request)
             let command =
@@ -941,46 +940,43 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
         do {
             let channelBudget = maxSessionsPolicy.makeBudget()
-            let terminalChannelLease = try await channelBudget.acquire()
-            let opened = try await Self.openAuthenticatedSession(
+            let ptyChannelLease = try await channelBudget.acquire()
+            let openedConnection = try await Self.openAuthenticatedConnection(
                 using: request, timeout: 20, progress: progress, logger: logger
             )
             try await queue.perform { [self] in
                 guard ptyResize.generation == generation, let size = ptyResize.requestedSize else {
-                    terminalChannelLease.release()
+                    ptyChannelLease.release()
                     channelBudget.close()
-                    _ = libssh2_session_free(opened.session)
-                    opened.transport.close()
+                    openedConnection.close()
                     throw CancellationError()
                 }
-                routeTransport = opened.transport
-                socket = opened.transport.socket
-                session = opened.session
+                connection = openedConnection
                 hostID = request.configuration.hostID
                 self.channelBudget = channelBudget
-                self.terminalChannelLease = terminalChannelLease
-                let created = opened.session
+                self.ptyChannelLease = ptyChannelLease
+                let created = openedConnection.libssh2Session
                 guard
-                    let opened = libssh2_channel_open_ex(
+                    let openedChannel = libssh2_channel_open_ex(
                         created, "session", 7,
                         2 * 1024 * 1024,
                         32 * 1024, nil, 0
                     )
                 else {
-                    throw Self.sessionError(created, prefix: "Unable to open SSH channel")
+                    throw Self.connectionError(created, prefix: "Unable to open SSH PTY Channel")
                 }
-                channel = opened
+                ptyChannel = openedChannel
                 let pty = libssh2_channel_request_pty_ex(
-                    opened, "xterm-256color", 14, nil, 0,
+                    openedChannel, "xterm-256color", 14, nil, 0,
                     Int32(size.columns), Int32(size.rows),
                     Int32(clamping: size.widthPixels), Int32(clamping: size.heightPixels)
                 )
-                guard pty == 0 else { throw Self.sessionError(created, prefix: "PTY request failed") }
+                guard pty == 0 else { throw Self.connectionError(created, prefix: "PTY request failed") }
                 ptyResize.didCreatePTY(size: size)
-                guard libssh2_channel_process_startup(opened, "shell", 5, nil, 0) == 0 else {
-                    throw Self.sessionError(created, prefix: "Remote shell request failed")
+                guard libssh2_channel_process_startup(openedChannel, "shell", 5, nil, 0) == 0 else {
+                    throw Self.connectionError(created, prefix: "Remote shell request failed")
                 }
-                bufferedTransport = SSHBufferedTransport(session: created)
+                buffer = openedConnection.installBuffer()
                 libssh2_session_set_blocking(created, 0)
                 libssh2_keepalive_config(created, 1, 20)
                 didReportExit = false
@@ -1025,7 +1021,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
     }
 
-    public func disconnect() async { await queue.perform { self.closeTerminalChannel() } }
+    public func disconnect() async { await queue.perform { self.closeTerminalSession() } }
 
     public static func authenticate(
         username: String, credentials: [SSHCredentials], session: OpaquePointer,
@@ -1148,7 +1144,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             ? "SSH authentication failed"
             : "No configured credential matches the server methods (\(available))"
         throw TermindSSHError.authenticationFailed(
-            Self.sessionErrorMessage(session, prefix: prefix)
+            Self.connectionErrorMessage(session, prefix: prefix)
         )
     }
 
@@ -1190,7 +1186,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
         guard let pointer else {
             if libssh2_userauth_authenticated(session) == 1 { return [] }
-            throw Self.sessionError(
+            throw Self.connectionError(
                 session, prefix: "Unable to read SSH authentication methods"
             )
         }
@@ -1223,7 +1219,10 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private func startPump() {
         pumpTimer?.cancel()
         socketEvents?.cancel()
-        socketEvents = SSHSocketEvents(socket: socket, queue: queue) { [weak self] in self?.pump() }
+        guard let connection else { return }
+        socketEvents = SSHSocketEvents(socket: connection.byteTransport.socket, queue: queue) {
+            [weak self] in self?.pump()
+        }
         socketEvents?.update(read: true, write: false)
         let timer = DispatchSource.makeTimerSource(queue: queue)
         // Timer advances shell-integration deadlines and keepalive only; data
@@ -1235,22 +1234,24 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     }
 
     private func pump() {
-        guard let session, let bufferedTransport else { return }
+        guard let connection, let buffer else { return }
+        let session = connection.libssh2Session
+        let socket = connection.byteTransport.socket
         let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-        bufferedTransport.beginPass(deadline: deadline)
-        do { try bufferedTransport.flush(socket: socket) } catch {
-            reportExit(.failure(Self.sessionError(session, prefix: "SSH transport write failed")))
+        buffer.beginPass(deadline: deadline)
+        do { try buffer.flush(socket: socket) } catch {
+            reportExit(.failure(Self.connectionError(session, prefix: "SSH transport write failed")))
             cleanup()
             return
         }
-        if bufferedTransport.isBackpressured {
+        if buffer.isBackpressured {
             socketEvents?.update(read: false, write: true)
             return
         }
-        if let channel {
+        if let ptyChannel {
             let resizeResult = ptyResize.flush { size in
                 libssh2_channel_request_pty_size_ex(
-                    channel, Int32(size.columns), Int32(size.rows),
+                    ptyChannel, Int32(size.columns), Int32(size.rows),
                     Int32(clamping: size.widthPixels), Int32(clamping: size.heightPixels)
                 )
             }
@@ -1266,13 +1267,13 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             // for a previously blocked channel write or window adjustment.
             var buffer = [CChar](repeating: 0, count: 32 * 1024)
             while DispatchTime.now().uptimeNanoseconds < deadline {
-                let count = libssh2_channel_read_ex(channel, 0, &buffer, buffer.count)
+                let count = libssh2_channel_read_ex(ptyChannel, 0, &buffer, buffer.count)
                 if count > 0 {
                     deliverOutput(Data(bytes: buffer, count: count))
                 } else if count == LIBSSH2_ERROR_EAGAIN || count == 0 {
                     break
                 } else {
-                    reportExit(.failure(Self.sessionError(session, prefix: "SSH read failed")))
+                    reportExit(.failure(Self.connectionError(session, prefix: "SSH read failed")))
                     cleanup()
                     return
                 }
@@ -1287,14 +1288,14 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
             while !pendingWrites.isEmpty && DispatchTime.now().uptimeNanoseconds < deadline {
                 let written = pendingWrites.withFirstBytes { bytes -> Int in
                     guard let address = bytes.baseAddress?.assumingMemoryBound(to: CChar.self) else { return 0 }
-                    return libssh2_channel_write_ex(channel, 0, address, bytes.count)
+                    return libssh2_channel_write_ex(ptyChannel, 0, address, bytes.count)
                 }
                 if written > 0 {
                     pendingWrites.consume(written)
                 } else if written == LIBSSH2_ERROR_EAGAIN {
                     break
                 } else {
-                    reportExit(.failure(Self.sessionError(session, prefix: "SSH write failed")))
+                    reportExit(.failure(Self.connectionError(session, prefix: "SSH write failed")))
                     cleanup()
                     return
                 }
@@ -1304,25 +1305,25 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         var next = Int32(0)
         let keepalive = libssh2_keepalive_send(session, &next)
         if keepalive < 0, keepalive != LIBSSH2_ERROR_EAGAIN {
-            reportExit(.failure(Self.sessionError(session, prefix: "SSH keepalive failed")))
+            reportExit(.failure(Self.connectionError(session, prefix: "SSH keepalive failed")))
             cleanup()
             return
         }
-        if let channel, libssh2_channel_eof(channel) == 1 {
-            let status = libssh2_channel_get_exit_status(channel)
+        if let ptyChannel, libssh2_channel_eof(ptyChannel) == 1 {
+            let status = libssh2_channel_get_exit_status(ptyChannel)
             reportExit(.success(status))
-            closeTerminalChannel()
+            closeTerminalSession()
             return
         }
-        do { try bufferedTransport.flush(socket: socket) } catch {
-            reportExit(.failure(Self.sessionError(session, prefix: "SSH transport write failed")))
+        do { try buffer.flush(socket: socket) } catch {
+            reportExit(.failure(Self.connectionError(session, prefix: "SSH transport write failed")))
             cleanup()
             return
         }
         let directions = libssh2_session_block_directions(session)
         socketEvents?.update(
-            read: !bufferedTransport.isBackpressured,
-            write: bufferedTransport.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+            read: !buffer.isBackpressured,
+            write: buffer.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
     }
 
     private func reportExit(_ result: Result<Int32, TermindSSHError>) {
@@ -1389,19 +1390,19 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
     }
 
-    private func closeTerminalChannel() {
+    private func closeTerminalSession() {
         pendingWrites.removeAll()
         ptyResize.reset()
         shellIntegration = nil
         commandEventFilter = nil
         hostID = nil
-        if let channel {
-            _ = libssh2_channel_send_eof(channel)
-            _ = libssh2_channel_close(channel)
-            _ = libssh2_channel_free(channel)
-            self.channel = nil
-            terminalChannelLease?.release()
-            terminalChannelLease = nil
+        if let ptyChannel {
+            _ = libssh2_channel_send_eof(ptyChannel)
+            _ = libssh2_channel_close(ptyChannel)
+            _ = libssh2_channel_free(ptyChannel)
+            self.ptyChannel = nil
+            ptyChannelLease?.release()
+            ptyChannelLease = nil
         }
         if sftpChannelOwner.isEmptyOnQueue { cleanup() }
     }
@@ -1409,41 +1410,30 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
     private func cleanup() {
         pumpTimer?.cancel()
         pumpTimer = nil
-        let transport = routeTransport
-        routeTransport = nil
+        let connection = connection
+        self.connection = nil
         pendingWrites.removeAll()
         ptyResize.reset()
         shellIntegration = nil
         commandEventFilter = nil
         hostID = nil
-        if let channel {
-            _ = libssh2_channel_send_eof(channel)
-            _ = libssh2_channel_close(channel)
-            _ = libssh2_channel_free(channel)
-            self.channel = nil
+        if let ptyChannel {
+            _ = libssh2_channel_send_eof(ptyChannel)
+            _ = libssh2_channel_close(ptyChannel)
+            _ = libssh2_channel_free(ptyChannel)
+            self.ptyChannel = nil
         }
         sftpChannelOwner.closeAllOnQueue()
-        terminalChannelLease?.release()
-        terminalChannelLease = nil
+        ptyChannelLease?.release()
+        ptyChannelLease = nil
         channelBudget?.close()
         channelBudget = nil
-        if let session {
-            if let bufferedTransport {
-                bufferedTransport.dispose(session: session)
-            } else {
-                _ = libssh2_session_free(session)
-            }
-            self.session = nil
-        }
-        bufferedTransport = nil
-        if socket >= 0 {
-            socket = -1
-        }
+        buffer = nil
         if let socketEvents {
-            socketEvents.cancel { transport?.close() }
+            socketEvents.cancel { connection?.close() }
             self.socketEvents = nil
         } else {
-            transport?.close()
+            connection?.close()
         }
     }
 
@@ -1451,7 +1441,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         -> SSHHostKeyObservation
     {
         guard let hash = libssh2_hostkey_hash(session, Int32(LIBSSH2_HOSTKEY_HASH_SHA256)) else {
-            throw sessionError(session, prefix: "The server did not provide a host-key fingerprint")
+            throw connectionError(session, prefix: "The server did not provide a host-key fingerprint")
         }
         let digest = Data(bytes: hash, count: 32).base64EncodedString().replacingOccurrences(of: "=", with: "")
         var length = 0
@@ -1465,7 +1455,7 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         case LIBSSH2_HOSTKEY_TYPE_ECDSA_521: algorithm = .ecdsa521
         case LIBSSH2_HOSTKEY_TYPE_ED25519: algorithm = .ed25519
         default:
-            throw sessionError(session, prefix: "The server provided an unsupported host-key type")
+            throw connectionError(session, prefix: "The server provided an unsupported host-key type")
         }
         return SSHHostKeyObservation(
             hostname: host, port: port, algorithm: algorithm,
@@ -1559,11 +1549,11 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
         }
     }
 
-    public static func sessionError(_ session: OpaquePointer, prefix: String) -> TermindSSHError {
-        .library(sessionErrorMessage(session, prefix: prefix))
+    public static func connectionError(_ session: OpaquePointer, prefix: String) -> TermindSSHError {
+        .library(connectionErrorMessage(session, prefix: prefix))
     }
 
-    private static func sessionErrorMessage(_ session: OpaquePointer, prefix: String) -> String {
+    private static func connectionErrorMessage(_ session: OpaquePointer, prefix: String) -> String {
         var message: UnsafeMutablePointer<CChar>?
         var length = Int32(0)
         let code = libssh2_session_last_error(session, &message, &length, 0)
@@ -1573,28 +1563,18 @@ public nonisolated final class SSHSessionWorker: @unchecked Sendable {
 
 }
 
-nonisolated extension SSHSessionWorker {
-    fileprivate func openSFTPChannel() async throws -> any SFTPClientProtocol {
-        try await sftpChannelOwner.openClient()
+nonisolated extension SSHPTYChannelWorker {
+    fileprivate func openSFTPChannel() async throws -> any SFTPChannelProtocol {
+        try await sftpChannelOwner.openChannel()
     }
 
-    private func updateSharedTransportEvents(session: OpaquePointer, transport: SSHBufferedTransport) {
+    private func updateSharedConnectionEvents(session: OpaquePointer, buffer: SSHConnectionBuffer) {
         let directions = libssh2_session_block_directions(session)
         socketEvents?.update(
-            read: !transport.isBackpressured,
-            write: transport.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+            read: !buffer.isBackpressured,
+            write: buffer.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
     }
 
-}
-
-public nonisolated struct SSHOpenedSession: @unchecked Sendable {
-    public var transport: SSHRoutedSocket
-    public var session: OpaquePointer
-
-    public init(transport: SSHRoutedSocket, session: OpaquePointer) {
-        self.transport = transport
-        self.session = session
-    }
 }
 
 private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendable {
@@ -1617,7 +1597,7 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
         }
         session = created
         libssh2_session_set_blocking(created, 1)
-        try SSHSessionWorker.performHandshake(
+        try SSHConnectionOpener.performHandshake(
             created, socket: transport.socket,
             peer: SSHSocketConnector.peerDescription(
                 socket: transport.socket,
@@ -1626,9 +1606,9 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
             ),
             timeout: timeout
         )
-        return try SSHSessionWorker.observation(
+        return try SSHConnectionOpener.observation(
             host: configuration.host, port: configuration.port,
-            session: created
+            libssh2Session: created
         )
     }
 
@@ -1639,10 +1619,10 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
     ) throws -> String {
         guard let session else { throw TermindSSHError.disconnected }
         progress?(.authenticating(configuration.hostID))
-        let authentication = try SSHSessionWorker.authenticate(
+        let authentication = try SSHConnectionOpener.authenticate(
             username: configuration.username,
             credentials: configuration.credentials,
-            session: session,
+            libssh2Session: session,
             afterHostKeyApproval: afterHostKeyApproval,
             keyboardInteractive: keyboardInteractive, socket: transport?.socket ?? -1
         )
@@ -1650,9 +1630,10 @@ private nonisolated final class SSHAuthenticatedOpeningState: @unchecked Sendabl
         return authentication
     }
 
-    func takeResult() throws -> SSHOpenedSession {
+    func takeResult() throws -> SSHAuthenticatedConnection {
         guard let transport, let session else { throw TermindSSHError.disconnected }
-        let result = SSHOpenedSession(transport: transport, session: session)
+        let result = SSHAuthenticatedConnection(
+            byteTransport: transport, libssh2Session: session)
         cancellationLock.withLock { cancellableSocket = -1 }
         self.transport = nil
         self.session = nil

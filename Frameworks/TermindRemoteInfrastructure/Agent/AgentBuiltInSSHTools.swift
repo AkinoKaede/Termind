@@ -252,7 +252,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
         Self.descriptor(
             "ssh_exec",
             """
-            Execute a remote command and return its output over a dedicated non-PTY SSH exec channel. \
+            Execute a remote command and return its output over a dedicated non-PTY SSH exec Channel. \
             Use this to run commands or inspect a host, even without an open interactive terminal or \
             attached session context. When context is absent, discover host_id with list_hosts. \
             Only host_id and command are required. Termind handles SSH login using the host configuration \
@@ -339,8 +339,8 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
             // being changed.
             //
             // Safe commands may overlap even when aimed at one host:
-            // `SSHMultiplexedSession` gives each command its own Channel on the
-            // shared transport, while one fair owner serializes the actual
+            // `SSHConnection` gives each command its own session on the
+            // shared connection, while one fair owner serializes the actual
             // libssh2 calls. Commands on separate hosts can also run at once,
             // as can host work alongside `fetch`, `web_search`, and MCP.
             concurrency: safe ? .parallel : .sequential
@@ -404,18 +404,18 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
         // ends on time is what lets the user be heard at all.
         let handover = AgentCommandHandover()
         let running = Task { () async throws -> SSHExecResult in
-            var connection = try await authentication.connection(
+            var connection = try await authentication.connectionContext(
                 hostID: hostID, invocationID: invocation.id,
                 interaction: context.sshInteraction, pool: pool
             )
-            var retriedDeadSession = false
+            var retriedDeadConnection = false
             while true {
-                let session = connection.session
+                let sshConnection = connection.connection
                 // The call may already have given up while this was
                 // connecting. Starting anyway would leave a command
                 // running, printing and finishing with nobody holding
                 // a handle to it.
-                guard retriedDeadSession || handover.beginRunning() else {
+                guard retriedDeadConnection || handover.beginRunning() else {
                     throw AgentCommandNotStarted()
                 }
                 context.report(
@@ -424,28 +424,28 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                         metadata: ["presentation_phase": .string("command")]
                     ))
                 do {
-                    return try await pool.withExecLease(hostID: hostID, session: session) {
-                        try await session.execute(
+                    return try await pool.withExecLease(hostID: hostID, connection: sshConnection) {
+                        try await sshConnection.execute(
                             command, workingDirectory: cwd, stdin: stdin,
                             timeout: AgentToolSupport.maximumCommandLifetime,
                             outputLimit: 256 * 1_024,
                             onOutput: stream.handler)
                     }
-                } catch SSHCommandExecutionError.transportUnavailable
-                    where !retriedDeadSession
+                } catch SSHCommandExecutionError.connectionUnavailable
+                    where !retriedDeadConnection
                 {
-                    // Safe because no command channel opened. The
+                    // Safe because no command session opened. The
                     // authentication actor returned with the connection
                     // keeps one-use credentials for this retry, while its
                     // shared registry lease already ended.
-                    retriedDeadSession = true
+                    retriedDeadConnection = true
                     context.report(
                         AgentToolResult(
                             callID: invocation.call.id, content: "",
                             metadata: ["presentation_phase": .string("running")]
                         ))
                     await pool.disconnect(hostID: hostID)
-                    connection.session = try await authentication.openSession(
+                    connection.connection = try await authentication.openConnection(
                         hostID: hostID, authentication: connection.authentication,
                         pool: pool
                     )
@@ -474,8 +474,8 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                             )),
                     ]), truncated: false)
             }
-            // It outlived its turn. Only this command's Channel goes with the
-            // background handle; the transport remains available to peers.
+            // It outlived its turn. Only this command's session goes with the
+            // background handle; the connection remains available to peers.
             let handle = await background.adopt(
                 stream: stream, task: running
             )

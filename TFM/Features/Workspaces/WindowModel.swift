@@ -291,7 +291,7 @@ final class WindowModel {
 
     /// Closed workspaces, most recent last. ⇧⌘T pops from here. The Workspace retains
     /// its layout, names, and conversation, while `prepareForReopen` replaces
-    /// terminal models because a dead SSH channel cannot be revived.
+    /// terminal models because a dead SSH session cannot be revived.
     private var reopenStack: [Workspace] {
         get { workspaceDeck.reopenStack }
         set { workspaceDeck.reopenStack = newValue }
@@ -338,8 +338,8 @@ final class WindowModel {
         return selectedWorkspace?.focusedPane.sshSession
     }
 
-    var focusedSFTPSession: SFTPSessionModel? {
-        selectedWorkspace?.focusedPane.sftpSession
+    var focusedSFTPChannel: SFTPChannelModel? {
+        selectedWorkspace?.focusedPane.sftpChannel
     }
 
     var focusedSerialSession: SerialSessionModel? {
@@ -409,7 +409,7 @@ final class WindowModel {
             return nil
         case .workspace:
             if focusedSSHSession != nil || focusedSerialSession != nil { return .terminal }
-            if focusedSFTPSession != nil { return .sftp }
+            if focusedSFTPChannel != nil { return .sftp }
             return nil
         case .vault:
             switch vaultDestination {
@@ -524,7 +524,7 @@ final class WindowModel {
 
     /// One host's file browser, per open browser. The queue page is not among
     /// them: it is a page, so its `kind` is `.page`, and it lives in Manage.
-    var sftpSessionPanes: [PaneRef] { panes(ofKind: .sftpSession) }
+    var sftpChannelPanes: [PaneRef] { panes(ofKind: .sftpChannel) }
 
     var serialSessionPanes: [PaneRef] { panes(ofKind: .serialSession) }
 
@@ -532,7 +532,7 @@ final class WindowModel {
         workspaces.flatMap { workspace in
             workspace.panes.compactMap { pane in
                 guard
-                    pane.kind == .sshSession || pane.kind == .sftpSession
+                    pane.kind == .sshSession || pane.kind == .sftpChannel
                         || pane.kind == .serialSession
                 else { return nil }
                 return PaneRef(pane: pane)
@@ -854,7 +854,7 @@ final class WindowModel {
 
         if placement == .currentWorkspace,
             let workspace = selectedWorkspace,
-            workspace.focusedPane.sftpSession != nil
+            workspace.focusedPane.sftpChannel != nil
         {
             workspace.splitFocusedPane(axis: .horizontal, with: pane)
             return workspace
@@ -866,14 +866,14 @@ final class WindowModel {
     /// Batch Startup opens every host as a pane of one new Workspace, tiled into a grid.
     ///
     /// Returns nil for a target that cannot be a Workspace pane — only SSH and
-    /// SFTP sessions can, which is the same rule `PaneKind.isCombinable`
+    /// SFTP channels can, which is the same rule `PaneKind.isCombinable`
     /// enforces everywhere else.
     @discardableResult
     func openWorkspace(_ hosts: [Host], as target: HostOpenTarget) -> Workspace? {
         let panes: [Pane] = hosts.compactMap { host in
             switch target {
             case .sshSession: .sshSession(host: host)
-            case .sftpSession: .sftpSession(host: host)
+            case .sftpChannel: .sftpChannel(host: host)
             }
         }
         guard let first = panes.first, let layout = SplitNode.tiled(panes) else { return nil }
@@ -923,12 +923,12 @@ final class WindowModel {
     /// an explicit layout choice and always places the browser to the right of
     /// the focused shell.
     @discardableResult
-    func openSFTPSession(
+    func openSFTPChannel(
         host: Host,
         initialPath: String? = nil,
         placement: SessionOpenPlacement = .newWorkspace
     ) -> Workspace {
-        let pane = Pane.sftpSession(host: host, initialPath: initialPath)
+        let pane = Pane.sftpChannel(host: host, initialPath: initialPath)
         numberPane(pane)
         if let connectionCoordinator { pane.configureConnections(using: connectionCoordinator) }
         if let sftpHistoryStore { pane.configureSFTPHistory(using: sftpHistoryStore) }
@@ -1231,7 +1231,7 @@ final class WindowModel {
     /// another gives that name back instead of skipping to (3), and the panes
     /// that stayed open never renumber.
     ///
-    /// Scoped to same kind *and* same host. An SSH session and an SFTP session
+    /// Scoped to same kind *and* same host. An SSH session and an SFTP channel
     /// on web-01 already have different symbols in Sessions, so numbering across
     /// them would answer a question nobody asked.
     func numberPane(_ pane: Pane) {

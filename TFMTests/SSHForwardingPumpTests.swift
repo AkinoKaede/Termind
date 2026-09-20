@@ -233,8 +233,8 @@ struct SSHForwardingPumpTests {
         var capacity: Int32 = 4096
         setsockopt(sockets[0], SOL_SOCKET, SO_SNDBUF, &capacity, socklen_t(MemoryLayout<Int32>.size))
         let session = try #require(libssh2_session_init_ex(nil, nil, nil, nil))
-        let transport = SSHBufferedTransport(session: session)
-        defer { transport.dispose(session: session) }
+        let buffer = SSHConnectionBuffer(libssh2Session: session)
+        defer { buffer.dispose(libssh2Session: session) }
         let callback = try #require(libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_SEND, nil))
         libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_SEND, callback)
         typealias Send =
@@ -243,7 +243,7 @@ struct SSHForwardingPumpTests {
             ) -> Int
         let send = unsafeBitCast(callback, to: Send.self)
         var expected = Data()
-        for index in 0..<100 where !transport.isBackpressured {
+        for index in 0..<100 where !buffer.isBackpressured {
             let packet = Data(repeating: UInt8(index), count: 32768)
             expected.append(packet)
             let result = packet.withUnsafeBytes {
@@ -251,19 +251,19 @@ struct SSHForwardingPumpTests {
             }
             #expect(result == packet.count)
         }
-        #expect(transport.isBackpressured)
+        #expect(buffer.isBackpressured)
         #expect(expected.count <= SSHForwardingTuning.current.highWater + 65536)
         var actual = Data()
         var scratch = [UInt8](repeating: 0, count: 32768)
         for _ in 0..<1000 {
             let count = Darwin.recv(sockets[1], &scratch, scratch.count, 0)
             if count > 0 { actual.append(contentsOf: scratch.prefix(count)) }
-            transport.beginPass()
-            try transport.flush(socket: sockets[0])
+            buffer.beginPass()
+            try buffer.flush(socket: sockets[0])
             if actual.count == expected.count { break }
         }
         #expect(actual == expected)
-        #expect(!transport.wantsWrite)
+        #expect(!buffer.wantsWrite)
     }
 
     @Test func encryptedFlushesShareOneAllowanceUntilTheNextPass() throws {
@@ -271,8 +271,8 @@ struct SSHForwardingPumpTests {
         defer { for socket in sockets { Darwin.close(socket) } }
         for socket in sockets { _ = fcntl(socket, F_SETFL, O_NONBLOCK) }
         let session = try #require(libssh2_session_init_ex(nil, nil, nil, nil))
-        let transport = SSHBufferedTransport(session: session, tuning: SSHForwardingTuning(quantum: 100))
-        defer { transport.dispose(session: session) }
+        let buffer = SSHConnectionBuffer(libssh2Session: session, tuning: SSHForwardingTuning(quantum: 100))
+        defer { buffer.dispose(libssh2Session: session) }
         let callback = try #require(libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_SEND, nil))
         libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_SEND, callback)
         typealias Send =
@@ -286,13 +286,13 @@ struct SSHForwardingPumpTests {
         try #require(errno == EAGAIN || errno == EWOULDBLOCK)
         try #require(send(sockets[0], &bytes, bytes.count, 0, libssh2_session_abstract(session)) == bytes.count)
         while Darwin.recv(sockets[1], &bytes, bytes.count, MSG_DONTWAIT) > 0 {}
-        transport.beginPass()
-        try transport.flush(socket: sockets[0])
-        try transport.flush(socket: sockets[0])
+        buffer.beginPass()
+        try buffer.flush(socket: sockets[0])
+        try buffer.flush(socket: sockets[0])
         #expect(Darwin.recv(sockets[1], &bytes, bytes.count, MSG_DONTWAIT) == 100)
-        #expect(transport.wantsWrite)
-        transport.beginPass()
-        try transport.flush(socket: sockets[0])
+        #expect(buffer.wantsWrite)
+        buffer.beginPass()
+        try buffer.flush(socket: sockets[0])
         #expect(Darwin.recv(sockets[1], &bytes, bytes.count, MSG_DONTWAIT) == 100)
     }
 
@@ -324,8 +324,8 @@ struct SSHForwardingPumpTests {
         defer { for socket in sockets { Darwin.close(socket) } }
         for socket in sockets { _ = fcntl(socket, F_SETFL, O_NONBLOCK) }
         let session = try #require(libssh2_session_init_ex(nil, nil, nil, nil))
-        let transport = SSHBufferedTransport(session: session, tuning: SSHForwardingTuning(readBudget: budget))
-        defer { transport.dispose(session: session) }
+        let buffer = SSHConnectionBuffer(libssh2Session: session, tuning: SSHForwardingTuning(readBudget: budget))
+        defer { buffer.dispose(libssh2Session: session) }
         let callback = try #require(libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_RECV, nil))
         libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_RECV, callback)
         typealias Receive =
@@ -339,10 +339,10 @@ struct SSHForwardingPumpTests {
             try #require(
                 receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == packet.count)
         }
-        #expect(transport.exhaustedReadBudget)
+        #expect(buffer.exhaustedReadBudget)
         try #require(Darwin.send(sockets[1], &packet, packet.count, 0) == packet.count)
         #expect(receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == -Int(EAGAIN))
-        transport.beginPass()
+        buffer.beginPass()
         #expect(receive(sockets[0], &packet, packet.count, 0, libssh2_session_abstract(session)) == packet.count)
     }
 
@@ -449,8 +449,8 @@ struct SSHForwardingPumpTests {
         let sockets = try pair()
         defer { for socket in sockets { Darwin.close(socket) } }
         let session = try #require(libssh2_session_init_ex(nil, nil, nil, nil))
-        let transport = SSHBufferedTransport(session: session)
-        defer { transport.dispose(session: session) }
+        let buffer = SSHConnectionBuffer(libssh2Session: session)
+        defer { buffer.dispose(libssh2Session: session) }
         let callback = try #require(libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_RECV, nil))
         libssh2_session_callback_set2(session, LIBSSH2_CALLBACK_RECV, callback)
         typealias Receive =
@@ -460,12 +460,12 @@ struct SSHForwardingPumpTests {
         let receive = unsafeBitCast(callback, to: Receive.self)
         var byte: UInt8 = 42
         try #require(Darwin.send(sockets[1], &byte, 1, 0) == 1)
-        transport.beginPass(deadline: 0)
+        buffer.beginPass(deadline: 0)
         #expect(receive(sockets[0], &byte, 1, 0, libssh2_session_abstract(session)) == -Int(EAGAIN))
-        #expect(transport.exhaustedReadBudget)
-        transport.beginPass()
+        #expect(buffer.exhaustedReadBudget)
+        buffer.beginPass()
         #expect(receive(sockets[0], &byte, 1, 0, libssh2_session_abstract(session)) == 1)
-        #expect(!transport.exhaustedReadBudget)
+        #expect(!buffer.exhaustedReadBudget)
     }
 
     private func idleIO() -> SSHChannelIO {

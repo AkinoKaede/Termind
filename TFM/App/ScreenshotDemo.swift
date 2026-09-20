@@ -183,9 +183,9 @@ import TermindApplication
                 showsCommandResult
                 ? text(en: "nginx logs", zhHans: "Nginx 日志", zhHant: "Nginx 日誌")
                 : "api-01"
-            let sftpSession = SFTPSessionModel.demo(hostID: saved[0].id)
-            sftpSession.selection = ["/etc/nginx/nginx.conf"]
-            let sftp = Pane(.sftpSession(sftpSession))
+            let sftpChannel = SFTPChannelModel.demo(hostID: saved[0].id)
+            sftpChannel.selection = ["/etc/nginx/nginx.conf"]
+            let sftp = Pane(.sftpChannel(sftpChannel))
             sftp.customTitle = text(en: "nginx config", zhHans: "Nginx 配置", zhHant: "Nginx 設定")
             let secondSession =
                 showsCommandResult

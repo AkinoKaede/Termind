@@ -115,7 +115,7 @@ struct StatusBarView: View {
         return sshSession
     }
 
-    private var sftpSession: SFTPSessionModel? { pane?.sftpSession }
+    private var sftpChannel: SFTPChannelModel? { pane?.sftpChannel }
     private var serialSession: SerialSessionModel? { pane?.serialSession }
 
     /// One rule decides both whether the capsule appears at all and what it
@@ -179,12 +179,12 @@ struct StatusBarView: View {
                     }
                 }
 
-                if let sftpSession, sftpSession.status == .connected {
-                    if sftpSession.isLoading || sftpSession.canCancelOperation {
-                        sftpOperationStatus(sftpSession)
+                if let sftpChannel, sftpChannel.status == .connected {
+                    if sftpChannel.isLoading || sftpChannel.canCancelOperation {
+                        sftpOperationStatus(sftpChannel)
                     } else {
-                        if let displayed = sftpSession.displayedPath {
-                            sftpDirectoryButton(sftpSession.path, displayed: displayed)
+                        if let displayed = sftpChannel.displayedPath {
+                            sftpDirectoryButton(sftpChannel.path, displayed: displayed)
                         }
                     }
                 }
@@ -265,7 +265,7 @@ struct StatusBarView: View {
 
     private var status: ConnectionStatus {
         sshSession?.status
-            ?? sftpSession?.status
+            ?? sftpChannel?.status
             ?? serialSession?.status
             ?? pane?.hostID.map { app.hostLibrary.status(of: $0) }
             ?? .disconnected
@@ -362,7 +362,7 @@ struct StatusBarView: View {
         }
     }
 
-    private func sftpOperationStatus(_ session: SFTPSessionModel) -> some View {
+    private func sftpOperationStatus(_ session: SFTPChannelModel) -> some View {
         HStack(spacing: Metrics.Space.s) {
             ProgressView().controlSize(.mini)
             Text(session.hint.isEmpty ? String(localized: "Working") : session.hint)
@@ -382,7 +382,7 @@ struct StatusBarView: View {
 
     private func openInSFTP(_ path: String, placement: SessionOpenPlacement) {
         guard let host else { return }
-        window.openSFTPSession(host: host, initialPath: path, placement: placement)
+        window.openSFTPChannel(host: host, initialPath: path, placement: placement)
     }
 
     private func openInSSH(_ path: String, placement: SessionOpenPlacement) {

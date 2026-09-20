@@ -7,14 +7,14 @@ import struct TermindDomain.Host
 
 @MainActor
 struct MobileWorkspaceConnectionServices {
-    var makeSSHSession:
+    var makePTYChannel:
         (
-            @escaping SSHSessionActor.OutputHandler, @escaping SSHSessionActor.ExitHandler,
-            @escaping SSHSessionActor.ShellIntegrationHandler
-        ) -> SSHSessionActor
+            @escaping SSHPTYChannel.OutputHandler, @escaping SSHPTYChannel.ExitHandler,
+            @escaping SSHPTYChannel.ShellIntegrationHandler
+        ) -> SSHPTYChannel
     var connectSSH:
         (
-            SSHSessionActor, SSHConnectionRequest, Bool, UInt16, UInt16,
+            SSHPTYChannel, SSHConnectionRequest, Bool, UInt16, UInt16,
             SSHRouteProgressHandler?
         ) async throws -> Void
     var connectSFTP:
@@ -22,6 +22,6 @@ struct MobileWorkspaceConnectionServices {
             SSHConnectionRequest, SSHRouteProgressHandler?,
             (@Sendable (String) -> Void)?
         ) async throws -> any SFTPClientProtocol
-    var writeSSH: (SSHSessionActor, Data) async -> Void
+    var writeSSH: (SSHPTYChannel, Data) async -> Void
 
 }

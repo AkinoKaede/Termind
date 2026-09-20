@@ -71,7 +71,7 @@ public struct ConnectionJourneyHeader: View {
         let protocolName: String =
             switch journey.purpose {
             case .sshSession, .metrics, .portForwarding: "SSH"
-            case .sftpSession: "SFTP"
+            case .sftpChannel: "SFTP"
             case .serialSession: String(localized: "Serial")
             }
         let address = journey.destination?.address ?? ""
@@ -84,7 +84,7 @@ public struct ConnectionJourneyHeader: View {
     private var symbol: String {
         switch journey.purpose {
         case .sshSession: "apple.terminal.fill"
-        case .sftpSession: "folder.fill.badge.gearshape"
+        case .sftpChannel: "folder.fill.badge.gearshape"
         case .serialSession: "cable.connector"
         case .metrics: "waveform.path.ecg"
         case .portForwarding: "arrow.left.arrow.right"
@@ -118,7 +118,7 @@ public struct ConnectionJourneyStatus: View {
         case .succeeded:
             switch journey.purpose {
             case .sshSession, .serialSession: String(localized: "Terminal ready")
-            case .sftpSession: String(localized: "File browser ready")
+            case .sftpChannel: String(localized: "File browser ready")
             case .metrics: String(localized: "Metrics ready")
             case .portForwarding: String(localized: "Forwarding ready")
             }

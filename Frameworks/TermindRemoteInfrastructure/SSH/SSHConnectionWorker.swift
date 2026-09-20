@@ -4,13 +4,13 @@ import Foundation
 import Logging
 import TermindApplication
 
-/// One authenticated SSH transport with any number of non-PTY exec Channels.
+/// One authenticated SSH connection with any number of non-PTY exec Channels.
 ///
 /// libssh2 itself is never entered concurrently. Every call is made by `queue`,
 /// while command state machines take bounded turns from `ready`. This gives
-/// commands Channel-level concurrency without violating libssh2's single-owner
+/// commands Session-level concurrency without violating libssh2's single-owner
 /// requirement or letting a quiet/blocked command pin its peers.
-nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
+nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     private final class StableCString: @unchecked Sendable {
         let pointer: UnsafeMutablePointer<CChar>
         let count: Int
@@ -26,7 +26,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         deinit { pointer.deallocate() }
     }
 
-    private final class Command: @unchecked Sendable {
+    private final class SSHExecChannel: @unchecked Sendable {
         enum Phase { case opening, starting, running, closing, freeing }
 
         let id = UUID()
@@ -36,10 +36,10 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         let outputLimit: Int
         let onOutput: SSHExecOutputHandler?
         let continuation: CheckedContinuation<SSHExecResult, any Error>
-        let channelLease: SSHSessionChannelLease
+        let channelLease: SSHChannelLease
         let input = SSHByteQueue(chunkSize: 32_700)
         var phase = Phase.opening
-        var channel: OpaquePointer?
+        var execChannel: OpaquePointer?
         var sentEOF = false
         var stdout = Data()
         var stderr = Data()
@@ -54,7 +54,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         init(
             command: String, workingDirectory: String?, stdin: Data?, timeout: TimeInterval,
             outputLimit: Int, cancellation: TransferCancellationToken,
-            onOutput: SSHExecOutputHandler?, channelLease: SSHSessionChannelLease,
+            onOutput: SSHExecOutputHandler?, channelLease: SSHChannelLease,
             continuation: CheckedContinuation<SSHExecResult, any Error>
         ) {
             let effective: String
@@ -81,19 +81,18 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         }
     }
 
-    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.multiplexed-session")
+    private let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.connection")
     private let logger: Logger
     private let maxSessionsPolicy: SSHMaxSessionsPolicy
-    private var routeTransport: SSHRoutedSocket?
-    private var session: OpaquePointer?
-    private var bufferedTransport: SSHBufferedTransport?
-    private var channelBudget: SSHSessionChannelBudget?
+    private var connection: SSHAuthenticatedConnection?
+    private var buffer: SSHConnectionBuffer?
+    private var channelBudget: SSHChannelBudget?
     private var socketEvents: SSHSocketEvents?
     private var timer: (any DispatchSourceTimer)?
     private var hostID: UUID?
-    private var commands: [UUID: Command] = [:]
+    private var commands: [UUID: SSHExecChannel] = [:]
     private var pendingOpens = SSHReadyQueue<UUID>()
-    private var opening: Command?
+    private var opening: SSHExecChannel?
     private var ready = SSHReadyQueue<UUID>()
     private var scheduled = false
     private var generation = 0
@@ -111,17 +110,16 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
             queue: queue,
             context: { [weak self] in
-                guard let self, let session = self.session,
-                    let bufferedTransport = self.bufferedTransport,
-                    let routeTransport = self.routeTransport,
+                guard let self, let connection = self.connection,
+                    let buffer = self.buffer,
                     let channelBudget = self.channelBudget
                 else { return nil }
                 return .init(
-                    session: session, transport: bufferedTransport,
-                    socket: routeTransport.socket, channelBudget: channelBudget)
+                    connection: connection, buffer: buffer,
+                    channelBudget: channelBudget)
             },
-            updateEvents: { [weak self] session, transport in
-                self?.updateSharedTransportEvents(session: session, transport: transport)
+            updateEvents: { [weak self] session, buffer in
+                self?.updateSharedConnectionEvents(session: session, buffer: buffer)
             })
     }
 
@@ -144,21 +142,20 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             ])
         await disconnect()
         do {
-            let opened = try await SSHSessionWorker.openAuthenticatedSession(
+            let opened = try await SSHConnectionOpener.openAuthenticatedConnection(
                 using: request, timeout: 20, progress: progress, logger: logger)
             let channelBudget = maxSessionsPolicy.makeBudget()
             try await queue.perform {
                 try Task.checkCancellation()
-                self.routeTransport = opened.transport
-                self.session = opened.session
+                self.connection = opened
                 self.hostID = hostID
-                self.bufferedTransport = SSHBufferedTransport(session: opened.session)
+                self.buffer = opened.installBuffer()
                 self.channelBudget = channelBudget
                 self.connectionFailure = connectionFailure
                 self.didReportConnectionFailure = false
-                libssh2_session_set_blocking(opened.session, 0)
-                libssh2_keepalive_config(opened.session, 0, 30)
-                self.startEvents(socket: opened.transport.socket)
+                libssh2_session_set_blocking(opened.libssh2Session, 0)
+                libssh2_keepalive_config(opened.libssh2Session, 0, 30)
+                self.startEvents(socket: opened.byteTransport.socket)
             }
             try Task.checkCancellation()
             logger.info(
@@ -197,19 +194,19 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         logger.debug("ssh.exec.started", metadata: metadata)
         do {
             guard let channelBudget = try await queue.perform({ self.channelBudget }) else {
-                throw SSHCommandExecutionError.transportUnavailable(TermindSSHError.disconnected)
+                throw SSHCommandExecutionError.connectionUnavailable(TermindSSHError.disconnected)
             }
             let channelLease = try await channelBudget.acquire(cancellation: cancellation)
             let result = try await withCheckedThrowingContinuation {
                 (continuation: CheckedContinuation<SSHExecResult, any Error>) in
                 queue.async { [self] in
-                    guard session != nil, self.channelBudget === channelBudget else {
+                    guard connection != nil, self.channelBudget === channelBudget else {
                         channelLease.release()
                         continuation.resume(
-                            throwing: SSHCommandExecutionError.transportUnavailable(TermindSSHError.disconnected))
+                            throwing: SSHCommandExecutionError.connectionUnavailable(TermindSSHError.disconnected))
                         return
                     }
-                    let context = Command(
+                    let context = SSHExecChannel(
                         command: command, workingDirectory: workingDirectory, stdin: stdin,
                         timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
                         onOutput: onOutput, channelLease: channelLease, continuation: continuation)
@@ -230,15 +227,15 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         }
     }
 
-    func openSFTPChannel() async throws -> any SFTPClientProtocol {
-        try await sftpChannelOwner.openClient()
+    func openSFTPChannel() async throws -> any SFTPChannelProtocol {
+        try await sftpChannelOwner.openChannel()
     }
 
-    private func updateSharedTransportEvents(session: OpaquePointer, transport: SSHBufferedTransport) {
+    private func updateSharedConnectionEvents(session: OpaquePointer, buffer: SSHConnectionBuffer) {
         let directions = libssh2_session_block_directions(session)
         socketEvents?.update(
-            read: !transport.isBackpressured,
-            write: transport.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+            read: !buffer.isBackpressured,
+            write: buffer.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
     }
 
     func disconnect() async {
@@ -276,7 +273,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
     }
 
     private func schedulePump() {
-        guard session != nil, !scheduled else { return }
+        guard connection != nil, !scheduled else { return }
         scheduled = true
         let token = generation
         queue.async { [weak self] in
@@ -287,20 +284,21 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
     }
 
     private func pump() {
-        guard let session, let bufferedTransport, let routeTransport else { return }
+        guard let connection, let buffer else { return }
+        let session = connection.libssh2Session
         let deadline = DispatchTime.now().uptimeNanoseconds + SSHForwardingTuning.current.sliceNanoseconds
-        bufferedTransport.beginPass(deadline: deadline)
-        do { try bufferedTransport.flush(socket: routeTransport.socket) } catch {
-            failTransport(session)
+        buffer.beginPass(deadline: deadline)
+        do { try buffer.flush(socket: connection.byteTransport.socket) } catch {
+            failConnection(session)
             return
         }
-        if bufferedTransport.isBackpressured {
+        if buffer.isBackpressured {
             socketEvents?.update(read: false, write: true)
             return
         }
         controlDirections = 0
         var progressed = advanceOpen(session)
-        while !bufferedTransport.isBackpressured,
+        while !buffer.isBackpressured,
             DispatchTime.now().uptimeNanoseconds < deadline,
             let id = ready.pop()
         {
@@ -314,7 +312,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             if result == LIBSSH2_ERROR_EAGAIN {
                 blocked(session)
             } else if result < 0 {
-                failTransport(session)
+                failConnection(session)
                 return
             } else {
                 keepaliveDue = false
@@ -322,24 +320,24 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
                 progressed = true
             }
         }
-        do { try bufferedTransport.flush(socket: routeTransport.socket) } catch {
-            failTransport(session)
+        do { try buffer.flush(socket: connection.byteTransport.socket) } catch {
+            failConnection(session)
             return
         }
         var byte: UInt8 = 0
-        let available = Darwin.recv(routeTransport.socket, &byte, 1, MSG_PEEK | MSG_DONTWAIT)
+        let available = Darwin.recv(connection.byteTransport.socket, &byte, 1, MSG_PEEK | MSG_DONTWAIT)
         if available == 0 || (available < 0 && errno != EAGAIN && errno != EWOULDBLOCK && errno != EINTR) {
-            failTransport(session)
+            failConnection(session)
             return
         }
         let directions = commands.values.reduce(controlDirections) { partial, command in
-            guard command.channel != nil else { return partial }
+            guard command.execChannel != nil else { return partial }
             return partial | libssh2_session_block_directions(session)
         }
         socketEvents?.update(
-            read: !commands.isEmpty && !bufferedTransport.isBackpressured,
-            write: bufferedTransport.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
-        if progressed || bufferedTransport.exhaustedReadBudget { wakeAll() }
+            read: !commands.isEmpty && !buffer.isBackpressured,
+            write: buffer.wantsWrite || directions & LIBSSH2_SESSION_BLOCK_OUTBOUND != 0)
+        if progressed || buffer.exhaustedReadBudget { wakeAll() }
     }
 
     private func advanceOpen(_ session: OpaquePointer) -> Bool {
@@ -358,7 +356,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             return true
         }
         guard
-            let channel = libssh2_channel_open_ex(
+            let execChannel = libssh2_channel_open_ex(
                 session, "session", 7, 2 * 1_024 * 1_024, 32 * 1_024, nil, 0)
         else {
             let code = libssh2_session_last_errno(session)
@@ -367,47 +365,47 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
                 return false
             }
             opening = nil
-            let error = SSHSessionWorker.sessionError(session, prefix: "Unable to open SSH exec channel")
-            if isTransportError(code) {
-                failTransport(session, error: error)
+            let error = SSHConnectionOpener.connectionError(session, prefix: "Unable to open SSH exec Channel")
+            if isConnectionError(code) {
+                failConnection(session, error: error)
             } else {
                 finish(command, throwing: SSHCommandExecutionError.channelUnavailable(error))
             }
             return true
         }
         opening = nil
-        command.channel = channel
+        command.execChannel = execChannel
         command.phase = .starting
         ready.insert(command.id)
         return true
     }
 
-    private func advance(_ command: Command, session: OpaquePointer, deadline: UInt64) -> Bool {
+    private func advance(_ command: SSHExecChannel, session: OpaquePointer, deadline: UInt64) -> Bool {
         if let cancellation = cancellationError(for: command), command.terminalError == nil {
             command.terminalError = cancellation
-            if command.channel == nil {
+            if command.execChannel == nil {
                 finish(command, throwing: cancellation)
                 return true
             }
             command.phase = .closing
         }
-        guard let channel = command.channel else { return false }
+        guard let execChannel = command.execChannel else { return false }
         switch command.phase {
         case .opening:
             return false
         case .starting:
             let result = libssh2_channel_process_startup(
-                channel, "exec", 4, command.command.pointer, UInt32(command.command.count))
+                execChannel, "exec", 4, command.command.pointer, UInt32(command.command.count))
             if result == LIBSSH2_ERROR_EAGAIN {
                 blocked(session)
                 return false
             }
             guard result == 0 else {
                 let code = libssh2_session_last_errno(session)
-                let error = SSHSessionWorker.sessionError(session, prefix: "Unable to start remote command")
+                let error = SSHConnectionOpener.connectionError(session, prefix: "Unable to start remote command")
                 command.terminalError = SSHCommandExecutionError.channelUnavailable(error)
                 command.phase = .closing
-                if isTransportError(code) { failTransport(session, error: error) }
+                if isConnectionError(code) { failConnection(session, error: error) }
                 ready.insert(command.id)
                 return true
             }
@@ -416,27 +414,27 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             ready.insert(command.id)
             return true
         case .running:
-            return advanceRunning(command, channel: channel, session: session, deadline: deadline)
+            return advanceRunning(command, execChannel: execChannel, session: session, deadline: deadline)
         case .closing:
-            let result = libssh2_channel_close(channel)
+            let result = libssh2_channel_close(execChannel)
             if result == LIBSSH2_ERROR_EAGAIN {
                 blocked(session)
                 return false
             }
             if command.terminalError == nil {
-                command.exitCode = libssh2_channel_get_exit_status(channel)
-                command.signal = exitSignal(channel: channel, session: session)
+                command.exitCode = libssh2_channel_get_exit_status(execChannel)
+                command.signal = exitSignal(execChannel: execChannel, session: session)
             }
             command.phase = .freeing
             ready.insert(command.id)
             return true
         case .freeing:
-            let result = libssh2_channel_free(channel)
+            let result = libssh2_channel_free(execChannel)
             if result == LIBSSH2_ERROR_EAGAIN {
                 blocked(session)
                 return false
             }
-            command.channel = nil
+            command.execChannel = nil
             if let error = command.terminalError {
                 finish(command, throwing: error)
             } else {
@@ -454,14 +452,14 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
     }
 
     private func advanceRunning(
-        _ command: Command, channel: OpaquePointer, session: OpaquePointer, deadline: UInt64
+        _ command: SSHExecChannel, execChannel: OpaquePointer, session: OpaquePointer, deadline: UInt64
     ) -> Bool {
         var progressed = false
         var remaining = SSHForwardingTuning.current.quantum
         if !command.input.isEmpty {
             let written = command.input.withFirstBytes {
                 libssh2_channel_write_ex(
-                    channel, 0, $0.baseAddress!.assumingMemoryBound(to: CChar.self), $0.count)
+                    execChannel, 0, $0.baseAddress!.assumingMemoryBound(to: CChar.self), $0.count)
             }
             if written > 0 {
                 command.input.consume(written)
@@ -474,7 +472,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             }
         }
         if command.input.isEmpty, !command.sentEOF {
-            let result = libssh2_channel_send_eof(channel)
+            let result = libssh2_channel_send_eof(execChannel)
             if result == 0 {
                 command.sentEOF = true
                 progressed = true
@@ -487,7 +485,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         for stream in [Int32(0), Int32(1)] {
             while remaining > 0 && DispatchTime.now().uptimeNanoseconds < deadline {
                 let capacity = min(scratch.count, remaining)
-                let count = libssh2_channel_read_ex(channel, stream, &scratch, capacity)
+                let count = libssh2_channel_read_ex(execChannel, stream, &scratch, capacity)
                 if count > 0 {
                     progressed = true
                     remaining -= count
@@ -510,22 +508,22 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
                 }
             }
         }
-        if libssh2_channel_eof(channel) == 1 {
+        if libssh2_channel_eof(execChannel) == 1 {
             command.phase = .closing
             ready.insert(command.id)
             return true
         }
-        if !command.input.isEmpty || !command.sentEOF || libssh2_poll_channel_read(channel, 0) == 1 {
+        if !command.input.isEmpty || !command.sentEOF || libssh2_poll_channel_read(execChannel, 0) == 1 {
             ready.insert(command.id)
         }
         return progressed
     }
 
-    private func fail(_ command: Command, session: OpaquePointer, prefix: String) -> Bool {
+    private func fail(_ command: SSHExecChannel, session: OpaquePointer, prefix: String) -> Bool {
         let code = libssh2_session_last_errno(session)
-        let error = SSHSessionWorker.sessionError(session, prefix: prefix)
-        if isTransportError(code) {
-            failTransport(session, error: error)
+        let error = SSHConnectionOpener.connectionError(session, prefix: prefix)
+        if isConnectionError(code) {
+            failConnection(session, error: error)
         } else {
             command.terminalError = error
             command.phase = .closing
@@ -534,7 +532,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         return true
     }
 
-    private func cancellationError(for command: Command) -> (any Error)? {
+    private func cancellationError(for command: SSHExecChannel) -> (any Error)? {
         if command.cancellation.isCancelled { return CancellationError() }
         if ContinuousClock.now >= command.deadline {
             return TermindSSHError.library("The remote command timed out.")
@@ -542,10 +540,10 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         return nil
     }
 
-    private func exitSignal(channel: OpaquePointer, session: OpaquePointer) -> String? {
+    private func exitSignal(execChannel: OpaquePointer, session: OpaquePointer) -> String? {
         var pointer: UnsafeMutablePointer<CChar>?
         var length = 0
-        let result = libssh2_channel_get_exit_signal(channel, &pointer, &length, nil, nil, nil, nil)
+        let result = libssh2_channel_get_exit_signal(execChannel, &pointer, &length, nil, nil, nil, nil)
         guard result == 0, let pointer else { return nil }
         defer { libssh2_free(session, pointer) }
         return String(
@@ -553,14 +551,14 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
             as: UTF8.self)
     }
 
-    private func finish(_ command: Command, returning result: SSHExecResult) {
+    private func finish(_ command: SSHExecChannel, returning result: SSHExecResult) {
         guard !command.completed else { return }
         command.completed = true
         commands[command.id] = nil
         command.continuation.resume(returning: result)
     }
 
-    private func finish(_ command: Command, throwing error: any Error) {
+    private func finish(_ command: SSHExecChannel, throwing error: any Error) {
         guard !command.completed else { return }
         command.completed = true
         commands[command.id] = nil
@@ -571,7 +569,7 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         controlDirections |= libssh2_session_block_directions(session)
     }
 
-    private func isTransportError(_ code: Int32) -> Bool {
+    private func isConnectionError(_ code: Int32) -> Bool {
         [
             LIBSSH2_ERROR_SOCKET_SEND, LIBSSH2_ERROR_SOCKET_RECV,
             LIBSSH2_ERROR_SOCKET_DISCONNECT, LIBSSH2_ERROR_SOCKET_TIMEOUT,
@@ -579,8 +577,8 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         ].contains(code)
     }
 
-    private func failTransport(_ session: OpaquePointer, error: (any Error)? = nil) {
-        let failure = error ?? SSHSessionWorker.sessionError(session, prefix: "The SSH connection closed")
+    private func failConnection(_ session: OpaquePointer, error: (any Error)? = nil) {
+        let failure = error ?? SSHConnectionOpener.connectionError(session, prefix: "The SSH connection closed")
         if !didReportConnectionFailure {
             didReportConnectionFailure = true
             connectionFailure?(failure.localizedDescription)
@@ -601,25 +599,17 @@ nonisolated final class SSHMultiplexedSessionWorker: @unchecked Sendable {
         sftpChannelOwner.closeAllOnQueue()
         channelBudget?.close()
         channelBudget = nil
-        let transport = routeTransport
-        routeTransport = nil
-        if let session {
-            if let bufferedTransport {
-                bufferedTransport.dispose(session: session)
-            } else {
-                _ = libssh2_session_free(session)
-            }
-        }
-        session = nil
-        bufferedTransport = nil
+        let connection = connection
+        self.connection = nil
+        buffer = nil
         connectionFailure = nil
         didReportConnectionFailure = false
         hostID = nil
         if let events = socketEvents {
-            events.cancel { transport?.close() }
+            events.cancel { connection?.close() }
             socketEvents = nil
         } else {
-            transport?.close()
+            connection?.close()
         }
     }
 

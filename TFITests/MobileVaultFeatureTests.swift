@@ -29,7 +29,7 @@ struct MobileVaultFeatureTests {
             name: "Remote", host: "remote.example.invalid", port: 2222, identityID: UUID(),
             jumpHostID: jump.id,
             proxy: HostProxy(kind: .socks5, hostname: "proxy.example.invalid", port: 1080),
-            sftpSessionInitialPath: "/srv/app", groupID: group.id, tags: ["production", "api"],
+            sftpChannelInitialPath: "/srv/app", groupID: group.id, tags: ["production", "api"],
             colorTag: .teal, detectedDistribution: DetectedDistribution(id: "debian"),
             shellIntegrationMode: .enabled, portForwardingMaxConnections: 12)
         app.library.upsert(host)

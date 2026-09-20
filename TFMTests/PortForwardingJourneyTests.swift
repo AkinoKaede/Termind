@@ -321,18 +321,18 @@ struct PortForwardingJourneyTests {
     }
 }
 
-private actor ForwardingTestSession: SSHForwardingSessionProtocol {
+private actor ForwardingTestSession: SSHForwardingConnectionProtocol {
     enum Mode: Sendable { case immediate, keyboard, trust, failure, listenerFailure, countDuringStart }
     let mode: Mode
-    let count: SSHForwardingSession.ConnectionHandler
-    let failure: SSHForwardingSession.FailureHandler
+    let count: SSHForwardingConnection.ConnectionHandler
+    let failure: SSHForwardingConnection.FailureHandler
     var requests: [SSHConnectionRequest] = []
     var starts: [UUID] = []
     var listening: Set<UUID> = []
     var disconnects = 0
     init(
-        mode: Mode, count: @escaping SSHForwardingSession.ConnectionHandler,
-        failure: @escaping SSHForwardingSession.FailureHandler
+        mode: Mode, count: @escaping SSHForwardingConnection.ConnectionHandler,
+        failure: @escaping SSHForwardingConnection.FailureHandler
     ) {
         self.mode = mode
         self.count = count

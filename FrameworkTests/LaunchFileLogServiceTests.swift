@@ -154,7 +154,7 @@ struct LaunchFileLogServiceTests {
             Tcp: RtoAlgorithm
             """
         let sampler = SSHMetricsSampler(
-            session: MetricsLogSession(
+            connection: MetricsLogSession(
                 result: SSHExecResult(
                     stdout: output, stderr: "", exitCode: 0, stdoutTruncated: false, stderrTruncated: false)),
             logger: service.makeLogger(label: "termind.metrics")
@@ -199,7 +199,7 @@ private final class LogFixture: @unchecked Sendable {
     }
 }
 
-private actor MetricsLogSession: SSHMultiplexedSessionProtocol {
+private actor MetricsLogSession: SSHConnectionProtocol {
     let result: SSHExecResult
     init(result: SSHExecResult) { self.result = result }
     func connect(using _: SSHConnectionConfiguration) async throws {}
@@ -207,7 +207,7 @@ private actor MetricsLogSession: SSHMultiplexedSessionProtocol {
         _: String, workingDirectory _: String?, stdin _: Data?, timeout _: TimeInterval,
         outputLimit _: Int, onOutput _: SSHExecOutputHandler?
     ) async throws -> SSHExecResult { result }
-    func openSFTPChannel() async throws -> any SFTPClientProtocol { throw SFTPError.notConnected }
+    func openSFTPChannel() async throws -> any SFTPChannelProtocol { throw SFTPError.notConnected }
     func disconnect() async {}
 }
 

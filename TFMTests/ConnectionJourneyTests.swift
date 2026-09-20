@@ -56,7 +56,7 @@ struct ConnectionJourneyTests {
         let journey = ConnectionJourney()
         journey.begin(
             host: destination, route: [destination],
-            purpose: .sftpSession, username: nil
+            purpose: .sftpChannel, username: nil
         )
 
         #expect(journey.checkpoint == nil)
@@ -324,7 +324,7 @@ struct ConnectionJourneyTests {
         let second = SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: "SHA256:second")
         let expected: Set<SSHHostKeyIdentity> = [first, second]
 
-        try SSHSessionWorker.validateHostKey(
+        try SSHConnectionOpener.validateHostKey(
             SSHHostKeyObservation(
                 hostname: "server.example", port: 22,
                 algorithm: second.algorithm, fingerprint: second.fingerprint
@@ -333,7 +333,7 @@ struct ConnectionJourneyTests {
         )
 
         #expect(throws: TermindSSHError.self) {
-            try SSHSessionWorker.validateHostKey(
+            try SSHConnectionOpener.validateHostKey(
                 SSHHostKeyObservation(
                     hostname: "server.example", port: 22,
                     algorithm: .ed25519, fingerprint: "SHA256:unknown"
@@ -342,7 +342,7 @@ struct ConnectionJourneyTests {
             )
         }
         #expect(throws: TermindSSHError.self) {
-            try SSHSessionWorker.validateHostKey(
+            try SSHConnectionOpener.validateHostKey(
                 SSHHostKeyObservation(
                     hostname: "server.example", port: 22,
                     algorithm: .ecdsa256, fingerprint: first.fingerprint

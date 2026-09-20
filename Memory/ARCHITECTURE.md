@@ -108,7 +108,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   but permit system key authorization. Username-only/SSH `none` remain eligible: actual connection success, not saved
   credential presence, decides. Cancellation interrupts opening. A terminal drop always tries its independent SFTP
   preflight first; any non-cancellation connection failure, including interaction-required authentication, falls back to
-  SFTP Channels on the already authenticated terminal transport without presenting a form.
+  SFTP Channels on the already authenticated connection belonging to the PTY Channel without presenting a form.
 - Username-only Identities try `none`, then advertised methods. Device-local `lastUsedAt` tracks successful saved-secret
   reads, not authentication. Batch route reads; missing/availability/edit reads do not count. First access per Identity/
   process writes directly without Vault journal/refresh; sync strips this field and preserves local values on apply.
@@ -138,7 +138,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   bounded fair passes replace bulk polling; Metrics and user SSH use `SSHSingleChannelAdapter` without a topology scheduler.
   Preserve immutable write buffers across EAGAIN, drain half-close, bound queues/DNS/connect deadlines and retain
   session-wide pending operations. Slice deadlines include callbacks/inner loops; protocol progress wakes peers.
-- Every physical SSH transport has one FIFO Max Sessions budget shared by its shell, exec and SFTP subsystem Channels.
+- Every authenticated SSH connection has one FIFO Max Sessions budget shared by its PTY, exec and SFTP Channels.
   The synced Connections preference defaults to ten and may change from one to 100; lowering it never closes active Channels,
   and new work waits until capacity is available. Direct/forwarded TCP Channels, remote listeners and jump-host bridges are
   forwarding rather than sessions and never consume this budget.
@@ -171,14 +171,14 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 ### SFTP and external edits
 
-- Domain owns `RemoteFile`, Application `RemoteFileSystem`/`MobileSFTPSessionModel`, Remote Infrastructure libssh2 protocols,
+- Domain owns `RemoteFile`, Application `RemoteFileSystem`/`MobileSFTPChannelModel`, Remote Infrastructure libssh2 protocols,
   Presentation symbols/kinds. Device-local History changes only after fresh successful listings/downloads, never stale/failed/
   cancelled/type-changed work.
-- `SFTPClient` is the connect/disconnect facade and owns its authenticated multiplexed SSH session; `SFTPChannel` is the sole
+- `SFTPClient` is the connect/disconnect facade and owns its authenticated `SSHConnection`; `SFTPChannel` is the sole
   file-operation implementation. Standalone SFTP, Agent primary SFTP and terminal fallback therefore
   share Channel open/close/EAGAIN, atomic-write, resume, edit, streaming and copy behavior; feature owners retain their distinct
   authentication, pooling and retirement lifetimes.
-- Generation-scoped `SFTPTransferSession` outlives panes. SFTP data work resolves one topology per admitted file: Channels Only
+- Generation-scoped `SFTPTransferContext` outlives panes. SFTP data work resolves one topology per admitted file: Channels Only
   opens sibling SFTP Channels, Connections Preferred silently probes the full route and falls back to siblings, and Smart uses
   Channels through 64 MB/64,000,000 bytes (including unknown sizes) before preferring connections. A failed silent probe degrades later work
   without replaying active operations; cancellation caches no failure. Browser control Channels stay independent. Terminal
@@ -400,7 +400,7 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 
 ### Workspaces and activity
 
-- One SSH/SFTP session per mobile Workspace, no Welcome/pane composition even with Pro; Assistant independent. Peer switch retains connection,
+- One SSH session/SFTP Channel per mobile Workspace, no Welcome/pane composition even with Pro; Assistant independent. Peer switch retains connection,
   Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. Background expiration closes
   transports but retains intent; foreground resumes existing Workspaces.
 - `mobile.workspaces.v1` persists ordered local descriptors only (ID/Host/kind/title/duplicate index), no commands/secrets/paths/content/transfers.

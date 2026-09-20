@@ -83,9 +83,9 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     /// How the current network origin reaches this host. With a jump configured,
     /// the proxy is reached from that jump host rather than directly from Termind.
     public var proxy: HostProxy?
-    /// Absolute directory opened by a new SFTP session. Empty means the
+    /// Absolute directory opened by a new SFTP channel. Empty means the
     /// authenticated user's remote home directory, resolved by SFTP at connect.
-    public var sftpSessionInitialPath: String = ""
+    public var sftpChannelInitialPath: String = ""
     public var groupID: HostGroup.ID?
     public var tags: [String] = []
     public var colorTag: TagColor = .none
@@ -141,7 +141,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     }
     public init(
         id: UUID = UUID(), name: String, host: String, port: Int = 22, identityID: Identity.ID? = nil,
-        jumpHostID: Host.ID? = nil, proxy: HostProxy? = nil, sftpSessionInitialPath: String = "",
+        jumpHostID: Host.ID? = nil, proxy: HostProxy? = nil, sftpChannelInitialPath: String = "",
         groupID: HostGroup.ID? = nil, tags: [String] = [], colorTag: TagColor = .none,
         detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
         shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
@@ -154,7 +154,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.identityID = identityID
         self.jumpHostID = jumpHostID
         self.proxy = proxy
-        self.sftpSessionInitialPath = sftpSessionInitialPath
+        self.sftpChannelInitialPath = sftpChannelInitialPath
         self.groupID = groupID
         self.tags = tags
         self.colorTag = colorTag
@@ -166,7 +166,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     }
 
     private enum CodingKeys: String, CodingKey {
-        case id, name, host, port, identityID, jumpHostID, proxy, sftpSessionInitialPath
+        case id, name, host, port, identityID, jumpHostID, proxy
+        case sftpChannelInitialPath = "sftpSessionInitialPath"
         case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
         case portForwardingMaxConnections
     }
@@ -180,7 +181,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         identityID = try values.decodeIfPresent(UUID.self, forKey: .identityID)
         jumpHostID = try values.decodeIfPresent(UUID.self, forKey: .jumpHostID)
         proxy = try values.decodeIfPresent(HostProxy.self, forKey: .proxy)
-        sftpSessionInitialPath = try values.decode(String.self, forKey: .sftpSessionInitialPath)
+        sftpChannelInitialPath = try values.decode(String.self, forKey: .sftpChannelInitialPath)
         groupID = try values.decodeIfPresent(UUID.self, forKey: .groupID)
         tags = try values.decode([String].self, forKey: .tags)
         colorTag = try values.decode(TagColor.self, forKey: .colorTag)

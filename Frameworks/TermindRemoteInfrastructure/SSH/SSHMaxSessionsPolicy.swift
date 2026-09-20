@@ -1,12 +1,12 @@
 import Foundation
 import TermindDomain
 
-/// One live preference shared by every SSH transport created by a coordinator.
-/// Each transport receives its own budget; only the configured ceiling is global.
+/// One live preference shared by every SSH connection created by a coordinator.
+/// Each connection receives its own budget; only the configured ceiling is global.
 public nonisolated final class SSHMaxSessionsPolicy: @unchecked Sendable {
     private final class WeakBudget: @unchecked Sendable {
-        weak var value: SSHSessionChannelBudget?
-        init(_ value: SSHSessionChannelBudget) { self.value = value }
+        weak var value: SSHChannelBudget?
+        init(_ value: SSHChannelBudget) { self.value = value }
     }
 
     private let lock = NSLock()
@@ -19,7 +19,7 @@ public nonisolated final class SSHMaxSessionsPolicy: @unchecked Sendable {
 
     public func update(_ preferences: SSHPreferences) {
         let maximum = preferences.normalized.maxSessions
-        let active = lock.withLock { () -> [SSHSessionChannelBudget] in
+        let active = lock.withLock { () -> [SSHChannelBudget] in
             self.maximum = maximum
             budgets = budgets.filter { $0.value.value != nil }
             return budgets.values.compactMap(\.value)
@@ -27,24 +27,24 @@ public nonisolated final class SSHMaxSessionsPolicy: @unchecked Sendable {
         for budget in active { budget.updateMaximum(maximum) }
     }
 
-    func makeBudget() -> SSHSessionChannelBudget {
+    func makeBudget() -> SSHChannelBudget {
         let id = UUID()
         return lock.withLock {
-            let budget = SSHSessionChannelBudget(maximum: maximum)
+            let budget = SSHChannelBudget(maximum: maximum)
             budgets[id] = WeakBudget(budget)
             return budget
         }
     }
 }
 
-nonisolated final class SSHSessionChannelLease: @unchecked Sendable {
+nonisolated final class SSHChannelLease: @unchecked Sendable {
     private let lock = NSLock()
-    private weak var budget: SSHSessionChannelBudget?
+    private weak var budget: SSHChannelBudget?
 
-    init(budget: SSHSessionChannelBudget) { self.budget = budget }
+    init(budget: SSHChannelBudget) { self.budget = budget }
 
     func release() {
-        let budget = lock.withLock { () -> SSHSessionChannelBudget? in
+        let budget = lock.withLock { () -> SSHChannelBudget? in
             defer { self.budget = nil }
             return self.budget
         }
@@ -54,8 +54,8 @@ nonisolated final class SSHSessionChannelLease: @unchecked Sendable {
     deinit { release() }
 }
 
-/// FIFO admission for shell, exec, and subsystem Channels on one SSH transport.
-nonisolated final class SSHSessionChannelBudget: @unchecked Sendable {
+/// FIFO admission for shell, exec, and subsystem channels on one SSH connection.
+nonisolated final class SSHChannelBudget: @unchecked Sendable {
     private final class CancellationRegistration: @unchecked Sendable {
         private let lock = NSLock()
         private var cancelled = false
@@ -82,7 +82,7 @@ nonisolated final class SSHSessionChannelBudget: @unchecked Sendable {
 
     private struct Waiter {
         var id: UUID
-        var continuation: CheckedContinuation<SSHSessionChannelLease, any Error>
+        var continuation: CheckedContinuation<SSHChannelLease, any Error>
         var cancellation: TransferCancellationToken?
         var cancellationObserver: UUID?
     }
@@ -95,21 +95,21 @@ nonisolated final class SSHSessionChannelBudget: @unchecked Sendable {
 
     init(maximum: Int) { self.maximum = maximum }
 
-    func acquire(cancellation: TransferCancellationToken? = nil) async throws -> SSHSessionChannelLease {
+    func acquire(cancellation: TransferCancellationToken? = nil) async throws -> SSHChannelLease {
         if cancellation?.isCancelled == true { throw CancellationError() }
         let id = UUID()
         let registration = CancellationRegistration()
         return try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation {
-                (continuation: CheckedContinuation<SSHSessionChannelLease, any Error>) in
-                var immediate: Result<SSHSessionChannelLease, any Error>?
+                (continuation: CheckedContinuation<SSHChannelLease, any Error>) in
+                var immediate: Result<SSHChannelLease, any Error>?
                 var queued = false
                 lock.withLock {
                     if closed || Task.isCancelled || cancellation?.isCancelled == true {
                         immediate = .failure(CancellationError())
                     } else if active < maximum && waiters.isEmpty {
                         active += 1
-                        immediate = .success(SSHSessionChannelLease(budget: self))
+                        immediate = .success(SSHChannelLease(budget: self))
                     } else {
                         waiters.append(
                             Waiter(
@@ -188,7 +188,7 @@ nonisolated final class SSHSessionChannelBudget: @unchecked Sendable {
     private func resume(_ waiters: [Waiter]) {
         for waiter in waiters {
             removeCancellationObserver(waiter)
-            waiter.continuation.resume(returning: SSHSessionChannelLease(budget: self))
+            waiter.continuation.resume(returning: SSHChannelLease(budget: self))
         }
     }
 

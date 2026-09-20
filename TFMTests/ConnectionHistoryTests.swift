@@ -146,8 +146,8 @@ struct ConnectionHistoryTests {
         let window = WindowModel()
 
         app.open(first, as: .sshSession, in: window)
-        app.open(second, as: .sftpSession, in: window)
-        app.open(first, as: .sftpSession, in: window)
+        app.open(second, as: .sftpChannel, in: window)
+        app.open(first, as: .sftpChannel, in: window)
 
         #expect(history.entries().map(\.hostID) == [first.id, second.id, first.id])
         #expect(history.entries().map(\.kind) == [.sftp, .sftp, .ssh])

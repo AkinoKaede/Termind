@@ -8,7 +8,7 @@ import struct TermindDomain.Host
 
 @MainActor
 @Observable
-final class MobileSFTPSessionModel {
+final class MobileSFTPChannelModel {
     private(set) var path = "/"
     var pathText = "/"
     private(set) var files: [RemoteFile] = []

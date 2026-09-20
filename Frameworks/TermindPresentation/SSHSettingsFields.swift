@@ -16,7 +16,7 @@ public struct SSHSettingsFields: View {
             }
         }
         Text(
-            "Limits open shell, execute, and SFTP sessions on each SSH connection. Port forwarding does not use this limit. Changes apply to new sessions immediately; active sessions continue."
+            "Limits open shell, execute, and SFTP channels on each SSH connection. Port forwarding does not use this limit. Changes apply to new channels immediately; active channels continue."
         )
         .font(.caption).foregroundStyle(.secondary)
         if let error = model.storageError { Text(error).foregroundStyle(.red) }

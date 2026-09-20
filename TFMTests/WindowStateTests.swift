@@ -592,8 +592,8 @@ struct WindowStateTests {
     @Test
     func assistantSidebarShowsFocusedWorkspaceContext() {
         let host = Host(name: "Files", host: "files.example")
-        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
-        workspace.focusedPane.sftpSession?.homeResolution = .unavailable
+        let workspace = Workspace.sftpChannel(host: host, initialPath: "/srv/app")
+        workspace.focusedPane.sftpChannel?.homeResolution = .unavailable
         let window = WindowModel(workspaces: [workspace])
 
         window.hostStore = HostLibraryModel(hosts: [host])
@@ -609,32 +609,32 @@ struct WindowStateTests {
     @Test
     func focusedSFTPPathChangesUpdateSessionContext() {
         let host = Host(name: "Files", host: "files.example")
-        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
-        let sftpSession = workspace.focusedPane.sftpSession!
-        sftpSession.homeResolution = .unavailable
+        let workspace = Workspace.sftpChannel(host: host, initialPath: "/srv")
+        let sftpChannel = workspace.focusedPane.sftpChannel!
+        sftpChannel.homeResolution = .unavailable
         let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
 
-        sftpSession.navigate(to: "/srv/releases")
+        sftpChannel.navigate(to: "/srv/releases")
 
         #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host, .directory])
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Files", "/srv/releases"])
 
-        sftpSession.goBack()
+        sftpChannel.goBack()
         #expect(window.sidebar.sessionContext.chips.map(\.label) == ["Files", "/srv"])
     }
 
     @Test
     func backgroundSFTPPathDoesNotReplaceFocusedPaneContext() {
         let host = Host(name: "Files", host: "files.example")
-        let workspace = Workspace.sftpSession(host: host, initialPath: "/focused")
+        let workspace = Workspace.sftpChannel(host: host, initialPath: "/focused")
         let focusedPane = workspace.focusedPane
-        focusedPane.sftpSession?.homeResolution = .unavailable
+        focusedPane.sftpChannel?.homeResolution = .unavailable
         workspace.splitFocusedPane(
             axis: .horizontal,
-            with: .sftpSession(host: host, initialPath: "/background")
+            with: .sftpChannel(host: host, initialPath: "/background")
         )
-        let backgroundSession = workspace.focusedPane.sftpSession!
+        let backgroundSession = workspace.focusedPane.sftpChannel!
         workspace.focus(focusedPane.id)
         let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
@@ -650,8 +650,8 @@ struct WindowStateTests {
     @Test
     func sendingFromTheSidebarDoesNotAttachSessionContextToTheConversation() {
         let host = Host(name: "Server", host: "server.example")
-        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
-        workspace.focusedPane.sftpSession?.homeResolution = .unavailable
+        let workspace = Workspace.sftpChannel(host: host, initialPath: "/srv/app")
+        workspace.focusedPane.sftpChannel?.homeResolution = .unavailable
         let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
         window.sidebar.assistantDraft.composer.draft = "Why is this slow?"
@@ -669,7 +669,7 @@ struct WindowStateTests {
     @Test
     func leavingEveryWorkspaceClearsSessionContext() {
         let host = Host(name: "Server", host: "server.example")
-        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv/app")
+        let workspace = Workspace.sftpChannel(host: host, initialPath: "/srv/app")
         let window = WindowModel(workspaces: [workspace])
         window.hostStore = HostLibraryModel(hosts: [host])
 
@@ -744,7 +744,7 @@ struct WindowStateTests {
         // Shell Integration setting, not by the composer.
         #expect(window.sidebar.sessionContext.chips.map(\.kind) == [.host])
 
-        workspace.splitFocusedPane(axis: .horizontal, with: .sftpSession(host: host))
+        workspace.splitFocusedPane(axis: .horizontal, with: .sftpChannel(host: host))
         #expect(window.sidebar.sessionContext.systemInfo == nil)
 
         workspace.focus(sshPane.id)
@@ -996,14 +996,14 @@ struct WindowStateTests {
         let secondHost = Host(name: "Second", host: "second.example")
         let mixed = Workspace.sshSession(host: firstHost)
         let sshPane = mixed.focusedPane
-        mixed.splitFocusedPane(axis: .horizontal, with: .sftpSession(host: firstHost))
+        mixed.splitFocusedPane(axis: .horizontal, with: .sftpChannel(host: firstHost))
         let sftpPane = mixed.focusedPane
         let secondSSH = Workspace.sshSession(host: secondHost)
         let window = WindowModel(workspaces: [mixed, secondSSH])
 
         #expect(window.sessionPanes.map(\.pane.id) == [sshPane.id, sftpPane.id, secondSSH.focusedPane.id])
         #expect(window.sshSessionPanes.map(\.pane.id) == [sshPane.id, secondSSH.focusedPane.id])
-        #expect(window.sftpSessionPanes.map(\.pane.id) == [sftpPane.id])
+        #expect(window.sftpChannelPanes.map(\.pane.id) == [sftpPane.id])
         #expect(window.sessionPanes.map(\.pane.symbol) == ["apple.terminal", "folder", "apple.terminal"])
     }
 
@@ -1011,8 +1011,8 @@ struct WindowStateTests {
     func sftpTitlesUseHostNameWithoutPrefixAndFallBackToSFTP() {
         let host = Host(name: "Uploads", host: "uploads.example")
         let store = HostLibraryModel(hosts: [host])
-        let pane = Pane.sftpSession(host: host)
-        let missing = Pane(.sftpSession(SFTPSessionModel(hostID: UUID(), initialPath: "/")))
+        let pane = Pane.sftpChannel(host: host)
+        let missing = Pane(.sftpChannel(SFTPChannelModel(hostID: UUID(), initialPath: "/")))
 
         #expect(pane.title(in: store) == "Uploads")
         #expect(pane.sidebarTitle(in: store) == "Uploads")
@@ -1025,7 +1025,7 @@ struct WindowStateTests {
         let host = Host(name: "Host", host: "host.example")
         let workspace = Workspace.sshSession(host: host)
         let sshPane = workspace.focusedPane
-        workspace.splitFocusedPane(axis: .horizontal, with: .sftpSession(host: host))
+        workspace.splitFocusedPane(axis: .horizontal, with: .sftpChannel(host: host))
         let sftpPane = workspace.focusedPane
         let window = WindowModel(workspaces: [workspace])
 
@@ -1044,7 +1044,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func appRoutesHostsToSSHAndSFTPSessionsForWorkspaces() {
+    func appRoutesHostsToSSHAndSFTPChannelsForWorkspaces() {
         let first = Host(name: "First", host: "first.example")
         let second = Host(name: "Second", host: "second.example")
         let store = HostLibraryModel(hosts: [first, second])
@@ -1052,16 +1052,16 @@ struct WindowStateTests {
         let window = WindowModel()
 
         let sshTab = app.open(first, as: .sshSession, in: window)
-        let sftpTab = app.open(second, as: .sftpSession, in: window)
+        let sftpTab = app.open(second, as: .sftpChannel, in: window)
         #expect(sshTab.focusedPane.kind == .sshSession)
-        #expect(sftpTab.focusedPane.kind == .sftpSession)
+        #expect(sftpTab.focusedPane.kind == .sftpChannel)
 
         app.open([first, second], as: .sshSession, layout: .separateWorkspaces, in: window)
         #expect(window.selectedWorkspaceID == window.workspaces[2].id)
         #expect(window.workspaces.suffix(2).map(\.focusedPane.kind) == [.sshSession, .sshSession])
 
-        app.open([first, second], as: .sftpSession, layout: .oneWorkspace, in: window)
-        #expect(window.selectedWorkspace?.panes.map(\.kind) == [.sftpSession, .sftpSession])
+        app.open([first, second], as: .sftpChannel, layout: .oneWorkspace, in: window)
+        #expect(window.selectedWorkspace?.panes.map(\.kind) == [.sftpChannel, .sftpChannel])
     }
 
     @Test
@@ -1092,35 +1092,35 @@ struct WindowStateTests {
     @Test
     func terminalPathOpensSFTPInANewWorkspaceOrTheCurrentWorkspace() {
         var host = Host(name: "Files", host: "files.example")
-        host.sftpSessionInitialPath = "/configured"
+        host.sftpChannelInitialPath = "/configured"
         let sshWorkspace = Workspace.sshSession(host: host)
         let window = WindowModel(workspaces: [sshWorkspace])
 
-        let newTab = window.openSFTPSession(
+        let newTab = window.openSFTPChannel(
             host: host, initialPath: "/var/log/", placement: .newWorkspace
         )
 
         #expect(window.workspaces.count == 2)
         #expect(window.selectedWorkspace === newTab)
-        #expect(newTab.focusedPane.sftpSession?.path == "/var/log")
-        #expect(newTab.focusedPane.sftpSession?.initialPath == "/var/log")
-        #expect(host.sftpSessionInitialPath == "/configured")
+        #expect(newTab.focusedPane.sftpChannel?.path == "/var/log")
+        #expect(newTab.focusedPane.sftpChannel?.initialPath == "/var/log")
+        #expect(host.sftpChannelInitialPath == "/configured")
 
         window.select(sshWorkspace.id)
-        let result = window.openSFTPSession(
+        let result = window.openSFTPChannel(
             host: host, initialPath: "/srv/app", placement: .currentWorkspace
         )
 
         #expect(result === sshWorkspace)
         #expect(window.workspaces.count == 2)
-        #expect(sshWorkspace.panes.map(\.kind) == [.sshSession, .sftpSession])
-        #expect(sshWorkspace.focusedPane.sftpSession?.path == "/srv/app")
+        #expect(sshWorkspace.panes.map(\.kind) == [.sshSession, .sftpChannel])
+        #expect(sshWorkspace.focusedPane.sftpChannel?.path == "/srv/app")
     }
 
     @Test
     func sftpPathOpensSSHInANewWorkspaceOrTheCurrentWorkspace() throws {
         let host = Host(name: "Shell", host: "shell.example")
-        let sftpWorkspace = Workspace.sftpSession(host: host, initialPath: "/configured")
+        let sftpWorkspace = Workspace.sftpChannel(host: host, initialPath: "/configured")
         let window = WindowModel(workspaces: [sftpWorkspace])
 
         let newTab = window.openSSHSession(
@@ -1138,20 +1138,20 @@ struct WindowStateTests {
 
         #expect(result === sftpWorkspace)
         #expect(window.workspaces.count == 2)
-        #expect(sftpWorkspace.panes.map(\.kind) == [.sftpSession, .sshSession])
+        #expect(sftpWorkspace.panes.map(\.kind) == [.sftpChannel, .sshSession])
         #expect(sftpWorkspace.focusedPane.sshSession?.hostID == host.id)
     }
 
     @Test
     func sftpWithoutAnOverrideKeepsTheHostsConfiguredInitialPath() {
         var host = Host(name: "Files", host: "files.example")
-        host.sftpSessionInitialPath = "/configured"
+        host.sftpChannelInitialPath = "/configured"
         let window = WindowModel()
 
-        let workspace = window.openSFTPSession(host: host)
+        let workspace = window.openSFTPChannel(host: host)
 
-        #expect(workspace.focusedPane.sftpSession?.path == "/configured")
-        #expect(workspace.focusedPane.sftpSession?.initialPath == "/configured")
+        #expect(workspace.focusedPane.sftpChannel?.path == "/configured")
+        #expect(workspace.focusedPane.sftpChannel?.initialPath == "/configured")
     }
 
     @Test
@@ -1205,7 +1205,7 @@ struct WindowStateTests {
         let host = Host(name: "Host", host: "host.example")
         let sshSessionTab = Workspace.sshSession(host: host)
         let sshSession = sshSessionTab.focusedPane.sshSession!
-        let neighbor = Workspace.sftpSession(host: host)
+        let neighbor = Workspace.sftpChannel(host: host)
         let window = WindowModel(workspaces: [sshSessionTab, neighbor])
         window.select(sshSessionTab.id)
 

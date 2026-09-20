@@ -1,6 +1,6 @@
 import Foundation
 
-/// The client-side ceiling for OpenSSH-style session Channels on one SSH transport.
+/// The client-side ceiling for OpenSSH-style sessions on one SSH connection.
 public nonisolated struct SSHPreferences: Codable, Hashable, Sendable {
     public static let defaultMaxSessions = 10
     public static let maxSessionsRange = 1...100

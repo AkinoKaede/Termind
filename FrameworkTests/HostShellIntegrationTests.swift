@@ -89,7 +89,7 @@ struct HostShellIntegrationTests {
         var host = Host(
             name: "Production", host: "server.invalid", port: 2222, identityID: UUID(), jumpHostID: UUID(),
             proxy: HostProxy(kind: .socks5, hostname: "proxy.invalid", port: 1080),
-            sftpSessionInitialPath: "/srv/app", groupID: UUID(), tags: ["production"], colorTag: .teal,
+            sftpChannelInitialPath: "/srv/app", groupID: UUID(), tags: ["production"], colorTag: .teal,
             detectedDistribution: DetectedDistribution(id: "ubuntu", likeIDs: ["debian"]), sortIndex: 2.5)
         do {
             let schema = Schema(versionedSchema: version == 20 ? TermindSchemaV20.self : TermindSchemaV21.self)

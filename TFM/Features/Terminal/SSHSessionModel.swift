@@ -109,7 +109,7 @@ protocol SSHSessionInputRouting: AnyObject {
 /// One terminal sshSession inside a pane.
 ///
 /// The screen buffer lives inside libghostty. This model bridges its in-memory
-/// terminal backend to one libssh2 channel and exposes connection state to SwiftUI.
+/// terminal backend to one SSH session and exposes connection state to SwiftUI.
 @Observable
 final class SSHSessionModel: Identifiable {
     let id = UUID()
@@ -220,7 +220,7 @@ final class SSHSessionModel: Identifiable {
     private let terminalBackend: InMemoryTerminalSession
     private weak var statusStore: (any RemoteSessionHostStore)?
     weak var commandHistoryStore: CommandHistoryModel?
-    private var ssh: SSHSessionActor?
+    private var ssh: SSHPTYChannel?
     var connectionCoordinator: RemoteConnectionCoordinator?
     private var connectionTask: Task<Void, Never>?
     private var startsOnMount = true
@@ -261,7 +261,7 @@ final class SSHSessionModel: Identifiable {
 
     var reconnectState: ReconnectState? { connection.reconnectState }
 
-    func openTerminalSFTPChannel(for attemptID: UUID?) async throws -> any SFTPClientProtocol {
+    func openPTYSFTPChannel(for attemptID: UUID?) async throws -> any SFTPChannelProtocol {
         guard status == .connected, connectionAttemptID == attemptID, let ssh else {
             throw SFTPError.notConnected
         }
@@ -806,7 +806,7 @@ final class SSHSessionModel: Identifiable {
             proxy: proxy, jumps: jumps
         )
         let backend = terminalBackend
-        let actor = (connectionCoordinator ?? RemoteConnectionCoordinator()).makeSSHSession(
+        let actor = (connectionCoordinator ?? RemoteConnectionCoordinator()).makePTYChannel(
             output: { data in backend.receive(data) },
             exit: { [weak self] result in
                 Task { @MainActor in

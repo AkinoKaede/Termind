@@ -278,7 +278,7 @@ struct AgentPlanModeTests {
         let pool = AgentConnectionPool(
             configuration: { _ in throw AgentToolError.invalidHost },
             routeFingerprint: { _ in "" },
-            openSession: { _ in throw AgentToolError.invalidHost },
+            openConnection: { _ in throw AgentToolError.invalidHost },
             openSFTP: { _ in throw AgentToolError.invalidHost },
             sweepInterval: nil
         )

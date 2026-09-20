@@ -8,8 +8,8 @@ extension MobileWorkspaceConnectionServices {
 
     static func live(coordinator: RemoteConnectionCoordinator) -> MobileWorkspaceConnectionServices {
         return MobileWorkspaceConnectionServices(
-            makeSSHSession: { output, exit, shellIntegration in
-                coordinator.makeSSHSession(output: output, exit: exit, shellIntegration: shellIntegration)
+            makePTYChannel: { output, exit, shellIntegration in
+                coordinator.makePTYChannel(output: output, exit: exit, shellIntegration: shellIntegration)
             },
             connectSSH: { session, request, shellIntegrationEnabled, columns, rows, progress in
                 try await session.connect(

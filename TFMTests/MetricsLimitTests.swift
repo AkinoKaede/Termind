@@ -129,7 +129,7 @@ struct MetricsLimitTests {
     ) -> ServerMetricsModel {
         ServerMetricsModel(
             hosts: HostLibraryModel(hosts: hosts), preferences: preferences,
-            makeSampler: { SSHMetricsSampler(session: RemoteConnectionCoordinator().makeMultiplexedSession()) },
+            makeSampler: { SSHMetricsSampler(connection: RemoteConnectionCoordinator().makeConnection()) },
             cardLimit: limit, limitReached: denied
         )
     }

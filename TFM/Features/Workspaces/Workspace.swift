@@ -326,25 +326,25 @@ final class Workspace: Identifiable {
     private func synchronizeInputRouters(previousLayout: SplitNode? = nil) {
         let currentSessions = broadcastTargets
         let currentIDs = Set(currentSessions.map(\.id))
-        let currentSFTPSessions = panes.compactMap(\.sftpSession)
-        let currentSFTPIDs = Set(currentSFTPSessions.map(\.id))
+        let currentSFTPChannels = panes.compactMap(\.sftpChannel)
+        let currentSFTPIDs = Set(currentSFTPChannels.map(\.id))
 
         if let previousLayout {
             for sshSession in previousLayout.panes.compactMap(\.sshSession)
             where !currentIDs.contains(sshSession.id) && sshSession.inputRouter === self {
                 sshSession.inputRouter = nil
             }
-            for sftpSession in previousLayout.panes.compactMap(\.sftpSession)
-            where !currentSFTPIDs.contains(sftpSession.id) && sftpSession.navigationRouter === self {
-                sftpSession.navigationRouter = nil
+            for sftpChannel in previousLayout.panes.compactMap(\.sftpChannel)
+            where !currentSFTPIDs.contains(sftpChannel.id) && sftpChannel.navigationRouter === self {
+                sftpChannel.navigationRouter = nil
             }
         }
 
         for sshSession in currentSessions {
             sshSession.inputRouter = self
         }
-        for sftpSession in currentSFTPSessions {
-            sftpSession.navigationRouter = self
+        for sftpChannel in currentSFTPChannels {
+            sftpChannel.navigationRouter = self
         }
 
         if !canBroadcast { broadcastsInput = false }
@@ -352,9 +352,9 @@ final class Workspace: Identifiable {
 
 }
 
-extension Workspace: SFTPSessionNavigationRouting {
-    func sftpSession(_ sftpSession: SFTPSessionModel, didChangePath path: String) {
-        guard focusedPane.sftpSession === sftpSession else { return }
+extension Workspace: SFTPChannelNavigationRouting {
+    func sftpChannel(_ sftpChannel: SFTPChannelModel, didChangePath path: String) {
+        guard focusedPane.sftpChannel === sftpChannel else { return }
         lifecycleRouter?.workspaceContextDidChange(self)
     }
 }
@@ -438,8 +438,8 @@ extension Workspace {
 
     /// A host is required, for the same reason a sshSession needs one: there is
     /// nothing to browse without a machine on the other end.
-    static func sftpSession(host: Host, initialPath: String? = nil) -> Workspace {
-        Workspace(pane: .sftpSession(host: host, initialPath: initialPath))
+    static func sftpChannel(host: Host, initialPath: String? = nil) -> Workspace {
+        Workspace(pane: .sftpChannel(host: host, initialPath: initialPath))
     }
 
 }

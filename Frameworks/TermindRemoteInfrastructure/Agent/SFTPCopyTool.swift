@@ -139,8 +139,8 @@ nonisolated public struct SFTPCopyTool: AgentToolDefinition, AgentToolSchemaBuil
     }
 
     private func performCopy(
-        source: any SFTPClientProtocol,
-        destination: any SFTPClientProtocol,
+        source: any SFTPChannelProtocol,
+        destination: any SFTPChannelProtocol,
         request: Request,
         invocation: AgentToolInvocation,
         context: AgentToolExecutionContext,

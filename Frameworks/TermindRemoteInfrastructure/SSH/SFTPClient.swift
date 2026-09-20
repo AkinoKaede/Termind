@@ -90,11 +90,12 @@ nonisolated private struct SFTPProgressMeter {
     }
 }
 
-public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
-    /// Opens another SFTP subsystem Channel on the same authenticated SSH
-    /// transport. Connection-preferred schedulers use this only after a silent
+/// One initialized SFTP subsystem running over an SSH channel.
+public nonisolated protocol SFTPChannelProtocol: RemoteFileSystem, Sendable {
+    /// Opens another SFTP subsystem channel on the same authenticated SSH
+    /// connection. Connection-preferred schedulers use this only after a silent
     /// additional connection cannot be established.
-    func openSiblingChannel() async throws -> any SFTPClientProtocol
+    func openSiblingChannel() async throws -> any SFTPChannelProtocol
     func uploadFile(
         from localURL: URL, to remotePath: String, overwrite: Bool,
         cancellation: TransferCancellationToken, resume: SFTPResumeState,
@@ -115,20 +116,6 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
     func openDownloadStream(
         at path: String, maximumBytes: Int64, cancellation: TransferCancellationToken
     ) async throws -> any SFTPDownloadStream
-    func connect(
-        using configuration: SSHConnectionConfiguration,
-        progress: SSHRouteProgressHandler?
-    ) async throws
-    func connect(
-        using configuration: SSHConnectionConfiguration,
-        progress: SSHRouteProgressHandler?,
-        connectionFailure: (@Sendable (String) -> Void)?
-    ) async throws
-    func connect(
-        using request: SSHConnectionRequest,
-        progress: SSHRouteProgressHandler?,
-        connectionFailure: (@Sendable (String) -> Void)?
-    ) async throws
     func readTextPage(at path: String, offset: Int, limit: Int) async throws -> AgentTextPage
     func disconnect() async
     func homeDirectory() async throws -> String
@@ -145,7 +132,7 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
     func copyFile(
         from sourcePath: String,
         to destinationPath: String,
-        on destination: any SFTPClientProtocol,
+        on destination: any SFTPChannelProtocol,
         byteCount: Int64,
         overwrite: Bool,
         cancellation: TransferCancellationToken,
@@ -158,8 +145,26 @@ public nonisolated protocol SFTPClientProtocol: RemoteFileSystem, Sendable {
     ) async throws
 }
 
-nonisolated extension SFTPClientProtocol {
-    public func openSiblingChannel() async throws -> any SFTPClientProtocol {
+/// A connection-opening facade that creates and owns its primary SFTP channel.
+public nonisolated protocol SFTPClientProtocol: SFTPChannelProtocol {
+    func connect(
+        using configuration: SSHConnectionConfiguration,
+        progress: SSHRouteProgressHandler?
+    ) async throws
+    func connect(
+        using configuration: SSHConnectionConfiguration,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws
+    func connect(
+        using request: SSHConnectionRequest,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws
+}
+
+nonisolated extension SFTPChannelProtocol {
+    public func openSiblingChannel() async throws -> any SFTPChannelProtocol {
         throw SFTPError.notConnected
     }
     public func uploadFile(
@@ -207,25 +212,6 @@ nonisolated extension SFTPClientProtocol {
     ) async throws {
         throw SFTPError.operation("This SFTP client does not support streamed uploads.")
     }
-    public func connect(
-        using request: SSHConnectionRequest,
-        progress: SSHRouteProgressHandler?,
-        connectionFailure: (@Sendable (String) -> Void)?
-    ) async throws {
-        try await connect(
-            using: request.configuration, progress: progress,
-            connectionFailure: connectionFailure
-        )
-    }
-
-    public func connect(
-        using configuration: SSHConnectionConfiguration,
-        progress: SSHRouteProgressHandler?,
-        connectionFailure: (@Sendable (String) -> Void)?
-    ) async throws {
-        try await connect(using: configuration, progress: progress)
-    }
-
     public func readTextPage(at path: String, offset: Int, limit: Int) async throws -> AgentTextPage {
         let data = try await readFile(at: path, maximumBytes: AgentScratchWorkspace.Limits.fileBytes)
         var reader = try AgentTextPageReader(offset: offset, limit: limit)
@@ -244,13 +230,34 @@ nonisolated extension SFTPClientProtocol {
     public func copyFile(
         from sourcePath: String,
         to destinationPath: String,
-        on destination: any SFTPClientProtocol,
+        on destination: any SFTPChannelProtocol,
         byteCount: Int64,
         overwrite: Bool,
         cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
         throw SFTPError.operation("This SFTP client does not support streamed remote copying.")
+    }
+}
+
+nonisolated extension SFTPClientProtocol {
+    public func connect(
+        using request: SSHConnectionRequest,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws {
+        try await connect(
+            using: request.configuration, progress: progress,
+            connectionFailure: connectionFailure
+        )
+    }
+
+    public func connect(
+        using configuration: SSHConnectionConfiguration,
+        progress: SSHRouteProgressHandler?,
+        connectionFailure: (@Sendable (String) -> Void)?
+    ) async throws {
+        try await connect(using: configuration, progress: progress)
     }
 }
 
@@ -287,8 +294,8 @@ public actor SFTPClient: SFTPClientProtocol {
     private let logger: Logger
     private let maxSessionsPolicy: SSHMaxSessionsPolicy
     private var generation: UInt64 = 0
-    private var session: SSHMultiplexedSession?
-    private var channel: (any SFTPClientProtocol)?
+    private var connection: SSHConnection?
+    private var channel: (any SFTPChannelProtocol)?
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
@@ -301,11 +308,11 @@ public actor SFTPClient: SFTPClientProtocol {
     }
 
     deinit {
-        let session = session
+        let connection = connection
         let channel = channel
         Task {
             await channel?.disconnect()
-            await session?.disconnect()
+            await connection?.disconnect()
         }
     }
 
@@ -338,13 +345,13 @@ public actor SFTPClient: SFTPClientProtocol {
         generation &+= 1
         let token = generation
         let previousChannel = channel
-        let previousSession = session
         channel = nil
-        session = nil
+        let previousConnection = connection
+        connection = nil
         await previousChannel?.disconnect()
-        await previousSession?.disconnect()
+        await previousConnection?.disconnect()
 
-        let replacement = SSHMultiplexedSession(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
+        let replacement = SSHConnection(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
         do {
             try await replacement.connect(
                 using: request.withKeyboardInteractiveFallback(keyboardInteractive),
@@ -359,7 +366,7 @@ public actor SFTPClient: SFTPClientProtocol {
                 await replacement.disconnect()
                 throw CancellationError()
             }
-            session = replacement
+            connection = replacement
             self.channel = channel
         } catch {
             await replacement.disconnect()
@@ -370,14 +377,14 @@ public actor SFTPClient: SFTPClientProtocol {
     public func disconnect() async {
         generation &+= 1
         let channel = channel
-        let session = session
         self.channel = nil
-        self.session = nil
+        let connection = connection
+        self.connection = nil
         await channel?.disconnect()
-        await session?.disconnect()
+        await connection?.disconnect()
     }
 
-    public func openSiblingChannel() async throws -> any SFTPClientProtocol {
+    public func openSiblingChannel() async throws -> any SFTPChannelProtocol {
         try await connectedChannel().openSiblingChannel()
     }
 
@@ -501,7 +508,7 @@ public actor SFTPClient: SFTPClientProtocol {
 
     public func copyFile(
         from sourcePath: String, to destinationPath: String,
-        on destination: any SFTPClientProtocol, byteCount: Int64,
+        on destination: any SFTPChannelProtocol, byteCount: Int64,
         overwrite: Bool, cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {
@@ -517,7 +524,7 @@ public actor SFTPClient: SFTPClientProtocol {
             cancellation: cancellation, progress: progress)
     }
 
-    private func connectedChannel() throws -> any SFTPClientProtocol {
+    private func connectedChannel() throws -> any SFTPChannelProtocol {
         guard let channel else { throw SFTPError.notConnected }
         return channel
     }

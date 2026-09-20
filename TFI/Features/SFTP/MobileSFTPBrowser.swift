@@ -24,7 +24,7 @@ nonisolated func mobileSFTPListItems(path: String, files: [RemoteFile]) -> [Mobi
 }
 
 struct MobileSFTPBrowser: View {
-    @Bindable var session: MobileSFTPSessionModel
+    @Bindable var channel: MobileSFTPChannelModel
     let connected: Bool
     var bottomContentInset: CGFloat = 0
     let open: (RemoteFile) -> Void
@@ -39,26 +39,26 @@ struct MobileSFTPBrowser: View {
     let delete: (RemoteFile) -> Void
 
     private var items: [MobileSFTPListItem] {
-        mobileSFTPListItems(path: session.path, files: session.visibleFiles)
+        mobileSFTPListItems(path: channel.path, files: channel.visibleFiles)
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            MobileSFTPPathBar(session: session, connected: connected)
+            MobileSFTPPathBar(channel: channel, connected: connected)
             Divider()
             ZStack {
                 MobileNativeList(
                     items: items,
                     estimatedRowHeight: 68,
-                    refreshID: AnyHashable([connected, session.isRefreshing]),
+                    refreshID: AnyHashable([connected, channel.isRefreshing]),
                     onSelect: { item in
                         guard connected else { return }
                         switch item {
-                        case .parent(let path): Task { await session.openDirectory(path) }
+                        case .parent(let path): Task { await channel.openDirectory(path) }
                         case .file(let file): open(file)
                         }
                     },
-                    onRefresh: { await session.reload() },
+                    onRefresh: { await channel.reload() },
                     bottomContentInset: bottomContentInset
                 ) { item in
                     switch item {
@@ -70,10 +70,10 @@ struct MobileSFTPBrowser: View {
                 }
                 if items.isEmpty {
                     Group {
-                        if session.query.isEmpty {
+                        if channel.query.isEmpty {
                             ContentUnavailableView("Empty", systemImage: "folder")
                         } else {
-                            ContentUnavailableView.search(text: session.query)
+                            ContentUnavailableView.search(text: channel.query)
                         }
                     }
                     .allowsHitTesting(false)
@@ -160,7 +160,7 @@ struct MobileSFTPBrowser: View {
 }
 
 private struct MobileSFTPPathBar: View {
-    @Bindable var session: MobileSFTPSessionModel
+    @Bindable var channel: MobileSFTPChannelModel
     let connected: Bool
     @State private var editsPath = false
     @FocusState private var pathFocused: Bool
@@ -168,7 +168,7 @@ private struct MobileSFTPPathBar: View {
     var body: some View {
         Group {
             if editsPath {
-                TextField("Remote Path", text: $session.pathText.singleLineText, axis: .horizontal).singleLinePaste()
+                TextField("Remote Path", text: $channel.pathText.singleLineText, axis: .horizontal).singleLinePaste()
                     .lineLimit(1)
                     .font(.body.monospaced())
                     .textInputAutocapitalization(.never)
@@ -197,8 +197,8 @@ private struct MobileSFTPPathBar: View {
             guard wasFocused, !isFocused, editsPath else { return }
             cancelPathEditing()
         }
-        .onChange(of: session.path) { _, path in
-            if !editsPath { session.pathText = path }
+        .onChange(of: channel.path) { _, path in
+            if !editsPath { channel.pathText = path }
         }
     }
 
@@ -209,12 +209,12 @@ private struct MobileSFTPPathBar: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(session.path))
+        .accessibilityLabel(Text(channel.path))
         .accessibilityHint(Text("Edit Path"))
     }
 
     private func breadcrumbs(tailCount: Int) -> some View {
-        let components = RemotePath.components(of: session.path)
+        let components = RemotePath.components(of: channel.path)
         let collapses = components.count > tailCount + 1
         let visible = collapses ? Array(components.suffix(tailCount)) : Array(components.dropFirst())
         return HStack(spacing: 6) {
@@ -244,27 +244,27 @@ private struct MobileSFTPPathBar: View {
         HStack(spacing: 6) {
             if isRoot { Image(systemName: "folder.fill").foregroundStyle(.tint) }
             Text(component.name)
-                .font(.body.weight(component.path == session.path ? .medium : .regular))
+                .font(.body.weight(component.path == channel.path ? .medium : .regular))
                 .lineLimit(1)
         }
         .fixedSize(horizontal: isRoot, vertical: false)
     }
 
     private func beginPathEditing() {
-        session.pathText = session.path
+        channel.pathText = channel.path
         editsPath = true
         Task { @MainActor in pathFocused = true }
     }
 
     private func commitPath() {
-        let destination = session.pathText
+        let destination = channel.pathText
         editsPath = false
         pathFocused = false
-        Task { await session.openDirectory(destination) }
+        Task { await channel.openDirectory(destination) }
     }
 
     private func cancelPathEditing() {
-        session.pathText = session.path
+        channel.pathText = channel.path
         editsPath = false
         pathFocused = false
     }

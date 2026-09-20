@@ -27,7 +27,7 @@ nonisolated enum BatchLayout: Hashable, Sendable {
 
 nonisolated enum HostOpenTarget: Hashable, Sendable {
     case sshSession
-    case sftpSession
+    case sftpChannel
 }
 
 /// App-wide state shared by every window: the saved hosts, and the one code path
@@ -664,7 +664,7 @@ final class AppModel {
 
         switch target {
         case .sshSession: return window.openSSHSession(host: host)
-        case .sftpSession: return window.openSFTPSession(host: host)
+        case .sftpChannel: return window.openSFTPChannel(host: host)
         }
     }
 
@@ -706,7 +706,7 @@ final class AppModel {
         switch target {
         case .sshSession:
             hosts.setStatus(.connecting, for: host.id)
-        case .sftpSession:
+        case .sftpChannel:
             break
         }
     }

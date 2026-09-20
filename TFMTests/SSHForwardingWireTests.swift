@@ -17,7 +17,7 @@ nonisolated struct SSHForwardingWireTests {
         let rule = try rule(kind, fixture: fixture)
         for _ in 0..<5 {
             let count = ForwardingWireConnectionCount()
-            let session = SSHForwardingSession(
+            let session = SSHForwardingConnection(
                 connectionHandler: { _, _, value in count.set(value) }, failureHandler: { _ in })
             try await session.connect(request(fixture, jumps: 0))
             do {
@@ -72,7 +72,7 @@ nonisolated struct SSHForwardingWireTests {
 
     @Test func stoppingOneRulePreservesItsPeerAndReleasesItsListener() async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(
+        let session = SSHForwardingConnection(
             connectionHandler: { _, _, _ in }, failureHandler: { Issue.record(Comment(rawValue: $0)) })
         try await session.connect(request(fixture, jumps: 0))
         do {
@@ -94,7 +94,7 @@ nonisolated struct SSHForwardingWireTests {
 
     @Test func slowConsumerPreservesPayloadWhileItsPeerProgresses() async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingConnection(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         try await session.connect(request(fixture, jumps: 2))
         do {
             let rule = try rule(.local, fixture: fixture)
@@ -115,7 +115,7 @@ nonisolated struct SSHForwardingWireTests {
     @Test func localPoolDistributesAcceptedFlowsAcrossPhysicalConnections() async throws {
         let fixture = try fixture()
         let fingerprint = try #require(fixture.hostKeyFingerprint)
-        let pool = SSHForwardingPoolSession(
+        let pool = SSHForwardingConnectionPool(
             maximumConnections: 4, connectionHandler: { _, _, _ in },
             failureHandler: { Issue.record(Comment(rawValue: $0)) })
         var primary = request(fixture, jumps: 0)
@@ -149,7 +149,7 @@ nonisolated struct SSHForwardingWireTests {
 
     @Test func disconnectUnderBackpressureReleasesTheListenerAcrossRepeatedStarts() async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingConnection(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         let rule = try rule(.local, fixture: fixture)
         for _ in 0..<5 {
             try await session.connect(request(fixture, jumps: 1))
@@ -184,7 +184,7 @@ nonisolated struct SSHForwardingWireTests {
         let fixture = try fixture()
         // Only Paramiko provides the deliberately delayed listener reply.
         guard fixture.server != "openssh" else { return }
-        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingConnection(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         try await session.connect(request(fixture, jumps: 0, username: "none-slow-forward"))
         do {
             let rule = try rule(.remote, fixture: fixture)
@@ -206,7 +206,7 @@ nonisolated struct SSHForwardingWireTests {
 
     @Test func multipleRemoteListenersCanStopAndRestartIndependently() async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingConnection(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         try await session.connect(request(fixture, jumps: 1))
         do {
             let first = try rule(.remote, fixture: fixture)
@@ -230,7 +230,7 @@ nonisolated struct SSHForwardingWireTests {
         kind: PortForwardingRule.Kind, concurrency: Int, jumps: Int, rounds: Int = 8
     ) async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(
+        let session = SSHForwardingConnection(
             connectionHandler: { _, _, _ in },
             failureHandler: { Issue.record(Comment(rawValue: $0)) })
         try await session.connect(request(fixture, jumps: jumps), progress: nil)

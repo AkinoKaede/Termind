@@ -23,35 +23,35 @@ public nonisolated struct SSHExecResult: Hashable, Sendable {
     }
 }
 
-/// The one failure that is safe to retry on a replacement transport. It is
+/// The one failure that is safe to retry on a replacement connection. It is
 /// emitted only before the remote process has started.
 public nonisolated enum SSHCommandExecutionError: LocalizedError, Sendable {
-    case transportUnavailable(any Error)
+    case connectionUnavailable(any Error)
     case channelUnavailable(any Error)
 
     public var errorDescription: String? {
         switch self {
-        case .transportUnavailable(let underlying): underlying.localizedDescription
+        case .connectionUnavailable(let underlying): underlying.localizedDescription
         case .channelUnavailable(let underlying): underlying.localizedDescription
         }
     }
 }
 
-/// A long-lived authenticated SSH transport that multiplexes non-PTY exec and
+/// A long-lived authenticated SSH connection that multiplexes non-PTY exec and
 /// SFTP subsystem Channels through one fair libssh2 owner. Every command uses
-/// a private Channel, so shell state and working directories never leak.
-public nonisolated protocol SSHMultiplexedSessionProtocol: AnyObject, Sendable {
+/// a private exec Channel, so shell state and working directories never leak.
+public nonisolated protocol SSHConnectionProtocol: AnyObject, Sendable {
     func connect(using configuration: SSHConnectionConfiguration) async throws
     func connect(using request: SSHConnectionRequest) async throws
     func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult
-    func openSFTPChannel() async throws -> any SFTPClientProtocol
+    func openSFTPChannel() async throws -> any SFTPChannelProtocol
     func disconnect() async
 }
 
-nonisolated extension SSHMultiplexedSessionProtocol {
+nonisolated extension SSHConnectionProtocol {
     public func connect(using request: SSHConnectionRequest) async throws {
         try await connect(using: request.configuration)
     }
@@ -60,17 +60,17 @@ nonisolated extension SSHMultiplexedSessionProtocol {
 /// Called on the connection's serial libssh2 owner. It must return promptly.
 public typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
 
-public actor SSHMultiplexedSession: SSHMultiplexedSessionProtocol {
+public actor SSHConnection: SSHConnectionProtocol {
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
-    private nonisolated let worker: SSHMultiplexedSessionWorker
+    private nonisolated let worker: SSHConnectionWorker
 
     public init(
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        logger: Logger = ApplicationLogger.disabled("termind.ssh-multiplexed-session"),
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-connection"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) {
         self.keyboardInteractive = keyboardInteractive
-        worker = SSHMultiplexedSessionWorker(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
+        worker = SSHConnectionWorker(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
     }
 
     public func connect(using configuration: SSHConnectionConfiguration) async throws {
@@ -106,7 +106,7 @@ public actor SSHMultiplexedSession: SSHMultiplexedSessionProtocol {
         }
     }
 
-    public func openSFTPChannel() async throws -> any SFTPClientProtocol {
+    public func openSFTPChannel() async throws -> any SFTPChannelProtocol {
         try await worker.openSFTPChannel()
     }
 

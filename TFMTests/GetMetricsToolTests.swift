@@ -208,7 +208,7 @@ struct GetMetricsToolTests {
         let pool = AgentConnectionPool(
             configuration: { _ in throw MetricsReadError.output },
             routeFingerprint: { _ in throw MetricsReadError.output },
-            openSession: { _ in
+            openConnection: { _ in
                 Issue.record("Unexpected SSH connection")
                 throw MetricsReadError.output
             },

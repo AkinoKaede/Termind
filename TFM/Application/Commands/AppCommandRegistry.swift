@@ -208,7 +208,7 @@ final class AppCommandRegistry {
                 symbol: "folder",
                 section: .hosts,
                 keywords: keywords + ["sftp", "files"],
-                target: .connectHost(host.id, .sftpSession)
+                target: .connectHost(host.id, .sftpChannel)
             ),
         ]
     }

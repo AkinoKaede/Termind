@@ -28,7 +28,7 @@ struct EmptyPaneView: View {
                 Text("Empty Pane")
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("Drag an SSH session, SFTP session, or chat here.")
+                Text("Drag an SSH terminal or SFTP browser here.")
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

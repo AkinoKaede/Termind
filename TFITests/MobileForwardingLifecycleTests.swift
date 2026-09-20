@@ -15,7 +15,7 @@ struct MobileForwardingLifecycleTests {
         dependencies.makeForwardings = { library in
             PortForwardingController(
                 hosts: library,
-                makeSession: { _, failure in
+                makeConnection: { _, failure in
                     let session = MobileRecoverySession(failure: failure)
                     sessions.append(session)
                     return session
@@ -134,9 +134,9 @@ struct MobileForwardingLifecycleTests {
     }
 }
 
-private actor MobileRecoverySession: SSHForwardingSessionProtocol {
-    let failure: SSHForwardingSession.FailureHandler
-    init(failure: @escaping SSHForwardingSession.FailureHandler) { self.failure = failure }
+private actor MobileRecoverySession: SSHForwardingConnectionProtocol {
+    let failure: SSHForwardingConnection.FailureHandler
+    init(failure: @escaping SSHForwardingConnection.FailureHandler) { self.failure = failure }
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) {}
     func start(_ rule: PortForwardingRule, generation: UUID) {}
     func stop(_ id: UUID) {}

@@ -5,7 +5,7 @@ import struct TermindDomain.Host
 
 public nonisolated enum ConnectionPurpose: String, Hashable, Sendable {
     case sshSession
-    case sftpSession
+    case sftpChannel = "sftpSession"
     case serialSession
     case metrics
     case portForwarding
@@ -332,7 +332,7 @@ extension ConnectionPurpose {
     fileprivate var logName: String {
         switch self {
         case .sshSession: "SSH session"
-        case .sftpSession: "SFTP session"
+        case .sftpChannel: "SFTP channel"
         case .serialSession: "serial session"
         case .metrics: "metrics"
         case .portForwarding: "port forwarding"

@@ -23,24 +23,24 @@ public nonisolated struct SSHForwardingBenchmarkStatistics: Sendable {
 public nonisolated enum SSHForwardingBenchmarkAccess {
     public static func makeSession(
         maximumConnections: Int,
-        failureHandler: @escaping SSHForwardingSession.FailureHandler
-    ) -> any SSHForwardingSessionProtocol {
+        failureHandler: @escaping SSHForwardingConnection.FailureHandler
+    ) -> any SSHForwardingConnectionProtocol {
         let maximum = Host.normalizedPortForwardingMaxConnections(maximumConnections)
         if maximum > 1 {
-            return SSHForwardingPoolSession(
+            return SSHForwardingConnectionPool(
                 maximumConnections: maximum,
                 connectionHandler: { _, _, _ in },
                 failureHandler: failureHandler)
         }
-        return SSHForwardingSession(
+        return SSHForwardingConnection(
             connectionHandler: { _, _, _ in },
             failureHandler: failureHandler)
     }
 
     public static func statistics(
-        for session: any SSHForwardingSessionProtocol
+        for session: any SSHForwardingConnectionProtocol
     ) async -> SSHForwardingBenchmarkStatistics? {
-        guard let session = session as? SSHForwardingSession else { return nil }
+        guard let session = session as? SSHForwardingConnection else { return nil }
         return await SSHForwardingBenchmarkStatistics(session.statistics())
     }
 }

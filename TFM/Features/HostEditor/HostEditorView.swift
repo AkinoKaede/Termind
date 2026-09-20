@@ -435,8 +435,8 @@ struct HostEditorView: View {
         !draft.host.trimmingCharacters(in: .whitespaces).isEmpty
             && (1...65_535).contains(draft.port)
             && (draft.proxy?.isValid ?? true)
-            && (draft.sftpSessionInitialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || draft.sftpSessionInitialPath.hasPrefix("/"))
+            && (draft.sftpChannelInitialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || draft.sftpChannelInitialPath.hasPrefix("/"))
             && app.hostLibrary.validatedRoute(for: draft) != nil
     }
 
@@ -454,8 +454,8 @@ struct HostEditorView: View {
     /// No tag bookkeeping here: `TagField` writes chips straight into
     /// `draft.tags`, so there is never a half-typed word left to flush.
     private func save() {
-        let initialPath = draft.sftpSessionInitialPath.trimmingCharacters(in: .whitespacesAndNewlines)
-        draft.sftpSessionInitialPath = initialPath.isEmpty ? "" : RemotePath.normalized(initialPath)
+        let initialPath = draft.sftpChannelInitialPath.trimmingCharacters(in: .whitespacesAndNewlines)
+        draft.sftpChannelInitialPath = initialPath.isEmpty ? "" : RemotePath.normalized(initialPath)
         if app.hostLibrary.saveHost(draft) {
             closeTab()
         } else {

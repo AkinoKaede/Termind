@@ -399,7 +399,7 @@ public final class AgentHostResolver: Sendable {
     /// no Keychain read: this runs before every reuse, and resolving credentials
     /// here would put private-key material on the hot path of every command to
     /// no purpose. A rotated credential on an unchanged identity is therefore
-    /// not a mismatch — the live session is still the same box and the same
+    /// not a mismatch — the live connection is still the same box and the same
     /// login, and the new credential applies to the next connect.
     public func routeFingerprint(for id: UUID) throws -> String {
         guard let host = store.host(id) else {
@@ -438,9 +438,9 @@ public final class AgentHostResolver: Sendable {
 }
 
 /// Keeps temporary credentials alive for one overlapping wave of Agent SSH
-/// connection attempts. Exec and primary SFTP join one transport open, so every
+/// connection attempts. Exec and primary SFTP join one connection open, so every
 /// overlapping caller observes the same ephemeral answer and generation.
-public actor AgentSSHConfigurationSession {
+public actor AgentSSHAuthenticationContext {
     public struct Attempt: Sendable {
         public var request: SSHConnectionRequest
         public var generation: UInt64
@@ -542,7 +542,7 @@ public actor AgentSSHConfigurationSession {
     }
 
     /// Convenience for focused resolver tests that do not need to simulate a
-    /// rejected transport attempt.
+    /// rejected connection attempt.
     public func configuration() async throws -> SSHConnectionConfiguration {
         try await configurationAttempt().configuration
     }
@@ -696,24 +696,24 @@ public actor AgentSSHConfigurationSession {
     }
 }
 
-nonisolated public struct AgentSSHConnection: Sendable {
-    public var authentication: AgentSSHConfigurationSession
-    public var session: any SSHMultiplexedSessionProtocol
+nonisolated public struct AgentSSHConnectionContext: Sendable {
+    public var authentication: AgentSSHAuthenticationContext
+    public var connection: any SSHConnectionProtocol
 
-    public init(authentication: AgentSSHConfigurationSession, session: any SSHMultiplexedSessionProtocol) {
+    public init(authentication: AgentSSHAuthenticationContext, connection: any SSHConnectionProtocol) {
         self.authentication = authentication
-        self.session = session
+        self.connection = connection
     }
 }
 
-/// Shares one temporary authentication session among connection attempts that
+/// Shares one temporary authentication context among connection attempts that
 /// overlap for the same destination. The entry disappears with the last lease,
 /// so Custom passwords and passphrases never become a time-based credential
 /// cache between otherwise unrelated tool calls.
 public actor AgentSSHAuthenticationRegistry {
     private struct Entry {
         var token: UUID
-        var session: AgentSSHConfigurationSession
+        var context: AgentSSHAuthenticationContext
         var leases: Int
     }
 
@@ -722,63 +722,63 @@ public actor AgentSSHAuthenticationRegistry {
 
     public init(resolver: AgentHostResolver) { self.resolver = resolver }
 
-    public func session(
-        hostID: Host.ID, invocationID: AgentToolInvocation.ID,
-        interaction: AgentSSHInteraction, pool: AgentConnectionPool
-    ) async throws -> any SSHMultiplexedSessionProtocol {
-        try await withSession(
-            hostID: hostID, invocationID: invocationID, interaction: interaction
-        ) { authentication in
-            try await self.openSession(
-                hostID: hostID, authentication: authentication, pool: pool
-            )
-        }
-    }
-
     public func connection(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
         interaction: AgentSSHInteraction, pool: AgentConnectionPool
-    ) async throws -> AgentSSHConnection {
-        try await withSession(
+    ) async throws -> any SSHConnectionProtocol {
+        try await withAuthenticationContext(
             hostID: hostID, invocationID: invocationID, interaction: interaction
         ) { authentication in
-            let session = try await self.openSession(
+            try await self.openConnection(
                 hostID: hostID, authentication: authentication, pool: pool
-            )
-            return AgentSSHConnection(
-                authentication: authentication, session: session
             )
         }
     }
 
-    public func openSession(
-        hostID: Host.ID, authentication: AgentSSHConfigurationSession,
+    public func connectionContext(
+        hostID: Host.ID, invocationID: AgentToolInvocation.ID,
+        interaction: AgentSSHInteraction, pool: AgentConnectionPool
+    ) async throws -> AgentSSHConnectionContext {
+        try await withAuthenticationContext(
+            hostID: hostID, invocationID: invocationID, interaction: interaction
+        ) { authentication in
+            let connection = try await self.openConnection(
+                hostID: hostID, authentication: authentication, pool: pool
+            )
+            return AgentSSHConnectionContext(
+                authentication: authentication, connection: connection
+            )
+        }
+    }
+
+    public func openConnection(
+        hostID: Host.ID, authentication: AgentSSHAuthenticationContext,
         pool: AgentConnectionPool
-    ) async throws -> any SSHMultiplexedSessionProtocol {
+    ) async throws -> any SSHConnectionProtocol {
         try await openAuthenticated(
             hostID: hostID, authentication: authentication, pool: pool
         ) { attempt in
             if let attempt {
-                return try await pool.session(hostID: hostID) { _ in attempt.request }
+                return try await pool.connection(hostID: hostID) { _ in attempt.request }
             }
-            return try await pool.session(hostID: hostID)
+            return try await pool.connection(hostID: hostID)
         }
     }
 
-    public func sftpClient(
+    public func sftpChannel(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
         interaction: AgentSSHInteraction, pool: AgentConnectionPool
-    ) async throws -> any SFTPClientProtocol {
-        try await withSession(
+    ) async throws -> any SFTPChannelProtocol {
+        try await withAuthenticationContext(
             hostID: hostID, invocationID: invocationID, interaction: interaction
         ) { authentication in
             try await self.openAuthenticated(
                 hostID: hostID, authentication: authentication, pool: pool
             ) { attempt in
                 if let attempt {
-                    return try await pool.sftpClient(hostID: hostID) { _ in attempt.request }
+                    return try await pool.sftpChannel(hostID: hostID) { _ in attempt.request }
                 }
-                return try await pool.sftpClient(hostID: hostID)
+                return try await pool.sftpChannel(hostID: hostID)
             }
         }
     }
@@ -794,7 +794,7 @@ public actor AgentSSHAuthenticationRegistry {
         byteCount: Int64? = nil,
         schedulesDataTransfer: Bool = false,
         concurrencyPermit: SFTPConcurrencyPermit? = nil,
-        operation: @escaping @Sendable (any SFTPClientProtocol) async throws -> Value
+        operation: @escaping @Sendable (any SFTPChannelProtocol) async throws -> Value
     ) async throws -> Value {
         let ownedPermit: SFTPConcurrencyPermit?
         if schedulesDataTransfer, concurrencyPermit == nil {
@@ -809,7 +809,7 @@ public actor AgentSSHAuthenticationRegistry {
         }
         let permit = concurrencyPermit ?? ownedPermit
         do {
-            let value = try await withSession(
+            let value = try await withAuthenticationContext(
                 hostID: hostID, invocationID: invocationID, interaction: interaction
             ) { authentication in
                 let lease = try await self.openAuthenticated(
@@ -829,7 +829,7 @@ public actor AgentSSHAuthenticationRegistry {
                         mode: permit?.schedulingMode ?? .channelsOnly)
                 }
                 do {
-                    let value = try await operation(lease.client)
+                    let value = try await operation(lease.channel)
                     await pool.releaseSFTP(lease.id)
                     return value
                 } catch {
@@ -854,13 +854,13 @@ public actor AgentSSHAuthenticationRegistry {
     }
 
     private func openAuthenticated<Client: Sendable>(
-        hostID: Host.ID, authentication: AgentSSHConfigurationSession,
+        hostID: Host.ID, authentication: AgentSSHAuthenticationContext,
         pool: AgentConnectionPool,
         evictsPooledConnection: Bool = true,
         cancellation: TransferCancellationToken? = nil,
-        open: @Sendable (AgentSSHConfigurationSession.Attempt?) async throws -> Client
+        open: @Sendable (AgentSSHAuthenticationContext.Attempt?) async throws -> Client
     ) async throws -> Client {
-        var attempt: AgentSSHConfigurationSession.Attempt?
+        var attempt: AgentSSHAuthenticationContext.Attempt?
         if await authentication.canResolveTarget() {
             attempt = try await authentication.configurationAttempt()
         }
@@ -886,28 +886,28 @@ public actor AgentSSHAuthenticationRegistry {
         }
     }
 
-    fileprivate func withSession<Value: Sendable>(
+    fileprivate func withAuthenticationContext<Value: Sendable>(
         hostID: Host.ID, invocationID: AgentToolInvocation.ID,
         interaction: AgentSSHInteraction,
-        operation: @Sendable (AgentSSHConfigurationSession) async throws -> Value
+        operation: @Sendable (AgentSSHAuthenticationContext) async throws -> Value
     ) async throws -> Value {
         let token: UUID
-        let session: AgentSSHConfigurationSession
+        let context: AgentSSHAuthenticationContext
         if var entry = entries[hostID] {
             entry.leases += 1
             entries[hostID] = entry
             token = entry.token
-            session = entry.session
+            context = entry.context
         } else {
             token = UUID()
-            session = AgentSSHConfigurationSession(
+            context = AgentSSHAuthenticationContext(
                 resolver: resolver, hostID: hostID, invocationID: invocationID,
                 interaction: interaction
             )
-            entries[hostID] = Entry(token: token, session: session, leases: 1)
+            entries[hostID] = Entry(token: token, context: context, leases: 1)
         }
         defer { release(hostID: hostID, token: token) }
-        return try await operation(session)
+        return try await operation(context)
     }
 
     private func release(hostID: Host.ID, token: UUID) {
@@ -921,9 +921,9 @@ public actor AgentSSHAuthenticationRegistry {
     }
 }
 
-/// Keeps one Channel-multiplexed SSH transport per Host alive across tool
+/// Keeps one channel-multiplexed SSH connection per Host alive across tool
 /// calls, runs, and conversations. Exec and the primary SFTP subsystem share
-/// that transport; SFTP topology may add silent auxiliary connections.
+/// that connection; SFTP topology may add silent auxiliary connections.
 ///
 /// Before this existed, `ssh_exec` paid a full TCP connect, handshake, host-key
 /// check, and signature for *every command* — and a jump-host route rebuilt
@@ -939,30 +939,30 @@ public actor AgentConnectionPool {
     public typealias RequestResolving =
         @Sendable (UUID) async throws -> SSHConnectionRequest
     public typealias FingerprintResolving = @Sendable (UUID) async throws -> String
-    public typealias SessionOpening =
-        @Sendable (SSHConnectionRequest) async throws -> any SSHMultiplexedSessionProtocol
+    public typealias ConnectionOpening =
+        @Sendable (SSHConnectionRequest) async throws -> any SSHConnectionProtocol
     public typealias SFTPOpening =
         @Sendable (SSHConnectionRequest) async throws -> any SFTPClientProtocol
 
     /// Long enough that a user reading output and asking a follow-up keeps the
     /// connection, short enough that walking away does not leave an
-    /// authenticated session open on a server indefinitely.
+    /// authenticated connection open on a server indefinitely.
     public static let defaultIdleTimeout = Duration.seconds(180)
 
     private struct Entry {
-        var session: any SSHMultiplexedSessionProtocol
+        var connection: any SSHConnectionProtocol
         var fingerprint: String
         var lastUsedAt: ContinuousClock.Instant
     }
 
     private struct InFlight {
         var fingerprint: String
-        var task: Task<any SSHMultiplexedSessionProtocol, any Error>
+        var task: Task<any SSHConnectionProtocol, any Error>
     }
 
     private let configuration: ConfigurationResolving
     private let routeFingerprint: FingerprintResolving
-    private let openSession: SessionOpening
+    private let openConnection: ConnectionOpening
     private let openSFTP: SFTPOpening
     private let idleTimeout: Duration
     private let sweeper: AgentIdleSweeper
@@ -972,14 +972,14 @@ public actor AgentConnectionPool {
 
     struct SFTPLease: Sendable {
         fileprivate var id: UUID
-        var client: any SFTPClientProtocol
+        var channel: any SFTPChannelProtocol
     }
 
     private enum SFTPCapability { case unknown, connections, channels }
 
     private struct SFTPRecord {
         var id: UUID
-        var client: any SFTPClientProtocol
+        var channel: any SFTPChannelProtocol
         var busy: Bool
         var lastUsedAt: ContinuousClock.Instant
     }
@@ -994,29 +994,29 @@ public actor AgentConnectionPool {
     private struct ActiveSFTPLease {
         var hostID: UUID
         var recordID: UUID?
-        var client: any SFTPClientProtocol
+        var channel: any SFTPChannelProtocol
         var cancellation: TransferCancellationToken?
     }
 
     private struct SFTPProbe {
         var id: UUID
-        var task: Task<any SFTPClientProtocol, any Error>
+        var task: Task<any SFTPChannelProtocol, any Error>
     }
 
     private struct SFTPPrimaryOpen {
         var id: UUID
         var fingerprint: String
-        var session: any SSHMultiplexedSessionProtocol
-        var task: Task<any SFTPClientProtocol, any Error>
+        var connection: any SSHConnectionProtocol
+        var task: Task<any SFTPChannelProtocol, any Error>
     }
 
     private var sftpStates: [UUID: SFTPState] = [:]
     private var activeSFTPLeases: [UUID: ActiveSFTPLease] = [:]
     private var sftpProbes: [UUID: SFTPProbe] = [:]
     private var sftpPrimaryOpens: [UUID: SFTPPrimaryOpen] = [:]
-    /// Acquires one exclusive Agent SFTP client. Overlap prefers another SSH
+    /// Acquires one exclusive Agent SFTP channel. Overlap prefers another SSH
     /// connection; after silent connection setup fails, it opens a sibling
-    /// SFTP Channel on the primary transport instead.
+    /// SFTP channel on the primary connection instead.
     func acquireSFTP(
         hostID: UUID, cancellation: TransferCancellationToken? = nil,
         configuration override: RequestResolving? = nil,
@@ -1030,10 +1030,10 @@ public actor AgentConnectionPool {
             _ = await disconnectSFTPState(hostID: hostID)
         }
 
-        let primary = try await sftpClient(hostID: hostID, configuration: override)
+        let primary = try await sftpChannel(hostID: hostID, configuration: override)
         let committedFingerprint = try await routeFingerprint(hostID)
         if sftpStates[hostID] == nil {
-            let record = SFTPRecord(id: UUID(), client: primary, busy: false, lastUsedAt: .now)
+            let record = SFTPRecord(id: UUID(), channel: primary, busy: false, lastUsedAt: .now)
             sftpStates[hostID] = SFTPState(
                 fingerprint: committedFingerprint, primaryID: record.id,
                 records: [record.id: record])
@@ -1045,7 +1045,7 @@ public actor AgentConnectionPool {
         {
             sftpStates[hostID]?.records[idle.id]?.busy = true
             return registerSFTPLease(
-                hostID: hostID, recordID: idle.id, client: idle.client,
+                hostID: hostID, recordID: idle.id, channel: idle.channel,
                 cancellation: cancellation)
         }
 
@@ -1055,13 +1055,13 @@ public actor AgentConnectionPool {
 
         if mode == .channelsOnly {
             do {
-                let sibling = try await primaryRecord.client.openSiblingChannel()
+                let sibling = try await primaryRecord.channel.openSiblingChannel()
                 if cancellation?.isCancelled == true {
                     await sibling.disconnect()
                     throw SFTPError.cancelled
                 }
                 return registerSFTPLease(
-                    hostID: hostID, recordID: nil, client: sibling, cancellation: cancellation)
+                    hostID: hostID, recordID: nil, channel: sibling, cancellation: cancellation)
             } catch {
                 try Task.checkCancellation()
                 if cancellation?.isCancelled == true { throw SFTPError.cancelled }
@@ -1084,7 +1084,7 @@ public actor AgentConnectionPool {
                 probe = existing
             } else {
                 let id = UUID()
-                let task = Task { [configuration, openSFTP] () async throws -> any SFTPClientProtocol in
+                let task = Task { [configuration, openSFTP] () async throws -> any SFTPChannelProtocol in
                     let durable = try await configuration(hostID)
                     let request = SSHConnectionRequest(
                         configuration: durable, interactionPolicy: .forbidden
@@ -1095,10 +1095,10 @@ public actor AgentConnectionPool {
                 sftpProbes[hostID] = probe
             }
             do {
-                let client = try await probe.task.value
+                let channel = try await probe.task.value
                 if sftpProbes[hostID]?.id == probe.id {
                     sftpProbes[hostID] = nil
-                    let record = SFTPRecord(id: UUID(), client: client, busy: false, lastUsedAt: .now)
+                    let record = SFTPRecord(id: UUID(), channel: channel, busy: false, lastUsedAt: .now)
                     sftpStates[hostID]?.records[record.id] = record
                     sftpStates[hostID]?.capability = .connections
                 }
@@ -1119,18 +1119,18 @@ public actor AgentConnectionPool {
                 let request = SSHConnectionRequest(
                     configuration: durable, interactionPolicy: .forbidden
                 ).enforcingInteractionPolicy()
-                let client = try await openSFTP(request)
+                let channel = try await openSFTP(request)
                 try Task.checkCancellation()
                 if cancellation?.isCancelled == true {
-                    await client.disconnect()
+                    await channel.disconnect()
                     throw SFTPError.cancelled
                 }
-                let record = SFTPRecord(id: UUID(), client: client, busy: true, lastUsedAt: .now)
+                let record = SFTPRecord(id: UUID(), channel: channel, busy: true, lastUsedAt: .now)
                 sftpStates[hostID]?.records[record.id] = record
                 sftpStates[hostID]?.capability = .connections
                 startSweeping()
                 return registerSFTPLease(
-                    hostID: hostID, recordID: record.id, client: client,
+                    hostID: hostID, recordID: record.id, channel: channel,
                     cancellation: cancellation)
             } catch {
                 if error is CancellationError { throw error }
@@ -1139,13 +1139,13 @@ public actor AgentConnectionPool {
             }
         }
 
-        let sibling = try await primaryRecord.client.openSiblingChannel()
+        let sibling = try await primaryRecord.channel.openSiblingChannel()
         if cancellation?.isCancelled == true {
             await sibling.disconnect()
             throw SFTPError.cancelled
         }
         return registerSFTPLease(
-            hostID: hostID, recordID: nil, client: sibling, cancellation: cancellation)
+            hostID: hostID, recordID: nil, channel: sibling, cancellation: cancellation)
     }
 
     func releaseSFTP(_ id: UUID) async {
@@ -1154,25 +1154,25 @@ public actor AgentConnectionPool {
             sftpStates[lease.hostID]?.records[recordID]?.busy = false
             sftpStates[lease.hostID]?.records[recordID]?.lastUsedAt = .now
         } else {
-            await lease.client.disconnect()
+            await lease.channel.disconnect()
         }
     }
 
     private func registerSFTPLease(
-        hostID: UUID, recordID: UUID?, client: any SFTPClientProtocol,
+        hostID: UUID, recordID: UUID?, channel: any SFTPChannelProtocol,
         cancellation: TransferCancellationToken?
     ) -> SFTPLease {
         let id = UUID()
         activeSFTPLeases[id] = ActiveSFTPLease(
-            hostID: hostID, recordID: recordID, client: client, cancellation: cancellation)
+            hostID: hostID, recordID: recordID, channel: channel, cancellation: cancellation)
         startSweeping()
-        return SFTPLease(id: id, client: client)
+        return SFTPLease(id: id, channel: channel)
     }
 
     public init(
         configuration: @escaping ConfigurationResolving,
         routeFingerprint: @escaping FingerprintResolving,
-        openSession: @escaping SessionOpening,
+        openConnection: @escaping ConnectionOpening,
         openSFTP: @escaping SFTPOpening,
         sftpConcurrencyScheduler: SFTPConcurrencyScheduler = SFTPConcurrencyScheduler(),
         idleTimeout: Duration = AgentConnectionPool.defaultIdleTimeout,
@@ -1180,18 +1180,18 @@ public actor AgentConnectionPool {
     ) {
         self.configuration = configuration
         self.routeFingerprint = routeFingerprint
-        self.openSession = openSession
+        self.openConnection = openConnection
         self.openSFTP = openSFTP
         self.sftpConcurrencyScheduler = sftpConcurrencyScheduler
         self.idleTimeout = idleTimeout
         sweeper = AgentIdleSweeper(interval: sweepInterval)
     }
 
-    /// Runs one command on the host's pooled session, opening one if needed.
+    /// Runs one command on the host's pooled connection, opening one if needed.
     ///
-    /// Retries exactly once only when the pooled transport was already gone
-    /// before a Channel could open. A server-side Channel rejection stays on
-    /// the one-transport policy and is surfaced; anything that failed after the
+    /// Retries exactly once only when the pooled connection was already gone
+    /// before a channel could open. A server-side channel rejection stays on
+    /// the one-connection policy and is surfaced; anything that failed after the
     /// command started is also surfaced because replay could duplicate effects.
     public func execute(
         _ command: String, workingDirectory: String?, stdin: Data?,
@@ -1200,17 +1200,17 @@ public actor AgentConnectionPool {
         onOutput: SSHExecOutputHandler? = nil
     ) async throws -> SSHExecResult {
         do {
-            let session = try await session(hostID: hostID, configuration: override)
-            return try await withExecLease(hostID: hostID, session: session) {
-                try await session.execute(
+            let connection = try await connection(hostID: hostID, configuration: override)
+            return try await withExecLease(hostID: hostID, connection: connection) {
+                try await connection.execute(
                     command, workingDirectory: workingDirectory, stdin: stdin,
                     timeout: timeout, outputLimit: outputLimit, onOutput: onOutput)
             }
-        } catch SSHCommandExecutionError.transportUnavailable {
+        } catch SSHCommandExecutionError.connectionUnavailable {
             await disconnect(hostID: hostID)
-            let session = try await session(hostID: hostID, configuration: override)
-            return try await withExecLease(hostID: hostID, session: session) {
-                try await session.execute(
+            let connection = try await connection(hostID: hostID, configuration: override)
+            return try await withExecLease(hostID: hostID, connection: connection) {
+                try await connection.execute(
                     command, workingDirectory: workingDirectory, stdin: stdin,
                     timeout: timeout, outputLimit: outputLimit, onOutput: onOutput)
             }
@@ -1218,11 +1218,11 @@ public actor AgentConnectionPool {
     }
 
     func withExecLease<Value: Sendable>(
-        hostID: UUID, session: any SSHMultiplexedSessionProtocol,
+        hostID: UUID, connection: any SSHConnectionProtocol,
         operation: @escaping @Sendable () async throws -> Value
     ) async throws -> Value {
-        guard let pooled = entries[hostID]?.session, pooled === session else {
-            throw SSHCommandExecutionError.transportUnavailable(TermindSSHError.disconnected)
+        guard let pooled = entries[hostID]?.connection, pooled === connection else {
+            throw SSHCommandExecutionError.connectionUnavailable(TermindSSHError.disconnected)
         }
         activeExecLeases[hostID, default: 0] += 1
         defer {
@@ -1236,37 +1236,37 @@ public actor AgentConnectionPool {
         return try await operation()
     }
 
-    public func session(
+    public func connection(
         hostID: UUID, configuration override: RequestResolving? = nil
-    ) async throws -> any SSHMultiplexedSessionProtocol {
+    ) async throws -> any SSHConnectionProtocol {
         try await resolve(hostID: hostID, configuration: override)
     }
 
-    public func sftpClient(
+    public func sftpChannel(
         hostID: UUID, configuration override: RequestResolving? = nil
-    ) async throws -> any SFTPClientProtocol {
+    ) async throws -> any SFTPChannelProtocol {
         let fingerprint = try await routeFingerprint(hostID)
         if let state = sftpStates[hostID], state.fingerprint == fingerprint,
             let primary = state.records[state.primaryID]
         {
             sftpStates[hostID]?.records[state.primaryID]?.lastUsedAt = .now
             entries[hostID]?.lastUsedAt = .now
-            return primary.client
+            return primary.channel
         }
         if sftpStates[hostID] != nil { await disconnect(hostID: hostID) }
-        let session = try await session(hostID: hostID, configuration: override)
+        let connection = try await connection(hostID: hostID, configuration: override)
         let opening: SFTPPrimaryOpen
         let ownsOpening: Bool
         if let existing = sftpPrimaryOpens[hostID], existing.fingerprint == fingerprint,
-            existing.session === session
+            existing.connection === connection
         {
             opening = existing
             ownsOpening = false
         } else {
             let id = UUID()
-            let task = Task { try await session.openSFTPChannel() }
+            let task = Task { try await connection.openSFTPChannel() }
             opening = SFTPPrimaryOpen(
-                id: id, fingerprint: fingerprint, session: session, task: task)
+                id: id, fingerprint: fingerprint, connection: connection, task: task)
             sftpPrimaryOpens[hostID] = opening
             ownsOpening = true
         }
@@ -1282,15 +1282,15 @@ public actor AgentConnectionPool {
                 guard let state = sftpStates[hostID], state.fingerprint == fingerprint,
                     let primary = state.records[state.primaryID]
                 else { throw SFTPError.notConnected }
-                return primary.client
+                return primary.channel
             }
             let committedFingerprint = try await routeFingerprint(hostID)
-            guard committedFingerprint == fingerprint, entries[hostID]?.session === session else {
+            guard committedFingerprint == fingerprint, entries[hostID]?.connection === connection else {
                 await client.disconnect()
                 await disconnect(hostID: hostID)
-                return try await sftpClient(hostID: hostID, configuration: override)
+                return try await sftpChannel(hostID: hostID, configuration: override)
             }
-            let record = SFTPRecord(id: UUID(), client: client, busy: false, lastUsedAt: .now)
+            let record = SFTPRecord(id: UUID(), channel: client, busy: false, lastUsedAt: .now)
             sftpStates[hostID] = SFTPState(
                 fingerprint: fingerprint, primaryID: record.id,
                 records: [record.id: record])
@@ -1318,10 +1318,10 @@ public actor AgentConnectionPool {
         let state = sftpStates.removeValue(forKey: hostID)
         var seen: Set<ObjectIdentifier> = []
         for record in state?.records.values ?? [UUID: SFTPRecord]().values {
-            let identity = ObjectIdentifier(record.client as AnyObject)
-            if seen.insert(identity).inserted { await record.client.disconnect() }
+            let identity = ObjectIdentifier(record.channel as AnyObject)
+            if seen.insert(identity).inserted { await record.channel.disconnect() }
         }
-        for lease in leases where lease.recordID == nil { await lease.client.disconnect() }
+        for lease in leases where lease.recordID == nil { await lease.channel.disconnect() }
         return state != nil || !leases.isEmpty
     }
 
@@ -1332,7 +1332,7 @@ public actor AgentConnectionPool {
         activeExecLeases[hostID] = nil
         let entry = entries.removeValue(forKey: hostID)
         stopSweepingIfEmpty()
-        await entry?.session.disconnect()
+        await entry?.connection.disconnect()
         return stateClosed || entry != nil
     }
 
@@ -1374,7 +1374,7 @@ public actor AgentConnectionPool {
         }
         for hostID in expiredHosts { _ = await disconnect(hostID: hostID) }
         stopSweepingIfEmpty()
-        for (_, record) in expiredSFTP { await record.client.disconnect() }
+        for (_, record) in expiredSFTP { await record.channel.disconnect() }
         return openConnectionCount
     }
 
@@ -1389,47 +1389,47 @@ public actor AgentConnectionPool {
 
     private func resolve(
         hostID: UUID, configuration override: RequestResolving?
-    ) async throws -> any SSHMultiplexedSessionProtocol {
+    ) async throws -> any SSHConnectionProtocol {
         let fingerprint: String
         do {
             fingerprint = try await routeFingerprint(hostID)
         } catch {
             // The host is gone — deleted from the Vault, or a temporary target
-            // whose pane closed. Do not keep a session to it alive.
+            // whose pane closed. Do not keep a connection to it alive.
             await disconnect(hostID: hostID)
             throw error
         }
         if let entry = entries.removeValue(forKey: hostID) {
             guard entry.fingerprint == fingerprint else {
                 // Nothing waits on a stale socket. Its worker also frees the
-                // libssh2 session in `deinit`, so dropping the reference alone
+                // libssh2 connection in `deinit`, so dropping the reference alone
                 // would be safe; this just makes it prompt.
-                Task { await entry.session.disconnect() }
+                Task { await entry.connection.disconnect() }
                 _ = await disconnectSFTPState(hostID: hostID)
                 return try await open(
                     hostID: hostID, fingerprint: fingerprint, configuration: override
                 )
             }
             entries[hostID] = Entry(
-                session: entry.session, fingerprint: fingerprint, lastUsedAt: .now
+                connection: entry.connection, fingerprint: fingerprint, lastUsedAt: .now
             )
-            return entry.session
+            return entry.connection
         }
         return try await open(hostID: hostID, fingerprint: fingerprint, configuration: override)
     }
 
     private func open(
         hostID: UUID, fingerprint: String, configuration override: RequestResolving?
-    ) async throws -> any SSHMultiplexedSessionProtocol {
+    ) async throws -> any SSHConnectionProtocol {
         // Without this join, two tool calls that both miss the cache would each
         // build a connection and one of them would never be pooled — or closed.
         if let inFlight = pending[hostID], inFlight.fingerprint == fingerprint {
-            let session = try await inFlight.task.value
+            let connection = try await inFlight.task.value
             let committedFingerprint = try await routeFingerprint(hostID)
-            commit(session, hostID: hostID, fingerprint: committedFingerprint)
-            return session
+            commit(connection, hostID: hostID, fingerprint: committedFingerprint)
+            return connection
         }
-        let task = Task { [configuration, openSession] () async throws -> any SSHMultiplexedSessionProtocol in
+        let task = Task { [configuration, openConnection] () async throws -> any SSHConnectionProtocol in
             let request: SSHConnectionRequest
             if let override {
                 request = try await override(hostID)
@@ -1438,26 +1438,26 @@ public actor AgentConnectionPool {
                     configuration: try await configuration(hostID)
                 )
             }
-            return try await openSession(request)
+            return try await openConnection(request)
         }
         pending[hostID] = InFlight(fingerprint: fingerprint, task: task)
         defer { if pending[hostID]?.fingerprint == fingerprint { pending[hostID] = nil } }
         // Committed on every path that receives a client, not only on the path
         // that started the task: whoever started it may have been cancelled
         // while a second caller was still waiting on the same connection.
-        let session = try await task.value
+        let connection = try await task.value
         // Saving/binding an Identity while the connection prompt is open
         // legitimately changes the route fingerprint. Bind the authenticated
-        // session to that post-save route so the next command can reuse it.
+        // connection to that post-save route so the next command can reuse it.
         let committedFingerprint = try await routeFingerprint(hostID)
-        commit(session, hostID: hostID, fingerprint: committedFingerprint)
-        return session
+        commit(connection, hostID: hostID, fingerprint: committedFingerprint)
+        return connection
     }
 
     private func commit(
-        _ session: any SSHMultiplexedSessionProtocol, hostID: UUID, fingerprint: String
+        _ connection: any SSHConnectionProtocol, hostID: UUID, fingerprint: String
     ) {
-        entries[hostID] = Entry(session: session, fingerprint: fingerprint, lastUsedAt: .now)
+        entries[hostID] = Entry(connection: connection, fingerprint: fingerprint, lastUsedAt: .now)
         startSweeping()
     }
 

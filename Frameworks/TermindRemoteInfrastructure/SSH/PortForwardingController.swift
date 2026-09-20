@@ -72,7 +72,7 @@ public final class PortForwardingConnection {
     fileprivate var route: [Host]
     fileprivate var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
     fileprivate var attemptID: UUID?
-    fileprivate var session: (any SSHForwardingSessionProtocol)?
+    fileprivate var forwardingConnection: (any SSHForwardingConnectionProtocol)?
     fileprivate var task: Task<Void, Never>?
     fileprivate var connected = false
     fileprivate var ready = false
@@ -109,17 +109,17 @@ public final class PortForwardingController {
         }
     }
 
-    public typealias SessionFactory =
+    public typealias ConnectionFactory =
         @MainActor (
-            @escaping SSHForwardingSession.ConnectionHandler, @escaping SSHForwardingSession.FailureHandler
-        ) -> any SSHForwardingSessionProtocol
+            @escaping SSHForwardingConnection.ConnectionHandler, @escaping SSHForwardingConnection.FailureHandler
+        ) -> any SSHForwardingConnectionProtocol
 
     private let hosts: HostLibraryModel
-    private let makeSession:
+    private let makeConnection:
         @MainActor (
-            Int, @escaping SSHForwardingSession.ConnectionHandler,
-            @escaping SSHForwardingSession.FailureHandler
-        ) -> any SSHForwardingSessionProtocol
+            Int, @escaping SSHForwardingConnection.ConnectionHandler,
+            @escaping SSHForwardingConnection.FailureHandler
+        ) -> any SSHForwardingConnectionProtocol
     private let poolPolicy: PoolPolicy
     private let logger: Logger
     private let makeReconnectController: @MainActor () -> SessionReconnectController
@@ -135,7 +135,7 @@ public final class PortForwardingController {
         hosts: HostLibraryModel,
         poolPolicy: PoolPolicy = .singleConnection,
         logger: Logger = ApplicationLogger.disabled("termind.port-forwarding"),
-        makeSession: SessionFactory? = nil,
+        makeConnection: ConnectionFactory? = nil,
         makeReconnectController: @escaping @MainActor () -> SessionReconnectController = {
             SessionReconnectController()
         }
@@ -144,18 +144,18 @@ public final class PortForwardingController {
         self.logger = logger
         self.poolPolicy = poolPolicy
         self.makeReconnectController = makeReconnectController
-        if let makeSession {
-            self.makeSession = { _, connectionHandler, failureHandler in
-                makeSession(connectionHandler, failureHandler)
+        if let makeConnection {
+            self.makeConnection = { _, connectionHandler, failureHandler in
+                makeConnection(connectionHandler, failureHandler)
             }
         } else {
-            self.makeSession = { maximumConnections, connectionHandler, failureHandler in
+            self.makeConnection = { maximumConnections, connectionHandler, failureHandler in
                 if maximumConnections > 1 {
-                    SSHForwardingPoolSession(
+                    SSHForwardingConnectionPool(
                         maximumConnections: maximumConnections,
                         connectionHandler: connectionHandler, failureHandler: failureHandler, logger: logger)
                 } else {
-                    SSHForwardingSession(
+                    SSHForwardingConnection(
                         connectionHandler: connectionHandler, failureHandler: failureHandler, logger: logger)
                 }
             }
@@ -208,10 +208,10 @@ public final class PortForwardingController {
         generations[id] = nil
         states[id] = .stopped
         guard let context = presentations.removeValue(forKey: id) else { return }
-        let session = context.session
+        let forwardingConnection = context.forwardingConnection
         let previous = ruleTasks[id]
         ruleTasks[id] = Task {
-            if let session { await session.stop(id) }
+            if let forwardingConnection { await forwardingConnection.stop(id) }
             if let previous { await previous.value }
         }
         if activeIDs(context).isEmpty { retire(context) }
@@ -328,7 +328,7 @@ public final class PortForwardingController {
                 username: context.submissions[host.id]?.username ?? hosts.identity(for: host)?.username)
             update(context, state: .preparing)
         }
-        let session = makeSession(
+        let forwardingConnection = makeConnection(
             context.maximumConnections,
             { [weak self, weak context] id, generation, count in
                 Task { @MainActor in
@@ -336,7 +336,7 @@ public final class PortForwardingController {
                         self.generations[id] == generation, self.presentations[id] === context
                     else { return }
                     context.connectionCounts[id] = count
-                    let poolStatus = await context.session?.connectionPoolStatus() ?? .single
+                    let poolStatus = await context.forwardingConnection?.connectionPoolStatus() ?? .single
                     context.poolStatus = poolStatus
                     let running = PortForwardingRuntimeState.running(
                         activeConnections: count, sshConnections: poolStatus.connected,
@@ -352,7 +352,7 @@ public final class PortForwardingController {
                     self.recover(context, message: message)
                 }
             })
-        context.session = session
+        context.forwardingConnection = forwardingConnection
         let cleanup = cleanupTasks[context.hostID]
         context.task = Task { [weak self, weak context] in
             guard let self, let context else { return }
@@ -371,7 +371,7 @@ public final class PortForwardingController {
                 }
                 guard isCurrent(context, attempt: attempt) else { throw CancellationError() }
                 if silently {
-                    try await session.connect(
+                    try await forwardingConnection.connect(
                         SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden)
                             .enforcingInteractionPolicy(), progress: nil)
                 } else {
@@ -386,7 +386,7 @@ public final class PortForwardingController {
                             guard let self, let context else { throw CancellationError() }
                             return try await self.answer(challenge, in: context, attempt: attempt)
                         })
-                    try await session.connect(
+                    try await forwardingConnection.connect(
                         request,
                         progress: { [weak self, weak context] event in
                             Task { @MainActor in
@@ -403,7 +403,7 @@ public final class PortForwardingController {
                     context.configuration = hosts.configurationForAdditionalConnection(from: configuration)
                 }
                 if let snapshot = context.configuration {
-                    await session.configureAdditionalConnections(
+                    await forwardingConnection.configureAdditionalConnections(
                         SSHConnectionRequest(configuration: snapshot, interactionPolicy: .forbidden)
                             .enforcingInteractionPolicy())
                 }
@@ -413,11 +413,11 @@ public final class PortForwardingController {
                     if let rule = hosts.portForwarding(id) { startRule(rule, in: context) }
                 }
             } catch {
-                await session.disconnect()
+                await forwardingConnection.disconnect()
                 guard isCurrent(context, attempt: attempt) else { return }
                 context.task = nil
                 context.attemptID = nil
-                context.session = nil
+                context.forwardingConnection = nil
                 if silently {
                     if Self.requiresManualRetry(error) {
                         fail(context, message: error.localizedDescription, presentJourney: false)
@@ -488,7 +488,9 @@ public final class PortForwardingController {
     }
 
     private func startRule(_ rule: PortForwardingRule, in context: PortForwardingConnection) {
-        guard let token = generations[rule.id], let session = context.session, let attempt = context.attemptID else {
+        guard let token = generations[rule.id], let forwardingConnection = context.forwardingConnection,
+            let attempt = context.attemptID
+        else {
             return
         }
         let silently = context.silentAttempt
@@ -499,12 +501,12 @@ public final class PortForwardingController {
             if let previous { await previous.value }
             guard let self, generations[rule.id] == token, isCurrent(context, attempt: attempt) else { return }
             do {
-                try await session.start(rule, generation: token)
+                try await forwardingConnection.start(rule, generation: token)
                 guard generations[rule.id] == token, isCurrent(context, attempt: attempt) else {
-                    await session.stop(rule.id)
+                    await forwardingConnection.stop(rule.id)
                     return
                 }
-                let poolStatus = await session.connectionPoolStatus()
+                let poolStatus = await forwardingConnection.connectionPoolStatus()
                 context.poolStatus = poolStatus
                 states[rule.id] = .running(
                     activeConnections: context.connectionCounts[rule.id] ?? 0,
@@ -582,13 +584,13 @@ public final class PortForwardingController {
         context.ready = false
         context.connectionCounts.removeAll()
         context.poolStatus = SSHForwardingPoolStatus(connected: 0, target: context.maximumConnections)
-        let session = context.session
-        context.session = nil
+        let forwardingConnection = context.forwardingConnection
+        context.forwardingConnection = nil
         let previous = cleanupTasks[context.hostID]
         cleanupTasks[context.hostID] = Task {
             await previous?.value
             await opening?.value
-            await session?.disconnect()
+            await forwardingConnection?.disconnect()
         }
     }
 

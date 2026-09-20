@@ -34,7 +34,7 @@ nonisolated enum HostConnectionProtocol: String, CaseIterable, Identifiable, Sen
     var target: HostOpenTarget? {
         switch self {
         case .ssh: .sshSession
-        case .sftp: .sftpSession
+        case .sftp: .sftpChannel
         case .serial: nil
         }
     }

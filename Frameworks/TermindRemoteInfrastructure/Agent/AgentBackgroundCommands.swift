@@ -54,17 +54,17 @@ nonisolated public final class AgentIdleSweeper: @unchecked Sendable {
 ///
 /// A tool returns when it decides to, which for `ssh_exec` means reporting what
 /// it has rather than blocking a whole turn on a fifteen-minute deploy. The
-/// command keeps running on its own Channel lease, its output keeps arriving on
+/// command keeps running on its own session lease, its output keeps arriving on
 /// the card, and this is where the model comes back for the rest of it. The
-/// authenticated transport remains in the Agent pool and can carry peers.
+/// authenticated connection remains in the Agent pool and can carry peers.
 ///
 /// Owned by `AppModel` rather than by a run, because the point is to outlive
 /// one: a handle taken in one turn is answered in a later one, and a run that
 /// ends is not a reason to stop a deploy.
 ///
-/// There is deliberately no "kill". Closing a Channel does not prove that the
+/// There is deliberately no "kill". Closing a session does not prove that the
 /// process on the far side stopped, so a tool by that name would promise what
-/// it cannot do. `sweepIdle` cancels the local task and retires only its Channel.
+/// it cannot do. `sweepIdle` cancels the local task and retires only its session.
 public actor AgentBackgroundCommands {
     /// Long enough that a model which meant to come back gets the chance, short
     /// enough that a forgotten `tail -f` does not hold a session open all day.
@@ -94,7 +94,7 @@ public actor AgentBackgroundCommands {
     public var count: Int { entries.count }
 
     /// Takes ownership of a command still in flight. Its task retains exactly
-    /// one Channel lease; the connection pool retains the shared transport.
+    /// one session lease; the connection pool retains the shared connection.
     public func adopt(
         stream: AgentCommandOutputStream,
         task: Task<SSHExecResult, any Error>,
@@ -134,7 +134,7 @@ public actor AgentBackgroundCommands {
         }
 
         // Finished, so the handle is done. The task already released its
-        // Channel; the shared transport returns to the Agent pool's idle clock.
+        // session; the shared connection returns to the Agent pool's idle clock.
         entries.removeValue(forKey: handle)
         stopSweepingIfEmpty()
         let result = try await entry.task.value
@@ -262,7 +262,7 @@ nonisolated public final class AgentCommandHandover: @unchecked Sendable {
         }
     }
 
-    /// Stop waiting. `true` means the command already owns a Channel and needs
+    /// Stop waiting. `true` means the command already owns a session and needs
     /// a background handle; `false` means it never started.
     public func giveUp() -> Bool {
         lock.withLock {

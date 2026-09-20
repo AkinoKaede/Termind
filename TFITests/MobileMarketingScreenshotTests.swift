@@ -38,14 +38,14 @@ struct MobileMarketingScreenshotTests {
             if includes("sftp"), UIDevice.current.userInterfaceIdiom == .pad {
                 try await captureWorkspace(.sftp, language: language)
             } else if includes("sftp") {
-                let sftp = MobileSFTPSessionModel()
+                let sftp = MobileSFTPChannelModel()
                 try await sftp.attach(
                     fileSystem: MarketingFileSystem(), path: "/srv/termind/releases/2026.09",
                     connectionGeneration: UUID(), handlesConnectionError: { _ in false }, didChangePath: {})
                 try await capture("sftp", language: language) {
                     NavigationStack {
                         MobileSFTPBrowser(
-                            session: sftp, connected: true, open: { _ in }, openWith: { _ in },
+                            channel: sftp, connected: true, open: { _ in }, openWith: { _ in },
                             canImportEditedCopy: { _ in false }, importEditedCopy: { _ in },
                             download: { _ in }, copy: { _ in },
                             paste: {}, rename: { _ in }, editPermissions: { _ in }, delete: { _ in }
@@ -132,9 +132,9 @@ struct MobileMarketingScreenshotTests {
     private func captureWorkspace(_ kind: ConnectionHistoryEntry.Kind, language: String) async throws {
         let output = terminalOutput
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: { receive, exit, shellIntegration in
+            makePTYChannel: { receive, exit, shellIntegration in
                 receive(output)
-                return SSHSessionActor(output: receive, exit: exit, shellIntegration: shellIntegration)
+                return SSHPTYChannel(output: receive, exit: exit, shellIntegration: shellIntegration)
             },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { _, _, _ in MarketingFileSystem() },
@@ -155,7 +155,7 @@ struct MobileMarketingScreenshotTests {
         try #require(workspace.connected)
         if kind == .sftp {
             #expect(app.renameWorkspace(id, to: text(language, "Production files", "生产文件", "正式環境檔案")))
-            try #require(workspace.sftpSession.files.count == 6)
+            try #require(workspace.sftpChannel.files.count == 6)
         }
         let scene = MobileSceneModel(app: app)
         scene.selectWorkspace(id)

@@ -18,7 +18,7 @@ nonisolated public protocol SFTPToolDefinition: AgentToolDefinition, AgentToolSc
     var connections: AgentConnectionPool { get }
     func estimatedByteCount(arguments: Arguments) throws -> Int64?
     func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult
 }
@@ -90,7 +90,7 @@ nonisolated public struct SFTPListTool: SFTPToolDefinition {
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
     public func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
         let files = try await client.listDirectory(at: path)
@@ -117,7 +117,7 @@ nonisolated public struct SFTPStatTool: SFTPToolDefinition {
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
     public func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
         guard let file = try await client.attributes(at: path) else { throw AgentToolError.notFound }
@@ -150,7 +150,7 @@ nonisolated public struct SFTPReadTool: SFTPToolDefinition {
     public let connections: AgentConnectionPool
     public func estimatedByteCount(arguments _: Arguments) throws -> Int64? { 50 * 1_024 }
     public func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
         let page = try await client.readTextPage(
@@ -198,7 +198,7 @@ nonisolated public struct SFTPWriteTool: SFTPToolDefinition {
         Int64(try arguments.string("content").utf8.count)
     }
     public func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
         try await client.writeFile(
@@ -229,7 +229,7 @@ nonisolated public struct SFTPMkdirTool: SFTPToolDefinition {
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
     public func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
         try await client.createDirectory(at: path)
@@ -259,7 +259,7 @@ nonisolated public struct SFTPMoveTool: SFTPToolDefinition {
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
     public func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
         let destination = try AgentToolSupport.normalizeRemotePath(arguments.string("destination"))
@@ -296,7 +296,7 @@ nonisolated public struct SFTPChmodTool: SFTPToolDefinition {
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
     public func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
         let raw = try arguments.string("mode")
@@ -332,7 +332,7 @@ nonisolated public struct SFTPDeleteTool: SFTPToolDefinition {
     public let authentication: AgentSSHAuthenticationRegistry
     public let connections: AgentConnectionPool
     public func perform(
-        client: any SFTPClientProtocol, path: String, arguments: Arguments,
+        client: any SFTPChannelProtocol, path: String, arguments: Arguments,
         invocation: AgentToolInvocation
     ) async throws -> AgentToolResult {
         if try arguments.string("kind") == "directory" {
@@ -635,7 +635,7 @@ nonisolated extension AgentToolSupport {
         authentication: AgentSSHAuthenticationRegistry, pool: AgentConnectionPool,
         byteCount: Int64? = nil,
         schedulesDataTransfer: Bool = false,
-        operation: @escaping @Sendable (any SFTPClientProtocol) async throws -> Value
+        operation: @escaping @Sendable (any SFTPChannelProtocol) async throws -> Value
     ) async throws -> Value {
         try await authentication.withSFTP(
             hostID: hostID, invocationID: invocation.id,

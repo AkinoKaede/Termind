@@ -18,7 +18,7 @@ public nonisolated enum SFTPRemoteCopyOperation {
 
     public static func run(
         sourcePath: String, destinationPath: String, sameHost: Bool,
-        source: any SFTPClientProtocol, destination: any SFTPClientProtocol,
+        source: any SFTPChannelProtocol, destination: any SFTPChannelProtocol,
         policy: TransferConflictPolicy, cancellation: TransferCancellationToken,
         report: @escaping @Sendable (Outcome, SFTPProgress?) -> Void
     ) async -> Outcome {

@@ -224,3 +224,18 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
   tests and all 363 Framework tests passed. The 1,465-test TFM run retained two unrelated concurrent timing failures in
   `AgentRuntimeTests`/`MCPUploadTests`; both passed together on immediate focused rerun. Changed-file strict formatting and Chinese
   localization checks passed; recursive formatting retains the pre-existing `LoggingFilesSettings.swift:110` finding.
+
+### 2026-09-20 — explicit SSH connection and Channel vocabulary (complete)
+
+- **Evidence:** `SSHMultiplexedSession` represented an authenticated reusable connection, Agent connection-pool entries were
+  named `session`, and comments called the combined routed socket/libssh2 state a transport. Conversely, SFTP subsystem
+  Channels and authenticated connection owners shared the word session. This made byte transport, libssh2's historical
+  `LIBSSH2_SESSION` handle name, authenticated connection ownership and `LIBSSH2_CHANNEL` values indistinguishable in APIs.
+- **Action:** reserve transport for the routed byte stream, introduce `SSHAuthenticatedConnection` as the owner of that stream
+  plus the libssh2 connection state, expose multiplexing through `SSHConnection`, and use libssh2-aligned PTY/exec/SFTP Channel
+  names. Split the SFTP connection-opening facade from `SFTPChannelProtocol`; keep forwarding TCP Channels as Channels.
+- **Result:** connection pooling, retry errors, forwarding owners, Agent authentication contexts, Channel budgets, SFTP sibling
+  topology and file names now reflect the protocol boundary. `SFTPConcurrencyStrategy.channelsOnly` retains its existing
+  `"channels_only"` raw value, so synced settings need no migration.
+- **Verification:** TFM and generic iOS Simulator builds passed. Sixty-six focused connection/Channel/SFTP tests passed;
+  changed-file strict formatting and Chinese localization checks passed.

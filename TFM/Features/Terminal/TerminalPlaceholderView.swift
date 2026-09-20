@@ -5,7 +5,7 @@ import TermindDomain
 import TermindRemoteInfrastructure
 
 struct TerminalUploadConnection {
-    let client: any SFTPClientProtocol
+    let channel: any SFTPChannelProtocol
     let primaryRole: SFTPTransferPrimaryRole
 }
 
@@ -13,12 +13,12 @@ enum TerminalUploadConnectionResolver {
     @MainActor
     static func resolve(
         isCurrent: () -> Bool,
-        connectIndependent: () async throws -> any SFTPClientProtocol,
-        openTerminalChannel: () async throws -> any SFTPClientProtocol
+        connectIndependent: () async throws -> any SFTPChannelProtocol,
+        openPTYSFTPChannel: () async throws -> any SFTPChannelProtocol
     ) async throws -> TerminalUploadConnection {
         do {
             return TerminalUploadConnection(
-                client: try await connectIndependent(), primaryRole: .donatedConnection)
+                channel: try await connectIndependent(), primaryRole: .donatedConnection)
         } catch is CancellationError {
             throw CancellationError()
         } catch let error as SFTPError {
@@ -26,12 +26,12 @@ enum TerminalUploadConnectionResolver {
             try Task.checkCancellation()
             guard isCurrent() else { throw CancellationError() }
             return TerminalUploadConnection(
-                client: try await openTerminalChannel(), primaryRole: .terminalFallback)
+                channel: try await openPTYSFTPChannel(), primaryRole: .ptyConnectionFallback)
         } catch {
             try Task.checkCancellation()
             guard isCurrent() else { throw CancellationError() }
             return TerminalUploadConnection(
-                client: try await openTerminalChannel(), primaryRole: .terminalFallback)
+                channel: try await openPTYSFTPChannel(), primaryRole: .ptyConnectionFallback)
         }
     }
 }
@@ -57,7 +57,7 @@ struct TerminalPlaceholderView: View {
     @TerminalAppearanceSettings private var terminalAppearance
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var terminalFocused: Bool
-    @State private var pendingUploadSession: SFTPSessionModel?
+    @State private var pendingUploadChannel: SFTPChannelModel?
     @State private var pendingUploadItemCount = 0
     @State private var uploadConflictPresented = false
     @State private var uploadNotice: WorkspaceUploadNotice?
@@ -187,7 +187,7 @@ struct TerminalPlaceholderView: View {
     }
 
     private var uploadConflictTitle: String {
-        let count = pendingUploadSession?.conflictCount ?? 0
+        let count = pendingUploadChannel?.conflictCount ?? 0
         return count == 1
             ? String(localized: "1 item already exists")
             : String(localized: "\(count) items already exist")
@@ -227,7 +227,7 @@ struct TerminalPlaceholderView: View {
                     uploadPreparationID = nil
                 }
             }
-            var connectedClient: (any SFTPClientProtocol)?
+            var connectedChannel: (any SFTPChannelProtocol)?
             do {
                 let resolved = try await TerminalUploadConnectionResolver.resolve(
                     isCurrent: { sshSession.connectionAttemptID == generation },
@@ -237,14 +237,14 @@ struct TerminalPlaceholderView: View {
                             progress: nil
                         )
                     },
-                    openTerminalChannel: {
-                        try await sshSession.openTerminalSFTPChannel(for: generation)
+                    openPTYSFTPChannel: {
+                        try await sshSession.openPTYSFTPChannel(for: generation)
                     })
-                let client = resolved.client
-                connectedClient = client
+                let client = resolved.channel
+                connectedChannel = client
                 try Task.checkCancellation()
                 guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
-                let uploadSession = SFTPSessionModel(
+                let uploadChannel = SFTPChannelModel(
                     hostID: sshSession.hostID,
                     initialPath: destination,
                     client: client,
@@ -252,33 +252,33 @@ struct TerminalPlaceholderView: View {
                     primaryRole: resolved.primaryRole,
                     homeResolution: sshSession.homeResolution
                 )
-                await uploadSession.prepareUpload(files)
+                await uploadChannel.prepareUpload(files)
                 try Task.checkCancellation()
                 guard sshSession.connectionAttemptID == generation else { throw CancellationError() }
-                if let error = uploadSession.operationError {
-                    uploadSession.disconnect()
+                if let error = uploadChannel.operationError {
+                    uploadChannel.disconnect()
                     showUploadNotice(.rejected(error))
                     return
                 }
-                guard uploadSession.hasPendingBatch else {
-                    uploadSession.disconnect()
+                guard uploadChannel.hasPendingBatch else {
+                    uploadChannel.disconnect()
                     showUploadNotice(.rejected(String(localized: "No uploadable files were found.")))
                     return
                 }
-                pendingUploadSession = uploadSession
-                connectedClient = nil
-                if uploadSession.conflictCount > 0 {
+                pendingUploadChannel = uploadChannel
+                connectedChannel = nil
+                if uploadChannel.conflictCount > 0 {
                     uploadNotice = nil
                     uploadConflictPresented = true
                 } else {
                     enqueuePendingUpload(.replace)
                 }
             } catch is CancellationError {
-                await connectedClient?.disconnect()
+                await connectedChannel?.disconnect()
                 guard uploadPreparationID == preparationID else { return }
                 uploadNotice = nil
             } catch {
-                await connectedClient?.disconnect()
+                await connectedChannel?.disconnect()
                 guard uploadPreparationID == preparationID,
                     sshSession.connectionAttemptID == generation
                 else { return }
@@ -289,23 +289,23 @@ struct TerminalPlaceholderView: View {
     }
 
     private func enqueuePendingUpload(_ policy: TransferConflictPolicy) {
-        guard let uploadSession = pendingUploadSession else { return }
+        guard let uploadChannel = pendingUploadChannel else { return }
         let itemCount = pendingUploadItemCount
-        let destination = uploadSession.path
+        let destination = uploadChannel.path
         let generation = sshSession.connectionAttemptID
         uploadConflictPresented = false
         uploadEnqueueTask = Task {
-            await uploadSession.enqueuePending(
+            await uploadChannel.enqueuePending(
                 policy: policy,
                 coordinator: app.sftpTransfers
             )
-            let error = uploadSession.operationError
-            uploadSession.disconnect()
-            guard !Task.isCancelled, pendingUploadSession === uploadSession,
+            let error = uploadChannel.operationError
+            uploadChannel.disconnect()
+            guard !Task.isCancelled, pendingUploadChannel === uploadChannel,
                 sshSession.connectionAttemptID == generation
             else { return }
             uploadEnqueueTask = nil
-            pendingUploadSession = nil
+            pendingUploadChannel = nil
             pendingUploadItemCount = 0
             if let error {
                 showUploadNotice(.rejected(error))
@@ -326,10 +326,10 @@ struct TerminalPlaceholderView: View {
         uploadNotice = nil
         uploadConflictPresented = false
         pendingUploadItemCount = 0
-        guard let uploadSession = pendingUploadSession else { return }
-        uploadSession.cancelPendingBatch()
-        uploadSession.disconnect()
-        pendingUploadSession = nil
+        guard let uploadChannel = pendingUploadChannel else { return }
+        uploadChannel.cancelPendingBatch()
+        uploadChannel.disconnect()
+        pendingUploadChannel = nil
     }
 
     private func showUploadNotice(_ notice: WorkspaceUploadNotice) {

@@ -147,7 +147,7 @@ struct SFTPCopyToolTests {
 
         #expect(try await !fixture.copy().isError)
         #expect(await fixture.backend.opens == 1)
-        #expect(await fixture.backend.siblingChannels == 0)
+        #expect(await fixture.backend.siblingSessions == 0)
     }
 
     @Test
@@ -375,7 +375,7 @@ private final class CopyFixture {
         self.backend = backend
         pool = AgentConnectionPool(
             configuration: { configuration($0) }, routeFingerprint: { _ in "test" },
-            openSession: { try await backend.openConnection($0.configuration.hostID) },
+            openConnection: { try await backend.openConnection($0.configuration.hostID) },
             openSFTP: { try await backend.openAuxiliary($0.configuration.hostID) },
             sftpConcurrencyScheduler: SFTPConcurrencyScheduler(
                 preferences: SFTPPreferences(strategy: strategy)),
@@ -474,11 +474,11 @@ private actor CopyBackend {
     var filesystems: [UUID: CopyFileSystem]
     var opens = 0
     var disconnects = 0
-    var siblingChannels = 0
+    var siblingSessions = 0
     init(filesystems: [UUID: CopyFileSystem]) { self.filesystems = filesystems }
-    func openConnection(_ id: UUID) throws -> CopyMultiplexedSession {
+    func openConnection(_ id: UUID) throws -> CopySSHConnection {
         opens += 1
-        return CopyMultiplexedSession(
+        return CopySSHConnection(
             filesystem: try #require(filesystems[id]), backend: self)
     }
     func openAuxiliary(_ id: UUID) throws -> CopyClient {
@@ -486,10 +486,10 @@ private actor CopyBackend {
         return CopyClient(filesystem: try #require(filesystems[id]), backend: self)
     }
     func disconnected() { disconnects += 1 }
-    func openedSibling() { siblingChannels += 1 }
+    func openedSibling() { siblingSessions += 1 }
 }
 
-private actor CopyMultiplexedSession: SSHMultiplexedSessionProtocol {
+private actor CopySSHConnection: SSHConnectionProtocol {
     let filesystem: CopyFileSystem
     let backend: CopyBackend
 
@@ -505,7 +505,7 @@ private actor CopyMultiplexedSession: SSHMultiplexedSessionProtocol {
     ) async throws -> SSHExecResult {
         throw AgentToolError.invalidArguments("Unexpected exec in SFTP copy test")
     }
-    func openSFTPChannel() async throws -> any SFTPClientProtocol {
+    func openSFTPChannel() async throws -> any SFTPChannelProtocol {
         CopyClient(filesystem: filesystem, backend: backend)
     }
     func disconnect() async { await backend.disconnected() }
@@ -519,7 +519,7 @@ private actor CopyClient: SFTPClientProtocol {
         self.backend = backend
     }
     func connect(using configuration: SSHConnectionConfiguration, progress: SSHRouteProgressHandler?) async throws {}
-    func openSiblingChannel() async throws -> any SFTPClientProtocol {
+    func openSiblingChannel() async throws -> any SFTPChannelProtocol {
         await backend.openedSibling()
         return CopyClient(filesystem: filesystem, backend: backend)
     }
@@ -543,7 +543,7 @@ private actor CopyClient: SFTPClientProtocol {
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws { throw SFTPError.notConnected }
     func copyFile(
-        from sourcePath: String, to destinationPath: String, on destination: any SFTPClientProtocol,
+        from sourcePath: String, to destinationPath: String, on destination: any SFTPChannelProtocol,
         byteCount: Int64, overwrite: Bool, cancellation: TransferCancellationToken,
         progress: @escaping @Sendable (SFTPProgress) -> Void
     ) async throws {

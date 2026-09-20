@@ -20,7 +20,7 @@ struct AgentHostAuthenticationTests {
         let host = Host(name: "Server", host: "server.example", identityID: identity.id)
         let store = HostLibraryModel(hosts: [host], identities: [identity])
         let resolver = AgentHostResolver(store: store)
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: resolver, hostID: host.id, invocationID: UUID(), interaction: .unavailable
         )
         let configuration = try await session.configuration()
@@ -36,7 +36,7 @@ struct AgentHostAuthenticationTests {
             let challenge = request.keyboardInteractive!
             return .keyboardInteractive([challenge.id.uuidString])
         }
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: AgentHostResolver(store: store), hostID: host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction
         )
@@ -104,7 +104,7 @@ struct AgentHostAuthenticationTests {
                     save: false
                 ))
         }
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: AgentHostResolver(store: store), hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -133,7 +133,7 @@ struct AgentHostAuthenticationTests {
                     password: "secret", save: true
                 ))
         }
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: AgentHostResolver(store: store), hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -188,7 +188,7 @@ struct AgentHostAuthenticationTests {
                     ))
             }
         }
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: AgentHostResolver(store: store), hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -242,7 +242,7 @@ struct AgentHostAuthenticationTests {
             secrets: keychain
         )
         let coordinator = ExternalAuthCoordinator()
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: AgentHostResolver(store: store), hostID: host.id,
             invocationID: UUID(),
             interaction: coordinator.handler(clientName: "Codex", runID: UUID())
@@ -311,7 +311,7 @@ struct AgentHostAuthenticationTests {
                 ))
         }
 
-        _ = try await registry.sftpClient(
+        _ = try await registry.sftpChannel(
             hostID: destination.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: pool
         )
@@ -390,11 +390,11 @@ struct AgentHostAuthenticationTests {
         let setup = authenticationSetup()
         let interaction = GatedAuthenticationResponder()
 
-        async let first = setup.registry.sftpClient(
+        async let first = setup.registry.sftpChannel(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
-        async let second = setup.registry.sftpClient(
+        async let second = setup.registry.sftpChannel(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
@@ -412,15 +412,15 @@ struct AgentHostAuthenticationTests {
     }
 
     @Test
-    func concurrentExecAndSFTPShareOnePromptAndOneSession() async throws {
+    func concurrentExecAndSFTPShareOnePromptAndOneConnection() async throws {
         let setup = authenticationSetup()
         let interaction = GatedAuthenticationResponder()
 
-        async let exec = setup.registry.session(
+        async let exec = setup.registry.connection(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
-        async let sftp = setup.registry.sftpClient(
+        async let sftp = setup.registry.sftpChannel(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
@@ -444,13 +444,13 @@ struct AgentHostAuthenticationTests {
         let setup = authenticationSetup()
         let interaction = GatedAuthenticationResponder()
         let first = Task {
-            try await setup.registry.sftpClient(
+            try await setup.registry.sftpChannel(
                 hostID: setup.host.id, invocationID: UUID(),
                 interaction: interaction.sshInteraction, pool: setup.pool
             )
         }
         let second = Task {
-            try await setup.registry.sftpClient(
+            try await setup.registry.sftpChannel(
                 hostID: setup.host.id, invocationID: UUID(),
                 interaction: interaction.sshInteraction, pool: setup.pool
             )
@@ -479,7 +479,7 @@ struct AgentHostAuthenticationTests {
                 ))
         }
 
-        _ = try await setup.registry.sftpClient(
+        _ = try await setup.registry.sftpChannel(
             hostID: setup.host.id, invocationID: UUID(),
             interaction: interaction.sshInteraction, pool: setup.pool
         )
@@ -503,7 +503,7 @@ struct AgentHostAuthenticationTests {
             knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")]
         )
         let interaction = GatedAuthenticationResponder()
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: AgentHostResolver(store: store), hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -616,7 +616,7 @@ struct AgentHostAuthenticationTests {
             }
         )
         let resolver = AgentHostResolver(store: store)
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -659,7 +659,7 @@ struct AgentHostAuthenticationTests {
             }
         )
         let resolver = AgentHostResolver(store: store)
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: resolver, hostID: destination.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -723,7 +723,7 @@ struct AgentHostAuthenticationTests {
                 ))
         }
         let resolver = AgentHostResolver(store: store)
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -758,7 +758,7 @@ struct AgentHostAuthenticationTests {
             }
         )
         let resolver = AgentHostResolver(store: store)
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -792,7 +792,7 @@ struct AgentHostAuthenticationTests {
             },
             hostKeyAnswer: { _ in .deny }
         )
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -819,7 +819,7 @@ struct AgentHostAuthenticationTests {
         let store = HostLibraryModel(hosts: [host])
         let interaction = GatedHostKeyResponder()
         let resolver = AgentHostResolver(store: store)
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: resolver, hostID: host.id,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -880,7 +880,7 @@ struct AgentHostAuthenticationTests {
             store: HostLibraryModel(), temporaryTargets: { [target] },
             temporaryConfiguration: { id in id == hostID ? configuration : nil }
         )
-        let session = AgentSSHConfigurationSession(
+        let session = AgentSSHAuthenticationContext(
             resolver: resolver, hostID: hostID,
             invocationID: UUID(), interaction: interaction.sshInteraction
         )
@@ -950,7 +950,7 @@ struct AgentHostAuthenticationTests {
         #expect(try await workspace.data(at: "app.conf").data == source)
         #expect(requestCount == 1)
 
-        // A live SFTP session is reused without another card. Once evicted, the
+        // A live SFTP channel is reused without another card. Once evicted, the
         // push is a new authentication wave and must not inherit Custom secrets.
         _ = await setup.pool.disconnect(hostID: setup.host.id)
         let pushInvocation = AgentToolInvocation(
@@ -1014,7 +1014,7 @@ struct AgentHostAuthenticationTests {
     }
 
     @Test
-    func sameHostLeasesFallBackToSiblingChannelsWithOneAuthenticationSession() async throws {
+    func sameHostLeasesFallBackToSiblingChannelsWithOneAuthenticationContext() async throws {
         let setup = authenticationSetup()
         var prompts = 0
         let interaction = AuthenticationResponder { _ in
@@ -1075,7 +1075,7 @@ struct AgentHostAuthenticationTests {
         AgentConnectionPool(
             configuration: { try await resolver.configuration(for: $0) },
             routeFingerprint: { try await resolver.routeFingerprint(for: $0) },
-            openSession: { try await backend.openSession(configuration: $0.configuration) },
+            openConnection: { try await backend.openConnection(configuration: $0.configuration) },
             openSFTP: { try await backend.openSFTP(configuration: $0.configuration) },
             sweepInterval: nil
         )
@@ -1234,14 +1234,14 @@ private actor AuthenticationConnectionBackend {
         self.remoteFiles = remoteFiles
     }
 
-    func openSession(configuration: SSHConnectionConfiguration) throws -> AuthenticationMultiplexedSession {
+    func openConnection(configuration: SSHConnectionConfiguration) throws -> AuthenticationSSHConnection {
         execOpens += 1
         sftpConfigurations.append(configuration)
         if sftpAuthenticationFailures > 0 {
             sftpAuthenticationFailures -= 1
             throw TermindSSHError.authenticationFailed("Rejected credential")
         }
-        return AuthenticationMultiplexedSession(backend: self)
+        return AuthenticationSSHConnection(backend: self)
     }
 
     func openSFTP(
@@ -1286,7 +1286,7 @@ private actor AuthenticationConnectionBackend {
     func remoteFile(at path: String) -> Data? { remoteFiles[path] }
 }
 
-private actor AuthenticationMultiplexedSession: SSHMultiplexedSessionProtocol {
+private actor AuthenticationSSHConnection: SSHConnectionProtocol {
     private let backend: AuthenticationConnectionBackend
 
     init(backend: AuthenticationConnectionBackend) { self.backend = backend }
@@ -1301,7 +1301,7 @@ private actor AuthenticationMultiplexedSession: SSHMultiplexedSessionProtocol {
             stdoutTruncated: false, stderrTruncated: false
         )
     }
-    func openSFTPChannel() async throws -> any SFTPClientProtocol {
+    func openSFTPChannel() async throws -> any SFTPChannelProtocol {
         await backend.openPrimarySFTP()
     }
     func disconnect() async {}
@@ -1312,7 +1312,7 @@ private actor AuthenticationSFTPClient: SFTPClientProtocol {
 
     init(backend: AuthenticationConnectionBackend) { self.backend = backend }
 
-    func openSiblingChannel() async throws -> any SFTPClientProtocol {
+    func openSiblingChannel() async throws -> any SFTPChannelProtocol {
         await backend.openSFTPSibling()
     }
 

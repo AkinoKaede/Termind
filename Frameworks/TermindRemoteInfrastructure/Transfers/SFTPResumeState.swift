@@ -59,11 +59,11 @@ public nonisolated final class SFTPResumeState: @unchecked Sendable {
             }
         }
     }
-    public func cleanup(using client: any SFTPClientProtocol) async throws {
+    public func cleanup(using channel: any SFTPChannelProtocol) async throws {
         let current = snapshot
         guard !current.committed, let path = current.temporaryPath else { return }
         do {
-            if try await client.attributes(at: path) != nil { try await client.removeFile(at: path) }
+            if try await channel.attributes(at: path) != nil { try await channel.removeFile(at: path) }
         } catch { throw SFTPTemporaryFileCleanupError(path: path, cause: error) }
     }
 

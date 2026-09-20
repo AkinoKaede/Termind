@@ -102,7 +102,7 @@ public nonisolated struct SSHKeyMaterial: Sendable {
             if let blob { libssh2_free(session, blob) }
         }
         guard result == 0, let method, let blob, methodLength > 0, blobLength > 0 else {
-            throw SSHKeyMaterialError.invalidPrivateKey(sessionError(session, code: result))
+            throw SSHKeyMaterialError.invalidPrivateKey(connectionError(session, code: result))
         }
 
         let methodBytes = UnsafeBufferPointer(start: method, count: methodLength)
@@ -275,7 +275,7 @@ public nonisolated struct SSHKeyMaterial: Sendable {
         return "SHA256:\(digest)"
     }
 
-    private static func sessionError(_ session: OpaquePointer, code: Int32) -> String {
+    private static func connectionError(_ session: OpaquePointer, code: Int32) -> String {
         var message: UnsafeMutablePointer<CChar>?
         var length = Int32(0)
         _ = libssh2_session_last_error(session, &message, &length, 0)

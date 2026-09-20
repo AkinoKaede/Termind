@@ -113,12 +113,12 @@ struct DesktopAuthenticationSubmissionTests {
 @MainActor
 private final class DesktopAuthenticationSession {
     let ssh: SSHSessionModel?
-    let sftp: SFTPSessionModel?
+    let sftp: SFTPChannelModel?
     var prompt: SSHAuthenticationPrompt? { ssh?.pendingAuthentication ?? sftp?.pendingAuthentication }
 
     init(kind: ConnectionHistoryEntry.Kind, host: Host) {
         ssh = kind == .ssh ? SSHSessionModel(host: host) : nil
-        sftp = kind == .sftp ? SFTPSessionModel(hostID: host.id) : nil
+        sftp = kind == .sftp ? SFTPChannelModel(hostID: host.id) : nil
         let prompt = SSHAuthenticationPrompt(host: host, username: "")
         ssh?.pendingAuthentication = prompt
         sftp?.pendingAuthentication = prompt

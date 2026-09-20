@@ -245,7 +245,7 @@ struct RootView: View {
                 return nil
             }
             return OnboardingPathContext(direction: .sshToSFTP, hostID: hostID, path: path)
-        case .sftpSession(let session):
+        case .sftpChannel(let session):
             guard app.hostLibrary.host(hostID) != nil, session.status == .connected,
                 !session.path.isEmpty, session.displayedPath != nil
             else { return nil }
@@ -306,7 +306,7 @@ struct RootView: View {
             app.onboarding.complete(.statusBarPath)
             switch context.direction {
             case .sshToSFTP:
-                window.openSFTPSession(
+                window.openSFTPChannel(
                     host: host, initialPath: context.path, placement: .currentWorkspace
                 )
             case .sftpToSSH:

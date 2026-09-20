@@ -32,12 +32,12 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
             keyboardInteractive: handler, logger: logger,
             maxSessionsPolicy: maxSessionsPolicy)
     }
-    public func makeSSHSession(
-        output: @escaping SSHSessionActor.OutputHandler,
-        exit: @escaping SSHSessionActor.ExitHandler,
-        shellIntegration: @escaping SSHSessionActor.ShellIntegrationHandler = { _ in }
-    ) -> SSHSessionActor {
-        SSHSessionActor(
+    public func makePTYChannel(
+        output: @escaping SSHPTYChannel.OutputHandler,
+        exit: @escaping SSHPTYChannel.ExitHandler,
+        shellIntegration: @escaping SSHPTYChannel.ShellIntegrationHandler = { _ in }
+    ) -> SSHPTYChannel {
+        SSHPTYChannel(
             output: output, exit: exit, shellIntegration: shellIntegration, keyboardInteractive: keyboardInteractive,
             logger: logger, maxSessionsPolicy: maxSessionsPolicy
         )
@@ -49,31 +49,31 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
             maxSessionsPolicy: maxSessionsPolicy)
     }
 
-    public func makeMultiplexedSession() -> any SSHMultiplexedSessionProtocol {
-        SSHMultiplexedSession(
+    public func makeConnection() -> any SSHConnectionProtocol {
+        SSHConnection(
             keyboardInteractive: keyboardInteractive, logger: logger,
             maxSessionsPolicy: maxSessionsPolicy)
     }
 
     /// Mirrors `connectSFTP`, including its guarantee that a session which fails
     /// to come up is torn down here rather than handed back half-open.
-    public func connectMultiplexedSession(
+    public func connectConnection(
         using configuration: SSHConnectionConfiguration
-    ) async throws -> any SSHMultiplexedSessionProtocol {
-        try await connectMultiplexedSession(
+    ) async throws -> any SSHConnectionProtocol {
+        try await connectConnection(
             using: SSHConnectionRequest(configuration: configuration)
         )
     }
 
-    public func connectMultiplexedSession(
+    public func connectConnection(
         using request: SSHConnectionRequest
-    ) async throws -> any SSHMultiplexedSessionProtocol {
-        let session = makeMultiplexedSession()
+    ) async throws -> any SSHConnectionProtocol {
+        let connection = makeConnection()
         do {
-            try await session.connect(using: request)
-            return session
+            try await connection.connect(using: request)
+            return connection
         } catch {
-            await session.disconnect()
+            await connection.disconnect()
             throw error
         }
     }
@@ -111,7 +111,7 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         _ publicKey: String, named keyName: String,
         using configuration: SSHConnectionConfiguration
     ) async throws {
-        try await SSHSessionActor.installAuthorizedKey(
+        try await SSHPTYChannel.installAuthorizedKey(
             publicKey, named: keyName,
             using: SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive),
             logger: logger, maxSessionsPolicy: maxSessionsPolicy

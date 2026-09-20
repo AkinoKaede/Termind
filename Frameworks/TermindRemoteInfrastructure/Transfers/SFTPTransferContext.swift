@@ -2,23 +2,23 @@ import Foundation
 import TermindApplication
 
 public nonisolated enum SFTPTransferPrimaryRole: Hashable, Sendable {
-    /// A browser control Channel that data work should avoid while alternatives exist.
+    /// A browser control channel that data work should avoid while alternatives exist.
     case control
     /// An independent preflight connection that can be donated to the first transfer.
     case donatedConnection
-    /// An authenticated terminal transport used only after independent preflight failed.
-    case terminalFallback
+    /// The authenticated connection belonging to a PTY channel, used only after independent preflight failed.
+    case ptyConnectionFallback
 }
 
 /// A browser and its queued transfers share ownership of one authenticated connection.
-/// The admitted topology decides between sibling Channels and additional connections;
+/// The admitted topology decides between sibling channels and additional connections;
 /// additional connections are always opened without interaction from this generation's snapshot.
 @MainActor
-public final class SFTPTransferSession {
+public final class SFTPTransferContext {
     public let id = UUID()
     public let configuration: SSHConnectionConfiguration
     private var clientFactory: SFTPTransferCoordinator.ClientFactory
-    private var primary: (any SFTPClientProtocol)?
+    private var primary: (any SFTPChannelProtocol)?
     private var ownerAttached = true
     private var transfers: Set<UUID> = []
     private var activeSlots = 0
@@ -31,22 +31,22 @@ public final class SFTPTransferSession {
     var availabilityChanged: (() -> Void)?
 
     public init(
-        configuration: SSHConnectionConfiguration, client: any SFTPClientProtocol,
+        configuration: SSHConnectionConfiguration, channel: any SFTPChannelProtocol,
         primaryRole: SFTPTransferPrimaryRole = .control,
         clientFactory: @escaping SFTPTransferCoordinator.ClientFactory = { SFTPClient() }
     ) {
         self.configuration = configuration
-        self.primary = client
+        self.primary = channel
         self.clientFactory = clientFactory
         self.primaryRole = primaryRole
-        self.capability = primaryRole == .terminalFallback ? .channels : .unknown
+        self.capability = primaryRole == .ptyConnectionFallback ? .channels : .unknown
     }
 
     deinit {
         if let primary { Task { await primary.disconnect() } }
     }
 
-    /// Admission is owned by `SFTPTransferCoordinator`; a Channel consumes the
+    /// Admission is owned by `SFTPTransferCoordinator`; a channel consumes the
     /// same slot as a connection, so fallback never changes capacity.
     var canStartTransfer: Bool { true }
 
@@ -79,7 +79,7 @@ public final class SFTPTransferSession {
         await closeIfUnused()
     }
 
-    /// A failed transport is never installed into a replacement browser generation.
+    /// A failed connection is never installed into a replacement browser generation.
     public func retire() async {
         ownerAttached = false
         let old = primary
@@ -92,7 +92,7 @@ public final class SFTPTransferSession {
     func acquire(
         mode: SSHChannelSchedulingMode,
         cancellation: TransferCancellationToken? = nil
-    ) async throws -> SFTPTransferLease {
+    ) async throws -> SFTPChannelLease {
         try checkCancellation(cancellation)
         while probing { try await waitForPrimary(cancellation: cancellation) }
         if shouldLeasePrimary(mode: mode), let lease = leasePrimaryIfAvailable() {
@@ -100,15 +100,15 @@ public final class SFTPTransferSession {
         }
         if mode == .channelsOnly, let primary {
             do {
-                let client = try await primary.openSiblingChannel()
+                let channel = try await primary.openSiblingChannel()
                 try checkCancellation(cancellation)
-                return SFTPTransferLease(client: client) { await client.disconnect() }
+                return SFTPChannelLease(channel: channel) { await channel.disconnect() }
             } catch {
                 try checkCancellation(cancellation)
                 if error is CancellationError { throw error }
                 if let failure = error as? SFTPError, case .cancelled = failure { throw failure }
                 // A server may accept only the browser's original SFTP
-                // subsystem. Keep the Channel-only transport contract and
+                // subsystem. Keep the channel-only connection contract and
                 // serialize this lease on that primary rather than opening a
                 // second SSH connection or pausing the transfer.
             }
@@ -125,10 +125,10 @@ public final class SFTPTransferSession {
                 }
             }
             do {
-                let client = try await openSilently(cancellation: cancellation)
+                let channel = try await openSilently(cancellation: cancellation)
                 if capability != .channels { capability = .connections }
                 availabilityChanged?()
-                return SFTPTransferLease(client: client) { await client.disconnect() }
+                return SFTPChannelLease(channel: channel) { await channel.disconnect() }
             } catch {
                 try checkCancellation(cancellation)
                 if error is CancellationError { throw error }
@@ -138,15 +138,15 @@ public final class SFTPTransferSession {
             }
         }
         if mode == .connectionsPreferred, capability == .channels, let primary {
-            if primaryRole == .terminalFallback, let lease = leasePrimaryIfAvailable() {
+            if primaryRole == .ptyConnectionFallback, let lease = leasePrimaryIfAvailable() {
                 return lease
             }
             do {
                 try checkCancellation(cancellation)
-                let client = try await primary.openSiblingChannel()
+                let channel = try await primary.openSiblingChannel()
                 try checkCancellation(cancellation)
                 availabilityChanged?()
-                return SFTPTransferLease(client: client) { await client.disconnect() }
+                return SFTPChannelLease(channel: channel) { await channel.disconnect() }
             } catch {
                 try checkCancellation(cancellation)
                 if error is CancellationError { throw error }
@@ -159,15 +159,15 @@ public final class SFTPTransferSession {
         try checkCancellation(cancellation)
         primaryBusy = true
         do {
-            let client: any SFTPClientProtocol
+            let channel: any SFTPChannelProtocol
             if let primary {
-                client = primary
+                channel = primary
             } else {
-                client = try await openSilently(cancellation: cancellation)
-                primary = client
+                channel = try await openSilently(cancellation: cancellation)
+                primary = channel
                 capability = .unknown
             }
-            return SFTPTransferLease(client: client) { [self] in
+            return SFTPChannelLease(channel: channel) { [self] in
                 primaryBusy = false
                 wakeWaiters()
                 await closeIfUnused()
@@ -186,15 +186,15 @@ public final class SFTPTransferSession {
             false
         case .donatedConnection:
             !primaryBusy
-        case .terminalFallback:
+        case .ptyConnectionFallback:
             mode == .channelsOnly && !primaryBusy
         }
     }
 
-    private func leasePrimaryIfAvailable() -> SFTPTransferLease? {
+    private func leasePrimaryIfAvailable() -> SFTPChannelLease? {
         guard !primaryBusy, let primary else { return nil }
         primaryBusy = true
-        return SFTPTransferLease(client: primary) { [self] in
+        return SFTPChannelLease(channel: primary) { [self] in
             primaryBusy = false
             wakeWaiters()
             await closeIfUnused()
@@ -202,7 +202,7 @@ public final class SFTPTransferSession {
         }
     }
 
-    private func openSilently(cancellation: TransferCancellationToken?) async throws -> any SFTPClientProtocol {
+    private func openSilently(cancellation: TransferCancellationToken?) async throws -> any SFTPChannelProtocol {
         let client = clientFactory()
         let request = SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden)
             .enforcingInteractionPolicy()
@@ -266,12 +266,12 @@ public final class SFTPTransferSession {
 }
 
 @MainActor
-final class SFTPTransferLease {
-    let client: any SFTPClientProtocol
+final class SFTPChannelLease {
+    let channel: any SFTPChannelProtocol
     private var release: (() async -> Void)?
 
-    init(client: any SFTPClientProtocol, release: @escaping () async -> Void) {
-        self.client = client
+    init(channel: any SFTPChannelProtocol, release: @escaping () async -> Void) {
+        self.channel = channel
         self.release = release
     }
 

@@ -7,7 +7,7 @@ import Foundation
 /// EAGAIN. Accept complete packets here and apply backpressure between library
 /// calls instead. The receive callback also stops packet processing at the
 /// watermark, bounding replies generated while libssh2 drains input.
-nonisolated final class SSHBufferedTransport {
+nonisolated final class SSHConnectionBuffer {
     private let output = SSHByteQueue()
     private var disposed = false
     private let tuning: SSHForwardingTuning
@@ -31,15 +31,17 @@ nonisolated final class SSHBufferedTransport {
     var isBackpressured: Bool { output.count >= tuning.highWater }
     var wantsWrite: Bool { !output.isEmpty }
 
-    init(session: OpaquePointer, tuning: SSHForwardingTuning = .current) {
+    init(libssh2Session: OpaquePointer, tuning: SSHForwardingTuning = .current) {
         self.tuning = tuning
         readAllowance = tuning.readBudget
         writeAllowance = tuning.quantum
-        libssh2_session_abstract(session)?.pointee = Unmanaged.passUnretained(self).toOpaque()
+        libssh2_session_abstract(libssh2Session)?.pointee = Unmanaged.passUnretained(self).toOpaque()
         libssh2_session_callback_set2(
-            session, LIBSSH2_CALLBACK_SEND, unsafeBitCast(Self.send, to: (@convention(c) () -> Void).self))
+            libssh2Session, LIBSSH2_CALLBACK_SEND,
+            unsafeBitCast(Self.send, to: (@convention(c) () -> Void).self))
         libssh2_session_callback_set2(
-            session, LIBSSH2_CALLBACK_RECV, unsafeBitCast(Self.receive, to: (@convention(c) () -> Void).self))
+            libssh2Session, LIBSSH2_CALLBACK_RECV,
+            unsafeBitCast(Self.receive, to: (@convention(c) () -> Void).self))
     }
 
     func flush(socket: Int32) throws {
@@ -67,9 +69,9 @@ nonisolated final class SSHBufferedTransport {
 
     /// Teardown cannot wait on a peer. Discard final protocol writes and return
     /// EOF to reads, so libssh2 can release channels/listeners without EAGAIN.
-    func dispose(session: OpaquePointer) {
+    func dispose(libssh2Session: OpaquePointer) {
         disposed = true
-        let result = libssh2_session_free(session)
+        let result = libssh2_session_free(libssh2Session)
         assert(result == 0, "SSH session disposal must finish without socket I/O")
     }
 
@@ -78,12 +80,12 @@ nonisolated final class SSHBufferedTransport {
             Int32, UnsafeRawPointer?, Int, Int32, UnsafeMutablePointer<UnsafeMutableRawPointer?>?
         ) -> Int = { socket, bytes, count, flags, abstract in
             guard let opaque = abstract?.pointee, let bytes else { return -Int(EINVAL) }
-            let transport = Unmanaged<SSHBufferedTransport>.fromOpaque(opaque).takeUnretainedValue()
-            if transport.disposed { return count }
+            let buffer = Unmanaged<SSHConnectionBuffer>.fromOpaque(opaque).takeUnretainedValue()
+            if buffer.disposed { return count }
             var sent = 0
-            if transport.output.isEmpty {
+            if buffer.output.isEmpty {
                 repeat {
-                    transport.socketWriteCalls += 1
+                    buffer.socketWriteCalls += 1
                     sent = Darwin.send(socket, bytes, count, flags | MSG_DONTWAIT)
                 } while sent < 0 && errno == EINTR
                 if sent < 0 {
@@ -92,8 +94,8 @@ nonisolated final class SSHBufferedTransport {
                 }
             }
             if sent < count {
-                transport.output.append(UnsafeRawBufferPointer(start: bytes + sent, count: count - sent))
-                transport.peakQueuedBytes = max(transport.peakQueuedBytes, transport.output.count)
+                buffer.output.append(UnsafeRawBufferPointer(start: bytes + sent, count: count - sent))
+                buffer.peakQueuedBytes = max(buffer.peakQueuedBytes, buffer.output.count)
             }
             return count
         }
@@ -103,13 +105,13 @@ nonisolated final class SSHBufferedTransport {
             Int32, UnsafeMutableRawPointer?, Int, Int32, UnsafeMutablePointer<UnsafeMutableRawPointer?>?
         ) -> Int = { socket, bytes, count, flags, abstract in
             guard let opaque = abstract?.pointee else { return -Int(EINVAL) }
-            let transport = Unmanaged<SSHBufferedTransport>.fromOpaque(opaque).takeUnretainedValue()
-            if transport.disposed { return 0 }
-            if transport.isBackpressured || transport.exhaustedReadBudget || !transport.withinDeadline() {
+            let buffer = Unmanaged<SSHConnectionBuffer>.fromOpaque(opaque).takeUnretainedValue()
+            if buffer.disposed { return 0 }
+            if buffer.isBackpressured || buffer.exhaustedReadBudget || !buffer.withinDeadline() {
                 return -Int(EAGAIN)
             }
-            let received = Darwin.recv(socket, bytes, min(count, transport.readAllowance), flags | MSG_DONTWAIT)
-            if received > 0 { transport.readAllowance -= received }
+            let received = Darwin.recv(socket, bytes, min(count, buffer.readAllowance), flags | MSG_DONTWAIT)
+            if received > 0 { buffer.readAllowance -= received }
             return received < 0 ? -Int(errno) : received
         }
 }

@@ -385,7 +385,7 @@ private final class ReconnectFixture {
     lazy var controller = makeController()
 
     private func makeController() -> PortForwardingController {
-        let makeSession: PortForwardingController.SessionFactory = { [unowned self] count, failure in
+        let makeConnection: PortForwardingController.ConnectionFactory = { [unowned self] count, failure in
             let mode = sessions.count < modes.count ? modes[sessions.count] : .success
             let session = ReconnectSession(mode: mode, error: nextError, count: count, failure: failure)
             nextError = nil
@@ -393,7 +393,7 @@ private final class ReconnectFixture {
             return session
         }
         return PortForwardingController(
-            hosts: library, makeSession: makeSession,
+            hosts: library, makeConnection: makeConnection,
             makeReconnectController: { [gate] in
                 SessionReconnectController(policy: .sessionDefault, sleep: { await gate.sleep($0) }, now: Date.init)
             })
@@ -473,15 +473,15 @@ private actor ForwardingRetryGate {
     }
 }
 
-private actor ReconnectSession: SSHForwardingSessionProtocol {
+private actor ReconnectSession: SSHForwardingConnectionProtocol {
     enum Mode: Sendable {
         case success, offline, keyboard, trust, holdConnect, holdDisconnect, holdRemoteStart, holdLateStart
         case remoteListenerFailure, disconnectedListener
     }
     let mode: Mode
     let error: TermindSSHError?
-    let count: SSHForwardingSession.ConnectionHandler
-    let failure: SSHForwardingSession.FailureHandler
+    let count: SSHForwardingConnection.ConnectionHandler
+    let failure: SSHForwardingConnection.FailureHandler
     var requests: [SSHConnectionRequest] = []
     var starts: Set<UUID> = []
     var listening: Set<UUID> = []
@@ -496,8 +496,8 @@ private actor ReconnectSession: SSHForwardingSessionProtocol {
     var hasPendingStart: Bool { !pendingStarts.isEmpty }
 
     init(
-        mode: Mode, error: TermindSSHError?, count: @escaping SSHForwardingSession.ConnectionHandler,
-        failure: @escaping SSHForwardingSession.FailureHandler
+        mode: Mode, error: TermindSSHError?, count: @escaping SSHForwardingConnection.ConnectionHandler,
+        failure: @escaping SSHForwardingConnection.FailureHandler
     ) {
         self.mode = mode
         self.error = error

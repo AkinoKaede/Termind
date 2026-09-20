@@ -18,7 +18,7 @@ extension SplitNode {
             case .sshSession(let session):
                 guard hosts.host(session.hostID) != nil else { return nil }
                 return .pane(.ssh(hostID: session.hostID))
-            case .sftpSession(let session):
+            case .sftpChannel(let session):
                 guard hosts.host(session.hostID) != nil else { return nil }
                 return .pane(.sftp(hostID: session.hostID))
             case .empty:
@@ -53,7 +53,7 @@ extension WorkspaceTemplateLayout {
                 return (.leaf(.sshSession(host: host)), 0)
             case .sftp(let hostID):
                 guard let host = hosts.host(hostID) else { return (.leaf(Pane(.empty)), 1) }
-                return (.leaf(.sftpSession(host: host)), 0)
+                return (.leaf(.sftpChannel(host: host)), 0)
             }
         case .split(let axis, let fraction, let first, let second):
             let firstResult = first.makeSplitNode(using: hosts)

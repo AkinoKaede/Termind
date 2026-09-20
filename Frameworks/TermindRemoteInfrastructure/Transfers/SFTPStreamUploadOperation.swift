@@ -13,7 +13,7 @@ public nonisolated enum SFTPStreamUploadOperation {
     }
 
     public static func run(
-        client: any SFTPClientProtocol, remotePath: String, byteCount: Int64, sha256: String,
+        client: any SFTPChannelProtocol, remotePath: String, byteCount: Int64, sha256: String,
         overwrite: Bool, cancellation: TransferCancellationToken,
         idleTimeout: Duration = .seconds(60), resume: SFTPResumeState? = nil,
         read: @escaping ReadChunk, progress: @escaping @Sendable (SFTPProgress) -> Void

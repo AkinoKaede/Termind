@@ -4,16 +4,16 @@ import Logging
 import TermindApplication
 import TermindDomain
 
-/// A host-scoped group of physical SSH sessions. Only local and dynamic rules fan out.
-actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
+/// A host-scoped group of physical SSH connections. Only local and dynamic rules fan out.
+actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     private final class Slot: @unchecked Sendable {
         let id: UUID
-        let session: SSHForwardingSession
+        let connection: SSHForwardingConnection
         var rules: Set<PortForwardingRule.ID> = []
 
-        init(id: UUID, session: SSHForwardingSession) {
+        init(id: UUID, connection: SSHForwardingConnection) {
             self.id = id
-            self.session = session
+            self.connection = connection
         }
     }
 
@@ -23,8 +23,8 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
     }
 
     private let maximumConnections: Int
-    private let connectionHandler: SSHForwardingSession.ConnectionHandler
-    private let failureHandler: SSHForwardingSession.FailureHandler
+    private let connectionHandler: SSHForwardingConnection.ConnectionHandler
+    private let failureHandler: SSHForwardingConnection.FailureHandler
     private let logger: Logger
     private let listeners: SSHForwardingLocalListeners
     private var slots: [UUID: Slot] = [:]
@@ -42,8 +42,8 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
 
     init(
         maximumConnections: Int,
-        connectionHandler: @escaping SSHForwardingSession.ConnectionHandler,
-        failureHandler: @escaping SSHForwardingSession.FailureHandler,
+        connectionHandler: @escaping SSHForwardingConnection.ConnectionHandler,
+        failureHandler: @escaping SSHForwardingConnection.FailureHandler,
         logger: Logger = ApplicationLogger.disabled("termind.port-forwarding-pool")
     ) {
         self.maximumConnections = min(max(maximumConnections, 2), Host.portForwardingMaxConnectionsRange.upperBound)
@@ -70,7 +70,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
         slots[id] = slot
         primaryID = id
         do {
-            try await slot.session.connect(request, progress: progress)
+            try await slot.connection.connect(request, progress: progress)
         } catch {
             slots[id] = nil
             primaryID = nil
@@ -96,11 +96,11 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
         registrations[rule.id] = RuleRegistration(rule: rule, generation: generation)
         do {
             if rule.kind == .remote {
-                try await primary.session.start(rule, generation: generation)
+                try await primary.connection.start(rule, generation: generation)
                 primary.rules.insert(rule.id)
             } else {
                 for slot in slots.values {
-                    try await slot.session.registerShared(rule, generation: generation)
+                    try await slot.connection.registerShared(rule, generation: generation)
                     slot.rules.insert(rule.id)
                 }
                 try await listeners.start(rule, generation: generation)
@@ -109,7 +109,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
         } catch {
             registrations[rule.id] = nil
             for slot in slots.values where slot.rules.remove(rule.id) != nil {
-                await slot.session.stop(rule.id)
+                await slot.connection.stop(rule.id)
             }
             await listeners.stop(rule.id)
             throw error
@@ -120,7 +120,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
         let registration = registrations.removeValue(forKey: id)
         if registration?.rule.kind != .remote { await listeners.stop(id) }
         for slot in slots.values where slot.rules.remove(id) != nil {
-            await slot.session.stop(id)
+            await slot.connection.stop(id)
         }
         for slotID in counts.keys { counts[slotID]?[id] = nil }
         report(id, generation: registration?.generation)
@@ -144,7 +144,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
         counts.removeAll()
         additionalRequest = nil
         await withTaskGroup(of: Void.self) { group in
-            for slot in active + pending { group.addTask { await slot.session.disconnect() } }
+            for slot in active + pending { group.addTask { await slot.connection.disconnect() } }
         }
     }
 
@@ -153,7 +153,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
     private var desiredConnections: Int { needsPool ? maximumConnections : 1 }
 
     private func makeSlot(id: UUID) -> Slot {
-        let session = SSHForwardingSession(
+        let connection = SSHForwardingConnection(
             connectionHandler: { [weak self] ruleID, generation, count in
                 Task { await self?.receivedCount(count, ruleID: ruleID, generation: generation, slotID: id) }
             },
@@ -161,7 +161,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
                 Task { await self?.failed(slotID: id, message: message) }
             },
             logger: logger)
-        return Slot(id: id, session: session)
+        return Slot(id: id, connection: connection)
     }
 
     private func fillPool() {
@@ -175,11 +175,11 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
             let request = additionalRequest!
             Task { [weak self] in
                 do {
-                    try await slot.session.connect(request, progress: nil)
+                    try await slot.connection.connect(request, progress: nil)
                     await self?.opened(slot)
                 } catch {
                     await self?.openFailed(id: id, error: error)
-                    await slot.session.disconnect()
+                    await slot.connection.disconnect()
                 }
             }
         }
@@ -189,19 +189,19 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
         guard opening.removeValue(forKey: slot.id) != nil, !disconnecting,
             slots.count + installing.count < desiredConnections
         else {
-            await slot.session.disconnect()
+            await slot.connection.disconnect()
             return
         }
         installing[slot.id] = slot
         do {
             for registration in registrations.values where registration.rule.kind != .remote {
-                try await slot.session.registerShared(registration.rule, generation: registration.generation)
+                try await slot.connection.registerShared(registration.rule, generation: registration.generation)
                 slot.rules.insert(registration.rule.id)
             }
             guard installing.removeValue(forKey: slot.id) != nil, !disconnecting,
                 slots.count < desiredConnections
             else {
-                await slot.session.disconnect()
+                await slot.connection.disconnect()
                 return
             }
             slots[slot.id] = slot
@@ -214,7 +214,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
             fillPool()
         } catch {
             let wasInstalling = installing.removeValue(forKey: slot.id) != nil
-            await slot.session.disconnect()
+            await slot.connection.disconnect()
             if wasInstalling { scheduleRetry(for: error) }
         }
     }
@@ -262,7 +262,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
             primaryID = promoted.id
             do {
                 for registration in registrations.values where registration.rule.kind == .remote {
-                    try await promoted.session.start(registration.rule, generation: registration.generation)
+                    try await promoted.connection.start(registration.rule, generation: registration.generation)
                     promoted.rules.insert(registration.rule.id)
                 }
                 fillPool()
@@ -291,7 +291,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
             stabilityTasks.removeValue(forKey: slot.id)?.cancel()
         }
         await withTaskGroup(of: Void.self) { group in
-            for slot in auxiliaries + pending { group.addTask { await slot.session.disconnect() } }
+            for slot in auxiliaries + pending { group.addTask { await slot.connection.disconnect() } }
         }
         publishPoolCounts()
     }
@@ -312,7 +312,7 @@ actor SSHForwardingPoolSession: SSHForwardingSessionProtocol {
         }
         let slot = candidates[roundRobin % candidates.count]
         roundRobin &+= 1
-        guard await slot.session.acceptShared(descriptor, ruleID: ruleID, generation: generation) else {
+        guard await slot.connection.acceptShared(descriptor, ruleID: ruleID, generation: generation) else {
             Darwin.close(descriptor)
             return
         }

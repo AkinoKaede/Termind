@@ -34,7 +34,7 @@ struct WorkspaceAccessTests {
         let slot = workspace.focusedPane
         #expect(slot.isEmptySlot)
         #expect(workspace.panes.count == 2)
-        let source = window.openSFTPSession(host: fixture.second, initialPath: "/srv/app")
+        let source = window.openSFTPChannel(host: fixture.second, initialPath: "/srv/app")
         let browser = source.focusedPane
         window.fill(slot.id, in: workspace.id, withPanesOf: source.id)
         #expect(window.workspaces.count == 1)
@@ -54,7 +54,7 @@ struct WorkspaceAccessTests {
         #expect(window.workspaces.count == 1)
         #expect(window.pane(shell.id)?.sshSession === session)
         #expect(window.pane(browser.id) === browser)
-        #expect(browser.sftpSession?.path == "/srv/app")
+        #expect(browser.sftpChannel?.path == "/srv/app")
         #expect(session.status == .connecting)
 
         window.separatePanes(in: workspace.id)
@@ -107,19 +107,19 @@ struct WorkspaceAccessTests {
         let window = fixture.window
         let workspace = window.openSSHSession(host: fixture.first)
         #expect(
-            window.openSFTPSession(host: fixture.first, initialPath: "/srv", placement: .currentWorkspace)
+            window.openSFTPChannel(host: fixture.first, initialPath: "/srv", placement: .currentWorkspace)
                 === workspace)
-        #expect(workspace.panes.map(\.kind) == [.sshSession, .sftpSession])
-        #expect(workspace.focusedPane.sftpSession?.path == "/srv")
+        #expect(workspace.panes.map(\.kind) == [.sshSession, .sftpChannel])
+        #expect(workspace.focusedPane.sftpChannel?.path == "/srv")
         #expect(window.openSSHSession(host: fixture.first, placement: .currentWorkspace) === workspace)
-        #expect(workspace.panes.map(\.kind) == [.sshSession, .sftpSession, .sshSession])
+        #expect(workspace.panes.map(\.kind) == [.sshSession, .sftpChannel, .sshSession])
 
-        for target in [HostOpenTarget.sshSession, .sftpSession] {
+        for target in [HostOpenTarget.sshSession, .sftpChannel] {
             fixture.app.open([fixture.first, fixture.second], as: target, layout: .oneWorkspace, in: window)
             let batch = try #require(window.selectedWorkspace)
             #expect(batch !== workspace)
             #expect(batch.panes.map(\.hostID) == [fixture.first.id, fixture.second.id])
-            #expect(batch.panes.allSatisfy { $0.kind == (target == .sshSession ? .sshSession : .sftpSession) })
+            #expect(batch.panes.allSatisfy { $0.kind == (target == .sshSession ? .sshSession : .sftpChannel) })
         }
 
         let snippet = Snippet(title: "Status", body: "uptime", targetHostIDs: [fixture.first.id, fixture.second.id])

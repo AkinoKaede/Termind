@@ -17,26 +17,26 @@ public actor SSHMetricsSampler: MetricsSampling {
         var frameFailure: MetricsFrameFailure?
     }
 
-    private let adapter: SSHSingleChannelAdapter<any SSHMultiplexedSessionProtocol>
+    private let adapter: SSHExclusiveConnectionAdapter<any SSHConnectionProtocol>
     private let logger: Logger
     private var hostID: UUID?
 
     public init(
-        session: any SSHMultiplexedSessionProtocol,
+        connection: any SSHConnectionProtocol,
         hostID: UUID? = nil,
         logger: Logger = ApplicationLogger.disabled("termind.metrics")
     ) {
-        adapter = SSHSingleChannelAdapter(channel: session) { await $0.disconnect() }
+        adapter = SSHExclusiveConnectionAdapter(connection: connection) { await $0.disconnect() }
         self.hostID = hostID
         self.logger = logger
     }
     public func connect(_ configuration: SSHConnectionConfiguration) async throws {
         hostID = configuration.hostID
-        try await adapter.withChannel { try await $0.connect(using: configuration) }
+        try await adapter.withConnection { try await $0.connect(using: configuration) }
     }
     public func connect(_ request: SSHConnectionRequest) async throws {
         hostID = request.configuration.hostID
-        try await adapter.withChannel { try await $0.connect(using: request) }
+        try await adapter.withConnection { try await $0.connect(using: request) }
     }
     public func disconnect() async { await adapter.disconnect() }
 
@@ -163,8 +163,8 @@ public actor SSHMetricsSampler: MetricsSampling {
             exit "$__termind_metrics_status"
             """
         let transportLimit = outputLimit.addingReportingOverflow(Self.framingAllowance)
-        let raw = try await adapter.withChannel { session in
-            try await session.execute(
+        let raw = try await adapter.withConnection { connection in
+            try await connection.execute(
                 framedCommand, workingDirectory: workingDirectory, stdin: stdin,
                 timeout: timeout, outputLimit: transportLimit.overflow ? outputLimit : transportLimit.partialValue,
                 onOutput: onOutput)
@@ -288,7 +288,7 @@ public final class MetricsPreferences: MetricsConfigurationStoring {
 
 nonisolated extension RemoteConnectionCoordinator {
     public func makeMetricsSampler() -> any MetricsSampling {
-        SSHMetricsSampler(session: makeMultiplexedSession(), logger: logger)
+        SSHMetricsSampler(connection: makeConnection(), logger: logger)
     }
 
 }

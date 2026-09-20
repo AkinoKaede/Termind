@@ -247,7 +247,7 @@ struct MobileWorkspaceConnectionRecoveryTests {
 
         #expect(workspace.sameDirectoryLaunch == nil)
         #expect(await eventually { workspace.connected })
-        #expect(workspace.sftpSession.path == "/srv/releases")
+        #expect(workspace.sftpChannel.path == "/srv/releases")
         #expect(
             workspace.sameDirectoryLaunch
                 == MobileWorkspaceDirectoryLaunch(hostID: host.id, kind: .ssh, path: "/srv/releases")
@@ -434,9 +434,9 @@ struct MobileWorkspaceConnectionRecoveryTests {
 
         workspace.connect()
         #expect(await eventually { workspace.connected })
-        await workspace.sftpSession.openDirectory("/restricted")
+        await workspace.sftpChannel.openDirectory("/restricted")
 
-        #expect(workspace.sftpSession.operationError == "Permission denied")
+        #expect(workspace.sftpChannel.operationError == "Permission denied")
         if case .failed = workspace.journey.phase {
             Issue.record("An ordinary SFTP operation error must not fail the connection Journey")
         }
@@ -482,8 +482,8 @@ struct MobileWorkspaceConnectionRecoveryTests {
 
         workspace.connect()
         #expect(await eventually { workspace.connected })
-        await workspace.sftpSession.openDirectory("/srv/project")
-        #expect(workspace.sftpSession.path == "/srv/project")
+        await workspace.sftpChannel.openDirectory("/srv/project")
+        #expect(workspace.sftpChannel.path == "/srv/project")
 
         let retiredConnectionFailure = connections.connectionFailure
         retiredConnectionFailure?("offline")
@@ -494,7 +494,7 @@ struct MobileWorkspaceConnectionRecoveryTests {
         workspace.retryReconnectNow()
 
         #expect(await eventually { workspace.connected })
-        #expect(workspace.sftpSession.path == "/srv/project")
+        #expect(workspace.sftpChannel.path == "/srv/project")
         #expect(connections.connectCount == 2)
 
         retiredConnectionFailure?("stale callback")
@@ -520,7 +520,7 @@ struct MobileWorkspaceConnectionRecoveryTests {
         #expect(await eventually { workspace.connected })
         #expect(await eventually { workspace.journey.logs.count >= 6 })
         #expect(connections.didReceiveProgressHandler)
-        #expect(workspace.journey.purpose == .sftpSession)
+        #expect(workspace.journey.purpose == .sftpChannel)
     }
 
     @Test func sshUnexpectedExitReconnectsOnceAndRejectsRetiredCallbacks() async throws {
@@ -640,8 +640,8 @@ struct MobileWorkspaceConnectionRecoveryTests {
         try library.upsert(identity, passwordUpdate: .replace("test-only"))
         var connectionCount = 0
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: {
-                SSHSessionActor(output: $0, exit: $1, shellIntegration: $2)
+            makePTYChannel: {
+                SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2)
             },
             connectSSH: { _, request, _, _, _, _ in
                 connectionCount += 1
@@ -941,7 +941,7 @@ struct MobileWorkspaceNavigationRenderingTests {
         let ssh = try #require(app.workspaces.first { $0.id == sshID })
         let sftp = try #require(app.workspaces.first { $0.id == sftpID })
         let terminal = ssh.terminal
-        let browser = sftp.sftpSession
+        let browser = sftp.sftpChannel
         browser.query = "Retained session filter"
         let scene = MobileSceneModel(app: app)
         scene.selectWorkspace(sshID)
@@ -965,7 +965,7 @@ struct MobileWorkspaceNavigationRenderingTests {
                     #expect(navigation.topViewController === detail)
                     #expect(ssh.connected && sftp.connected)
                     #expect(ssh.terminal === terminal)
-                    #expect(sftp.sftpSession === browser)
+                    #expect(sftp.sftpChannel === browser)
                     #expect(browser.query == "Retained session filter")
                     #expect(connections.sshConnectCount == 1)
                     #expect(connections.connectCount == 1)
@@ -980,7 +980,7 @@ struct MobileWorkspaceNavigationRenderingTests {
                     try await Task.sleep(for: .milliseconds(400))
                     #expect(navigation.topViewController === detail)
                     #expect(ssh.terminal === terminal)
-                    #expect(sftp.sftpSession === browser)
+                    #expect(sftp.sftpChannel === browser)
                     #expect(ssh.connected && sftp.connected)
                     #expect(connections.sshConnectCount == 1)
                     #expect(connections.connectCount == 1)
@@ -1003,7 +1003,7 @@ struct MobileWorkspaceNavigationRenderingTests {
         let workspace = try #require(app.workspaces.first { $0.id == id })
         #expect(await eventually { workspace.connected })
         let path = "/srv/projects/production-environment/很长的服务器配置目录/application-configuration"
-        await workspace.sftpSession.openDirectory(path)
+        await workspace.sftpChannel.openDirectory(path)
         let scene = MobileSceneModel(app: app)
         scene.selectWorkspace(id)
         try await withHostedView(
@@ -1016,7 +1016,7 @@ struct MobileWorkspaceNavigationRenderingTests {
                 controller.view.frame.size = CGSize(width: width, height: 800)
                 controller.view.layoutIfNeeded()
                 try await Task.sleep(for: .milliseconds(300))
-                #expect(workspace.sftpSession.path == path)
+                #expect(workspace.sftpChannel.path == path)
                 #expect(connections.connectCount == 1)
                 let image = try #require(renderedPNGData(of: controller))
                 Attachment.record(image, named: "sftp-long-path-\(Int(width))-\(typeSize).png")
@@ -1132,7 +1132,7 @@ private final class MobileSFTPConnectionBox {
     private(set) var connectCount = 0
     private(set) var didReceiveProgressHandler = false
     private(set) var sshConnectCount = 0
-    private(set) var sshExitHandlers: [SSHSessionActor.ExitHandler] = []
+    private(set) var sshExitHandlers: [SSHPTYChannel.ExitHandler] = []
 
     init(
         clients: [any SFTPClientProtocol],
@@ -1144,9 +1144,9 @@ private final class MobileSFTPConnectionBox {
 
     var services: MobileWorkspaceConnectionServices {
         MobileWorkspaceConnectionServices(
-            makeSSHSession: { [self] output, exit, shellIntegration in
+            makePTYChannel: { [self] output, exit, shellIntegration in
                 sshExitHandlers.append(exit)
-                return SSHSessionActor(output: output, exit: exit, shellIntegration: shellIntegration)
+                return SSHPTYChannel(output: output, exit: exit, shellIntegration: shellIntegration)
             },
             connectSSH: { [self] _, _, _, _, _, _ in sshConnectCount += 1 },
             connectSFTP: { [self] _, progress, connectionFailure in

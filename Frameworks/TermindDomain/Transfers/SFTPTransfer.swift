@@ -4,7 +4,7 @@ import Foundation
 ///
 /// The queue is app-wide rather than per-SFTP workspace: a copy started from one
 /// browser should keep running when that workspace is closed. The browser session only
-/// enqueues work; a queue region inside an SFTP session can report app-wide work
+/// enqueues work; a queue region inside an SFTP channel can report app-wide work
 /// without making navigation state global.
 public nonisolated struct SFTPTransfer: Identifiable, Hashable, Sendable {
     public nonisolated enum Direction: String, Sendable, CaseIterable, Identifiable {

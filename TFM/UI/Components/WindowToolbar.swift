@@ -895,13 +895,13 @@ extension WindowModel {
                 cancel: { sshSession.find.dismiss() }
             )
         case .sftp:
-            guard let sftpSession = focusedSFTPSession else { return nil }
+            guard let sftpChannel = focusedSFTPChannel else { return nil }
             return WindowToolbarFindContext(
                 query: Binding(
-                    get: { sftpSession.query }, set: { sftpSession.query = $0 }
+                    get: { sftpChannel.query }, set: { sftpChannel.query = $0 }
                 ),
                 focusRequest: findFocusRequest,
-                cancel: { sftpSession.query = "" }
+                cancel: { sftpChannel.query = "" }
             )
         }
     }

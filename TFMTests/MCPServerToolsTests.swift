@@ -293,7 +293,7 @@ func makeMCPServerTools(
         connections: AgentConnectionPool(
             configuration: { _ in throw MCPTestFailure.unused },
             routeFingerprint: { _ in throw MCPTestFailure.unused },
-            openSession: { _ in throw MCPTestFailure.unused },
+            openConnection: { _ in throw MCPTestFailure.unused },
             openSFTP: { _ in throw MCPTestFailure.unused },
             sweepInterval: nil
         ),

@@ -18,7 +18,7 @@ struct MetricsPresentationTests {
     func connectionAndMetricsBodiesKeepTheSameCardHeight() throws {
         let model = ServerMetricsModel(
             hosts: HostLibraryModel(), preferences: PreviewMetricsPreferences(),
-            makeSampler: { SSHMetricsSampler(session: RemoteConnectionCoordinator().makeMultiplexedSession()) }
+            makeSampler: { SSHMetricsSampler(connection: RemoteConnectionCoordinator().makeConnection()) }
         )
         let server = ServerMetric(selection: MetricsSelection(id: UUID()), name: "Fixture")
         func height() throws -> CGFloat {

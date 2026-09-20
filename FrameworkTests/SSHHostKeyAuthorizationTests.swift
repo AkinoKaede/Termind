@@ -39,7 +39,7 @@ struct SSHHostKeyAuthorizationTests {
         let store = HostLibraryModel(hosts: [host])
         let controller = RemoteSessionConnectionController()
         controller.journey.begin(
-            host: host, route: [host], purpose: .sftpSession,
+            host: host, route: [host], purpose: .sftpChannel,
             username: "deploy"
         )
         let observation = SSHHostKeyObservation(

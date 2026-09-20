@@ -15,7 +15,7 @@ struct SSHMetricsSamplerTests {
             Self.result(framing: Self.processPayload),
             Self.result(framing: Self.gpuPayload),
         ])
-        let sampler = SSHMetricsSampler(session: session)
+        let sampler = SSHMetricsSampler(connection: session)
 
         let sample = try await sampler.sample()
         #expect(sample.uptime == 100)
@@ -41,7 +41,7 @@ struct SSHMetricsSamplerTests {
     @Test
     func missingTruncatedAndOversizedFramesRemainFailures() async {
         let missing = SSHMetricsSampler(
-            session: FramedMetricsSession(results: [
+            connection: FramedMetricsSession(results: [
                 SSHExecResult(
                     stdout: Self.primaryPayload, stderr: "", exitCode: 0,
                     stdoutTruncated: false, stderrTruncated: false)
@@ -49,7 +49,7 @@ struct SSHMetricsSamplerTests {
         await #expect(throws: MetricsReadError.self) { try await missing.sample() }
 
         let truncated = SSHMetricsSampler(
-            session: FramedMetricsSession(results: [
+            connection: FramedMetricsSession(results: [
                 SSHExecResult(
                     stdout: Self.framed(Self.primaryPayload), stderr: "", exitCode: 0,
                     stdoutTruncated: true, stderrTruncated: false)
@@ -58,14 +58,14 @@ struct SSHMetricsSamplerTests {
 
         let oversizedPayload = Self.primaryPayload + String(repeating: "x", count: 262_144)
         let oversized = SSHMetricsSampler(
-            session: FramedMetricsSession(results: [Self.result(framing: oversizedPayload)]))
+            connection: FramedMetricsSession(results: [Self.result(framing: oversizedPayload)]))
         await #expect(throws: MetricsReadError.self) { try await oversized.sample() }
     }
 
     @Test
     func specialAndNonzeroExitCodesKeepTheirMeaning() async throws {
         let unsupported = SSHMetricsSampler(
-            session: FramedMetricsSession(results: [Self.result(exitCode: 42)]))
+            connection: FramedMetricsSession(results: [Self.result(exitCode: 42)]))
         do {
             _ = try await unsupported.sample()
             Issue.record("Expected unsupported metrics")
@@ -77,7 +77,7 @@ struct SSHMetricsSamplerTests {
         let gpuSession = FramedMetricsSession(results: [
             Self.result(exitCode: 42), Self.result(exitCode: 6), Self.result(exitCode: 1),
         ])
-        let gpuSampler = SSHMetricsSampler(session: gpuSession)
+        let gpuSampler = SSHMetricsSampler(connection: gpuSession)
         #expect(try await gpuSampler.gpu() == nil)
         #expect(try await gpuSampler.gpu() == nil)
         await #expect(throws: MetricsReadError.self) { try await gpuSampler.gpu() }
@@ -126,7 +126,7 @@ struct SSHMetricsSamplerTests {
         """
 }
 
-private actor FramedMetricsSession: SSHMultiplexedSessionProtocol {
+private actor FramedMetricsSession: SSHConnectionProtocol {
     private var results: [SSHExecResult]
     private(set) var executedCommands: [String] = []
 
@@ -143,6 +143,6 @@ private actor FramedMetricsSession: SSHMultiplexedSessionProtocol {
         return results.removeFirst()
     }
 
-    func openSFTPChannel() async throws -> any SFTPClientProtocol { throw SFTPError.notConnected }
+    func openSFTPChannel() async throws -> any SFTPChannelProtocol { throw SFTPError.notConnected }
     func disconnect() async {}
 }

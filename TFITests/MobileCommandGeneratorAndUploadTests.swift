@@ -33,17 +33,17 @@ private final class MobileSSHCommandConnectionBox {
     var draft = "list files"
     private(set) var writes: [Data] = []
     private(set) var shellIntegrationPreferences: [Bool] = []
-    private var exits: [SSHSessionActor.ExitHandler] = []
-    private var shellIntegrations: [SSHSessionActor.ShellIntegrationHandler] = []
+    private var exits: [SSHPTYChannel.ExitHandler] = []
+    private var shellIntegrations: [SSHPTYChannel.ShellIntegrationHandler] = []
 
     var sessionCount: Int { shellIntegrations.count }
 
     var services: MobileWorkspaceConnectionServices {
         MobileWorkspaceConnectionServices(
-            makeSSHSession: { [weak self] output, exit, shellIntegration in
+            makePTYChannel: { [weak self] output, exit, shellIntegration in
                 self?.exits.append(exit)
                 self?.shellIntegrations.append(shellIntegration)
-                return SSHSessionActor(
+                return SSHPTYChannel(
                     output: output,
                     exit: exit,
                     shellIntegration: shellIntegration
@@ -480,7 +480,7 @@ struct MobileUploadBatchTests {
         let client = MobileUploadSFTPClient()
         let transfers = SFTPTransferCoordinator(store: library) { client }
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            makePTYChannel: { SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { request, _, _ in
                 #expect(request.interactionPolicy == .forbidden)
@@ -652,7 +652,7 @@ struct MobileUploadBatchTests {
         let library = HostLibraryModel(hosts: [host], identities: [identity])
         let transfers = SFTPTransferCoordinator(store: library) { client }
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            makePTYChannel: { SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { _, _, _ in
                 if let open { return try await open() }
@@ -671,7 +671,7 @@ struct MobileUploadBatchTests {
         let extra = MobileUploadSFTPClient(requiresInteraction: true)
         let transfers = SFTPTransferCoordinator(store: library) { extra }
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            makePTYChannel: { SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in }, connectSFTP: { _, _, _ in primary }, writeSSH: { _, _ in })
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .sftp),
@@ -711,7 +711,7 @@ struct MobileUploadBatchTests {
         let transferClient = MobileUploadSFTPClient()
         let transfers = SFTPTransferCoordinator(store: library) { transferClient }
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            makePTYChannel: { SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { request, _, _ in
                 #expect(request.interactionPolicy == .forbidden)
@@ -751,7 +751,7 @@ struct MobileUploadBatchTests {
         let transfers = SFTPTransferCoordinator(
             store: library, clientFactory: { clients.makeClient() }, globalLimit: 15, perHostLimit: 5)
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            makePTYChannel: { SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { request, _, _ in
                 #expect(request.interactionPolicy == .forbidden)
@@ -811,7 +811,7 @@ struct MobileUploadBatchTests {
         let client = MobileUploadSFTPClient()
         let transfers = SFTPTransferCoordinator(store: library) { client }
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            makePTYChannel: { SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { _, _, _ in client },
             writeSSH: { _, _ in }
@@ -825,7 +825,7 @@ struct MobileUploadBatchTests {
         defer { workspace.disconnect() }
         workspace.connect()
         #expect(await eventually { workspace.connected })
-        await workspace.sftpSession.openDirectory("/srv/incoming")
+        await workspace.sftpChannel.openDirectory("/srv/incoming")
         let root = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         let folder = root.appending(path: "bundle", directoryHint: .isDirectory)
         let nested = folder.appending(path: "nested", directoryHint: .isDirectory)
@@ -909,7 +909,7 @@ struct MobileUploadBatchTests {
         let transferClient = MobileUploadSFTPClient(failedDownloadPaths: [broken.path])
         let transfers = SFTPTransferCoordinator(store: library) { transferClient }
         let services = MobileWorkspaceConnectionServices(
-            makeSSHSession: { SSHSessionActor(output: $0, exit: $1, shellIntegration: $2) },
+            makePTYChannel: { SSHPTYChannel(output: $0, exit: $1, shellIntegration: $2) },
             connectSSH: { _, _, _, _, _, _ in },
             connectSFTP: { _, _, _ in sessionClient },
             writeSSH: { _, _ in }

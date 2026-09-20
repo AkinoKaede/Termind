@@ -26,7 +26,7 @@ public nonisolated struct SFTPRemoteDownloadBatch: Sendable {
 public nonisolated enum SFTPRemoteDownloadPlanner {
     public static func prepare(
         _ files: [RemoteFile], destination: URL,
-        client: any SFTPClientProtocol
+        client: any SFTPChannelProtocol
     ) async throws -> SFTPRemoteDownloadBatch {
         let scoped = destination.startAccessingSecurityScopedResource()
         defer { if scoped { destination.stopAccessingSecurityScopedResource() } }
@@ -181,7 +181,7 @@ public nonisolated struct SFTPRemoteCopyBatch: Sendable {
 
 public nonisolated enum SFTPRemoteCopyPlanner {
     static func manifest(
-        files: [RemoteFile], client: any SFTPClientProtocol, regularItemsOnly: Bool = false,
+        files: [RemoteFile], client: any SFTPChannelProtocol, regularItemsOnly: Bool = false,
         cancellation: TransferCancellationToken? = nil
     ) async throws -> [SFTPRemoteManifestEntry] {
         var entries: [SFTPRemoteManifestEntry] = []
@@ -214,7 +214,7 @@ public nonisolated enum SFTPRemoteCopyPlanner {
     public static func prepare(
         _ payload: SFTPRemoteItemsPayload,
         destination: String,
-        client: any SFTPClientProtocol,
+        client: any SFTPChannelProtocol,
         coordinator: SFTPTransferCoordinator
     ) async throws -> SFTPRemoteCopyBatch {
         let manifest = try await coordinator.remoteManifest(for: payload)
@@ -257,7 +257,7 @@ public nonisolated enum SFTPRemoteCopyPlanner {
         destinationHostID: Host.ID,
         destinationConnection: SFTPTransferConnection,
         destinationHomeDirectory: String? = nil,
-        client: any SFTPClientProtocol,
+        client: any SFTPChannelProtocol,
         coordinator: SFTPTransferCoordinator,
         completion: ((SFTPTransfer.State) -> Void)? = nil
     ) async throws -> Bool {

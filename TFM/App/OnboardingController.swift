@@ -262,7 +262,7 @@ final class OnboardingController {
             case .quickOpen:
                 reason = "Waiting for an active app window."
             case .statusBarPath:
-                reason = "Open a connected SSH or SFTP session with an expanded Status Bar and a known path."
+                reason = "Open a connected SSH session or SFTP channel with an expanded Status Bar and a known path."
             case .commandGenerator:
                 reason = "Focus a supported SSH shell prompt with Shell Integration and a configured Command Generator."
             }

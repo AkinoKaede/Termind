@@ -182,7 +182,7 @@ private struct JourneyEndpointView: View {
         case .destination:
             switch purpose {
             case .sshSession: "apple.terminal.fill"
-            case .sftpSession: "folder.fill"
+            case .sftpChannel: "folder.fill"
             case .metrics: "waveform.path.ecg"
             case .portForwarding: "arrow.left.arrow.right"
             case .serialSession: "cable.connector"

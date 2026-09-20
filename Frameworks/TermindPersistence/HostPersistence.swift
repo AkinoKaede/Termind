@@ -44,7 +44,7 @@ public enum TermindSchemaV7HostModels {
             proxyPort = value.proxy?.port ?? 0
             proxyUsername = value.proxy?.username ?? ""
             proxyIdentityID = value.proxy?.identityID
-            sftpSessionInitialPath = value.sftpSessionInitialPath
+            sftpSessionInitialPath = value.sftpChannelInitialPath
             groupID = value.groupID
             tags = value.tags
             colorTag = value.colorTag.rawValue
@@ -59,7 +59,7 @@ public enum TermindSchemaV7HostModels {
                 sortIndex: sortIndex
             )
             host.jumpHostID = jumpHostID
-            host.sftpSessionInitialPath = sftpSessionInitialPath
+            host.sftpChannelInitialPath = sftpSessionInitialPath
             if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
                 host.proxy = HostProxy(
                     kind: kind, hostname: proxyHostname, port: proxyPort,
@@ -111,7 +111,7 @@ public enum TermindSchemaV8Models {
             proxyPort = value.proxy?.port ?? 0
             proxyUsername = value.proxy?.username ?? ""
             proxyIdentityID = value.proxy?.identityID
-            sftpSessionInitialPath = value.sftpSessionInitialPath
+            sftpSessionInitialPath = value.sftpChannelInitialPath
             groupID = value.groupID
             tags = value.tags
             colorTag = value.colorTag.rawValue
@@ -131,7 +131,7 @@ public enum TermindSchemaV8Models {
                 sortIndex: sortIndex
             )
             host.jumpHostID = jumpHostID
-            host.sftpSessionInitialPath = sftpSessionInitialPath
+            host.sftpChannelInitialPath = sftpSessionInitialPath
             if let proxyProtocol, let kind = HostProxy.ProtocolKind(rawValue: proxyProtocol) {
                 host.proxy = HostProxy(
                     kind: kind, hostname: proxyHostname, port: proxyPort,

@@ -41,7 +41,7 @@ public struct HostConnectionFields: View {
         Section("SFTP") {
             LabeledContent("Initial Path") {
                 TextField(
-                    "Initial Path", text: $host.sftpSessionInitialPath.singleLineText, prompt: Text("~"),
+                    "Initial Path", text: $host.sftpChannelInitialPath.singleLineText, prompt: Text("~"),
                     axis: .horizontal
                 ).singleLinePaste().lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)

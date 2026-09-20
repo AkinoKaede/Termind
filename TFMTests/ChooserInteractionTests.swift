@@ -98,7 +98,7 @@ struct ChooserInteractionTests {
         #expect(!second.model.isQuickOpenPresented)
     }
 
-    @Test(arguments: [HostOpenTarget.sshSession, .sftpSession], [1, 3])
+    @Test(arguments: [HostOpenTarget.sshSession, .sftpChannel], [1, 3])
     func batchConnectAndReturnCreateExactlyOneWorkspace(target: HostOpenTarget, count: Int) async throws {
         for useReturn in [false, true] {
             let fixture = ChooserFixture()
@@ -108,7 +108,7 @@ struct ChooserInteractionTests {
             let confirm = try fixture.element("host-chooser.confirm")
             #expect(confirm.isAccessibilityEnabled?() == false)
             #expect(fixture.model.workspaces.isEmpty)
-            if target == .sftpSession {
+            if target == .sftpChannel {
                 let picker = try #require(fixture.views.compactMap { $0 as? NSSegmentedControl }.first)
                 picker.selectedSegment = 1
                 #expect(picker.sendAction(picker.action, to: picker.target))
@@ -130,7 +130,7 @@ struct ChooserInteractionTests {
             let workspace = try #require(fixture.model.selectedWorkspace)
             #expect(workspace.panes.map(\.hostID) == fixture.hosts.prefix(count).map(\.id))
             #expect(workspace.focusedPaneID == workspace.panes.first?.id)
-            #expect(workspace.panes.allSatisfy { $0.kind == (target == .sshSession ? .sshSession : .sftpSession) })
+            #expect(workspace.panes.allSatisfy { $0.kind == (target == .sshSession ? .sshSession : .sftpChannel) })
         }
     }
 

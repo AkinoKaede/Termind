@@ -177,7 +177,7 @@ enum HostMenuEntries {
                     NativeMenuEntry(
                         title: String(localized: "with SFTP"), symbol: MenuSymbol.sftp
                     ) {
-                        app.open([host], as: .sftpSession, in: window)
+                        app.open([host], as: .sftpChannel, in: window)
                     },
                 ]
             ),
@@ -209,7 +209,7 @@ struct HostConnectMenu: View {
                 app.open(hosts, as: .sshSession, in: window)
             }
             Button("with SFTP", systemImage: MenuSymbol.sftp) {
-                app.open(hosts, as: .sftpSession, in: window)
+                app.open(hosts, as: .sftpChannel, in: window)
             }
         }
     }

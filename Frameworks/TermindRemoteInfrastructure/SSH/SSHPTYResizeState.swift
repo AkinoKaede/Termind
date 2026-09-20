@@ -52,7 +52,7 @@ nonisolated struct SSHPTYResizeState {
     }
 
     /// Drop only the failed packet, retaining any newer viewport. The same
-    /// size may be requested again without closing the terminal connection.
+    /// size may be requested again without closing the PTY Channel's connection.
     mutating func discardFailedRequest() {
         if requestedSize == inFlightSize { requestedSize = nil }
         inFlightSize = nil

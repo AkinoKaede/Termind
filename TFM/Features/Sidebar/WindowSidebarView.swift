@@ -696,7 +696,7 @@ private struct HistorySidebarView: View {
     var body: some View {
         if window.selectedWorkspace?.focusedPane.sshSession != nil {
             SSHCommandHistorySidebar()
-        } else if window.selectedWorkspace?.focusedPane.sftpSession != nil {
+        } else if window.selectedWorkspace?.focusedPane.sftpChannel != nil {
             SFTPBrowseHistorySidebar()
         } else {
             ConnectionHistorySidebar()
@@ -989,8 +989,8 @@ private struct SFTPBrowseHistorySidebar: View {
     @State private var selectedID: SFTPHistoryEntry.ID?
     @State private var confirmsClear = false
 
-    private var session: SFTPSessionModel? {
-        window.selectedWorkspace?.focusedPane.sftpSession
+    private var session: SFTPChannelModel? {
+        window.selectedWorkspace?.focusedPane.sftpChannel
     }
 
     private var entries: [SFTPHistoryEntry] {
@@ -1232,7 +1232,7 @@ private struct ConnectionHistorySidebar: View {
         .onTapGesture(count: 2) {
             app.open(
                 host,
-                as: entry.kind == .ssh ? .sshSession : .sftpSession,
+                as: entry.kind == .ssh ? .sshSession : .sftpChannel,
                 in: window
             )
         }

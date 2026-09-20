@@ -84,7 +84,7 @@ struct WindowToolbarFindTests {
 
         // Split a file browser in beside the shell and focus it. "Any session in
         // the workspace" would still answer `.terminal` here.
-        let browser = Pane.sftpSession(host: host("files"))
+        let browser = Pane.sftpChannel(host: host("files"))
         workspace.splitFocusedPane(axis: .horizontal, with: browser)
         workspace.focus(browser.id)
         #expect(window.findKind == .sftp)

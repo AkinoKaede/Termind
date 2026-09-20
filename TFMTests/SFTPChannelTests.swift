@@ -13,22 +13,22 @@ import struct TermindDomain.Host
 
 @Suite
 @MainActor
-struct SFTPSessionTests {
+struct SFTPChannelTests {
     @Test
     func workspaceSubtitleTracksSFTPPathEvenWhenRenamed() async throws {
         let host = Host(name: "Files", host: "files.example")
         let store = HostLibraryModel(hosts: [host])
-        let workspace = Workspace.sftpSession(host: host, initialPath: "/srv")
+        let workspace = Workspace.sftpChannel(host: host, initialPath: "/srv")
         let window = WindowModel(workspaces: [workspace])
-        let session = try #require(workspace.focusedPane.sftpSession)
-        try await session.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
+        let channel = try #require(workspace.focusedPane.sftpChannel)
+        try await channel.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
 
         #expect(workspace.subtitle(in: store) == "/srv")
         window.rename(workspace.id, to: "Logs")
         #expect(workspace.title(in: store) == "Logs")
         #expect(workspace.subtitle(in: store) == "/srv")
 
-        session.navigate(to: "/var/log")
+        channel.navigate(to: "/var/log")
         #expect(workspace.subtitle(in: store) == "/var/log")
     }
 
@@ -36,54 +36,54 @@ struct SFTPSessionTests {
     func workspaceWaitsForHomeThenUsesTilde() async throws {
         let host = Host(name: "Files", host: "files.example")
         let store = HostLibraryModel(hosts: [host])
-        let workspace = Workspace.sftpSession(host: host, initialPath: "/home/test/project")
-        let session = try #require(workspace.focusedPane.sftpSession)
+        let workspace = Workspace.sftpChannel(host: host, initialPath: "/home/test/project")
+        let channel = try #require(workspace.focusedPane.sftpChannel)
 
         #expect(workspace.subtitle(in: store) == nil)
-        try await session.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
+        try await channel.resolveInitialPathIfNeeded(using: LifecycleSFTPClient())
         #expect(workspace.subtitle(in: store) == "~/project")
     }
 
     @Test
     func findFocusRequestsRepeatWithoutClearingTheQuery() throws {
         let host = Host(name: "Files", host: "files.example")
-        let window = WindowModel(workspaces: [Workspace.sftpSession(host: host)])
-        let session = try #require(window.focusedSFTPSession)
-        session.query = "release"
+        let window = WindowModel(workspaces: [Workspace.sftpChannel(host: host)])
+        let channel = try #require(window.focusedSFTPChannel)
+        channel.query = "release"
 
         window.focusToolbarFind()
         window.focusToolbarFind()
 
         #expect(window.findFocusRequest == 2)
-        #expect(session.query == "release")
+        #expect(channel.query == "release")
     }
 
     @Test
-    func navigationAndHistoryBelongToTheSession() {
-        let sftpSession = SFTPSessionModel(hostID: UUID(), initialPath: "/var/log/")
+    func navigationAndHistoryBelongToTheChannel() {
+        let sftpChannel = SFTPChannelModel(hostID: UUID(), initialPath: "/var/log/")
 
-        #expect(sftpSession.path == "/var/log")
-        sftpSession.navigate(to: "/etc")
-        sftpSession.navigate(to: "/srv")
-        sftpSession.goBack()
-        #expect(sftpSession.path == "/etc")
-        #expect(sftpSession.canGoForward)
+        #expect(sftpChannel.path == "/var/log")
+        sftpChannel.navigate(to: "/etc")
+        sftpChannel.navigate(to: "/srv")
+        sftpChannel.goBack()
+        #expect(sftpChannel.path == "/etc")
+        #expect(sftpChannel.canGoForward)
 
-        sftpSession.goForward()
-        #expect(sftpSession.path == "/srv")
+        sftpChannel.goForward()
+        #expect(sftpChannel.path == "/srv")
     }
 
     @Test
-    func movingAPaneKeepsTheSameSFTPSessionAndConnection() async {
+    func movingAPaneKeepsTheSameSFTPChannelAndConnection() async {
         let host = Host(name: "Files", host: "files.example")
         let client = LifecycleSFTPClient()
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: host.id, initialPath: "/", client: client
         )
-        let source = Workspace(pane: Pane(.sftpSession(sftpSession)))
+        let source = Workspace(pane: Pane(.sftpChannel(sftpChannel)))
         let target = Workspace.sshSession(host: host)
         let pane = source.focusedPane
-        sftpSession.navigate(to: "/srv/releases")
+        sftpChannel.navigate(to: "/srv/releases")
         let window = WindowModel(workspaces: [source, target])
 
         window.merge(
@@ -92,11 +92,11 @@ struct SFTPSessionTests {
         )
 
         #expect(window.pane(pane.id) === pane)
-        guard case .sftpSession(let moved)? = window.pane(pane.id)?.content else {
+        guard case .sftpChannel(let moved)? = window.pane(pane.id)?.content else {
             Issue.record("Moved browser was lost")
             return
         }
-        #expect(moved === sftpSession)
+        #expect(moved === sftpChannel)
         #expect(moved.path == "/srv/releases")
         await Task.yield()
         #expect(await client.disconnectCount == 0)
@@ -105,23 +105,23 @@ struct SFTPSessionTests {
     @Test
     func duplicateCreatesAnIndependentDefaultBrowser() {
         let host = Host(name: "Files", host: "files.example")
-        let original = Pane.sftpSession(host: host)
-        guard case .sftpSession(let sftpSession) = original.content else {
-            Issue.record("Expected an SFTP session pane")
+        let original = Pane.sftpChannel(host: host)
+        guard case .sftpChannel(let sftpChannel) = original.content else {
+            Issue.record("Expected an SFTP channel pane")
             return
         }
-        sftpSession.navigate(to: "/srv/releases")
+        sftpChannel.navigate(to: "/srv/releases")
 
-        guard let copy = original.copy(), case .sftpSession(let duplicate) = copy.content else {
-            Issue.record("Expected a duplicated SFTP session pane")
+        guard let copy = original.copy(), case .sftpChannel(let duplicate) = copy.content else {
+            Issue.record("Expected a duplicated SFTP channel pane")
             return
         }
 
-        #expect(duplicate !== sftpSession)
-        #expect(duplicate.hostID == sftpSession.hostID)
+        #expect(duplicate !== sftpChannel)
+        #expect(duplicate.hostID == sftpChannel.hostID)
         #expect(duplicate.path == "/")
         duplicate.navigate(to: "/tmp")
-        #expect(sftpSession.path == "/srv/releases")
+        #expect(sftpChannel.path == "/srv/releases")
     }
 
     @Test
@@ -132,7 +132,7 @@ struct SFTPSessionTests {
             remotePath: "/srv/archive.zip"
         )
         let store = HostLibraryModel(hosts: [host], sftpTransfers: [sftpTransfer])
-        let workspace = Workspace.sftpSession(host: host)
+        let workspace = Workspace.sftpChannel(host: host)
         let window = WindowModel(workspaces: [workspace])
 
         window.closePane(workspace.focusedPane.id)
@@ -145,17 +145,17 @@ struct SFTPSessionTests {
     func closingBrowserDisconnectsItsBrowsingConnection() async {
         let host = Host(name: "Files", host: "files.example")
         let client = LifecycleSFTPClient()
-        let sftpSession = SFTPSessionModel(
+        let sftpChannel = SFTPChannelModel(
             hostID: host.id, initialPath: "/", client: client
         )
-        let workspace = Workspace(pane: Pane(.sftpSession(sftpSession)))
+        let workspace = Workspace(pane: Pane(.sftpChannel(sftpChannel)))
         let window = WindowModel(workspaces: [workspace])
 
         window.closePane(workspace.focusedPane.id)
         while await client.disconnectCount == 0 { await Task.yield() }
 
         #expect(await client.disconnectCount == 1)
-        #expect(sftpSession.status == .disconnected)
+        #expect(sftpChannel.status == .disconnected)
     }
 }
 

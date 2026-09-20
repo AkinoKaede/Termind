@@ -16,7 +16,7 @@ struct SSHHandshakeDiagnosticsTests {
             username: "deploy", credentials: [.password("test-only")],
             expectedHostKeys: []
         )
-        let session = SSHSessionActor(output: { _ in }, exit: { _ in })
+        let session = SSHPTYChannel(output: { _ in }, exit: { _ in })
 
         do {
             try await session.connect(
@@ -42,7 +42,7 @@ struct SSHHandshakeDiagnosticsTests {
         defer { server.close() }
 
         do {
-            _ = try await SSHSessionWorker.openAuthenticatedSession(
+            _ = try await SSHConnectionOpener.openAuthenticatedConnection(
                 using: request(for: server), timeout: 2
             )
             Issue.record("Expected the invalid banner to fail")
@@ -58,7 +58,7 @@ struct SSHHandshakeDiagnosticsTests {
         defer { server.close() }
 
         do {
-            _ = try await SSHSessionWorker.openAuthenticatedSession(
+            _ = try await SSHConnectionOpener.openAuthenticatedConnection(
                 using: request(for: server), timeout: 2
             )
             Issue.record("Expected the reset connection to fail")
@@ -73,7 +73,7 @@ struct SSHHandshakeDiagnosticsTests {
         defer { server.close() }
 
         do {
-            _ = try await SSHSessionWorker.openAuthenticatedSession(
+            _ = try await SSHConnectionOpener.openAuthenticatedConnection(
                 using: request(for: server), timeout: 1
             )
             Issue.record("Expected the silent peer to time out")

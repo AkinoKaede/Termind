@@ -6,8 +6,8 @@ import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
-protocol SFTPSessionNavigationRouting: AnyObject {
-    func sftpSession(_ sftpSession: SFTPSessionModel, didChangePath path: String)
+protocol SFTPChannelNavigationRouting: AnyObject {
+    func sftpChannel(_ sftpChannel: SFTPChannelModel, didChangePath path: String)
 }
 
 /// One row of the browser, with its display strings already rendered.
@@ -85,7 +85,7 @@ private struct SFTPDirectoryPresentation {
 }
 
 @Observable
-final class SFTPSessionModel: Identifiable {
+final class SFTPChannelModel: Identifiable {
     let id = UUID()
     let hostID: Host.ID
     let initialPath: String
@@ -93,7 +93,7 @@ final class SFTPSessionModel: Identifiable {
     private(set) var path: String {
         didSet {
             guard path != oldValue else { return }
-            navigationRouter?.sftpSession(self, didChangePath: path)
+            navigationRouter?.sftpChannel(self, didChangePath: path)
         }
     }
     var pathText: String
@@ -149,8 +149,8 @@ final class SFTPSessionModel: Identifiable {
     var operationError: String?
     private(set) var canCancelOperation = false
 
-    private var client: (any SFTPClientProtocol)?
-    private var transferSession: SFTPTransferSession?
+    private var client: (any SFTPChannelProtocol)?
+    private var transferContext: SFTPTransferContext?
     private var configuration: SSHConnectionConfiguration?
     private var usesEphemeralCredentials = false
     private var connectionTask: Task<Void, Never>?
@@ -165,7 +165,7 @@ final class SFTPSessionModel: Identifiable {
     private var connectionAttemptID: UUID?
     private var reconnectController: SessionReconnectController { connection.reconnect }
     private var operationCancellation: TransferCancellationToken?
-    weak var navigationRouter: (any SFTPSessionNavigationRouting)?
+    weak var navigationRouter: (any SFTPChannelNavigationRouting)?
     private weak var statusStore: (any RemoteSessionHostStore)?
     private weak var transferCoordinator: SFTPTransferCoordinator?
     weak var historyStore: SFTPHistoryModel?
@@ -176,7 +176,7 @@ final class SFTPSessionModel: Identifiable {
     init(
         hostID: Host.ID,
         initialPath: String = "",
-        client: (any SFTPClientProtocol)? = nil,
+        client: (any SFTPChannelProtocol)? = nil,
         configuration: SSHConnectionConfiguration? = nil,
         primaryRole: SFTPTransferPrimaryRole = .control,
         homeResolution: RemoteHomeResolutionState = .pending,
@@ -192,8 +192,8 @@ final class SFTPSessionModel: Identifiable {
         startsOnMount = client == nil
         self.configuration = configuration
         if let client, let configuration {
-            transferSession = SFTPTransferSession(
-                configuration: configuration, client: client, primaryRole: primaryRole)
+            transferContext = SFTPTransferContext(
+                configuration: configuration, channel: client, primaryRole: primaryRole)
         }
         self.homeResolution = homeResolution
         self.automaticRefreshInterval = automaticRefreshInterval
@@ -268,7 +268,7 @@ final class SFTPSessionModel: Identifiable {
     }
 
     private var transferConnection: SFTPTransferConnection? {
-        transferSession.map(SFTPTransferConnection.session)
+        transferContext.map(SFTPTransferConnection.context)
     }
 
     func prepareForReopen() {
@@ -305,7 +305,7 @@ final class SFTPSessionModel: Identifiable {
         let route = store.route(for: host)
         let suppliedAuthentication = suppliedAuthentications[host.id]
         connectionJourney.begin(
-            host: host, route: route, purpose: .sftpSession,
+            host: host, route: route, purpose: .sftpChannel,
             username: suppliedAuthentication?.username ?? store.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection
         )
@@ -416,7 +416,7 @@ final class SFTPSessionModel: Identifiable {
                 self.connectionJourney.receive(.connected(host.id))
                 self.client = client
                 let transferConfiguration = store.configurationForAdditionalConnection(from: configuration)
-                self.transferSession = SFTPTransferSession(configuration: transferConfiguration, client: client)
+                self.transferContext = SFTPTransferContext(configuration: transferConfiguration, channel: client)
                 self.configuration = transferConfiguration
                 self.suppliedAuthentications.removeAll()
                 self.temporaryHostKeys.removeAll()
@@ -504,8 +504,8 @@ final class SFTPSessionModel: Identifiable {
         uploadRefreshTask?.cancel()
         uploadRefreshTask = nil
         let client = client
-        let transferSession = transferSession
-        self.transferSession = nil
+        let transferContext = transferContext
+        self.transferContext = nil
         self.client = nil
         configuration = nil
         usesEphemeralCredentials = false
@@ -513,7 +513,7 @@ final class SFTPSessionModel: Identifiable {
         homeResolution = .unavailable
         replaceDirectoryContents(with: [])
         Task {
-            if let transferSession { await transferSession.releaseOwner() } else { await client?.disconnect() }
+            if let transferContext { await transferContext.releaseOwner() } else { await client?.disconnect() }
         }
     }
 
@@ -530,8 +530,8 @@ final class SFTPSessionModel: Identifiable {
         automaticRefreshTask?.cancel()
         automaticRefreshTask = nil
         let client = client
-        let transferSession = transferSession
-        self.transferSession = nil
+        let transferContext = transferContext
+        self.transferContext = nil
         self.client = nil
         configuration = nil
         status = .failed(reconnectState.lastError)
@@ -539,11 +539,11 @@ final class SFTPSessionModel: Identifiable {
         hint = reconnectState.lastError
         connectionJourney.fail(reconnectState.lastError)
         Task {
-            if let transferSession { await transferSession.retire() } else { await client?.disconnect() }
+            if let transferContext { await transferContext.retire() } else { await client?.disconnect() }
         }
     }
 
-    func resolveInitialPathIfNeeded(using client: any SFTPClientProtocol) async throws {
+    func resolveInitialPathIfNeeded(using client: any SFTPChannelProtocol) async throws {
         guard !didResolveHomeForConnection else { return }
         didResolveHomeForConnection = true
         do {
@@ -561,7 +561,7 @@ final class SFTPSessionModel: Identifiable {
             homeResolution = .unavailable
             guard !initialPath.isEmpty else { throw error }
         }
-        navigationRouter?.sftpSession(self, didChangePath: path)
+        navigationRouter?.sftpChannel(self, didChangePath: path)
     }
 
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
@@ -1000,8 +1000,8 @@ final class SFTPSessionModel: Identifiable {
         }
     }
 
-    func copyForBrowsing() -> SFTPSessionModel {
-        let copy = SFTPSessionModel(hostID: hostID, initialPath: initialPath)
+    func copyForBrowsing() -> SFTPChannelModel {
+        let copy = SFTPChannelModel(hostID: hostID, initialPath: initialPath)
         copy.connectionCoordinator = connectionCoordinator
         return copy
     }
@@ -1065,15 +1065,15 @@ final class SFTPSessionModel: Identifiable {
         uploadRefreshTask?.cancel()
         uploadRefreshTask = nil
         let client = client
-        let transferSession = transferSession
-        self.transferSession = nil
+        let transferContext = transferContext
+        self.transferContext = nil
         self.client = nil
         configuration = nil
         status = .reconnecting
         hint = String(localized: "Reconnecting")
         let host = store.host(hostID)
         connection.presentReconnectJourney(
-            host: host, using: store, purpose: .sftpSession,
+            host: host, using: store, purpose: .sftpChannel,
             username: host.flatMap { store.identity(for: $0)?.username }
         )
         connection.scheduleRecovery(after: message) { [weak self, weak store] in
@@ -1081,12 +1081,12 @@ final class SFTPSessionModel: Identifiable {
             self.startConnection(using: store)
         }
         Task {
-            if let transferSession { await transferSession.retire() } else { await client?.disconnect() }
+            if let transferContext { await transferContext.retire() } else { await client?.disconnect() }
         }
     }
 
     private func deleteRecursively(
-        _ file: RemoteFile, client: any SFTPClientProtocol,
+        _ file: RemoteFile, client: any SFTPChannelProtocol,
         cancellation: TransferCancellationToken? = nil
     ) async throws {
         if cancellation?.isCancelled == true { throw SFTPError.cancelled }
@@ -1106,11 +1106,11 @@ final class SFTPSessionModel: Identifiable {
 
 // MARK: - Demo data
 
-extension SFTPSessionModel {
+extension SFTPChannelModel {
     /// A populated browser backed only by value data. It deliberately has no
     /// client, so screenshot and preview work can never mutate a remote host.
-    static func demo(hostID: Host.ID, path: String = "/etc/nginx") -> SFTPSessionModel {
-        let session = SFTPSessionModel(hostID: hostID, initialPath: path)
+    static func demo(hostID: Host.ID, path: String = "/etc/nginx") -> SFTPChannelModel {
+        let session = SFTPChannelModel(hostID: hostID, initialPath: path)
         session.status = .connected
         let now = Date(timeIntervalSinceReferenceDate: 809_020_800)
         session.replaceDirectoryContents(with: [

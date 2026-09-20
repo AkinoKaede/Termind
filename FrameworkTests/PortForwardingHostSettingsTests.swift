@@ -20,7 +20,7 @@ struct PortForwardingHostSettingsTests {
             """
             {
               "id":"11111111-1111-1111-1111-111111111111", "name":"Old", "host":"old.invalid", "port":22,
-              "sftpSessionInitialPath":"", "tags":[], "colorTag":"none", "sortIndex":0
+              "sftpChannelInitialPath":"", "tags":[], "colorTag":"none", "sortIndex":0
             }
             """.utf8)
         #expect(try JSONDecoder().decode(Host.self, from: old).portForwardingMaxConnections == 1)

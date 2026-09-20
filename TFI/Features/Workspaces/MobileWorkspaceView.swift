@@ -183,13 +183,13 @@ struct MobileWorkspaceView: View {
         if isSFTP {
             MobileToolbarOverflow(placement: .topBarTrailing) {
                 Button("Previous Location", systemImage: "chevron.left") {
-                    Task { await workspace.sftpSession.goBack() }
+                    Task { await workspace.sftpChannel.goBack() }
                 }
-                .disabled(!workspace.connected || !workspace.sftpSession.canGoBack)
+                .disabled(!workspace.connected || !workspace.sftpChannel.canGoBack)
                 Button("Next Location", systemImage: "chevron.right") {
-                    Task { await workspace.sftpSession.goForward() }
+                    Task { await workspace.sftpChannel.goForward() }
                 }
-                .disabled(!workspace.connected || !workspace.sftpSession.canGoForward)
+                .disabled(!workspace.connected || !workspace.sftpChannel.canGoForward)
                 Divider()
                 Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
                 Button("History", systemImage: "clock") { terminalSheet = .sftpHistory }
@@ -201,19 +201,19 @@ struct MobileWorkspaceView: View {
                 Button("Paste", systemImage: "doc.on.clipboard", action: pasteRemoteItems)
                     .disabled(!workspace.connected)
                 sortMenu
-                if workspace.sftpSession.showsHiddenFiles {
+                if workspace.sftpChannel.showsHiddenFiles {
                     Button("Hide Hidden Files", systemImage: "eye.slash") {
-                        workspace.sftpSession.showsHiddenFiles = false
+                        workspace.sftpChannel.showsHiddenFiles = false
                     }
                 } else {
                     Button("Show Hidden Files", systemImage: "eye") {
-                        workspace.sftpSession.showsHiddenFiles = true
+                        workspace.sftpChannel.showsHiddenFiles = true
                     }
                 }
                 Button("Refresh", systemImage: "arrow.clockwise") {
-                    Task { await workspace.sftpSession.reload() }
+                    Task { await workspace.sftpChannel.reload() }
                 }
-                .disabled(!workspace.connected || workspace.sftpSession.isRefreshing)
+                .disabled(!workspace.connected || workspace.sftpChannel.isRefreshing)
                 Divider()
                 sameDirectoryMenuAction
                 Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
@@ -363,7 +363,7 @@ struct MobileWorkspaceView: View {
                 TextField("Name", text: $directoryName.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
                 Button("Create") {
                     Task {
-                        await workspace.sftpSession.createDirectory(directoryName)
+                        await workspace.sftpChannel.createDirectory(directoryName)
                         directoryName = ""
                     }
                 }
@@ -374,7 +374,7 @@ struct MobileWorkspaceView: View {
                 titleVisibility: .visible
             ) {
                 Button("Delete", role: .destructive) {
-                    if let file = deleting { Task { await workspace.sftpSession.delete(file) } }
+                    if let file = deleting { Task { await workspace.sftpChannel.delete(file) } }
                     deleting = nil
                 }
             }
@@ -388,7 +388,7 @@ struct MobileWorkspaceView: View {
             ) {
                 Button("OK", role: .cancel) {
                     workspace.operationError = nil
-                    workspace.sftpSession.operationError = nil
+                    workspace.sftpChannel.operationError = nil
                 }
             } message: {
                 Text(presentedOperationError ?? "")
@@ -422,7 +422,7 @@ struct MobileWorkspaceView: View {
             connectionJourney
         } else {
             MobileSFTPBrowser(
-                session: workspace.sftpSession,
+                channel: workspace.sftpChannel,
                 connected: workspace.connected,
                 bottomContentInset: editedFiles.isEmpty
                     ? 0 : (editRowHeight + 1) * Double(min(3, editedFiles.count)) + 24,
@@ -468,7 +468,7 @@ struct MobileWorkspaceView: View {
 
     private func open(_ file: RemoteFile) {
         if file.isDirectory {
-            Task { await workspace.sftpSession.openDirectory(file.path) }
+            Task { await workspace.sftpChannel.openDirectory(file.path) }
         } else {
             _ = workspace.preview(file) { url in
                 Task { @MainActor in presentPreview(url) }
@@ -492,7 +492,7 @@ struct MobileWorkspaceView: View {
     private func reopenHistory(_ entry: SFTPHistoryEntry) {
         switch entry.kind {
         case .directory:
-            Task { await workspace.sftpSession.openDirectory(entry.path) }
+            Task { await workspace.sftpChannel.openDirectory(entry.path) }
         case .file:
             Task {
                 _ = await workspace.reopenHistoryFile(at: entry.path) { url in
@@ -596,19 +596,19 @@ struct MobileWorkspaceView: View {
         _ title: LocalizedStringKey, field: RemoteFileSortField, symbol: String
     ) -> some View {
         Button {
-            workspace.sftpSession.sort(by: field)
+            workspace.sftpChannel.sort(by: field)
         } label: {
             Label(
                 title,
-                systemImage: workspace.sftpSession.sortField == field
-                    ? (workspace.sftpSession.sortDirection == .ascending ? "chevron.up" : "chevron.down")
+                systemImage: workspace.sftpChannel.sortField == field
+                    ? (workspace.sftpChannel.sortDirection == .ascending ? "chevron.up" : "chevron.down")
                     : symbol
             )
         }
     }
 
     private var sortFieldTitle: String {
-        switch workspace.sftpSession.sortField {
+        switch workspace.sftpChannel.sortField {
         case .name: String(localized: "Name")
         case .modified: String(localized: "Date")
         case .size: String(localized: "Size")
@@ -643,7 +643,7 @@ struct MobileWorkspaceView: View {
     }
 
     private var presentedOperationError: String? {
-        workspace.operationError ?? workspace.sftpSession.operationError
+        workspace.operationError ?? workspace.sftpChannel.operationError
     }
 
     private var operationAlertTitle: String {
@@ -658,7 +658,7 @@ struct MobileWorkspaceView: View {
             set: {
                 if !$0 {
                     workspace.operationError = nil
-                    workspace.sftpSession.operationError = nil
+                    workspace.sftpChannel.operationError = nil
                 }
             }
         )
@@ -822,8 +822,8 @@ private struct MobileWorkspaceSearchModifier: ViewModifier {
             content
                 .mobileToolbarSearch(
                     text: Binding(
-                        get: { workspace.sftpSession.query },
-                        set: { workspace.sftpSession.query = $0 }
+                        get: { workspace.sftpChannel.query },
+                        set: { workspace.sftpChannel.query = $0 }
                     ),
                     prompt: Text("Search")
                 )

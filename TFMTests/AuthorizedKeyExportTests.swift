@@ -12,7 +12,7 @@ import Testing
 struct AuthorizedKeyExportTests {
     @Test
     func exportPlacesTheKeyNameCommentAboveThePublicKey() throws {
-        let input = try SSHSessionWorker.authorizedKeyInstallInput(
+        let input = try SSHConnectionOpener.authorizedKeyInstallInput(
             publicKey: "ssh-ed25519 AAAAC3Nza test@example.com",
             keyName: "Production"
         )
@@ -25,7 +25,7 @@ struct AuthorizedKeyExportTests {
 
     @Test
     func exportKeepsTheGeneratedCommentOnOneLine() throws {
-        let input = try SSHSessionWorker.authorizedKeyInstallInput(
+        let input = try SSHConnectionOpener.authorizedKeyInstallInput(
             publicKey: "ssh-ed25519 AAAAC3Nza",
             keyName: "  Production\n\tServer  "
         )

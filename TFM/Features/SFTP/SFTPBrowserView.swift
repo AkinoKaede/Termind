@@ -183,7 +183,7 @@ struct SFTPBrowserView: View {
         }
     }
 
-    let sftpSession: SFTPSessionModel
+    let sftpChannel: SFTPChannelModel
     let isPaneFocused: Bool
     let focusPane: () -> Void
     let externalFileDrop: LocalFileDropRequest?
@@ -210,22 +210,22 @@ struct SFTPBrowserView: View {
     @FocusState private var pathFocused: Bool
 
     @ScaledMetric private var editRowHeight = 76.0
-    private var editedFiles: [SFTPEditedFile] { app.sftpEdits.model.modifiedFiles(for: sftpSession.hostID) }
+    private var editedFiles: [SFTPEditedFile] { app.sftpEdits.model.modifiedFiles(for: sftpChannel.hostID) }
     private var editOverlayHeight: CGFloat { (editRowHeight + 1) * Double(min(3, editedFiles.count)) }
 
     private var editUploadOverlay: some View {
         SFTPEditUploadOverlay(
             files: editedFiles, transfers: app.sftpTransfers.sftpTransfers,
-            connected: sftpSession.status == .connected,
+            connected: sftpChannel.status == .connected,
             upload: { id, replacing in
-                await sftpSession.uploadEdit(id, using: app.sftpEdits, replacing: replacing)
+                await sftpChannel.uploadEdit(id, using: app.sftpEdits, replacing: replacing)
             },
             resume: { app.sftpTransfers.resume($0) },
             open: { NSWorkspace.shared.open($0) },
             discard: { await app.sftpEdits.discard($0) },
             keepLocalCopy: { source in
                 SFTPLocalCopyExporter.present(for: source) {
-                    sftpSession.operationError = $0.localizedDescription
+                    sftpChannel.operationError = $0.localizedDescription
                 }
             }
         )
@@ -234,7 +234,7 @@ struct SFTPBrowserView: View {
     }
 
     private var deleteConfirmationMessage: String {
-        let paths = deleteTargets.prefix(6).map { sftpSession.displayPath($0.path) }
+        let paths = deleteTargets.prefix(6).map { sftpChannel.displayPath($0.path) }
             .joined(separator: "\n")
         let remainder = max(0, deleteTargets.count - 6)
         let suffix = remainder > 0 ? "\nand \(remainder) more" : ""
@@ -242,7 +242,7 @@ struct SFTPBrowserView: View {
     }
 
     private var conflictTitle: String {
-        let count = sftpSession.conflictCount
+        let count = sftpChannel.conflictCount
         return count == 1
             ? String(localized: "1 item already exists")
             : String(localized: "\(count) items already exist")
@@ -287,7 +287,7 @@ struct SFTPBrowserView: View {
     }
 
     private func browser(layout: Layout) -> some View {
-        @Bindable var sftpSession = sftpSession
+        @Bindable var sftpChannel = sftpChannel
         return ZStack {
             VStack(spacing: 0) {
                 VStack(spacing: 0) {
@@ -300,31 +300,31 @@ struct SFTPBrowserView: View {
                     .overlay(alignment: .bottom) { editUploadOverlay }
             }
 
-            if sftpSession.connectionJourney.isPresented {
+            if sftpChannel.connectionJourney.isPresented {
                 ConnectionJourneyView(
-                    journey: sftpSession.connectionJourney,
-                    authenticationPrompt: sftpSession.pendingAuthentication,
-                    hostKey: sftpSession.pendingHostKey,
+                    journey: sftpChannel.connectionJourney,
+                    authenticationPrompt: sftpChannel.pendingAuthentication,
+                    hostKey: sftpChannel.pendingHostKey,
                     submitAuthentication: {
                         identityID, username, password, passphrase, keyID, save in
-                        sftpSession.continueAuthentication(
+                        sftpChannel.continueAuthentication(
                             identityID: identityID, username: username, password: password,
                             passphrase: passphrase, keyID: keyID, save: save, using: app.transfers
                         )
                     },
                     continueHostKey: {
-                        sftpSession.continueWithTemporaryHostKey($0)
+                        sftpChannel.continueWithTemporaryHostKey($0)
                     },
-                    trustHostKey: { sftpSession.trustAndConnect($0, using: app.transfers) },
+                    trustHostKey: { sftpChannel.trustAndConnect($0, using: app.transfers) },
                     denyHostKey: {
                         cancelConnection()
                     },
-                    retry: { sftpSession.connect(using: app.transfers) },
+                    retry: { sftpChannel.connect(using: app.transfers) },
                     cancel: cancelConnection,
-                    reconnectState: sftpSession.reconnectState,
-                    retryReconnectNow: sftpSession.retryReconnectNow,
-                    stopReconnecting: sftpSession.stopReconnecting,
-                    keyboardAuthentication: sftpSession.connection.keyboardAuthentication
+                    reconnectState: sftpChannel.reconnectState,
+                    retryReconnectNow: sftpChannel.retryReconnectNow,
+                    stopReconnecting: sftpChannel.stopReconnecting,
+                    keyboardAuthentication: sftpChannel.connection.keyboardAuthentication
                 )
                 .zIndex(10)
             }
@@ -335,9 +335,9 @@ struct SFTPBrowserView: View {
         .contextMenu { browserLocationMenu }
         .background(TermindColor.windowSurface)
         .onAppear {
-            sftpSession.bindTransfers(to: app.sftpTransfers)
-            sftpSession.connectIfNeeded(using: app.transfers)
-            sftpSession.startAutomaticRefresh()
+            sftpChannel.bindTransfers(to: app.sftpTransfers)
+            sftpChannel.connectIfNeeded(using: app.transfers)
+            sftpChannel.startAutomaticRefresh()
         }
         .alert("New Folder", isPresented: $newFolderPresented) {
             TextField("Folder Name", text: $newFolderName.singleLineText, axis: .horizontal).singleLinePaste()
@@ -346,7 +346,7 @@ struct SFTPBrowserView: View {
             Button("Create") {
                 let name = newFolderName
                 newFolderName = ""
-                Task { await sftpSession.createFolder(named: name) }
+                Task { await sftpChannel.createFolder(named: name) }
             }
         }
         .alert(
@@ -362,19 +362,19 @@ struct SFTPBrowserView: View {
                 guard let target = renameTarget else { return }
                 let name = renameName
                 renameTarget = nil
-                Task { await sftpSession.rename(target, to: name) }
+                Task { await sftpChannel.rename(target, to: name) }
             }
         }
         .sheet(item: $permissionTarget) { file in
             SFTPEditPermissionsSheet(
-                file: file, displayedPath: sftpSession.displayPath(file.path)
+                file: file, displayedPath: sftpChannel.displayPath(file.path)
             ) { permissions in
-                await sftpSession.updatePermissions(for: file, to: permissions)
+                await sftpChannel.updatePermissions(for: file, to: permissions)
             }
         }
         .confirmationDialog(
             deleteTargets.count == 1
-                ? "Delete \(deleteTargets.first.map { sftpSession.displayPath($0.path) } ?? "")?"
+                ? "Delete \(deleteTargets.first.map { sftpChannel.displayPath($0.path) } ?? "")?"
                 : "Delete \(deleteTargets.count) items?",
             isPresented: Binding(
                 get: { !deleteTargets.isEmpty },
@@ -384,7 +384,7 @@ struct SFTPBrowserView: View {
             Button("Delete", role: .destructive) {
                 let targets = deleteTargets
                 deleteTargets = []
-                Task { await sftpSession.delete(targets) }
+                Task { await sftpChannel.delete(targets) }
             }
             Button("Cancel", role: .cancel) { deleteTargets = [] }
         } message: {
@@ -398,7 +398,7 @@ struct SFTPBrowserView: View {
             Button("Skip Existing") { enqueue(.skip) }
             Button("Keep Both") { enqueue(.keepBoth) }
             Button("Cancel", role: .cancel) {
-                sftpSession.cancelPendingBatch()
+                sftpChannel.cancelPendingBatch()
             }
         } message: {
             Text("Use this choice for all conflicts in this batch.")
@@ -406,18 +406,18 @@ struct SFTPBrowserView: View {
         .alert(
             "SFTP Error",
             isPresented: Binding(
-                get: { sftpSession.operationError != nil },
-                set: { if !$0 { sftpSession.operationError = nil } }
+                get: { sftpChannel.operationError != nil },
+                set: { if !$0 { sftpChannel.operationError = nil } }
             )
         ) {
-            Button("OK") { sftpSession.operationError = nil }
+            Button("OK") { sftpChannel.operationError = nil }
         } message: {
-            Text(sftpSession.operationError ?? "")
+            Text(sftpChannel.operationError ?? "")
         }
         .background {
             Button("") { beginPathEditing() }
                 .termindShortcut("l")
-                .disabled(sftpSession.connectionJourney.isPresented)
+                .disabled(sftpChannel.connectionJourney.isPresented)
                 .opacity(0)
                 .frame(width: 0, height: 0)
                 .accessibilityHidden(true)
@@ -425,25 +425,25 @@ struct SFTPBrowserView: View {
     }
 
     private func cancelConnection() {
-        sftpSession.disconnect()
+        sftpChannel.disconnect()
         closePane()
     }
 
     private func pathBar(layout: Layout) -> some View {
-        @Bindable var sftpSession = sftpSession
+        @Bindable var sftpChannel = sftpChannel
         return VStack(spacing: 0) {
             HStack(spacing: Metrics.Space.m) {
                 HStack(spacing: Metrics.Space.xs) {
-                    navigationButton("chevron.left", help: "Back", enabled: sftpSession.canGoBack) {
-                        sftpSession.goBack()
+                    navigationButton("chevron.left", help: "Back", enabled: sftpChannel.canGoBack) {
+                        sftpChannel.goBack()
                     }
-                    navigationButton("chevron.right", help: "Forward", enabled: sftpSession.canGoForward) {
-                        sftpSession.goForward()
+                    navigationButton("chevron.right", help: "Forward", enabled: sftpChannel.canGoForward) {
+                        sftpChannel.goForward()
                     }
                 }
 
                 if editsPath {
-                    TextField("Remote Path", text: $sftpSession.pathText.singleLineText, axis: .horizontal)
+                    TextField("Remote Path", text: $sftpChannel.pathText.singleLineText, axis: .horizontal)
                         .singleLinePaste().lineLimit(1)
                         .textFieldStyle(.plain)
                         .font(.body.monospaced())
@@ -464,7 +464,7 @@ struct SFTPBrowserView: View {
                         Image(systemName: "arrow.up.doc")
                     }
                 }
-                .disabled(sftpSession.status != .connected)
+                .disabled(sftpChannel.status != .connected)
                 .help("Upload")
 
                 actionsMenu(layout: layout)
@@ -495,22 +495,22 @@ struct SFTPBrowserView: View {
     private func actionsMenu(layout: Layout) -> some View {
         Menu {
             Button("New Folder", systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
-                .disabled(sftpSession.status != .connected)
+                .disabled(sftpChannel.status != .connected)
             Button("Paste", systemImage: MenuSymbol.paste) { pasteRemoteItems() }
-                .disabled(sftpSession.status != .connected || !canPasteRemoteItems)
+                .disabled(sftpChannel.status != .connected || !canPasteRemoteItems)
             Divider()
-            if sftpSession.showsHiddenFiles {
+            if sftpChannel.showsHiddenFiles {
                 Button("Hide Hidden Files", systemImage: MenuSymbol.hideHiddenFiles) {
-                    sftpSession.showsHiddenFiles = false
+                    sftpChannel.showsHiddenFiles = false
                 }
             } else {
                 Button("Show Hidden Files", systemImage: MenuSymbol.showHiddenFiles) {
-                    sftpSession.showsHiddenFiles = true
+                    sftpChannel.showsHiddenFiles = true
                 }
             }
             Button("Edit Path", systemImage: MenuSymbol.editPath) { beginPathEditing() }
-            Button("Refresh", systemImage: MenuSymbol.refresh) { sftpSession.reloadNow() }
-                .disabled(sftpSession.status != .connected || sftpSession.isLoading)
+            Button("Refresh", systemImage: MenuSymbol.refresh) { sftpChannel.reloadNow() }
+                .disabled(sftpChannel.status != .connected || sftpChannel.isLoading)
         } label: {
             if layout == .full {
                 HStack(spacing: Metrics.Space.s) {
@@ -528,7 +528,7 @@ struct SFTPBrowserView: View {
 
     private func breadcrumbs(layout: Layout) -> some View {
         let components = RemotePath.displayedComponents(
-            of: sftpSession.path, home: sftpSession.homeResolution
+            of: sftpChannel.path, home: sftpChannel.homeResolution
         )
         let tailCount =
             switch layout {
@@ -567,7 +567,7 @@ struct SFTPBrowserView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .lineLimit(1)
         .truncationMode(.middle)
-        .help(sftpSession.displayPath(sftpSession.path))
+        .help(sftpChannel.displayPath(sftpChannel.path))
     }
 
     private var breadcrumbSeparator: some View {
@@ -582,7 +582,7 @@ struct SFTPBrowserView: View {
         HStack(spacing: Metrics.Space.s) {
             if isRoot { Image(systemName: "folder.fill").foregroundStyle(.tint) }
             Text(component.name)
-                .font(.body.weight(component.path == sftpSession.path ? .medium : .regular))
+                .font(.body.weight(component.path == sftpChannel.path ? .medium : .regular))
                 .lineLimit(1)
                 .truncationMode(.middle)
         }
@@ -591,19 +591,19 @@ struct SFTPBrowserView: View {
     }
 
     private func beginPathEditing() {
-        sftpSession.pathText = sftpSession.path
+        sftpChannel.pathText = sftpChannel.path
         editsPath = true
         Task { @MainActor in pathFocused = true }
     }
 
     private func commitPathEditing() {
-        sftpSession.commitPathText()
+        sftpChannel.commitPathText()
         editsPath = false
         pathFocused = false
     }
 
     private func cancelPathEditing() {
-        sftpSession.pathText = sftpSession.path
+        sftpChannel.pathText = sftpChannel.path
         editsPath = false
         pathFocused = false
     }
@@ -613,29 +613,29 @@ struct SFTPBrowserView: View {
         ZStack {
             fileList(layout: layout)
 
-            if sftpSession.status == .disconnected, !sftpSession.connectionJourney.isPresented {
+            if sftpChannel.status == .disconnected, !sftpChannel.connectionJourney.isPresented {
                 VStack(spacing: Metrics.Space.l) {
                     Image(systemName: "folder.badge.questionmark")
                         .font(.largeTitle).foregroundStyle(.tertiary)
                     Text("Not connected").foregroundStyle(.secondary)
-                    Button("Connect") { sftpSession.connect(using: app.transfers) }
+                    Button("Connect") { sftpChannel.connect(using: app.transfers) }
                         .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(TermindColor.windowSurface)
-            } else if sftpSession.files.isEmpty, sftpSession.isLoading {
+            } else if sftpChannel.files.isEmpty, sftpChannel.isLoading {
                 centeredState("Loading", symbol: "arrow.triangle.2.circlepath", progress: true)
                     .background(TermindColor.windowSurface)
-            } else if sftpSession.files.isEmpty, sftpSession.status == .connected {
+            } else if sftpChannel.files.isEmpty, sftpChannel.status == .connected {
                 centeredState("This folder is empty", symbol: "folder", progress: false)
                     .background(TermindColor.windowSurface)
-            } else if sftpSession.visibleRows.isEmpty, !sftpSession.query.isEmpty {
-                ContentUnavailableView.search(text: sftpSession.query)
+            } else if sftpChannel.visibleRows.isEmpty, !sftpChannel.query.isEmpty {
+                ContentUnavailableView.search(text: sftpChannel.query)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .background(TermindColor.windowSurface)
             }
         }
-        .onCopyCommand { remoteCopyProviders(for: sftpSession.selectedFiles) }
+        .onCopyCommand { remoteCopyProviders(for: sftpChannel.selectedFiles) }
         .onPasteCommand(of: [.termindSFTPItems]) { providers in
             _ = receiveRemoteItemProviders(providers)
         }
@@ -652,14 +652,14 @@ struct SFTPBrowserView: View {
     @ViewBuilder
     private var browserLocationMenu: some View {
         Button("Paste", systemImage: MenuSymbol.paste) { pasteRemoteItems() }
-            .disabled(sftpSession.status != .connected || !canPasteRemoteItems)
+            .disabled(sftpChannel.status != .connected || !canPasteRemoteItems)
         Divider()
         Button("New Folder", systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
-            .disabled(sftpSession.status != .connected)
+            .disabled(sftpChannel.status != .connected)
         Button("Upload", systemImage: MenuSymbol.upload) { chooseUploadItems() }
-            .disabled(sftpSession.status != .connected)
-        Button("Refresh", systemImage: MenuSymbol.refresh) { sftpSession.reloadNow() }
-            .disabled(sftpSession.status != .connected || sftpSession.isLoading)
+            .disabled(sftpChannel.status != .connected)
+        Button("Refresh", systemImage: MenuSymbol.refresh) { sftpChannel.reloadNow() }
+            .disabled(sftpChannel.status != .connected || sftpChannel.isLoading)
     }
 
     private func fileList(layout: Layout) -> some View {
@@ -691,9 +691,9 @@ struct SFTPBrowserView: View {
         }
         .onKeyPress("a", phases: .down) { press in
             guard press.modifiers.contains(.command) else { return .ignored }
-            sftpSession.selection = Set(sftpSession.filteredFiles.map(\.id))
-            selectionAnchor = sftpSession.filteredFiles.first?.id
-            selectionCursor = sftpSession.filteredFiles.last?.id
+            sftpChannel.selection = Set(sftpChannel.filteredFiles.map(\.id))
+            selectionAnchor = sftpChannel.filteredFiles.first?.id
+            selectionCursor = sftpChannel.filteredFiles.last?.id
             return .handled
         }
         .background(TermindColor.windowSurface)
@@ -709,19 +709,19 @@ struct SFTPBrowserView: View {
         case .medium: layoutKey = 1
         case .compact: layoutKey = 0
         }
-        var items = sftpSession.visibleRows.map { row in
+        var items = sftpChannel.visibleRows.map { row in
             SFTPFileListItem(
                 row: row, parentPath: nil,
-                isSelected: sftpSession.selection.contains(row.id),
+                isSelected: sftpChannel.selection.contains(row.id),
                 isEmphasized: emphasized,
                 isHovered: hoveredFileID == row.id,
                 layoutKey: layoutKey
             )
         }
-        if sftpSession.path != "/" {
+        if sftpChannel.path != "/" {
             items.insert(
                 SFTPFileListItem(
-                    row: nil, parentPath: RemotePath.parent(of: sftpSession.path),
+                    row: nil, parentPath: RemotePath.parent(of: sftpChannel.path),
                     isSelected: false, isEmphasized: false, isHovered: false,
                     layoutKey: layoutKey
                 ),
@@ -757,17 +757,17 @@ struct SFTPBrowserView: View {
         .onTapGesture {
             focusPane()
             focusListForUserGesture()
-            if NSApp.currentEvent?.clickCount == 2 { sftpSession.navigate(to: path) }
+            if NSApp.currentEvent?.clickCount == 2 { sftpChannel.navigate(to: path) }
         }
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Parent Directory")
         .accessibilityAddTraits(.isButton)
-        .accessibilityAction { sftpSession.navigate(to: path) }
+        .accessibilityAction { sftpChannel.navigate(to: path) }
     }
 
     private func clearFileSelection() {
         focusPane()
-        sftpSession.selection.removeAll()
+        sftpChannel.selection.removeAll()
         selectionAnchor = nil
         selectionCursor = nil
         focusListForUserGesture()
@@ -810,15 +810,15 @@ struct SFTPBrowserView: View {
     private func sortHeader(
         _ title: LocalizedStringKey, field: RemoteFileSortField, separated: Bool = false
     ) -> some View {
-        let isSorted = sftpSession.sortField == field
+        let isSorted = sftpChannel.sortField == field
         return Button {
-            sftpSession.sort(by: field)
+            sftpChannel.sort(by: field)
         } label: {
             HStack(spacing: Metrics.Space.s) {
                 Text(title).font(.body.weight(isSorted ? .semibold : .regular))
                 if isSorted {
                     Image(
-                        systemName: sftpSession.sortDirection == .ascending
+                        systemName: sftpChannel.sortDirection == .ascending
                             ? "chevron.up" : "chevron.down"
                     )
                     .font(.caption.weight(.semibold))
@@ -839,7 +839,7 @@ struct SFTPBrowserView: View {
 
     private func fileRow(_ row: SFTPRow, layout: Layout) -> some View {
         let file = row.file
-        let selected = sftpSession.selection.contains(file.id)
+        let selected = sftpChannel.selection.contains(file.id)
         // In a split workspace the pane owns durable focus. SwiftUI can clear
         // the ScrollView's FocusState while the outer pane handles the same
         // click even though this remains the active pane. Text editing and an
@@ -976,9 +976,9 @@ struct SFTPBrowserView: View {
         let targets = menuTargets(for: file)
         return SFTPFileContextMenu(
             file: file, targets: targets,
-            connected: sftpSession.status == .connected,
-            allowsRemoteMutations: sftpSession.allowsRemoteMutations,
-            canPaste: canPasteRemoteItems, isLoading: sftpSession.isLoading,
+            connected: sftpChannel.status == .connected,
+            allowsRemoteMutations: sftpChannel.allowsRemoteMutations,
+            canPaste: canPasteRemoteItems, isLoading: sftpChannel.isLoading,
             locale: locale
         ).entries { action in
             switch action {
@@ -996,36 +996,36 @@ struct SFTPBrowserView: View {
             case .delete: deleteTargets = targets
             case .newFolder: newFolderPresented = true
             case .upload: chooseUploadItems()
-            case .refresh: sftpSession.reloadNow()
+            case .refresh: sftpChannel.reloadNow()
             }
         }
     }
 
     private func primaryAction(_ file: RemoteFile) {
         if file.isDirectory {
-            sftpSession.navigate(to: file.path)
+            sftpChannel.navigate(to: file.path)
         } else {
-            sftpSession.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) { localURL in
+            sftpChannel.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) { localURL in
                 if NSWorkspace.shared.open(localURL) {
-                    sftpSession.recordOpenedFile(at: file.path)
+                    sftpChannel.recordOpenedFile(at: file.path)
                 }
             }
         }
     }
 
     private func open(_ file: RemoteFile, with application: URL) {
-        sftpSession.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) { localURL in
+        sftpChannel.open(file, coordinator: app.sftpTransfers, edits: app.sftpEdits) { localURL in
             Task {
                 do {
                     try await SFTPApplicationOpener.open(localURL, with: application)
-                    sftpSession.recordOpenedFile(at: file.path)
-                } catch { sftpSession.operationError = error.localizedDescription }
+                    sftpChannel.recordOpenedFile(at: file.path)
+                } catch { sftpChannel.operationError = error.localizedDescription }
             }
         }
     }
 
     private func menuTargets(for file: RemoteFile) -> [RemoteFile] {
-        sftpSession.menuTargets(for: file)
+        sftpChannel.menuTargets(for: file)
     }
 
     private func copyToPasteboard(_ value: String) {
@@ -1038,16 +1038,16 @@ struct SFTPBrowserView: View {
         focusListForUserGesture()
         let modifiers = NSEvent.modifierFlags
         if modifiers.contains(.shift),
-            let anchor = selectionAnchor ?? sftpSession.selection.first,
-            let anchorIndex = sftpSession.filteredFiles.firstIndex(where: { $0.id == anchor }),
-            let fileIndex = sftpSession.filteredFiles.firstIndex(where: { $0.id == file.id })
+            let anchor = selectionAnchor ?? sftpChannel.selection.first,
+            let anchorIndex = sftpChannel.filteredFiles.firstIndex(where: { $0.id == anchor }),
+            let fileIndex = sftpChannel.filteredFiles.firstIndex(where: { $0.id == file.id })
         {
             let bounds = min(anchorIndex, fileIndex)...max(anchorIndex, fileIndex)
-            let range = Set(sftpSession.filteredFiles[bounds].map(\.id))
+            let range = Set(sftpChannel.filteredFiles[bounds].map(\.id))
             if modifiers.contains(.command) {
-                sftpSession.selection.formUnion(range)
+                sftpChannel.selection.formUnion(range)
             } else {
-                sftpSession.selection = range
+                sftpChannel.selection = range
             }
             selectionCursor = file.id
             return
@@ -1056,34 +1056,34 @@ struct SFTPBrowserView: View {
         selectionAnchor = file.id
         selectionCursor = file.id
         if modifiers.contains(.command) {
-            if sftpSession.selection.contains(file.id) {
-                sftpSession.selection.remove(file.id)
+            if sftpChannel.selection.contains(file.id) {
+                sftpChannel.selection.remove(file.id)
             } else {
-                sftpSession.selection.insert(file.id)
+                sftpChannel.selection.insert(file.id)
             }
         } else {
-            sftpSession.selection = [file.id]
+            sftpChannel.selection = [file.id]
         }
     }
 
     private func selectForContextMenu(_ file: RemoteFile) {
-        guard sftpSession.selectForContextMenu(file) else { return }
+        guard sftpChannel.selectForContextMenu(file) else { return }
         selectionAnchor = file.id
         selectionCursor = file.id
         focusListForUserGesture()
     }
 
     private var keyboardTarget: RemoteFile? {
-        let target = selectionCursor ?? sftpSession.selectedFiles.first?.id
-        return target.flatMap { id in sftpSession.filteredFiles.first { $0.id == id } }
+        let target = selectionCursor ?? sftpChannel.selectedFiles.first?.id
+        return target.flatMap { id in sftpChannel.filteredFiles.first { $0.id == id } }
     }
 
     private func moveSelection(
         by offset: Int, extending: Bool
     ) -> KeyPress.Result {
-        let files = sftpSession.filteredFiles
+        let files = sftpChannel.filteredFiles
         guard !files.isEmpty else { return .ignored }
-        let currentID = selectionCursor ?? sftpSession.selectedFiles.first?.id
+        let currentID = selectionCursor ?? sftpChannel.selectedFiles.first?.id
         let currentIndex =
             currentID.flatMap { id in files.firstIndex { $0.id == id } }
             ?? (offset > 0 ? -1 : files.count)
@@ -1094,10 +1094,10 @@ struct SFTPBrowserView: View {
             let anchorID = selectionAnchor ?? currentID ?? target.id
             let anchorIndex = files.firstIndex { $0.id == anchorID } ?? targetIndex
             let bounds = min(anchorIndex, targetIndex)...max(anchorIndex, targetIndex)
-            sftpSession.selection = Set(files[bounds].map(\.id))
+            sftpChannel.selection = Set(files[bounds].map(\.id))
             selectionAnchor = anchorID
         } else {
-            sftpSession.selection = [target.id]
+            sftpChannel.selection = [target.id]
             selectionAnchor = target.id
         }
         selectionCursor = target.id
@@ -1110,7 +1110,7 @@ struct SFTPBrowserView: View {
 
     private func remoteDragProvider(for file: RemoteFile) -> NSItemProvider {
         let targets = menuTargets(for: file)
-        guard let source = sftpSession.remoteCopySource(for: targets) else {
+        guard let source = sftpChannel.remoteCopySource(for: targets) else {
             return NSItemProvider()
         }
         let payload = app.sftpTransfers.registerRemoteCopySource(source)
@@ -1118,14 +1118,14 @@ struct SFTPBrowserView: View {
             file.isDirectory
             ? NSItemProvider()
             : Self.promisedFileProvider(
-                for: file, sftpSession: sftpSession, coordinator: app.sftpTransfers
+                for: file, sftpChannel: sftpChannel, coordinator: app.sftpTransfers
             )
         Self.register(payload, on: provider)
         return provider
     }
 
     private func remoteCopyProviders(for files: [RemoteFile]) -> [NSItemProvider] {
-        guard let source = sftpSession.remoteCopySource(for: files) else { return [] }
+        guard let source = sftpChannel.remoteCopySource(for: files) else { return [] }
         let payload = app.sftpTransfers.registerRemoteCopySource(source)
         let provider = NSItemProvider()
         Self.register(payload, on: provider)
@@ -1133,7 +1133,7 @@ struct SFTPBrowserView: View {
     }
 
     private func copyRemoteItems(_ files: [RemoteFile]) {
-        guard let source = sftpSession.remoteCopySource(for: files) else { return }
+        guard let source = sftpChannel.remoteCopySource(for: files) else { return }
         let payload = app.sftpTransfers.registerRemoteCopySource(source)
         guard let data = try? JSONEncoder().encode(payload) else { return }
         let item = NSPasteboardItem()
@@ -1174,7 +1174,7 @@ struct SFTPBrowserView: View {
     }
 
     static func promisedFileProvider(
-        for file: RemoteFile, sftpSession: SFTPSessionModel,
+        for file: RemoteFile, sftpChannel: SFTPChannelModel,
         coordinator: SFTPTransferCoordinator
     ) -> NSItemProvider {
         let provider = NSItemProvider()
@@ -1198,7 +1198,7 @@ struct SFTPBrowserView: View {
                     return
                 }
                 let localURL = directory.appendingPathComponent(file.name)
-                sftpSession.downloadPromisedFile(
+                sftpChannel.downloadPromisedFile(
                     file, to: directory, coordinator: coordinator
                 ) { error in
                     progress.completedUnitCount = 1
@@ -1229,23 +1229,23 @@ struct SFTPBrowserView: View {
         panel.allowsMultipleSelection = true
         guard panel.runModal() == .OK else { return }
         Task {
-            await sftpSession.prepareUpload(panel.urls)
+            await sftpChannel.prepareUpload(panel.urls)
             finishPreparingBatch()
         }
     }
 
     private func receiveDroppedURLs(_ urls: [URL]) -> Bool {
         let files = urls.filter(\.isFileURL)
-        guard sftpSession.status == .connected, !files.isEmpty else { return false }
+        guard sftpChannel.status == .connected, !files.isEmpty else { return false }
         Task {
-            await sftpSession.prepareUpload(files)
+            await sftpChannel.prepareUpload(files)
             finishPreparingBatch()
         }
         return true
     }
 
     private func receiveRemoteItemProviders(_ providers: [NSItemProvider]) -> Bool {
-        guard sftpSession.status == .connected,
+        guard sftpChannel.status == .connected,
             let provider = providers.first(where: {
                 $0.hasItemConformingToTypeIdentifier(UTType.termindSFTPItems.identifier)
             })
@@ -1255,7 +1255,7 @@ struct SFTPBrowserView: View {
         ) { data, error in
             Task { @MainActor in
                 if let error {
-                    sftpSession.operationError = error.localizedDescription
+                    sftpChannel.operationError = error.localizedDescription
                     return
                 }
                 guard let data,
@@ -1263,7 +1263,7 @@ struct SFTPBrowserView: View {
                         SFTPRemoteItemsPayload.self, from: data
                     )
                 else {
-                    sftpSession.operationError = "The copied SFTP items are invalid."
+                    sftpChannel.operationError = "The copied SFTP items are invalid."
                     return
                 }
                 prepareRemoteItems(payload)
@@ -1273,10 +1273,10 @@ struct SFTPBrowserView: View {
     }
 
     private func receiveRemoteDrop(_ data: Data) {
-        guard sftpSession.status == .connected else { return }
+        guard sftpChannel.status == .connected else { return }
         guard let payload = try? JSONDecoder().decode(SFTPRemoteItemsPayload.self, from: data)
         else {
-            sftpSession.operationError = "The copied SFTP items are invalid."
+            sftpChannel.operationError = "The copied SFTP items are invalid."
             return
         }
         prepareRemoteItems(payload)
@@ -1284,7 +1284,7 @@ struct SFTPBrowserView: View {
 
     private func prepareRemoteItems(_ payload: SFTPRemoteItemsPayload) {
         Task {
-            await sftpSession.prepareRemoteCopy(payload, coordinator: app.sftpTransfers)
+            await sftpChannel.prepareRemoteCopy(payload, coordinator: app.sftpTransfers)
             finishPreparingBatch()
         }
     }
@@ -1296,24 +1296,24 @@ struct SFTPBrowserView: View {
         panel.allowsMultipleSelection = false
         guard panel.runModal() == .OK, let directory = panel.url else { return }
         Task {
-            await sftpSession.prepareDownload(files, to: directory)
+            await sftpChannel.prepareDownload(files, to: directory)
             finishPreparingBatch()
         }
     }
 
     private func finishPreparingBatch() {
-        guard sftpSession.hasPendingBatch else { return }
-        if sftpSession.conflictCount > 0 { conflictPresented = true } else { enqueue(.replace) }
+        guard sftpChannel.hasPendingBatch else { return }
+        if sftpChannel.conflictCount > 0 { conflictPresented = true } else { enqueue(.replace) }
     }
 
     private func enqueue(_ policy: TransferConflictPolicy) {
         Task {
-            if sftpSession.pendingRemoteCopyBatch != nil {
-                await sftpSession.enqueuePendingRemoteCopy(
+            if sftpChannel.pendingRemoteCopyBatch != nil {
+                await sftpChannel.enqueuePendingRemoteCopy(
                     policy: policy, coordinator: app.sftpTransfers
                 )
             } else {
-                await sftpSession.enqueuePending(policy: policy, coordinator: app.sftpTransfers)
+                await sftpChannel.enqueuePending(policy: policy, coordinator: app.sftpTransfers)
             }
         }
     }

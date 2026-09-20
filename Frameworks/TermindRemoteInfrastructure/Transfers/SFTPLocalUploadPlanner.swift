@@ -34,7 +34,7 @@ public enum SFTPLocalUploadPlanner {
     public static func prepare(
         _ urls: [URL],
         destination: String,
-        client: any SFTPClientProtocol
+        client: any SFTPChannelProtocol
     ) async throws -> SFTPLocalUploadBatch {
         var jobs: [SFTPLocalUploadBatch.Job] = []
         var directories: [String] = []
@@ -110,7 +110,7 @@ public enum SFTPLocalUploadPlanner {
         hostID: Host.ID,
         connection: SFTPTransferConnection,
         homeDirectory: String? = nil,
-        client: any SFTPClientProtocol,
+        client: any SFTPChannelProtocol,
         coordinator: SFTPTransferCoordinator,
         completion: ((SFTPTransfer.State) -> Void)? = nil
     ) async throws -> SFTPLocalUploadEnqueueResult {

@@ -7,14 +7,14 @@ import Testing
 @Suite
 struct SSHMaxSessionsPolicyTests {
     @Test
-    func defaultLimitQueuesTheEleventhSessionUntilOneCloses() async throws {
+    func defaultLimitQueuesTheEleventhChannelUntilOneCloses() async throws {
         let policy = SSHMaxSessionsPolicy()
         let budget = policy.makeBudget()
-        var leases: [SSHSessionChannelLease] = []
+        var leases: [SSHChannelLease] = []
         for _ in 0..<SSHPreferences.defaultMaxSessions {
             leases.append(try await budget.acquire())
         }
-        let probe = SessionAdmissionProbe()
+        let probe = ChannelAdmissionProbe()
         let waiting = Task {
             let lease = try await budget.acquire()
             await probe.admit(11)
@@ -31,7 +31,7 @@ struct SSHMaxSessionsPolicyTests {
     }
 
     @Test
-    func loweringAndRaisingTheLiveLimitNeverRevokesActiveSessions() async throws {
+    func loweringAndRaisingTheLiveLimitNeverRevokesActiveChannels() async throws {
         let policy = SSHMaxSessionsPolicy(preferences: SSHPreferences(maxSessions: 3))
         let budget = policy.makeBudget()
         let first = try await budget.acquire()
@@ -39,7 +39,7 @@ struct SSHMaxSessionsPolicyTests {
         let third = try await budget.acquire()
         policy.update(SSHPreferences(maxSessions: 1))
 
-        let probe = SessionAdmissionProbe()
+        let probe = ChannelAdmissionProbe()
         let waiting = Task {
             let lease = try await budget.acquire()
             await probe.admit(4)
@@ -74,11 +74,11 @@ struct SSHMaxSessionsPolicyTests {
     }
 
     @Test
-    func queuedSessionsResumeInFIFOOrder() async throws {
+    func queuedChannelsResumeInFIFOOrder() async throws {
         let policy = SSHMaxSessionsPolicy(preferences: SSHPreferences(maxSessions: 1))
         let budget = policy.makeBudget()
         let active = try await budget.acquire()
-        let probe = SessionAdmissionProbe()
+        let probe = ChannelAdmissionProbe()
         let first = Task {
             let lease = try await budget.acquire()
             await probe.admit(1)
@@ -120,11 +120,11 @@ struct SSHMaxSessionsPolicyTests {
             if await predicate() { return }
             await Task.yield()
         }
-        Issue.record("Timed out waiting for session admission", sourceLocation: sourceLocation)
+        Issue.record("Timed out waiting for connection admission", sourceLocation: sourceLocation)
     }
 }
 
-private actor SessionAdmissionProbe {
+private actor ChannelAdmissionProbe {
     private(set) var values: [Int] = []
     func admit(_ value: Int) { values.append(value) }
 }

@@ -63,7 +63,7 @@ public final class SFTPEditService {
 
     public func open(
         _ file: RemoteFile, hostID: Host.ID, connection: SFTPTransferConnection,
-        client: any SFTPClientProtocol, homeDirectory: String? = nil,
+        client: any SFTPChannelProtocol, homeDirectory: String? = nil,
         configuration: SSHConnectionConfiguration? = nil
     ) async throws -> URL {
         validateHosts()
@@ -233,7 +233,7 @@ public final class SFTPEditService {
 
     /// Returns true only when the UI must ask to replace the version just observed.
     public func upload(
-        _ id: UUID, connection: SFTPTransferConnection, client: any SFTPClientProtocol,
+        _ id: UUID, connection: SFTPTransferConnection, client: any SFTPChannelProtocol,
         homeDirectory: String? = nil, replacing: Bool = false,
         configuration: SSHConnectionConfiguration? = nil,
         didUpload: @escaping () -> Void = {}
@@ -305,7 +305,7 @@ public final class SFTPEditService {
     ) -> Destination? {
         if let configuration { return Destination(configuration) }
         if case .saved(let saved) = connection { return Destination(saved) }
-        if case .session(let session) = connection { return Destination(session.configuration) }
+        if case .context(let session) = connection { return Destination(session.configuration) }
         return nil
     }
 

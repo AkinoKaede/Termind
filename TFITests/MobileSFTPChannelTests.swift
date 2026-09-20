@@ -8,7 +8,7 @@ import struct TermindDomain.Host
 @testable import TermindIOS
 
 @Suite @MainActor
-struct MobileSFTPSessionTests {
+struct MobileSFTPChannelTests {
     @Test func navigationNormalizesPathsAndMaintainsBackwardAndForwardHistory() async throws {
         let fileSystem = MobileBrowserFileSystem(
             listings: [
@@ -17,28 +17,28 @@ struct MobileSFTPSessionTests {
                 "/srv": [remoteFile("/srv/releases", kind: .directory)],
                 "/tmp": [],
             ])
-        let session = MobileSFTPSessionModel()
-        try await attach(session, to: fileSystem, path: "/home/")
+        let channel = MobileSFTPChannelModel()
+        try await attach(channel, to: fileSystem, path: "/home/")
 
-        #expect(session.path == "/home")
-        #expect(session.pathText == "/home")
-        #expect(!session.canGoBack && !session.canGoForward)
+        #expect(channel.path == "/home")
+        #expect(channel.pathText == "/home")
+        #expect(!channel.canGoBack && !channel.canGoForward)
 
-        await session.openDirectory(" /etc/./ ")
-        await session.openDirectory("/srv")
-        #expect(session.path == "/srv")
-        #expect(session.backHistory == ["/home", "/etc"])
+        await channel.openDirectory(" /etc/./ ")
+        await channel.openDirectory("/srv")
+        #expect(channel.path == "/srv")
+        #expect(channel.backHistory == ["/home", "/etc"])
 
-        await session.goBack()
-        #expect(session.path == "/etc")
-        #expect(session.canGoBack && session.canGoForward)
-        await session.goForward()
-        #expect(session.path == "/srv")
+        await channel.goBack()
+        #expect(channel.path == "/etc")
+        #expect(channel.canGoBack && channel.canGoForward)
+        await channel.goForward()
+        #expect(channel.path == "/srv")
 
-        await session.goBack()
-        await session.openDirectory("/tmp")
-        #expect(session.path == "/tmp")
-        #expect(!session.canGoForward)
+        await channel.goBack()
+        await channel.openDirectory("/tmp")
+        #expect(channel.path == "/tmp")
+        #expect(!channel.canGoForward)
     }
 
     @Test func refreshAndFailedNavigationDoNotMutateHistoryOrDisplayedPath() async throws {
@@ -47,20 +47,20 @@ struct MobileSFTPSessionTests {
                 "/home": [remoteFile("/home/a")],
                 "/srv": [remoteFile("/srv/b")],
             ])
-        let session = MobileSFTPSessionModel()
-        try await attach(session, to: fileSystem, path: "/home")
-        await session.openDirectory("/srv")
-        let history = session.backHistory
+        let channel = MobileSFTPChannelModel()
+        try await attach(channel, to: fileSystem, path: "/home")
+        await channel.openDirectory("/srv")
+        let history = channel.backHistory
 
-        await session.reload()
-        await session.openDirectory("/srv")
-        #expect(session.path == "/srv")
-        #expect(session.backHistory == history)
+        await channel.reload()
+        await channel.openDirectory("/srv")
+        #expect(channel.path == "/srv")
+        #expect(channel.backHistory == history)
 
-        await session.openDirectory("/missing")
-        #expect(session.path == "/srv")
-        #expect(session.backHistory == history)
-        #expect(session.operationError == "Missing /missing")
+        await channel.openDirectory("/missing")
+        #expect(channel.path == "/srv")
+        #expect(channel.backHistory == history)
+        #expect(channel.operationError == "Missing /missing")
     }
 
     @Test func searchFiltersTheCurrentDirectoryWithoutChangingItsStableOrder() async throws {
@@ -69,14 +69,14 @@ struct MobileSFTPSessionTests {
         let notes = remoteFile("/home/notes.txt")
         let fileSystem = MobileBrowserFileSystem(
             listings: ["/home": [notes, report, folder]])
-        let session = MobileSFTPSessionModel()
-        try await attach(session, to: fileSystem, path: "/home")
+        let channel = MobileSFTPChannelModel()
+        try await attach(channel, to: fileSystem, path: "/home")
 
-        #expect(session.files == [folder, notes, report])
-        session.query = "REPORT"
-        #expect(session.visibleFiles == [folder, report])
-        session.query = ""
-        #expect(session.visibleFiles == [folder, notes, report])
+        #expect(channel.files == [folder, notes, report])
+        channel.query = "REPORT"
+        #expect(channel.visibleFiles == [folder, report])
+        channel.query = ""
+        #expect(channel.visibleFiles == [folder, notes, report])
     }
 
     @Test func hiddenFilesAreExcludedByDefaultAndCanBeShownWithinTheSession() async throws {
@@ -90,32 +90,32 @@ struct MobileSFTPSessionTests {
                 "/home": [visibleFile, hiddenFile, visibleFolder, hiddenFolder, hiddenLink],
                 "/srv": [remoteFile("/srv/.ssh", kind: .directory)],
             ])
-        let session = MobileSFTPSessionModel()
-        try await attach(session, to: fileSystem, path: "/home")
+        let channel = MobileSFTPChannelModel()
+        try await attach(channel, to: fileSystem, path: "/home")
 
-        #expect(!session.showsHiddenFiles)
-        #expect(session.visibleFiles == [visibleFolder, visibleFile])
+        #expect(!channel.showsHiddenFiles)
+        #expect(channel.visibleFiles == [visibleFolder, visibleFile])
 
-        session.query = "ENV"
-        #expect(session.visibleFiles.isEmpty)
-        session.showsHiddenFiles = true
-        #expect(session.visibleFiles == [hiddenFile])
+        channel.query = "ENV"
+        #expect(channel.visibleFiles.isEmpty)
+        channel.showsHiddenFiles = true
+        #expect(channel.visibleFiles == [hiddenFile])
 
-        session.query = ""
-        #expect(Set(session.visibleFiles) == Set([hiddenFolder, visibleFolder, hiddenFile, hiddenLink, visibleFile]))
-        #expect(session.visibleFiles.prefix(2).allSatisfy { $0.isDirectory })
+        channel.query = ""
+        #expect(Set(channel.visibleFiles) == Set([hiddenFolder, visibleFolder, hiddenFile, hiddenLink, visibleFile]))
+        #expect(channel.visibleFiles.prefix(2).allSatisfy { $0.isDirectory })
 
-        await session.openDirectory("/srv")
-        await session.reload()
-        #expect(session.showsHiddenFiles)
-        #expect(session.visibleFiles.map(\.name) == [".ssh"])
+        await channel.openDirectory("/srv")
+        await channel.reload()
+        #expect(channel.showsHiddenFiles)
+        #expect(channel.visibleFiles.map(\.name) == [".ssh"])
 
-        session.detach()
-        try await attach(session, to: fileSystem, path: "/home")
-        #expect(session.showsHiddenFiles)
+        channel.detach()
+        try await attach(channel, to: fileSystem, path: "/home")
+        #expect(channel.showsHiddenFiles)
 
-        session.showsHiddenFiles = false
-        #expect(session.visibleFiles == [visibleFolder, visibleFile])
+        channel.showsHiddenFiles = false
+        #expect(channel.visibleFiles == [visibleFolder, visibleFile])
     }
 
     @Test func sortMatchesDesktopDefaultsAndKeepsDirectoriesBeforeFiles() async throws {
@@ -130,22 +130,22 @@ struct MobileSFTPSessionTests {
             ownerUID: 501, ownerGID: 20
         )
         let folder = remoteFile("/home/folder", kind: .directory)
-        let session = MobileSFTPSessionModel()
+        let channel = MobileSFTPChannelModel()
         try await attach(
-            session,
+            channel,
             to: MobileBrowserFileSystem(listings: ["/home": [older, newer, folder]]),
             path: "/home"
         )
 
-        session.sort(by: .modified)
-        #expect(session.sortDirection == .descending)
-        #expect(session.visibleFiles.map(\.name) == ["folder", "newer.txt", "older.txt"])
-        session.sort(by: .modified)
-        #expect(session.sortDirection == .ascending)
-        #expect(session.visibleFiles.map(\.name) == ["folder", "older.txt", "newer.txt"])
-        session.sort(by: .size)
-        #expect(session.sortDirection == .descending)
-        #expect(session.visibleFiles.map(\.name) == ["folder", "older.txt", "newer.txt"])
+        channel.sort(by: .modified)
+        #expect(channel.sortDirection == .descending)
+        #expect(channel.visibleFiles.map(\.name) == ["folder", "newer.txt", "older.txt"])
+        channel.sort(by: .modified)
+        #expect(channel.sortDirection == .ascending)
+        #expect(channel.visibleFiles.map(\.name) == ["folder", "older.txt", "newer.txt"])
+        channel.sort(by: .size)
+        #expect(channel.sortDirection == .descending)
+        #expect(channel.visibleFiles.map(\.name) == ["folder", "older.txt", "newer.txt"])
     }
 
     @Test func parentNavigationItemIsPrependedAfterFileSorting() {
@@ -173,14 +173,14 @@ struct MobileSFTPSessionTests {
                 "/home": [],
                 "/srv": [],
             ])
-        let session = MobileSFTPSessionModel(hostID: hostID, history: history)
-        try await attach(session, to: fileSystem, path: "/home/")
+        let channel = MobileSFTPChannelModel(hostID: hostID, history: history)
+        try await attach(channel, to: fileSystem, path: "/home/")
 
-        await session.openDirectory("/srv")
-        await session.reload()
+        await channel.openDirectory("/srv")
+        await channel.reload()
         #expect(history.entries(for: hostID).map(\.path) == ["/srv", "/home"])
 
-        await session.openDirectory("/missing")
+        await channel.openDirectory("/missing")
         #expect(history.entries(for: hostID).map(\.path) == ["/srv", "/home"])
     }
 
@@ -189,11 +189,11 @@ struct MobileSFTPSessionTests {
         let history = SFTPHistoryModel()
         let staleFileSystem = MobileDeferredFileSystem()
         let currentFileSystem = MobileBrowserFileSystem(listings: ["/current": []])
-        let session = MobileSFTPSessionModel(hostID: hostID, history: history)
+        let channel = MobileSFTPChannelModel(hostID: hostID, history: history)
         let staleGeneration = UUID()
 
         let staleAttach = Task {
-            try? await session.attach(
+            try? await channel.attach(
                 fileSystem: staleFileSystem,
                 path: "/stale",
                 connectionGeneration: staleGeneration,
@@ -202,7 +202,7 @@ struct MobileSFTPSessionTests {
             )
         }
         await staleFileSystem.waitUntilRequested()
-        try await session.attach(
+        try await channel.attach(
             fileSystem: currentFileSystem,
             path: "/current",
             connectionGeneration: UUID(),
@@ -212,16 +212,16 @@ struct MobileSFTPSessionTests {
         await staleFileSystem.succeed()
         await staleAttach.value
 
-        #expect(session.path == "/current")
+        #expect(channel.path == "/current")
         #expect(history.entries(for: hostID).map(\.path) == ["/current"])
     }
 
     private func attach(
-        _ session: MobileSFTPSessionModel,
+        _ channel: MobileSFTPChannelModel,
         to fileSystem: MobileBrowserFileSystem,
         path: String
     ) async throws {
-        try await session.attach(
+        try await channel.attach(
             fileSystem: fileSystem,
             path: path,
             connectionGeneration: UUID(),

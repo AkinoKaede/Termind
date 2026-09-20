@@ -5,7 +5,7 @@ import Testing
 
 @Suite
 struct SFTPConcurrencySchedulerTests {
-    @Test func smartResolvesTheSixtyFourMBBoundaryAndUnknownSizeToChannels() async throws {
+    @Test func smartResolvesTheSixtyFourMBBoundaryAndUnknownSizeToSessions() async throws {
         #expect(SFTPConcurrencyStrategy.smartConnectionThreshold == 64_000_000)
         let scheduler = SFTPConcurrencyScheduler(
             preferences: SFTPPreferences(globalLimit: 3, perHostLimit: 3, strategy: .smart))

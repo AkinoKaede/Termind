@@ -15,10 +15,10 @@ struct SSHKeyboardInteractiveWireTests {
         let fixture = try fixture()
         let recorder = WireChallengeRecorder()
         let request = request(mode: mode, fixture: fixture, handler: recorder.handler)
-        let session = SSHMultiplexedSession()
+        let connection = SSHConnection()
         do {
-            try await session.connect(using: request)
-            let result = try await session.execute(
+            try await connection.connect(using: request)
+            let result = try await connection.execute(
                 "fixture", workingDirectory: nil, stdin: nil, timeout: 5, outputLimit: 1024, onOutput: nil
             )
             #expect(result.stdout == "fixture\n")
@@ -32,10 +32,10 @@ struct SSHKeyboardInteractiveWireTests {
                 #expect(rounds.map(\.round) == [1, 2])
             }
         } catch {
-            await session.disconnect()
+            await connection.disconnect()
             throw error
         }
-        await session.disconnect()
+        await connection.disconnect()
     }
 
     @Test func sftpUsesTheCoordinatorResponderWithoutAPassword() async throws {
@@ -63,15 +63,15 @@ struct SSHKeyboardInteractiveWireTests {
         await client.disconnect()
     }
 
-    @Test func multiplexedSessionRunsExecAndCompleteSFTPOnOneAuthentication() async throws {
+    @Test func multiplexedConnectionRunsExecAndCompleteSFTPOnOneAuthentication() async throws {
         let fixture = try fixture()
         let recorder = WireChallengeRecorder()
-        let session = SSHMultiplexedSession()
-        try await session.connect(
+        let connection = SSHConnection()
+        try await connection.connect(
             using: request(mode: "kbd", fixture: fixture, handler: recorder.handler))
-        let client = try await session.openSFTPChannel()
+        let client = try await connection.openSFTPChannel()
         do {
-            async let command = session.execute(
+            async let command = connection.execute(
                 "fixture", workingDirectory: nil, stdin: nil, timeout: 5,
                 outputLimit: 1_024, onOutput: nil)
             async let listing = client.listDirectory(at: "/")
@@ -91,38 +91,38 @@ struct SSHKeyboardInteractiveWireTests {
             #expect(await recorder.challenges.count == 1)
         } catch {
             await client.disconnect()
-            await session.disconnect()
+            await connection.disconnect()
             throw error
         }
         await client.disconnect()
-        await session.disconnect()
+        await connection.disconnect()
     }
 
     @Test func terminalUsesInteractiveAuthentication() async throws {
         let fixture = try fixture()
         let recorder = WireChallengeRecorder()
-        let session = SSHSessionActor(output: { _ in }, exit: { _ in })
-        try await session.connect(
+        let ptyChannel = SSHPTYChannel(output: { _ in }, exit: { _ in })
+        try await ptyChannel.connect(
             using: request(mode: "kbd", fixture: fixture, handler: recorder.handler),
             shellIntegrationEnabled: false, columns: 80, rows: 24
         )
         #expect(await recorder.challenges.count == 1)
-        await session.disconnect()
+        await ptyChannel.disconnect()
     }
 
     @Test func terminalSFTPChannelReusesAuthenticationAndOutlivesThePTY() async throws {
         let fixture = try fixture()
         let recorder = WireChallengeRecorder()
-        let session = SSHSessionActor(output: { _ in }, exit: { _ in })
-        try await session.connect(
+        let ptyChannel = SSHPTYChannel(output: { _ in }, exit: { _ in })
+        try await ptyChannel.connect(
             using: request(mode: "kbd", fixture: fixture, handler: recorder.handler),
             shellIntegrationEnabled: false, columns: 80, rows: 24
         )
-        let client = try await session.openSFTPChannel()
+        let client = try await ptyChannel.openSFTPChannel()
         #expect(try await client.listDirectory(at: "/").map(\.name) == ["fixture.txt"])
         #expect(await recorder.challenges.count == 1)
 
-        await session.disconnect()
+        await ptyChannel.disconnect()
         #expect(try await client.attributes(at: "/fixture.txt")?.size == 8)
         #expect(await recorder.challenges.count == 1)
         await client.disconnect()
@@ -131,7 +131,7 @@ struct SSHKeyboardInteractiveWireTests {
     @Test func forwardingAuthenticatesAndReconnectionRequestsFreshAnswers() async throws {
         let fixture = try fixture()
         let recorder = WireChallengeRecorder()
-        let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
+        let session = SSHForwardingConnection(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
         let request = request(mode: "kbd", fixture: fixture, handler: recorder.handler)
         try await session.connect(request)
         await session.disconnect()
@@ -153,7 +153,7 @@ struct SSHKeyboardInteractiveWireTests {
                 username: "kbd", credentials: [], expectedHostKeys: []
             )
         ]
-        let session = SSHMultiplexedSession()
+        let session = SSHConnection()
         try await session.connect(using: request)
         await session.disconnect()
         let challenges = await recorder.challenges
@@ -165,7 +165,7 @@ struct SSHKeyboardInteractiveWireTests {
         let fixture = try fixture()
         let queue = SSHKeyboardInteractiveQueue()
         let request = request(mode: "kbd", fixture: fixture, handler: queue.handler)
-        let session = SSHMultiplexedSession()
+        let session = SSHConnection()
         let opening = Task { try await session.connect(using: request) }
         for _ in 0..<500 where queue.current == nil { try await Task.sleep(for: .milliseconds(10)) }
         #expect(queue.current != nil)
@@ -198,7 +198,7 @@ struct SSHKeyboardInteractiveWireTests {
 
     @Test func rejectedChallengeRetainsAuthenticationFailureClassification() async throws {
         let fixture = try fixture()
-        let session = SSHMultiplexedSession()
+        let session = SSHConnection()
         do {
             try await session.connect(using: request(mode: "kbd", fixture: fixture, handler: { _ in ["wrong"] }))
             Issue.record("Expected an authentication failure")
