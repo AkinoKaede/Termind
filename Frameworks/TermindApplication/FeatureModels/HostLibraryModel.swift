@@ -480,6 +480,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 temporaryHostKeys: temporaryHostKeys,
                 trustPolicy: trustPolicy,
                 accessedIdentityIDs: &accessedIdentityIDs
+            ),
+            authenticationReference: additionalAuthenticationReference(
+                host: host, submission: submissions[host.id]
             )
         )
     }
@@ -595,6 +598,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             expectedHostKeys: expectedHostKeys,
             proxy: try transportProxy(
                 for: host, accessedIdentityIDs: &accessedIdentityIDs
+            ),
+            authenticationReference: additionalAuthenticationReference(
+                host: host, submission: nil
             )
         )
     }
@@ -621,7 +627,32 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             expectedHostKeys: expectedHostKeys,
             proxy: try transportProxy(
                 for: host, accessedIdentityIDs: &accessedIdentityIDs
+            ),
+            authenticationReference: additionalAuthenticationReference(
+                host: host, submission: submission
             )
+        )
+    }
+
+    private func additionalAuthenticationReference(
+        host: Host, submission: SSHAuthenticationSubmission?
+    ) -> SSHAuthenticationReference {
+        let resolvedIdentity =
+            submission?.identityID.flatMap(identity)
+            ?? (submission == nil ? identity(for: host) : nil)
+        if let resolvedIdentity {
+            return SSHAuthenticationReference(
+                identityID: resolvedIdentity.id,
+                username: resolvedIdentity.username,
+                permitsNone: !resolvedIdentity.hasSecret,
+                hasEphemeralSecret: submission?.password != nil || submission?.passphrase != nil
+            )
+        }
+        return SSHAuthenticationReference(
+            fallbackKeyID: submission?.keyID,
+            username: submission?.username ?? "",
+            permitsNone: submission?.keyID == nil && submission?.password == nil,
+            hasEphemeralSecret: submission?.password != nil || submission?.passphrase != nil
         )
     }
 
@@ -643,7 +674,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 credentials.append(
                     stored.sshCredential(
                         publicKey: key.publicKey, certificate: key.certificate,
-                        passphraseOverride: submission.passphrase
+                        passphraseOverride: submission.passphrase,
+                        requiresPassphrase: key.requiresPassphraseEntry,
+                        requiresUserPresence: key.requiresUserPresence
                     )
                 )
             }
@@ -680,7 +713,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         }
         return SSHTransportProxy(
             kind: proxy.kind, hostname: proxy.hostname, port: proxy.port,
-            username: proxy.username, password: password
+            username: proxy.username, password: password,
+            identityID: proxy.identityID
         )
     }
 
@@ -711,7 +745,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                         } else {
                             credentials.append(
                                 credential.sshCredential(
-                                    publicKey: key.publicKey, certificate: key.certificate
+                                    publicKey: key.publicKey, certificate: key.certificate,
+                                    requiresPassphrase: key.requiresPassphraseEntry,
+                                    requiresUserPresence: key.requiresUserPresence
                                 )
                             )
                         }

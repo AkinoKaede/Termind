@@ -104,11 +104,14 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - User sessions own challenge queues; Agents use interaction queues. Desktop external auth separates app/MCP origins;
   stopping MCP preserves app requests. Mobile has no app auth sheet. Forwarding/Metrics own Journey challenges, never
   external-window fallback.
-- Terminal drops/additional transfer connections forbid app password/passphrase/MFA/trust forms throughout the route,
-  but permit system key authorization. Username-only/SSH `none` remain eligible: actual connection success, not saved
-  credential presence, decides. Cancellation interrupts opening. A terminal drop always tries its independent SFTP
-  preflight first; any non-cancellation connection failure, including interaction-required authentication, falls back to
-  SFTP Channels on the already authenticated connection belonging to the PTY Channel without presenting a form.
+- Terminal drops/additional transfer and forwarding connections forbid password/passphrase/MFA/trust forms and system
+  user-presence authorization (Touch ID or device password) throughout the route. Reusable snapshots freeze target,
+  Jump Host and proxy network data but retain authentication only as Identity IDs, plus a Key ID only when no Identity
+  exists. Each silent open resolves the Identity's current username/password/Key from Vault and Keychain. Protected Keys
+  are skipped before their secret is read; password and other noninteractive methods remain eligible. Passphrases and
+  temporary passwords never enter reusable snapshots. Username-only/SSH `none` remain eligible. Cancellation interrupts
+  opening. A terminal drop tries an independent SFTP preflight when durable references are available; any non-cancellation
+  failure falls back to SFTP Channels on the already authenticated PTY connection without presenting a form.
 - Username-only Identities try `none`, then advertised methods. Device-local `lastUsedAt` tracks successful saved-secret
   reads, not authentication. Batch route reads; missing/availability/edit reads do not count. First access per Identity/
   process writes directly without Vault journal/refresh; sync strips this field and preserves local values on apply.

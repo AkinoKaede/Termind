@@ -169,7 +169,7 @@ struct PortForwardingReconnectTests {
         #expect(!context.journey.isPresented)
     }
 
-    @Test func temporaryPasswordAndKeyPassphraseSurviveOnlyInTheConnectionSnapshot() async throws {
+    @Test func temporaryPasswordAndKeyPassphraseAreAbsentFromRecoverySnapshot() async throws {
         let fixture = ReconnectFixture()
         defer { fixture.stop() }
         let material = try SSHKeyMaterial.generate(.ed25519, comment: "recovery", passphrase: "temporary-passphrase")
@@ -192,15 +192,11 @@ struct PortForwardingReconnectTests {
         try await fixture.waitForRunning([0])
         let request = try #require(await fixture.sessions.last!.requests.first)
         #expect(request.interactionPolicy == .forbidden)
-        #expect(request.configuration.credentials.count == 2)
-        guard case .privateKey(_, _, let passphrase) = request.configuration.credentials[0],
-            case .password(let password) = request.configuration.credentials[1]
-        else {
-            Issue.record("Expected the authenticated credential snapshot")
+        #expect(request.configuration.credentials.count == 1)
+        guard case .interactionRequired = request.configuration.credentials[0] else {
+            Issue.record("Expected a reference-only interaction marker")
             return
         }
-        #expect(passphrase == "temporary-passphrase")
-        #expect(password == "temporary-password")
         #expect(fixture.library.identity(identity.id)?.usesPassword == false)
         #expect(fixture.context?.journey.plainTextLog.contains("temporary-") == false)
     }

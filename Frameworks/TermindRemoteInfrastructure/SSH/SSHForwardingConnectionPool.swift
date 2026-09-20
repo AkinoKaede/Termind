@@ -31,7 +31,7 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
     private var primaryID: UUID?
     private var registrations: [PortForwardingRule.ID: RuleRegistration] = [:]
     private var counts: [UUID: [PortForwardingRule.ID: Int]] = [:]
-    private var additionalRequest: SSHConnectionRequest?
+    private var additionalRequest: SSHAdditionalConnectionRequestResolver?
     private var opening: [UUID: Slot] = [:]
     private var installing: [UUID: Slot] = [:]
     private var retryTask: Task<Void, Never>?
@@ -78,8 +78,8 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
         }
     }
 
-    func configureAdditionalConnections(_ request: SSHConnectionRequest) async {
-        additionalRequest = request.enforcingInteractionPolicy()
+    func configureAdditionalConnections(_ resolver: @escaping SSHAdditionalConnectionRequestResolver) async {
+        additionalRequest = resolver
         fillPool()
     }
 
@@ -172,9 +172,10 @@ actor SSHForwardingConnectionPool: SSHForwardingConnectionProtocol {
             let id = UUID()
             let slot = makeSlot(id: id)
             opening[id] = slot
-            let request = additionalRequest!
+            let resolver = additionalRequest!
             Task { [weak self] in
                 do {
+                    let request = try await resolver()
                     try await slot.connection.connect(request, progress: nil)
                     await self?.opened(slot)
                 } catch {

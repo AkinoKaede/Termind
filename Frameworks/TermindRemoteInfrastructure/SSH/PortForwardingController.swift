@@ -77,7 +77,7 @@ public final class PortForwardingConnection {
     fileprivate var connected = false
     fileprivate var ready = false
     fileprivate var silentAttempt = false
-    fileprivate var configuration: SSHConnectionConfiguration?
+    fileprivate var additionalSnapshot: SSHAdditionalConnectionSnapshot?
     fileprivate var connectionCounts: [PortForwardingRule.ID: Int] = [:]
     fileprivate let maximumConnections: Int
 
@@ -361,8 +361,8 @@ public final class PortForwardingController {
                 try Task.checkCancellation()
                 let configuration: SSHConnectionConfiguration
                 if silently {
-                    guard let snapshot = context.configuration else { throw TermindSSHError.missingCredential }
-                    configuration = snapshot
+                    guard let snapshot = context.additionalSnapshot else { throw TermindSSHError.missingCredential }
+                    configuration = try hosts.additionalConnectionRequest(from: snapshot).configuration
                 } else {
                     let preparation = try hosts.prepareSSHConnection(
                         for: host, submissions: context.submissions,
@@ -400,12 +400,13 @@ public final class PortForwardingController {
                 context.task = nil
                 context.connected = true
                 if !silently {
-                    context.configuration = hosts.configurationForAdditionalConnection(from: configuration)
+                    context.additionalSnapshot = hosts.additionalConnectionSnapshot(from: configuration)
                 }
-                if let snapshot = context.configuration {
-                    await forwardingConnection.configureAdditionalConnections(
-                        SSHConnectionRequest(configuration: snapshot, interactionPolicy: .forbidden)
-                            .enforcingInteractionPolicy())
+                if let snapshot = context.additionalSnapshot {
+                    await forwardingConnection.configureAdditionalConnections { [weak self] in
+                        guard let self else { throw CancellationError() }
+                        return try self.hosts.additionalConnectionRequest(from: snapshot)
+                    }
                 }
                 context.submissions.removeAll()
                 context.connection.temporaryHostKeys.removeAll()
@@ -551,7 +552,7 @@ public final class PortForwardingController {
     }
 
     private func recover(_ context: PortForwardingConnection, message: String) {
-        guard context.connection.hasConnectedOnce, context.configuration != nil else {
+        guard context.connection.hasConnectedOnce, context.additionalSnapshot != nil else {
             fail(context, message: message)
             return
         }
@@ -599,7 +600,7 @@ public final class PortForwardingController {
         context.setPrompt(nil)
         context.hostKeyRequestID = nil
         context.submissions.removeAll()
-        context.configuration = nil
+        context.additionalSnapshot = nil
         context.connection.disconnect()
         if connections[context.hostID] === context { connections[context.hostID] = nil }
     }

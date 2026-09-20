@@ -10,7 +10,7 @@ public nonisolated struct SFTPRemoteItemsPayload: Codable, Hashable, Sendable {
 }
 
 public nonisolated enum SFTPTransferConnection: Sendable {
-    case saved(SSHConnectionConfiguration)
+    case saved(SSHAdditionalConnectionSnapshot)
     case context(SFTPTransferContext)
     case borrowed(id: UUID, channel: any SFTPChannelProtocol)
 
@@ -40,7 +40,11 @@ public nonisolated struct SFTPRemoteCopySource: Sendable {
     }
 
     public init(hostID: Host.ID, configuration: SSHConnectionConfiguration, files: [RemoteFile]) {
-        self.init(hostID: hostID, connection: .saved(configuration), files: files)
+        self.init(
+            hostID: hostID,
+            connection: .saved(SSHAdditionalConnectionSnapshot(configuration: configuration)),
+            files: files
+        )
     }
 }
 
@@ -276,7 +280,7 @@ public final class SFTPTransferCoordinator {
         enqueue(
             direction: direction, batchID: batchID, localURL: localURL,
             remotePath: remotePath, byteCount: byteCount, hostID: hostID,
-            connection: .saved(configuration), scopedRoot: scopedRoot,
+            connection: .saved(SSHAdditionalConnectionSnapshot(configuration: configuration)), scopedRoot: scopedRoot,
             overwrite: overwrite, homeDirectory: homeDirectory, completion: completion
         )
     }
@@ -329,9 +333,9 @@ public final class SFTPTransferCoordinator {
     ) {
         enqueueRemoteCopy(
             batchID: batchID, sourcePath: sourcePath, sourceHostID: sourceHostID,
-            sourceConnection: .saved(sourceConfiguration),
+            sourceConnection: .saved(SSHAdditionalConnectionSnapshot(configuration: sourceConfiguration)),
             destinationPath: destinationPath, destinationHostID: destinationHostID,
-            destinationConnection: .saved(destinationConfiguration),
+            destinationConnection: .saved(SSHAdditionalConnectionSnapshot(configuration: destinationConfiguration)),
             byteCount: byteCount, overwrite: overwrite, completion: completion
         )
     }
@@ -722,13 +726,10 @@ public final class SFTPTransferCoordinator {
         switch connection {
         case .context(let context):
             return try await context.acquire(mode: mode, cancellation: cancellation)
-        case .saved(let configuration):
+        case .saved(let snapshot):
             let client = clientFactory()
             do {
-                let request = SSHConnectionRequest(
-                    configuration: configuration,
-                    interactionPolicy: .forbidden
-                ).enforcingInteractionPolicy()
+                let request = try store.additionalConnectionRequest(from: snapshot)
                 let openingRequest = request
                 let opening = Task {
                     try await client.connect(using: openingRequest, progress: nil, connectionFailure: nil)

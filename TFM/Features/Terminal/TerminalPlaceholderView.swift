@@ -180,7 +180,7 @@ struct TerminalPlaceholderView: View {
     private var uploadTargetProblem: String? {
         TerminalUploadAvailability.problem(
             isConnected: sshSession.status == .connected,
-            hasTransferConfiguration: sshSession.transferConfiguration != nil,
+            hasTransferConfiguration: sshSession.transferSnapshot != nil,
             isWorkingDirectoryPending: sshSession.homeResolution.isPending,
             workingDirectory: sshSession.workingDirectory
         )
@@ -201,7 +201,7 @@ struct TerminalPlaceholderView: View {
         guard !files.isEmpty else { return false }
         cancelPendingUpload()
         guard uploadTargetProblem == nil,
-            let configuration = sshSession.transferConfiguration,
+            let snapshot = sshSession.transferSnapshot,
             let workingDirectory = sshSession.workingDirectory
         else {
             showUploadNotice(
@@ -232,9 +232,9 @@ struct TerminalPlaceholderView: View {
                 let resolved = try await TerminalUploadConnectionResolver.resolve(
                     isCurrent: { sshSession.connectionAttemptID == generation },
                     connectIndependent: {
-                        try await app.connections.connectSFTP(
-                            using: SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden),
-                            progress: nil
+                        let request = try sshSession.additionalConnectionRequest(from: snapshot)
+                        return try await app.connections.connectSFTP(
+                            using: request, progress: nil
                         )
                     },
                     openPTYSFTPChannel: {
@@ -248,7 +248,8 @@ struct TerminalPlaceholderView: View {
                     hostID: sshSession.hostID,
                     initialPath: destination,
                     client: client,
-                    configuration: configuration,
+                    additionalSnapshot: snapshot,
+                    hostStore: sshSession.transferHostStore,
                     primaryRole: resolved.primaryRole,
                     homeResolution: sshSession.homeResolution
                 )

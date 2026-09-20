@@ -24,20 +24,22 @@ public final class SFTPEditService {
         }
         let hops: [Hop]
 
-        init(_ configuration: SSHConnectionConfiguration) {
-            func proxy(_ value: SSHTransportProxy?) -> [String] {
+        init(_ snapshot: SSHAdditionalConnectionSnapshot) {
+            func proxy(_ value: SSHAdditionalConnectionSnapshot.Proxy?) -> [String] {
                 guard let value else { return [] }
-                return [value.kind.rawValue, value.hostname, String(value.port), value.username]
+                return [value.kind.rawValue, value.hostname, String(value.port)]
             }
             hops =
-                configuration.jumps.map {
+                snapshot.jumps.map {
                     Hop(
-                        host: $0.host, port: $0.port, username: $0.username, keys: $0.expectedHostKeys,
+                        host: $0.host, port: $0.port, username: $0.authentication.username,
+                        keys: $0.expectedHostKeys,
                         proxy: proxy($0.proxy))
                 } + [
                     Hop(
-                        host: configuration.host, port: configuration.port, username: configuration.username,
-                        keys: configuration.expectedHostKeys, proxy: proxy(configuration.proxy))
+                        host: snapshot.target.host, port: snapshot.target.port,
+                        username: snapshot.target.authentication.username,
+                        keys: snapshot.target.expectedHostKeys, proxy: proxy(snapshot.target.proxy))
                 ]
         }
     }
@@ -64,12 +66,12 @@ public final class SFTPEditService {
     public func open(
         _ file: RemoteFile, hostID: Host.ID, connection: SFTPTransferConnection,
         client: any SFTPChannelProtocol, homeDirectory: String? = nil,
-        configuration: SSHConnectionConfiguration? = nil
+        snapshot: SSHAdditionalConnectionSnapshot? = nil
     ) async throws -> URL {
         validateHosts()
         if let existing = model.file(hostID: hostID, path: file.path) {
             guard !existing.isInvalidated,
-                matchesDestination(existing.id, connection: connection, configuration: configuration)
+                matchesDestination(existing.id, connection: connection, snapshot: snapshot)
             else { throw SFTPEditFailure.unavailable }
             return existing.localURL
         }
@@ -77,7 +79,7 @@ public final class SFTPEditService {
         if let task = opening[key] {
             let url = try await task.value
             if let existing = model.file(hostID: hostID, path: file.path),
-                !matchesDestination(existing.id, connection: connection, configuration: configuration)
+                !matchesDestination(existing.id, connection: connection, snapshot: snapshot)
             {
                 throw SFTPEditFailure.unavailable
             }
@@ -126,7 +128,7 @@ public final class SFTPEditService {
                 guard generations[hostID, default: 0] == generation else { throw SFTPEditFailure.unavailable }
                 if let originalHost { originalHosts[hostID] = originalHost }
                 let id = model.register(hostID: hostID, file: original, localURL: url, digest: digest)
-                destinations[id] = destination(connection, configuration: configuration)
+                destinations[id] = destination(connection, snapshot: snapshot)
                 validateHosts()
                 startMonitoring()
             }
@@ -235,14 +237,14 @@ public final class SFTPEditService {
     public func upload(
         _ id: UUID, connection: SFTPTransferConnection, client: any SFTPChannelProtocol,
         homeDirectory: String? = nil, replacing: Bool = false,
-        configuration: SSHConnectionConfiguration? = nil,
+        snapshot: SSHAdditionalConnectionSnapshot? = nil,
         didUpload: @escaping () -> Void = {}
     ) async -> Bool {
         validateHosts()
         guard let entry = model.file(id), !entry.isPreparing, entry.transferID == nil, !entry.isInvalidated else {
             return false
         }
-        guard matchesDestination(id, connection: connection, configuration: configuration) else { return false }
+        guard matchesDestination(id, connection: connection, snapshot: snapshot) else { return false }
         model.update(id) {
             $0.isPreparing = true
             $0.error = nil
@@ -301,18 +303,18 @@ public final class SFTPEditService {
     }
 
     private func destination(
-        _ connection: SFTPTransferConnection, configuration: SSHConnectionConfiguration?
+        _ connection: SFTPTransferConnection, snapshot: SSHAdditionalConnectionSnapshot?
     ) -> Destination? {
-        if let configuration { return Destination(configuration) }
+        if let snapshot { return Destination(snapshot) }
         if case .saved(let saved) = connection { return Destination(saved) }
-        if case .context(let session) = connection { return Destination(session.configuration) }
+        if case .context(let session) = connection { return Destination(session.snapshot) }
         return nil
     }
 
     private func matchesDestination(
-        _ id: UUID, connection: SFTPTransferConnection, configuration: SSHConnectionConfiguration?
+        _ id: UUID, connection: SFTPTransferConnection, snapshot: SSHAdditionalConnectionSnapshot?
     ) -> Bool {
-        guard destinations[id] == destination(connection, configuration: configuration) else {
+        guard destinations[id] == destination(connection, snapshot: snapshot) else {
             model.update(id) {
                 $0.isInvalidated = true
                 $0.error = SFTPEditFailure.unavailable.localizedDescription

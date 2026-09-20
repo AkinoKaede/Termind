@@ -81,7 +81,7 @@ final class MobileWorkspace: Identifiable {
     let sftpEdits: SFTPEditService?
     let transfers: SFTPTransferCoordinator?
     private var transferContext: SFTPTransferContext?
-    private var transferConfiguration: SSHConnectionConfiguration?
+    private var transferSnapshot: SSHAdditionalConnectionSnapshot?
     private(set) var uploadNotice: WorkspaceUploadNotice?
     private var pendingUpload: MobilePendingUpload?
     private var uploadPreparationTask: Task<Void, Never>?
@@ -184,12 +184,12 @@ final class MobileWorkspace: Identifiable {
         case .ssh:
             return TerminalUploadAvailability.problem(
                 isConnected: connected,
-                hasTransferConfiguration: transferConfiguration != nil,
+                hasTransferConfiguration: transferSnapshot != nil,
                 isWorkingDirectoryPending: workingDirectory == nil,
                 workingDirectory: workingDirectory
             )
         case .sftp:
-            guard connected, transferConfiguration != nil, sftp != nil else {
+            guard connected, transferSnapshot != nil, sftp != nil else {
                 return String(localized: "The SFTP channel is not connected.")
             }
             return nil
@@ -638,10 +638,11 @@ final class MobileWorkspace: Identifiable {
                     journey.receive(.connected(host.id))
                 }
                 guard generation == token, !Task.isCancelled else { return }
-                let additionalConfiguration = hosts.configurationForAdditionalConnection(from: config)
-                transferConfiguration = additionalConfiguration
+                let additionalSnapshot = hosts.additionalConnectionSnapshot(from: config)
+                transferSnapshot = additionalSnapshot
                 if let sftp {
-                    transferContext = SFTPTransferContext(configuration: additionalConfiguration, channel: sftp)
+                    transferContext = SFTPTransferContext(
+                        snapshot: additionalSnapshot, hostStore: hosts, channel: sftp)
                 }
                 submissions.removeAll()
                 let wasReconnecting = connection.markConnected()
@@ -768,7 +769,7 @@ final class MobileWorkspace: Identifiable {
         sftpChannel.detach()
         busy = false
         connected = false
-        transferConfiguration = nil
+        transferSnapshot = nil
         status = String(localized: "Disconnected")
         connectionFailure = reconnectState.lastError
         journey.fail(reconnectState.lastError)
@@ -797,7 +798,7 @@ final class MobileWorkspace: Identifiable {
         sftpChannel.detach()
         busy = false
         connected = false
-        transferConfiguration = nil
+        transferSnapshot = nil
         activeHistoryID = nil
         authenticationRequired = false
         authenticationPrompt = nil
@@ -831,7 +832,7 @@ final class MobileWorkspace: Identifiable {
         busy = false
         connected = false
         ssh = nil
-        transferConfiguration = nil
+        transferSnapshot = nil
         switch result {
         case .success:
             connectionResumeIntent = .none
@@ -865,7 +866,7 @@ final class MobileWorkspace: Identifiable {
         sftpChannel.detach()
         busy = false
         connected = false
-        transferConfiguration = nil
+        transferSnapshot = nil
         status = String(localized: "Reconnecting")
         if announcesLoss, descriptor.kind == .ssh {
             appendTerminalNotice(String(localized: "Connection lost; reconnecting…"))
@@ -914,7 +915,7 @@ final class MobileWorkspace: Identifiable {
         generation = UUID()
         attempt?.cancel()
         attempt = nil
-        transferConfiguration = nil
+        transferSnapshot = nil
         let oldSSH = ssh
         let oldSFTP = sftp
         let oldTransferContext = transferContext
@@ -1008,7 +1009,7 @@ final class MobileWorkspace: Identifiable {
         let urls = urls.filter(\.isFileURL)
         guard !urls.isEmpty else { return false }
         cancelPendingUpload()
-        guard transfers != nil, let configuration = transferConfiguration,
+        guard transfers != nil, let snapshot = transferSnapshot,
             let destination = uploadDestination
         else {
             showUploadNotice(
@@ -1040,11 +1041,7 @@ final class MobileWorkspace: Identifiable {
                     client = sftp
                 } else {
                     client = try await connectionServices.connectSFTP(
-                        SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden)
-                            .enforcingInteractionPolicy(),
-                        nil,
-                        nil
-                    )
+                        hosts.additionalConnectionRequest(from: snapshot), nil, nil)
                     ownsClient = true
                 }
                 try Task.checkCancellation()
@@ -1069,7 +1066,8 @@ final class MobileWorkspace: Identifiable {
                 let context: SFTPTransferContext
                 if ownsClient {
                     context = SFTPTransferContext(
-                        configuration: configuration, channel: client, primaryRole: .donatedConnection)
+                        snapshot: snapshot, hostStore: hosts,
+                        channel: client, primaryRole: .donatedConnection)
                 } else {
                     guard let existing = transferContext else { throw SFTPError.notConnected }
                     context = existing
@@ -1111,7 +1109,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func prepareRemoteCopy(_ payload: SFTPRemoteItemsPayload) {
-        guard let transfers, transferConfiguration != nil,
+        guard let transfers, transferSnapshot != nil,
             let sftp, connected
         else {
             operationError = String(localized: "The SFTP connection is not available.")
@@ -1152,7 +1150,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     func prepareDownload(_ file: RemoteFile, to destination: URL) {
-        guard transfers != nil, transferConfiguration != nil,
+        guard transfers != nil, transferSnapshot != nil,
             let sftp, connected
         else {
             operationError = String(localized: "The SFTP connection is not available.")

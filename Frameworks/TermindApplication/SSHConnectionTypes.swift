@@ -42,13 +42,15 @@ public nonisolated enum SSHHostKeyDecision: Equatable, Sendable {
 }
 
 public typealias SSHHostKeyAuthorizer = @Sendable (SSHHostKeyChallenge) async throws -> SSHHostKeyDecision
+public typealias SSHAdditionalConnectionRequestResolver = @MainActor @Sendable () throws -> SSHConnectionRequest
 
 public nonisolated enum SSHHostTrustPolicy: Equatable, Sendable {
     case requireKnownHost
     case allowChallenge
 }
 
-/// Controls Termind authentication forms. System key authorization (Touch ID) remains allowed.
+/// Controls every authentication action that may require user presence,
+/// including Termind forms, Touch ID, and device-password authorization.
 public nonisolated enum SSHInteractionPolicy: Equatable, Sendable {
     case allowed
     case forbidden
@@ -95,12 +97,29 @@ public nonisolated struct SSHConnectionRequest: Sendable {
     public func enforcingInteractionPolicy() -> Self {
         guard interactionPolicy == .forbidden else { return self }
         var request = self
+        request.configuration.credentials = request.configuration.credentials.map { $0.withoutInteraction }
+        for index in request.configuration.jumps.indices {
+            request.configuration.jumps[index].credentials =
+                request.configuration.jumps[index].credentials.map { $0.withoutInteraction }
+        }
         request.authorizeHostKey = { _ in throw SSHInteractionRequired() }
         request.keyboardInteractive = { challenge in
             guard challenge.prompts.isEmpty else { throw SSHInteractionRequired() }
             return []
         }
         return request
+    }
+}
+
+nonisolated extension SSHCredentials {
+    fileprivate var withoutInteraction: SSHCredentials {
+        switch self {
+        case .privateKey(_, _, _, requiresPassphrase: true),
+            .secureEnclave(_, _, requiresUserPresence: true):
+            .interactionRequired
+        default:
+            self
+        }
     }
 }
 
@@ -197,13 +216,23 @@ public nonisolated struct SSHHostKeyPrompt: Hashable, Sendable {
 
 public nonisolated enum SSHCredentials: Sendable {
     case password(String)
-    case privateKey(privateKey: String, publicKey: String?, passphrase: String?)
-    case secureEnclave(credential: SecureEnclaveKeyCredential, publicKey: String)
+    case privateKey(
+        privateKey: String, publicKey: String?, passphrase: String?,
+        requiresPassphrase: Bool = false
+    )
+    case secureEnclave(
+        credential: SecureEnclaveKeyCredential, publicKey: String,
+        requiresUserPresence: Bool = false
+    )
+    /// A public-key credential exists, but the current policy may not obtain it
+    /// without presenting Touch ID, a device-password prompt, or a passphrase form.
+    case interactionRequired
 }
 
 nonisolated extension StoredSSHKeyCredential {
     public func sshCredential(
-        publicKey: String, certificate: String = "", passphraseOverride: String? = nil
+        publicKey: String, certificate: String = "", passphraseOverride: String? = nil,
+        requiresPassphrase: Bool = false, requiresUserPresence: Bool = false
     ) -> SSHCredentials {
         switch self {
         case .software(let secret):
@@ -212,11 +241,41 @@ nonisolated extension StoredSSHKeyCredential {
                 publicKey: certificate.isEmpty
                     ? (publicKey.isEmpty ? nil : publicKey)
                     : certificate,
-                passphrase: passphraseOverride
+                passphrase: passphraseOverride,
+                requiresPassphrase: requiresPassphrase
             )
         case .secureEnclave(let credential):
-            .secureEnclave(credential: credential, publicKey: publicKey)
+            .secureEnclave(
+                credential: credential, publicKey: publicKey,
+                requiresUserPresence: requiresUserPresence
+            )
         }
+    }
+}
+
+/// Non-secret provenance retained by a live connection so its reusable
+/// additional-connection snapshot can resolve current credentials by ID.
+public nonisolated struct SSHAuthenticationReference: Hashable, Sendable {
+    public var identityID: Identity.ID?
+    /// Used only when no Identity owns this login. An Identity always resolves
+    /// its current Key, so changing the Identity updates later connections.
+    public var fallbackKeyID: SSHKeyRef.ID?
+    /// Used only when there is no Identity. Identity-owned logins always use
+    /// the Identity's current username.
+    public var username: String
+    public var permitsNone: Bool
+    public var hasEphemeralSecret: Bool
+
+    public init(
+        identityID: Identity.ID? = nil, fallbackKeyID: SSHKeyRef.ID? = nil,
+        username: String = "",
+        permitsNone: Bool = false, hasEphemeralSecret: Bool = false
+    ) {
+        self.identityID = identityID
+        self.fallbackKeyID = fallbackKeyID
+        self.username = username
+        self.permitsNone = permitsNone
+        self.hasEphemeralSecret = hasEphemeralSecret
     }
 }
 
@@ -229,10 +288,12 @@ public nonisolated struct SSHConnectionConfiguration: Sendable {
     public var expectedHostKeys: Set<SSHHostKeyIdentity>
     public var proxy: SSHTransportProxy?
     public var jumps: [SSHRouteHopConfiguration] = []
+    public var authenticationReference: SSHAuthenticationReference
     public init(
         hostID: Host.ID, host: String, port: Int, username: String, credentials: [SSHCredentials],
         expectedHostKeys: Set<SSHHostKeyIdentity>, proxy: SSHTransportProxy? = nil,
-        jumps: [SSHRouteHopConfiguration] = []
+        jumps: [SSHRouteHopConfiguration] = [],
+        authenticationReference: SSHAuthenticationReference? = nil
     ) {
         self.hostID = hostID
         self.host = host
@@ -242,6 +303,13 @@ public nonisolated struct SSHConnectionConfiguration: Sendable {
         self.expectedHostKeys = expectedHostKeys
         self.proxy = proxy
         self.jumps = jumps
+        self.authenticationReference =
+            authenticationReference
+            ?? SSHAuthenticationReference(
+                username: username,
+                permitsNone: credentials.isEmpty,
+                hasEphemeralSecret: !credentials.isEmpty
+            )
     }
 
 }

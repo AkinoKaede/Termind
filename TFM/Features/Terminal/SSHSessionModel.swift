@@ -228,10 +228,10 @@ final class SSHSessionModel: Identifiable {
     private var reconnectController: SessionReconnectController { connection.reconnect }
     private var workingDirectoryObservation: AnyCancellable?
     private var remoteWindowTitleObservation: AnyCancellable?
-    /// The exact authenticated route used by the live terminal, retained only
-    /// in memory so a drop can open an independent SFTP connection without
-    /// asking for credentials a second time. Cleared with the SSH connection.
-    private(set) var transferConfiguration: SSHConnectionConfiguration?
+    /// The live terminal's frozen route and credential IDs. Password, Key, and
+    /// passphrase material are resolved only for each attempted transfer
+    /// connection and never retained here. Cleared with the SSH connection.
+    private(set) var transferSnapshot: SSHAdditionalConnectionSnapshot?
     private var latestViewport = InMemoryTerminalViewport(columns: 80, rows: 24)
     var connectionRoute: SSHConnectionRoute?
     private var transientHost: Host?
@@ -371,7 +371,17 @@ final class SSHSessionModel: Identifiable {
     }
 
     var agentConnectionConfiguration: SSHConnectionConfiguration? {
-        transferConfiguration
+        guard let transferSnapshot, let statusStore else { return nil }
+        return try? statusStore.additionalConnectionRequest(from: transferSnapshot).configuration
+    }
+
+    var transferHostStore: (any RemoteSessionHostStore)? { statusStore }
+
+    func additionalConnectionRequest(
+        from snapshot: SSHAdditionalConnectionSnapshot
+    ) throws -> SSHConnectionRequest {
+        guard let statusStore else { throw TermindSSHError.missingCredential }
+        return try statusStore.additionalConnectionRequest(from: snapshot)
     }
 
     func requestTerminalFocus() {
@@ -450,7 +460,7 @@ final class SSHSessionModel: Identifiable {
         homeResolution = .unavailable
         let reconnecting = connection.hasConnectedOnce && connection.isRecovering
         workingDirectory = nil
-        transferConfiguration = nil
+        transferSnapshot = nil
         commandExcludedFromHistory = nil
         statusStore = store
         let attemptID = UUID()
@@ -523,7 +533,9 @@ final class SSHSessionModel: Identifiable {
                             credentials.append(
                                 credential.sshCredential(
                                     publicKey: key.publicKey, certificate: key.certificate,
-                                    passphraseOverride: suppliedAuthentication.passphrase
+                                    passphraseOverride: suppliedAuthentication.passphrase,
+                                    requiresPassphrase: key.requiresPassphraseEntry,
+                                    requiresUserPresence: key.requiresUserPresence
                                 )
                             )
                         } else {
@@ -621,13 +633,31 @@ final class SSHSessionModel: Identifiable {
         connection.clearHostKeyPrompt()
         connectionTask?.cancel()
         status = reconnecting ? .reconnecting : .connecting
+        let authenticationReference: SSHAuthenticationReference
+        if let identityID = suppliedAuthentication?.identityID ?? (suppliedAuthentication == nil ? identity?.id : nil) {
+            authenticationReference = SSHAuthenticationReference(
+                identityID: identityID,
+                username: username,
+                permitsNone: identity?.hasSecret == false,
+                hasEphemeralSecret: suppliedAuthentication?.password != nil
+                    || suppliedAuthentication?.passphrase != nil
+            )
+        } else {
+            authenticationReference = SSHAuthenticationReference(
+                fallbackKeyID: selectedKeyID,
+                username: username,
+                permitsNone: selectedKeyID == nil && suppliedAuthentication?.password == nil,
+                hasEphemeralSecret: suppliedAuthentication?.password != nil
+                    || suppliedAuthentication?.passphrase != nil
+            )
+        }
         connectionTask = Task { [weak self, weak store] in
             guard let self, let store else { return }
             do {
                 try await openSSH(
                     host: host, username: username, credentials: credentials,
                     expectedHostKeys: expectedHostKeys, proxy: proxy, jumps: jumps,
-                    attemptID: attemptID,
+                    authenticationReference: authenticationReference, attemptID: attemptID,
                     authorizeHostKey: { [weak self, weak store] challenge in
                         guard let self, let store else { throw CancellationError() }
                         return await self.connection.authorizeHostKey(
@@ -760,7 +790,7 @@ final class SSHSessionModel: Identifiable {
         remoteWindowTitle = nil
         workingDirectory = nil
         homeResolution = .unavailable
-        transferConfiguration = nil
+        transferSnapshot = nil
         pendingInitialCommand = nil
         commandExcludedFromHistory = nil
         pendingAuthentication = nil
@@ -795,7 +825,7 @@ final class SSHSessionModel: Identifiable {
         host: Host, username: String, credentials: [SSHCredentials],
         expectedHostKeys: Set<SSHHostKeyIdentity>,
         proxy: SSHTransportProxy?, jumps: [SSHRouteHopConfiguration],
-        attemptID: UUID,
+        authenticationReference: SSHAuthenticationReference, attemptID: UUID,
         authorizeHostKey: @escaping SSHHostKeyAuthorizer
     ) async throws {
         let wasReconnecting = connection.isRecovering
@@ -803,7 +833,8 @@ final class SSHSessionModel: Identifiable {
         let configuration = SSHConnectionConfiguration(
             hostID: host.id, host: host.host, port: host.port, username: username,
             credentials: credentials, expectedHostKeys: expectedHostKeys,
-            proxy: proxy, jumps: jumps
+            proxy: proxy, jumps: jumps,
+            authenticationReference: authenticationReference
         )
         let backend = terminalBackend
         let actor = (connectionCoordinator ?? RemoteConnectionCoordinator()).makePTYChannel(
@@ -838,9 +869,9 @@ final class SSHSessionModel: Identifiable {
             )
             try Task.checkCancellation()
             guard connectionAttemptID == attemptID else { throw CancellationError() }
-            transferConfiguration =
-                statusStore?.configurationForAdditionalConnection(from: configuration)
-                ?? configuration
+            transferSnapshot =
+                statusStore?.additionalConnectionSnapshot(from: configuration)
+                ?? SSHAdditionalConnectionSnapshot(configuration: configuration)
             suppliedAuthentications.removeAll()
             temporaryHostKeys.removeAll()
             _ = connection.markConnected()
@@ -876,7 +907,7 @@ final class SSHSessionModel: Identifiable {
         remoteWindowTitle = nil
         workingDirectory = nil
         homeResolution = .unavailable
-        transferConfiguration = nil
+        transferSnapshot = nil
         connectionAttemptID = nil
         ssh = nil
         switch result {
@@ -921,7 +952,7 @@ final class SSHSessionModel: Identifiable {
         connectionTask = nil
         if let ssh { Task { await ssh.disconnect() } }
         ssh = nil
-        transferConfiguration = nil
+        transferSnapshot = nil
         status = .reconnecting
         let host = connectionHost(hostID, using: store)
         if let connectionRoute, let host {

@@ -997,7 +997,7 @@ struct MobileUploadBatchTests {
             batch,
             policy: .replace,
             hostID: hostID,
-            connection: .saved(configuration),
+            connection: .saved(SSHAdditionalConnectionSnapshot(configuration: configuration)),
             client: client,
             coordinator: coordinator
         )
@@ -1033,7 +1033,8 @@ struct MobileUploadBatchTests {
 
         await #expect(throws: (any Error).self) {
             try await SFTPLocalUploadPlanner.enqueue(
-                batch, policy: .replace, hostID: hostID, connection: .saved(configuration),
+                batch, policy: .replace, hostID: hostID,
+                connection: .saved(SSHAdditionalConnectionSnapshot(configuration: configuration)),
                 client: client, coordinator: coordinator)
         }
         #expect(await client.listedDirectories == [target.path])
@@ -1056,7 +1057,8 @@ struct MobileUploadBatchTests {
         let task = Task { @MainActor in
             withUnsafeCurrentTask { $0?.cancel() }
             return try await SFTPLocalUploadPlanner.enqueue(
-                batch, policy: .replace, hostID: hostID, connection: .saved(configuration),
+                batch, policy: .replace, hostID: hostID,
+                connection: .saved(SSHAdditionalConnectionSnapshot(configuration: configuration)),
                 client: client, coordinator: coordinator)
         }
 

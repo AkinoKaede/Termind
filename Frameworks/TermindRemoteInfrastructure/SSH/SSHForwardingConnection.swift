@@ -28,7 +28,7 @@ public nonisolated struct SSHForwardingPoolStatus: Hashable, Sendable {
 
 public protocol SSHForwardingConnectionProtocol: Actor {
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws
-    func configureAdditionalConnections(_ request: SSHConnectionRequest) async
+    func configureAdditionalConnections(_ resolver: @escaping SSHAdditionalConnectionRequestResolver) async
     func connectionPoolStatus() async -> SSHForwardingPoolStatus
     func start(_ rule: PortForwardingRule, generation: UUID) async throws
     func stop(_ id: PortForwardingRule.ID) async
@@ -36,7 +36,7 @@ public protocol SSHForwardingConnectionProtocol: Actor {
 }
 
 extension SSHForwardingConnectionProtocol {
-    public func configureAdditionalConnections(_ request: SSHConnectionRequest) async {}
+    public func configureAdditionalConnections(_ resolver: @escaping SSHAdditionalConnectionRequestResolver) async {}
     public func connectionPoolStatus() async -> SSHForwardingPoolStatus { .single }
 }
 

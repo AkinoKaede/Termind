@@ -151,7 +151,7 @@ final class SFTPChannelModel: Identifiable {
 
     private var client: (any SFTPChannelProtocol)?
     private var transferContext: SFTPTransferContext?
-    private var configuration: SSHConnectionConfiguration?
+    private var additionalSnapshot: SSHAdditionalConnectionSnapshot?
     private var usesEphemeralCredentials = false
     private var connectionTask: Task<Void, Never>?
     private var startsOnMount = true
@@ -178,6 +178,8 @@ final class SFTPChannelModel: Identifiable {
         initialPath: String = "",
         client: (any SFTPChannelProtocol)? = nil,
         configuration: SSHConnectionConfiguration? = nil,
+        additionalSnapshot: SSHAdditionalConnectionSnapshot? = nil,
+        hostStore: (any RemoteSessionHostStore)? = nil,
         primaryRole: SFTPTransferPrimaryRole = .control,
         homeResolution: RemoteHomeResolutionState = .pending,
         automaticRefreshInterval: Duration = .seconds(15)
@@ -190,10 +192,13 @@ final class SFTPChannelModel: Identifiable {
         self.pathText = path
         self.client = client
         startsOnMount = client == nil
-        self.configuration = configuration
-        if let client, let configuration {
+        let retainedSnapshot =
+            additionalSnapshot ?? configuration.map(SSHAdditionalConnectionSnapshot.init(configuration:))
+        self.additionalSnapshot = retainedSnapshot
+        if let client, let retainedSnapshot {
             transferContext = SFTPTransferContext(
-                configuration: configuration, channel: client, primaryRole: primaryRole)
+                snapshot: retainedSnapshot, hostStore: hostStore,
+                channel: client, primaryRole: primaryRole)
         }
         self.homeResolution = homeResolution
         self.automaticRefreshInterval = automaticRefreshInterval
@@ -350,7 +355,9 @@ final class SFTPChannelModel: Identifiable {
                         credentials.append(
                             stored.sshCredential(
                                 publicKey: key.publicKey, certificate: key.certificate,
-                                passphraseOverride: suppliedAuthentication.passphrase
+                                passphraseOverride: suppliedAuthentication.passphrase,
+                                requiresPassphrase: key.requiresPassphraseEntry,
+                                requiresUserPresence: key.requiresUserPresence
                             ))
                     }
                     if let password = suppliedAuthentication.password {
@@ -366,6 +373,16 @@ final class SFTPChannelModel: Identifiable {
                             for: host, submissions: suppliedAuthentications,
                             temporaryHostKeys: temporaryHostKeys,
                             trustPolicy: .allowChallenge
+                        ),
+                        authenticationReference: SSHAuthenticationReference(
+                            identityID: suppliedAuthentication.identityID,
+                            fallbackKeyID: suppliedAuthentication.identityID == nil
+                                ? suppliedAuthentication.keyID : nil,
+                            username: suppliedAuthentication.username,
+                            permitsNone: suppliedAuthentication.keyID == nil
+                                && suppliedAuthentication.password == nil,
+                            hasEphemeralSecret: suppliedAuthentication.password != nil
+                                || suppliedAuthentication.passphrase != nil
                         )
                     )
                 } else {
@@ -415,9 +432,10 @@ final class SFTPChannelModel: Identifiable {
                 }
                 self.connectionJourney.receive(.connected(host.id))
                 self.client = client
-                let transferConfiguration = store.configurationForAdditionalConnection(from: configuration)
-                self.transferContext = SFTPTransferContext(configuration: transferConfiguration, channel: client)
-                self.configuration = transferConfiguration
+                let additionalSnapshot = store.additionalConnectionSnapshot(from: configuration)
+                self.transferContext = SFTPTransferContext(
+                    snapshot: additionalSnapshot, hostStore: store, channel: client)
+                self.additionalSnapshot = additionalSnapshot
                 self.suppliedAuthentications.removeAll()
                 self.temporaryHostKeys.removeAll()
                 self.pendingAuthentication = nil
@@ -483,6 +501,7 @@ final class SFTPChannelModel: Identifiable {
 
     func bindStatus(to store: any RemoteSessionHostStore) {
         statusStore = store
+        transferContext?.configureHostStore(store)
         store.setConnectionStatus(status, connectionID: id, hostID: hostID)
     }
 
@@ -507,7 +526,7 @@ final class SFTPChannelModel: Identifiable {
         let transferContext = transferContext
         self.transferContext = nil
         self.client = nil
-        configuration = nil
+        additionalSnapshot = nil
         usesEphemeralCredentials = false
         status = .disconnected
         homeResolution = .unavailable
@@ -533,7 +552,7 @@ final class SFTPChannelModel: Identifiable {
         let transferContext = transferContext
         self.transferContext = nil
         self.client = nil
-        configuration = nil
+        additionalSnapshot = nil
         status = .failed(reconnectState.lastError)
         homeResolution = .unavailable
         hint = reconnectState.lastError
@@ -851,7 +870,7 @@ final class SFTPChannelModel: Identifiable {
                 do {
                     let url = try await edits.open(
                         file, hostID: hostID, connection: connection, client: client,
-                        homeDirectory: homeResolution.resolvedDirectory, configuration: configuration)
+                        homeDirectory: homeResolution.resolvedDirectory, snapshot: additionalSnapshot)
                     completion(url)
                 } catch { operationError = error.localizedDescription }
             }
@@ -881,7 +900,7 @@ final class SFTPChannelModel: Identifiable {
         guard status == .connected, let connection = transferConnection, let client else { return false }
         return await edits.upload(
             id, connection: connection, client: client,
-            homeDirectory: homeResolution.resolvedDirectory, replacing: replacing, configuration: configuration
+            homeDirectory: homeResolution.resolvedDirectory, replacing: replacing, snapshot: additionalSnapshot
         ) { [weak self] in self?.scheduleSilentRefresh() }
     }
 
@@ -1068,7 +1087,7 @@ final class SFTPChannelModel: Identifiable {
         let transferContext = transferContext
         self.transferContext = nil
         self.client = nil
-        configuration = nil
+        additionalSnapshot = nil
         status = .reconnecting
         hint = String(localized: "Reconnecting")
         let host = store.host(hostID)

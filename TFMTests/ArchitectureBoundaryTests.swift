@@ -44,6 +44,24 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func additionalConnectionOwnersRetainReferencesInsteadOfCredentials() throws {
+        let paths = [
+            "../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift",
+            "Features/Terminal/SSHSessionModel.swift",
+            "../Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift",
+        ]
+        for path in paths {
+            let source = try String(contentsOf: sourceRoot.appending(path: path), encoding: .utf8)
+            #expect(containsToken("SSHAdditionalConnectionSnapshot", in: source))
+        }
+        let transferContext = try String(
+            contentsOf: sourceRoot.appending(
+                path: "../Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift"),
+            encoding: .utf8)
+        #expect(!containsToken("SSHConnectionConfiguration", in: transferContext))
+    }
+
+    @Test
     func mobileLayersKeepUIAndInfrastructureSeparate() throws {
         try assertNoImports(
             in: "../TFI/Application",

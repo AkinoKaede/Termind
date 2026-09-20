@@ -16,7 +16,8 @@ public nonisolated enum SFTPTransferPrimaryRole: Hashable, Sendable {
 @MainActor
 public final class SFTPTransferContext {
     public let id = UUID()
-    public let configuration: SSHConnectionConfiguration
+    public let snapshot: SSHAdditionalConnectionSnapshot
+    private weak var hostStore: (any RemoteSessionHostStore)?
     private var clientFactory: SFTPTransferCoordinator.ClientFactory
     private var primary: (any SFTPChannelProtocol)?
     private var ownerAttached = true
@@ -31,11 +32,13 @@ public final class SFTPTransferContext {
     var availabilityChanged: (() -> Void)?
 
     public init(
-        configuration: SSHConnectionConfiguration, channel: any SFTPChannelProtocol,
+        snapshot: SSHAdditionalConnectionSnapshot, hostStore: (any RemoteSessionHostStore)? = nil,
+        channel: any SFTPChannelProtocol,
         primaryRole: SFTPTransferPrimaryRole = .control,
         clientFactory: @escaping SFTPTransferCoordinator.ClientFactory = { SFTPClient() }
     ) {
-        self.configuration = configuration
+        self.snapshot = snapshot
+        self.hostStore = hostStore
         self.primary = channel
         self.clientFactory = clientFactory
         self.primaryRole = primaryRole
@@ -52,6 +55,10 @@ public final class SFTPTransferContext {
 
     func configureClientFactory(_ factory: @escaping SFTPTransferCoordinator.ClientFactory) {
         clientFactory = factory
+    }
+
+    public func configureHostStore(_ store: any RemoteSessionHostStore) {
+        hostStore = store
     }
 
     func suspendTransfer(_ id: UUID) {
@@ -203,9 +210,9 @@ public final class SFTPTransferContext {
     }
 
     private func openSilently(cancellation: TransferCancellationToken?) async throws -> any SFTPChannelProtocol {
+        guard let hostStore else { throw SFTPError.notConnected }
         let client = clientFactory()
-        let request = SSHConnectionRequest(configuration: configuration, interactionPolicy: .forbidden)
-            .enforcingInteractionPolicy()
+        let request = try hostStore.additionalConnectionRequest(from: snapshot)
         let opening = Task {
             try await client.connect(using: request, progress: nil, connectionFailure: nil)
         }

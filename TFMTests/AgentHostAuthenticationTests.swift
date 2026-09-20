@@ -195,7 +195,7 @@ struct AgentHostAuthenticationTests {
 
         let configuration = try await session.configuration()
 
-        guard case .privateKey(_, _, let passphrase) = configuration.credentials.first else {
+        guard case .privateKey(_, _, let passphrase, _) = configuration.credentials.first else {
             Issue.record("Expected a private-key credential")
             return
         }
@@ -276,7 +276,7 @@ struct AgentHostAuthenticationTests {
                 )))
 
         let resolved = try await configuration.value
-        guard case .privateKey(_, _, let passphrase) = resolved.credentials.first else {
+        guard case .privateKey(_, _, let passphrase, _) = resolved.credentials.first else {
             Issue.record("Expected a private-key credential")
             return
         }

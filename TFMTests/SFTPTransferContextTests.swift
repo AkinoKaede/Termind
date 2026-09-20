@@ -100,9 +100,9 @@ struct SFTPTransferContextTests {
         let primary = TransferChannelClient(harness: harness, primary: true)
         let (context, coordinator) = fixture(primary: primary, harness: harness)
         coordinator.enqueueRemoteCopy(
-            batchID: UUID(), sourcePath: "/source", sourceHostID: context.configuration.hostID,
+            batchID: UUID(), sourcePath: "/source", sourceHostID: context.snapshot.hostID,
             sourceConnection: .context(context), destinationPath: "/copy",
-            destinationHostID: context.configuration.hostID, destinationConnection: .context(context),
+            destinationHostID: context.snapshot.hostID, destinationConnection: .context(context),
             byteCount: 1, overwrite: false)
         try await eventually { await harness.started == 1 }
         await context.releaseOwner()
@@ -290,12 +290,14 @@ struct SFTPTransferContextTests {
         let primary = TransferChannelClient(harness: harness, primary: true)
         let configuration = SSHConnectionConfiguration(
             hostID: UUID(), host: "terminal", port: 22, username: "user", credentials: [], expectedHostKeys: [])
+        let store = HostLibraryModel()
         let coordinator = SFTPTransferCoordinator(
-            store: HostLibraryModel(), clientFactory: { TransferChannelClient(harness: harness) },
+            store: store, clientFactory: { TransferChannelClient(harness: harness) },
             globalLimit: 15, perHostLimit: 5, strategy: .connectionsPreferred)
         let upload = SFTPChannelModel(
             hostID: configuration.hostID, initialPath: "/destination", client: primary,
-            configuration: configuration, primaryRole: .donatedConnection)
+            additionalSnapshot: SSHAdditionalConnectionSnapshot(configuration: configuration),
+            hostStore: store, primaryRole: .donatedConnection)
         let directory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -325,14 +327,16 @@ struct SFTPTransferContextTests {
 
     @Test func twoTransferContextsForOneHostShareTheSameFiveTransferLimit() async throws {
         let harness = TransferChannelHarness(behaviors: [])
+        let store = HostLibraryModel()
         let coordinator = SFTPTransferCoordinator(
-            store: HostLibraryModel(), clientFactory: { TransferChannelClient(harness: harness) },
+            store: store, clientFactory: { TransferChannelClient(harness: harness) },
             globalLimit: 15, perHostLimit: 5, strategy: .connectionsPreferred)
         let configuration = SSHConnectionConfiguration(
             hostID: UUID(), host: "same-host", port: 22, username: "user", credentials: [], expectedHostKeys: [])
         let contexts = (0..<2).map { _ in
             SFTPTransferContext(
-                configuration: configuration, channel: TransferChannelClient(harness: harness),
+                snapshot: SSHAdditionalConnectionSnapshot(configuration: configuration), hostStore: store,
+                channel: TransferChannelClient(harness: harness),
                 primaryRole: .donatedConnection)
         }
         for context in contexts { enqueue(4, context: context, coordinator: coordinator) }
@@ -352,13 +356,15 @@ struct SFTPTransferContextTests {
         primaryRole: SFTPTransferPrimaryRole = .control,
         strategy: SFTPConcurrencyStrategy = .connectionsPreferred
     ) -> (SFTPTransferContext, SFTPTransferCoordinator) {
+        let store = HostLibraryModel()
+        let configuration = SSHConnectionConfiguration(
+            hostID: UUID(), host: "fixture", port: 22, username: "user",
+            credentials: [], expectedHostKeys: [])
         let context = SFTPTransferContext(
-            configuration: SSHConnectionConfiguration(
-                hostID: UUID(), host: "fixture", port: 22, username: "user",
-                credentials: [], expectedHostKeys: []),
+            snapshot: SSHAdditionalConnectionSnapshot(configuration: configuration), hostStore: store,
             channel: primary, primaryRole: primaryRole)
         let coordinator = SFTPTransferCoordinator(
-            store: HostLibraryModel(), clientFactory: { TransferChannelClient(harness: harness) },
+            store: store, clientFactory: { TransferChannelClient(harness: harness) },
             globalLimit: limit, perHostLimit: limit, strategy: strategy)
         return (context, coordinator)
     }
@@ -376,7 +382,7 @@ struct SFTPTransferContextTests {
             coordinator.enqueue(
                 direction: .upload, batchID: UUID(),
                 localURL: URL(fileURLWithPath: "/tmp/termind-test-\(index)"), remotePath: "/file-\(index)",
-                byteCount: byteCount, hostID: context.configuration.hostID, connection: .context(context),
+                byteCount: byteCount, hostID: context.snapshot.hostID, connection: .context(context),
                 scopedRoot: URL(fileURLWithPath: "/tmp"), overwrite: true)
         }
     }

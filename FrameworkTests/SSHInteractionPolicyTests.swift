@@ -35,9 +35,11 @@ struct SSHInteractionPolicyTests {
         }
     }
 
-    @Test func additionalConnectionRefreshesDurableTrustWithoutReusingOnceOnlyApproval() {
+    @Test func additionalSnapshotRetainsRouteAndIDsWithoutCredentialMaterial() {
         let host = Host(name: "Server", host: "example.invalid")
         let jump = Host(name: "Jump", host: "jump.invalid")
+        let identityID = UUID()
+        let keyID = UUID()
         let trusted = KnownHostEntry(hostname: host.host, port: 22, algorithm: .ed25519, fingerprint: "saved")
         let store = HostLibraryModel(hosts: [host, jump], knownHosts: [trusted])
         let configuration = SSHConnectionConfiguration(
@@ -47,17 +49,180 @@ struct SSHInteractionPolicyTests {
                 SSHRouteHopConfiguration(
                     id: jump.id, name: jump.name, host: jump.host, port: 22, username: "jump-user", credentials: [],
                     expectedHostKeys: [.init(algorithm: .ed25519, fingerprint: "once-only")])
-            ])
-        let additional = store.configurationForAdditionalConnection(from: configuration)
-        #expect(additional.expectedHostKeys == [trusted.identity])
+            ],
+            authenticationReference: SSHAuthenticationReference(
+                identityID: identityID, fallbackKeyID: keyID,
+                username: "temporary-user"
+            ))
+        var withReference = configuration
+        withReference.jumps[0].authenticationReference = SSHAuthenticationReference(
+            fallbackKeyID: keyID, username: "jump-user", permitsNone: false
+        )
+
+        let additional = store.additionalConnectionSnapshot(from: withReference)
+        #expect(additional.target.expectedHostKeys == [trusted.identity])
         #expect(additional.jumps[0].expectedHostKeys.isEmpty)
-        #expect(additional.host == host.host)
-        #expect(additional.username == "temporary-user")
-        #expect(additional.jumps[0].username == "jump-user")
-        if case .password(let value) = additional.credentials.first {
-            #expect(value == "temporary-password")
-        } else {
-            Issue.record("The live credential snapshot must be retained")
+        #expect(additional.target.host == host.host)
+        #expect(additional.target.authentication.username == "temporary-user")
+        #expect(additional.target.authentication.identityID == identityID)
+        #expect(additional.target.authentication.fallbackKeyID == keyID)
+        #expect(additional.jumps[0].authentication.username == "jump-user")
+        #expect(additional.jumps[0].authentication.fallbackKeyID == keyID)
+    }
+
+    @Test func forbiddenPolicyReplacesProtectedKeysButKeepsPasswordFallback() {
+        let configuration = SSHConnectionConfiguration(
+            hostID: UUID(), host: "example.invalid", port: 22, username: "user",
+            credentials: [
+                .secureEnclave(
+                    credential: SecureEnclaveKeyCredential(dataRepresentation: Data("handle".utf8)),
+                    publicKey: "public", requiresUserPresence: true
+                ),
+                .privateKey(
+                    privateKey: "encrypted", publicKey: "public", passphrase: "one-time",
+                    requiresPassphrase: true
+                ),
+                .password("saved-password"),
+            ], expectedHostKeys: [])
+
+        let request = SSHConnectionRequest(
+            configuration: configuration, interactionPolicy: .forbidden
+        ).enforcingInteractionPolicy()
+        #expect(request.configuration.credentials.count == 3)
+        guard case .interactionRequired = request.configuration.credentials[0] else {
+            Issue.record("Touch ID key must become an interaction marker")
+            return
         }
+        guard case .interactionRequired = request.configuration.credentials[1] else {
+            Issue.record("Passphrase key must become an interaction marker")
+            return
+        }
+        guard case .password(let password) = request.configuration.credentials[2] else {
+            Issue.record("Password fallback must remain available")
+            return
+        }
+        #expect(password == "saved-password")
+    }
+
+    @Test func additionalResolutionUsesCurrentIdentityAndSkipsProtectedKeyReads() throws {
+        let secrets = CountingSecretStore()
+        let protectedKey = SSHKeyRef(
+            label: "Touch ID", publicKey: "ecdsa-sha2-nistp256 public",
+            credentialRef: "key.touch-id", storage: .secureEnclave,
+            requiresUserPresence: true
+        )
+        let fallbackKey = SSHKeyRef(
+            label: "Fallback", publicKey: "ssh-ed25519 fallback",
+            credentialRef: "key.fallback"
+        )
+        let identity = Identity(
+            name: "Current", username: "current-user",
+            credentialRef: "password.current", keyID: protectedKey.id
+        )
+        try secrets.setString("current-password", for: identity.credentialRef, storage: identity.passwordStorage)
+        let store = HostLibraryModel(
+            keys: [protectedKey, fallbackKey], identities: [identity], secrets: secrets
+        )
+        let node = SSHAdditionalConnectionSnapshot.Node(
+            id: UUID(), name: "Server", host: "example.invalid", port: 22,
+            authentication: SSHAuthenticationReference(
+                identityID: identity.id, fallbackKeyID: fallbackKey.id,
+                username: "stale-user"
+            ),
+            expectedHostKeys: [], proxy: nil
+        )
+
+        let request = try store.additionalConnectionRequest(
+            from: SSHAdditionalConnectionSnapshot(target: node)
+        )
+        #expect(request.configuration.username == "current-user")
+        #expect(secrets.keyReads == 0)
+        #expect(secrets.stringReads == 1)
+        guard case .interactionRequired = request.configuration.credentials[0] else {
+            Issue.record("The current Identity key must take priority and remain unread")
+            return
+        }
+        guard case .password(let password) = request.configuration.credentials[1] else {
+            Issue.record("The current Identity password must remain available")
+            return
+        }
+        #expect(password == "current-password")
+    }
+
+    @Test func additionalResolutionSkipsPassphraseKeyAndUsesIdentityPassword() throws {
+        let secrets = CountingSecretStore()
+        let protectedKey = SSHKeyRef(
+            label: "Encrypted", publicKey: "ssh-ed25519 public",
+            credentialRef: "key.encrypted", hasPassphrase: true
+        )
+        let identity = Identity(
+            name: "Deploy", username: "deploy",
+            credentialRef: "password.deploy", keyID: protectedKey.id
+        )
+        try secrets.setString("saved-password", for: identity.credentialRef, storage: identity.passwordStorage)
+        let store = HostLibraryModel(
+            keys: [protectedKey], identities: [identity], secrets: secrets
+        )
+        let node = SSHAdditionalConnectionSnapshot.Node(
+            id: UUID(), name: "Server", host: "example.invalid", port: 22,
+            authentication: SSHAuthenticationReference(
+                identityID: identity.id, username: "stale"
+            ),
+            expectedHostKeys: [], proxy: nil
+        )
+
+        let request = try store.additionalConnectionRequest(
+            from: SSHAdditionalConnectionSnapshot(target: node)
+        )
+        #expect(secrets.keyReads == 0)
+        guard case .interactionRequired = request.configuration.credentials[0] else {
+            Issue.record("Passphrase key must remain unread")
+            return
+        }
+        guard case .password(let password) = request.configuration.credentials[1] else {
+            Issue.record("Identity password must remain available")
+            return
+        }
+        #expect(password == "saved-password")
+    }
+}
+
+private nonisolated final class CountingSecretStore: SecretStoring, @unchecked Sendable {
+    private let lock = NSLock()
+    private var strings: [String: String] = [:]
+    private var keys: [String: StoredSSHKeyCredential] = [:]
+    private(set) var stringReads = 0
+    private(set) var keyReads = 0
+
+    func string(for account: String, storage: PasswordStorage) throws -> String? {
+        lock.withLock {
+            stringReads += 1
+            return strings[account]
+        }
+    }
+
+    func setString(_ value: String?, for account: String, storage: PasswordStorage) throws {
+        lock.withLock { strings[account] = value }
+    }
+
+    func keyCredential(for account: String, storage: KeyStorage) throws -> StoredSSHKeyCredential? {
+        lock.withLock {
+            keyReads += 1
+            return keys[account]
+        }
+    }
+
+    func setKeyCredential(
+        _ value: StoredSSHKeyCredential?, for account: String, storage: KeyStorage
+    ) throws {
+        lock.withLock { keys[account] = value }
+    }
+
+    func removePassword(_ account: String, storage: PasswordStorage) throws {
+        lock.withLock { strings[account] = nil }
+    }
+
+    func removeKeyCredential(_ account: String, storage: KeyStorage) throws {
+        lock.withLock { keys[account] = nil }
     }
 }

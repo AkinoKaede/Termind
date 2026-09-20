@@ -12,9 +12,11 @@ public nonisolated struct SSHRouteHopConfiguration: Sendable {
     public var credentials: [SSHCredentials]
     public var expectedHostKeys: Set<SSHHostKeyIdentity>
     public var proxy: SSHTransportProxy?
+    public var authenticationReference: SSHAuthenticationReference
     public init(
         id: Host.ID, name: String, host: String, port: Int, username: String, credentials: [SSHCredentials],
-        expectedHostKeys: Set<SSHHostKeyIdentity>, proxy: SSHTransportProxy? = nil
+        expectedHostKeys: Set<SSHHostKeyIdentity>, proxy: SSHTransportProxy? = nil,
+        authenticationReference: SSHAuthenticationReference? = nil
     ) {
         self.id = id
         self.name = name
@@ -24,6 +26,13 @@ public nonisolated struct SSHRouteHopConfiguration: Sendable {
         self.credentials = credentials
         self.expectedHostKeys = expectedHostKeys
         self.proxy = proxy
+        self.authenticationReference =
+            authenticationReference
+            ?? SSHAuthenticationReference(
+                username: username,
+                permitsNone: credentials.isEmpty,
+                hasEphemeralSecret: !credentials.isEmpty
+            )
     }
 
 }

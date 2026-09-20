@@ -76,7 +76,8 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                         id: node.host.id, name: node.host.name, host: node.host.host, port: node.host.port,
                         username: material.0, credentials: material.1,
                         expectedHostKeys: node.trustedKeys,
-                        proxy: try proxy(node, accessedIdentityIDs: &accessedIdentityIDs)
+                        proxy: try proxy(node, accessedIdentityIDs: &accessedIdentityIDs),
+                        authenticationReference: authenticationReference(for: node)
                     ))
             } catch {
                 if error is CancellationError { throw error }
@@ -100,7 +101,25 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         return SSHConnectionConfiguration(
             hostID: target.host.id, host: target.host.host, port: target.host.port,
             username: material.0, credentials: material.1, expectedHostKeys: target.trustedKeys,
-            proxy: try proxy(target, accessedIdentityIDs: &accessedIdentityIDs), jumps: jumps
+            proxy: try proxy(target, accessedIdentityIDs: &accessedIdentityIDs), jumps: jumps,
+            authenticationReference: authenticationReference(for: target)
+        )
+    }
+
+    private func authenticationReference(for node: Node) -> SSHAuthenticationReference {
+        if let identity = connectionIdentity(for: node) {
+            return SSHAuthenticationReference(
+                identityID: identity.id,
+                username: identity.username,
+                permitsNone: !identity.hasSecret,
+                hasEphemeralSecret: node.submission?.password != nil || node.submission?.passphrase != nil
+            )
+        }
+        return SSHAuthenticationReference(
+            fallbackKeyID: node.submission?.keyID ?? node.key?.id,
+            username: node.submission?.username ?? "",
+            permitsNone: node.key == nil && node.submission?.password == nil,
+            hasEphemeralSecret: node.submission?.password != nil || node.submission?.passphrase != nil
         )
     }
 
@@ -130,7 +149,9 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                 result.append(
                     stored.sshCredential(
                         publicKey: key.publicKey, certificate: key.certificate,
-                        passphraseOverride: node.submission?.passphrase
+                        passphraseOverride: node.submission?.passphrase,
+                        requiresPassphrase: key.requiresPassphraseEntry,
+                        requiresUserPresence: key.requiresUserPresence
                     ))
             }
         }
@@ -179,7 +200,8 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         }
         return SSHTransportProxy(
             kind: proxy.kind, hostname: proxy.hostname, port: proxy.port,
-            username: proxy.username, password: password
+            username: proxy.username, password: password,
+            identityID: proxy.identityID
         )
     }
 

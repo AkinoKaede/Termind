@@ -186,19 +186,20 @@ struct SFTPEditTests {
 
     @Test func reconnectingWithADifferentAccountCannotUploadAnOldCopy() async throws {
         let fixture = Fixture()
-        var configuration = SSHConnectionConfiguration(
-            hostID: fixture.hostID, host: "test.invalid", port: 22, username: "first", credentials: [],
-            expectedHostKeys: [])
+        var snapshot = SSHAdditionalConnectionSnapshot(
+            configuration: SSHConnectionConfiguration(
+                hostID: fixture.hostID, host: "test.invalid", port: 22,
+                username: "first", credentials: [], expectedHostKeys: []))
         let url = try await fixture.service.open(
             fixture.client.file, hostID: fixture.hostID, connection: fixture.connection,
-            client: fixture.client, configuration: configuration)
+            client: fixture.client, snapshot: snapshot)
         defer { fixture.clean(url) }
         try Data([9]).write(to: url)
         let id = try #require(fixture.service.model.files.first?.id)
-        configuration.username = "second"
+        snapshot.target.authentication.username = "second"
         #expect(
             await fixture.service.upload(
-                id, connection: fixture.connection, client: fixture.client, configuration: configuration) == false)
+                id, connection: fixture.connection, client: fixture.client, snapshot: snapshot) == false)
         #expect(fixture.service.model.file(id)?.isInvalidated == true)
         #expect(await fixture.client.uploads == 0)
     }

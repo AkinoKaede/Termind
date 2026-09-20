@@ -124,8 +124,11 @@ nonisolated struct SSHForwardingWireTests {
         ]
         primary.authorizeHostKey = nil
         try await pool.connect(primary, progress: nil)
-        await pool.configureAdditionalConnections(
-            SSHConnectionRequest(configuration: primary.configuration, interactionPolicy: .forbidden))
+        await pool.configureAdditionalConnections {
+            SSHConnectionRequest(
+                configuration: primary.configuration, interactionPolicy: .forbidden
+            ).enforcingInteractionPolicy()
+        }
         let local = try rule(.local, fixture: fixture)
         try await pool.start(local, generation: UUID())
         defer { Task { await pool.disconnect() } }

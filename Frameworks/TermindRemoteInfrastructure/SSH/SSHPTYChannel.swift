@@ -1037,12 +1037,14 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         var secureEnclaveError: (any Error)?
         var remaining = credentials
         var attemptedInteractive = false
+        var skippedInteractiveCredential = false
         while true {
             guard
                 let index = remaining.firstIndex(where: { credential in
                     switch credential {
                     case .password: methods.contains("password")
-                    case .privateKey, .secureEnclave: methods.contains("publickey")
+                    case .privateKey, .secureEnclave, .interactionRequired:
+                        methods.contains("publickey")
                     }
                 })
             else {
@@ -1079,7 +1081,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     }
                     if result == 0 { return lastMethod }
                 }
-            case .privateKey(let privateKey, let publicKey, let passphrase):
+            case .privateKey(let privateKey, let publicKey, let passphrase, _):
                 guard methods.contains("publickey") else { continue }
                 attempted = true
                 lastMethod = "public_key"
@@ -1105,7 +1107,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     }
                 }
                 if result == 0 { return lastMethod }
-            case .secureEnclave(let credential, let publicKey):
+            case .secureEnclave(let credential, let publicKey, _):
                 guard methods.contains("publickey") else { continue }
                 guard let publicBlob = SecureEnclaveKey.publicBlob(from: publicKey) else {
                     secureEnclaveError = TermindSSHError.library(
@@ -1131,10 +1133,13 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 }
                 if result == 0 { return lastMethod }
                 secureEnclaveError = signer.error
+            case .interactionRequired:
+                skippedInteractiveCredential = true
             }
             methods = try authenticationMethods(username: username, session: session)
             if libssh2_userauth_authenticated(session) == 1 { return lastMethod }
         }
+        if skippedInteractiveCredential { throw SSHInteractionRequired() }
         if let secureEnclaveError {
             throw TermindSSHError.authenticationFailed(secureEnclaveError.localizedDescription)
         }

@@ -536,7 +536,7 @@ private struct PaneView: View {
         case .sshSession(let sshSession):
             if let problem = TerminalUploadAvailability.problem(
                 isConnected: sshSession.status == .connected,
-                hasTransferConfiguration: sshSession.transferConfiguration != nil,
+                hasTransferConfiguration: sshSession.transferSnapshot != nil,
                 isWorkingDirectoryPending: sshSession.homeResolution.isPending,
                 workingDirectory: sshSession.workingDirectory
             ) {

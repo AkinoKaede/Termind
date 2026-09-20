@@ -104,22 +104,159 @@ extension RemoteSessionHostStore {
         return updated
     }
 
-    /// Refresh only durable trust after a successful handshake. The connection may
-    /// have prompted before its configuration was captured; once-only approval is
-    /// deliberately not promoted into permission for additional connections.
-    public func configurationForAdditionalConnection(
+    /// Captures the authenticated route without retaining password, key, or
+    /// passphrase material. Once-only trust is deliberately not promoted into
+    /// permission for additional connections.
+    public func additionalConnectionSnapshot(
         from configuration: SSHConnectionConfiguration
-    ) -> SSHConnectionConfiguration {
+    ) -> SSHAdditionalConnectionSnapshot {
         func keys(id: UUID, hostname: String, port: Int) -> Set<SSHHostKeyIdentity> {
             Set(knownHosts(for: Host(id: id, name: hostname, host: hostname, port: port)).map(\.identity))
         }
-        var result = configuration
-        result.expectedHostKeys = keys(id: result.hostID, hostname: result.host, port: result.port)
-        for index in result.jumps.indices {
-            let hop = result.jumps[index]
-            result.jumps[index].expectedHostKeys = keys(id: hop.id, hostname: hop.host, port: hop.port)
+
+        func proxy(_ value: SSHTransportProxy?) -> SSHAdditionalConnectionSnapshot.Proxy? {
+            value.map {
+                SSHAdditionalConnectionSnapshot.Proxy(
+                    kind: $0.kind, hostname: $0.hostname, port: $0.port,
+                    identityID: $0.identityID
+                )
+            }
         }
-        return result
+
+        let target = SSHAdditionalConnectionSnapshot.Node(
+            id: configuration.hostID, name: configuration.host,
+            host: configuration.host, port: configuration.port,
+            authentication: configuration.authenticationReference,
+            expectedHostKeys: keys(
+                id: configuration.hostID, hostname: configuration.host,
+                port: configuration.port
+            ),
+            proxy: proxy(configuration.proxy)
+        )
+        let jumps = configuration.jumps.map { hop in
+            SSHAdditionalConnectionSnapshot.Node(
+                id: hop.id, name: hop.name, host: hop.host, port: hop.port,
+                authentication: hop.authenticationReference,
+                expectedHostKeys: keys(id: hop.id, hostname: hop.host, port: hop.port),
+                proxy: proxy(hop.proxy)
+            )
+        }
+        return SSHAdditionalConnectionSnapshot(target: target, jumps: jumps)
+    }
+
+    /// Resolves current Identity/Key contents immediately before a silent open.
+    /// The returned request is one-shot and must not be retained as session state.
+    public func additionalConnectionRequest(
+        from snapshot: SSHAdditionalConnectionSnapshot
+    ) throws -> SSHConnectionRequest {
+        func proxy(
+            _ value: SSHAdditionalConnectionSnapshot.Proxy?
+        ) throws -> SSHTransportProxy? {
+            guard let value else { return nil }
+            guard let identityID = value.identityID else {
+                return SSHTransportProxy(
+                    kind: value.kind, hostname: value.hostname, port: value.port,
+                    username: ""
+                )
+            }
+            guard let identity = identity(identityID) else {
+                throw TermindSSHError.missingCredential
+            }
+            let password = try connectionPasswordCredential(for: identity)
+            guard let password else { throw TermindSSHError.missingCredential }
+            return SSHTransportProxy(
+                kind: value.kind, hostname: value.hostname, port: value.port,
+                username: identity.username, password: password,
+                identityID: identity.id
+            )
+        }
+
+        func authentication(
+            _ node: SSHAdditionalConnectionSnapshot.Node
+        ) throws -> (username: String, credentials: [SSHCredentials]) {
+            let reference = node.authentication
+            let resolvedIdentity = reference.identityID.flatMap(identity)
+            if reference.identityID != nil, resolvedIdentity == nil {
+                throw TermindSSHError.missingCredential
+            }
+
+            let username = (resolvedIdentity?.username ?? reference.username)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !username.isEmpty else { throw TermindSSHError.missingUsername }
+
+            var credentials: [SSHCredentials] = []
+            var failures: [any Error] = []
+            let keyID = resolvedIdentity?.keyID ?? reference.fallbackKeyID
+            if let keyID {
+                if let key = key(keyID) {
+                    if key.requiresPassphraseEntry || key.requiresUserPresence {
+                        credentials.append(.interactionRequired)
+                    } else {
+                        do {
+                            if let stored = try connectionKeyCredential(
+                                for: key, identityID: resolvedIdentity?.id
+                            ) {
+                                credentials.append(
+                                    stored.sshCredential(
+                                        publicKey: key.publicKey,
+                                        certificate: key.certificate,
+                                        requiresPassphrase: key.requiresPassphraseEntry,
+                                        requiresUserPresence: key.requiresUserPresence
+                                    )
+                                )
+                            } else {
+                                failures.append(TermindSSHError.missingCredential)
+                            }
+                        } catch {
+                            failures.append(error)
+                        }
+                    }
+                } else {
+                    failures.append(TermindSSHError.missingCredential)
+                }
+            }
+
+            if let resolvedIdentity, resolvedIdentity.usesPassword {
+                do {
+                    if let password = try connectionPasswordCredential(for: resolvedIdentity) {
+                        credentials.append(.password(password))
+                    } else {
+                        failures.append(TermindSSHError.missingCredential)
+                    }
+                } catch {
+                    failures.append(error)
+                }
+            }
+
+            if credentials.isEmpty {
+                if reference.hasEphemeralSecret { throw SSHInteractionRequired() }
+                if !reference.permitsNone { throw failures.first ?? TermindSSHError.missingCredential }
+            }
+            return (username, credentials)
+        }
+
+        let targetAuthentication = try authentication(snapshot.target)
+        let jumps = try snapshot.jumps.map { node in
+            let resolved = try authentication(node)
+            return SSHRouteHopConfiguration(
+                id: node.id, name: node.name, host: node.host, port: node.port,
+                username: resolved.username, credentials: resolved.credentials,
+                expectedHostKeys: node.expectedHostKeys,
+                proxy: try proxy(node.proxy),
+                authenticationReference: node.authentication
+            )
+        }
+        let configuration = SSHConnectionConfiguration(
+            hostID: snapshot.target.id, host: snapshot.target.host,
+            port: snapshot.target.port, username: targetAuthentication.username,
+            credentials: targetAuthentication.credentials,
+            expectedHostKeys: snapshot.target.expectedHostKeys,
+            proxy: try proxy(snapshot.target.proxy), jumps: jumps,
+            authenticationReference: snapshot.target.authentication
+        )
+        return SSHConnectionRequest(
+            configuration: configuration, interactionPolicy: .forbidden
+        ).enforcingInteractionPolicy()
     }
 
     public func connectionPasswordCredential(for identity: Identity) throws -> String? {
