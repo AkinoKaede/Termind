@@ -90,11 +90,11 @@ public nonisolated enum SSHSocketConnector {
             var request = Data(
                 "CONNECT \(authority) HTTP/1.1\r\nHost: \(authority)\r\nProxy-Connection: Keep-Alive\r\n".utf8
             )
-            defer { wipe(&request) }
+            defer { SecretMemory.clear(&request) }
             if let password = proxy.password, !proxy.username.isEmpty {
                 var plaintext = Data(proxy.username.utf8)
                 plaintext.append(UInt8(ascii: ":"))
-                defer { wipe(&plaintext) }
+                defer { SecretMemory.clear(&plaintext) }
                 try password.withUnsafeCStringAndConsume { buffer, count in
                     plaintext.append(
                         buffer.withMemoryRebound(to: UInt8.self, capacity: count) {
@@ -103,7 +103,7 @@ public nonisolated enum SSHSocketConnector {
                     )
                 }
                 var token = plaintext.base64EncodedData()
-                defer { wipe(&token) }
+                defer { SecretMemory.clear(&token) }
                 request.append(Data("Proxy-Authorization: Basic ".utf8))
                 request.append(token)
                 request.append(Data("\r\n".utf8))
@@ -152,7 +152,7 @@ public nonisolated enum SSHSocketConnector {
                     throw TermindSSHError.proxy("The SOCKS5 username or password is too long.")
                 }
                 var auth = Data([0x01, UInt8(username.count)])
-                defer { wipe(&auth) }
+                defer { SecretMemory.clear(&auth) }
                 auth.append(username)
                 auth.append(UInt8(count))
                 auth.append(
@@ -204,14 +204,6 @@ public nonisolated enum SSHSocketConnector {
         default: throw TermindSSHError.proxy("The SOCKS5 proxy returned an invalid address type.")
         }
         _ = try readExactly(socket, count: addressLength + 2)
-    }
-
-    private static func wipe(_ data: inout Data) {
-        data.withUnsafeMutableBytes { (raw: UnsafeMutableRawBufferPointer) in
-            guard let base = raw.baseAddress, raw.count > 0 else { return }
-            _ = memset_s(base, raw.count, 0, raw.count)
-        }
-        data.removeAll(keepingCapacity: false)
     }
 
     private static func openTCP(host: String, port: Int, timeout: TimeInterval) throws -> Int32 {

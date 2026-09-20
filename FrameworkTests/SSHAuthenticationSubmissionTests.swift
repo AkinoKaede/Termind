@@ -141,7 +141,7 @@ struct SSHAuthenticationSubmissionTests {
     }
 
     @Test
-    func takingAttemptSecretsLeavesOnlyReentryMarkersInSessionState() {
+    func takingAttemptSecretsMovesPlaintextIntoOneShotOwners() throws {
         let hostID = UUID()
         var retained = [
             hostID: SSHAuthenticationSubmission(
@@ -150,14 +150,22 @@ struct SSHAuthenticationSubmissionTests {
             )
         ]
 
-        let attempt = retained.takeAuthenticationSecrets()
+        var attempt = retained.takeAuthenticationSecrets()
 
-        #expect(attempt[hostID]?.password == "one-use-password")
-        #expect(attempt[hostID]?.passphrase == "one-use-passphrase")
+        #expect(attempt[hostID]?.password == nil)
+        #expect(attempt[hostID]?.passphrase == nil)
         #expect(retained[hostID]?.password == nil)
         #expect(retained[hostID]?.passphrase == nil)
         #expect(retained[hostID]?.requiresPasswordReentry == true)
         #expect(retained[hostID]?.requiresPassphraseReentry == true)
+
+        let password = try #require(attempt[hostID]?.passwordForConnection())
+        let passphrase = try #require(attempt[hostID]?.passphraseForConnection())
+        #expect(password.matches("one-use-password"))
+        #expect(passphrase.matches("one-use-passphrase"))
+        attempt[hostID]?.clearSecrets()
+        #expect(password.isConsumed)
+        #expect(passphrase.isConsumed)
     }
 }
 

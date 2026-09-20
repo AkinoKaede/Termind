@@ -327,9 +327,7 @@ public final class PortForwardingController {
                 host: host, route: hosts.route(for: host), purpose: .portForwarding,
                 username: context.submissions[host.id]?.username ?? hosts.identity(for: host)?.username)
             update(context, state: .preparing)
-            if let passwordHost = context.route.first(where: { routeHost in
-                context.submissions[routeHost.id]?.requiresPasswordReentry == true
-            }) {
+            if let passwordHost = context.submissions.firstHostRequiringPassword(in: context.route) {
                 requestAuthentication(
                     context,
                     error: .routeHost(
@@ -341,14 +339,9 @@ public final class PortForwardingController {
                 context.attemptID = nil
                 return
             }
-            if let passphraseHost = context.route.first(where: { routeHost in
-                guard let submission = context.submissions[routeHost.id],
-                    submission.passphrase == nil,
-                    let keyID = submission.keyID,
-                    let key = hosts.key(keyID)
-                else { return false }
-                return key.requiresPassphraseEntry
-            }) {
+            if let passphraseHost = context.submissions.firstHostRequiringPassphrase(
+                in: context.route, key: hosts.key
+            ) {
                 requestAuthentication(
                     context,
                     error: .routeHost(

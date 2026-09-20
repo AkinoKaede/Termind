@@ -32,8 +32,20 @@ public nonisolated enum SSHConnectionOpener {
         logger: Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) async throws {
-        try await SSHPTYChannelWorker.installAuthorizedKey(
-            publicKey, named: keyName, using: request, logger: logger,
+        try await installAuthorizedKeys(
+            [SSHAuthorizedKeyInstall(publicKey: publicKey, name: keyName)],
+            using: request, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy
+        )
+    }
+
+    public static func installAuthorizedKeys(
+        _ keys: [SSHAuthorizedKeyInstall], using request: SSHConnectionRequest,
+        logger: Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
+    ) async throws {
+        try await SSHPTYChannelWorker.installAuthorizedKeys(
+            keys, using: request, logger: logger,
             maxSessionsPolicy: maxSessionsPolicy)
     }
 

@@ -111,8 +111,18 @@ public nonisolated final class RemoteConnectionCoordinator: Sendable {
         _ publicKey: String, named keyName: String,
         using configuration: SSHConnectionConfiguration
     ) async throws {
-        try await SSHPTYChannel.installAuthorizedKey(
-            publicKey, named: keyName,
+        try await installAuthorizedKeys(
+            [SSHAuthorizedKeyInstall(publicKey: publicKey, name: keyName)],
+            using: configuration
+        )
+    }
+
+    public func installAuthorizedKeys(
+        _ keys: [SSHAuthorizedKeyInstall],
+        using configuration: SSHConnectionConfiguration
+    ) async throws {
+        try await SSHPTYChannel.installAuthorizedKeys(
+            keys,
             using: SSHConnectionRequest(configuration: configuration, keyboardInteractive: keyboardInteractive),
             logger: logger, maxSessionsPolicy: maxSessionsPolicy
         )

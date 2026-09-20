@@ -51,6 +51,14 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         return value
     }
 
+    public func containsString(for account: String, storage: PasswordStorage) throws -> Bool {
+        try validateStringReference(account)
+        return try contains(
+            account, service: Self.passwordService,
+            synchronizable: storage == .iCloud
+        )
+    }
+
     public func sshSecret(for account: String, storage: PasswordStorage) throws -> SSHSecret? {
         try validateStringReference(account)
         guard
@@ -66,7 +74,7 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         try validateStringReference(account)
         var data = value?.data(using: .utf8)
         defer {
-            if data != nil { Self.wipe(&data!) }
+            if data != nil { SecretMemory.clear(&data!) }
         }
         try setData(
             data, for: account, service: Self.passwordService,
@@ -96,6 +104,14 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         }
     }
 
+    public func containsKeyCredential(for account: String, storage: KeyStorage) throws -> Bool {
+        try validate(account, prefix: "termind.key.")
+        return try contains(
+            account, service: service(for: storage),
+            synchronizable: storage == .iCloud
+        )
+    }
+
     public func sshKeyCredential(
         for account: String, storage: KeyStorage
     ) throws -> SSHResolvedKeyCredential? {
@@ -106,11 +122,10 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
                 synchronizable: storage == .iCloud
             )
         else { return nil }
+        defer { SecretMemory.clear(&data) }
         switch storage {
         case .thisDevice, .iCloud:
-            defer { Self.wipe(&data) }
-            var privateKey = try Self.decodePrivateKeyBytes(from: data)
-            return .software(SSHSecret(consumingUTF8: &privateKey))
+            return .software(try Self.decodePrivateKeySecret(from: &data))
         case .secureEnclave:
             guard !data.isEmpty else { throw KeychainSecretError.unexpectedValue }
             return .secureEnclave(SecureEnclaveKeyCredential(dataRepresentation: data))
@@ -133,7 +148,7 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
             throw KeychainSecretError.unexpectedValue
         }
         defer {
-            if data != nil { Self.wipe(&data!) }
+            if data != nil { SecretMemory.clear(&data!) }
         }
         try setData(
             data, for: account, service: service(for: storage),
@@ -144,45 +159,51 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         )
     }
 
-    private static func wipe(_ data: inout Data) {
-        data.withUnsafeMutableBytes { (raw: UnsafeMutableRawBufferPointer) in
-            guard let base = raw.baseAddress, raw.count > 0 else { return }
-            _ = memset_s(base, raw.count, 0, raw.count)
-        }
-        data.removeAll(keepingCapacity: false)
-    }
-
-    /// Decodes the synthesized `SSHPrivateKeySecret` JSON directly into a
-    /// mutable byte buffer so connection setup never materializes another
-    /// immutable Swift `String` containing the private key.
-    private static func decodePrivateKeyBytes(from data: Data) throws -> Data {
-        let key = Data("\"privateKey\"".utf8)
-        guard let keyRange = data.range(of: key) else {
-            throw KeychainSecretError.unexpectedValue
-        }
-        var index = keyRange.upperBound
+    /// Strictly decodes the legacy single-field JSON envelope without creating
+    /// an immutable Swift `String` containing the private key. Corrupted shapes
+    /// fail closed instead of being searched for a matching field substring.
+    static func decodePrivateKeySecret(from data: inout Data) throws -> SSHSecret {
+        defer { SecretMemory.clear(&data) }
+        var index = data.startIndex
         func skipWhitespace() {
             while index < data.endIndex, [0x20, 0x09, 0x0A, 0x0D].contains(data[index]) {
                 index = data.index(after: index)
             }
         }
-        skipWhitespace()
-        guard index < data.endIndex, data[index] == 0x3A else {
-            throw KeychainSecretError.unexpectedValue
+        func consume(_ expected: UInt8) throws {
+            guard index < data.endIndex, data[index] == expected else {
+                throw KeychainSecretError.unexpectedValue
+            }
+            index = data.index(after: index)
         }
-        index = data.index(after: index)
+
         skipWhitespace()
-        guard index < data.endIndex, data[index] == 0x22 else {
-            throw KeychainSecretError.unexpectedValue
+        try consume(0x7B)
+        skipWhitespace()
+        for expected in Array("\"privateKey\"".utf8) {
+            try consume(expected)
         }
-        index = data.index(after: index)
+        skipWhitespace()
+        try consume(0x3A)
+        skipWhitespace()
+        try consume(0x22)
 
         var result = Data()
+        defer { SecretMemory.clear(&result) }
         while index < data.endIndex {
             let byte = data[index]
             index = data.index(after: index)
-            if byte == 0x22 { return result }
+            if byte == 0x22 {
+                skipWhitespace()
+                try consume(0x7D)
+                skipWhitespace()
+                guard index == data.endIndex else {
+                    throw KeychainSecretError.unexpectedValue
+                }
+                return SSHSecret(consumingUTF8: &result)
+            }
             guard byte == 0x5C else {
+                guard byte >= 0x20 else { throw KeychainSecretError.unexpectedValue }
                 result.append(byte)
                 continue
             }
@@ -258,6 +279,18 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         guard status == errSecSuccess else { throw KeychainSecretError.status(status) }
         guard let data = result as? Data else { throw KeychainSecretError.unexpectedValue }
         return data
+    }
+
+    private func contains(_ account: String, service: String, synchronizable: Bool) throws -> Bool {
+        guard !account.isEmpty else { return false }
+        var query = baseQuery(account, service: service, synchronizable: synchronizable)
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        query[kSecReturnAttributes as String] = true
+        var result: CFTypeRef?
+        let status = SecItemCopyMatching(query as CFDictionary, &result)
+        if status == errSecItemNotFound { return false }
+        guard status == errSecSuccess else { throw KeychainSecretError.status(status) }
+        return true
     }
 
     private func setData(

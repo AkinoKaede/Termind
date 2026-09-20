@@ -248,13 +248,15 @@ public final class AgentHostResolver: Sendable {
 
         }
 
+        var retainedSubmissions = submissions
+        let attemptSubmissions = retainedSubmissions.takeAuthenticationSecrets()
         return InteractiveResolution(
             configuration: try store.sshConnectionConfiguration(
-                for: destination, submissions: submissions,
+                for: destination, submissions: attemptSubmissions,
                 temporaryHostKeys: temporaryHostKeys,
                 trustPolicy: .allowChallenge
             ),
-            submissions: submissions, temporaryHostKeys: temporaryHostKeys
+            submissions: retainedSubmissions, temporaryHostKeys: temporaryHostKeys
         )
     }
 

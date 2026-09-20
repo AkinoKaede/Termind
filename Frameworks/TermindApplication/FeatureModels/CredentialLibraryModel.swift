@@ -39,8 +39,8 @@ public final class CredentialLibraryModel {
     public func keyExportUnavailableReason(for host: Host) -> String? {
         library.keyExportUnavailableReason(for: host)
     }
-    public func sshConnectionConfiguration(for host: Host) throws -> SSHConnectionConfiguration {
-        try library.sshConnectionConfiguration(for: host)
+    public func prepareSSHConnection(for host: Host) throws -> SSHConnectionPreparation {
+        try library.prepareSSHConnection(for: host, submissions: [:])
     }
 
     public func upsert(_ key: SSHKeyRef, credential: StoredSSHKeyCredential? = nil) throws {

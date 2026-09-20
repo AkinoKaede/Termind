@@ -85,17 +85,9 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     func sshCredentials(for identity: Identity) -> SSHCredentialResolution {
         library.sshCredentials(for: identity)
     }
-    func passwordCredential(for identity: Identity) throws -> String? {
-        try library.passwordCredential(for: identity)
-    }
-
     func passwordSecret(for identity: Identity) throws -> SSHSecret? {
         try library.passwordSecret(for: identity)
     }
-    func keyCredential(for key: SSHKeyRef) throws -> StoredSSHKeyCredential? {
-        try library.keyCredential(for: key)
-    }
-
     func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential? {
         try library.keySecretCredential(for: key)
     }

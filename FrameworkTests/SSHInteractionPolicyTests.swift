@@ -187,9 +187,12 @@ struct SSHInteractionPolicyTests {
     }
 
     @Test func runtimeSecretCanBeConsumedOnlyOnceAcrossAllReferences() throws {
-        let secret = SSHSecret("one-use")
+        var source = Data("one-use".utf8)
+        let secret = SSHSecret(consumingUTF8: &source)
         let alias = secret
         var observedCount = 0
+
+        #expect(source.isEmpty)
 
         try secret.withUnsafeCStringAndConsume { buffer, count in
             observedCount = count

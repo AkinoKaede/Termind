@@ -489,23 +489,18 @@ final class SSHSessionModel: Identifiable {
             host: host, route: route, purpose: .sshSession, username: username,
             mode: reconnecting ? .reconnection : .connection
         )
-        if let passwordHost = route.first(where: { routeHost in
-            suppliedAuthentications[routeHost.id]?.requiresPasswordReentry == true
-        }), let submission = suppliedAuthentications[passwordHost.id] {
+        if let passwordHost = suppliedAuthentications.firstHostRequiringPassword(in: route),
+            let submission = suppliedAuthentications[passwordHost.id]
+        {
             requestAuthentication(
                 for: passwordHost, username: submission.username,
                 selectedKeyID: submission.keyID, requiresPassphrase: false
             )
             return
         }
-        if let passphraseHost = route.first(where: { routeHost in
-            guard let submission = suppliedAuthentications[routeHost.id],
-                submission.passphrase == nil,
-                let keyID = submission.keyID,
-                let key = store.key(keyID)
-            else { return false }
-            return key.requiresPassphraseEntry
-        }), let submission = suppliedAuthentications[passphraseHost.id] {
+        if let passphraseHost = suppliedAuthentications.firstHostRequiringPassphrase(
+            in: route, key: store.key
+        ), let submission = suppliedAuthentications[passphraseHost.id] {
             requestAuthentication(
                 for: passphraseHost, username: submission.username,
                 selectedKeyID: submission.keyID, requiresPassphrase: true,
@@ -534,7 +529,7 @@ final class SSHSessionModel: Identifiable {
         if let suppliedAuthentication {
             hasConfiguredCredential =
                 suppliedAuthentication.keyID != nil
-                || suppliedAuthentication.password != nil
+                || suppliedAuthentication.hasPassword
                 || suppliedAuthentication.identityID.flatMap(store.identity)?.hasSecret == true
             if let keyID = suppliedAuthentication.keyID {
                 if let key = store.key(keyID) {
@@ -545,7 +540,7 @@ final class SSHSessionModel: Identifiable {
                             credentials.append(
                                 credential.sshCredential(
                                     publicKey: key.publicKey, certificate: key.certificate,
-                                    passphraseOverride: suppliedAuthentication.passphrase,
+                                    passphraseOverride: suppliedAuthentication.passphraseForConnection(),
                                     requiresPassphrase: key.requiresPassphraseEntry,
                                     requiresUserPresence: key.requiresUserPresence
                                 )
@@ -564,7 +559,7 @@ final class SSHSessionModel: Identifiable {
                     )
                 }
             }
-            if let password = suppliedAuthentication.password {
+            if let password = suppliedAuthentication.passwordForConnection() {
                 credentials.append(.password(password))
             } else if let identityID = suppliedAuthentication.identityID,
                 let selectedIdentity = store.identity(identityID), selectedIdentity.usesPassword
@@ -634,7 +629,7 @@ final class SSHSessionModel: Identifiable {
                 let identity = store.identity(for: jump)
                 let submitted = suppliedAuthentications[jump.id]
                 let retryNeedsPassphrase =
-                    submitted?.passphrase == nil
+                    submitted?.hasPassphrase != true
                     && (submitted?.keyID ?? identity?.keyID)
                         .flatMap { store.key($0) }?.requiresPassphraseEntry == true
                 connectionAttemptID = nil
@@ -665,16 +660,16 @@ final class SSHSessionModel: Identifiable {
                 identityID: identityID,
                 username: username,
                 permitsNone: identity?.hasSecret == false,
-                hasEphemeralSecret: suppliedAuthentication?.password != nil
-                    || suppliedAuthentication?.passphrase != nil
+                hasEphemeralSecret: suppliedAuthentication?.hasPassword == true
+                    || suppliedAuthentication?.hasPassphrase == true
             )
         } else {
             authenticationReference = SSHAuthenticationReference(
                 fallbackKeyID: selectedKeyID,
                 username: username,
-                permitsNone: selectedKeyID == nil && suppliedAuthentication?.password == nil,
-                hasEphemeralSecret: suppliedAuthentication?.password != nil
-                    || suppliedAuthentication?.passphrase != nil
+                permitsNone: selectedKeyID == nil && suppliedAuthentication?.hasPassword != true,
+                hasEphemeralSecret: suppliedAuthentication?.hasPassword == true
+                    || suppliedAuthentication?.hasPassphrase == true
             )
         }
         connectionTask = Task { [weak self, weak store] in
@@ -714,10 +709,10 @@ final class SSHSessionModel: Identifiable {
                         ?? authenticationIdentity?.keyID ?? (authenticationHost.id == host.id ? selectedKeyID : nil)
                     let retryNeedsPassphrase =
                         submitted?.requiresPasswordReentry != true
-                        && submitted?.passphrase == nil
+                        && submitted?.hasPassphrase != true
                         && authenticationKeyID.flatMap { store.key($0) }?
                             .requiresPassphraseEntry == true
-                    let returnsToIdentity = submitted?.passphrase != nil
+                    let returnsToIdentity = submitted?.requiresPassphraseReentry == true
                     requestAuthentication(
                         for: authenticationHost,
                         username: submitted?.username ?? authenticationIdentity?.username

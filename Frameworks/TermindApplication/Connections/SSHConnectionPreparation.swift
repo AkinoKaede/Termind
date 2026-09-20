@@ -29,7 +29,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
 
     }
     public var nodes: [Node]
-    public var secrets: any SecretStoring
+    public var secrets: any SSHRuntimeSecretResolving
     public var credentialAccessHandler: SSHCredentialAccessHandler?
 
     public func resolve(
@@ -112,14 +112,16 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                 identityID: identity.id,
                 username: identity.username,
                 permitsNone: !identity.hasSecret,
-                hasEphemeralSecret: node.submission?.password != nil || node.submission?.passphrase != nil
+                hasEphemeralSecret: node.submission?.hasPassword == true
+                    || node.submission?.hasPassphrase == true
             )
         }
         return SSHAuthenticationReference(
             fallbackKeyID: node.submission?.keyID ?? node.key?.id,
             username: node.submission?.username ?? "",
-            permitsNone: node.key == nil && node.submission?.password == nil,
-            hasEphemeralSecret: node.submission?.password != nil || node.submission?.passphrase != nil
+            permitsNone: node.key == nil && node.submission?.hasPassword != true,
+            hasEphemeralSecret: node.submission?.hasPassword == true
+                || node.submission?.hasPassphrase == true
         )
     }
 
@@ -132,7 +134,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         var result: [SSHCredentials] = []
         var retrievalFailure: (any Error)?
         if let key = node.key {
-            if key.requiresPassphraseEntry, node.submission?.passphrase?.isEmpty != false {
+            if key.requiresPassphraseEntry, node.submission?.hasPassphrase != true {
                 throw TermindSSHError.keyPassphraseRequired
             }
             let stored: SSHResolvedKeyCredential?
@@ -149,14 +151,14 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                 result.append(
                     stored.sshCredential(
                         publicKey: key.publicKey, certificate: key.certificate,
-                        passphraseOverride: node.submission?.passphrase,
+                        passphraseOverride: node.submission?.passphraseForConnection(),
                         requiresPassphrase: key.requiresPassphraseEntry,
                         requiresUserPresence: key.requiresUserPresence
                     ))
             }
         }
         try Task.checkCancellation()
-        if let password = node.submission?.password {
+        if let password = node.submission?.passwordForConnection() {
             result.append(.password(password))
         } else if node.submission == nil || node.submission?.identityID != nil,
             let identity = node.identity, identity.usesPassword
@@ -215,7 +217,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
     }
 
     public init(
-        nodes: [Node], secrets: any SecretStoring,
+        nodes: [Node], secrets: any SSHRuntimeSecretResolving,
         credentialAccessHandler: SSHCredentialAccessHandler? = nil
     ) {
         self.nodes = nodes

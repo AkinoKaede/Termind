@@ -94,10 +94,13 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   socket/libssh2 handshake-to-auth attempt, never a discovery connection. Generations reject retired callbacks,
   credential results and timers.
 - Every resolved Password, software Private Key, Key Passphrase and proxy Password is one-shot per physical connection
-  attempt. Runtime copies share a wipeable byte buffer; the transport clears it after the authentication call and every
-  success, failure and cancellation boundary clears it again. Retry/session/Agent/Metrics/transfer state retains only
-  non-secret Identity/Key provenance. Saved material is reread from Keychain for another physical connection; temporary
-  Passwords and every Passphrase must be entered again. UI authentication fields clear synchronously on submission.
+  attempt. Runtime copies share one explicitly owned, non-copy-on-write allocation; source `Data`, proxy frames and the
+  allocation are overwritten before release. The transport clears it after the authentication call and every success,
+  failure and cancellation boundary clears it again. UI submissions move plaintext into that one-shot owner before
+  leaving retry state; retry/session/Agent/Metrics/transfer state retains only reentry flags and non-secret Identity/Key
+  provenance. Saved material is reread from Keychain for another physical connection; temporary Passwords and every
+  Passphrase must be entered again. UI authentication fields clear synchronously on submission. Availability checks query
+  Keychain metadata without reading secret data; the legacy software-Key JSON envelope is parsed strictly and fails closed.
 - Desktop SSH/SFTP submission uses `RemoteSessionHostStore`: explicit password wins; custom input never borrows an
   unselected Identity password. Only explicit input changes selected credentials; custom input reuses the Host Identity.
   Identity/secret writes precede separate Host association. Keep temporary credentials, validation/passphrase ordering,
@@ -120,6 +123,8 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - Username-only Identities try `none`, then advertised methods. Device-local `lastUsedAt` tracks successful saved-secret
   reads, not authentication. Batch route reads; missing/availability/edit reads do not count. First access per Identity/
   process writes directly without Vault journal/refresh; sync strips this field and preserves local values on apply.
+- Exporting several authorized Keys resolves credentials immediately before work, authenticates once per Host and opens
+  one exec Channel per Key on that connection. Local validation completes before the remote account is changed.
 - Welcome parses bounded SSH grammar without shell/OpenSSH config execution. Exact aliases supply metadata; overrides
   create session route snapshots, never replaced with saved endpoints. Routes cap at eight Hosts and reject cycles.
   Connect saves nothing. Explicit Save copies changed records/prerequisites in one Vault transaction, rolling back new

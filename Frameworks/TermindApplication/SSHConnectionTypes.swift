@@ -44,6 +44,16 @@ public nonisolated enum SSHHostKeyDecision: Equatable, Sendable {
 public typealias SSHHostKeyAuthorizer = @Sendable (SSHHostKeyChallenge) async throws -> SSHHostKeyDecision
 public typealias SSHAdditionalConnectionRequestResolver = @MainActor @Sendable () throws -> SSHConnectionRequest
 
+public nonisolated struct SSHAuthorizedKeyInstall: Hashable, Sendable {
+    public var publicKey: String
+    public var name: String
+
+    public init(publicKey: String, name: String) {
+        self.publicKey = publicKey
+        self.name = name
+    }
+}
+
 public nonisolated enum SSHHostTrustPolicy: Equatable, Sendable {
     case requireKnownHost
     case allowChallenge
@@ -263,7 +273,7 @@ public nonisolated enum SSHResolvedKeyCredential: Sendable {
     case secureEnclave(SecureEnclaveKeyCredential)
 
     public func sshCredential(
-        publicKey: String, certificate: String = "", passphraseOverride: String? = nil,
+        publicKey: String, certificate: String = "", passphraseOverride: SSHSecret? = nil,
         requiresPassphrase: Bool = false, requiresUserPresence: Bool = false
     ) -> SSHCredentials {
         switch self {
@@ -273,7 +283,7 @@ public nonisolated enum SSHResolvedKeyCredential: Sendable {
                 publicKey: certificate.isEmpty
                     ? (publicKey.isEmpty ? nil : publicKey)
                     : certificate,
-                passphrase: passphraseOverride.map(SSHSecret.init),
+                passphrase: passphraseOverride,
                 requiresPassphrase: requiresPassphrase
             )
         case .secureEnclave(let credential):
@@ -287,7 +297,7 @@ public nonisolated enum SSHResolvedKeyCredential: Sendable {
 
 nonisolated extension StoredSSHKeyCredential {
     public func sshCredential(
-        publicKey: String, certificate: String = "", passphraseOverride: String? = nil,
+        publicKey: String, certificate: String = "", passphraseOverride: SSHSecret? = nil,
         requiresPassphrase: Bool = false, requiresUserPresence: Bool = false
     ) -> SSHCredentials {
         switch self {

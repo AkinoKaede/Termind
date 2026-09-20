@@ -594,8 +594,20 @@ public actor SSHPTYChannel {
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) async throws {
-        try await SSHConnectionOpener.installAuthorizedKey(
-            publicKey, named: keyName, using: request, logger: logger,
+        try await installAuthorizedKeys(
+            [SSHAuthorizedKeyInstall(publicKey: publicKey, name: keyName)],
+            using: request, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy
+        )
+    }
+
+    public static func installAuthorizedKeys(
+        _ keys: [SSHAuthorizedKeyInstall], using request: SSHConnectionRequest,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
+    ) async throws {
+        try await SSHConnectionOpener.installAuthorizedKeys(
+            keys, using: request, logger: logger,
             maxSessionsPolicy: maxSessionsPolicy)
     }
 
@@ -883,25 +895,51 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
         maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
     ) async throws {
-        let input = try authorizedKeyInstallInput(publicKey: publicKey, keyName: keyName)
-        let session = SSHConnection(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
+        try await installAuthorizedKeys(
+            [SSHAuthorizedKeyInstall(publicKey: publicKey, name: keyName)],
+            using: request, logger: logger,
+            maxSessionsPolicy: maxSessionsPolicy
+        )
+    }
+
+    public static func installAuthorizedKeys(
+        _ keys: [SSHAuthorizedKeyInstall],
+        using request: SSHConnectionRequest,
+        logger: Logging.Logger = ApplicationLogger.disabled("termind.ssh-key-install"),
+        maxSessionsPolicy: SSHMaxSessionsPolicy = SSHMaxSessionsPolicy()
+    ) async throws {
+        let connection = SSHConnection(logger: logger, maxSessionsPolicy: maxSessionsPolicy)
+        try await installAuthorizedKeys(keys, using: request, connection: connection)
+    }
+
+    static func installAuthorizedKeys(
+        _ keys: [SSHAuthorizedKeyInstall],
+        using request: SSHConnectionRequest,
+        connection: any SSHConnectionProtocol
+    ) async throws {
+        guard !keys.isEmpty else { return }
+        let inputs = try keys.map {
+            try authorizedKeyInstallInput(publicKey: $0.publicKey, keyName: $0.name)
+        }
         do {
-            try await session.connect(using: request)
+            try await connection.connect(using: request)
             let command =
                 #"umask 077; dir="$HOME/.ssh"; file="$dir/authorized_keys"; mkdir -p "$dir" && touch "$file" && chmod 700 "$dir" && chmod 600 "$file" && IFS= read -r comment && IFS= read -r key && { LC_ALL=C grep -Fqx -- "$key" "$file" || printf '%s\n%s\n' "$comment" "$key" >> "$file"; }"#
-            let result = try await session.execute(
-                command, workingDirectory: nil, stdin: input, timeout: 20,
-                outputLimit: 64 * 1024, onOutput: nil)
-            guard result.exitCode == 0 else {
-                let detail = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
-                throw TermindSSHError.library(
-                    detail.isEmpty
-                        ? "The remote authorized_keys update exited with status \(result.exitCode)."
-                        : "The remote authorized_keys update failed: \(detail)")
+            for input in inputs {
+                let result = try await connection.execute(
+                    command, workingDirectory: nil, stdin: input, timeout: 20,
+                    outputLimit: 64 * 1024, onOutput: nil)
+                guard result.exitCode == 0 else {
+                    let detail = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)
+                    throw TermindSSHError.library(
+                        detail.isEmpty
+                            ? "The remote authorized_keys update exited with status \(result.exitCode)."
+                            : "The remote authorized_keys update failed: \(detail)")
+                }
             }
-            await session.disconnect()
+            await connection.disconnect()
         } catch {
-            await session.disconnect()
+            await connection.disconnect()
             throw error
         }
     }

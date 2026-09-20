@@ -314,23 +314,16 @@ final class SFTPChannelModel: Identifiable {
             username: stagedAuthentication?.username ?? store.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection
         )
-        if let passwordHost = route.first(where: { routeHost in
-            suppliedAuthentications[routeHost.id]?.requiresPasswordReentry == true
-        }) {
+        if let passwordHost = suppliedAuthentications.firstHostRequiringPassword(in: route) {
             requestAuthentication(
                 host: passwordHost, store: store,
                 requiresPassphrase: false
             )
             return
         }
-        if let passphraseHost = route.first(where: { routeHost in
-            guard let submission = suppliedAuthentications[routeHost.id],
-                submission.passphrase == nil,
-                let keyID = submission.keyID,
-                let key = store.key(keyID)
-            else { return false }
-            return key.requiresPassphraseEntry
-        }) {
+        if let passphraseHost = suppliedAuthentications.firstHostRequiringPassphrase(
+            in: route, key: store.key
+        ) {
             requestAuthentication(
                 host: passphraseHost, store: store,
                 requiresPassphrase: true, preserveSubmission: true
@@ -366,12 +359,12 @@ final class SFTPChannelModel: Identifiable {
                         credentials.append(
                             stored.sshCredential(
                                 publicKey: key.publicKey, certificate: key.certificate,
-                                passphraseOverride: suppliedAuthentication.passphrase,
+                                passphraseOverride: suppliedAuthentication.passphraseForConnection(),
                                 requiresPassphrase: key.requiresPassphraseEntry,
                                 requiresUserPresence: key.requiresUserPresence
                             ))
                     }
-                    if let password = suppliedAuthentication.password {
+                    if let password = suppliedAuthentication.passwordForConnection() {
                         credentials.append(.password(password))
                     } else if let identityID = suppliedAuthentication.identityID,
                         let selectedIdentity = store.identity(identityID), selectedIdentity.usesPassword
@@ -398,9 +391,9 @@ final class SFTPChannelModel: Identifiable {
                                 ? suppliedAuthentication.keyID : nil,
                             username: suppliedAuthentication.username,
                             permitsNone: suppliedAuthentication.keyID == nil
-                                && suppliedAuthentication.password == nil,
-                            hasEphemeralSecret: suppliedAuthentication.password != nil
-                                || suppliedAuthentication.passphrase != nil
+                                && !suppliedAuthentication.hasPassword,
+                            hasEphemeralSecret: suppliedAuthentication.hasPassword
+                                || suppliedAuthentication.hasPassphrase
                         )
                     )
                 } else {
@@ -489,10 +482,10 @@ final class SFTPChannelModel: Identifiable {
                 let submitted = self.suppliedAuthentications[authenticationHost.id]
                 let retryNeedsPassphrase =
                     submitted?.requiresPasswordReentry != true
-                    && submitted?.passphrase == nil
+                    && submitted?.hasPassphrase != true
                     && (submitted?.keyID ?? store.identity(for: authenticationHost)?.keyID)
                         .flatMap { store.key($0) }?.requiresPassphraseEntry == true
-                let returnsToIdentity = submitted?.passphrase != nil
+                let returnsToIdentity = submitted?.requiresPassphraseReentry == true
                 self.requestAuthentication(
                     host: authenticationHost, store: store,
                     failure: error.localizedDescription,

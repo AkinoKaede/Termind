@@ -559,9 +559,7 @@ final class MobileWorkspace: Identifiable {
             purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
             username: hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
-        if let passwordHost = route.first(where: { routeHost in
-            submissions[routeHost.id]?.requiresPasswordReentry == true
-        }) {
+        if let passwordHost = submissions.firstHostRequiringPassword(in: route) {
             authenticationRequired = true
             authenticationMode = .localIdentity
             authenticationHostID = passwordHost.id
@@ -573,14 +571,9 @@ final class MobileWorkspace: Identifiable {
             busy = false
             return
         }
-        if let passphraseHost = route.first(where: { routeHost in
-            guard let submission = submissions[routeHost.id],
-                submission.passphrase == nil,
-                let keyID = submission.keyID,
-                let key = hosts.key(keyID)
-            else { return false }
-            return key.requiresPassphraseEntry
-        }) {
+        if let passphraseHost = submissions.firstHostRequiringPassphrase(
+            in: route, key: hosts.key
+        ) {
             authenticationRequired = true
             authenticationMode = .localIdentity
             authenticationHostID = passphraseHost.id

@@ -669,23 +669,16 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         server.collectionState = .connecting
         server.isConnecting = true
         let route = hosts.route(for: host)
-        if let passwordHost = route.first(where: { routeHost in
-            submissions[server.id]?[routeHost.id]?.requiresPasswordReentry == true
-        }) {
+        if let passwordHost = submissions[server.id]?.firstHostRequiringPassword(in: route) {
             throw TermindSSHError.routeHost(
                 hostID: passwordHost.id, authentication: true,
                 serverChallenge: false, hostKey: false,
                 message: TermindSSHError.missingCredential.localizedDescription
             )
         }
-        if let passphraseHost = route.first(where: { routeHost in
-            guard let submission = submissions[server.id]?[routeHost.id],
-                submission.passphrase == nil,
-                let keyID = submission.keyID,
-                let key = hosts.key(keyID)
-            else { return false }
-            return key.requiresPassphraseEntry
-        }) {
+        if let passphraseHost = submissions[server.id]?.firstHostRequiringPassphrase(
+            in: route, key: hosts.key
+        ) {
             throw TermindSSHError.routeHost(
                 hostID: passphraseHost.id, authentication: true,
                 serverChallenge: false, hostKey: false,

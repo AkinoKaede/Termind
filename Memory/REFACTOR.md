@@ -239,3 +239,21 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
   `"channels_only"` raw value, so synced settings need no migration.
 - **Verification:** TFM and generic iOS Simulator builds passed. Sixty-six focused connection/Channel/SFTP tests passed;
   changed-file strict formatting and Chinese localization checks passed.
+
+### 2026-09-20 — one-shot SSH secret ownership and connection attempts (complete)
+
+- **Evidence:** runtime credentials were represented by copy-on-write `Data` after leaving Keychain, so appending a NUL
+  could abandon an uncleared allocation. Temporary form answers were copied as `String` values into attempt dictionaries;
+  five feature owners repeated password/passphrase reentry routing. Authorized-Key export resolved every selected Host's
+  credentials eagerly and reused one one-shot configuration across several physical connections.
+- **Action:** give `SSHSecret` one explicitly owned allocation; move submitted plaintext into that owner before an attempt;
+  centralize route reentry selection; narrow connection-time secret resolution; query Keychain existence without reading
+  values; fail closed on malformed legacy private-Key envelopes; authenticate once per Host for multi-Key export.
+- **Result:** source `Data`, proxy frames and one-shot allocations are cleared through one `SecretMemory` boundary. Retry
+  state retains only selection metadata and reentry flags, while attempt copies share invalidating secret owners. The
+  session host port no longer exposes its legacy plaintext credential reads. Export preparations contain references only,
+  resolve immediately before work and open one connection with sequential exec Channels for all selected Keys. This is a
+  safety/ownership refactor; no production-line reduction is claimed.
+- **Verification:** macOS and generic iOS Simulator builds passed. Fifty-three focused authentication, Agent and
+  authorized-Key tests passed; all 381 Framework tests passed. The default macOS run finished with 1,792 passed, 64
+  opt-in skips and no failures. Changed-file strict formatting, diff checks and Chinese localization passed.

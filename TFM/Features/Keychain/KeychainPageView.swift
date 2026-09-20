@@ -1389,15 +1389,15 @@ struct ExportKeyToHostsSheet: View {
         }
         guard !targets.isEmpty else { return }
 
-        var configurations: [(Host.ID, SSHConnectionConfiguration)] = []
+        var preparations: [(Host.ID, SSHConnectionPreparation)] = []
         for host in targets {
             if let reason = app.credentials.keyExportUnavailableReason(for: host) {
                 states[host.id] = .failed(reason)
                 continue
             }
             do {
-                configurations.append(
-                    (host.id, try app.credentials.sshConnectionConfiguration(for: host))
+                preparations.append(
+                    (host.id, try app.credentials.prepareSSHConnection(for: host))
                 )
                 states[host.id] = .running
             } catch {
@@ -1405,18 +1405,19 @@ struct ExportKeyToHostsSheet: View {
             }
         }
 
-        let exportKeys = keys.map { (name: $0.label, publicKey: $0.publicKey) }
+        let exportKeys = keys.map {
+            SSHAuthorizedKeyInstall(publicKey: $0.publicKey, name: $0.label)
+        }
         let connectionCoordinator = app.connections
         Task {
             await withTaskGroup(of: (Host.ID, String?).self) { group in
-                for (id, configuration) in configurations {
+                for (id, preparation) in preparations {
                     group.addTask {
                         do {
-                            for key in exportKeys {
-                                try await connectionCoordinator.installAuthorizedKey(
-                                    key.publicKey, named: key.name, using: configuration
-                                )
-                            }
+                            let configuration = try await preparation.resolve()
+                            try await connectionCoordinator.installAuthorizedKeys(
+                                exportKeys, using: configuration
+                            )
                             return (id, nil)
                         } catch {
                             return (id, error.localizedDescription)

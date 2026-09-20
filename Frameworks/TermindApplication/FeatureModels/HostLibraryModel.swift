@@ -460,7 +460,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             credentials = resolution.credentials
         }
         let expectsCredential =
-            submissions[host.id].map { $0.keyID != nil || $0.password != nil }
+            submissions[host.id].map { $0.keyID != nil || $0.hasPassword }
             ?? (identity(for: host)?.hasSecret == true)
         if credentials.isEmpty, expectsCredential { throw TermindSSHError.missingCredential }
         let expectedHostKeys = try expectedHostKeys(
@@ -645,14 +645,16 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 identityID: resolvedIdentity.id,
                 username: resolvedIdentity.username,
                 permitsNone: !resolvedIdentity.hasSecret,
-                hasEphemeralSecret: submission?.password != nil || submission?.passphrase != nil
+                hasEphemeralSecret: submission?.hasPassword == true
+                    || submission?.hasPassphrase == true
             )
         }
         return SSHAuthenticationReference(
             fallbackKeyID: submission?.keyID,
             username: submission?.username ?? "",
-            permitsNone: submission?.keyID == nil && submission?.password == nil,
-            hasEphemeralSecret: submission?.password != nil || submission?.passphrase != nil
+            permitsNone: submission?.keyID == nil && submission?.hasPassword != true,
+            hasEphemeralSecret: submission?.hasPassword == true
+                || submission?.hasPassphrase == true
         )
     }
 
@@ -662,9 +664,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     ) throws -> [SSHCredentials] {
         var credentials: [SSHCredentials] = []
         if let keyID = submission.keyID, let key = key(keyID) {
-            if key.requiresPassphraseEntry,
-                submission.passphrase?.isEmpty != false
-            {
+            if key.requiresPassphraseEntry, !submission.hasPassphrase {
                 throw TermindSSHError.keyPassphraseRequired
             }
             if let stored = try keySecretCredential(for: key) {
@@ -674,14 +674,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 credentials.append(
                     stored.sshCredential(
                         publicKey: key.publicKey, certificate: key.certificate,
-                        passphraseOverride: submission.passphrase,
+                        passphraseOverride: submission.passphraseForConnection(),
                         requiresPassphrase: key.requiresPassphraseEntry,
                         requiresUserPresence: key.requiresUserPresence
                     )
                 )
             }
         }
-        if let password = submission.password {
+        if let password = submission.passwordForConnection() {
             credentials.append(.password(password))
         } else if let identityID = submission.identityID,
             let identity = identity(identityID), identity.usesPassword,
@@ -1233,7 +1233,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public func passwordAvailability(for identity: Identity) -> SecretAvailability {
         guard identity.usesPassword else { return .notConfigured }
         do {
-            return try passwordCredential(for: identity) == nil ? .missing : .available
+            return try keychain.containsString(
+                for: identity.credentialRef, storage: identity.passwordStorage
+            ) ? .available : .missing
         } catch {
             return .failed(error.localizedDescription)
         }
@@ -1415,7 +1417,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func keyAvailability(for key: SSHKeyRef) -> SecretAvailability {
         do {
-            return try keyCredential(for: key) == nil ? .missing : .available
+            return try keychain.containsKeyCredential(
+                for: key.credentialRef, storage: key.storage
+            ) ? .available : .missing
         } catch {
             return .failed(error.localizedDescription)
         }
