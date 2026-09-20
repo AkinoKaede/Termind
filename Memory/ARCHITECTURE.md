@@ -107,6 +107,9 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - Saved iCloud Passwords and software Keys cannot be moved to device-only storage: editors disable that destination and
   application writes reject it before touching Keychain. New credentials may start device-only, and device-only credentials
   may move to iCloud.
+- New AI Provider keys, Vertex service accounts and remote MCP tokens use iCloud Keychain only after both the master iCloud
+  and Settings switches are on and account/merge authorization completes; otherwise they use device-only Keychain. Once a
+  reference has entered iCloud it stays there even if either switch is later disabled.
 - Desktop SSH/SFTP submission uses `RemoteSessionHostStore`: explicit password wins; custom input never borrows an
   unselected Identity password. Only explicit input changes selected credentials; custom input reuses the Host Identity.
   Identity/secret writes precede separate Host association. Keep temporary credentials, validation/passphrase ordering,

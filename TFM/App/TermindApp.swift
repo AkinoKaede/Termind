@@ -61,7 +61,7 @@ struct TermindApp: App {
             let metricsPersistence = MetricsSyncPersistence(
                 context: container.mainContext, defaults: metricsDefaults)
             try metricsPersistence.prepare()
-            let aiSecrets = AISecretStore(context: container.mainContext, keychain: secrets)
+            let aiSecrets = AISecretStore(context: container.mainContext, keychain: secrets, defaults: .standard)
             let settingsSync: SettingsSyncCoordinator? =
                 isRunningTests
                 ? nil

@@ -21,7 +21,7 @@ struct CloudSyncCoordinatorLifecycleTests {
         let metricsStore = MetricsSyncPersistence(context: context, defaults: defaults)
         try settingsStore.prepare()
         try metricsStore.prepare()
-        let secrets = AISecretStore(context: context, keychain: InMemorySecretStore())
+        let secrets = AISecretStore(context: context, keychain: InMemorySecretStore(), defaults: defaults)
         let networks = (0..<3).map { _ in LifecycleNetwork() }
         let vault = VaultSyncCoordinator(
             context: context, defaults: defaults, environmentIdentifier: "Test",
@@ -80,7 +80,8 @@ struct CloudSyncCoordinatorLifecycleTests {
         let defaults = UserDefaults(suiteName: "SettingsLifecycleTests.\(UUID())")!
         let store = SettingsSyncPersistence(context: container.mainContext, defaults: defaults)
         try store.prepare()
-        let secrets = AISecretStore(context: container.mainContext, keychain: InMemorySecretStore())
+        let secrets = AISecretStore(
+            context: container.mainContext, keychain: InMemorySecretStore(), defaults: defaults)
         let network = LifecycleNetwork()
         let coordinator = SettingsSyncCoordinator(
             persistence: store, secrets: secrets, defaults: defaults, environmentIdentifier: "Test",

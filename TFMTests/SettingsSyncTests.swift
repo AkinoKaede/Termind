@@ -516,7 +516,8 @@ struct SettingsSyncTests {
         let vault = VaultSyncCoordinator(context: container.mainContext, defaults: defaults)
         let ai = SettingsSyncCoordinator(
             persistence: store,
-            secrets: AISecretStore(context: container.mainContext, keychain: SyncTestSecrets()), defaults: defaults)
+            secrets: AISecretStore(
+                context: container.mainContext, keychain: SyncTestSecrets(), defaults: defaults), defaults: defaults)
         #expect(vault.isEnabled && ai.isEnabled)
         defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)
         #expect(!vault.isEnabled && !ai.isEnabled)
@@ -558,7 +559,8 @@ struct SettingsSyncTests {
         let vault = VaultSyncCoordinator(context: container.mainContext, defaults: defaults)
         let ai = SettingsSyncCoordinator(
             persistence: store,
-            secrets: AISecretStore(context: container.mainContext, keychain: SyncTestSecrets()), defaults: defaults)
+            secrets: AISecretStore(
+                context: container.mainContext, keychain: SyncTestSecrets(), defaults: defaults), defaults: defaults)
         #expect(vault.isEnabled && ai.isEnabled)
         vault.setEnabled(false)
         #expect(ai.isEnabled)
@@ -570,9 +572,9 @@ struct SettingsSyncTests {
 
     @Test
     func keysMigrateRetryAndRemainSyncedWhenConfigurationPauses() throws {
-        let (container, _, _) = try fixture()
+        let (container, _, defaults) = try fixture()
         let keychain = SyncTestSecrets()
-        let secrets = AISecretStore(context: container.mainContext, keychain: keychain)
+        let secrets = AISecretStore(context: container.mainContext, keychain: keychain, defaults: defaults)
         let ref = "termind.ai.key.test"
         try secrets.setString("original", for: ref)
         #expect(try keychain.string(for: ref, storage: .iCloud) == nil)
@@ -594,10 +596,46 @@ struct SettingsSyncTests {
     }
 
     @Test
-    func remoteMCPTokenMigratesWithoutSelectingTheBuiltInServerToken() throws {
-        let (container, _, _) = try fixture()
+    func newAISecretsFollowBothSwitchesAndMigrateOnEveryEnable() throws {
+        let (container, _, defaults) = try fixture()
         let keychain = SyncTestSecrets()
-        let secrets = AISecretStore(context: container.mainContext, keychain: keychain)
+        let secrets = AISecretStore(context: container.mainContext, keychain: keychain, defaults: defaults)
+        let first = "termind.ai.key.first-enable"
+        let second = "termind.ai.key.second-enable"
+        secrets.uploadsAuthorized = true
+
+        defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)
+        defaults.set(true, forKey: SettingsKey.settingsSyncEnabled)
+        try secrets.setString("first", for: first)
+        try secrets.migrate([first])
+        #expect(try keychain.string(for: first, storage: .thisDevice) == "first")
+        #expect(try keychain.string(for: first, storage: .iCloud) == nil)
+
+        defaults.set(true, forKey: SettingsKey.iCloudSyncEnabled)
+        try secrets.migrate([first])
+        #expect(try keychain.string(for: first, storage: .thisDevice) == nil)
+        #expect(try keychain.string(for: first, storage: .iCloud) == "first")
+
+        defaults.set(false, forKey: SettingsKey.settingsSyncEnabled)
+        try secrets.setString("second", for: second)
+        try secrets.migrate([second])
+        try secrets.setString("first-updated", for: first)
+        #expect(try keychain.string(for: second, storage: .thisDevice) == "second")
+        #expect(try keychain.string(for: second, storage: .iCloud) == nil)
+        #expect(try keychain.string(for: first, storage: .thisDevice) == nil)
+        #expect(try keychain.string(for: first, storage: .iCloud) == "first-updated")
+
+        defaults.set(true, forKey: SettingsKey.settingsSyncEnabled)
+        try secrets.migrate([first, second])
+        #expect(try keychain.string(for: second, storage: .thisDevice) == nil)
+        #expect(try keychain.string(for: second, storage: .iCloud) == "second")
+    }
+
+    @Test
+    func remoteMCPTokenMigratesWithoutSelectingTheBuiltInServerToken() throws {
+        let (container, _, defaults) = try fixture()
+        let keychain = SyncTestSecrets()
+        let secrets = AISecretStore(context: container.mainContext, keychain: keychain, defaults: defaults)
         let remoteReference = "termind.ai.mcp.remote"
         try secrets.setString("remote", for: remoteReference)
         try keychain.setString(
@@ -613,9 +651,9 @@ struct SettingsSyncTests {
 
     @Test
     func remoteKeyCanArriveAfterConfigurationWithoutUsingStaleLocalCopy() throws {
-        let (container, _, _) = try fixture()
+        let (container, _, defaults) = try fixture()
         let keychain = SyncTestSecrets()
-        let secrets = AISecretStore(context: container.mainContext, keychain: keychain)
+        let secrets = AISecretStore(context: container.mainContext, keychain: keychain, defaults: defaults)
         let ref = "termind.ai.mcp.delayed"
         try keychain.setString("stale", for: ref, storage: .thisDevice)
         try secrets.acceptRemoteReferences([ref])

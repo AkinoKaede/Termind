@@ -145,7 +145,8 @@ final class MobileAppModel {
         try settingsPersistence.prepare()
         let metricsPersistence = MetricsSyncPersistence(context: ModelContext(container), defaults: settingsDefaults)
         try metricsPersistence.prepare()
-        let aiSecrets = AISecretStore(context: settingsPersistence.context, keychain: secrets)
+        let aiSecrets = AISecretStore(
+            context: settingsPersistence.context, keychain: secrets, defaults: settingsDefaults)
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
         sshSettings = SSHSettingsModel(persistence: settingsPersistence)
         sftpSettings = SFTPSettingsModel(persistence: settingsPersistence)

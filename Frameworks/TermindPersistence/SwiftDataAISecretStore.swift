@@ -7,11 +7,13 @@ import TermindApplication
 public final class AISecretStore: AISecretStoring {
     private let context: ModelContext
     private let keychain: any SecretStoring
+    private let defaults: UserDefaults
     public var uploadsAuthorized = false
 
-    public init(context: ModelContext, keychain: any SecretStoring) {
+    public init(context: ModelContext, keychain: any SecretStoring, defaults: UserDefaults) {
         self.context = context
         self.keychain = keychain
+        self.defaults = defaults
     }
 
     public func string(for reference: String) throws -> String? {
@@ -30,7 +32,7 @@ public final class AISecretStore: AISecretStoring {
             try finishDeletion(location)
             return
         }
-        let cloud = location.usesICloud || uploadsAuthorized
+        let cloud = location.usesICloud || authorizesNewICloudSecrets
         try keychain.setString(value, for: reference, storage: cloud ? .iCloud : .thisDevice)
         if cloud {
             guard try keychain.string(for: reference, storage: .iCloud) == value else {
@@ -45,7 +47,7 @@ public final class AISecretStore: AISecretStoring {
 
     /// Called only after the coordinator has checked the account and merge consent.
     public func migrate(_ references: Set<String>) throws {
-        guard uploadsAuthorized else { return }
+        guard authorizesNewICloudSecrets else { return }
         for row in try context.fetch(FetchDescriptor<PersistentAISecretLocation>()) where row.pendingDeletion {
             try finishDeletion(row)
         }
@@ -97,5 +99,13 @@ public final class AISecretStore: AISecretStoring {
         let row = PersistentAISecretLocation(reference: reference)
         context.insert(row)
         return row
+    }
+
+    private var authorizesNewICloudSecrets: Bool {
+        uploadsAuthorized
+            && (defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool
+                ?? SettingsKey.defaultICloudSyncEnabled)
+            && (defaults.object(forKey: SettingsKey.settingsSyncEnabled) as? Bool
+                ?? SettingsKey.defaultSettingsSyncEnabled)
     }
 }
