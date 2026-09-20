@@ -6,10 +6,24 @@ import TermindPresentation
 import struct TermindDomain.Host
 
 struct MobileHostEditor: View {
+    private enum IdentityEditorRoute: String, Identifiable {
+        case host
+        case proxy
+
+        var id: String { rawValue }
+    }
+
+    private enum Choice<ID: Hashable>: Hashable {
+        case unset
+        case existing(ID)
+        case new
+    }
+
     let app: MobileAppModel
     private var library: HostLibraryModel { app.library }
     let original: Host
     @State private var draft: Host
+    @State private var identityEditorRoute: IdentityEditorRoute?
 
     init(app: MobileAppModel, host: Host) {
         self.app = app
@@ -28,9 +42,13 @@ struct MobileHostEditor: View {
             content: {
                 HostConnectionFields(host: $draft)
                 Section("Authentication") {
-                    Picker("Identity", selection: $draft.identityID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(library.identities) { Text($0.name).tag(Optional($0.id)) }
+                    Picker("Identity", selection: identityChoice) {
+                        Text("None").tag(Choice<Identity.ID>.unset)
+                        ForEach(library.identities) { identity in
+                            Text(identity.name).tag(Choice.existing(identity.id))
+                        }
+                        Divider()
+                        Text("New Identity").tag(Choice<Identity.ID>.new)
                     }
                 }
                 Section("Routing") {
@@ -61,11 +79,14 @@ struct MobileHostEditor: View {
                                 .multilineTextAlignment(.trailing)
                         }
                         .accessibilityLabel("Proxy Port")
-                        Picker("Identity", selection: proxyIdentityID) {
-                            Text("None").tag(UUID?.none)
+                        Picker("Identity", selection: proxyIdentityChoice) {
+                            Text("None").tag(Choice<Identity.ID>.unset)
                             ForEach(proxyIdentities) { identity in
-                                Text("\(identity.name) · \(identity.username)").tag(Optional(identity.id))
+                                Text("\(identity.name) · \(identity.username)")
+                                    .tag(Choice.existing(identity.id))
                             }
+                            Divider()
+                            Text("New Identity").tag(Choice<Identity.ID>.new)
                         }
                         .accessibilityLabel("Proxy Identity")
                         if draft.proxy?.identityID != nil {
@@ -93,6 +114,35 @@ struct MobileHostEditor: View {
                 HostIntegrationSection(mode: $draft.shellIntegrationMode)
             }
         )
+        .sheet(item: $identityEditorRoute) { route in
+            switch route {
+            case .host:
+                MobileIdentityEditor(
+                    app: app, identity: Identity(name: "", username: "")
+                ) { identity in
+                    draft = MobileHostEditorPolicy.selectIdentity(identity, current: draft)
+                }
+            case .proxy:
+                MobileIdentityEditor(
+                    app: app, identity: Identity(name: "", username: ""),
+                    configuration: .proxy
+                ) { identity in
+                    draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(identity, current: draft.proxy)
+                }
+            }
+        }
+    }
+
+    private var identityChoice: Binding<Choice<Identity.ID>> {
+        Binding {
+            draft.identityID.map(Choice.existing) ?? .unset
+        } set: { choice in
+            switch choice {
+            case .unset: draft.identityID = nil
+            case .existing(let id): draft.identityID = id
+            case .new: identityEditorRoute = .host
+            }
+        }
     }
 
     private var proxyKind: Binding<HostProxy.ProtocolKind?> {
@@ -117,12 +167,18 @@ struct MobileHostEditor: View {
         )
     }
 
-    private var proxyIdentityID: Binding<Identity.ID?> {
+    private var proxyIdentityChoice: Binding<Choice<Identity.ID>> {
         Binding {
-            draft.proxy?.identityID
-        } set: { identityID in
-            draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(
-                identityID.flatMap(library.identity), current: draft.proxy)
+            draft.proxy?.identityID.map(Choice.existing) ?? .unset
+        } set: { choice in
+            switch choice {
+            case .unset:
+                draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(nil, current: draft.proxy)
+            case .existing(let id):
+                draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(library.identity(id), current: draft.proxy)
+            case .new:
+                identityEditorRoute = .proxy
+            }
         }
     }
 
@@ -133,6 +189,12 @@ struct MobileHostEditor: View {
 }
 
 nonisolated enum MobileHostEditorPolicy {
+    static func selectIdentity(_ identity: Identity, current: Host) -> Host {
+        var host = current
+        host.identityID = identity.id
+        return host
+    }
+
     static func canSave(_ host: Host) -> Bool {
         !host.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (1...65_535).contains(host.port)

@@ -276,29 +276,60 @@ extension KeyStorage {
     }
 }
 
-private struct MobileIdentityEditor: View {
+nonisolated struct MobileIdentityEditorConfiguration: Hashable, Sendable {
+    var showsKey: Bool
+    var requiresPassword: Bool
+
+    static let standard = MobileIdentityEditorConfiguration(showsKey: true, requiresPassword: false)
+    static let proxy = MobileIdentityEditorConfiguration(showsKey: false, requiresPassword: true)
+
+    func canSave(
+        identity: Identity, password: String, hasSavedPassword: Bool, removesPassword: Bool
+    ) -> Bool {
+        guard !identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return false
+        }
+        guard requiresPassword else { return true }
+        return !password.isEmpty || (hasSavedPassword && !removesPassword)
+    }
+}
+
+struct MobileIdentityEditor: View {
     let app: MobileAppModel
     let original: Identity
+    let isNew: Bool
+    let configuration: MobileIdentityEditorConfiguration
+    let saved: (Identity) -> Void
     @State private var draft: Identity
     @State private var password = ""
     @State private var removePassword = false
 
-    init(app: MobileAppModel, identity: Identity) {
+    init(
+        app: MobileAppModel, identity: Identity,
+        configuration: MobileIdentityEditorConfiguration = .standard,
+        saved: @escaping (Identity) -> Void = { _ in }
+    ) {
         self.app = app
         original = identity
+        isNew = app.library.identity(identity.id) == nil
+        self.configuration = configuration
+        self.saved = saved
         _draft = State(initialValue: identity)
     }
 
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: "Identity"),
+            title: title,
             isDirty: draft != original || !password.isEmpty || removePassword,
-            canSave: !draft.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            canSave: configuration.canSave(
+                identity: draft, password: password,
+                hasSavedPassword: hasAvailablePassword, removesPassword: removePassword),
             save: {
                 draft.username = draft.username.trimmingCharacters(in: .whitespacesAndNewlines)
                 draft.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 try app.library.upsert(
                     draft, passwordUpdate: removePassword ? .remove : password.isEmpty ? .keep : .replace(password))
+                saved(draft)
             },
             content: {
                 Section("Identity") {
@@ -332,11 +363,21 @@ private struct MobileIdentityEditor: View {
                         Text("This Device").tag(PasswordStorage.thisDevice)
                         Text("iCloud").tag(PasswordStorage.iCloud)
                     }
-                    Picker("Key", selection: $draft.keyID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(app.credentials.keys) { Text($0.label).tag(Optional($0.id)) }
+                    if configuration.showsKey {
+                        Picker("Key", selection: $draft.keyID) {
+                            Text("None").tag(UUID?.none)
+                            ForEach(app.credentials.keys) { Text($0.label).tag(Optional($0.id)) }
+                        }
                     }
                 }
             })
+    }
+
+    var title: String {
+        String(localized: isNew ? "New Identity" : "Edit Identity")
+    }
+
+    private var hasAvailablePassword: Bool {
+        original.usesPassword && app.credentials.passwordAvailability(for: original) == .available
     }
 }

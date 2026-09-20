@@ -160,6 +160,51 @@ struct MobileVaultFeatureTests {
         #expect(host.proxy == nil)
     }
 
+    @Test func identityCreationConfigurationsMatchHostAndProxyRequirements() {
+        let identity = Identity(name: "Deploy", username: "deploy", keyID: UUID())
+
+        #expect(MobileIdentityEditorConfiguration.standard.showsKey)
+        #expect(
+            MobileIdentityEditorConfiguration.standard.canSave(
+                identity: identity, password: "", hasSavedPassword: false, removesPassword: false))
+        #expect(!MobileIdentityEditorConfiguration.proxy.showsKey)
+        #expect(
+            !MobileIdentityEditorConfiguration.proxy.canSave(
+                identity: identity, password: "", hasSavedPassword: false, removesPassword: false))
+        #expect(
+            MobileIdentityEditorConfiguration.proxy.canSave(
+                identity: identity, password: "secret", hasSavedPassword: false, removesPassword: false))
+    }
+
+    @Test func identityEditorUsesNewAndEditTitles() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let identity = Identity(name: "Deploy", username: "deploy")
+
+        #expect(MobileIdentityEditor(app: app, identity: identity).title == String(localized: "New Identity"))
+        app.library.upsert(identity)
+        #expect(MobileIdentityEditor(app: app, identity: identity).title == String(localized: "Edit Identity"))
+        app.outbox.stop()
+    }
+
+    @Test func newlyCreatedIdentitiesAreAppliedOnlyAfterTheEditorSaves() {
+        let originalIdentity = Identity(name: "Original", username: "old")
+        let createdIdentity = Identity(name: "Created", username: "new")
+        var host = TermindDomain.Host(
+            name: "Remote", host: "example.invalid", identityID: originalIdentity.id,
+            proxy: HostProxy(
+                kind: .http, hostname: "proxy.example.invalid", port: 8080,
+                username: originalIdentity.username, identityID: originalIdentity.id))
+
+        #expect(host.identityID == originalIdentity.id)
+        #expect(host.proxy?.identityID == originalIdentity.id)
+
+        host = MobileHostEditorPolicy.selectIdentity(createdIdentity, current: host)
+        #expect(host.identityID == createdIdentity.id)
+        host.proxy = MobileHostEditorPolicy.selectProxyIdentity(createdIdentity, current: host.proxy)
+        #expect(host.proxy?.identityID == createdIdentity.id)
+        #expect(host.proxy?.username == createdIdentity.username)
+    }
+
     @Test func proxyIdentityChoicesRequireAnAvailablePasswordOnThisDevice() throws {
         let app = try MobileAppModel(inMemory: true)
         let available = Identity(name: "Available", username: "proxy")

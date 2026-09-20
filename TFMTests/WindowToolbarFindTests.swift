@@ -146,6 +146,7 @@ struct WindowToolbarFindTests {
 
         window.openPage(.keychain)
         #expect(window.creationActions.map(\.id) == ["import", "generate", "identity", "ssh-folder"])
+        #expect(window.creationActions.map(\.startsGroup) == [false, false, true, true])
 
         window.openPage(.snippets)
         #expect(window.creationActions.map(\.id) == ["snippet", "package"])
@@ -161,6 +162,16 @@ struct WindowToolbarFindTests {
             let menu = window.creationMenu(for: page, locale: Locale(identifier: "en"))
             #expect(menu[menu.count - 2].isSeparator)
         }
+    }
+
+    @Test
+    func keychainIdentityAndFolderImportStartSeparateMenuGroups() {
+        let window = WindowModel()
+        let menu = window.creationMenu(for: .keychain, locale: Locale(identifier: "en"))
+
+        #expect(menu.count == 6)
+        #expect(menu[2].isSeparator)
+        #expect(menu[4].isSeparator)
     }
 
     /// Each Vault page keeps its own query, and keeps it across a page switch —

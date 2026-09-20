@@ -766,7 +766,8 @@ extension WindowModel {
                     self.openVaultWork(.generateKey, on: .keychain)
                 },
                 WindowToolbarCreationAction(
-                    id: "identity", title: "New Identity", symbol: MenuSymbol.newIdentity
+                    id: "identity", title: "New Identity", symbol: MenuSymbol.newIdentity,
+                    startsGroup: true
                 ) {
                     self.openVaultWork(.identityEditor(nil), on: .keychain)
                 },
