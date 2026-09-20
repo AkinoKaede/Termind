@@ -481,7 +481,6 @@ struct MobileVaultView: View {
                 } label: {
                     Image(systemName: "ellipsis")
                         .frame(width: 44, height: 44)
-                        .foregroundStyle(.secondary)
                 }
                 .accessibilityLabel("More")
             }

@@ -155,7 +155,7 @@ struct HostEditorView: View {
                 }
             }
 
-            Section("Group & Tags") {
+            Section("Organization") {
                 Picker("Group", selection: groupChoice) {
                     Text("None").tag(Choice<HostGroup.ID>.unset)
                     ForEach(app.hostLibrary.groups) { group in

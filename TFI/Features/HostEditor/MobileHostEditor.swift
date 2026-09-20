@@ -103,10 +103,7 @@ struct MobileHostEditor: View {
                         }
                     }
                 }
-                Section("Color") {
-                    ColorTagPicker(selection: $draft.colorTag, layout: .touch)
-                }
-                Section("Group") {
+                Section("Organization") {
                     Picker("Group", selection: groupChoice) {
                         Text("None").tag(Choice<HostGroup.ID>.unset)
                         ForEach(library.groups) { group in
@@ -114,6 +111,14 @@ struct MobileHostEditor: View {
                         }
                         Divider()
                         Text("New Group").tag(Choice<HostGroup.ID>.new)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Color")
+                        ColorTagPicker(selection: $draft.colorTag, layout: .touch)
+                    }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Tags")
+                        MobileTagField(tags: $draft.tags, suggestions: library.allTags)
                     }
                 }
                 HostIntegrationSection(mode: $draft.shellIntegrationMode)

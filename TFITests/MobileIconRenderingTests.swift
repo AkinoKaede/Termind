@@ -38,6 +38,8 @@ struct MobileIconRenderingTests {
         let proxyHost = Host(
             name: "Proxied", host: "proxied.example.invalid",
             proxy: HostProxy(kind: .socks5, hostname: "proxy.example.invalid", port: 1080))
+        let editorHost = Host(
+            name: "Example", host: "example.invalid", tags: ["production", "api"], colorTag: .teal)
         let snippetApp = try MobileAppModel(inMemory: true)
         let snippetHost = Host(name: "Production", host: "production.example.invalid")
         let snippetPackage = SnippetPackage(name: "Operations")
@@ -139,7 +141,7 @@ struct MobileIconRenderingTests {
                 .environment(\.locale, locale)
             }
             try await capture("editor-\(suffix)", language: language, scheme: scheme) {
-                MobileHostEditor(app: app, host: Host(name: "Example", host: "example.invalid"))
+                MobileHostEditor(app: app, host: editorHost)
                     .environment(\.locale, locale)
             }
             try await capture("editor-proxy-\(suffix)", language: language, scheme: scheme) {
@@ -194,7 +196,7 @@ struct MobileIconRenderingTests {
             .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
         }
         try await capture("editor-large-type", language: language, scheme: .light) {
-            MobileHostEditor(app: app, host: Host(name: "Example", host: "example.invalid"))
+            MobileHostEditor(app: app, host: editorHost)
                 .environment(\.locale, locale).environment(\.dynamicTypeSize, .accessibility3)
         }
         try await capture("editor-disabled", language: language, scheme: .light) {

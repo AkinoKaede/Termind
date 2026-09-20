@@ -195,6 +195,46 @@ struct MobileVaultFeatureTests {
         #expect(host.proxy == nil)
     }
 
+    @Test func mobileTagFieldAddsCreatesAndRemovesTagsLikeTheDesktopField() {
+        let suggestions = ["api", "production", "web"]
+
+        #expect(
+            MobileTagFieldPolicy.rows(tags: ["production"], suggestions: suggestions, query: "PI") == [
+                .existing("api"), .create("PI"),
+            ])
+        #expect(
+            MobileTagFieldPolicy.rows(tags: [], suggestions: suggestions, query: "API") == [
+                .existing("api")
+            ])
+        #expect(
+            MobileTagFieldPolicy.rows(tags: ["production"], suggestions: suggestions, query: "edge") == [
+                .create("edge")
+            ])
+        #expect(MobileTagFieldPolicy.submission(query: " API ", suggestions: suggestions) == "api")
+        #expect(MobileTagFieldPolicy.adding(" api ", to: ["production"]) == ["production", "api"])
+        #expect(MobileTagFieldPolicy.adding(" Production ", to: ["production"]) == ["production"])
+        #expect(MobileTagFieldPolicy.adding("   ", to: ["production"]) == ["production"])
+        #expect(MobileTagFieldPolicy.removing("production", from: ["production", "api"]) == ["api"])
+    }
+
+    @Test func aTagDisappearsAfterItsLastHostStopsUsingIt() throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.outbox.stop() }
+        var first = TermindDomain.Host(name: "First", host: "first.example.invalid", tags: ["production"])
+        var second = TermindDomain.Host(name: "Second", host: "second.example.invalid", tags: ["production"])
+        app.library.upsert(first)
+        app.library.upsert(second)
+        #expect(app.library.allTags == ["production"])
+
+        first.tags = []
+        app.library.upsert(first)
+        #expect(app.library.allTags == ["production"])
+
+        second.tags = []
+        app.library.upsert(second)
+        #expect(app.library.allTags.isEmpty)
+    }
+
     @Test func identityCreationConfigurationsMatchHostAndProxyRequirements() {
         let identity = Identity(name: "Deploy", username: "deploy", keyID: UUID())
 

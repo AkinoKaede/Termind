@@ -4554,6 +4554,23 @@
         }
       }
     },
+    "Channels Only" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "仅通道"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "僅通道"
+          }
+        }
+      }
+    },
     "Chat" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5667,23 +5684,6 @@
         }
       }
     },
-    "Channels Only" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "仅通道"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "僅通道"
-          }
-        }
-      }
-    },
     "Concurrent Strategy" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5701,40 +5701,6 @@
         }
       }
     },
-    "Connections" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "连接"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "連線"
-          }
-        }
-      }
-    },
-    "Connections Preferred" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "连接优先"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "連線優先"
-          }
-        }
-      }
-    },
     "Concurrent Transfers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5748,40 +5714,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "同時傳輸"
-          }
-        }
-      }
-    },
-    "Smart" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智能"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智慧"
-          }
-        }
-      }
-    },
-    "Smart uses channels for files up to 64 MB and prefers additional connections for larger files. Transfers with an unknown size use channels." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智能模式对不超过64 MB的文件使用通道，对更大的文件优先使用额外连接。大小未知的传输使用通道。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智慧模式對不超過64 MB的檔案使用通道，對更大的檔案優先使用額外連線。大小未知的傳輸使用通道。"
           }
         }
       }
@@ -6311,6 +6243,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "連線超時。"
+          }
+        }
+      }
+    },
+    "Connections" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連線"
+          }
+        }
+      }
+    },
+    "Connections Preferred" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "连接优先"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連線優先"
           }
         }
       }
@@ -7364,6 +7330,23 @@
         }
       }
     },
+    "Debug" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "调试"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "偵錯"
+          }
+        }
+      }
+    },
     "Decoder Utilization" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -7523,6 +7506,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除%lld個片段"
+          }
+        }
+      }
+    },
+    "Delete All" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部删除"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部刪除"
+          }
+        }
+      }
+    },
+    "Delete all logging files?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除所有日志文件？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除所有日誌檔案？"
           }
         }
       }
@@ -7871,6 +7888,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除片段？"
+          }
+        }
+      }
+    },
+    "Delete this logging file?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除此日志文件？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除此日誌檔案？"
           }
         }
       }
@@ -9747,6 +9781,23 @@
         }
       }
     },
+    "Error" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "错误"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "錯誤"
+          }
+        }
+      }
+    },
     "Error Details" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11514,6 +11565,7 @@
       }
     },
     "Group & Tags" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12760,6 +12812,23 @@
         }
       }
     },
+    "Info" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "資訊"
+          }
+        }
+      }
+    },
     "Initial Path" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13642,6 +13711,23 @@
         }
       }
     },
+    "Level" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "级别"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "等級"
+          }
+        }
+      }
+    },
     "LF" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13771,6 +13857,22 @@
         }
       }
     },
+    "Limits" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "限制"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "限制"
+          }
+        }
+      }
+    },
     "Limits open shell, execute, and SFTP channels on each SSH connection. Port forwarding does not use this limit. Changes apply to new channels immediately; active channels continue." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13784,22 +13886,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "限制每條SSH連線上開啟的Shell、執行和SFTP通道數。連接埠轉送不受此限制。變更會立即套用於新通道，作用中的通道將繼續執行。"
-          }
-        }
-      }
-    },
-    "Limits" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "限制"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "限制"
           }
         }
       }
@@ -14053,6 +14139,91 @@
         }
       }
     },
+    "Log Level" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日志级别"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日誌等級"
+          }
+        }
+      }
+    },
+    "Logging" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日志记录"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日誌記錄"
+          }
+        }
+      }
+    },
+    "Logs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日誌"
+          }
+        }
+      }
+    },
+    "Logs may contain private diagnostic information. Review them before sharing." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日志可能包含私密诊断信息。分享前请先检查。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日誌可能包含私密診斷資訊。分享前請先檢查。"
+          }
+        }
+      }
+    },
+    "Logs may contain private diagnostic information. Review where you send or save them." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日志可能包含私密诊断信息。请确认发送或保存位置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日誌可能包含私密診斷資訊。請確認傳送或儲存位置。"
+          }
+        }
+      }
+    },
     "Longer than %@." : {
       "localizations" : {
         "zh-Hans" : {
@@ -14183,6 +14354,22 @@
         }
       }
     },
+    "Max Output" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大输出"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大輸出"
+          }
+        }
+      }
+    },
     "Max Sessions" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14196,22 +14383,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最大工作階段數"
-          }
-        }
-      }
-    },
-    "Max Output" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最大输出"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "最大輸出"
           }
         }
       }
@@ -15208,22 +15379,6 @@
         }
       }
     },
-    "New Subpackage" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新建子包"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新增子包"
-          }
-        }
-      }
-    },
     "New Subgroup" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15236,6 +15391,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新增子組"
+          }
+        }
+      }
+    },
+    "New Subpackage" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新建子包"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增子包"
           }
         }
       }
@@ -16078,6 +16249,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "沒有儲存主機"
+          }
+        }
+      }
+    },
+    "No Saved Logs" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有已保存的日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有已儲存的日誌"
+          }
+        }
+      }
+    },
+    "No saved logs." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有已保存的日志文件。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有已儲存的日誌檔案。"
           }
         }
       }
@@ -17221,6 +17425,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "橙色"
+          }
+        }
+      }
+    },
+    "Organization" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分类"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分類"
           }
         }
       }
@@ -20848,23 +21068,6 @@
         }
       }
     },
-    "Running · SSH %lld/%lld · %lld TCP flows" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在运行·SSH %1$lld/%2$lld·%3$lld个TCP流"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在執行·SSH %1$lld/%2$lld·%3$lld個TCP流"
-          }
-        }
-      }
-    },
     "Running · 1 connection" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -20878,6 +21081,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在執行·1個連線"
+          }
+        }
+      }
+    },
+    "Running · SSH %lld/%lld · %lld TCP flows" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在运行·SSH %1$lld/%2$lld·%3$lld个TCP流"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在執行·SSH %1$lld/%2$lld·%3$lld個TCP流"
           }
         }
       }
@@ -21130,6 +21350,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "存為片段"
+          }
+        }
+      }
+    },
+    "Save Logging" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "保存日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "儲存日誌"
           }
         }
       }
@@ -22138,6 +22375,23 @@
         }
       }
     },
+    "Share Logging" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享日志"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享日誌"
+          }
+        }
+      }
+    },
     "Shell expressions are not supported here." : {
       "comment" : "Error message when shell expressions are not supported in the current context.",
       "isCommentAutoGenerated" : true,
@@ -22824,6 +23078,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "睡眠中"
+          }
+        }
+      }
+    },
+    "Smart" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智慧"
+          }
+        }
+      }
+    },
+    "Smart uses channels for files up to 64 MB and prefers additional connections for larger files. Transfers with an unknown size use channels." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智能模式对不超过64 MB的文件使用通道，对更大的文件优先使用额外连接。大小未知的传输使用通道。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "智慧模式對不超過64 MB的檔案使用通道，對更大的檔案優先使用額外連線。大小未知的傳輸使用通道。"
           }
         }
       }
@@ -24157,6 +24445,22 @@
         }
       }
     },
+    "Taiwan Flag Available" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "台湾旗帜可用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "台灣旗幟可用"
+          }
+        }
+      }
+    },
     "Take this back and edit it" : {
       "localizations" : {
         "zh-Hans" : {
@@ -24291,22 +24595,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暫時"
-          }
-        }
-      }
-    },
-    "Taiwan Flag Available" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "台湾旗帜可用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "台灣旗幟可用"
           }
         }
       }
@@ -25982,6 +26270,40 @@
         }
       }
     },
+    "The selected logging file is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选日志文件无效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所選日誌檔案無效。"
+          }
+        }
+      }
+    },
+    "The selected logging file no longer exists." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选日志文件已不存在。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所選日誌檔案已不存在。"
+          }
+        }
+      }
+    },
     "The selected model cannot read images. Choose a vision-capable model before sending." : {
       "localizations" : {
         "zh-Hans" : {
@@ -26077,6 +26399,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "伺服器傳送了無效的SSH標識。"
+          }
+        }
+      }
+    },
+    "The SFTP channel is not connected." : {
+      "comment" : "Error message when trying to upload to an SFTP channel that is not connected.",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SFTP通道尚未连接。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SFTP通道尚未連線。"
           }
         }
       }
@@ -26178,24 +26518,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SFTP複製來源在傳輸期間變大。"
-          }
-        }
-      }
-    },
-    "The SFTP channel is not connected." : {
-      "comment" : "Error message when trying to upload to an SFTP channel that is not connected.",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SFTP通道尚未连接。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "SFTP通道尚未連線。"
           }
         }
       }
@@ -27512,6 +27834,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "總髮送量"
+          }
+        }
+      }
+    },
+    "Trace" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "跟踪"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "追蹤"
           }
         }
       }
@@ -29444,6 +29783,23 @@
         }
       }
     },
+    "Warning" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "警告"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "警告"
+          }
+        }
+      }
+    },
     "Web Search" : {
       "localizations" : {
         "zh-Hans" : {
@@ -30061,146 +30417,6 @@
             "value" : "編輯過的檔案尚未全部上傳。下次啟動時不會還原待上傳記錄。"
           }
         }
-      }
-    },
-    "Debug" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "调试" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "偵錯" } }
-      }
-    },
-    "Delete all logging files?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除所有日志文件？" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "刪除所有日誌檔案？" } }
-      }
-    },
-    "Delete All" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "全部删除" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "全部刪除" } }
-      }
-    },
-    "Delete this logging file?" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "删除此日志文件？" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "刪除此日誌檔案？" } }
-      }
-    },
-    "Error" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "错误" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "錯誤" } }
-      }
-    },
-    "Info" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "信息" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "資訊" } }
-      }
-    },
-    "Level" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "级别" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "等級" } }
-      }
-    },
-    "Log Level" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志级别" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌等級" } }
-      }
-    },
-    "Logging" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志记录" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌記錄" } }
-      }
-    },
-    "Logs" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌" } }
-      }
-    },
-    "Logs may contain private diagnostic information. Review them before sharing." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志可能包含私密诊断信息。分享前请先检查。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌可能包含私密診斷資訊。分享前請先檢查。" } }
-      }
-    },
-    "Logs may contain private diagnostic information. Review where you send or save them." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "日志可能包含私密诊断信息。请确认发送或保存位置。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "日誌可能包含私密診斷資訊。請確認傳送或儲存位置。" } }
-      }
-    },
-    "No Saved Logs" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有已保存的日志" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "沒有已儲存的日誌" } }
-      }
-    },
-    "No saved logs." : {
-      "extractionState" : "extracted",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "没有已保存的日志文件。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "沒有已儲存的日誌檔案。" } }
-      }
-    },
-    "Save Logging" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "保存日志" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "儲存日誌" } }
-      }
-    },
-    "Share Logging" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "分享日志" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "分享日誌" } }
-      }
-    },
-    "The selected logging file is invalid." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所选日志文件无效。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "所選日誌檔案無效。" } }
-      }
-    },
-    "The selected logging file no longer exists." : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "所选日志文件已不存在。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "所選日誌檔案已不存在。" } }
-      }
-    },
-    "Trace" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "跟踪" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "追蹤" } }
-      }
-    },
-    "Warning" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "警告" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "警告" } }
       }
     },
     "Your terminal, with judgment." : {
