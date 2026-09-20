@@ -10,6 +10,46 @@ import Testing
 
 @Suite @MainActor
 struct MobileVaultFeatureTests {
+    @Test func hostMenuSeparatesConnectionEditingAndDeletionActions() {
+        #expect(
+            MobileHostMenuPolicy.sections == [
+                [.ssh, .sftp],
+                [.edit, .duplicate],
+                [.delete],
+            ])
+    }
+
+    @Test func duplicatingAHostPersistsAnIndependentCopyWithTheSameConfiguration() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let group = HostGroup(name: "Production")
+        let jump = TermindDomain.Host(name: "Jump", host: "jump.example.invalid")
+        app.library.upsert(group)
+        app.library.upsert(jump)
+        let host = TermindDomain.Host(
+            name: "Remote", host: "remote.example.invalid", port: 2222, identityID: UUID(),
+            jumpHostID: jump.id,
+            proxy: HostProxy(kind: .socks5, hostname: "proxy.example.invalid", port: 1080),
+            sftpSessionInitialPath: "/srv/app", groupID: group.id, tags: ["production", "api"],
+            colorTag: .teal, detectedDistribution: DetectedDistribution(id: "debian"),
+            shellIntegrationMode: .enabled, portForwardingMaxConnections: 12)
+        app.library.upsert(host)
+        let original = try #require(app.library.host(host.id))
+
+        app.duplicateHost(original)
+
+        #expect(app.library.hosts.count == 3)
+        #expect(app.library.host(original.id) == original)
+        let copy = try #require(app.library.hosts.first { $0.id != jump.id && $0.id != original.id })
+        #expect(copy.id != original.id)
+        #expect(copy.name == "Remote copy")
+        var expected = original
+        expected.id = copy.id
+        expected.name = copy.name
+        expected.sortIndex = copy.sortIndex
+        #expect(copy == expected)
+        app.outbox.stop()
+    }
+
     @Test func editingAHostPreservesTheMacForwardingPoolLimit() throws {
         let app = try MobileAppModel(inMemory: true)
         var host = TermindDomain.Host(

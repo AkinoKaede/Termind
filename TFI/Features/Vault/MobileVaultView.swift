@@ -5,6 +5,22 @@ import TermindPresentation
 
 import struct TermindDomain.Host
 
+enum MobileHostMenuAction: Hashable, Sendable {
+    case ssh
+    case sftp
+    case edit
+    case duplicate
+    case delete
+}
+
+nonisolated enum MobileHostMenuPolicy {
+    static let sections: [[MobileHostMenuAction]] = [
+        [.ssh, .sftp],
+        [.edit, .duplicate],
+        [.delete],
+    ]
+}
+
 private struct MobileVaultLinkGroup<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -489,10 +505,29 @@ struct MobileVaultView: View {
             .accessibilityElement(children: .combine)
             .accessibilityHint("Open Workspace")
         } actions: {
+            ForEach(MobileHostMenuPolicy.sections.indices, id: \.self) { section in
+                ForEach(MobileHostMenuPolicy.sections[section], id: \.self) { action in
+                    hostMenuButton(action, host: host)
+                }
+                if section < MobileHostMenuPolicy.sections.count - 1 {
+                    Divider()
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func hostMenuButton(_ action: MobileHostMenuAction, host: Host) -> some View {
+        switch action {
+        case .ssh:
             Button("SSH", systemImage: "terminal") { open(host.id, .ssh) }
+        case .sftp:
             Button("SFTP", systemImage: "folder") { open(host.id, .sftp) }
+        case .edit:
             Button("Edit", systemImage: "pencil") { editingHost = host }
-            Divider()
+        case .duplicate:
+            Button("Duplicate", systemImage: "plus.square.on.square") { app.duplicateHost(host) }
+        case .delete:
             Button("Delete", systemImage: "trash", role: .destructive) { deletingHost = host }
         }
     }

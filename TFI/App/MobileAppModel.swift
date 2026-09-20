@@ -348,6 +348,13 @@ final class MobileAppModel {
         } catch { self.error = error.localizedDescription }
     }
 
+    func duplicateHost(_ host: Host) {
+        var copy = host
+        copy.id = UUID()
+        copy.name = String(localized: "\(host.name) copy")
+        library.upsert(copy)
+    }
+
     func lastConnectedAt(for hostID: Host.ID) -> Date? {
         connectionHistory.mostRecentDate(for: hostID)
     }
