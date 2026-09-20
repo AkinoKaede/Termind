@@ -99,23 +99,25 @@ struct QuickOpenView: View {
                 .foregroundStyle(.secondary)
                 .accessibilityHidden(true)
 
-            TextField("Open a page, chat, workspace, host, or command", text: $query.singleLineText, axis: .horizontal)
-                .singleLinePaste()
-                .lineLimit(1)
-                .textFieldStyle(.plain)
-                .font(.system(size: 17, weight: .medium))
-                .focused($searchFocused)
-                .background {
-                    QuickOpenFocusMount(isPresented: window.isQuickOpenPresented) {
-                        guard window.isQuickOpenPresented else { return }
-                        searchFocused = true
-                    }
+            TextField(
+                "Search pages, chats, workspaces, hosts, and actions...", text: $query.singleLineText, axis: .horizontal
+            )
+            .singleLinePaste()
+            .lineLimit(1)
+            .textFieldStyle(.plain)
+            .font(.system(size: 17, weight: .medium))
+            .focused($searchFocused)
+            .background {
+                QuickOpenFocusMount(isPresented: window.isQuickOpenPresented) {
+                    guard window.isQuickOpenPresented else { return }
+                    searchFocused = true
                 }
-                .onSubmit(performSelection)
-                .onKeyPress(.upArrow) { moveSelection(by: -1) }
-                .onKeyPress(.downArrow) { moveSelection(by: 1) }
-                .onExitCommand(perform: dismiss)
-                .accessibilityLabel(Text("Search Quick Open"))
+            }
+            .onSubmit(performSelection)
+            .onKeyPress(.upArrow) { moveSelection(by: -1) }
+            .onKeyPress(.downArrow) { moveSelection(by: 1) }
+            .onExitCommand(perform: dismiss)
+            .accessibilityLabel(Text("Search Quick Open"))
 
             if !query.isEmpty {
                 Button {

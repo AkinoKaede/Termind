@@ -16949,18 +16949,18 @@
         }
       }
     },
-    "Open a page, chat, workspace, host, or command" : {
+    "Search pages, chats, workspaces, hosts, and actions..." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "打开页面、对话、工作区、主机或命令"
+            "value" : "搜索页面、对话、工作区、主机和操作……"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "開啟頁面、對話、工作區、主機或指令"
+            "value" : "搜尋頁面、對話、工作區、主機和操作……"
           }
         }
       }
