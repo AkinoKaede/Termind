@@ -483,6 +483,19 @@ struct MobileVaultView: View {
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("More")
+            } else if case .ungrouped = section.id {
+                Menu {
+                    Button("New Host", systemImage: "server.rack") {
+                        editingHost = Host(name: "", host: "")
+                    }
+                    Button("New Group", systemImage: "folder.badge.plus") {
+                        groupEditorRequest = GroupEditorRequest(groupID: nil, parentID: nil)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("More")
             }
         }
         .accessibilityElement(children: .contain)

@@ -26104,7 +26104,6 @@
       }
     },
     "The saved password is no longer available." : {
-      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

@@ -238,6 +238,19 @@ struct MobileSnippetsView: View {
                         .frame(width: 44, height: 44)
                 }
                 .accessibilityLabel("More")
+            } else if case .ungrouped = section.id {
+                Menu {
+                    Button("New Snippet", systemImage: "curlybraces") {
+                        editorRequest = SnippetEditorRequest(snippetID: nil, packageID: nil)
+                    }
+                    Button("New Package", systemImage: "folder.badge.plus") {
+                        packageEditorRequest = PackageEditorRequest(packageID: nil, parentID: nil)
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .frame(width: 44, height: 44)
+                }
+                .accessibilityLabel("More")
             }
         }
         .accessibilityElement(children: .contain)

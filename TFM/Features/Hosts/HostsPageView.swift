@@ -19,6 +19,7 @@ final class HostsPageState {
 
     var query = ""
     var selectedGroupID: HostGroup.ID?
+    var isUngroupedSelected = false
     /// Which tags the grid is narrowed to, ticked in the titlebar search
     /// field's magnifier menu. Several at once means "carries all of these".
     var selectedTags: Set<String> = []
@@ -145,7 +146,7 @@ struct HostsPageView: ManagedCardPage {
                 Divider()
                 DestructiveMenuButton("Delete Group") { requestDelete(group) }
             }
-        } else {
+        } else if case .ungrouped = section.id {
             CardSectionHeader(
                 title: section.title,
                 count: section.items.count,
@@ -153,6 +154,22 @@ struct HostsPageView: ManagedCardPage {
                     { app.hostLibrary.setUngroupedExpanded(!expanded) }
                 },
                 isCollapsed: !(section.isExpanded ?? true),
+                select: selectUngrouped,
+                isSelected: state.isUngroupedSelected,
+                isDropTarget: isDropTarget
+            )
+            .contextMenu {
+                Button("New Host", systemImage: MenuSymbol.newHost) {
+                    openHostEditor(nil)
+                }
+                Button("New Group", systemImage: MenuSymbol.newGroup) {
+                    openWork(.hostGroupEditor(groupID: nil, parentID: nil))
+                }
+            }
+        } else {
+            CardSectionHeader(
+                title: section.title,
+                count: section.items.count,
                 isDropTarget: isDropTarget
             )
         }
@@ -279,13 +296,21 @@ struct HostsPageView: ManagedCardPage {
     private func setHostSelection(_ ids: Set<Host.ID>) {
         let valid = ids.intersection(Set(app.hostLibrary.hosts.map(\.id)))
         state.selectedGroupID = nil
+        state.isUngroupedSelected = false
         let ordered = visibleHosts.filter { valid.contains($0.id) }.map { VaultSelectionID.host($0.id) }
         window.setVaultSelection(ordered, for: .hosts)
     }
 
     private func selectGroup(_ id: HostGroup.ID) {
         window.clearVaultSelection(for: .hosts)
+        state.isUngroupedSelected = false
         state.selectedGroupID = id
+    }
+
+    private func selectUngrouped() {
+        window.clearVaultSelection(for: .hosts)
+        state.selectedGroupID = nil
+        state.isUngroupedSelected = true
     }
 
     private func pruneHostSelection() {

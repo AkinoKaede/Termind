@@ -36,6 +36,7 @@ final class SnippetsPageState {
 
     var query = ""
     var selectedPackageID: SnippetPackage.ID?
+    var isUngroupedSelected = false
     var confirmation: ConfirmationRoute?
 }
 
@@ -145,8 +146,18 @@ struct SnippetsPageView: ManagedCardPage {
                     )
                 },
                 isCollapsed: !app.snippets.isSnippetsUngroupedExpanded,
+                select: selectUngrouped,
+                isSelected: state.isUngroupedSelected,
                 isDropTarget: isDropTarget
             )
+            .contextMenu {
+                Button("New Snippet", systemImage: MenuSymbol.newSnippet) {
+                    openSnippetEditor(snippetID: nil, packageID: nil)
+                }
+                Button("New Package", systemImage: MenuSymbol.newPackage) {
+                    openPackageEditor(packageID: nil, parentID: nil)
+                }
+            }
         case .results:
             CardSectionHeader(title: section.title, count: section.items.count)
         }
@@ -237,6 +248,7 @@ struct SnippetsPageView: ManagedCardPage {
     private func setSelection(_ ids: Set<Snippet.ID>) {
         let valid = ids.intersection(Set(app.snippets.snippets.map(\.id)))
         state.selectedPackageID = nil
+        state.isUngroupedSelected = false
         let ordered = visibleSnippets.filter { valid.contains($0.id) }
             .map { VaultSelectionID.snippet($0.id) }
         window.setVaultSelection(ordered, for: .snippets)
@@ -244,7 +256,14 @@ struct SnippetsPageView: ManagedCardPage {
 
     private func selectPackage(_ id: SnippetPackage.ID) {
         window.clearVaultSelection(for: .snippets)
+        state.isUngroupedSelected = false
         state.selectedPackageID = id
+    }
+
+    private func selectUngrouped() {
+        window.clearVaultSelection(for: .snippets)
+        state.selectedPackageID = nil
+        state.isUngroupedSelected = true
     }
 
     private func saveSnippet(_ snippet: Snippet) {
