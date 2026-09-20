@@ -64,6 +64,9 @@ public nonisolated struct HostProxy: Codable, Hashable, Sendable {
 /// So there is no `username` and no `credentialRef` here, only `identityID`, and
 /// therefore no path by which a secret could reach SwiftData or CloudKit.
 public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
+    public static let defaultPortForwardingMaxConnections = 1
+    public static let portForwardingMaxConnectionsRange = 1...64
+
     public var id: UUID = UUID()
     public var name: String
     /// Where to connect: an IP literal (v4 or v6) or a DNS name. Named `host`
@@ -87,6 +90,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public var tags: [String] = []
     public var colorTag: TagColor = .none
     public var shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings
+    /// Physical SSH connections available to local and dynamic forwarding on supported platforms.
+    public var portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
     /// Last distribution reported by Shell Integration for this saved Host.
     /// System-owned: editor saves preserve it and only a validated probe updates it.
     public var detectedDistribution: DetectedDistribution?
@@ -139,7 +144,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         jumpHostID: Host.ID? = nil, proxy: HostProxy? = nil, sftpSessionInitialPath: String = "",
         groupID: HostGroup.ID? = nil, tags: [String] = [], colorTag: TagColor = .none,
         detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
-        shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings
+        shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
+        portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
     ) {
         self.id = id
         self.name = name
@@ -155,11 +161,14 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.detectedDistribution = detectedDistribution
         self.sortIndex = sortIndex
         self.shellIntegrationMode = shellIntegrationMode
+        self.portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
+            portForwardingMaxConnections)
     }
 
     private enum CodingKeys: String, CodingKey {
         case id, name, host, port, identityID, jumpHostID, proxy, sftpSessionInitialPath
         case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
+        case portForwardingMaxConnections
     }
 
     public init(from decoder: any Decoder) throws {
@@ -180,6 +189,13 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         shellIntegrationMode =
             try values.decodeIfPresent(String.self, forKey: .shellIntegrationMode)
             .flatMap(HostShellIntegrationMode.init(rawValue:)) ?? .followGlobalSettings
+        portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
+            try values.decodeIfPresent(Int.self, forKey: .portForwardingMaxConnections)
+                ?? Self.defaultPortForwardingMaxConnections)
+    }
+
+    public static func normalizedPortForwardingMaxConnections(_ value: Int) -> Int {
+        min(max(value, portForwardingMaxConnectionsRange.lowerBound), portForwardingMaxConnectionsRange.upperBound)
     }
 
 }

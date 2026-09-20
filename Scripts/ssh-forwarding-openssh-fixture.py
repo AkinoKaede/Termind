@@ -95,9 +95,13 @@ LogLevel ERROR
                 raise RuntimeError("sshd did not become ready")
             descriptor = os.open(metadata, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
             created_metadata = True
+            fingerprint = subprocess.check_output(
+                ["ssh-keygen", "-lf", str(root / "host.pub"), "-E", "sha256"], text=True
+            ).split()[1]
             with os.fdopen(descriptor, "w") as output:
                 json.dump({"port": port, "echoPort": echo_port, "server": "openssh",
-                           "username": getpass.getuser(), "privateKey": (root / "client").read_text()}, output)
+                           "username": getpass.getuser(), "privateKey": (root / "client").read_text(),
+                           "hostKeyFingerprint": fingerprint}, output)
             print(f"OpenSSH forwarding fixture listening on 127.0.0.1:{port}", flush=True)
             server.wait()
         except KeyboardInterrupt:

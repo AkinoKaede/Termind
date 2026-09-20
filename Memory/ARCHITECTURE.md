@@ -121,15 +121,18 @@ AgentKit is a separately versioned remote package; its sibling working tree is n
 - Independent Vault library/rules, outside Host drafts, with rollback-safe save/delete and saved names unaffected by Host
   rename. V20 freezes earlier entities and adds palette color. UI selection/editor transitions do not own connections or
   challenges. Start/retry is single-rule only; no bulk start. Only explicit actions create running intent.
-- After a listener has run, transport loss silently recovers active rules on one shared Host connection: 1/2/5/10/30-second
-  delays, reset after 60 stable seconds. Use in-memory authenticated configuration with refreshed durable trust; once-only
-  trust/MFA answers never authorize reconnect. Forbid app forms but permit system key authorization across the route.
-  Auth/trust/interaction failure ends recovery inline; explicit Retry alone opens Journey. Initial failures require Retry;
-  listener failure is rule-local and old TCP streams never replay.
+- macOS Hosts may allocate one to 64 physical forwarding SSH connections; the default is one. Local and SOCKS rules
+  share the Host pool and dispatch each accepted TCP flow to the least-loaded healthy worker. Remote listeners use one
+  worker. iOS preserves the synced Host value but always runs one connection. Pool size is snapshotted at first Start.
+- The first connection owns Journey and interactive authentication. Auxiliary connections use refreshed durable trust and
+  the authenticated in-memory configuration with forms forbidden; once-only trust/MFA answers never authorize them. At
+  most four opens run concurrently. Transient worker loss retries after 1/2/5/10/30 seconds; interaction-required auxiliary
+  failures leave a degraded pool. Old TCP streams never migrate or replay.
 - Stop one rule without disturbing peers. Last stop cancels opens/prompts/retries and releases credential snapshots.
   Expiration/termination stop resources; Host/route edits and rule replacement stop affected runs. Generations reject stale
-  opens/listeners; replacement awaits cleanup. Disconnect completes after source-cancellation descriptor closure. Local/
-  SOCKS use SO_REUSEADDR for TIME_WAIT, never SO_REUSEPORT/live shared binds.
+  opens/listeners; replacement awaits cleanup. A pool-level listener owns each local bind and pauses when no worker is
+  healthy. Disconnect completes after source-cancellation descriptor closure. Local/SOCKS use SO_REUSEADDR for TIME_WAIT,
+  never SO_REUSEPORT/live shared binds.
 - One serial owner per libssh2 session across PTY, exec, SFTP, jump bridges and forwarding. Readiness, deduplicated FIFO and
   bounded fair passes replace bulk polling; Metrics and user SSH use `SSHSingleChannelAdapter` without a topology scheduler.
   Preserve immutable write buffers across EAGAIN, drain half-close, bound queues/DNS/connect deadlines and retain

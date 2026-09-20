@@ -13,7 +13,7 @@ public nonisolated enum PortForwardingRuntimeState: Hashable, Sendable {
     case connecting
     case reconnecting
     case starting
-    case running(activeConnections: Int)
+    case running(activeConnections: Int, sshConnections: Int = 1, targetSSHConnections: Int = 1)
     case failed(String)
 
     public var isActive: Bool {
@@ -37,12 +37,16 @@ public nonisolated enum PortForwardingRuntimeState: Hashable, Sendable {
         case .connecting: String(localized: "Connecting")
         case .reconnecting: String(localized: "Reconnecting")
         case .starting: String(localized: "Starting")
-        case .running(let count):
-            count == 0
-                ? String(localized: "Running")
-                : count == 1
-                    ? String(localized: "Running · 1 connection")
-                    : String(localized: "Running · \(count) connections")
+        case .running(let count, let sshConnections, let targetSSHConnections):
+            if targetSSHConnections > 1 {
+                String(localized: "Running · SSH \(sshConnections)/\(targetSSHConnections) · \(count) TCP flows")
+            } else if count == 0 {
+                String(localized: "Running")
+            } else if count == 1 {
+                String(localized: "Running · 1 connection")
+            } else {
+                String(localized: "Running · \(count) connections")
+            }
         case .failed(let message): message
         }
     }
@@ -55,6 +59,7 @@ public final class PortForwardingConnection {
     public let connection: RemoteSessionConnectionController
     public var journey: ConnectionJourney { connection.journey }
     public private(set) var authenticationPrompt: SSHAuthenticationPrompt?
+    public fileprivate(set) var poolStatus = SSHForwardingPoolStatus.single
     public fileprivate(set) var hostKeyRequestID: UUID?
     fileprivate var route: [Host]
     fileprivate var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
@@ -66,10 +71,14 @@ public final class PortForwardingConnection {
     fileprivate var silentAttempt = false
     fileprivate var configuration: SSHConnectionConfiguration?
     fileprivate var connectionCounts: [PortForwardingRule.ID: Int] = [:]
+    fileprivate let maximumConnections: Int
 
-    fileprivate init(host: Host, route: [Host], reconnect: SessionReconnectController) {
+    fileprivate init(
+        host: Host, route: [Host], maximumConnections: Int, reconnect: SessionReconnectController
+    ) {
         hostID = host.id
         self.route = route
+        self.maximumConnections = maximumConnections
         connection = RemoteSessionConnectionController(reconnect: reconnect)
     }
 
@@ -79,13 +88,31 @@ public final class PortForwardingConnection {
 /// Explicit Start owns runtime intent. Established connections recover silently until Stop or a terminal failure.
 @Observable
 public final class PortForwardingController {
+    public nonisolated enum PoolPolicy: Sendable {
+        case singleConnection
+        case hostConfigured
+
+        fileprivate func maximumConnections(for host: Host) -> Int {
+            switch self {
+            case .singleConnection: 1
+            case .hostConfigured:
+                Host.normalizedPortForwardingMaxConnections(host.portForwardingMaxConnections)
+            }
+        }
+    }
+
     public typealias SessionFactory =
         @MainActor (
             @escaping SSHForwardingSession.ConnectionHandler, @escaping SSHForwardingSession.FailureHandler
         ) -> any SSHForwardingSessionProtocol
 
     private let hosts: HostLibraryModel
-    private let makeSession: SessionFactory
+    private let makeSession:
+        @MainActor (
+            Int, @escaping SSHForwardingSession.ConnectionHandler,
+            @escaping SSHForwardingSession.FailureHandler
+        ) -> any SSHForwardingSessionProtocol
+    private let poolPolicy: PoolPolicy
     private let logger: Logger
     private let makeReconnectController: @MainActor () -> SessionReconnectController
     public private(set) var states: [PortForwardingRule.ID: PortForwardingRuntimeState] = [:]
@@ -98,6 +125,7 @@ public final class PortForwardingController {
 
     public init(
         hosts: HostLibraryModel,
+        poolPolicy: PoolPolicy = .singleConnection,
         logger: Logger = ApplicationLogger.disabled("termind.port-forwarding"),
         makeSession: SessionFactory? = nil,
         makeReconnectController: @escaping @MainActor () -> SessionReconnectController = {
@@ -106,12 +134,24 @@ public final class PortForwardingController {
     ) {
         self.hosts = hosts
         self.logger = logger
+        self.poolPolicy = poolPolicy
         self.makeReconnectController = makeReconnectController
-        self.makeSession =
-            makeSession
-            ?? {
-                SSHForwardingSession(connectionHandler: $0, failureHandler: $1, logger: logger)
+        if let makeSession {
+            self.makeSession = { _, connectionHandler, failureHandler in
+                makeSession(connectionHandler, failureHandler)
             }
+        } else {
+            self.makeSession = { maximumConnections, connectionHandler, failureHandler in
+                if maximumConnections > 1 {
+                    SSHForwardingPoolSession(
+                        maximumConnections: maximumConnections,
+                        connectionHandler: connectionHandler, failureHandler: failureHandler, logger: logger)
+                } else {
+                    SSHForwardingSession(
+                        connectionHandler: connectionHandler, failureHandler: failureHandler, logger: logger)
+                }
+            }
+        }
     }
 
     public func state(for id: PortForwardingRule.ID) -> PortForwardingRuntimeState { states[id] ?? .stopped }
@@ -133,7 +173,9 @@ public final class PortForwardingController {
             context = existing
         } else {
             context = PortForwardingConnection(
-                host: host, route: hosts.route(for: host), reconnect: makeReconnectController())
+                host: host, route: hosts.route(for: host),
+                maximumConnections: poolPolicy.maximumConnections(for: host),
+                reconnect: makeReconnectController())
             connections[host.id] = context
         }
         generations[id] = UUID()
@@ -279,14 +321,20 @@ public final class PortForwardingController {
             update(context, state: .preparing)
         }
         let session = makeSession(
+            context.maximumConnections,
             { [weak self, weak context] id, generation, count in
                 Task { @MainActor in
                     guard let self, let context, self.isCurrent(context, attempt: attempt),
                         self.generations[id] == generation, self.presentations[id] === context
                     else { return }
                     context.connectionCounts[id] = count
-                    if case .running = self.states[id], self.states[id] != .running(activeConnections: count) {
-                        self.states[id] = .running(activeConnections: count)
+                    let poolStatus = await context.session?.connectionPoolStatus() ?? .single
+                    context.poolStatus = poolStatus
+                    let running = PortForwardingRuntimeState.running(
+                        activeConnections: count, sshConnections: poolStatus.connected,
+                        targetSSHConnections: poolStatus.target)
+                    if case .running = self.states[id], self.states[id] != running {
+                        self.states[id] = running
                     }
                 }
             },
@@ -345,6 +393,11 @@ public final class PortForwardingController {
                 context.connected = true
                 if !silently {
                     context.configuration = hosts.configurationForAdditionalConnection(from: configuration)
+                }
+                if let snapshot = context.configuration {
+                    await session.configureAdditionalConnections(
+                        SSHConnectionRequest(configuration: snapshot, interactionPolicy: .forbidden)
+                            .enforcingInteractionPolicy())
                 }
                 context.submissions.removeAll()
                 context.connection.temporaryHostKeys.removeAll()
@@ -443,7 +496,11 @@ public final class PortForwardingController {
                     await session.stop(rule.id)
                     return
                 }
-                states[rule.id] = .running(activeConnections: context.connectionCounts[rule.id] ?? 0)
+                let poolStatus = await session.connectionPoolStatus()
+                context.poolStatus = poolStatus
+                states[rule.id] = .running(
+                    activeConnections: context.connectionCounts[rule.id] ?? 0,
+                    sshConnections: poolStatus.connected, targetSSHConnections: poolStatus.target)
                 if !context.ready {
                     context.ready = true
                     context.connection.markConnected()
@@ -516,6 +573,7 @@ public final class PortForwardingController {
         context.connected = false
         context.ready = false
         context.connectionCounts.removeAll()
+        context.poolStatus = SSHForwardingPoolStatus(connected: 0, target: context.maximumConnections)
         let session = context.session
         context.session = nil
         let previous = cleanupTasks[context.hostID]

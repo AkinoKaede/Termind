@@ -45,6 +45,47 @@ whole app/test-host+clients, excludes server. RSS is process-lifetime peak, not 
 Runs were sequential Release hosts without competing builds/suites; ordinary desktop apps remained active.
 Encrypted loopback does not establish WAN, physical-iOS or proportional multi-connection bandwidth.
 
+## Multi-connection and system SSH comparison
+
+`Scripts/benchmark-port-forwarding.py` runs the current wire harness with Termind Max Connections set to one and four,
+then measures macOS `/usr/bin/ssh` against the same OpenSSH fixture, key, echo target and stream matrix. The single-process
+system baselines use `ssh -N -L`, `-D` and `-R`. The four-process Local/Dynamic reference binds four distinct local ports
+and round-robins clients, so it represents a raw multi-transport ceiling rather than Termind's single-port product behavior.
+Remote forwarding remains a single-connection comparison.
+
+### Release connection-pool result (2026-09-20)
+
+Five-run medians on Apple M3 Pro, macOS 26.6.2, Xcode 27.0 Release (`-O`, `ENABLE_TESTABILITY=YES`), using the
+loopback OpenSSH fixture. Throughput is useful MiB/s per direction; these results compare Termind with itself, not the
+four-port system SSH reference.
+
+| Direct workload | 1 connection | 4 connections | Ratio |
+| --- | ---: | ---: | ---: |
+| Local request/response, 16 streams | 127.3 | 244.6 | 1.92× |
+| Local request/response, 64 streams | 186.3 | 371.5 | 1.99× |
+| Local duplex, 16 streams | 176.4 | 537.7 | 3.05× |
+| Local duplex, 64 streams | 166.7 | 376.5 | 2.26× |
+| Dynamic request/response, 16 streams | 174.7 | 398.0 | 2.28× |
+| Dynamic request/response, 64 streams | 184.1 | 315.7 | 1.71× |
+| Dynamic duplex, 16 streams | 170.7 | 418.6 | 2.45× |
+| Dynamic duplex, 64 streams | 171.5 | 332.5 | 1.94× |
+
+At 16 streams, Local request/response CPU rose 46% for 92% more throughput; Dynamic CPU rose 20% for 128% more
+throughput. Remote medians stayed within 5%, as intended. Extra full-route connections help less as jump cost grows:
+Local 16-stream request/response was 1.77× with one jump and 1.14× with two; Dynamic was 1.26× and 1.00×. At 64
+request/response streams, aggregate throughput improved while request p95 sometimes regressed, so Max Connections is a
+throughput/concurrency control rather than a universal per-request latency win.
+
+The JSON output retains every sample plus five-run medians for useful MiB/s/direction, ready/request p95, aggregate CPU
+and peak RSS. It records macOS and OpenSSH versions. Compression is disabled. Do not treat loopback medians or the
+four-port system reference as universal WAN results or CI thresholds.
+
+```sh
+python3 Scripts/benchmark-port-forwarding.py \
+  --metadata /tmp/termind-openssh.json \
+  --output /tmp/termind-forwarding-comparison.json
+```
+
 ## Final OpenSSH comparison
 
 Baseline: four forwarding implementation files at `d53f37cd`. Five-run medians, same OpenSSH fixture and Release

@@ -865,6 +865,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public func saveHost(_ host: Host) -> Bool {
         var host = host
         host.name = SavedName.resolve(host.name, default: host.defaultName)
+        host.portForwardingMaxConnections = Host.normalizedPortForwardingMaxConnections(
+            host.portForwardingMaxConnections)
         guard validatedRoute(for: host) != nil else {
             storageError = String(localized: "The selected jump host creates a routing loop or exceeds 8 hops.")
             return false

@@ -10,6 +10,17 @@ import Testing
 
 @Suite @MainActor
 struct MobileVaultFeatureTests {
+    @Test func editingAHostPreservesTheMacForwardingPoolLimit() throws {
+        let app = try MobileAppModel(inMemory: true)
+        var host = TermindDomain.Host(
+            name: "Remote", host: "example.invalid", portForwardingMaxConnections: 12)
+        app.library.upsert(host)
+        host.name = "Renamed"
+        app.library.upsert(host)
+        #expect(app.library.host(host.id)?.portForwardingMaxConnections == 12)
+        app.outbox.stop()
+    }
+
     @Test func blankKeyNamesUseTheCurrentAlgorithmForGenerationImportAndReplacement() async throws {
         let app = try MobileAppModel(inMemory: true)
         let generator = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)

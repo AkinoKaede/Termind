@@ -125,6 +125,39 @@ nonisolated struct SSHForwardingWireTests {
         await session.disconnect()
     }
 
+    @Test func localPoolDistributesAcceptedFlowsAcrossPhysicalConnections() async throws {
+        let fixture = try fixture()
+        let fingerprint = try #require(fixture.hostKeyFingerprint)
+        let pool = SSHForwardingPoolSession(
+            maximumConnections: 4, connectionHandler: { _, _, _ in },
+            failureHandler: { Issue.record(Comment(rawValue: $0)) })
+        var primary = request(fixture, jumps: 0)
+        primary.configuration.expectedHostKeys = [
+            SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: fingerprint)
+        ]
+        primary.authorizeHostKey = nil
+        try await pool.connect(primary, progress: nil)
+        await pool.configureAdditionalConnections(
+            SSHConnectionRequest(configuration: primary.configuration, interactionPolicy: .forbidden))
+        let local = try rule(.local, fixture: fixture)
+        try await pool.start(local, generation: UUID())
+        defer { Task { await pool.disconnect() } }
+        for _ in 0..<1_000 {
+            if await pool.connectionPoolStatus().connected == 4 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(await pool.connectionPoolStatus() == SSHForwardingPoolStatus(connected: 4, target: 4))
+
+        var clients: [Int32] = []
+        for _ in 0..<12 { clients.append(try SSHSocketConnector.open(host: "127.0.0.1", port: local.bindPort)) }
+        defer { for client in clients { Darwin.close(client) } }
+        for _ in 0..<1_000 {
+            if await pool.flowDistribution(for: local.id).filter({ $0 > 0 }).count >= 2 { break }
+            try await Task.sleep(for: .milliseconds(5))
+        }
+        #expect(await pool.flowDistribution(for: local.id).filter { $0 > 0 }.count >= 2)
+    }
+
     @Test func disconnectUnderBackpressureReleasesTheListenerAcrossRepeatedStarts() async throws {
         let fixture = try fixture()
         let session = SSHForwardingSession(connectionHandler: { _, _, _ in }, failureHandler: { _ in })
@@ -230,12 +263,34 @@ nonisolated struct SSHForwardingWireTests {
         rounds: Int = 8, streaming: Bool = false, mixed: Bool = false
     ) async throws {
         let fixture = try fixture()
-        let session = SSHForwardingSession(
-            connectionHandler: { _, _, _ in }, failureHandler: { Issue.record(Comment(rawValue: $0)) })
-        try await session.connect(request(fixture, jumps: jumps))
+        let maximumConnections =
+            Int(
+                ProcessInfo.processInfo.environment["TERMIND_FORWARDING_MAX_CONNECTIONS"] ?? "1") ?? 1
+        let session: any SSHForwardingSessionProtocol =
+            maximumConnections > 1 && kind != .remote
+            ? SSHForwardingPoolSession(
+                maximumConnections: maximumConnections, connectionHandler: { _, _, _ in },
+                failureHandler: { Issue.record(Comment(rawValue: $0)) })
+            : SSHForwardingSession(
+                connectionHandler: { _, _, _ in },
+                failureHandler: { Issue.record(Comment(rawValue: $0)) })
+        let connectionRequest = request(fixture, jumps: jumps)
+        try await session.connect(connectionRequest, progress: nil)
+        if maximumConnections > 1 && kind != .remote {
+            await session.configureAdditionalConnections(
+                SSHConnectionRequest(
+                    configuration: connectionRequest.configuration, interactionPolicy: .forbidden))
+        }
         do {
             let rule = try rule(kind, fixture: fixture)
-            try await session.start(rule)
+            try await session.start(rule, generation: UUID())
+            if maximumConnections > 1 && kind != .remote {
+                for _ in 0..<4_000 {
+                    if await session.connectionPoolStatus().connected == maximumConnections { break }
+                    try await Task.sleep(for: .milliseconds(5))
+                }
+                try #require(await session.connectionPoolStatus().connected == maximumConnections)
+            }
             let start = ContinuousClock.now
             let usageBefore = usage()
             let results = try await withThrowingTaskGroup(of: Measurement.self) { group in
@@ -267,12 +322,15 @@ nonisolated struct SSHForwardingWireTests {
                 "process_peak_rss_mib": Double(usageAfter.rss) / 1_048_576,
             ]
             // Diagnostic counts belong to the destination session, not its jump bridges.
-            let statistics = await session.statistics()
-            record["pump_passes"] = statistics.passes
-            record["plaintext_socket_write_calls"] = statistics.plaintextSocketWriteCalls
-            record["encrypted_socket_write_calls"] = statistics.encryptedSocketWriteCalls
-            record["peak_plaintext_queue_bytes"] = statistics.peakPlaintextQueueBytes
-            record["peak_encrypted_queue_bytes"] = statistics.peakEncryptedQueueBytes
+            record["ssh_connections"] = await session.connectionPoolStatus().connected
+            if let single = session as? SSHForwardingSession {
+                let statistics = await single.statistics()
+                record["pump_passes"] = statistics.passes
+                record["plaintext_socket_write_calls"] = statistics.plaintextSocketWriteCalls
+                record["encrypted_socket_write_calls"] = statistics.encryptedSocketWriteCalls
+                record["peak_plaintext_queue_bytes"] = statistics.peakPlaintextQueueBytes
+                record["peak_encrypted_queue_bytes"] = statistics.peakEncryptedQueueBytes
+            }
             print(
                 "FORWARDING_METRIC "
                     + String(
@@ -292,6 +350,7 @@ nonisolated struct SSHForwardingWireTests {
         let server: String?
         let username: String?
         let privateKey: String?
+        let hostKeyFingerprint: String?
     }
 
     private func fixture() throws -> Fixture {
@@ -305,13 +364,17 @@ nonisolated struct SSHForwardingWireTests {
             fixture.username.flatMap { _ in fixture.privateKey }.map {
                 [.privateKey(privateKey: $0, publicKey: nil, passphrase: nil)]
             } ?? []
+        let expectedHostKeys: Set<SSHHostKeyIdentity> =
+            fixture.hostKeyFingerprint.map {
+                [SSHHostKeyIdentity(algorithm: .ed25519, fingerprint: $0)]
+            } ?? []
         var configuration = SSHConnectionConfiguration(
             hostID: UUID(), host: "127.0.0.1", port: fixture.port, username: user, credentials: credentials,
-            expectedHostKeys: [])
+            expectedHostKeys: expectedHostKeys)
         configuration.jumps = (0..<jumps).map { _ in
             SSHRouteHopConfiguration(
                 id: UUID(), name: "Fixture", host: "127.0.0.1", port: fixture.port, username: user,
-                credentials: credentials, expectedHostKeys: [])
+                credentials: credentials, expectedHostKeys: expectedHostKeys)
         }
         return SSHConnectionRequest(configuration: configuration, authorizeHostKey: { _ in .accept })
     }

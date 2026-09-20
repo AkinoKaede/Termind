@@ -13952,6 +13952,23 @@
         }
       }
     },
+    "Local and dynamic forwards share this connection pool. Changes apply after restart." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地和动态转发共享此连接池。更改将在重新启动后生效。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本機和動態轉送共享此連線池。變更將在重新啟動後生效。"
+          }
+        }
+      }
+    },
     "Local Echo" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14145,6 +14162,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "匹配fork炸彈模式。"
+          }
+        }
+      }
+    },
+    "Max Connections" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大连接数"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最大連線數"
           }
         }
       }
@@ -20794,6 +20828,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "正在執行·%lld個連線"
+          }
+        }
+      }
+    },
+    "Running · SSH %lld/%lld · %lld TCP flows" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在运行·SSH %1$lld/%2$lld·%3$lld个TCP流"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在執行·SSH %1$lld/%2$lld·%3$lld個TCP流"
           }
         }
       }

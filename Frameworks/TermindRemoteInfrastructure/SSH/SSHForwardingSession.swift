@@ -14,11 +14,30 @@ nonisolated struct SSHForwardingStatistics: Sendable {
     var peakEncryptedQueueBytes = 0
 }
 
+public nonisolated struct SSHForwardingPoolStatus: Hashable, Sendable {
+    public var connected: Int
+    public var target: Int
+
+    public init(connected: Int, target: Int) {
+        self.connected = connected
+        self.target = target
+    }
+
+    public static let single = SSHForwardingPoolStatus(connected: 1, target: 1)
+}
+
 public protocol SSHForwardingSessionProtocol: Actor {
     func connect(_ request: SSHConnectionRequest, progress: SSHRouteProgressHandler?) async throws
+    func configureAdditionalConnections(_ request: SSHConnectionRequest) async
+    func connectionPoolStatus() async -> SSHForwardingPoolStatus
     func start(_ rule: PortForwardingRule, generation: UUID) async throws
     func stop(_ id: PortForwardingRule.ID) async
     func disconnect() async
+}
+
+extension SSHForwardingSessionProtocol {
+    public func configureAdditionalConnections(_ request: SSHConnectionRequest) async {}
+    public func connectionPoolStatus() async -> SSHForwardingPoolStatus { .single }
 }
 
 public actor SSHForwardingSession: SSHForwardingSessionProtocol {
@@ -45,6 +64,16 @@ public actor SSHForwardingSession: SSHForwardingSessionProtocol {
 
     public func start(_ rule: PortForwardingRule, generation: UUID = UUID()) async throws {
         try await worker.start(rule, generation: generation)
+    }
+
+    /// Registers a local or dynamic rule whose listener is owned by a connection pool.
+    func registerShared(_ rule: PortForwardingRule, generation: UUID) async throws {
+        try await worker.registerShared(rule, generation: generation)
+    }
+
+    /// Transfers ownership of an accepted descriptor to this physical SSH session.
+    func acceptShared(_ descriptor: Int32, ruleID: PortForwardingRule.ID, generation: UUID) async -> Bool {
+        await worker.acceptShared(descriptor, ruleID: ruleID, generation: generation)
     }
 
     public func stop(_ id: PortForwardingRule.ID) async {
@@ -257,6 +286,52 @@ private nonisolated final class SSHForwardingWorker: @unchecked Sendable {
                     "outcome": "failure", "protocol": "ssh", "stage": "starting",
                 ])
             throw error
+        }
+    }
+
+    func registerShared(_ rule: PortForwardingRule, generation: UUID) async throws {
+        try await withCheckedThrowingContinuation { continuation in
+            queue.async { [self] in
+                do {
+                    guard session != nil else { throw TermindSSHError.disconnected }
+                    guard rule.kind != .remote else {
+                        throw TermindSSHError.route(String(localized: "Remote forwarding requires an SSH listener."))
+                    }
+                    if let existing = rules[rule.id] {
+                        guard existing.generation == generation else { throw CancellationError() }
+                        continuation.resume()
+                        return
+                    }
+                    let context = RuleContext(rule: rule, generation: generation)
+                    rules[rule.id] = context
+                    report(context)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
+    }
+
+    func acceptShared(_ descriptor: Int32, ruleID: PortForwardingRule.ID, generation: UUID) async -> Bool {
+        await withCheckedContinuation { continuation in
+            queue.async { [self] in
+                guard session != nil, let context = rules[ruleID], context.generation == generation,
+                    !context.stopped, context.rule.kind != .remote
+                else {
+                    continuation.resume(returning: false)
+                    return
+                }
+                makeNonblocking(descriptor)
+                var yes: Int32 = 1
+                setsockopt(descriptor, SOL_SOCKET, SO_NOSIGPIPE, &yes, socklen_t(MemoryLayout<Int32>.size))
+                let flow = Flow(socket: descriptor, context: context)
+                register(flow)
+                watch(flow)
+                if flow.phase == .opening { pendingOpens.insert(flow.id) }
+                schedulePump()
+                continuation.resume(returning: true)
+            }
         }
     }
 

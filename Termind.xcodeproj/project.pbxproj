@@ -74,6 +74,7 @@
 		EF2F88E4809C845C3F1BBF63 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		F04700000000000000000001 /* TFMTests/SSHForwardingPumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */; };
 		F04700000000000000000002 /* TFMTests/SSHForwardingWireTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000012 /* TFMTests/SSHForwardingWireTests.swift */; };
+		F04700000000000000000003 /* Logging in Frameworks */ = {isa = PBXBuildFile; productRef = LOGG00000000000000000002 /* Logging */; };
 		F6ACDF3012081771F6C8F659 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		F996BFD771BC77E67AB91FFB /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		FACB579B671967F922A33CD9 /* TermindApplication.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 10111AE8F047FB59B318813A /* TermindApplication.framework */; };
@@ -718,6 +719,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F04700000000000000000003 /* Logging in Frameworks */,
 				BAAD00000000000000000013 /* GRDB in Frameworks */,
 				TRMD0000000000000010000D /* AgentKit in Frameworks */,
 				TRMD0000000000000010000F /* AgentKitScrubber in Frameworks */,
@@ -1157,6 +1159,7 @@
 			);
 			name = TFMTests;
 			packageProductDependencies = (
+				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
 				TRMD0000000000000010001B /* AgentKit */,
 				TRMD0000000000000010001C /* AgentKitScrubber */,

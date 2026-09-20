@@ -34,6 +34,7 @@ struct HostIntegrationRenderingTests {
         try await Task.sleep(for: .milliseconds(500))
         controller.view.layoutSubtreeIfNeeded()
         let defaultLabel = AppLocalization.string("Default", locale: Locale(identifier: language))
+        #expect(descendants(controller.view).compactMap { $0 as? NSStepper }.count == 1)
         #expect(descendants(controller.view).compactMap { $0 as? NSSegmentedControl }.isEmpty)
         let control = try #require(
             descendants(controller.view).compactMap { $0 as? NSPopUpButton }.first { $0.title == defaultLabel })

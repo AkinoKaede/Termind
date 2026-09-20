@@ -26,7 +26,9 @@ struct MobileForwardingLifecycleTests {
         }
         let app = try MobileAppModel(dependencies: dependencies)
         let identity = Identity(name: "User", username: "user")
-        let host = TermindDomain.Host(name: "Server", host: "server.invalid", identityID: identity.id)
+        let host = TermindDomain.Host(
+            name: "Server", host: "server.invalid", identityID: identity.id,
+            portForwardingMaxConnections: 12)
         app.library.upsert(identity)
         app.library.upsert(host)
         let rule = PortForwardingRule(hostID: host.id)
@@ -41,6 +43,8 @@ struct MobileForwardingLifecycleTests {
         app.forwardings.start(rule.id)
         try await wait { app.forwardings.state(for: rule.id) == .running(activeConnections: 0) }
         let context = try #require(app.forwardings.connection(for: rule.id))
+        #expect(context.poolStatus == .single)
+        #expect(sessions.count == 1)
         await sessions[0].fail()
         try await wait { app.forwardings.state(for: rule.id) == .reconnecting }
         #expect(!context.journey.isPresented)

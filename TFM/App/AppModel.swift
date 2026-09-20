@@ -185,7 +185,8 @@ final class AppModel {
         settingsSync = dependencies.settingsSync
         metricsSync = dependencies.metricsSync
         forwarding = PortForwardingController(
-            hosts: hosts, logger: dependencies.logging.makeLogger(label: "termind.port-forwarding"))
+            hosts: hosts, poolPolicy: .hostConfigured,
+            logger: dependencies.logging.makeLogger(label: "termind.port-forwarding"))
         sftpTransfers = SFTPTransferCoordinator(
             store: hosts,
             clientFactory: { connectionCoordinator.makeSFTPClient() },
