@@ -20,7 +20,6 @@ public nonisolated struct ConnectionEndpoint: Identifiable, Hashable, Sendable {
 
     public nonisolated enum ID: Hashable, Sendable {
         case local
-        case proxy(Host.ID)
         case host(Host.ID)
         case serial(String)
     }
@@ -60,6 +59,7 @@ public final class ConnectionJourney {
     public enum LocalRequirement: Equatable {
         case identity
         case passphrase
+        case proxyAuthentication
     }
 
     public struct Checkpoint: Equatable {
@@ -83,6 +83,7 @@ public final class ConnectionJourney {
     public private(set) var checkpoint: Checkpoint?
     public private(set) var completedCheckpoints: [Int: CheckpointKind] = [:]
     public private(set) var localRequirement: LocalRequirement?
+    public private(set) var localRequirementEndpointIndex: Int?
     public private(set) var logs: [LogEntry] = []
     public var showsLogs = false
 
@@ -92,6 +93,7 @@ public final class ConnectionJourney {
     public var destination: ConnectionEndpoint? { endpoints.last }
     public var waitsForLocalIdentity: Bool { localRequirement == .identity }
     public var waitsForLocalPassphrase: Bool { localRequirement == .passphrase }
+    public var waitsForProxyAuthentication: Bool { localRequirement == .proxyAuthentication }
 
     private static var localDeviceName: String {
         #if os(macOS)
@@ -113,21 +115,13 @@ public final class ConnectionJourney {
                     name: Self.localDeviceName, address: "localhost", role: .local
                 )
             ]
-            + route.enumerated().flatMap { index, node in
-                let proxy = node.proxy.map {
-                    ConnectionEndpoint(
-                        id: .proxy(node.id), hostID: node.id,
-                        name: String(localized: "Proxy"), address: "\($0.hostname):\($0.port)", role: .jump
-                    )
-                }
-                return (proxy.map { [$0] } ?? []) + [
-                    ConnectionEndpoint(
-                        id: .host(node.id), hostID: node.id, name: node.name,
-                        address: index == route.count - 1 && username?.isEmpty == false
-                            ? "\(username!)@\(node.displayAddress)" : node.displayAddress,
-                        role: index == route.count - 1 ? .destination : .jump
-                    )
-                ]
+            + route.enumerated().map { index, node in
+                ConnectionEndpoint(
+                    id: .host(node.id), hostID: node.id, name: node.name,
+                    address: index == route.count - 1 && username?.isEmpty == false
+                        ? "\(username!)@\(node.displayAddress)" : node.displayAddress,
+                    role: index == route.count - 1 ? .destination : .jump
+                )
             }
         let continuesJourney =
             phase == .connecting && endpoints == nextEndpoints
@@ -146,6 +140,7 @@ public final class ConnectionJourney {
         checkpoint = nil
         completedCheckpoints = retainedCheckpoints
         localRequirement = nil
+        localRequirementEndpointIndex = nil
         logs = retainedLogs
         showsLogs = retainedLogVisibility
         let action = mode == .reconnection ? "Reconnecting " : "Starting "
@@ -178,6 +173,7 @@ public final class ConnectionJourney {
         checkpoint = nil
         completedCheckpoints = [:]
         localRequirement = nil
+        localRequirementEndpointIndex = nil
         logs = []
         showsLogs = false
         log(
@@ -214,22 +210,28 @@ public final class ConnectionJourney {
             hostID = id
             message = detail
         }
-        let index: Int?
+        let isProxyEvent: Bool
         switch event {
-        case .proxyConnecting, .proxyConnected:
-            index = endpoints.firstIndex { $0.id == .proxy(hostID) }
-        default:
-            index = endpoints.firstIndex { $0.id == .host(hostID) }
+        case .proxyConnecting, .proxyConnected: isProxyEvent = true
+        default: isProxyEvent = false
         }
+        let index =
+            isProxyEvent
+            ? proxySourceEndpointIndex(for: hostID)
+            : endpoints.firstIndex { $0.id == .host(hostID) }
         guard let index else { return }
 
         switch event {
-        case .proxyConnecting, .connecting, .authenticating, .initializing:
+        case .proxyConnecting:
+            activeEndpointIndex = max(completedEndpointIndex, index)
+        case .connecting, .authenticating, .initializing:
             if index > completedEndpointIndex { activeEndpointIndex = index }
         case .authenticated:
             checkpoint = nil
             activeEndpointIndex = max(activeEndpointIndex, index)
-        case .proxyConnected, .connected:
+        case .proxyConnected:
+            break
+        case .connected:
             checkpoint = nil
             completedEndpointIndex = max(completedEndpointIndex, index)
             activeEndpointIndex = max(activeEndpointIndex, index)
@@ -242,10 +244,11 @@ public final class ConnectionJourney {
     }
 
     public func waitForProxyAuthentication(at hostID: Host.ID, failure: String? = nil) {
-        guard let index = endpoints.firstIndex(where: { $0.id == .proxy(hostID) }) else { return }
+        guard let index = proxySourceEndpointIndex(for: hostID) else { return }
         activeEndpointIndex = index
-        checkpoint = Checkpoint(endpointIndex: index, kind: .authentication)
-        localRequirement = .identity
+        checkpoint = nil
+        localRequirement = .proxyAuthentication
+        localRequirementEndpointIndex = index
         phase = .waiting
         log(
             endpoint: endpoints[index].name,
@@ -262,6 +265,7 @@ public final class ConnectionJourney {
         completedEndpointIndex = 0
         checkpoint = nil
         localRequirement = .identity
+        localRequirementEndpointIndex = 0
         phase = .waiting
         log(
             endpoint: endpoints[index].name,
@@ -275,6 +279,7 @@ public final class ConnectionJourney {
         completedEndpointIndex = 0
         checkpoint = nil
         localRequirement = .passphrase
+        localRequirementEndpointIndex = 0
         phase = .waiting
         log(
             endpoint: endpoints[index].name,
@@ -293,6 +298,7 @@ public final class ConnectionJourney {
         guard phase == .waiting else { return }
         phase = .connecting
         localRequirement = nil
+        localRequirementEndpointIndex = nil
         if let checkpoint {
             log(endpoint: endpoints[checkpoint.endpointIndex].name, message: String(localized: "Continuing connection"))
             completedCheckpoints[checkpoint.endpointIndex] = checkpoint.kind
@@ -304,6 +310,7 @@ public final class ConnectionJourney {
         guard !endpoints.isEmpty else { return }
         checkpoint = nil
         localRequirement = nil
+        localRequirementEndpointIndex = nil
         completedEndpointIndex = endpoints.count - 1
         activeEndpointIndex = endpoints.count - 1
         phase = .succeeded
@@ -320,6 +327,7 @@ public final class ConnectionJourney {
         completionTask?.cancel()
         checkpoint = nil
         localRequirement = nil
+        localRequirementEndpointIndex = nil
         if let hostID,
             let index = endpoints.firstIndex(where: { $0.id == .host(hostID) })
         {
@@ -337,6 +345,7 @@ public final class ConnectionJourney {
         checkpoint = nil
         completedCheckpoints = [:]
         localRequirement = nil
+        localRequirementEndpointIndex = nil
         phase = .hidden
     }
 
@@ -357,8 +366,16 @@ public final class ConnectionJourney {
         activeEndpointIndex = index
         checkpoint = Checkpoint(endpointIndex: index, kind: kind)
         localRequirement = nil
+        localRequirementEndpointIndex = nil
         phase = .waiting
         log(endpoint: endpoints[index].name, message: message)
+    }
+
+    private func proxySourceEndpointIndex(for hostID: Host.ID) -> Int? {
+        guard let targetIndex = endpoints.firstIndex(where: { $0.id == .host(hostID) }), targetIndex > 0 else {
+            return nil
+        }
+        return targetIndex - 1
     }
 }
 

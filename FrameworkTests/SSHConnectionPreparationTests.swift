@@ -6,19 +6,47 @@ import Testing
 @Suite
 struct SSHConnectionPreparationTests {
     @Test @MainActor
-    func journeyPlacesProxyBeforeItsOwningHost() {
+    func journeyKeepsEachProxyOnThePreviousEndpointUntilSSHStarts() {
+        let jump = Host(
+            name: "Jump", host: "jump.invalid",
+            proxy: HostProxy(hostname: "local-proxy.invalid", port: 1080))
         let host = Host(
-            name: "Server", host: "server.invalid",
-            proxy: HostProxy(hostname: "proxy.invalid", port: 1080))
+            name: "Server", host: "server.invalid", jumpHostID: jump.id,
+            proxy: HostProxy(hostname: "jump-proxy.invalid", port: 1080))
         let journey = ConnectionJourney()
-        journey.begin(host: host, route: [host], purpose: .sshSession, username: "deploy")
+        journey.begin(host: host, route: [jump, host], purpose: .sshSession, username: "deploy")
 
-        #expect(journey.endpoints.map(\.id) == [.local, .proxy(host.id), .host(host.id)])
+        #expect(journey.endpoints.map(\.id) == [.local, .host(jump.id), .host(host.id)])
+        journey.receive(.proxyConnecting(jump.id))
+        #expect(journey.activeEndpointIndex == 0)
+        journey.waitForProxyAuthentication(at: jump.id)
+        #expect(journey.activeEndpointIndex == 0)
+        #expect(journey.localRequirementEndpointIndex == 0)
+        #expect(journey.waitsForProxyAuthentication)
+        journey.resume()
+        journey.receive(.proxyConnected(jump.id))
+        #expect(journey.activeEndpointIndex == 0)
+        #expect(journey.completedEndpointIndex == 0)
+        journey.receive(.connecting(jump.id))
+        journey.receive(.connected(jump.id))
+        #expect(journey.completedEndpointIndex == 1)
+
+        journey.receive(.proxyConnecting(host.id))
+        #expect(journey.activeEndpointIndex == 1)
         journey.waitForProxyAuthentication(at: host.id)
         #expect(journey.activeEndpointIndex == 1)
+        #expect(journey.localRequirementEndpointIndex == 1)
         journey.resume()
-        journey.waitForAuthentication(at: host.id)
+        journey.receive(.proxyConnected(host.id))
+        #expect(journey.activeEndpointIndex == 1)
+        #expect(journey.completedEndpointIndex == 1)
+        journey.receive(.connecting(host.id))
         #expect(journey.activeEndpointIndex == 2)
+        #expect(
+            journey.logs.contains {
+                $0.endpoint == journey.endpoints[0].name && $0.message == "Connecting to proxy"
+            })
+        #expect(journey.logs.contains { $0.endpoint == jump.name && $0.message == "Connecting to proxy" })
     }
 
     @Test

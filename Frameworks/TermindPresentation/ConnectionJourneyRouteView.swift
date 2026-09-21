@@ -1,6 +1,10 @@
 import SwiftUI
 import TermindApplication
 
+#if os(macOS)
+    import AppKit
+#endif
+
 /// The same route, checkpoints and progress animation on desktop and mobile.
 public struct ConnectionJourneyRouteView: View {
     let journey: ConnectionJourney
@@ -11,15 +15,21 @@ public struct ConnectionJourneyRouteView: View {
         if !journey.endpoints.isEmpty {
             GeometryReader { geometry in
                 ScrollViewReader { proxy in
-                    ScrollView(.horizontal) {
+                    ScrollView(.horizontal, showsIndicators: false) {
                         route(viewportWidth: geometry.size.width)
                             .padding(.vertical, 30)
+                            #if os(macOS)
+                                .background { JourneyHorizontalScrollerHider() }
+                            #endif
                     }
                     .scrollIndicators(.hidden)
                     .onChange(of: journey.activeEndpointIndex) { _, _ in
                         scrollToActivity(proxy)
                     }
                     .onChange(of: journey.checkpoint) { _, _ in
+                        scrollToActivity(proxy)
+                    }
+                    .onChange(of: journey.localRequirementEndpointIndex) { _, _ in
                         scrollToActivity(proxy)
                     }
                 }
@@ -59,7 +69,8 @@ public struct ConnectionJourneyRouteView: View {
                         purpose: journey.purpose,
                         state: endpointState(for: index),
                         showsActivity: activityEndpointIndex == index,
-                        localRequirement: index == 0 ? journey.localRequirement : nil,
+                        localRequirement: journey.localRequirementEndpointIndex == index
+                            ? journey.localRequirement : nil,
                         reduceMotion: reduceMotion
                     )
                     .frame(width: labelWidth, height: 92, alignment: .top)
@@ -99,7 +110,10 @@ public struct ConnectionJourneyRouteView: View {
 
     private func scrollToActivity(_ proxy: ScrollViewProxy) {
         guard !reduceMotion, let lastIndex = journey.endpoints.indices.last else { return }
-        let candidate = journey.checkpoint?.endpointIndex ?? journey.activeEndpointIndex
+        let candidate =
+            journey.checkpoint?.endpointIndex
+            ?? journey.localRequirementEndpointIndex
+            ?? journey.activeEndpointIndex
         let index = min(max(journey.endpoints.startIndex, candidate), lastIndex)
         let target =
             journey.checkpoint != nil && index > journey.endpoints.startIndex
@@ -110,6 +124,42 @@ public struct ConnectionJourneyRouteView: View {
     }
 
 }
+
+#if os(macOS)
+    /// SwiftUI may recreate the native horizontal scroller when its content
+    /// changes even when indicators are hidden. Keep the underlying scroll view
+    /// scrollable while preventing AppKit from installing a visible scroller.
+    private struct JourneyHorizontalScrollerHider: NSViewRepresentable {
+        final class HiderView: NSView {
+            override func viewDidMoveToSuperview() {
+                super.viewDidMoveToSuperview()
+                configureScrollView()
+            }
+
+            override func viewDidMoveToWindow() {
+                super.viewDidMoveToWindow()
+                configureScrollView()
+            }
+
+            override func layout() {
+                super.layout()
+                configureScrollView()
+            }
+
+            func configureScrollView() {
+                guard let scrollView = enclosingScrollView else { return }
+                scrollView.hasHorizontalScroller = false
+                scrollView.horizontalScroller?.isHidden = true
+            }
+        }
+
+        func makeNSView(context: Context) -> HiderView { HiderView(frame: .zero) }
+
+        func updateNSView(_ nsView: HiderView, context: Context) {
+            nsView.configureScrollView()
+        }
+    }
+#endif
 
 private enum JourneyVisualState {
     case pending
@@ -166,21 +216,23 @@ private struct JourneyEndpointView: View {
     }
 
     private var symbol: String {
+        if let localRequirement {
+            switch localRequirement {
+            case .identity: return "person.fill"
+            case .passphrase: return "key.fill"
+            case .proxyAuthentication: return "lock.shield.fill"
+            }
+        }
         switch endpoint.role {
         case .local:
-            switch localRequirement {
-            case .identity: "person.fill"
-            case .passphrase: "key.fill"
-            case nil:
-                #if os(macOS)
-                    "laptopcomputer"
-                #else
-                    "ipad.and.iphone"
-                #endif
-            }
-        case .jump: "server.rack"
+            #if os(macOS)
+                return "laptopcomputer"
+            #else
+                return "ipad.and.iphone"
+            #endif
+        case .jump: return "server.rack"
         case .destination:
-            switch purpose {
+            return switch purpose {
             case .sshSession: "apple.terminal.fill"
             case .sftpChannel: "folder.fill"
             case .metrics: "waveform.path.ecg"
