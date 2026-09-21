@@ -238,6 +238,9 @@ private struct MobileIdentityCredentialCard: View {
             case .notConfigured:
                 EmptyView()
             }
+            MobileCardChip(
+                text: identity.passwordStorage.mobileDisplayName,
+                symbol: identity.passwordStorage.mobileSymbol)
         }
         if identity.usesKey {
             if let key {
@@ -261,6 +264,22 @@ private struct MobileIdentityCredentialCard: View {
         .lineLimit(1)
         .fixedSize(horizontal: true, vertical: false)
         .layoutPriority(1)
+    }
+}
+
+extension PasswordStorage {
+    fileprivate var mobileDisplayName: String {
+        switch self {
+        case .thisDevice: String(localized: "This Device")
+        case .iCloud: String(localized: "iCloud")
+        }
+    }
+
+    fileprivate var mobileSymbol: String {
+        switch self {
+        case .thisDevice: "lock.fill"
+        case .iCloud: "icloud.fill"
+        }
     }
 }
 

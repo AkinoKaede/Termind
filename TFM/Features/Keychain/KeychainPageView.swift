@@ -1737,6 +1737,10 @@ private struct IdentityCard: View {
             case .notConfigured:
                 EmptyView()
             }
+            CardChip(
+                text: identity.passwordStorage.displayName,
+                symbol: identity.passwordStorage.symbol
+            )
         }
 
         if identity.usesKey {
