@@ -3,6 +3,7 @@ import Darwin
 import Foundation
 import Logging
 import TermindApplication
+import TermindDomain
 
 /// One authenticated SSH connection with any number of non-PTY exec Channels.
 ///
@@ -15,8 +16,8 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         let pointer: UnsafeMutablePointer<CChar>
         let count: Int
 
-        init(_ value: String) {
-            let bytes = Array(value.utf8)
+        init(_ data: Data) {
+            let bytes = Array(data)
             count = bytes.count
             pointer = .allocate(capacity: count + 1)
             for (index, byte) in bytes.enumerated() { pointer[index] = CChar(bitPattern: byte) }
@@ -43,6 +44,11 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         var sentEOF = false
         var stdout = Data()
         var stderr = Data()
+        var stdoutRemoteBytes = 0
+        var stderrRemoteBytes = 0
+        let stdoutDecoder: RemoteCharsetStreamConverter
+        let stderrDecoder: RemoteCharsetStreamConverter
+        let charset: RemoteCharset
         var stdoutTruncated = false
         var stderrTruncated = false
         var terminalError: (any Error)?
@@ -52,7 +58,8 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         var completed = false
 
         init(
-            command: String, workingDirectory: String?, stdin: SSHCommandInput?, timeout: TimeInterval,
+            command: String, workingDirectory: String?, stdin: SSHCommandInput?, charset: RemoteCharset,
+            timeout: TimeInterval,
             outputLimit: Int, cancellation: TransferCancellationToken,
             onOutput: SSHExecOutputHandler?, channelLease: SSHChannelLease,
             continuation: CheckedContinuation<SSHExecResult, any Error>
@@ -63,14 +70,18 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             } else {
                 effective = "/bin/sh -lc \(Self.shellQuote(command))"
             }
-            self.command = StableCString(effective)
+            self.command = StableCString(
+                try RemoteCharsetStreamConverter.encode(effective, charset: charset))
+            self.charset = charset
+            stdoutDecoder = try RemoteCharsetStreamConverter(charset: charset, direction: .decoding)
+            stderrDecoder = try RemoteCharsetStreamConverter(charset: charset, direction: .decoding)
             self.cancellation = cancellation
             deadline = .now.advanced(by: .seconds(max(1, min(timeout, 15 * 60))))
             self.outputLimit = outputLimit
             self.onOutput = onOutput
             self.channelLease = channelLease
             self.continuation = continuation
-            try stdin?.append(to: input)
+            try stdin?.append(to: input, charset: charset)
             sentEOF = input.isEmpty
         }
 
@@ -88,6 +99,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     private var socketEvents: SSHSocketEvents?
     private var timer: (any DispatchSourceTimer)?
     private var hostID: UUID?
+    private var charset: RemoteCharset = .utf8
     private var commands: [UUID: SSHExecChannel] = [:]
     private var pendingOpens = SSHReadyQueue<UUID>()
     private var opening: SSHExecChannel?
@@ -114,7 +126,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
                 else { return nil }
                 return .init(
                     connection: connection, buffer: buffer,
-                    channelBudget: channelBudget)
+                    channelBudget: channelBudget, charset: self.charset)
             },
             updateEvents: { [weak self] session, buffer in
                 self?.updateSharedConnectionEvents(session: session, buffer: buffer)
@@ -147,6 +159,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
                 try Task.checkCancellation()
                 self.connection = opened
                 self.hostID = hostID
+                self.charset = request.configuration.charset
                 self.buffer = opened.installBuffer()
                 self.channelBudget = channelBudget
                 self.connectionFailure = connectionFailure
@@ -207,7 +220,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
                     let context: SSHExecChannel
                     do {
                         context = try SSHExecChannel(
-                            command: command, workingDirectory: workingDirectory, stdin: stdin,
+                            command: command, workingDirectory: workingDirectory, stdin: stdin, charset: charset,
                             timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
                             onOutput: onOutput, channelLease: channelLease, continuation: continuation)
                     } catch {
@@ -443,11 +456,19 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             if let error = command.terminalError {
                 finish(command, throwing: error)
             } else {
+                guard let stdout = String(data: command.stdout, encoding: .utf8),
+                    let stderr = String(data: command.stderr, encoding: .utf8)
+                else {
+                    finish(
+                        command,
+                        throwing: RemoteCharsetConversionError(
+                            charset: command.charset, direction: .decoding))
+                    return true
+                }
                 finish(
                     command,
                     returning: SSHExecResult(
-                        stdout: String(decoding: command.stdout, as: UTF8.self),
-                        stderr: String(decoding: command.stderr, as: UTF8.self),
+                        stdout: stdout, stderr: stderr,
                         exitCode: command.exitCode, signal: command.signal,
                         stdoutTruncated: command.stdoutTruncated,
                         stderrTruncated: command.stderrTruncated))
@@ -495,15 +516,13 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
                     progressed = true
                     remaining -= count
                     let chunk = Data(bytes: scratch, count: count)
-                    command.onOutput?(chunk, stream != 0)
-                    if stream == 0 {
-                        Self.appendCapped(
-                            chunk, to: &command.stdout, limit: command.outputLimit,
-                            truncated: &command.stdoutTruncated)
-                    } else {
-                        Self.appendCapped(
-                            chunk, to: &command.stderr, limit: command.outputLimit,
-                            truncated: &command.stderrTruncated)
+                    do {
+                        try appendDecoded(chunk, stream: stream, to: command)
+                    } catch {
+                        command.terminalError = error
+                        command.phase = .closing
+                        ready.insert(command.id)
+                        return true
                     }
                 } else if count == LIBSSH2_ERROR_EAGAIN || count == 0 {
                     if count == LIBSSH2_ERROR_EAGAIN { blocked(session) }
@@ -514,6 +533,11 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             }
         }
         if libssh2_channel_eof(execChannel) == 1 {
+            do {
+                try finishDecodedOutput(command)
+            } catch {
+                command.terminalError = error
+            }
             command.phase = .closing
             ready.insert(command.id)
             return true
@@ -522,6 +546,42 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             ready.insert(command.id)
         }
         return progressed
+    }
+
+    private func appendDecoded(_ chunk: Data, stream: Int32, to command: SSHExecChannel) throws {
+        let isError = stream != 0
+        let consumed = isError ? command.stderrRemoteBytes : command.stdoutRemoteBytes
+        let available = max(0, command.outputLimit - consumed)
+        let accepted = Data(chunk.prefix(available))
+        if isError {
+            command.stderrRemoteBytes += accepted.count
+            if accepted.count < chunk.count { command.stderrTruncated = true }
+        } else {
+            command.stdoutRemoteBytes += accepted.count
+            if accepted.count < chunk.count { command.stdoutTruncated = true }
+        }
+        guard !accepted.isEmpty else { return }
+        let decoded = try (isError ? command.stderrDecoder : command.stdoutDecoder).convert(accepted).data
+        guard !decoded.isEmpty else { return }
+        command.onOutput?(decoded, isError)
+        if isError { command.stderr.append(decoded) } else { command.stdout.append(decoded) }
+    }
+
+    private func finishDecodedOutput(_ command: SSHExecChannel) throws {
+        if !command.stdoutTruncated {
+            let tail = try command.stdoutDecoder.finish().data
+            if !tail.isEmpty {
+                command.onOutput?(tail, false)
+                command.stdout.append(tail)
+            }
+        }
+        if !command.stderrTruncated {
+            let tail = try command.stderrDecoder.finish().data
+            if !tail.isEmpty {
+                command.onOutput?(tail, true)
+                command.stderr.append(tail)
+            }
+        }
     }
 
     private func fail(_ command: SSHExecChannel, session: OpaquePointer, prefix: String) -> Bool {
@@ -618,11 +678,4 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         }
     }
 
-    private static func appendCapped(
-        _ chunk: Data, to destination: inout Data, limit: Int, truncated: inout Bool
-    ) {
-        let remaining = max(0, limit - destination.count)
-        if chunk.count > remaining { truncated = true }
-        if remaining > 0 { destination.append(chunk.prefix(remaining)) }
-    }
 }

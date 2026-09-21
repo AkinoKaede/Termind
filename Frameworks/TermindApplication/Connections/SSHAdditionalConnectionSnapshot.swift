@@ -34,11 +34,13 @@ public nonisolated struct SSHAdditionalConnectionSnapshot: Equatable, Sendable {
         public var authentication: SSHAuthenticationReference
         public var expectedHostKeys: Set<SSHHostKeyIdentity>
         public var proxy: Proxy?
+        public var charset: RemoteCharset
 
         public init(
             id: Host.ID, name: String, host: String, port: Int,
             authentication: SSHAuthenticationReference,
-            expectedHostKeys: Set<SSHHostKeyIdentity>, proxy: Proxy?
+            expectedHostKeys: Set<SSHHostKeyIdentity>, proxy: Proxy?,
+            charset: RemoteCharset = .utf8
         ) {
             self.id = id
             self.name = name
@@ -47,6 +49,7 @@ public nonisolated struct SSHAdditionalConnectionSnapshot: Equatable, Sendable {
             self.authentication = authentication
             self.expectedHostKeys = expectedHostKeys
             self.proxy = proxy
+            self.charset = charset
         }
     }
 
@@ -76,7 +79,7 @@ public nonisolated struct SSHAdditionalConnectionSnapshot: Equatable, Sendable {
             host: configuration.host, port: configuration.port,
             authentication: configuration.authenticationReference,
             expectedHostKeys: configuration.expectedHostKeys,
-            proxy: proxy(configuration.proxy)
+            proxy: proxy(configuration.proxy), charset: configuration.charset
         )
         jumps = configuration.jumps.map {
             Node(

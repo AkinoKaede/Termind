@@ -42,7 +42,7 @@ struct SnippetTargetPickerRenderingTests {
         await fixture.settle()
         try fixture.sendKey(" ", code: 49)
         try fixture.performKeyEquivalent("\u{1B}", code: 53)
-        #expect(capture.backCount >= 1)
+        #expect(capture.backCount == 1)
         #expect(capture.saved == nil)
         let cancelBackCount = capture.backCount
 
@@ -56,7 +56,7 @@ struct SnippetTargetPickerRenderingTests {
         await fixture.settle()
         try fixture.sendKey(" ", code: 49)
         try fixture.performKeyEquivalent("\r", code: 36)
-        #expect(capture.backCount > cancelBackCount)
+        #expect(capture.backCount == cancelBackCount + 1)
         #expect(capture.saved == [first.id, second.id])
     }
 

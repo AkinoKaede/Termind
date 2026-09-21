@@ -354,7 +354,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
         let hostID = try arguments.uuid("host_id")
         let command = try arguments.string("command")
         var input = arguments.optionalString("stdin").map {
-            SSHCommandInput.plain(Data($0.utf8))
+            SSHCommandInput.text($0)
         }
         if let rawHandle = arguments.optionalString("secret_handle") {
             guard let handleID = UUID(uuidString: rawHandle) else {

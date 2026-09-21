@@ -375,6 +375,7 @@ extension RemoteSessionHostStore {
             credentials: targetAuthentication.credentials,
             expectedHostKeys: snapshot.target.expectedHostKeys,
             proxy: try proxy(snapshot.target.proxy, ownerHostID: snapshot.target.id), jumps: jumps,
+            charset: snapshot.target.charset,
             authenticationReference: snapshot.target.authentication
         )
         return SSHConnectionRequest(

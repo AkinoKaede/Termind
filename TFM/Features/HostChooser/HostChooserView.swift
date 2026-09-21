@@ -364,7 +364,12 @@ struct HostChooserView: View {
                 }
             }
 
-            Section("Terminal Input") {
+            Section("Terminal") {
+                Picker("Charset", selection: $serialConfiguration.charset) {
+                    ForEach(RemoteCharset.allCases) { charset in
+                        Text(charset.displayName).tag(charset)
+                    }
+                }
                 Picker("Enter Sends", selection: $serialConfiguration.enterKey) {
                     ForEach(SerialEnterKey.allCases) { Text($0.displayName).tag($0) }
                 }

@@ -166,6 +166,18 @@ struct TerminalPlaceholderView: View {
             } message: {
                 Text("Use this choice for all conflicts in this batch.")
             }
+            .alert("Charset Error", isPresented: charsetErrorPresented) {
+                Button("OK", role: .cancel) { sshSession.charsetError = nil }
+            } message: {
+                Text(sshSession.charsetError ?? "")
+            }
+    }
+
+    private var charsetErrorPresented: Binding<Bool> {
+        Binding(
+            get: { sshSession.charsetError != nil },
+            set: { if !$0 { sshSession.charsetError = nil } }
+        )
     }
 
     @ViewBuilder

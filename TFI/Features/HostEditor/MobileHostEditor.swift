@@ -158,6 +158,7 @@ struct MobileHostEditor: View {
                     }
                 }
                 HostSessionSection(
+                    charset: $draft.charset,
                     sftpInitialPath: $draft.sftpChannelInitialPath,
                     startupSnippetID: startupSnippetChoice,
                     environmentVariables: $draft.environmentVariables,

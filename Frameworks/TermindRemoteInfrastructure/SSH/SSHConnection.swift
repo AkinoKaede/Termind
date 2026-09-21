@@ -2,6 +2,7 @@ import AgentKit
 import Foundation
 import Logging
 import TermindApplication
+import TermindDomain
 
 public nonisolated struct SSHExecResult: Hashable, Sendable {
     public var stdout: String
@@ -25,19 +26,34 @@ public nonisolated struct SSHExecResult: Hashable, Sendable {
 }
 
 public nonisolated enum SSHCommandInput: Sendable {
+    /// Byte-transparent input. Charset conversion is intentionally bypassed.
     case plain(Data)
+    /// Text encoded strictly with the connected Host's Charset.
+    case text(String)
+    /// UTF-8 secret text converted without materializing a Swift String.
     case secret(AgentSecret)
 
-    func append(to queue: SSHByteQueue) throws {
+    func append(to queue: SSHByteQueue, charset: RemoteCharset = .utf8) throws {
         switch self {
         case .plain(var bytes):
+            if !bytes.isEmpty, bytes.last != 0x0A { bytes.append(0x0A) }
+            queue.append(bytes)
+        case .text(let value):
+            var bytes = try RemoteCharsetStreamConverter.encode(value, charset: charset)
+            defer { bytes.resetBytes(in: bytes.indices) }
             if !bytes.isEmpty, bytes.last != 0x0A { bytes.append(0x0A) }
             queue.append(bytes)
         case .secret(let secret):
             defer { secret.clear() }
             try secret.withUnsafeBytes { bytes in
-                queue.append(bytes)
-                if !bytes.isEmpty, bytes.last != 0x0A {
+                let converter = try RemoteCharsetStreamConverter(charset: charset, direction: .encoding)
+                var source = Data(bytes)
+                defer { source.resetBytes(in: source.indices) }
+                var converted = try converter.convert(source).data
+                defer { converted.resetBytes(in: converted.indices) }
+                converted.append(try converter.finish().data)
+                queue.append(converted)
+                if !converted.isEmpty, converted.last != 0x0A {
                     queue.append(contentsOf: [0x0A])
                 }
             }
@@ -80,7 +96,7 @@ nonisolated extension SSHConnectionProtocol {
     }
 }
 
-/// Called on the connection's serial libssh2 owner. It must return promptly.
+/// Called on the connection's serial libssh2 owner with valid UTF-8 output. It must return promptly.
 public typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
 
 public actor SSHConnection: SSHConnectionProtocol {

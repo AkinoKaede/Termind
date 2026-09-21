@@ -20,6 +20,7 @@ public struct HostIntegrationSection: View {
 }
 
 public struct HostSessionSection: View {
+    @Binding private var charset: RemoteCharset
     @Binding private var sftpInitialPath: String
     @Binding private var startupSnippetID: Snippet.ID?
     @Binding private var environmentVariables: [HostEnvironmentVariable]
@@ -28,6 +29,7 @@ public struct HostSessionSection: View {
     private let editEnvironmentVariable: (Int?) -> Void
 
     public init(
+        charset: Binding<RemoteCharset>,
         sftpInitialPath: Binding<String>,
         startupSnippetID: Binding<Snippet.ID?> = .constant(nil),
         environmentVariables: Binding<[HostEnvironmentVariable]> = .constant([]),
@@ -35,6 +37,7 @@ public struct HostSessionSection: View {
         snippetPackagePath: @escaping (SnippetPackage.ID?) -> String? = { _ in nil },
         editEnvironmentVariable: @escaping (Int?) -> Void = { _ in }
     ) {
+        _charset = charset
         _sftpInitialPath = sftpInitialPath
         _startupSnippetID = startupSnippetID
         _environmentVariables = environmentVariables
@@ -45,6 +48,24 @@ public struct HostSessionSection: View {
 
     public var body: some View {
         Section("Session") {
+            Picker("Charset", selection: $charset) {
+                ForEach(RemoteCharset.allCases) { charset in
+                    Text(charset.displayName).tag(charset)
+                }
+            }
+            .pickerStyle(.menu)
+            .menuOrder(.fixed)
+            Picker("Startup Snippet", selection: $startupSnippetID) {
+                Text("None").tag(Snippet.ID?.none)
+                if !snippets.isEmpty {
+                    Divider()
+                    ForEach(snippets) { snippet in
+                        Text(snippetLabel(snippet)).tag(Snippet.ID?.some(snippet.id))
+                    }
+                }
+            }
+            .pickerStyle(.menu)
+            .menuOrder(.fixed)
             LabeledContent("SFTP Initial Path") {
                 TextField("SFTP Initial Path", text: $sftpInitialPath.singleLineText, prompt: Text("~"))
                     .singleLinePaste()
@@ -57,17 +78,6 @@ public struct HostSessionSection: View {
                         .autocorrectionDisabled()
                     #endif
             }
-            Picker("Startup Snippet", selection: $startupSnippetID) {
-                Text("None").tag(Snippet.ID?.none)
-                if !snippets.isEmpty {
-                    Divider()
-                    ForEach(snippets) { snippet in
-                        Text(snippetLabel(snippet)).tag(Snippet.ID?.some(snippet.id))
-                    }
-                }
-            }
-            .pickerStyle(.menu)
-            .menuOrder(.fixed)
         }
 
         Section("Environment Variables") {

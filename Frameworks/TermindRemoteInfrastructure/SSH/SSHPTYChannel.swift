@@ -38,6 +38,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         public var homeDirectory: String?
         public var homeResolutionUnavailable = false
         var diagnostic: Diagnostic?
+        var rejectedCharsetInput = false
 
     }
 
@@ -54,6 +55,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
 
     public let token: String
     public let startCommand: Data
+    private let charset: RemoteCharset
     private var deadline: UInt64
     private var phase: Phase = .probing
     private var buffer = Data()
@@ -63,6 +65,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     private var installationStartedLate = false
     private var detectedShell: String?
     private var detectedSystemInfo: RemoteSystemInfo?
+    private var rejectedCharsetInput = false
 
     private var probeEchoMarker: Data {
         Data("__TRMD_\(token)_PROBE__".utf8)
@@ -70,9 +73,11 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
 
     public init(
         token: String = UUID().uuidString.replacingOccurrences(of: "-", with: ""),
+        charset: RemoteCharset = .utf8,
         now: UInt64 = DispatchTime.now().uptimeNanoseconds
     ) {
         self.token = token
+        self.charset = charset
         // The POSIX helper reads os-release as inert assignment text instead of
         // sourcing it. Its output precedes the shell marker, so a missing `sh`
         // still leaves the original shell-only bootstrap path usable.
@@ -192,9 +197,14 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
                 )
             )
         }
-        let shellPath = String(
-            decoding: buffer[shellStart..<terminatorRange.lowerBound], as: UTF8.self
-        )
+        let shellBytes = Data(buffer[shellStart..<terminatorRange.lowerBound])
+        let shellPath: String
+        if let decoded = try? RemoteCharsetStreamConverter.decode(shellBytes, charset: charset) {
+            shellPath = decoded
+        } else {
+            rejectedCharsetInput = true
+            shellPath = ""
+        }
         let shell = shellPath.split(separator: "/").last.map(String.init)?.lowercased()
         detectedShell = shell
         detectedSystemInfo = parseSystemInfo(in: buffer)
@@ -208,7 +218,8 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             return Update(
                 visibleOutput: visible, isComplete: true, shell: detectedShell,
                 systemInfo: detectedSystemInfo,
-                diagnostic: .skipped(.unsupportedShell)
+                diagnostic: .skipped(.unsupportedShell),
+                rejectedCharsetInput: rejectedCharsetInput
             )
         }
         guard !(isLate && userDidWrite) else {
@@ -218,7 +229,8 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             return Update(
                 visibleOutput: visible, isComplete: true, shell: detectedShell,
                 systemInfo: detectedSystemInfo,
-                diagnostic: .skipped(.userInput)
+                diagnostic: .skipped(.userInput),
+                rejectedCharsetInput: rejectedCharsetInput
             )
         }
         phase = .installing
@@ -246,18 +258,23 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             diagnostic: .installed(
                 late: installationStartedLate, homeResolved: homeDirectory != nil,
                 systemInfoAvailable: detectedSystemInfo != nil
-            )
+            ),
+            rejectedCharsetInput: rejectedCharsetInput
         )
     }
 
-    private func parseHomeDirectory(in data: Data) -> String? {
+    private mutating func parseHomeDirectory(in data: Data) -> String? {
         let prefix = Data("__TRMD_\(token)_HOME__".utf8)
         guard let prefixRange = data.range(of: prefix),
             let lineEnd = data[prefixRange.upperBound...].firstIndex(of: 0x0A)
         else { return nil }
         var payload = Data(data[prefixRange.upperBound..<lineEnd])
         if payload.last == 0x0D { payload.removeLast() }
-        guard let decoded = RemoteCommandEventFilter.decodePercentEncoded(payload),
+        guard let decoded = RemoteCommandEventFilter.decodePercentEncoded(payload, charset: charset) else {
+            rejectedCharsetInput = true
+            return nil
+        }
+        guard
             decoded.hasPrefix("/"),
             !decoded.unicodeScalars.contains(where: {
                 CharacterSet.controlCharacters.contains($0)
@@ -267,7 +284,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         return decoded
     }
 
-    private func parseSystemInfo(in data: Data) -> RemoteSystemInfo? {
+    private mutating func parseSystemInfo(in data: Data) -> RemoteSystemInfo? {
         let prefix = Data("__TRMD_\(token)_SYSTEM__".utf8)
         guard let prefixRange = data.range(of: prefix),
             let lineEnd = data[prefixRange.upperBound...].firstIndex(of: 0x0A)
@@ -278,7 +295,11 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         guard payload.count >= 2, payload.suffix(2).elementsEqual(Data("__".utf8))
         else { return nil }
         payload.removeLast(2)
-        return RemoteSystemInfo(probeFields: String(decoding: payload, as: UTF8.self))
+        guard let fields = try? RemoteCharsetStreamConverter.decode(payload, charset: charset) else {
+            rejectedCharsetInput = true
+            return nil
+        }
+        return RemoteSystemInfo(probeFields: fields)
     }
 
     private func removingSystemInfoMarker(from data: Data) -> Data {
@@ -458,6 +479,7 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
     public nonisolated struct Update: Sendable {
         public var visibleOutput = Data()
         public var events: [Event] = []
+        public var rejectedCharsetInput = false
 
     }
 
@@ -465,13 +487,15 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
     private let commandFinishedPrefix: Data
     private let promptPrefix: Data
     private let draftPrefix: Data
+    private let charset: RemoteCharset
     private var buffer = Data()
 
-    public init(token: String) {
+    public init(token: String, charset: RemoteCharset = .utf8) {
         commandPrefix = Data("\u{1B}]777;TermindCommand=\(token);".utf8)
         commandFinishedPrefix = Data("\u{1B}]777;TermindCommandFinished=\(token);".utf8)
         promptPrefix = Data("\u{1B}]777;TermindPrompt=\(token)".utf8)
         draftPrefix = Data("\u{1B}]777;TermindDraft=\(token);".utf8)
+        self.charset = charset
     }
 
     public mutating func receive(_ data: Data) -> Update {
@@ -502,8 +526,10 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
             }
             switch match.kind {
             case .command:
-                if let command = Self.decodePercentEncoded(payload), !command.isEmpty {
+                if let command = Self.decodePercentEncoded(payload, charset: charset), !command.isEmpty {
                     update.events.append(.commandStarted(command))
+                } else {
+                    update.rejectedCharsetInput = true
                 }
             case .commandFinished:
                 let fields = String(decoding: payload, as: UTF8.self)
@@ -521,8 +547,10 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
                 guard payload.isEmpty else { break }
                 update.events.append(.promptReady)
             case .draft:
-                if let draft = Self.decodePercentEncoded(payload) {
+                if let draft = Self.decodePercentEncoded(payload, charset: charset) {
                     update.events.append(.draft(draft))
+                } else {
+                    update.rejectedCharsetInput = true
                 }
             }
             buffer = Data(buffer[buffer.index(after: end)...])
@@ -562,7 +590,7 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
         return candidates.min { $0.0.lowerBound < $1.0.lowerBound }
     }
 
-    public static func decodePercentEncoded(_ data: Data) -> String? {
+    public static func decodePercentEncoded(_ data: Data, charset: RemoteCharset = .utf8) -> String? {
         let bytes = Array(data)
         var decoded: [UInt8] = []
         decoded.reserveCapacity(bytes.count)
@@ -578,7 +606,7 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
                 index += 1
             }
         }
-        return String(data: Data(decoded), encoding: .utf8)
+        return try? RemoteCharsetStreamConverter.decode(Data(decoded), charset: charset)
     }
 
     private static func hex(_ byte: UInt8) -> UInt8? {
@@ -603,6 +631,7 @@ public actor SSHPTYChannel {
     public typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void
     public typealias ShellIntegrationHandler = @Sendable (SSHShellIntegrationEvent) -> Void
     public typealias EnvironmentRejectionHandler = @Sendable ([String]) -> Void
+    public typealias CharsetErrorHandler = @Sendable (String) -> Void
 
     private nonisolated let worker: SSHPTYChannelWorker
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
@@ -708,6 +737,10 @@ public actor SSHPTYChannel {
         environmentRejection = rejection
     }
 
+    public func configureCharsetErrors(_ handler: @escaping CharsetErrorHandler) {
+        worker.setCharsetErrorHandler(handler)
+    }
+
     public func write(_ data: Data) {
         worker.write(data)
     }
@@ -730,6 +763,8 @@ public actor SSHPTYChannel {
 }
 
 nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
+    private static let bracketedPasteStart = Data("\u{1B}[200~".utf8)
+    private static let bracketedPasteEnd = Data("\u{1B}[201~".utf8)
     private static let initialization: Void = {
         precondition(libssh2_init(0) == 0, "libssh2 initialization failed")
     }()
@@ -744,6 +779,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var connection: SSHAuthenticatedConnection?
     private var ptyChannel: OpaquePointer?
     private var hostID: Host.ID?
+    private var charset: RemoteCharset = .utf8
     private var pumpTimer: (any DispatchSourceTimer)?
     private var buffer: SSHConnectionBuffer?
     private var channelBudget: SSHChannelBudget?
@@ -754,6 +790,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var shellIntegration: RemoteShellIntegrationBootstrap?
     private var shellIntegrationLifecycleLogger: RemoteShellIntegrationLifecycleLogger
     private var commandEventFilter: RemoteCommandEventFilter?
+    private var inputConverter: RemoteCharsetStreamConverter?
+    private var outputConverter: RemoteCharsetStreamConverter?
+    private var workingDirectoryFilter: RemoteOSC7CharsetFilter?
+    private var charsetErrorHandler: SSHPTYChannel.CharsetErrorHandler = { _ in }
     private var didReportExit = false
     private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
 
@@ -780,7 +820,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 else { return nil }
                 return .init(
                     connection: connection, buffer: buffer,
-                    channelBudget: channelBudget)
+                    channelBudget: channelBudget, charset: self.charset)
             },
             updateEvents: { [weak self] session, buffer in
                 self?.updateSharedConnectionEvents(session: session, buffer: buffer)
@@ -1039,6 +1079,13 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             ptyResize = nextResize
             return generation
         }
+        let encodedEnvironment = try environmentVariables.map { variable in
+            (
+                variable.variable,
+                try RemoteCharsetStreamConverter.encode(variable.variable, charset: request.configuration.charset),
+                try RemoteCharsetStreamConverter.encode(variable.value, charset: request.configuration.charset)
+            )
+        }
         do {
             let channelBudget = maxSessionsPolicy.makeBudget()
             let ptyChannelLease = try await channelBudget.acquire()
@@ -1054,6 +1101,12 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 }
                 connection = openedConnection
                 hostID = request.configuration.hostID
+                charset = request.configuration.charset
+                inputConverter = try RemoteCharsetStreamConverter(
+                    charset: request.configuration.charset, direction: .encoding)
+                outputConverter = try RemoteCharsetStreamConverter(
+                    charset: request.configuration.charset, direction: .decoding)
+                workingDirectoryFilter = RemoteOSC7CharsetFilter(charset: request.configuration.charset)
                 self.channelBudget = channelBudget
                 self.ptyChannelLease = ptyChannelLease
                 let created = openedConnection.libssh2Session
@@ -1075,16 +1128,19 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 guard pty == 0 else { throw Self.connectionError(created, prefix: "PTY request failed") }
                 ptyResize.didCreatePTY(size: size)
                 var rejectedVariables: [String] = []
-                for environmentVariable in environmentVariables {
-                    let result = environmentVariable.variable.withCString { variable in
-                        environmentVariable.value.withCString { value in
+                for environmentVariable in encodedEnvironment {
+                    let result = environmentVariable.1.withUnsafeBytes { variable in
+                        environmentVariable.2.withUnsafeBytes { value in
                             libssh2_channel_setenv_ex(
-                                openedChannel, variable, UInt32(environmentVariable.variable.utf8.count),
-                                value, UInt32(environmentVariable.value.utf8.count))
+                                openedChannel,
+                                variable.baseAddress?.assumingMemoryBound(to: CChar.self),
+                                UInt32(environmentVariable.1.count),
+                                value.baseAddress?.assumingMemoryBound(to: CChar.self),
+                                UInt32(environmentVariable.2.count))
                         }
                     }
                     if result == LIBSSH2_ERROR_CHANNEL_REQUEST_DENIED {
-                        rejectedVariables.append(environmentVariable.variable)
+                        rejectedVariables.append(environmentVariable.0)
                     } else if result != 0 {
                         throw Self.connectionError(created, prefix: "SSH environment request failed")
                     }
@@ -1102,9 +1158,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                     enabled: shellIntegrationEnabled
                 )
                 if shellIntegrationEnabled {
-                    let bootstrap = RemoteShellIntegrationBootstrap()
+                    let bootstrap = RemoteShellIntegrationBootstrap(charset: request.configuration.charset)
                     pendingWrites.append(bootstrap.startCommand)
-                    commandEventFilter = RemoteCommandEventFilter(token: bootstrap.token)
+                    commandEventFilter = RemoteCommandEventFilter(
+                        token: bootstrap.token, charset: request.configuration.charset)
                     shellIntegration = bootstrap
                 }
                 startPump()
@@ -1127,9 +1184,24 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 integration.noteUserInput()
                 shellIntegration = integration
             }
-            pendingWrites.append(data)
+            do {
+                let converted = try inputConverter?.convert(data).data ?? data
+                if !converted.isEmpty { pendingWrites.append(converted) }
+            } catch {
+                if data.range(of: Self.bracketedPasteStart) != nil {
+                    pendingWrites.append(Self.bracketedPasteStart)
+                }
+                if data.range(of: Self.bracketedPasteEnd) != nil {
+                    pendingWrites.append(Self.bracketedPasteEnd)
+                }
+                charsetErrorHandler(error.localizedDescription)
+            }
             pump()
         }
+    }
+
+    func setCharsetErrorHandler(_ handler: @escaping SSHPTYChannel.CharsetErrorHandler) {
+        queue.async { self.charsetErrorHandler = handler }
     }
 
     public func resize(columns: UInt16, rows: UInt16, widthPixels: UInt32, heightPixels: UInt32) {
@@ -1471,6 +1543,13 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private func applyShellIntegrationUpdate(
         _ update: RemoteShellIntegrationBootstrap.Update
     ) {
+        if update.rejectedCharsetInput {
+            charsetErrorHandler(
+                RemoteCharsetConversionError(
+                    charset: outputConverter?.charset ?? .utf8, direction: .decoding
+                ).localizedDescription
+            )
+        }
         if let diagnostic = update.diagnostic, let hostID {
             shellIntegrationLifecycleLogger.record(diagnostic, hostID: hostID)
         }
@@ -1499,12 +1578,19 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
 
     private func deliverIntegratedOutput(_ data: Data) {
         guard var commandEventFilter else {
-            output(data)
+            emitConvertedOutput(data)
             return
         }
         let update = commandEventFilter.receive(data)
         self.commandEventFilter = commandEventFilter
-        if !update.visibleOutput.isEmpty { output(update.visibleOutput) }
+        if !update.visibleOutput.isEmpty { emitConvertedOutput(update.visibleOutput) }
+        if update.rejectedCharsetInput {
+            charsetErrorHandler(
+                RemoteCharsetConversionError(
+                    charset: outputConverter?.charset ?? .utf8, direction: .decoding
+                ).localizedDescription
+            )
+        }
         for event in update.events {
             switch event {
             case .commandStarted(let command):
@@ -1519,12 +1605,79 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         }
     }
 
+    private func emitConvertedOutput(_ data: Data) {
+        do {
+            var filteredData = data
+            if var filter = workingDirectoryFilter {
+                let filtered = filter.receive(data)
+                workingDirectoryFilter = filter
+                filteredData = filtered.data
+                if filtered.rejectedInput {
+                    charsetErrorHandler(
+                        RemoteCharsetConversionError(
+                            charset: outputConverter?.charset ?? .utf8, direction: .decoding
+                        ).localizedDescription
+                    )
+                }
+            }
+            let converted =
+                try outputConverter?.convert(filteredData, recoveringInvalidInput: true)
+                ?? .init(data: filteredData, rejectedInput: false)
+            if !converted.data.isEmpty { output(converted.data) }
+            if converted.rejectedInput {
+                charsetErrorHandler(
+                    RemoteCharsetConversionError(
+                        charset: outputConverter?.charset ?? .utf8, direction: .decoding
+                    ).localizedDescription
+                )
+            }
+        } catch {
+            charsetErrorHandler(error.localizedDescription)
+        }
+    }
+
+    private func finishCharsetOutput() {
+        guard let outputConverter else { return }
+        do {
+            if var filter = workingDirectoryFilter {
+                let remainder = filter.finish()
+                workingDirectoryFilter = filter
+                if !remainder.isEmpty {
+                    let prefix = try outputConverter.convert(remainder, recoveringInvalidInput: true)
+                    if !prefix.data.isEmpty { output(prefix.data) }
+                    if prefix.rejectedInput {
+                        charsetErrorHandler(
+                            RemoteCharsetConversionError(
+                                charset: outputConverter.charset, direction: .decoding
+                            ).localizedDescription
+                        )
+                    }
+                }
+            }
+            let converted = try outputConverter.finish(recoveringInvalidInput: true)
+            if !converted.data.isEmpty { output(converted.data) }
+            if converted.rejectedInput {
+                charsetErrorHandler(
+                    RemoteCharsetConversionError(
+                        charset: outputConverter.charset, direction: .decoding
+                    ).localizedDescription
+                )
+            }
+        } catch {
+            charsetErrorHandler(error.localizedDescription)
+        }
+    }
+
     private func closeTerminalSession() {
+        finishCharsetOutput()
         pendingWrites.removeAll()
         ptyResize.reset()
         if let hostID { shellIntegrationLifecycleLogger.sessionEnded(hostID: hostID) }
         shellIntegration = nil
         commandEventFilter = nil
+        inputConverter = nil
+        outputConverter = nil
+        workingDirectoryFilter = nil
         hostID = nil
         if let ptyChannel {
             _ = libssh2_channel_send_eof(ptyChannel)
@@ -1547,6 +1700,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         if let hostID { shellIntegrationLifecycleLogger.sessionEnded(hostID: hostID) }
         shellIntegration = nil
         commandEventFilter = nil
+        inputConverter = nil
+        outputConverter = nil
+        workingDirectoryFilter = nil
         hostID = nil
         if let ptyChannel {
             _ = libssh2_channel_send_eof(ptyChannel)

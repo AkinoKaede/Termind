@@ -534,6 +534,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 trustPolicy: trustPolicy,
                 accessedIdentityIDs: &accessedIdentityIDs
             ),
+            charset: host.charset,
             authenticationReference: additionalAuthenticationReference(
                 host: host, submission: submissions[host.id]
             )

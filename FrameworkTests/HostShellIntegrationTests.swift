@@ -3,6 +3,7 @@ import SwiftData
 import TermindApplication
 import TermindDomain
 import TermindPersistence
+import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
@@ -14,8 +15,8 @@ struct HostShellIntegrationTests {
         let expected = mode == .enabled || (mode == .followGlobalSettings && global)
         #expect(mode.isEnabled(globalSetting: global) == expected)
         let host = Host(
-            name: "Server", host: "server.invalid", shellIntegrationMode: mode,
-            startupSnippetID: UUID()
+            name: "Server", host: "server.invalid", charset: .gb18030,
+            shellIntegrationMode: mode, startupSnippetID: UUID()
         )
         #expect(try JSONDecoder().decode(Host.self, from: JSONEncoder().encode(host)) == host)
         #expect(PersistentHost(host).value == host)
@@ -30,11 +31,13 @@ struct HostShellIntegrationTests {
             #expect(decoded == host)
         }
         json.removeValue(forKey: "startupSnippetID")
+        json["charset"] = "future-charset"
         let decoded = try JSONDecoder().decode(
             Host.self, from: JSONSerialization.data(withJSONObject: json)
         )
         #expect(decoded.startupSnippetID == nil)
         #expect(decoded.environmentVariables.isEmpty)
+        #expect(decoded.charset == .utf8)
     }
 
     @Test func environmentVariablesValidateAndRoundTripInOrder() throws {
@@ -87,6 +90,24 @@ struct HostShellIntegrationTests {
             #expect(try destination.load().hosts == [host])
             #expect(host.hasSameConnectionRoute(as: Host(id: host.id, name: host.name, host: host.host)))
         }
+    }
+
+    @Test func additionalConnectionSnapshotRetainsTargetCharset() {
+        let configuration = SSHConnectionConfiguration(
+            hostID: UUID(), host: "server.invalid", port: 22, username: "deploy",
+            credentials: [], expectedHostKeys: [], charset: .shiftJIS)
+        let snapshot = SSHAdditionalConnectionSnapshot(configuration: configuration)
+        #expect(snapshot.target.charset == .shiftJIS)
+    }
+
+    @Test func charsetChangesTheAgentRouteFingerprint() throws {
+        var host = Host(name: "Server", host: "server.invalid")
+        let library = HostLibraryModel(hosts: [host])
+        let resolver = AgentHostResolver(store: library)
+        let before = try resolver.routeFingerprint(for: host.id)
+        host.charset = .big5
+        library.upsert(host)
+        #expect(try resolver.routeFingerprint(for: host.id) != before)
     }
 
     @Test func failedSavePreservesTheOriginalHostAndUploadIntent() throws {

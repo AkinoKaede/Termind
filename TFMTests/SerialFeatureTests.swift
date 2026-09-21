@@ -41,6 +41,7 @@ struct SerialFeatureTests {
         #expect(configuration.flowControl == .none)
         #expect(configuration.enterKey == .carriageReturn)
         #expect(!configuration.localEcho)
+        #expect(configuration.charset == .utf8)
         #expect(configuration.transformInteractiveInput(Data("a\r".utf8)) == Data("a\r".utf8))
     }
 

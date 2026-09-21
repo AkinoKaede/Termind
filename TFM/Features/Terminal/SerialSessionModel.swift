@@ -3,11 +3,17 @@ import GhosttyTerminal
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindRemoteInfrastructure
 
 @MainActor
 private final class SerialSessionRelay {
     weak var owner: SerialSessionModel?
     let inputCapture = TerminalInteractiveInputCapture()
+    let decoder: RemoteCharsetStreamConverter
+
+    init(charset: RemoteCharset) {
+        decoder = try! RemoteCharsetStreamConverter(charset: charset, direction: .decoding)
+    }
 }
 
 nonisolated private final class WeakSerialSessionReference: @unchecked Sendable {
@@ -23,6 +29,7 @@ final class SerialSessionModel: Identifiable {
     private(set) var configuration: SerialConnectionConfiguration
     var status: ConnectionStatus = .disconnected
     var hasUnreadOutput = false
+    var charsetError: String?
     @ObservationIgnored lazy var find = TerminalFindController(
         perform: { [weak self] in self?.performFind($0) },
         focus: { [weak self] in self?.requestTerminalFocus() }
@@ -34,6 +41,9 @@ final class SerialSessionModel: Identifiable {
     #endif
     private let terminalBackend: InMemoryTerminalSession
     private let service: any SerialPortServing
+    private let relay: SerialSessionRelay
+    private let inputConverter: RemoteCharsetStreamConverter
+    private let outputConverter: RemoteCharsetStreamConverter
     private var connection: (any SerialPortConnection)?
     private var connectionTask: Task<Void, Never>?
     private var startsOnMount = true
@@ -50,7 +60,10 @@ final class SerialSessionModel: Identifiable {
     init(configuration: SerialConnectionConfiguration, service: any SerialPortServing) {
         self.configuration = configuration
         self.service = service
-        let relay = SerialSessionRelay()
+        let relay = SerialSessionRelay(charset: configuration.charset)
+        self.relay = relay
+        inputConverter = try! RemoteCharsetStreamConverter(charset: configuration.charset, direction: .encoding)
+        outputConverter = relay.decoder
         let backend = InMemoryTerminalSession(
             write: { data in
                 let interactive = relay.inputCapture.classifyWrite(data)
@@ -89,6 +102,7 @@ final class SerialSessionModel: Identifiable {
 
     func connect() {
         startsOnMount = false
+        charsetError = nil
         connectionTask?.cancel()
         let previousConnection = connection
         connection = nil
@@ -97,6 +111,7 @@ final class SerialSessionModel: Identifiable {
         let service = service
         let configuration = configuration
         let backend = terminalBackend
+        let decoder = outputConverter
         let reference = WeakSerialSessionReference(self)
         connectionTask = Task { [weak self] in
             do {
@@ -104,7 +119,26 @@ final class SerialSessionModel: Identifiable {
                 let opened = try await service.open(
                     configuration,
                     receive: { data in
-                        backend.receive(data)
+                        do {
+                            let converted = try decoder.convert(data, recoveringInvalidInput: true)
+                            if !converted.data.isEmpty { backend.receive(converted.data) }
+                            if converted.rejectedInput {
+                                let message = RemoteCharsetConversionError(
+                                    charset: configuration.charset, direction: .decoding
+                                ).localizedDescription
+                                Task { @MainActor in
+                                    if reference.owner?.charsetError == nil {
+                                        reference.owner?.charsetError = message
+                                    }
+                                }
+                            }
+                        } catch {
+                            Task { @MainActor in
+                                if reference.owner?.charsetError == nil {
+                                    reference.owner?.charsetError = error.localizedDescription
+                                }
+                            }
+                        }
                         Task { @MainActor in reference.owner?.hasUnreadOutput = true }
                     },
                     disconnected: { message in
@@ -141,6 +175,7 @@ final class SerialSessionModel: Identifiable {
         connectionTask = nil
         let connection = connection
         self.connection = nil
+        finishCharsetOutput()
         if let connection { Task { await connection.close() } }
         status = .disconnected
         connectionController.disconnect()
@@ -150,6 +185,7 @@ final class SerialSessionModel: Identifiable {
         guard status != .disconnected else { return }
         let connection = connection
         self.connection = nil
+        finishCharsetOutput()
         if let connection { Task { await connection.close() } }
         status = .failed(message)
         connectionJourney.fail(message)
@@ -160,15 +196,34 @@ final class SerialSessionModel: Identifiable {
 
     func handleTerminalWrite(_ data: Data, interactive: Bool) {
         guard let connection else { return }
-        let output = interactive ? configuration.transformInteractiveInput(data) : data
-        if interactive, configuration.localEcho {
-            let echo = Data(data.flatMap { $0 == 0x0D ? [0x0D, 0x0A] : [$0] })
-            terminalBackend.receive(echo)
+        let source = interactive ? configuration.transformInteractiveInput(data) : data
+        let output: Data
+        do {
+            output = try inputConverter.convert(source).data
+        } catch {
+            if charsetError == nil { charsetError = error.localizedDescription }
+            return
         }
+        if interactive, configuration.localEcho { terminalBackend.receive(source) }
         Task {
             do { try await connection.write(output) } catch {
                 await MainActor.run { self.fail(error.localizedDescription) }
             }
+        }
+    }
+
+    private func finishCharsetOutput() {
+        do {
+            let converted = try outputConverter.finish(recoveringInvalidInput: true)
+            if !converted.data.isEmpty { terminalBackend.receive(converted.data) }
+            if converted.rejectedInput, charsetError == nil {
+                charsetError =
+                    RemoteCharsetConversionError(
+                        charset: configuration.charset, direction: .decoding
+                    ).localizedDescription
+            }
+        } catch {
+            if charsetError == nil { charsetError = error.localizedDescription }
         }
     }
 
@@ -227,6 +282,18 @@ struct SerialTerminalView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { TerminalFontCatalog.shared.refresh() }
         }
+        .alert("Charset Error", isPresented: charsetErrorPresented) {
+            Button("OK", role: .cancel) { session.charsetError = nil }
+        } message: {
+            Text(session.charsetError ?? "")
+        }
+    }
+
+    private var charsetErrorPresented: Binding<Bool> {
+        Binding(
+            get: { session.charsetError != nil },
+            set: { if !$0 { session.charsetError = nil } }
+        )
     }
 
     @ViewBuilder

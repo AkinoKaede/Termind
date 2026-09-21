@@ -354,11 +354,13 @@ public nonisolated struct SSHConnectionConfiguration: Sendable {
     public var expectedHostKeys: Set<SSHHostKeyIdentity>
     public var proxy: SSHTransportProxy?
     public var jumps: [SSHRouteHopConfiguration] = []
+    public var charset: RemoteCharset
     public var authenticationReference: SSHAuthenticationReference
     public init(
         hostID: Host.ID, host: String, port: Int, username: String, credentials: [SSHCredentials],
         expectedHostKeys: Set<SSHHostKeyIdentity>, proxy: SSHTransportProxy? = nil,
         jumps: [SSHRouteHopConfiguration] = [],
+        charset: RemoteCharset = .utf8,
         authenticationReference: SSHAuthenticationReference? = nil
     ) {
         self.hostID = hostID
@@ -369,6 +371,7 @@ public nonisolated struct SSHConnectionConfiguration: Sendable {
         self.expectedHostKeys = expectedHostKeys
         self.proxy = proxy
         self.jumps = jumps
+        self.charset = charset
         self.authenticationReference =
             authenticationReference
             ?? SSHAuthenticationReference(

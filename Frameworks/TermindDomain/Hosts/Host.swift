@@ -113,6 +113,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     /// Absolute directory opened by a new SFTP channel. Empty means the
     /// authenticated user's remote home directory, resolved by SFTP at connect.
     public var sftpChannelInitialPath: String = ""
+    public var charset: RemoteCharset = .utf8
     public var groupID: HostGroup.ID?
     public var tags: [String] = []
     public var colorTag: TagColor = .none
@@ -175,6 +176,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public init(
         id: UUID = UUID(), name: String, host: String, port: Int = 22, identityID: Identity.ID? = nil,
         jumpHostID: Host.ID? = nil, proxy: HostProxy? = nil, sftpChannelInitialPath: String = "",
+        charset: RemoteCharset = .utf8,
         groupID: HostGroup.ID? = nil, tags: [String] = [], colorTag: TagColor = .none,
         detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
         shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
@@ -190,6 +192,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.jumpHostID = jumpHostID
         self.proxy = proxy
         self.sftpChannelInitialPath = sftpChannelInitialPath
+        self.charset = charset
         self.groupID = groupID
         self.tags = tags
         self.colorTag = colorTag
@@ -205,6 +208,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case id, name, host, port, identityID, jumpHostID, proxy
         case sftpChannelInitialPath = "sftpSessionInitialPath"
+        case charset
         case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
         case startupSnippetID, environmentVariables, portForwardingMaxConnections
     }
@@ -219,6 +223,9 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         jumpHostID = try values.decodeIfPresent(UUID.self, forKey: .jumpHostID)
         proxy = try values.decodeIfPresent(HostProxy.self, forKey: .proxy)
         sftpChannelInitialPath = try values.decode(String.self, forKey: .sftpChannelInitialPath)
+        charset =
+            try values.decodeIfPresent(String.self, forKey: .charset)
+            .flatMap(RemoteCharset.init(rawValue:)) ?? .utf8
         groupID = try values.decodeIfPresent(UUID.self, forKey: .groupID)
         tags = try values.decode([String].self, forKey: .tags)
         colorTag = try values.decode(TagColor.self, forKey: .colorTag)

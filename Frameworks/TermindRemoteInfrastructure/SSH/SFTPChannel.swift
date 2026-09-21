@@ -122,21 +122,25 @@ actor SFTPChannel: SFTPChannelProtocol {
     private nonisolated let driver: SFTPChannelDriver
     private let id: UUID
     private var disconnected = false
+    private let charset: RemoteCharset
 
-    static func open(using driver: SFTPChannelDriver) async throws -> any SFTPChannelProtocol {
+    static func open(
+        using driver: SFTPChannelDriver, charset: RemoteCharset
+    ) async throws -> any SFTPChannelProtocol {
         let id = try await driver.open()
         do {
             try Task.checkCancellation()
-            return SFTPChannel(driver: driver, id: id)
+            return SFTPChannel(driver: driver, id: id, charset: charset)
         } catch {
             await driver.close(id)
             throw error
         }
     }
 
-    private init(driver: SFTPChannelDriver, id: UUID) {
+    private init(driver: SFTPChannelDriver, id: UUID, charset: RemoteCharset) {
         self.driver = driver
         self.id = id
+        self.charset = charset
     }
 
     deinit {
@@ -146,7 +150,7 @@ actor SFTPChannel: SFTPChannelProtocol {
     }
 
     func openSiblingChannel() async throws -> any SFTPChannelProtocol {
-        try await Self.open(using: driver)
+        try await Self.open(using: driver, charset: charset)
     }
 
     func disconnect() async {
@@ -156,26 +160,29 @@ actor SFTPChannel: SFTPChannelProtocol {
     }
 
     func homeDirectory() async throws -> String {
-        try await driver.perform(id) { libssh2Session, sftp in
-            let source = "."
+        let source = try encodePath(".")
+        let charset = charset
+        let value: String = try await driver.perform(id) { libssh2Session, sftp in
             var target = [CChar](repeating: 0, count: 4 * 1024)
-            let count = source.withCString {
+            let count = source.withUnsafeBytes {
                 libssh2_sftp_symlink_ex(
-                    sftp, $0, UInt32(source.utf8.count), &target, UInt32(target.count),
+                    sftp, $0.baseAddress?.assumingMemoryBound(to: CChar.self), UInt32(source.count),
+                    &target, UInt32(target.count),
                     Int32(LIBSSH2_SFTP_REALPATH))
             }
             if count == LIBSSH2_ERROR_EAGAIN { return .again }
             guard count > 0 else {
                 throw Self.error(libssh2Session, sftp, "Unable to resolve the remote home directory")
             }
-            return .value(
-                RemotePath.normalized(
-                    String(decoding: target.prefix(Int(count)).map { UInt8(bitPattern: $0) }, as: UTF8.self)))
+            let bytes = Data(target.prefix(Int(count)).map { UInt8(bitPattern: $0) })
+            return .value(RemotePath.normalized(try Self.decodePath(bytes, charset: charset)))
         }
+        return value
     }
 
     func listDirectory(at path: String) async throws -> [RemoteFile] {
         let handle = try await openHandle(path: path, flags: 0, mode: 0, type: Int32(LIBSSH2_SFTP_OPENDIR))
+        let charset = charset
         var files: [RemoteFile] = []
         do {
             while true {
@@ -187,8 +194,8 @@ actor SFTPChannel: SFTPChannelProtocol {
                     if count == LIBSSH2_ERROR_EAGAIN { return .again }
                     guard count >= 0 else { throw Self.error(libssh2Session, sftp, "Unable to read \(path)") }
                     guard count > 0 else { return .value(nil) }
-                    let filename = String(
-                        decoding: name.prefix(Int(count)).map { UInt8(bitPattern: $0) }, as: UTF8.self)
+                    let filename = try Self.decodePath(
+                        Data(name.prefix(Int(count)).map { UInt8(bitPattern: $0) }), charset: charset)
                     return .value(
                         Self.remoteFile(
                             path: RemotePath.join(path, filename), name: filename,
@@ -209,17 +216,20 @@ actor SFTPChannel: SFTPChannelProtocol {
     }
 
     func attributes(at path: String) async throws -> RemoteFile? {
-        try await driver.perform(id) { libssh2Session, sftp in
+        let pathBytes = try encodePath(path)
+        let value: RemoteFile? = try await driver.perform(id) { libssh2Session, sftp in
             var attributes = LIBSSH2_SFTP_ATTRIBUTES()
-            let result = path.withCString {
+            let result = pathBytes.withUnsafeBytes {
                 libssh2_sftp_stat_ex(
-                    sftp, $0, UInt32(path.utf8.count), Int32(LIBSSH2_SFTP_LSTAT), &attributes)
+                    sftp, $0.baseAddress?.assumingMemoryBound(to: CChar.self), UInt32(pathBytes.count),
+                    Int32(LIBSSH2_SFTP_LSTAT), &attributes)
             }
             if result == LIBSSH2_ERROR_EAGAIN { return .again }
             if result == 0 { return .value(Self.remoteFile(path: path, attributes: attributes)) }
             if libssh2_sftp_last_error(sftp) == LIBSSH2_FX_NO_SUCH_FILE { return .value(nil) }
             throw Self.error(libssh2Session, sftp, "Unable to inspect \(path)")
         }
+        return value
     }
 
     func readFile(at path: String, maximumBytes: Int) async throws -> Data {
@@ -268,39 +278,49 @@ actor SFTPChannel: SFTPChannelProtocol {
     }
 
     func setPermissions(at path: String, to permissions: UInt32) async throws {
+        let pathBytes = try encodePath(path)
         try await performStatus(prefix: "Unable to change permissions for \(path)") { sftp in
             var attributes = LIBSSH2_SFTP_ATTRIBUTES()
             attributes.flags = UInt(LIBSSH2_SFTP_ATTR_PERMISSIONS)
             attributes.permissions = UInt(permissions & 0o7777)
-            return path.withCString {
+            return pathBytes.withUnsafeBytes {
                 libssh2_sftp_stat_ex(
-                    sftp, $0, UInt32(path.utf8.count), Int32(LIBSSH2_SFTP_SETSTAT), &attributes)
+                    sftp, $0.baseAddress?.assumingMemoryBound(to: CChar.self), UInt32(pathBytes.count),
+                    Int32(LIBSSH2_SFTP_SETSTAT), &attributes)
             }
         }
     }
 
     func createDirectory(at path: String) async throws {
+        let pathBytes = try encodePath(path)
         try await performStatus(prefix: "Unable to create \(path)") { sftp in
-            path.withCString { libssh2_sftp_mkdir_ex(sftp, $0, UInt32(path.utf8.count), 0o755) }
+            pathBytes.withUnsafeBytes {
+                libssh2_sftp_mkdir_ex(
+                    sftp, $0.baseAddress?.assumingMemoryBound(to: CChar.self), UInt32(pathBytes.count), 0o755)
+            }
         }
     }
 
     func rename(from source: String, to destination: String, overwrite: Bool) async throws {
+        let sourceBytes = try encodePath(source)
+        let destinationBytes = try encodePath(destination)
         let flags = overwrite ? Int(LIBSSH2_SFTP_RENAME_OVERWRITE) : 0
         let _: Void = try await driver.perform(id) { libssh2Session, sftp in
-            let result = source.withCString { sourceBuffer in
-                destination.withCString { destinationBuffer in
-                    SFTPRenameOperation.perform(
+            let result = sourceBytes.withUnsafeBytes { sourceBuffer in
+                return destinationBytes.withUnsafeBytes { destinationBuffer in
+                    let sourcePointer = sourceBuffer.baseAddress?.assumingMemoryBound(to: CChar.self)
+                    let destinationPointer = destinationBuffer.baseAddress?.assumingMemoryBound(to: CChar.self)
+                    return SFTPRenameOperation.perform(
                         overwrite: overwrite,
                         posixRename: {
                             libssh2_sftp_posix_rename_ex(
-                                sftp, sourceBuffer, source.utf8.count,
-                                destinationBuffer, destination.utf8.count)
+                                sftp, sourcePointer, sourceBytes.count,
+                                destinationPointer, destinationBytes.count)
                         },
                         standardRename: {
                             libssh2_sftp_rename_ex(
-                                sftp, sourceBuffer, UInt32(source.utf8.count), destinationBuffer,
-                                UInt32(destination.utf8.count), flags)
+                                sftp, sourcePointer, UInt32(sourceBytes.count), destinationPointer,
+                                UInt32(destinationBytes.count), flags)
                         },
                         lastStatus: { libssh2_sftp_last_error(sftp) })
                 }
@@ -312,14 +332,22 @@ actor SFTPChannel: SFTPChannelProtocol {
     }
 
     func removeFile(at path: String) async throws {
+        let pathBytes = try encodePath(path)
         try await performStatus(prefix: "Unable to delete \(path)") { sftp in
-            path.withCString { libssh2_sftp_unlink_ex(sftp, $0, UInt32(path.utf8.count)) }
+            pathBytes.withUnsafeBytes {
+                libssh2_sftp_unlink_ex(
+                    sftp, $0.baseAddress?.assumingMemoryBound(to: CChar.self), UInt32(pathBytes.count))
+            }
         }
     }
 
     func removeDirectory(at path: String) async throws {
+        let pathBytes = try encodePath(path)
         try await performStatus(prefix: "Unable to delete \(path)") { sftp in
-            path.withCString { libssh2_sftp_rmdir_ex(sftp, $0, UInt32(path.utf8.count)) }
+            pathBytes.withUnsafeBytes {
+                libssh2_sftp_rmdir_ex(
+                    sftp, $0.baseAddress?.assumingMemoryBound(to: CChar.self), UInt32(pathBytes.count))
+            }
         }
     }
 
@@ -700,9 +728,12 @@ actor SFTPChannel: SFTPChannelProtocol {
     private func openHandle(
         path: String, flags: UInt, mode: Int, type: Int32
     ) async throws -> SFTPChannelHandle {
-        try await driver.perform(id) { libssh2Session, sftp in
-            let opened = path.withCString {
-                libssh2_sftp_open_ex(sftp, $0, UInt32(path.utf8.count), flags, mode, type)
+        let pathBytes = try encodePath(path)
+        return try await driver.perform(id) { libssh2Session, sftp in
+            let opened = pathBytes.withUnsafeBytes {
+                libssh2_sftp_open_ex(
+                    sftp, $0.baseAddress?.assumingMemoryBound(to: CChar.self),
+                    UInt32(pathBytes.count), flags, mode, type)
             }
             if let opened { return .value(SFTPChannelHandle(opened)) }
             if libssh2_session_last_errno(libssh2Session) == LIBSSH2_ERROR_EAGAIN { return .again }
@@ -816,10 +847,12 @@ actor SFTPChannel: SFTPChannelProtocol {
         let flags = UInt(
             LIBSSH2_FXF_READ | LIBSSH2_FXF_WRITE
                 | (continuing ? 0 : (LIBSSH2_FXF_CREAT | LIBSSH2_FXF_EXCL)))
+        let temporaryBytes = try encodePath(temporary)
         let context: SFTPChannelWriteContext = try await driver.perform(id) { libssh2Session, sftp in
-            let handle = temporary.withCString {
+            let handle = temporaryBytes.withUnsafeBytes {
                 libssh2_sftp_open_ex(
-                    sftp, $0, UInt32(temporary.utf8.count), flags, 0o600,
+                    sftp, $0.baseAddress?.assumingMemoryBound(to: CChar.self),
+                    UInt32(temporaryBytes.count), flags, 0o600,
                     Int32(LIBSSH2_SFTP_OPENFILE))
             }
             if let handle {
@@ -1012,6 +1045,17 @@ actor SFTPChannel: SFTPChannelProtocol {
             return .connectionLost(message)
         }
         return .operation(message)
+    }
+
+    private func encodePath(_ path: String) throws -> Data {
+        guard !path.utf8.contains(0) else {
+            throw SFTPError.operation(String(localized: "A remote path contains an invalid null character."))
+        }
+        return try RemoteCharsetStreamConverter.encode(path, charset: charset)
+    }
+
+    private nonisolated static func decodePath(_ data: Data, charset: RemoteCharset) throws -> String {
+        try RemoteCharsetStreamConverter.decode(data, charset: charset)
     }
 
     private static func remoteFile(

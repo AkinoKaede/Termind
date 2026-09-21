@@ -194,6 +194,10 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   them as SSH environment requests before starting the shell on every connection and reconnection. Server rejection is
   non-fatal and reports variable names, never values, in local terminal output. Exec, SFTP, Metrics, Agent, forwarding
   and background probe Channels never inherit them; there is no shell-command fallback.
+- Host Charset is Vault-synced and snapshotted by each connection attempt. It strictly covers PTY text, exec
+  commands/output and SFTP path names; file contents and raw command input remain byte-transparent. Invalid PTY or
+  Serial stream sequences are discarded with one session-visible error, while exec and SFTP operations fail before
+  returning replacement text or mutating a different path. Serial Charset is temporary session configuration.
 - SSH worker owns PTY dimensions; retain latest valid authentication-time size/pixels. EAGAIN window-change packets keep
   original dimensions and finish before the newest request without blocking other I/O. Disconnect clears resize state;
   retired auth cannot install a PTY/clear replacement dimensions. Ghostty computes grid. Resize failure is diagnostic only.

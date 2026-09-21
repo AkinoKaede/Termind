@@ -590,6 +590,7 @@ final class MobileWorkspace: Identifiable {
         generation = token
         activeHistoryID = nil
         resetCommandGeneratorShellState()
+        operationError = nil
         busy = true
         connectionFailure = nil
         status = String(localized: reconnecting ? "Reconnecting" : "Connecting")
@@ -697,6 +698,12 @@ final class MobileWorkspace: Identifiable {
                         handlers.exit,
                         handlers.shellIntegration)
                     ssh = session
+                    await session.configureCharsetErrors { [weak self] message in
+                        Task { @MainActor in
+                            guard let self, self.generation == token, self.operationError == nil else { return }
+                            self.operationError = message
+                        }
+                    }
                     await session.configureEnvironment(host.environmentVariables) { variables in
                         let list = variables.joined(separator: ", ")
                         let warning = String(localized: "The server rejected these environment variables: \(list)")

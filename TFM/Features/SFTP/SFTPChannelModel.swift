@@ -393,6 +393,7 @@ final class SFTPChannelModel: Identifiable {
                             temporaryHostKeys: temporaryHostKeys,
                             trustPolicy: .allowChallenge
                         ),
+                        charset: host.charset,
                         authenticationReference: SSHAuthenticationReference(
                             identityID: suppliedAuthentication.identityID,
                             fallbackKeyID: suppliedAuthentication.identityID == nil

@@ -106,6 +106,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             hostID: target.host.id, host: target.host.host, port: target.host.port,
             username: material.0, credentials: material.1, expectedHostKeys: target.trustedKeys,
             proxy: try proxy(target, accessedIdentityIDs: &accessedIdentityIDs), jumps: jumps,
+            charset: target.host.charset,
             authenticationReference: authenticationReference(for: target)
         )
     }

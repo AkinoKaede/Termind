@@ -118,6 +118,8 @@ private actor AuthorizedKeyConnection: SSHConnectionProtocol {
         switch stdin {
         case .plain(let bytes):
             input = String(decoding: bytes, as: UTF8.self)
+        case .text(let value):
+            input = value
         case .secret(let secret):
             defer { secret.clear() }
             input = try secret.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }

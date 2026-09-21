@@ -480,7 +480,8 @@ public final class AgentHostResolver: Sendable {
             }
             return "temporary:\(id.uuidString)"
         }
-        return store.route(for: host).map { node in
+        let route = store.route(for: host)
+        return route.enumerated().map { index, node in
             let identity = store.identity(for: node)
             let proxy = node.proxy.map {
                 "\($0.kind.rawValue)://\($0.username)@\($0.hostname):\($0.port)"
@@ -490,6 +491,7 @@ public final class AgentHostResolver: Sendable {
                 node.id.uuidString, node.host, String(node.port),
                 identity?.id.uuidString ?? "", identity?.username ?? "",
                 proxy ?? "", keys.joined(separator: ","),
+                index == route.count - 1 ? node.charset.rawValue : "",
             ].joined(separator: "\u{1F}")
         }.joined(separator: "\u{1E}")
     }

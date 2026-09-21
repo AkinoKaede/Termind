@@ -2,6 +2,7 @@ import AgentKit
 import CSSH2
 import Darwin
 import Foundation
+import TermindDomain
 import Testing
 
 @testable import TermindRemoteInfrastructure
@@ -27,6 +28,30 @@ struct SSHForwardingPumpTests {
             queue.consume(count)
         }
         #expect(queued == Array("sudo-password\n".utf8))
+    }
+
+    @Test
+    func textCommandInputUsesCharsetWhilePlainInputStaysByteTransparent() throws {
+        let textQueue = SSHByteQueue()
+        try SSHCommandInput.text("café").append(to: textQueue, charset: .isoLatin1)
+        #expect(drain(textQueue) == Data([0x63, 0x61, 0x66, 0xE9, 0x0A]))
+
+        let raw = Data("café".utf8)
+        let plainQueue = SSHByteQueue()
+        try SSHCommandInput.plain(raw).append(to: plainQueue, charset: .isoLatin1)
+        #expect(drain(plainQueue) == raw + Data([0x0A]))
+    }
+
+    private func drain(_ queue: SSHByteQueue) -> Data {
+        var result = Data()
+        while !queue.isEmpty {
+            let count = queue.withFirstBytes { bytes -> Int in
+                result.append(contentsOf: bytes)
+                return bytes.count
+            }
+            queue.consume(count)
+        }
+        return result
     }
 
     @Test func blockedWriteKeepsItsPointerLengthAndBytesWhileMoreDataArrives() {

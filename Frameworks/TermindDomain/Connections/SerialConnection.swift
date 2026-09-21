@@ -89,6 +89,7 @@ public nonisolated struct SerialConnectionConfiguration: Hashable, Sendable {
     public var flowControl: SerialFlowControl = .none
     public var enterKey: SerialEnterKey = .carriageReturn
     public var localEcho = false
+    public var charset: RemoteCharset = .utf8
 
     public var normalizedDevicePath: String {
         devicePath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -118,7 +119,8 @@ public nonisolated struct SerialConnectionConfiguration: Hashable, Sendable {
     public init(
         devicePath: String = "", deviceName: String? = nil, baudRate: Int = 9_600, dataBits: SerialDataBits = .eight,
         parity: SerialParity = .none, stopBits: SerialStopBits = .one, flowControl: SerialFlowControl = .none,
-        enterKey: SerialEnterKey = .carriageReturn, localEcho: Bool = false
+        enterKey: SerialEnterKey = .carriageReturn, localEcho: Bool = false,
+        charset: RemoteCharset = .utf8
     ) {
         self.devicePath = devicePath
         self.deviceName = deviceName
@@ -129,6 +131,7 @@ public nonisolated struct SerialConnectionConfiguration: Hashable, Sendable {
         self.flowControl = flowControl
         self.enterKey = enterKey
         self.localEcho = localEcho
+        self.charset = charset
     }
 
 }
