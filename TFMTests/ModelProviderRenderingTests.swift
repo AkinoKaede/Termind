@@ -18,8 +18,13 @@ struct ModelProviderRenderingTests {
         defer { app.shutdownForTermination() }
         try await capture(
             Form {
+                HostOrganizationSection(host: .constant(.init(name: "", host: "example.invalid"))) {
+                    EmptyView()
+                } tagsField: {
+                    EmptyView()
+                }
                 HostConnectionFields(host: .constant(.init(name: "", host: "example.invalid")))
-                PortForwardingFields(rule: .constant(.init(hostID: host.id)), host: host)
+                PortForwardingFields(rule: .constant(.init(hostID: host.id)), hosts: [host])
             }.formStyle(.grouped), language: language, name: "name-hints")
         try await capture(
             NewIdentitySheet(identity: Identity(name: "", username: "deploy")) { _, _ in }.environment(app),

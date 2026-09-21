@@ -31,9 +31,7 @@ struct MobileForwardingEditor: View {
                 draft = try app.forwardingLibrary.save(rule)
             },
             content: {
-                PortForwardingHostPicker(rule: $draft, hosts: app.forwardingLibrary.hosts)
-                    .disabled(app.forwardings.state(for: draft.id).isActive)
-                PortForwardingFields(rule: $draft, host: app.library.host(draft.hostID))
+                PortForwardingFields(rule: $draft, hosts: app.forwardingLibrary.hosts)
                     .disabled(app.forwardings.state(for: draft.id).isActive)
             })
     }

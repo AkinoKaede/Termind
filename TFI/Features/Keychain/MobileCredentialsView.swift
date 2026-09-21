@@ -362,48 +362,15 @@ struct MobileIdentityEditor: View {
                 saved(draft)
             },
             content: {
-                Section("Identity") {
-                    LabeledContent("Name") {
-                        TextField(
-                            "Name", text: $draft.name.singleLineText, prompt: Text(verbatim: draft.defaultName),
-                            axis: .horizontal
-                        ).singleLinePaste().lineLimit(1)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    LabeledContent("Username") {
-                        TextField("Username", text: $draft.username.singleLineText, axis: .horizontal).singleLinePaste()
-                            .lineLimit(1)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled().multilineTextAlignment(.trailing)
-                    }
-                }
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Color")
-                        ColorTagPicker(selection: $draft.colorTag, layout: .touch)
-                    }
-                }
-                Section("Authentication") {
-                    LabeledContent("Password") {
-                        RevealableSecretField("Password", text: $password)
-                            .textContentType(.password)
-                            .multilineTextAlignment(.trailing).disabled(!canEditPassword)
-                    }
-                    Picker("Store password in", selection: $draft.passwordStorage) {
-                        Text("This Device").tag(PasswordStorage.thisDevice)
-                        Text("iCloud").tag(PasswordStorage.iCloud)
-                    }
-                    .disabled(
-                        !canEditPassword
-                            || (original.usesPassword && original.passwordStorage == .iCloud)
-                    )
-                    if configuration.showsKey {
-                        Picker("Key", selection: $draft.keyID) {
-                            Text("None").tag(UUID?.none)
-                            ForEach(app.credentials.keys) { Text($0.label).tag(Optional($0.id)) }
-                        }
-                    }
-                }
+                IdentityFormSections(
+                    name: $draft.name, username: $draft.username, password: $password,
+                    passwordStorage: $draft.passwordStorage, keyID: $draft.keyID,
+                    colorTag: $draft.colorTag, namePrompt: Text(verbatim: draft.defaultName),
+                    keys: app.credentials.keys, showsKey: configuration.showsKey,
+                    canEditPassword: canEditPassword,
+                    canEditPasswordStorage: canEditPassword
+                        && !(original.usesPassword && original.passwordStorage == .iCloud)
+                )
             }
         )
         .onAppear(perform: loadPasswordOnce)

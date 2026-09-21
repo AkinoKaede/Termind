@@ -65,6 +65,25 @@ struct HostEditorView: View {
 
     private var form: some View {
         Form {
+            HostOrganizationSection(host: $draft) {
+                Picker("Group", selection: groupChoice) {
+                    Text("None").tag(Choice<HostGroup.ID>.unset)
+                    ForEach(app.hostLibrary.groups) { group in
+                        Text(group.name).tag(Choice.existing(group.id))
+                    }
+                    Divider()
+                    Text("New Group").tag(Choice<HostGroup.ID>.new)
+                }
+            } tagsField: {
+                // Full width rather than a `LabeledContent`, which would squeeze
+                // the chips, the field, and the dropdown into the trailing half
+                // of the row.
+                VStack(alignment: .leading, spacing: Metrics.Space.s) {
+                    Text("Tags")
+                    TagField(tags: $draft.tags, suggestions: app.hostLibrary.allTags)
+                }
+            }
+
             HostConnectionFields(host: $draft)
 
             Section("Authentication") {
@@ -179,28 +198,12 @@ struct HostEditorView: View {
                 }
             }
 
-            Section("Organization") {
-                Picker("Group", selection: groupChoice) {
-                    Text("None").tag(Choice<HostGroup.ID>.unset)
-                    ForEach(app.hostLibrary.groups) { group in
-                        Text(group.name).tag(Choice.existing(group.id))
-                    }
-                    Divider()
-                    Text("New Group").tag(Choice<HostGroup.ID>.new)
-                }
-
-                LabeledContent("Color") {
-                    ColorTagPicker(selection: $draft.colorTag, layout: .compact)
-                }
-
-                // Full width rather than a `LabeledContent`, which would squeeze
-                // the chips, the field, and the dropdown into the trailing half
-                // of the row.
-                VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                    Text("Tags")
-                    TagField(tags: $draft.tags, suggestions: app.hostLibrary.allTags)
-                }
-            }
+            HostSessionSection(
+                sftpInitialPath: $draft.sftpChannelInitialPath,
+                startupSnippetID: startupSnippetChoice,
+                snippets: app.hostLibrary.snippets,
+                snippetPackagePath: app.hostLibrary.snippetPackagePath
+            )
 
             Section("Port Forwarding") {
                 Stepper(
@@ -218,12 +221,7 @@ struct HostEditorView: View {
                     .foregroundStyle(.secondary)
             }
 
-            HostIntegrationSection(
-                mode: $draft.shellIntegrationMode,
-                startupSnippetID: startupSnippetChoice,
-                snippets: app.hostLibrary.snippets,
-                snippetPackagePath: app.hostLibrary.snippetPackagePath
-            )
+            HostIntegrationSection(mode: $draft.shellIntegrationMode)
 
             if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Section("SSH Command") {

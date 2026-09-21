@@ -633,19 +633,7 @@ struct MobileSnippetEditor: View {
             canSave: !trimmedTitle.isEmpty && !trimmedBody.isEmpty,
             save: save
         ) {
-            Section {
-                TextField("Title", text: $draft.title.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
-                    .multilineTextAlignment(.leading)
-                TextEditor(text: $draft.body).multilineTextAlignment(.leading)
-                    .font(.body.monospaced()).frame(minHeight: 220)
-                    .textInputAutocapitalization(.never).autocorrectionDisabled()
-                let assessment = CommandRiskClassifier.assess(draft.body)
-                MobileSnippetRiskChip(assessment: assessment)
-                ForEach(assessment.reasons, id: \.self) { reason in
-                    Text(reason).font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Section("Package") {
+            SnippetOrganizationSection(name: $draft.title) {
                 Picker("Package", selection: packageChoice) {
                     Text("Ungrouped").tag(PackageChoice.ungrouped)
                     ForEach(packageChoices, id: \.package.id) { choice in
@@ -653,6 +641,13 @@ struct MobileSnippetEditor: View {
                     }
                     Divider()
                     Text("New Package").tag(PackageChoice.new)
+                }
+            }
+            SnippetScriptSection(script: $draft.body, minHeight: 220) {
+                let assessment = CommandRiskClassifier.assess(draft.body)
+                MobileSnippetRiskChip(assessment: assessment)
+                ForEach(assessment.reasons, id: \.self) { reason in
+                    Text(reason).font(.caption).foregroundStyle(.secondary)
                 }
             }
             Section("Targets") {

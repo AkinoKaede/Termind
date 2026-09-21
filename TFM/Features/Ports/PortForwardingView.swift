@@ -193,9 +193,7 @@ struct PortForwardingDetailView: View {
                                 }
                             }
                         }
-                        PortForwardingHostPicker(rule: $draft, hosts: app.forwardings.hosts)
-                            .disabled(runtime.isActive)
-                        PortForwardingFields(rule: $draft, host: app.hostLibrary.host(draft.hostID))
+                        PortForwardingFields(rule: $draft, hosts: app.forwardings.hosts)
                             .disabled(runtime.isActive)
                         if let error { Text(error).foregroundStyle(.red) }
                         if ruleID != nil && saved == nil {

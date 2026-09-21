@@ -22327,6 +22327,22 @@
         }
       }
     },
+    "SFTP Initial Path" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SFTP初始路径"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SFTP初始路徑"
+          }
+        }
+      }
+    },
     "SFTP Error" : {
       "localizations" : {
         "zh-Hans" : {

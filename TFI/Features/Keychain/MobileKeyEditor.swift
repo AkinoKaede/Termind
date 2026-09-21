@@ -15,29 +15,13 @@ struct MobileKeyEditor: View {
             title: title, isDirty: model.isDirty, canSave: model.canSave,
             save: { try await model.save() },
             content: {
-                Section("Key") {
-                    LabeledContent("Name") {
-                        TextField(
-                            "Name", text: $model.label.singleLineText, prompt: Text(model.defaultName),
-                            axis: .horizontal
-                        ).singleLinePaste().lineLimit(1)
-                            .multilineTextAlignment(.trailing)
-                    }
-                    if !model.isEnclave {
-                        Picker("Store in", selection: $model.storage) {
-                            Text("This Device").tag(KeyStorage.thisDevice)
-                            Text("iCloud").tag(KeyStorage.iCloud)
-                            if model.mode == .generate && model.canUseEnclave {
-                                Text("Secure Enclave").tag(KeyStorage.secureEnclave)
-                            }
-                        }
-                        .disabled(!model.canEditPrivateKey || !model.canSelectThisDevice)
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Color")
-                        ColorTagPicker(selection: $model.colorTag, layout: .touch)
-                    }
-                    if model.mode == .generate {
+                Section {
+                    VaultNameField(text: $model.label, prompt: Text(model.defaultName))
+                    VaultColorField(selection: $model.colorTag)
+                }
+                if model.mode == .generate {
+                    Section(model.storage == .secureEnclave ? "Secure Enclave" : "Private Key") {
+                        storagePicker
                         if model.storage == .secureEnclave {
                             Toggle("Require User Presence", isOn: $model.requiresUserPresence)
                         } else {
@@ -79,9 +63,9 @@ struct MobileKeyEditor: View {
                             }
                         }
                     }
-                }
-                if model.mode != .generate && model.storage != .secureEnclave {
+                } else if model.storage != .secureEnclave {
                     Section("Private Key") {
+                        storagePicker
                         if model.isLoadingPrivateKey {
                             ProgressView("Loading private key…")
                         } else {
@@ -113,6 +97,10 @@ struct MobileKeyEditor: View {
                                 .multilineTextAlignment(.leading)
                                 .disabled(!model.canEditPrivateKey)
                         }
+                    }
+                } else {
+                    Section("Secure Enclave") {
+                        LabeledContent("Store in", value: String(localized: "Secure Enclave"))
                     }
                 }
                 if model.mode != .generate && model.storage != .secureEnclave {
@@ -162,5 +150,16 @@ struct MobileKeyEditor: View {
         case .importKey: String(localized: "Import Key")
         case .edit: String(localized: "Edit Key")
         }
+    }
+
+    private var storagePicker: some View {
+        Picker("Store in", selection: $model.storage) {
+            Text("This Device").tag(KeyStorage.thisDevice)
+            Text("iCloud").tag(KeyStorage.iCloud)
+            if model.mode == .generate && model.canUseEnclave {
+                Text("Secure Enclave").tag(KeyStorage.secureEnclave)
+            }
+        }
+        .disabled(!model.canEditPrivateKey || !model.canSelectThisDevice)
     }
 }

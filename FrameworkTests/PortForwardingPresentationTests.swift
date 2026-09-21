@@ -8,8 +8,8 @@ struct PortForwardingPresentationTests {
     @Test func hostPickerShowsOnlyTheSavedName() {
         let host = Host(name: "Production", host: "production.example.invalid")
 
-        #expect(PortForwardingHostPickerPresentation.title(for: host) == "Production")
-        #expect(!PortForwardingHostPickerPresentation.title(for: host).contains(host.displayAddress))
+        #expect(PortForwardingFieldPresentation.hostTitle(for: host) == "Production")
+        #expect(!PortForwardingFieldPresentation.hostTitle(for: host).contains(host.displayAddress))
     }
 
     @Test(arguments: [PortForwardingRule.Kind.local, .dynamic])

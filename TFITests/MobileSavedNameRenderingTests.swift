@@ -55,6 +55,11 @@ struct MobileSavedNameRenderingTests {
         try await capture(
             NavigationStack {
                 Form {
+                    HostOrganizationSection(host: .constant(.init(name: "", host: "example.invalid"))) {
+                        EmptyView()
+                    } tagsField: {
+                        EmptyView()
+                    }
                     HostConnectionFields(host: .constant(.init(name: "", host: "example.invalid")))
                     MobileModelFields(
                         model: .constant(AIModel(id: "private-model")), provider: ModelProvider(name: "Gateway"))
@@ -94,5 +99,5 @@ private final class ForwardingNameDraft {
 
 private struct ForwardingNameForm: View {
     @Bindable var draft: ForwardingNameDraft
-    var body: some View { Form { PortForwardingFields(rule: $draft.rule, host: draft.host) } }
+    var body: some View { Form { PortForwardingFields(rule: $draft.rule, hosts: draft.host.map { [$0] } ?? []) } }
 }

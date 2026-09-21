@@ -110,47 +110,16 @@ struct NewIdentitySheet: View {
 
     private var form: some View {
         Form {
-            Section {
-                if configuration.showsName {
-                    TextField(
-                        "Name", text: $name.singleLineText,
-                        prompt: Text(verbatim: Identity.defaultName(username: username)), axis: .horizontal
-                    ).lineLimit(
-                        1)
-                }
-                TextField("Username", text: $username.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
-
-                // Both optional, and both allowed at once: a key to get in and a
-                // password the same account still asks for is an ordinary setup,
-                // not a contradiction.
-                RevealableSecretField("Password", text: $password, prompt: Text("Optional"))
-                    .disabled(!canEditPassword)
-
-                Picker("Store password in", selection: $passwordStorage) {
-                    ForEach(PasswordStorage.allCases) { storage in
-                        Label(storage.displayName, systemImage: storage.symbol)
-                            .tag(storage)
-                    }
-                }
-                .disabled(
-                    !canEditPassword
-                        || (existing?.usesPassword == true && existing?.passwordStorage == .iCloud)
-                )
-
-                if configuration.showsKey {
-                    Picker("Key", selection: $keyID) {
-                        Text("None").tag(SSHKeyRef.ID?.none)
-                        ForEach(app.credentials.keys) { key in
-                            Text(key.label).tag(SSHKeyRef.ID?.some(key.id))
-                        }
-                    }
-                }
-
-                LabeledContent("Color") {
-                    ColorTagPicker(selection: $colorTag, layout: .compact)
-                }
-
-            }
+            // Password and key are both optional and may be used together.
+            IdentityFormSections(
+                name: $name, username: $username, password: $password,
+                passwordStorage: $passwordStorage, keyID: $keyID, colorTag: $colorTag,
+                namePrompt: Text(verbatim: Identity.defaultName(username: username)),
+                keys: app.credentials.keys, showsName: configuration.showsName,
+                showsKey: configuration.showsKey, canEditPassword: canEditPassword,
+                canEditPasswordStorage: canEditPassword
+                    && !(existing?.usesPassword == true && existing?.passwordStorage == .iCloud)
+            )
         }
         .formStyle(.grouped)
         .onAppear(perform: loadPasswordOnce)

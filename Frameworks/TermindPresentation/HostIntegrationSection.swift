@@ -3,21 +3,8 @@ import TermindDomain
 
 public struct HostIntegrationSection: View {
     @Binding private var mode: HostShellIntegrationMode
-    @Binding private var startupSnippetID: Snippet.ID?
-    private let snippets: [Snippet]
-    private let snippetPackagePath: (SnippetPackage.ID?) -> String?
 
-    public init(
-        mode: Binding<HostShellIntegrationMode>,
-        startupSnippetID: Binding<Snippet.ID?> = .constant(nil),
-        snippets: [Snippet] = [],
-        snippetPackagePath: @escaping (SnippetPackage.ID?) -> String? = { _ in nil }
-    ) {
-        _mode = mode
-        _startupSnippetID = startupSnippetID
-        self.snippets = snippets
-        self.snippetPackagePath = snippetPackagePath
-    }
+    public init(mode: Binding<HostShellIntegrationMode>) { _mode = mode }
 
     public var body: some View {
         Section("Integration") {
@@ -28,7 +15,42 @@ public struct HostIntegrationSection: View {
             }
             .pickerStyle(.menu)
             .menuOrder(.fixed)
+        }
+    }
+}
 
+public struct HostSessionSection: View {
+    @Binding private var sftpInitialPath: String
+    @Binding private var startupSnippetID: Snippet.ID?
+    private let snippets: [Snippet]
+    private let snippetPackagePath: (SnippetPackage.ID?) -> String?
+
+    public init(
+        sftpInitialPath: Binding<String>,
+        startupSnippetID: Binding<Snippet.ID?> = .constant(nil),
+        snippets: [Snippet] = [],
+        snippetPackagePath: @escaping (SnippetPackage.ID?) -> String? = { _ in nil }
+    ) {
+        _sftpInitialPath = sftpInitialPath
+        _startupSnippetID = startupSnippetID
+        self.snippets = snippets
+        self.snippetPackagePath = snippetPackagePath
+    }
+
+    public var body: some View {
+        Section("Session") {
+            LabeledContent("SFTP Initial Path") {
+                TextField("SFTP Initial Path", text: $sftpInitialPath.singleLineText, prompt: Text("~"))
+                    .singleLinePaste()
+                    .lineLimit(1)
+                    .labelsHidden()
+                    .multilineTextAlignment(.trailing)
+                    .font(.body.monospaced())
+                    #if os(iOS)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                    #endif
+            }
             Picker("Startup Snippet", selection: $startupSnippetID) {
                 Text("None").tag(Snippet.ID?.none)
                 if !snippets.isEmpty {

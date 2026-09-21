@@ -572,25 +572,16 @@ struct SnippetEditorSheet: View {
             symbol: "curlybraces", close: close
         ) {
             Form {
-                Section {
-                    TextField("Name", text: $title.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
-                    VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                        Text("Script")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                        TextEditor(text: $bodyText)
-                            .font(.body.monospaced())
-                            .frame(minHeight: 180)
-                    }
-                    RiskBadge(assessment: CommandRiskClassifier.assess(bodyText))
-                }
-                Section("Package") {
+                SnippetOrganizationSection(name: $title) {
                     Picker("Package", selection: $packageID) {
                         Text("Ungrouped").tag(SnippetPackage.ID?.none)
                         ForEach(packageChoices, id: \.package.id) { choice in
                             Text(choice.path).tag(SnippetPackage.ID?.some(choice.package.id))
                         }
                     }
+                }
+                SnippetScriptSection(script: $bodyText, minHeight: 180) {
+                    RiskBadge(assessment: CommandRiskClassifier.assess(bodyText))
                 }
                 Section {
                     if selectedHosts.isEmpty {

@@ -428,23 +428,18 @@ private struct SoftwareKeyEditor: View {
                         }
                     }
 
-                    Section("Key") {
-                        TextField(
-                            "Name", text: $name.singleLineText, prompt: Text(verbatim: defaultName), axis: .horizontal
-                        )
-                        .singleLinePaste().lineLimit(1)
+                    Section {
+                        VaultNameField(text: $name, prompt: Text(verbatim: defaultName))
+                        VaultColorField(selection: $colorTag)
+                    }
+
+                    Section {
                         Picker("Store in", selection: $storage) {
                             Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
                             Label("This Mac", systemImage: "lock.laptopcomputer")
                                 .tag(KeyStorage.thisDevice)
                         }
                         .disabled(!canEditPrivateKey || existing?.storage == .iCloud)
-                        LabeledContent("Color") {
-                            ColorTagPicker(selection: $colorTag, layout: .compact)
-                        }
-                    }
-
-                    Section {
                         keyTextEditor(
                             text: $privateKey, minHeight: 150,
                             placeholder: "Paste a private key, or drag one in"
@@ -882,54 +877,55 @@ private struct GenerateKeySheet: View {
     var body: some View {
         VaultDetailScaffold(title: "Generate Key", symbol: "key.fill", close: close) {
             Form {
-                TextField("Name", text: $label.singleLineText, prompt: Text(defaultName), axis: .horizontal).lineLimit(
-                    1)
-                Picker("Store in", selection: $storage) {
-                    ForEach(availableStorage) { location in
-                        Label(location.displayName, systemImage: location.symbol)
-                            .tag(location)
-                            .disabled(location == .secureEnclave && !SecureEnclaveKey.isAvailable)
-                    }
+                Section {
+                    VaultNameField(text: $label, prompt: Text(defaultName))
+                    VaultColorField(selection: $colorTag)
                 }
-                LabeledContent("Color") {
-                    ColorTagPicker(selection: $colorTag, layout: .compact)
-                }
-                if storage == .secureEnclave {
-                    LabeledContent("Algorithm", value: "ECDSA")
-                    LabeledContent("Elliptic Curve", value: "NIST P-256")
-                    Toggle("Require Authentication", isOn: $requiresUserPresence)
-                } else {
-                    Picker("Algorithm", selection: $kind) {
-                        ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
-                    }
-                    if kind == .ecdsa {
-                        Picker("Elliptic Curve", selection: $curveBits) {
-                            Text("NIST P-256").tag(256)
-                            Text("NIST P-384").tag(384)
-                            Text("NIST P-521").tag(521)
-                        }
-                    } else if kind == .rsa {
-                        Picker("Key Size", selection: $rsaBits) {
-                            Text("2048 bit").tag(2048)
-                            Text("3072 bit").tag(3072)
-                            Text("4096 bit").tag(4096)
+                Section(storage == .secureEnclave ? "Secure Enclave" : "Private Key") {
+                    Picker("Store in", selection: $storage) {
+                        ForEach(availableStorage) { location in
+                            Label(location.displayName, systemImage: location.symbol)
+                                .tag(location)
+                                .disabled(location == .secureEnclave && !SecureEnclaveKey.isAvailable)
                         }
                     }
-                    RevealableSecretField("Passphrase", text: $passphrase, prompt: Text("Optional"))
-                    RevealableSecretField("Confirm Passphrase", text: $confirmation)
-                        .disabled(passphrase.isEmpty)
-                    if !passphrase.isEmpty {
-                        Picker("Cipher", selection: $cipher) {
-                            ForEach(SSHKeyMaterial.Cipher.allCases) { cipher in
-                                Text(cipher.displayName).tag(cipher)
+                    if storage == .secureEnclave {
+                        LabeledContent("Algorithm", value: "ECDSA")
+                        LabeledContent("Elliptic Curve", value: "NIST P-256")
+                        Toggle("Require Authentication", isOn: $requiresUserPresence)
+                    } else {
+                        Picker("Algorithm", selection: $kind) {
+                            ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
+                        }
+                        if kind == .ecdsa {
+                            Picker("Elliptic Curve", selection: $curveBits) {
+                                Text("NIST P-256").tag(256)
+                                Text("NIST P-384").tag(384)
+                                Text("NIST P-521").tag(521)
+                            }
+                        } else if kind == .rsa {
+                            Picker("Key Size", selection: $rsaBits) {
+                                Text("2048 bit").tag(2048)
+                                Text("3072 bit").tag(3072)
+                                Text("4096 bit").tag(4096)
                             }
                         }
-                        TextField("Rounds", value: $rounds, format: .number).lineLimit(1)
-                    }
-                    if !passwordsMatch {
-                        Text("Passphrases do not match.")
-                            .font(.caption)
-                            .foregroundStyle(.red)
+                        RevealableSecretField("Passphrase", text: $passphrase, prompt: Text("Optional"))
+                        RevealableSecretField("Confirm Passphrase", text: $confirmation)
+                            .disabled(passphrase.isEmpty)
+                        if !passphrase.isEmpty {
+                            Picker("Cipher", selection: $cipher) {
+                                ForEach(SSHKeyMaterial.Cipher.allCases) { cipher in
+                                    Text(cipher.displayName).tag(cipher)
+                                }
+                            }
+                            TextField("Rounds", value: $rounds, format: .number).lineLimit(1)
+                        }
+                        if !passwordsMatch {
+                            Text("Passphrases do not match.")
+                                .font(.caption)
+                                .foregroundStyle(.red)
+                        }
                     }
                 }
                 if let errorMessage {
@@ -1108,17 +1104,12 @@ private struct SecureEnclaveKeyEditor: View {
     var body: some View {
         VaultDetailScaffold(title: "Edit Key", symbol: "pencil", close: close) {
             Form {
-                Section("Key") {
-                    TextField(
-                        "Name", text: $name.singleLineText, prompt: Text(verbatim: key.defaultName), axis: .horizontal
-                    )
-                    .singleLinePaste().lineLimit(1)
-                    LabeledContent("Color") {
-                        ColorTagPicker(selection: $colorTag, layout: .compact)
-                    }
+                Section {
+                    VaultNameField(text: $name, prompt: Text(verbatim: key.defaultName))
+                    VaultColorField(selection: $colorTag)
                 }
                 Section("Secure Enclave") {
-                    LabeledContent("Stored in", value: key.storage.displayName)
+                    LabeledContent("Store in", value: key.storage.displayName)
                     LabeledContent("Algorithm", value: key.algorithm.displayName)
                     LabeledContent("Fingerprint") {
                         Text(key.fingerprint).font(.caption.monospaced()).textSelection(.enabled)

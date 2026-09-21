@@ -48,6 +48,21 @@ struct MobileHostEditor: View {
                 try customIdentity.save(into: &draft, using: library)
             },
             content: {
+                HostOrganizationSection(host: $draft) {
+                    Picker("Group", selection: groupChoice) {
+                        Text("None").tag(Choice<HostGroup.ID>.unset)
+                        ForEach(library.groups) { group in
+                            Text(group.name).tag(Choice.existing(group.id))
+                        }
+                        Divider()
+                        Text("New Group").tag(Choice<HostGroup.ID>.new)
+                    }
+                } tagsField: {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Tags")
+                        MobileTagField(tags: $draft.tags, suggestions: library.allTags)
+                    }
+                }
                 HostConnectionFields(host: $draft)
                 Section("Authentication") {
                     Picker("Identity", selection: identityChoice) {
@@ -140,30 +155,13 @@ struct MobileHostEditor: View {
                         }
                     }
                 }
-                Section("Organization") {
-                    Picker("Group", selection: groupChoice) {
-                        Text("None").tag(Choice<HostGroup.ID>.unset)
-                        ForEach(library.groups) { group in
-                            Text(group.name).tag(Choice.existing(group.id))
-                        }
-                        Divider()
-                        Text("New Group").tag(Choice<HostGroup.ID>.new)
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Color")
-                        ColorTagPicker(selection: $draft.colorTag, layout: .touch)
-                    }
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Tags")
-                        MobileTagField(tags: $draft.tags, suggestions: library.allTags)
-                    }
-                }
-                HostIntegrationSection(
-                    mode: $draft.shellIntegrationMode,
+                HostSessionSection(
+                    sftpInitialPath: $draft.sftpChannelInitialPath,
                     startupSnippetID: startupSnippetChoice,
                     snippets: library.snippets,
                     snippetPackagePath: library.snippetPackagePath
                 )
+                HostIntegrationSection(mode: $draft.shellIntegrationMode)
             }
         )
         .sheet(item: $editorRoute) { route in

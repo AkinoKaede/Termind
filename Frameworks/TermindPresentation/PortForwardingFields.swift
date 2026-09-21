@@ -5,36 +5,34 @@ import struct TermindDomain.Host
 
 public struct PortForwardingFields: View {
     @Binding private var rule: PortForwardingRule
-    private let host: Host?
+    private let hosts: [Host]
 
-    public init(rule: Binding<PortForwardingRule>, host: Host?) {
+    public init(rule: Binding<PortForwardingRule>, hosts: [Host]) {
         _rule = rule
-        self.host = host
+        self.hosts = hosts
     }
 
     private var namePrompt: Text {
-        guard let host else { return Text(verbatim: "") }
+        guard let host = selectedHost else { return Text(verbatim: "") }
         let name = SavedName.resolve(host.name, default: host.defaultName)
         return Text(verbatim: rule.defaultName(hostName: name))
     }
 
     public var body: some View {
+        Section {
+            VaultNameField(text: $rule.label, prompt: namePrompt)
+            VaultColorField(selection: $rule.colorTag)
+        }
         Section("Port Forwarding") {
-            TextField("Name", text: $rule.label.singleLineText, prompt: namePrompt, axis: .horizontal)
-                .singleLinePaste().lineLimit(1)
-                .textFieldStyle(
-                    .automatic
-                ).multilineTextAlignment(.leading)
-            #if os(macOS)
-                LabeledContent("Color") {
-                    ColorTagPicker(selection: $rule.colorTag, layout: .compact)
+            Picker("Host", selection: hostSelection) {
+                Text("Select Host").tag(UUID?.none)
+                ForEach(hosts) { host in
+                    Text(PortForwardingFieldPresentation.hostTitle(for: host)).tag(Optional(host.id))
                 }
-            #else
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("Color")
-                    ColorTagPicker(selection: $rule.colorTag, layout: .touch)
-                }
-            #endif
+            }
+            if hosts.isEmpty {
+                Text("Add a host before creating a forwarding rule.").font(.caption).foregroundStyle(.secondary)
+            }
             PortForwardingDirectionPicker(kind: $rule.kind)
             Text(LocalizedStringKey(PortForwardingFieldPresentation.directionDescription(for: rule.kind)))
                 .font(.caption).foregroundStyle(.secondary)
@@ -78,9 +76,20 @@ public struct PortForwardingFields: View {
             .autocorrectionDisabled()
         #endif
     }
+
+    private var selectedHost: Host? { hosts.first { $0.id == rule.hostID } }
+
+    private var hostSelection: Binding<UUID?> {
+        Binding(
+            get: { selectedHost?.id },
+            set: { rule.hostID = $0 ?? UUID() }
+        )
+    }
 }
 
 nonisolated enum PortForwardingFieldPresentation {
+    static func hostTitle(for host: Host) -> String { host.name }
+
     static func portLabel(for kind: PortForwardingRule.Kind) -> String {
         kind == .remote ? "Remote Port" : "Local Port"
     }
