@@ -180,6 +180,45 @@ struct MobileWorkspaceTests {
         #expect(app.workspaces.isEmpty)
     }
 
+    @Test func closeOtherWorkspacesKeepsTheTargetAndRemovesOpenedAndRecentWorkspaces() throws {
+        let suite = "termind.close-other-workspaces.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let seed = try MobileAppModel(inMemory: true)
+        let host = TermindDomain.Host(name: "Test", host: "example.invalid")
+        seed.library.upsert(host)
+        let descriptors = [
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Keep", kind: .ssh),
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Opened", kind: .sftp),
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Recent", kind: .ssh),
+        ]
+        let store = MobileWorkspaceStore(defaults: defaults)
+        try store.save(descriptors)
+        var dependencies = MobileAppDependencies.testing(defaults: defaults)
+        dependencies.container = seed.container
+        dependencies.workspaceStore = store
+        let app = try MobileAppModel(dependencies: dependencies)
+        let scene = MobileSceneModel(app: app)
+        let kept = try #require(app.openWorkspace(descriptors[0].id))
+        let opened = try #require(app.openWorkspace(descriptors[1].id))
+
+        #expect(app.recentWorkspaces == [descriptors[2]])
+        #expect(app.closableWorkspaceCount == 3)
+        #expect(scene.canCloseMultipleWorkspaces)
+
+        scene.closeOtherWorkspaces(than: kept.id)
+
+        #expect(app.workspaces.map(\.id) == [kept.id])
+        #expect(app.savedWorkspaceDescriptors == [kept.descriptor])
+        #expect(app.recentWorkspaces.isEmpty)
+        #expect(!opened.connected)
+        #expect(opened.status == String(localized: "Disconnected"))
+        #expect(try store.load() == [kept.descriptor])
+        #expect(!scene.canCloseMultipleWorkspaces)
+        app.closeAll()
+    }
+
     @Test func hostEditsPersistThroughTheSharedVaultStore() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")

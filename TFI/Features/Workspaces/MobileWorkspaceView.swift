@@ -25,8 +25,11 @@ struct MobileWorkspaceView: View {
     let workspaces: [MobileWorkspace]
     let selectWorkspace: (UUID) -> Void
     let renameWorkspace: (MobileWorkspace) -> Void
+    let canCloseMultipleWorkspaces: Bool
     let openSameDirectory: (MobileWorkspaceDirectoryLaunch) -> Void
     let closeWorkspace: (UUID) -> Void
+    let closeOtherWorkspaces: (UUID) -> Void
+    let closeAllWorkspaces: () -> Void
     @State private var terminalSheet: TerminalSheet?
     @State private var importing = false
     @State private var directoryName = ""
@@ -178,10 +181,7 @@ struct MobileWorkspaceView: View {
                 }
                 Divider()
                 sameDirectoryMenuAction
-                Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
-                Button("Close", systemImage: "xmark", role: .destructive) {
-                    closeWorkspace(workspace.id)
-                }
+                workspaceLifecycleActions
             }
         }
         if workspace.descriptor.kind == .telnet {
@@ -195,10 +195,7 @@ struct MobileWorkspaceView: View {
                     workspace.find.presentAndNavigate(.next)
                 }
                 Divider()
-                Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
-                Button("Close", systemImage: "xmark", role: .destructive) {
-                    closeWorkspace(workspace.id)
-                }
+                workspaceLifecycleActions
             }
         }
         if isSFTP {
@@ -237,12 +234,20 @@ struct MobileWorkspaceView: View {
                 .disabled(!workspace.connected || workspace.sftpChannel.isRefreshing)
                 Divider()
                 sameDirectoryMenuAction
-                Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
-                Button("Close", systemImage: "xmark", role: .destructive) {
-                    closeWorkspace(workspace.id)
-                }
+                workspaceLifecycleActions
             }
         }
+    }
+
+    @ViewBuilder
+    private var workspaceLifecycleActions: some View {
+        MobileWorkspaceLifecycleMenuActions(
+            canCloseMultipleWorkspaces: canCloseMultipleWorkspaces,
+            rename: { renameWorkspace(workspace) },
+            close: { closeWorkspace(workspace.id) },
+            closeOthers: { closeOtherWorkspaces(workspace.id) },
+            closeAll: closeAllWorkspaces
+        )
     }
 
     private var workspaceSheets: some View {
@@ -734,6 +739,24 @@ struct MobileWorkspaceView: View {
             retryReconnectNow: { workspace.retryReconnectNow() },
             stopReconnecting: { workspace.stopReconnecting() }, cancel: { closeWorkspace(workspace.id) },
             keyboardAuthentication: workspace.keyboardAuthentication)
+    }
+}
+
+struct MobileWorkspaceLifecycleMenuActions: View {
+    let canCloseMultipleWorkspaces: Bool
+    let rename: () -> Void
+    let close: () -> Void
+    let closeOthers: () -> Void
+    let closeAll: () -> Void
+
+    var body: some View {
+        Button("Rename", systemImage: "pencil", action: rename)
+        Divider()
+        Button("Close", systemImage: "xmark", role: .destructive, action: close)
+        if canCloseMultipleWorkspaces {
+            Button("Close Other Workspaces", role: .destructive, action: closeOthers)
+            Button("Close All Workspaces", systemImage: "xmark", role: .destructive, action: closeAll)
+        }
     }
 }
 

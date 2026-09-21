@@ -380,6 +380,27 @@ final class MobileAppModel {
         liveActivities.update(workspaceActivitySessions)
     }
 
+    var closableWorkspaceCount: Int {
+        Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id)).count
+    }
+
+    func closeOtherWorkspaces(than id: MobileWorkspace.ID) {
+        let knownIDs = Set(savedWorkspaceDescriptors.map(\.id)).union(workspaces.map(\.id))
+        guard knownIDs.contains(id), knownIDs.count > 1 else { return }
+
+        let closing = workspaces.filter { $0.id != id }
+        workspaces.removeAll { $0.id != id }
+        savedWorkspaceDescriptors.removeAll { $0.id != id }
+        saveWorkspaces()
+        workspaceActivitySessions.removeAll { $0.id != id }
+        for workspace in closing {
+            workspace.didChangeState = nil
+            workspace.didRequestClose = nil
+            workspace.disconnect()
+        }
+        liveActivities.update(workspaceActivitySessions)
+    }
+
     func closeAll() {
         guard !savedWorkspaceDescriptors.isEmpty || !workspaces.isEmpty else { return }
         let closing = workspaces

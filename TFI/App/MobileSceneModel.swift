@@ -45,6 +45,7 @@ final class MobileSceneModel {
 
     var hasWorkspaces: Bool { !app.workspaces.isEmpty }
     var canCloseAllWorkspaces: Bool { !app.savedWorkspaceDescriptors.isEmpty || !app.workspaces.isEmpty }
+    var canCloseMultipleWorkspaces: Bool { app.closableWorkspaceCount > 1 }
     var workspaceCount: Int { app.workspaces.count }
     var canCloseWorkspace: Bool { activeWorkspace != nil }
     var canUseTerminalCommands: Bool { activeWorkspace?.descriptor.kind == .ssh }
@@ -232,6 +233,13 @@ final class MobileSceneModel {
     func closeActiveWorkspace() {
         guard let activeWorkspace else { return }
         closeWorkspace(activeWorkspace.id)
+    }
+
+    func closeOtherWorkspaces(than id: MobileWorkspace.ID) {
+        app.closeOtherWorkspaces(than: id)
+        recentWorkspaceIDs.removeAll { $0 != id }
+        if pendingWorkspaceID != id { pendingWorkspaceID = nil }
+        if workspaceID != id { workspaceID = nil }
     }
 
     func closeAllWorkspaces() {

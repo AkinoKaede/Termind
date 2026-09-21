@@ -19,7 +19,7 @@ struct MobileWorkspaceToolbar: ToolbarContent {
         }
         .mobileProminentAction()
         MobileToolbarOverflow {
-            Button("Close All Workspaces", systemImage: "rectangle.stack.badge.minus") {
+            Button("Close All Workspaces", systemImage: "xmark") {
                 closeAll()
             }
             .disabled(!hasWorkspaces)

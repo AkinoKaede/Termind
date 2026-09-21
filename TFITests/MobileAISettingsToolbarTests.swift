@@ -79,7 +79,9 @@ private struct WorkspaceTabBarHarness: View {
                         library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
                         workspace: workspace, workspaces: [workspace],
                         selectWorkspace: { _ in }, renameWorkspace: { _ in },
-                        openSameDirectory: { _ in }, closeWorkspace: { _ in })
+                        canCloseMultipleWorkspaces: false,
+                        openSameDirectory: { _ in }, closeWorkspace: { _ in },
+                        closeOtherWorkspaces: { _ in }, closeAllWorkspaces: {})
                 } else {
                     Text("Workspaces")
                 }
