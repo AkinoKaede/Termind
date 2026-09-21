@@ -190,7 +190,7 @@ enum HostMenuEntries {
                         app.open([host], as: .sshSession, in: window)
                     },
                     NativeMenuEntry(
-                        title: String(localized: "with Telnet"), symbol: "terminal",
+                        title: String(localized: "with Telnet"), symbol: MenuSymbol.telnet,
                         isEnabled: host.telnetEnabled
                     ) {
                         app.open([host], as: .telnetSession, in: window)
@@ -231,7 +231,7 @@ struct HostConnectMenu: View {
                 app.open(hosts, as: .sshSession, in: window)
             }
             .disabled(!hosts.allSatisfy(\.sshEnabled))
-            Button("with Telnet", systemImage: "terminal") {
+            Button("with Telnet", systemImage: MenuSymbol.telnet) {
                 app.open(hosts, as: .telnetSession, in: window)
             }
             .disabled(!hosts.allSatisfy(\.telnetEnabled))

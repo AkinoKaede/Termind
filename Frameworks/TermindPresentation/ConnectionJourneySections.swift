@@ -1,6 +1,25 @@
 import SwiftUI
 import TermindApplication
 
+nonisolated enum ConnectionJourneySymbolPlacement {
+    case header
+    case routeDestination
+}
+
+extension ConnectionPurpose {
+    nonisolated func symbol(for placement: ConnectionJourneySymbolPlacement) -> String {
+        switch (self, placement) {
+        case (.sshSession, _): "apple.terminal.fill"
+        case (.telnetSession, _): "text.rectangle.fill"
+        case (.sftpChannel, .header): "folder.fill.badge.gearshape"
+        case (.sftpChannel, .routeDestination): "folder.fill"
+        case (.serialSession, _): "cable.connector"
+        case (.metrics, _): "waveform.path.ecg"
+        case (.portForwarding, _): "arrow.left.arrow.right"
+        }
+    }
+}
+
 public struct ConnectionJourneyHeader: View {
     let journey: ConnectionJourney
     let selectedForeground: Color
@@ -29,7 +48,7 @@ public struct ConnectionJourneyHeader: View {
                 .fill(Color.accentColor.gradient)
                 .frame(width: 52, height: 52)
                 .overlay {
-                    Image(systemName: symbol)
+                    Image(systemName: journey.purpose.symbol(for: .header))
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(selectedForeground)
                 }
@@ -82,16 +101,6 @@ public struct ConnectionJourneyHeader: View {
         return "\(protocolName) \(address)"
     }
 
-    private var symbol: String {
-        switch journey.purpose {
-        case .sshSession: "apple.terminal.fill"
-        case .telnetSession: "terminal.fill"
-        case .sftpChannel: "folder.fill.badge.gearshape"
-        case .serialSession: "cable.connector"
-        case .metrics: "waveform.path.ecg"
-        case .portForwarding: "arrow.left.arrow.right"
-        }
-    }
 }
 
 public struct ConnectionJourneyStatus: View {

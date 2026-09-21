@@ -233,14 +233,7 @@ private struct JourneyEndpointView: View {
             #endif
         case .jump: return "server.rack"
         case .destination:
-            return switch purpose {
-            case .sshSession: "apple.terminal.fill"
-            case .telnetSession: "terminal.fill"
-            case .sftpChannel: "folder.fill"
-            case .metrics: "waveform.path.ecg"
-            case .portForwarding: "arrow.left.arrow.right"
-            case .serialSession: "cable.connector"
-            }
+            return purpose.symbol(for: .routeDestination)
         }
     }
 

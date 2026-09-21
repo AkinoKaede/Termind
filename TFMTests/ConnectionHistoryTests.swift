@@ -16,6 +16,14 @@ import struct TermindDomain.Host
 @MainActor
 struct ConnectionHistoryTests {
     @Test
+    func connectionProtocolSymbolsAreDistinct() {
+        #expect(ConnectionHistoryEntry.Kind.ssh.symbol == "terminal")
+        #expect(ConnectionHistoryEntry.Kind.telnet.symbol == "text.rectangle")
+        #expect(ConnectionHistoryEntry.Kind.sftp.symbol == "folder")
+        #expect(Set(ConnectionHistoryEntry.Kind.allCases.map(\.symbol)).count == 3)
+    }
+
+    @Test
     func schemaV5MigratesWithAnEmptyConnectionTimeline() throws {
         let directory = FileManager.default.temporaryDirectory
             .appendingPathComponent("ConnectionHistoryMigration-\(UUID().uuidString)")

@@ -219,7 +219,7 @@ final class AppCommandRegistry {
                 AppCommandDescriptor(
                     id: "host.telnet.\(host.id.uuidString)", title: host.name,
                     subtitle: String(localized: "Connect with Telnet · \(host.displayAddress(for: .telnet))"),
-                    symbol: "terminal", section: .hosts, keywords: keywords + ["telnet"],
+                    symbol: MenuSymbol.telnet, section: .hosts, keywords: keywords + ["telnet"],
                     target: .connectHost(host.id, .telnetSession)))
         }
         return commands

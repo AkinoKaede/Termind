@@ -3,17 +3,27 @@ import TermindApplication
 import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
-import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
 
 @testable import Termind
+@testable import TermindPresentation
 
 @Suite
 @MainActor
 struct ConnectionJourneyTests {
+    @Test
+    func telnetUsesItsOwnSymbolThroughoutTheConnectionJourney() {
+        #expect(ConnectionPurpose.telnetSession.symbol(for: .header) == "text.rectangle.fill")
+        #expect(ConnectionPurpose.telnetSession.symbol(for: .routeDestination) == "text.rectangle.fill")
+        #expect(ConnectionPurpose.sshSession.symbol(for: .header) == "apple.terminal.fill")
+        #expect(ConnectionPurpose.sshSession.symbol(for: .routeDestination) == "apple.terminal.fill")
+        #expect(ConnectionPurpose.sftpChannel.symbol(for: .header) == "folder.fill.badge.gearshape")
+        #expect(ConnectionPurpose.sftpChannel.symbol(for: .routeDestination) == "folder.fill")
+    }
+
     @Test
     func routeStartsAtBlueLocalEndpointAndKeepsHostsPending() {
         let jump = Host(name: "Bastion", host: "jump.example")

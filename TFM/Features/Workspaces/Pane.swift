@@ -162,7 +162,7 @@ final class Pane: Identifiable {
     var symbol: String {
         switch content {
         case .sshSession: "apple.terminal"
-        case .telnetSession: "terminal"
+        case .telnetSession: MenuSymbol.telnet
         case .sftpChannel: "folder"
         case .serialSession: "cable.connector"
         case .empty: "rectangle.dashed"

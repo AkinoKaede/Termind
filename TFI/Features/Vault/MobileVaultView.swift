@@ -609,13 +609,13 @@ struct MobileVaultView: View {
     private func hostMenuButton(_ action: MobileHostMenuAction, host: Host) -> some View {
         switch action {
         case .ssh:
-            Button("SSH", systemImage: "terminal") { open(host.id, .ssh) }
+            Button("SSH", systemImage: ConnectionHistoryEntry.Kind.ssh.symbol) { open(host.id, .ssh) }
                 .disabled(!host.sshEnabled)
         case .telnet:
-            Button("Telnet", systemImage: "terminal") { open(host.id, .telnet) }
+            Button("Telnet", systemImage: ConnectionHistoryEntry.Kind.telnet.symbol) { open(host.id, .telnet) }
                 .disabled(!host.telnetEnabled)
         case .sftp:
-            Button("SFTP", systemImage: "folder") { open(host.id, .sftp) }
+            Button("SFTP", systemImage: ConnectionHistoryEntry.Kind.sftp.symbol) { open(host.id, .sftp) }
                 .disabled(!host.sshEnabled)
         case .edit:
             Button("Edit", systemImage: "pencil") { editingHost = host }

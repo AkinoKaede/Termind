@@ -11,7 +11,9 @@ import struct TermindDomain.Host
 struct MobileHomeScreenQuickActionTests {
     @Test func descriptorsUseTheNewestThreeUniqueValidHistoryRows() throws {
         let app = try MobileAppModel(inMemory: true)
-        let repeated = Host(name: "Production", host: "production.example.invalid")
+        let repeated = Host(
+            name: "Production", host: "production.example.invalid",
+            telnetEnabled: true)
         let others = (0..<3).map { Host(name: "Host \($0)", host: "host-\($0).example.invalid") }
         app.library.upsert(repeated)
         for host in others { app.library.upsert(host) }
@@ -20,6 +22,8 @@ struct MobileHomeScreenQuickActionTests {
             kind: .ssh, for: repeated.id, at: Date(timeIntervalSince1970: 60))
         _ = app.connectionHistory.record(
             kind: .ssh, for: repeated.id, at: Date(timeIntervalSince1970: 50))
+        _ = app.connectionHistory.record(
+            kind: .telnet, for: repeated.id, at: Date(timeIntervalSince1970: 45))
         _ = app.connectionHistory.record(
             kind: .sftp, for: repeated.id, at: Date(timeIntervalSince1970: 40))
         _ = app.connectionHistory.record(
@@ -43,11 +47,13 @@ struct MobileHomeScreenQuickActionTests {
             descriptors.map(\.action)
                 == [
                     .history(hostID: repeated.id, kind: .ssh),
+                    .history(hostID: repeated.id, kind: .telnet),
                     .history(hostID: repeated.id, kind: .sftp),
-                    .history(hostID: others[0].id, kind: .ssh),
                 ])
-        #expect(descriptors.map(\.title) == ["Production", "Production", "Host 0"])
-        #expect(descriptors.map(\.symbol) == ["terminal", "folder", "terminal"])
+        #expect(descriptors.map(\.title) == ["Production", "Production", "Production"])
+        #expect(descriptors.map(\.symbol) == ["terminal", "text.rectangle", "folder"])
+        #expect(UIImage(systemName: descriptors[1].symbol) != nil)
+        #expect(descriptors[1].shortcutItem.icon != nil)
     }
 
     @Test func historyShortcutPayloadRoundTripsAndMalformedItemsAreRejected() throws {

@@ -16,6 +16,17 @@ import struct TermindDomain.Host
 @MainActor
 struct WindowStateTests {
     @Test
+    func sshAndTelnetPanesUseDistinctProtocolSymbols() {
+        let host = Host(
+            name: "Console", host: "console.example.invalid",
+            telnetEnabled: true)
+
+        #expect(Pane.sshSession(host: host).symbol == MenuSymbol.ssh)
+        #expect(Pane.telnetSession(host: host).symbol == MenuSymbol.telnet)
+        #expect(MenuSymbol.ssh != MenuSymbol.telnet)
+    }
+
+    @Test
     func assistantManualOrderMovesAcrossPinnedBoundaryAndStaysStableAfterActivity() throws {
         let first = ConversationModel(updatedAt: Date(timeIntervalSinceReferenceDate: 10))
         let second = ConversationModel(updatedAt: Date(timeIntervalSinceReferenceDate: 20))

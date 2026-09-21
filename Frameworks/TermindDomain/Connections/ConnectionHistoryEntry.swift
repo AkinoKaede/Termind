@@ -21,7 +21,7 @@ public nonisolated struct ConnectionHistoryEntry: Identifiable, Hashable, Sendab
         public var symbol: String {
             switch self {
             case .ssh: "terminal"
-            case .telnet: "terminal"
+            case .telnet: "text.rectangle"
             case .sftp: "folder"
             }
         }
