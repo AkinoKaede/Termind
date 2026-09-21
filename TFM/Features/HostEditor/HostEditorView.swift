@@ -221,7 +221,12 @@ struct HostEditorView: View {
                     .foregroundStyle(.secondary)
             }
 
-            HostIntegrationSection(mode: $draft.shellIntegrationMode)
+            HostIntegrationSection(
+                mode: $draft.shellIntegrationMode,
+                startupSnippetID: startupSnippetChoice,
+                snippets: app.hostLibrary.snippets,
+                snippetPackagePath: app.hostLibrary.snippetPackagePath
+            )
 
             if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Section("SSH Command") {
@@ -336,6 +341,14 @@ struct HostEditorView: View {
             case .existing(let id): draft.groupID = id
             case .new: route = .group
             }
+        }
+    }
+
+    private var startupSnippetChoice: Binding<Snippet.ID?> {
+        Binding {
+            draft.startupSnippetID.flatMap { app.hostLibrary.snippet($0)?.id }
+        } set: {
+            draft.startupSnippetID = $0
         }
     }
 

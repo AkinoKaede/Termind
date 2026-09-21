@@ -64,4 +64,38 @@ struct HostShellIntegrationSessionTests {
         session.connect(using: HostLibraryModel())
         #expect(!session.isShellIntegrationEnabled)
     }
+
+    @Test func startupSnippetUsesExplicitLaunchOnceAndResolvesLatestBodyOnReconnect() {
+        var startup = Snippet(title: "Startup", body: "echo first")
+        let host = Host(
+            name: "Server", host: "server.invalid", startupSnippetID: startup.id
+        )
+        let library = HostLibraryModel(hosts: [host], snippets: [startup])
+        let session = SSHSessionModel(
+            hostID: host.id, title: host.name, initialCommand: "echo explicit"
+        )
+        var submitted = Data()
+        session.inputSink = { submitted.append($0) }
+        defer { session.disconnect() }
+
+        session.connect(using: library)
+        session.status = .connected
+        session.receiveShellIntegrationEvent(
+            .available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test")
+        )
+        #expect(String(decoding: submitted, as: UTF8.self) == "echo explicit\r")
+
+        session.disconnect()
+        startup.body = "echo latest"
+        library.upsert(startup)
+        session.connect(using: library)
+        session.status = .connected
+        session.receiveShellIntegrationEvent(
+            .available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test")
+        )
+        #expect(
+            String(decoding: submitted, as: UTF8.self)
+                == "echo explicit\recho latest\r"
+        )
+    }
 }

@@ -13,7 +13,10 @@ struct HostShellIntegrationTests {
     func overridesResolveAndRoundTrip(mode: HostShellIntegrationMode, global: Bool) throws {
         let expected = mode == .enabled || (mode == .followGlobalSettings && global)
         #expect(mode.isEnabled(globalSetting: global) == expected)
-        let host = Host(name: "Server", host: "server.invalid", shellIntegrationMode: mode)
+        let host = Host(
+            name: "Server", host: "server.invalid", shellIntegrationMode: mode,
+            startupSnippetID: UUID()
+        )
         #expect(try JSONDecoder().decode(Host.self, from: JSONEncoder().encode(host)) == host)
         #expect(PersistentHost(host).value == host)
     }
@@ -26,6 +29,11 @@ struct HostShellIntegrationTests {
             let decoded = try JSONDecoder().decode(Host.self, from: JSONSerialization.data(withJSONObject: json))
             #expect(decoded == host)
         }
+        json.removeValue(forKey: "startupSnippetID")
+        let decoded = try JSONDecoder().decode(
+            Host.self, from: JSONSerialization.data(withJSONObject: json)
+        )
+        #expect(decoded.startupSnippetID == nil)
     }
 
     @Test func savedModesSyncAndCanReturnToFollowingGlobalSettings() throws {
@@ -35,7 +43,9 @@ struct HostShellIntegrationTests {
         let destination = HostPersistence(context: destinationContainer.mainContext)
         let library = HostLibraryModel(persistence: source)
         let journal = VaultSyncJournal(context: sourceContainer.mainContext)
-        var host = Host(name: "Server", host: "server.invalid")
+        var host = Host(
+            name: "Server", host: "server.invalid", startupSnippetID: UUID()
+        )
         library.upsert(host)
         host = try #require(library.host(host.id))
         let key = VaultRecordKey(kind: .host, id: host.id)

@@ -175,7 +175,12 @@ struct MobileHostEditor: View {
                         MobileTagField(tags: $draft.tags, suggestions: library.allTags)
                     }
                 }
-                HostIntegrationSection(mode: $draft.shellIntegrationMode)
+                HostIntegrationSection(
+                    mode: $draft.shellIntegrationMode,
+                    startupSnippetID: startupSnippetChoice,
+                    snippets: library.snippets,
+                    snippetPackagePath: library.snippetPackagePath
+                )
             }
         )
         .sheet(item: $editorRoute) { route in
@@ -231,6 +236,14 @@ struct MobileHostEditor: View {
             case .existing(let id): draft.groupID = id
             case .new: editorRoute = .group
             }
+        }
+    }
+
+    private var startupSnippetChoice: Binding<Snippet.ID?> {
+        Binding {
+            draft.startupSnippetID.flatMap { library.snippet($0)?.id }
+        } set: {
+            draft.startupSnippetID = $0
         }
     }
 

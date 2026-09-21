@@ -135,6 +135,72 @@ struct MobileCommandGeneratorTests {
         #expect(connections.shellIntegrationPreferences == [expected, !expected, expected])
     }
 
+    @Test func startupSnippetUsesExplicitLaunchOnceThenRefreshesOnReconnect() async throws {
+        var (host, library) = try commandFixture()
+        var startup = Snippet(title: "Startup", body: "echo first")
+        host.startupSnippetID = startup.id
+        library.upsert(startup)
+        library.upsert(host)
+        let connections = MobileSSHCommandConnectionBox()
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library,
+            connectionServices: connections.services,
+            initialCommand: "echo explicit"
+        )
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+        #expect(await eventually { workspace.connected })
+        #expect(connections.writes.isEmpty)
+        await connections.sendShellEvents([
+            .available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test")
+        ])
+        #expect(await eventually { connections.writes == [Data("echo explicit\r".utf8)] })
+
+        startup.body = "echo latest"
+        library.upsert(startup)
+        await connections.finishSession(.failure(.socket("test disconnect")), session: 0)
+        #expect(await eventually(attempts: 500) { connections.sessionCount == 2 && workspace.connected })
+        await connections.sendShellEvents(
+            [.available(shell: "bash", systemInfo: nil, homeDirectory: "/home/test")],
+            session: 1
+        )
+        #expect(
+            await eventually {
+                connections.writes == [
+                    Data("echo explicit\r".utf8),
+                    Data("echo latest\r".utf8),
+                ]
+            }
+        )
+    }
+
+    @Test func startupSnippetRunsImmediatelyWhenShellIntegrationIsDisabled() async throws {
+        var (host, library) = try commandFixture()
+        let startup = Snippet(title: "Startup", body: "export TERMIND_TEST=1")
+        host.startupSnippetID = startup.id
+        host.shellIntegrationMode = .disabled
+        library.upsert(startup)
+        library.upsert(host)
+        let connections = MobileSSHCommandConnectionBox()
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(hostID: host.id, title: host.name, kind: .ssh),
+            hosts: library,
+            connectionServices: connections.services
+        )
+        defer { workspace.disconnect() }
+
+        workspace.connect()
+
+        #expect(await eventually { workspace.connected })
+        #expect(
+            await eventually {
+                connections.writes == [Data("export TERMIND_TEST=1\r".utf8)]
+            }
+        )
+    }
+
     @Test func readsTheCurrentDraftAndInsertsWithoutExecuting() async throws {
         let (host, library) = try commandFixture()
         let connections = MobileSSHCommandConnectionBox()

@@ -97,6 +97,38 @@ struct SnippetFeatureTests {
     }
 
     @Test
+    func deletingSnippetsClearsOnlyMatchingHostStartupReferences() {
+        let package = SnippetPackage(name: "Startup")
+        let direct = Snippet(title: "Direct", body: "echo direct")
+        let packaged = Snippet(
+            title: "Packaged", body: "echo packaged", packageID: package.id
+        )
+        let retained = Snippet(title: "Retained", body: "echo retained")
+        let first = Host(
+            name: "First", host: "first.invalid", startupSnippetID: direct.id
+        )
+        let second = Host(
+            name: "Second", host: "second.invalid", startupSnippetID: packaged.id
+        )
+        let third = Host(
+            name: "Third", host: "third.invalid", startupSnippetID: retained.id
+        )
+        let store = HostLibraryModel(
+            hosts: [first, second, third], snippets: [direct, packaged, retained],
+            snippetPackages: [package]
+        )
+
+        store.delete(snippetIDs: [direct.id])
+        #expect(store.host(first.id)?.startupSnippetID == nil)
+        #expect(store.host(second.id)?.startupSnippetID == packaged.id)
+        #expect(store.host(third.id)?.startupSnippetID == retained.id)
+
+        store.delete(snippetPackageID: package.id, keepSnippets: false)
+        #expect(store.host(second.id)?.startupSnippetID == nil)
+        #expect(store.host(third.id)?.startupSnippetID == retained.id)
+    }
+
+    @Test
     func snippetPersistenceRoundTripKeepsPackagesTargetsAndLocalExpansion() throws {
         let configuration = localModelConfiguration(
             "SnippetFeatureTests", schema: HostPersistence.schema,

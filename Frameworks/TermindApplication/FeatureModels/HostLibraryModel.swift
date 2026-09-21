@@ -1699,6 +1699,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func delete(snippetIDs: [Snippet.ID]) {
         let doomed = Set(snippetIDs)
+        clearStartupSnippetReferences(to: doomed)
         snippets.removeAll { doomed.contains($0.id) }
         persistCore()
     }
@@ -1734,11 +1735,22 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 snippets[index].sortIndex = nextSnippetSortIndex(in: nil)
             }
         } else {
-            snippets.removeAll { $0.packageID.map(doomed.contains) == true }
+            let doomedSnippetIDs = Set(
+                snippets.lazy.filter { $0.packageID.map(doomed.contains) == true }.map(\.id)
+            )
+            clearStartupSnippetReferences(to: doomedSnippetIDs)
+            snippets.removeAll { doomedSnippetIDs.contains($0.id) }
         }
         snippetPackages.removeAll { doomed.contains($0.id) }
         reconcileExpansionState()
         persistCore()
+    }
+
+    private func clearStartupSnippetReferences(to snippetIDs: Set<Snippet.ID>) {
+        guard !snippetIDs.isEmpty else { return }
+        for index in hosts.indices where hosts[index].startupSnippetID.map(snippetIDs.contains) == true {
+            hosts[index].startupSnippetID = nil
+        }
     }
 
     public func move(

@@ -9,6 +9,7 @@ import struct TermindDomain.Host
 @MainActor
 public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func host(_ id: Host.ID) -> Host?
+    func snippet(_ id: Snippet.ID) -> Snippet?
     func identity(_ id: Identity.ID) -> Identity?
     func identity(for host: Host) -> Identity?
     func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity?
@@ -68,6 +69,7 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public func snippet(_ id: Snippet.ID) -> Snippet? { nil }
     public func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity? { nil }
     public var customPasswordStorage: PasswordStorage { .iCloud }
 

@@ -109,6 +109,8 @@ final class MobileWorkspace: Identifiable {
     private var shellIntegrationAvailable = false
     private var isInitialCommandSubmissionReady = false
     private var pendingCommand: MobilePendingInitialCommand?
+    /// Re-resolved from the Host and Snippet library for each physical terminal shell.
+    private var pendingConnectionStartupCommand: MobilePendingInitialCommand?
     private var commandExcludedFromHistory: String?
     private var pendingInitialSFTPPath: String?
     var pendingInitialCommand: String? { pendingCommand?.command }
@@ -505,6 +507,7 @@ final class MobileWorkspace: Identifiable {
         isShellPromptReady = false
         shellIntegrationAvailable = false
         isInitialCommandSubmissionReady = false
+        pendingConnectionStartupCommand = nil
         workingDirectory = nil
         commandExcludedFromHistory = nil
         commandDraft.cancel()
@@ -601,6 +604,15 @@ final class MobileWorkspace: Identifiable {
         }
         isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
             globalSetting: terminalSettings.preferences.shellIntegration)
+        if descriptor.kind == .ssh, pendingCommand == nil,
+            let snippetID = host.startupSnippetID,
+            let body = hosts.snippet(snippetID)?.body,
+            !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            pendingConnectionStartupCommand = MobilePendingInitialCommand(
+                command: body, recordsInHistory: true
+            )
+        }
         let route = hosts.route(for: host)
         journey.begin(
             host: host, route: route,
@@ -824,17 +836,25 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
-    /// Consumes the launch-only command before it is written. Reconnects and
-    /// restored descriptors therefore cannot replay a script.
+    /// Consumes the explicit launch command once, then the Startup Snippet that
+    /// was freshly resolved for this physical terminal shell.
     func consumePendingInitialCommand() -> String? {
-        guard let pendingCommand else { return nil }
-        self.pendingCommand = nil
-        if !pendingCommand.recordsInHistory {
+        let command: MobilePendingInitialCommand
+        if let explicit = pendingCommand {
+            command = explicit
+            pendingCommand = nil
+        } else if let startup = pendingConnectionStartupCommand {
+            command = startup
+            pendingConnectionStartupCommand = nil
+        } else {
+            return nil
+        }
+        if !command.recordsInHistory {
             commandExcludedFromHistory = CommandHistoryEntry.normalizingLineContinuations(
-                in: pendingCommand.command
+                in: command.command
             )
         }
-        return pendingCommand.command
+        return command.command
     }
 
     private func submitPendingInitialCommandIfReady() {
@@ -1014,6 +1034,7 @@ final class MobileWorkspace: Identifiable {
 
         activeHistoryID = nil
         pendingCommand = nil
+        pendingConnectionStartupCommand = nil
         pendingInitialSFTPPath = nil
         commandExcludedFromHistory = nil
         generation = UUID()

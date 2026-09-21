@@ -257,6 +257,8 @@ final class SSHSessionModel: Identifiable {
         var recordsInHistory: Bool
     }
     private var pendingInitialCommand: PendingInitialCommand?
+    /// Re-resolved from the Host and Snippet library for each physical terminal shell.
+    private var pendingConnectionStartupCommand: PendingInitialCommand?
     private var commandExcludedFromHistory: String?
     private var isInitialCommandSubmissionReady = false
 
@@ -440,6 +442,7 @@ final class SSHSessionModel: Identifiable {
         isShellPromptReady = false
         shellIntegrationAvailable = false
         isInitialCommandSubmissionReady = false
+        pendingConnectionStartupCommand = nil
         activeShellCommand = nil
         commandDraft.cancel()
         invalidateCommandGeneration()
@@ -470,7 +473,6 @@ final class SSHSessionModel: Identifiable {
         ssh = nil
         guard let host = connectionHost(hostID, using: store) else {
             connection.stopRecovery()
-            pendingInitialCommand = nil
             connectionAttemptID = nil
             status = .failed(String(localized: "The host is no longer available."))
             connectionJourney.fail(String(localized: "The host is no longer available."))
@@ -478,6 +480,15 @@ final class SSHSessionModel: Identifiable {
         }
         isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
             globalSetting: DesktopSettingsKey.isShellIntegrationEnabled)
+        if pendingInitialCommand == nil,
+            let snippetID = host.startupSnippetID,
+            let body = store.snippet(snippetID)?.body,
+            !body.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+            pendingConnectionStartupCommand = PendingInitialCommand(
+                command: body, recordsInHistory: true
+            )
+        }
         homeResolution = isShellIntegrationEnabled ? .pending : .unavailable
         let route = connectionRoute?.hosts ?? store.route(for: host)
         let identity = store.identity(for: host)
@@ -660,7 +671,6 @@ final class SSHSessionModel: Identifiable {
                 )
                 return
             }
-            pendingInitialCommand = nil
             connectionAttemptID = nil
             handleConnectionAttemptFailure(
                 error, store: store, reconnecting: reconnecting
@@ -858,6 +868,7 @@ final class SSHSessionModel: Identifiable {
         homeResolution = .unavailable
         transferSnapshot = nil
         pendingInitialCommand = nil
+        pendingConnectionStartupCommand = nil
         commandExcludedFromHistory = nil
         pendingAuthentication = nil
         suppliedAuthentications.removeAll()
@@ -995,7 +1006,6 @@ final class SSHSessionModel: Identifiable {
         if connection.hasConnectedOnce || reconnecting {
             scheduleReconnect(after: error.localizedDescription, using: store)
         } else {
-            pendingInitialCommand = nil
             status = .failed(error.localizedDescription)
             connectionJourney.fail(
                 error.localizedDescription, at: (error as? TermindSSHError)?.routeHostID
@@ -1263,11 +1273,20 @@ final class SSHSessionModel: Identifiable {
         }
     }
 
-    /// Submits the one-shot startup command. Keeping the History exclusion next
-    /// to the write ensures it is armed only when the command actually runs.
+    /// Submits an explicit one-shot launch command, or this connection's freshly
+    /// resolved Host startup command. Keeping the History exclusion next to the
+    /// write ensures it is armed only when the command actually runs.
     func submitPendingInitialCommand() {
-        guard let initialCommand = pendingInitialCommand else { return }
-        pendingInitialCommand = nil
+        let initialCommand: PendingInitialCommand
+        if let explicit = pendingInitialCommand {
+            initialCommand = explicit
+            pendingInitialCommand = nil
+        } else if let startup = pendingConnectionStartupCommand {
+            initialCommand = startup
+            pendingConnectionStartupCommand = nil
+        } else {
+            return
+        }
         if !initialCommand.recordsInHistory {
             commandExcludedFromHistory = CommandHistoryEntry.normalizingLineContinuations(
                 in: initialCommand.command

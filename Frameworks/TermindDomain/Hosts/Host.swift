@@ -90,6 +90,9 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     public var tags: [String] = []
     public var colorTag: TagColor = .none
     public var shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings
+    /// A reusable script submitted after each interactive SSH shell becomes ready.
+    /// The body is resolved from the Snippet library for every connection attempt.
+    public var startupSnippetID: Snippet.ID?
     /// Physical SSH connections available to local and dynamic forwarding on supported platforms.
     public var portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
     /// Last distribution reported by Shell Integration for this saved Host.
@@ -145,6 +148,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         groupID: HostGroup.ID? = nil, tags: [String] = [], colorTag: TagColor = .none,
         detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
         shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
+        startupSnippetID: Snippet.ID? = nil,
         portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
     ) {
         self.id = id
@@ -161,6 +165,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.detectedDistribution = detectedDistribution
         self.sortIndex = sortIndex
         self.shellIntegrationMode = shellIntegrationMode
+        self.startupSnippetID = startupSnippetID
         self.portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
             portForwardingMaxConnections)
     }
@@ -169,7 +174,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         case id, name, host, port, identityID, jumpHostID, proxy
         case sftpChannelInitialPath = "sftpSessionInitialPath"
         case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
-        case portForwardingMaxConnections
+        case startupSnippetID, portForwardingMaxConnections
     }
 
     public init(from decoder: any Decoder) throws {
@@ -190,6 +195,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         shellIntegrationMode =
             try values.decodeIfPresent(String.self, forKey: .shellIntegrationMode)
             .flatMap(HostShellIntegrationMode.init(rawValue:)) ?? .followGlobalSettings
+        startupSnippetID = try values.decodeIfPresent(Snippet.ID.self, forKey: .startupSnippetID)
         portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
             try values.decodeIfPresent(Int.self, forKey: .portForwardingMaxConnections)
                 ?? Self.defaultPortForwardingMaxConnections)

@@ -207,6 +207,9 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   override/global once before auth for bootstrap/History/generator/system info/directory actions. Live edits never inject or
   reconnect; new reconnects resolve again. Mobile integration/exit uses one ordered MainActor consumer retired on close/
   reconnect/expiration. Prompt markers are idempotent; Bash DEBUG excludes `__termind_*` helpers from History/busy state.
+- Host Startup Snippet is a Vault-synced optional Snippet ID (V26). Every interactive SSH shell resolves the current body and
+  submits it once at the authenticated prompt boundary, including automatic reconnects; explicit launch commands override only
+  until submitted. Missing/empty Snippets are no-ops. SFTP, forwarding, Metrics, Agent and route connections never run it.
 - History starts after authenticated start, retains optional remote status/duration (never receive-time inference), normalizes
   backslash continuation only and caps at 1,000 rows/Host. Both UIs show first line plus ellipsis.
 
