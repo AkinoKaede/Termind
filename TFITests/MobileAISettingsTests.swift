@@ -198,10 +198,6 @@ struct MobileAISettingsTests {
         #expect(!probes.running)
     }
 
-    @Test func memoryFollowsMCPInAISettings() {
-        #expect(MobileAISettingsDestination.allCases == [.models, .skills, .mcp, .memory])
-    }
-
     @Test func skillsSaveAsDraftsThenLockNamesWithoutChangingRemoteFields() throws {
         let library = SkillLibraryModel()
         let new = MobileSkillEditorModel(library: library, skill: AgentSkill(name: ""))

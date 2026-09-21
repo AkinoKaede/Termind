@@ -258,6 +258,20 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
   authorized-Key tests passed; all 381 Framework tests passed. The default macOS run finished with 1,792 passed, 64
   opt-in skips and no failures. Changed-file strict formatting, diff checks and Chinese localization passed.
 
+### 2026-09-21 — low-value test scan
+
+- **Evidence:** the macOS and iOS `ProviderHTTPIntegrationTests.swift` files were byte-for-byte identical, imported only
+  `AgentKit` and `TermindApplication`, and exercised no platform adapter. `memoryFollowsMCPInAISettings` only repeated the
+  declaration order of a four-case `CaseIterable` enum. `connectionsCategoryUsesTheConnectSymbol` only repeated one
+  direct `switch` return. The scan also reviewed the smallest suites and literal assertions; tests protecting escaping,
+  persistence compatibility, migrations, secrets, runtime library linkage and user-visible behavior remain.
+- **Action:** retain one HTTP integration smoke test in the macOS suite and delete the identical iOS copy; remove the two
+  declaration snapshots. No production code or test behavior is replaced.
+- **Result:** removed one duplicate file and two low-value tests, reducing test code by 40 lines.
+- **Verification:** the focused macOS suite passed two tests with its opt-in rendering case skipped by default; the focused
+  iOS suite passed all 23 tests. Strict formatting for changed Swift files, duplicate-file scan, diff checks and Chinese
+  localization validation passed.
+
 ### 2026-09-21 — shared Host Custom Identity editing (complete)
 
 - **Evidence:** `HostEditorView` and `MobileHostEditor` independently retain and load the same Custom SSH/Proxy Identity

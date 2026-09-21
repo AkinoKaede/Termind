@@ -8,10 +8,6 @@ import Testing
 
 @Suite(.serialized) @MainActor
 struct SFTPSettingsIntegrationTests {
-    @Test func connectionsCategoryUsesTheConnectSymbol() {
-        #expect(SettingsCategory.connections.symbol == MenuSymbol.connect)
-    }
-
     @Test func localAndRemoteChangesReachTheQueueWithoutOpeningSettings() {
         let settings = SFTPSettingsModel()
         let app = AppModel(hosts: HostLibraryModel(), sftpSettings: settings)
