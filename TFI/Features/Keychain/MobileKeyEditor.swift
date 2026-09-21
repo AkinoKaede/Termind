@@ -154,10 +154,10 @@ struct MobileKeyEditor: View {
 
     private var storagePicker: some View {
         Picker("Store in", selection: $model.storage) {
-            Text("This Device").tag(KeyStorage.thisDevice)
-            Text("iCloud").tag(KeyStorage.iCloud)
+            Label("This Device", systemImage: "ipad.and.iphone").tag(KeyStorage.thisDevice)
+            Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
             if model.mode == .generate && model.canUseEnclave {
-                Text("Secure Enclave").tag(KeyStorage.secureEnclave)
+                Label("Secure Enclave", systemImage: "checkmark.shield.fill").tag(KeyStorage.secureEnclave)
             }
         }
         .disabled(!model.canEditPrivateKey || !model.canSelectThisDevice)

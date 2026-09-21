@@ -44,7 +44,7 @@ public struct IdentityFormSections: View {
             }
             VaultColorField(selection: $colorTag)
         }
-        Section("Authentication") {
+        Section("Identity") {
             LabeledContent("Username") {
                 TextField("Username", text: $username.singleLineText, axis: .horizontal)
                     .singleLinePaste()
@@ -56,15 +56,25 @@ public struct IdentityFormSections: View {
                         .autocorrectionDisabled()
                     #endif
             }
-            RevealableSecretField("Password", text: $password, prompt: Text("Optional"))
-                .multilineTextAlignment(.trailing)
-                .disabled(!canEditPassword)
-            Picker("Store password in", selection: $passwordStorage) {
+            Picker("Store Password in", selection: $passwordStorage) {
                 ForEach(PasswordStorage.allCases) { storage in
-                    Label(storage.displayName, systemImage: storage.symbol).tag(storage)
+                    #if os(iOS)
+                        Label(
+                            storage == .thisDevice ? String(localized: "This Device") : storage.displayName,
+                            systemImage: storage == .thisDevice ? "ipad.and.iphone" : storage.symbol
+                        )
+                        .tag(storage)
+                    #else
+                        Label(storage.displayName, systemImage: storage.symbol).tag(storage)
+                    #endif
                 }
             }
             .disabled(!canEditPasswordStorage)
+            LabeledContent("Password") {
+                RevealableSecretField("Password", text: $password, prompt: Text("Optional"))
+                    .multilineTextAlignment(.trailing)
+                    .disabled(!canEditPassword)
+            }
             if showsKey {
                 Picker("Key", selection: $keyID) {
                     Text("None").tag(SSHKeyRef.ID?.none)

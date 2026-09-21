@@ -277,7 +277,7 @@ extension PasswordStorage {
 
     fileprivate var mobileSymbol: String {
         switch self {
-        case .thisDevice: "lock.fill"
+        case .thisDevice: "ipad.and.iphone"
         case .iCloud: "icloud.fill"
         }
     }
@@ -294,7 +294,7 @@ extension KeyStorage {
 
     fileprivate var mobileSymbol: String {
         switch self {
-        case .thisDevice: "lock.fill"
+        case .thisDevice: "ipad.and.iphone"
         case .iCloud: "icloud.fill"
         case .secureEnclave: "checkmark.shield.fill"
         }
