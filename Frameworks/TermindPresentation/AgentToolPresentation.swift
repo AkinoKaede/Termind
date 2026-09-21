@@ -994,6 +994,39 @@ nonisolated public enum AgentToolPresentation {
         _ kind: AgentToolDescriptor.Presentation.PhaseKind,
         activity: String, target: String?, locale: Locale
     ) -> String {
+        // Commands already carry their own shell punctuation. English reads
+        // more naturally without another pair of prose quotes around the
+        // entire command, while Chinese uses quotation marks to separate the
+        // command from the surrounding sentence.
+        if !isChinese(locale) {
+            return switch kind {
+            case .sshPreparingCommand:
+                target.map { "Preparing to run \(activity) on \($0)" }
+                    ?? "Preparing to run \(activity)"
+            case .sshWaitingForCommand:
+                target.map { "Waiting to run \(activity) on \($0)" }
+                    ?? "Waiting to run \(activity)"
+            case .sshWaitingForAuthentication:
+                target.map { "Waiting to authenticate with \($0)" }
+                    ?? "Waiting for authentication"
+            case .sshConnecting:
+                target.map { "Connecting to \($0)" } ?? "Connecting"
+            case .sshRunningCommand:
+                target.map { "Running \(activity) on \($0)" } ?? "Running \(activity)"
+            case .sshCompletedCommand:
+                target.map { "Ran \(activity) on \($0)" } ?? "Ran \(activity)"
+            case .sshDeniedCommand:
+                target.map { "Did not run \(activity) on \($0)" }
+                    ?? "Did not run \(activity)"
+            case .sshFailedCommand:
+                target.map { "Failed to run \(activity) on \($0)" }
+                    ?? "Failed to run \(activity)"
+            case .sshInterruptedCommand:
+                target.map { "Stopped waiting for \(activity) on \($0)" }
+                    ?? "Stopped waiting for \(activity)"
+            default: activity
+            }
+        }
         switch kind {
         case .sshPreparingCommand:
             return target.map {

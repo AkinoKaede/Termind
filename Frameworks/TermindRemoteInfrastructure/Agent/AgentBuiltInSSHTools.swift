@@ -303,15 +303,15 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                     "interrupted": .sshInterruptedCommand,
                 ],
                 messages: [
-                    "proposed": "Preparing to run “{activity}” on {target}",
-                    "waitingForApproval": "Waiting to run “{activity}” on {target}",
+                    "proposed": "Preparing to run {activity} on {target}",
+                    "waitingForApproval": "Waiting to run {activity} on {target}",
                     "waitingForUser": "Waiting to authenticate with {target}",
                     "running": "Connecting to {target}",
-                    "command": "Running “{activity}” on {target}",
-                    "completed": "Ran “{activity}” on {target}",
-                    "denied": "Did not run “{activity}” on {target}",
-                    "failed": "Failed to run “{activity}” on {target}",
-                    "interrupted": "Stopped waiting for “{activity}” on {target}",
+                    "command": "Running {activity} on {target}",
+                    "completed": "Ran {activity} on {target}",
+                    "denied": "Did not run {activity} on {target}",
+                    "failed": "Failed to run {activity} on {target}",
+                    "interrupted": "Stopped waiting for {activity} on {target}",
                 ]
             )
         )

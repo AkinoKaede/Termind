@@ -823,6 +823,91 @@ struct AgentToolPresentationTests {
     }
 
     @Test
+    func sshCommandSummaryUsesLocaleAppropriatePunctuationAcrossCommandPhases() {
+        let command = "printf hello\nworld"
+        let current = AgentToolDescriptor.Presentation(
+            symbol: "terminal",
+            activity: .semanticArgument(key: "command", fallback: .sshCommand),
+            output: .streams, actionKind: .run,
+            phaseKinds: [
+                "proposed": .sshPreparingCommand,
+                "waitingForApproval": .sshWaitingForCommand,
+                "running": .sshConnecting,
+                "command": .sshRunningCommand,
+                "completed": .sshCompletedCommand,
+                "denied": .sshDeniedCommand,
+                "failed": .sshFailedCommand,
+                "interrupted": .sshInterruptedCommand,
+            ]
+        )
+        let legacy = AgentToolDescriptor.Presentation(
+            symbol: "terminal",
+            activity: .argument(key: "command", fallback: "the SSH command"),
+            output: .streams, actionKind: .run
+        )
+        let states: [(AgentToolCard.State, String?)] = [
+            (.proposed, nil), (.reviewing, nil), (.waitingForApproval, nil),
+            (.running, "command"), (.completed, nil), (.denied, nil),
+            (.failed, nil), (.interrupted, nil),
+        ]
+        let locales: [(String, String?, String?)] = [
+            ("en", nil, nil),
+            ("zh-Hans", "“", "”"),
+            ("zh-Hant", "「", "」"),
+        ]
+
+        for presentation in [current, legacy] {
+            for (identifier, openingQuote, closingQuote) in locales {
+                for hostName in [String?.none, "Production"] {
+                    for (state, phase) in states {
+                        var card = makeCard(
+                            name: "ssh_exec", target: .host,
+                            arguments: ["command": .string(command)],
+                            presentation: presentation
+                        )
+                        card.state = state
+                        if let phase {
+                            card.result = AgentToolResult(
+                                callID: "call", content: "",
+                                metadata: ["presentation_phase": .string(phase)]
+                            )
+                        }
+
+                        let title = AgentToolPresentation.summary(
+                            for: card, hostName: hostName,
+                            locale: Locale(identifier: identifier)
+                        )
+                        let normalizedCommand = "printf hello world"
+                        #expect(title.contains(normalizedCommand))
+                        #expect(!title.contains("\n"))
+                        if let openingQuote, let closingQuote {
+                            #expect(title.contains("\(openingQuote)\(normalizedCommand)\(closingQuote)"))
+                        } else {
+                            #expect(!title.contains("“\(normalizedCommand)”"))
+                            #expect(!title.contains("「\(normalizedCommand)」"))
+                        }
+                    }
+                }
+            }
+        }
+
+        var example = makeCard(
+            name: "ssh_exec", target: .host,
+            arguments: ["command": .string(command)], presentation: current
+        )
+        example.state = .running
+        example.result = AgentToolResult(
+            callID: "call", content: "",
+            metadata: ["presentation_phase": .string("command")]
+        )
+        #expect(
+            AgentToolPresentation.summary(
+                for: example, hostName: "Production", locale: Locale(identifier: "en")
+            ) == "Running printf hello world on Production"
+        )
+    }
+
+    @Test
     func legacyCountedArrayActivityStillDecodes() throws {
         let activity = AgentToolDescriptor.Presentation.Activity.arrayCount(
             key: "questions", singular: "a question", plural: "questions",
