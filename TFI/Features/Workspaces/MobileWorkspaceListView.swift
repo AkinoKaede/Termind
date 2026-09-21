@@ -195,69 +195,86 @@ struct MobileWorkspaceListView: View {
     @ViewBuilder
     private var historyRowsContent: some View {
         ForEach(historyRows) { row in
-            Button {
-                scene.open(hostID: row.host.id, kind: row.entry.kind)
-            } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: row.entry.kind.symbol)
-                        .foregroundStyle(.tint)
-                        .frame(width: 28, height: 28)
-                        .accessibilityLabel(Text(row.entry.kind.label))
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(alignment: .center, spacing: 12) {
-                            Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
-                            Spacer(minLength: 12)
-                            Text(row.entry.kind.label)
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .accessibilityHidden(true)
-                        }
-                        HStack(alignment: .center, spacing: 12) {
-                            Text(row.loginAddress)
-                                .font(.caption.monospaced())
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                                .truncationMode(.middle)
-                            Spacer(minLength: 12)
-                            Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .lineLimit(1)
-                        }
+            historyButton(row)
+                .contextMenu {
+                    ForEach(MobileConnectionHistoryActionPolicy.menuKinds, id: \.self) { kind in
+                        historyConnectionButton(kind, for: row)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Divider()
+                    Button("Delete", systemImage: "trash", role: .destructive) {
+                        app.connectionHistory.delete(row.entry.id)
+                    }
+                }
+                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                    Button("Delete", systemImage: "trash", role: .destructive) {
+                        app.connectionHistory.delete(row.entry.id)
+                    }
+                    ForEach(MobileConnectionHistoryActionPolicy.swipeKinds, id: \.self) { kind in
+                        historyConnectionButton(kind, for: row)
+                            .tint(swipeTint(for: kind))
+                    }
+                }
+        }
+    }
+
+    private func historyButton(_ row: MobileConnectionHistoryRow) -> some View {
+        Button {
+            guard row.canOpen else { return }
+            scene.open(hostID: row.host.id, kind: row.entry.kind)
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: row.entry.kind.symbol)
+                    .foregroundStyle(.tint)
+                    .frame(width: 28, height: 28)
+                    .accessibilityLabel(Text(row.entry.kind.label))
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .center, spacing: 12) {
+                        Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
+                        Spacer(minLength: 12)
+                        Text(row.entry.kind.label)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .accessibilityHidden(true)
+                    }
+                    HStack(alignment: .center, spacing: 12) {
+                        Text(row.loginAddress)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                        Spacer(minLength: 12)
+                        Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .contentShape(.rect)
-                .accessibilityElement(children: .combine)
             }
-            .buttonStyle(.plain)
-            .contextMenu {
-                Button("SSH", systemImage: "terminal") {
-                    scene.open(hostID: row.host.id, kind: .ssh)
-                }
-                Button("SFTP", systemImage: "folder") {
-                    scene.open(hostID: row.host.id, kind: .sftp)
-                }
-                Divider()
-                Button("Delete", systemImage: "trash", role: .destructive) {
-                    app.connectionHistory.delete(row.entry.id)
-                }
-            }
-            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                Button("Delete", systemImage: "trash", role: .destructive) {
-                    app.connectionHistory.delete(row.entry.id)
-                }
-                Button("SFTP", systemImage: "folder") {
-                    scene.open(hostID: row.host.id, kind: .sftp)
-                }
-                .tint(.orange)
-                Button("SSH", systemImage: "terminal") {
-                    scene.open(hostID: row.host.id, kind: .ssh)
-                }
-                .tint(.blue)
-            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(.rect)
+            .accessibilityElement(children: .combine)
+        }
+        .buttonStyle(.plain)
+        .disabled(!row.canOpen)
+    }
+
+    private func historyConnectionButton(
+        _ kind: ConnectionHistoryEntry.Kind, for row: MobileConnectionHistoryRow
+    ) -> some View {
+        Button(kind.label, systemImage: kind.symbol) {
+            guard MobileConnectionHistoryActionPolicy.isAvailable(kind, for: row.host) else { return }
+            scene.open(hostID: row.host.id, kind: kind)
+        }
+        .disabled(!MobileConnectionHistoryActionPolicy.isAvailable(kind, for: row.host))
+    }
+
+    private func swipeTint(for kind: ConnectionHistoryEntry.Kind) -> Color {
+        switch kind {
+        case .ssh: .blue
+        case .telnet: .purple
+        case .sftp: .orange
         }
     }
 

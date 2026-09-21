@@ -33,7 +33,7 @@ struct MobileVaultFeatureTests {
     @Test func hostMenuSeparatesConnectionEditingAndDeletionActions() {
         #expect(
             MobileHostMenuPolicy.sections == [
-                [.ssh, .sftp],
+                [.ssh, .telnet, .sftp],
                 [.edit, .duplicate],
                 [.delete],
             ])
