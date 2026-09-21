@@ -257,3 +257,23 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
 - **Verification:** macOS and generic iOS Simulator builds passed. Fifty-three focused authentication, Agent and
   authorized-Key tests passed; all 381 Framework tests passed. The default macOS run finished with 1,792 passed, 64
   opt-in skips and no failures. Changed-file strict formatting, diff checks and Chinese localization passed.
+
+### 2026-09-21 — shared Host Custom Identity editing (complete)
+
+- **Evidence:** `HostEditorView` and `MobileHostEditor` independently retain and load the same Custom SSH/Proxy Identity
+  fields, decide password editability, validate the same authentication combinations and perform the same Identity-before-
+  Host save sequence. Host deletion already filters projected and persistent identities by `ownerHostID`, but its tests cover
+  only one SSH Identity through the projection helper rather than both purposes through app and outbox entry points.
+- **Action:** introduce one Application-owned, memory-only Custom Identity draft for both native Host editors; retain their
+  platform controls, routes and navigation. Add end-to-end deletion coverage for SSH and proxy Custom Identities, their
+  passwords and unrelated Identity retention, and remove the inaccurate `legacy` prefix from the strict envelope test name.
+- **Expected reduction:** delete the duplicated Host-editor loading, validation and saving helpers. Record the measured
+  production-line change and focused/full verification after implementation; no reduction claim is made while in progress.
+- **Result:** one Application-owned `HostCustomIdentityDraft` now serves both native editors without persisting or describing
+  plaintext. It centralizes selection, availability, validation and Identity-before-Host saves, including metadata edits with
+  unavailable proxy passwords. Host deletion tests now cover both Custom purposes, Keychain failure reporting, app entry points
+  and selective SwiftData finalization. Production changed +204/−220 lines (net −16); no schema or localization changed.
+- **Verification:** macOS focused Identity/draft/outbox/envelope suites and the 25-test mobile Vault suite passed; TFM and generic
+  iOS Simulator builds passed. The default macOS run recorded 1,831 passed, 64 opt-in skips and two unrelated concurrent Agent
+  timing failures; both complete Agent suites passed immediately on focused rerun (35/35). Recursive strict formatting, diff
+  checks and Chinese localization checks passed.

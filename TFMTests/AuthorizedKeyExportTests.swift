@@ -37,7 +37,7 @@ struct AuthorizedKeyExportTests {
     }
 
     @Test
-    func legacyPrivateKeyEnvelopeRequiresACompleteJSONObject() throws {
+    func privateKeyEnvelopeRequiresACompleteJSONObject() throws {
         var encoded = try JSONEncoder().encode(
             SSHPrivateKeySecret(privateKey: "-----BEGIN TEST-----\nsecret\n-----END TEST-----")
         )

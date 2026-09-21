@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 
@@ -25,11 +26,7 @@ struct HostEditorView: View {
     @State private var route: Route?
     @State private var saveError: String?
     @State private var didLoad = false
-    @State private var customUsername = ""
-    @State private var customPassword = ""
-    @State private var customKeyID: SSHKeyRef.ID?
-    @State private var proxyUsesCustom = false
-    @State private var proxyCustomPassword = ""
+    @State private var customIdentity = HostCustomIdentityDraft()
 
     init(hostID: Host.ID?, initialGroupID: HostGroup.ID? = nil) {
         self.hostID = hostID
@@ -93,13 +90,13 @@ struct HostEditorView: View {
                 }
 
                 if usesCustomIdentity {
-                    TextField("Username", text: $customUsername.singleLineText, axis: .horizontal)
+                    TextField("Username", text: $customIdentity.sshUsername.singleLineText, axis: .horizontal)
                         .singleLinePaste().lineLimit(1)
                         .padding(.leading, Metrics.Space.xxl)
-                    RevealableSecretField("Password", text: $customPassword, prompt: Text("Optional"))
+                    RevealableSecretField("Password", text: $customIdentity.sshPassword, prompt: Text("Optional"))
                         .padding(.leading, Metrics.Space.xxl)
-                        .disabled(!customPasswordEditable)
-                    Picker("Key", selection: $customKeyID) {
+                        .disabled(!customIdentity.sshPasswordIsEditable)
+                    Picker("Key", selection: $customIdentity.sshKeyID) {
                         Text("None").tag(SSHKeyRef.ID?.none)
                         ForEach(app.hostLibrary.keys) { key in
                             Text(key.label).tag(SSHKeyRef.ID?.some(key.id))
@@ -155,14 +152,14 @@ struct HostEditorView: View {
                     }
                     .padding(.leading, Metrics.Space.xxl)
                     .accessibilityLabel("Proxy Identity")
-                    if proxyUsesCustom {
+                    if customIdentity.usesCustomProxy {
                         TextField("Username", text: proxyString(\.username).singleLineText, axis: .horizontal)
                             .singleLinePaste().lineLimit(1)
                             .padding(.leading, Metrics.Space.xxl)
                             .accessibilityLabel("Proxy Username")
-                        RevealableSecretField("Password", text: $proxyCustomPassword, prompt: Text("Required"))
+                        RevealableSecretField("Password", text: $customIdentity.proxyPassword, prompt: Text("Required"))
                             .padding(.leading, Metrics.Space.xxl)
-                            .disabled(!proxyCustomPasswordEditable)
+                            .disabled(!customIdentity.proxyPasswordIsEditable)
                     } else if draft.proxy?.identityID != nil {
                         TextField("Username", text: proxyString(\.username).singleLineText, axis: .horizontal)
                             .singleLinePaste()
@@ -285,8 +282,7 @@ struct HostEditorView: View {
             ) {
                 identity, passwordUpdate in
                 try app.hostLibrary.upsert(identity, passwordUpdate: passwordUpdate)
-                draft.proxy?.identityID = identity.id
-                draft.proxy?.username = identity.username
+                customIdentity.selectProxyIdentity(identity, on: &draft)
             }
 
         }
@@ -325,8 +321,10 @@ struct HostEditorView: View {
         } set: { choice in
             switch choice {
             case .unset, .custom:
-                draft.identityID = app.hostLibrary.customIdentity(for: draft.id, purpose: .ssh)?.id
-            case .existing(let id): draft.identityID = id
+                customIdentity.selectCustomSSH(on: &draft)
+            case .existing(let id):
+                guard let identity = app.hostLibrary.identity(id) else { return }
+                customIdentity.selectSSHIdentity(identity, on: &draft)
             case .new: route = .identity
             }
         }
@@ -443,25 +441,17 @@ struct HostEditorView: View {
 
     private var proxyIdentityChoice: Binding<Choice<Identity.ID>> {
         Binding {
-            if proxyUsesCustom { return .custom }
+            if customIdentity.usesCustomProxy { return .custom }
             return draft.proxy?.identityID.map(Choice.existing) ?? .unset
         } set: { choice in
             switch choice {
             case .unset:
-                proxyUsesCustom = false
-                draft.proxy?.identityID = nil
-                draft.proxy?.username = ""
+                customIdentity.clearProxyIdentity(on: &draft)
             case .custom:
-                proxyUsesCustom = true
-                let custom = app.hostLibrary.customIdentity(for: draft.id, purpose: .proxy)
-                draft.proxy?.identityID = custom?.id
-                draft.proxy?.username = custom?.username ?? ""
-                loadProxyPassword(custom)
+                customIdentity.selectCustomProxy(on: &draft, using: app.hostLibrary)
             case .existing(let id):
-                proxyUsesCustom = false
-                draft.proxy?.identityID = id
                 guard let identity = app.hostLibrary.identity(id) else { return }
-                draft.proxy?.username = identity.username
+                customIdentity.selectProxyIdentity(identity, on: &draft)
             case .new:
                 route = .proxyIdentity
             }
@@ -473,20 +463,7 @@ struct HostEditorView: View {
     }
 
     private var usesCustomIdentity: Bool {
-        guard let id = draft.identityID else { return true }
-        return app.hostLibrary.identity(id)?.isHostCustom == true
-    }
-
-    private var customPasswordEditable: Bool {
-        guard let identity = app.hostLibrary.customIdentity(for: draft.id, purpose: .ssh), identity.usesPassword
-        else { return true }
-        return app.hostLibrary.passwordAvailability(for: identity) == .available
-    }
-
-    private var proxyCustomPasswordEditable: Bool {
-        guard let identity = app.hostLibrary.customIdentity(for: draft.id, purpose: .proxy), identity.usesPassword
-        else { return true }
-        return app.hostLibrary.passwordAvailability(for: identity) == .available
+        customIdentity.usesCustomSSH(for: draft)
     }
 
     private var footer: some View {
@@ -521,8 +498,8 @@ struct HostEditorView: View {
     private var isValid: Bool {
         !draft.host.trimmingCharacters(in: .whitespaces).isEmpty
             && (1...65_535).contains(draft.port)
-            && proxyIsValid
-            && customIsValid
+            && customIdentity.isProxyValid(for: draft)
+            && customIdentity.isSSHValid(for: draft)
             && (draft.sftpChannelInitialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || draft.sftpChannelInitialPath.hasPrefix("/"))
             && app.hostLibrary.validatedRoute(for: draft) != nil
@@ -537,18 +514,7 @@ struct HostEditorView: View {
         guard !didLoad else { return }
         didLoad = true
         load()
-        let custom = app.hostLibrary.customIdentity(for: draft.id, purpose: .ssh)
-        customUsername = custom?.username ?? ""
-        customKeyID = custom?.keyID
-        if let custom, case .available = app.hostLibrary.passwordAvailability(for: custom) {
-            customPassword = (try? app.hostLibrary.editablePassword(for: custom)) ?? ""
-        }
-        if let custom = app.hostLibrary.customIdentity(for: draft.id, purpose: .proxy),
-            draft.proxy?.identityID == custom.id
-        {
-            proxyUsesCustom = true
-            loadProxyPassword(custom)
-        }
+        customIdentity = HostCustomIdentityDraft(host: draft, library: app.hostLibrary)
     }
 
     /// No tag bookkeeping here: `TagField` writes chips straight into
@@ -557,58 +523,12 @@ struct HostEditorView: View {
         let initialPath = draft.sftpChannelInitialPath.trimmingCharacters(in: .whitespacesAndNewlines)
         draft.sftpChannelInitialPath = initialPath.isEmpty ? "" : RemotePath.normalized(initialPath)
         do {
-            if usesCustomIdentity {
-                let identity = try app.hostLibrary.saveCustomIdentity(
-                    ownerHostID: draft.id, purpose: .ssh, displayName: draft.name,
-                    username: customUsername, password: customPassword, keyID: customKeyID)
-                draft.identityID = identity?.id
-            }
-            if proxyUsesCustom, let proxy = draft.proxy {
-                let identity = try app.hostLibrary.saveCustomIdentity(
-                    ownerHostID: draft.id, purpose: .proxy, displayName: "\(draft.name) Proxy",
-                    username: proxy.username, password: proxyCustomPassword, keyID: nil)
-                draft.proxy?.identityID = identity?.id
-            } else if draft.proxy == nil {
-                _ = try app.hostLibrary.saveCustomIdentity(
-                    ownerHostID: draft.id, purpose: .proxy, displayName: "",
-                    username: "", password: "", keyID: nil)
-            }
+            try customIdentity.save(into: &draft, using: app.hostLibrary)
         } catch {
             saveError = error.localizedDescription
             return
         }
-        if app.hostLibrary.saveHost(draft) {
-            closeTab()
-        } else {
-            saveError = app.hostLibrary.storageError ?? String(localized: "The host could not be saved.")
-        }
-    }
-
-    private var customIsValid: Bool {
-        !usesCustomIdentity
-            || (!customUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                || (customPassword.isEmpty && customKeyID == nil))
-    }
-
-    private var proxyIsValid: Bool {
-        guard let proxy = draft.proxy else { return true }
-        if proxyUsesCustom {
-            let empty =
-                proxy.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                && proxyCustomPassword.isEmpty
-            return !proxy.hostname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                && (1...65_535).contains(proxy.port)
-                && (empty
-                    || (!proxy.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                        && !proxyCustomPassword.isEmpty))
-        }
-        return proxy.isValid
-    }
-
-    private func loadProxyPassword(_ identity: Identity?) {
-        proxyCustomPassword = ""
-        guard let identity, case .available = app.hostLibrary.passwordAvailability(for: identity) else { return }
-        proxyCustomPassword = (try? app.hostLibrary.editablePassword(for: identity)) ?? ""
+        closeTab()
     }
 
     private func cancel() {

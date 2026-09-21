@@ -178,16 +178,18 @@ struct MobileVaultFeatureTests {
 
     @Test func hostProxyEditorAppliesDefaultsPreservesCustomPortsAndValidatesAuthentication() {
         var host = TermindDomain.Host(name: "Remote", host: "example.invalid")
-        #expect(MobileHostEditorPolicy.canSave(host))
+        let library = HostLibraryModel(hosts: [host])
+        var identityDraft = HostCustomIdentityDraft(host: host, library: library)
+        #expect(identityDraft.isProxyValid(for: host))
 
         host.proxy = MobileHostEditorPolicy.selectProxy(.http, current: nil)
         #expect(host.proxy?.port == 8080)
-        #expect(!MobileHostEditorPolicy.canSave(host))
+        #expect(!identityDraft.isProxyValid(for: host))
 
         host.proxy?.hostname = "proxy.example"
-        #expect(MobileHostEditorPolicy.canSave(host))
+        #expect(identityDraft.isProxyValid(for: host))
         host.proxy?.port = 0
-        #expect(!MobileHostEditorPolicy.canSave(host))
+        #expect(!identityDraft.isProxyValid(for: host))
         host.proxy?.port = 8080
         host.proxy = MobileHostEditorPolicy.selectProxy(.socks5, current: host.proxy)
         #expect(host.proxy?.port == 1080)
@@ -199,17 +201,17 @@ struct MobileVaultFeatureTests {
 
         let identity = Identity(
             name: "Proxy", username: "proxy-user", credentialRef: "termind.password.proxy")
-        host.proxy = MobileHostEditorPolicy.selectProxyIdentity(identity, current: host.proxy)
+        identityDraft.selectProxyIdentity(identity, on: &host)
         #expect(host.proxy?.identityID == identity.id)
         #expect(host.proxy?.username == "proxy-user")
-        #expect(MobileHostEditorPolicy.canSave(host))
+        #expect(identityDraft.isProxyValid(for: host))
 
         host.proxy?.username = ""
-        #expect(!MobileHostEditorPolicy.canSave(host))
-        host.proxy = MobileHostEditorPolicy.selectProxyIdentity(nil, current: host.proxy)
+        #expect(!identityDraft.isProxyValid(for: host))
+        identityDraft.clearProxyIdentity(on: &host)
         #expect(host.proxy?.identityID == nil)
         #expect(host.proxy?.username.isEmpty == true)
-        #expect(MobileHostEditorPolicy.canSave(host))
+        #expect(identityDraft.isProxyValid(for: host))
 
         host.proxy = MobileHostEditorPolicy.selectProxy(nil, current: host.proxy)
         #expect(host.proxy == nil)
@@ -296,9 +298,10 @@ struct MobileVaultFeatureTests {
         #expect(host.identityID == originalIdentity.id)
         #expect(host.proxy?.identityID == originalIdentity.id)
 
-        host = MobileHostEditorPolicy.selectIdentity(createdIdentity, current: host)
+        var identityDraft = HostCustomIdentityDraft()
+        identityDraft.selectSSHIdentity(createdIdentity, on: &host)
         #expect(host.identityID == createdIdentity.id)
-        host.proxy = MobileHostEditorPolicy.selectProxyIdentity(createdIdentity, current: host.proxy)
+        identityDraft.selectProxyIdentity(createdIdentity, on: &host)
         #expect(host.proxy?.identityID == createdIdentity.id)
         #expect(host.proxy?.username == createdIdentity.username)
     }
@@ -612,12 +615,37 @@ struct MobileVaultFeatureTests {
     @Test func deletingAHostCompletesDurableCleanup() async throws {
         let app = try MobileAppModel(inMemory: true)
         defer { app.outbox.stop() }
-        let host = TermindDomain.Host(name: "Remote", host: "example.invalid")
+        var host = TermindDomain.Host(
+            name: "Remote", host: "example.invalid",
+            proxy: HostProxy(kind: .http, hostname: "proxy.invalid", port: 8080))
         app.library.upsert(host)
         let dependent = TermindDomain.Host(name: "Dependent", host: "dependent.invalid", jumpHostID: host.id)
         app.library.upsert(dependent)
+        let reusable = Identity(name: "Reusable", username: "shared")
+        app.library.upsert(reusable)
+        let ssh = try #require(
+            try app.library.saveCustomIdentity(
+                ownerHostID: host.id, purpose: .ssh, displayName: host.name,
+                username: "deploy", password: "ssh-secret", keyID: nil))
+        let proxy = try #require(
+            try app.library.saveCustomIdentity(
+                ownerHostID: host.id, purpose: .proxy, displayName: "Remote Proxy",
+                username: "proxy", password: "proxy-secret", keyID: nil))
+        let retained = try #require(
+            try app.library.saveCustomIdentity(
+                ownerHostID: dependent.id, purpose: .ssh, displayName: dependent.name,
+                username: "dependent", password: "retained-secret", keyID: nil))
+        host.identityID = ssh.id
+        host.proxy?.identityID = proxy.id
+        host.proxy?.username = proxy.username
+        #expect(app.library.saveHost(host))
+
         app.deleteHost(host.id)
         #expect(app.library.host(host.id) == nil)
+        #expect(app.library.identity(ssh.id) == nil)
+        #expect(app.library.identity(proxy.id) == nil)
+        #expect(app.library.identity(reusable.id) == reusable)
+        #expect(app.library.identity(retained.id)?.ownerHostID == dependent.id)
         var finished = false
         for _ in 0..<100 {
             let context = ModelContext(app.container)
@@ -632,6 +660,7 @@ struct MobileVaultFeatureTests {
         let saved = try HostPersistence(context: ModelContext(app.container)).load()
         #expect(!saved.hosts.contains(where: { $0.id == host.id }))
         #expect(saved.hosts.first(where: { $0.id == dependent.id })?.jumpHostID == nil)
+        #expect(Set(saved.identities.map(\.id)) == [reusable.id, retained.id])
     }
 }
 

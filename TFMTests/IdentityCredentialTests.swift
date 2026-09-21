@@ -21,17 +21,31 @@ struct IdentityCredentialTests {
         defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)
         defaults.set(true, forKey: SettingsKey.vaultSyncEnabled)
         let host = Host(name: "Server", host: "example.com")
-        let store = HostLibraryModel(hosts: [host], secrets: keychain, localDefaults: defaults)
+        let otherHost = Host(name: "Other", host: "other.example.com")
+        let reusable = Identity(name: "Reusable", username: "shared")
+        let store = HostLibraryModel(
+            hosts: [host, otherHost], identities: [reusable], secrets: keychain,
+            localDefaults: defaults)
 
         let result = try store.saveCustomIdentity(
             ownerHostID: host.id, purpose: .ssh, displayName: host.name,
             username: "deploy", password: "secret", keyID: nil)
         let saved = try #require(result)
+        let proxy = try #require(
+            try store.saveCustomIdentity(
+                ownerHostID: host.id, purpose: .proxy, displayName: "Server Proxy",
+                username: "proxy", password: "proxy-secret", keyID: nil))
+        let retained = try #require(
+            try store.saveCustomIdentity(
+                ownerHostID: otherHost.id, purpose: .ssh, displayName: otherHost.name,
+                username: "other", password: "other-secret", keyID: nil))
         #expect(saved.isHostCustom)
         #expect(saved.passwordStorage == .thisDevice)
-        #expect(store.reusableIdentities.isEmpty)
-        #expect(store.searchIdentities("").isEmpty)
+        #expect(proxy.isHostCustom)
+        #expect(store.reusableIdentities == [reusable])
+        #expect(store.searchIdentities("") == [reusable])
         #expect(try keychain.string(for: saved.credentialRef, storage: .thisDevice) == "secret")
+        #expect(try keychain.string(for: proxy.credentialRef, storage: .thisDevice) == "proxy-secret")
 
         defaults.set(true, forKey: SettingsKey.iCloudSyncEnabled)
         try store.migrateCustomPasswordsToICloud()
@@ -41,7 +55,75 @@ struct IdentityCredentialTests {
 
         store.projectHostDeletion(host.id)
         #expect(store.identity(saved.id) == nil)
+        #expect(store.identity(proxy.id) == nil)
+        #expect(store.identity(reusable.id) == reusable)
+        let retainedAfterDeletion = try #require(store.identity(retained.id))
+        #expect(retainedAfterDeletion.ownerHostID == otherHost.id)
         #expect(try keychain.string(for: saved.credentialRef, storage: .iCloud) == nil)
+        #expect(try keychain.string(for: proxy.credentialRef, storage: .iCloud) == nil)
+    }
+
+    @Test
+    func desktopHostDeletionRemovesBothCustomIdentityPurposesThroughTheAppEntryPoint() throws {
+        let keychain = InMemorySecretStore()
+        var host = Host(
+            name: "Server", host: "server.invalid",
+            proxy: HostProxy(kind: .http, hostname: "proxy.invalid", port: 8080))
+        let otherHost = Host(name: "Other", host: "other.invalid")
+        let reusable = Identity(name: "Reusable", username: "shared")
+        let store = HostLibraryModel(
+            hosts: [host, otherHost], identities: [reusable], secrets: keychain)
+        let app = AppModel(hosts: store)
+        defer { app.shutdownForTermination() }
+        let ssh = try #require(
+            try store.saveCustomIdentity(
+                ownerHostID: host.id, purpose: .ssh, displayName: host.name,
+                username: "deploy", password: "ssh-secret", keyID: nil))
+        let proxy = try #require(
+            try store.saveCustomIdentity(
+                ownerHostID: host.id, purpose: .proxy, displayName: "Server Proxy",
+                username: "proxy", password: "proxy-secret", keyID: nil))
+        let retained = try #require(
+            try store.saveCustomIdentity(
+                ownerHostID: otherHost.id, purpose: .ssh, displayName: otherHost.name,
+                username: "other", password: "other-secret", keyID: nil))
+        host.identityID = ssh.id
+        host.proxy?.identityID = proxy.id
+        host.proxy?.username = proxy.username
+        #expect(store.saveHost(host))
+
+        #expect(app.requestHostDeletion(host.id))
+        #expect(store.identity(ssh.id) == nil)
+        #expect(store.identity(proxy.id) == nil)
+        #expect(store.identity(reusable.id) == reusable)
+        #expect(store.identity(retained.id)?.ownerHostID == otherHost.id)
+        #expect(try keychain.string(for: ssh.credentialRef, storage: ssh.passwordStorage) == nil)
+        #expect(try keychain.string(for: proxy.credentialRef, storage: proxy.passwordStorage) == nil)
+        #expect(
+            try keychain.string(for: retained.credentialRef, storage: retained.passwordStorage)
+                == "other-secret")
+    }
+
+    @Test
+    func failedCustomPasswordRemovalReportsTheErrorWithoutRestoringTheDeletedHost() throws {
+        let host = Host(name: "Server", host: "server.invalid")
+        let identity = Identity(
+            name: "Server", username: "deploy", credentialRef: "owned-password",
+            passwordStorage: .thisDevice, ownerHostID: host.id, customPurpose: .ssh)
+        let secrets = FailingPasswordRemovalStore()
+        try secrets.base.setString(
+            "secret", for: identity.credentialRef, storage: identity.passwordStorage)
+        let store = HostLibraryModel(
+            hosts: [host], identities: [identity], secrets: secrets)
+
+        store.projectHostDeletion(host.id)
+
+        #expect(store.host(host.id) == nil)
+        #expect(store.identity(identity.id) == nil)
+        #expect(store.storageError != nil)
+        #expect(
+            try secrets.base.string(
+                for: identity.credentialRef, storage: identity.passwordStorage) == "secret")
     }
 
     @Test
@@ -288,5 +370,35 @@ struct IdentityCredentialTests {
         #expect(
             !TermindSSHError.hostKeyChanged(expected: ["a"], received: "b")
                 .shouldRequestAuthentication)
+    }
+}
+
+private nonisolated final class FailingPasswordRemovalStore: SecretStoring, @unchecked Sendable {
+    let base = InMemorySecretStore()
+
+    func string(for account: String, storage: PasswordStorage) throws -> String? {
+        try base.string(for: account, storage: storage)
+    }
+
+    func setString(_ value: String?, for account: String, storage: PasswordStorage) throws {
+        try base.setString(value, for: account, storage: storage)
+    }
+
+    func keyCredential(for account: String, storage: KeyStorage) throws -> StoredSSHKeyCredential? {
+        try base.keyCredential(for: account, storage: storage)
+    }
+
+    func setKeyCredential(
+        _ value: StoredSSHKeyCredential?, for account: String, storage: KeyStorage
+    ) throws {
+        try base.setKeyCredential(value, for: account, storage: storage)
+    }
+
+    func removePassword(_ account: String, storage: PasswordStorage) throws {
+        throw CocoaError(.fileWriteNoPermission)
+    }
+
+    func removeKeyCredential(_ account: String, storage: KeyStorage) throws {
+        try base.removeKeyCredential(account, storage: storage)
     }
 }

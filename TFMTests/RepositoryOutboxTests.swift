@@ -178,8 +178,18 @@ struct RepositoryOutboxTests {
         var snippet = Snippet(title: "Deploy", body: "deploy")
         snippet.targetHostIDs = [doomed.id, dependent.id]
         let rule = PortForwardingRule(hostID: doomed.id)
+        let doomedSSH = Identity(
+            name: "Jump", username: "deploy", ownerHostID: doomed.id, customPurpose: .ssh)
+        let doomedProxy = Identity(
+            name: "Jump Proxy", username: "proxy", ownerHostID: doomed.id, customPurpose: .proxy)
+        let reusable = Identity(name: "Reusable", username: "shared")
+        let retainedCustom = Identity(
+            name: "App", username: "app", ownerHostID: dependent.id, customPurpose: .ssh)
         context.insert(PersistentHost(doomed))
         context.insert(PersistentHost(dependent))
+        for identity in [doomedSSH, doomedProxy, reusable, retainedCustom] {
+            context.insert(PersistentIdentity(identity))
+        }
         context.insert(PersistentSnippet(snippet))
         context.insert(PersistentPortForwardingRule(rule))
         context.insert(
@@ -232,6 +242,10 @@ struct RepositoryOutboxTests {
         #expect(try context.fetch(FetchDescriptor<PersistentSFTPHistoryEntry>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentPendingDeletion>()).isEmpty)
+        #expect(
+            Set(try context.fetch(FetchDescriptor<PersistentIdentity>()).map(\.id))
+                == [reusable.id, retainedCustom.id]
+        )
     }
 
     @Test
