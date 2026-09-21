@@ -681,7 +681,7 @@ struct WindowStateTests {
         #expect(window.sidebar.sessionContext == .none)
     }
 
-    /// The path `askAI` takes: attach the failure log, promote the draft, and
+    /// The Ask Assistant path attaches the failure log, promotes the draft, and
     /// the log goes with the message it belongs to rather than sitting in the
     /// draft as text the user could half-delete.
     @Test
@@ -697,6 +697,29 @@ struct WindowStateTests {
         #expect(conversation.messages.first?.text == "Explain this")
         #expect(conversation.transcript.first?.text.contains("ssh: refused") == true)
         #expect(conversation.composer.attachments.isEmpty, "the attachment went with the turn")
+    }
+
+    @Test
+    func sshFailureAssistantDraftKeepsTheExistingPromptAndLastFourThousandLogCharacters() throws {
+        let conversation = ConversationModel()
+        let retainedLog = String(repeating: "x", count: 3_995) + "-tail"
+        let log = "discarded-prefix" + retainedLog
+        let message = "Connection refused"
+
+        SSHFailureAssistantDraft.populate(
+            conversation, message: message, log: log
+        )
+
+        let attachment = try #require(conversation.composer.attachments.first)
+        #expect(conversation.composer.attachments.count == 1)
+        #expect(attachment.kind == .output)
+        #expect(attachment.label == String(localized: "Connection Log"))
+        #expect(attachment.content == retainedLog)
+        #expect(attachment.content.count == 4_000)
+        #expect(
+            conversation.composer.draft
+                == String(localized: "SSH connection failed: \(message). What should I check?")
+        )
     }
 
     /// Opening a conversation in the sidebar used to stamp the focused pane's

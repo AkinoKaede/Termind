@@ -3471,18 +3471,18 @@
         }
       }
     },
-    "Ask AI" : {
+    "Ask Assistant" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "询问AI"
+            "value" : "询问助手"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "詢問AI"
+            "value" : "詢問助手"
           }
         }
       }

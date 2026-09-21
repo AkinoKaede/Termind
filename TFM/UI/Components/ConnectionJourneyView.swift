@@ -153,7 +153,7 @@ struct ConnectionJourneyView: View {
     var denyHostKey: () -> Void
     var retry: () -> Void
     var cancel: () -> Void
-    var askAI: (() -> Void)?
+    var askAssistant: (() -> Void)?
     var reconnectState: ReconnectState? = nil
     var retryReconnectNow: (() -> Void)? = nil
     var stopReconnecting: (() -> Void)? = nil
@@ -241,7 +241,7 @@ struct ConnectionJourneyView: View {
         } else if case .failed(let message) = journey.phase {
             JourneyFailureCard(
                 message: message, retry: retry, cancel: cancel,
-                copyLogs: copyLogs, askAI: askAI,
+                copyLogs: copyLogs, askAssistant: askAssistant,
                 cancelLabel: failureCancelLabel,
                 retryLabel: failureRetryLabel,
                 compactActions: compactFailureActions,
@@ -375,7 +375,7 @@ private struct JourneyFailureCard: View {
     let retry: () -> Void
     let cancel: () -> Void
     let copyLogs: () -> Void
-    let askAI: (() -> Void)?
+    let askAssistant: (() -> Void)?
     let cancelLabel: LocalizedStringKey
     let retryLabel: LocalizedStringKey
     let compactActions: Bool
@@ -433,7 +433,7 @@ private struct JourneyFailureCard: View {
     private var secondaryActions: some View {
         Button(cancelLabel, action: cancel).keyboardShortcut(.cancelAction)
         Button("Copy Logs", action: copyLogs)
-        if let askAI { Button("Ask AI", action: askAI) }
+        if let askAssistant { Button("Ask Assistant", action: askAssistant) }
     }
 
     private var retryButton: some View {

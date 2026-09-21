@@ -201,9 +201,9 @@ struct TerminalPlaceholderView: View {
                 },
                 retry: { sshSession.connect(using: app.hostLibrary) },
                 cancel: cancelConnection,
-                askAI: {
+                askAssistant: {
                     if case .failed(let message) = sshSession.connectionJourney.phase {
-                        askAI(
+                        askAssistant(
                             about: message,
                             log: sshSession.connectionJourney.plainTextLog
                         )
@@ -426,22 +426,29 @@ struct TerminalPlaceholderView: View {
 
     /// Hands the failure to the Assistant sidebar as a draft rather than sending it —
     /// the user still decides what leaves the machine.
-    private func askAI(about message: String, log: String) {
+    private func askAssistant(about message: String, log: String) {
         let conversation = window.sidebar.assistantDraft
+        SSHFailureAssistantDraft.populate(conversation, message: message, log: log)
+        window.closeAssistantInSidebar()
+        window.showAssistant()
+    }
+}
+
+@MainActor
+enum SSHFailureAssistantDraft {
+    static func populate(_ conversation: ConversationModel, message: String, log: String) {
         // The log rides on the chip rather than in the draft. Pasting it into
         // the editable text made the pill a label for something the user could
         // silently delete half of, and left the draft too long to read.
         conversation.attach(
             ContextChip(
                 kind: .output,
-                label: String(localized: "Connection error"),
+                label: String(localized: "Connection Log"),
                 content: String(log.suffix(4_000))
             ))
         conversation.composer.draft = String(
             localized: "SSH connection failed: \(message). What should I check?"
         )
-        window.closeAssistantInSidebar()
-        window.showAssistant()
     }
 }
 
