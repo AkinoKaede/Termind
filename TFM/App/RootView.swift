@@ -252,7 +252,7 @@ struct RootView: View {
             return OnboardingPathContext(
                 direction: .sftpToSSH, hostID: hostID, path: session.path
             )
-        case .serialSession, .empty:
+        case .telnetSession, .serialSession, .empty:
             return nil
         }
     }

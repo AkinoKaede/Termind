@@ -32,7 +32,8 @@ enum MobileConnectionHistory {
                 MobileConnectionHistoryRow(
                     entry: entry,
                     host: host,
-                    loginAddress: library.loginAddress(for: host)
+                    loginAddress: library.loginAddress(
+                        for: host, protocol: entry.kind == .telnet ? .telnet : .ssh)
                 ))
             if rows.count == limit { break }
         }

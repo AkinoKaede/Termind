@@ -7,6 +7,7 @@ import struct TermindDomain.Host
 
 enum MobileHostMenuAction: Hashable, Sendable {
     case ssh
+    case telnet
     case sftp
     case edit
     case duplicate
@@ -15,7 +16,7 @@ enum MobileHostMenuAction: Hashable, Sendable {
 
 nonisolated enum MobileHostMenuPolicy {
     static let sections: [[MobileHostMenuAction]] = [
-        [.ssh, .sftp],
+        [.ssh, .telnet, .sftp],
         [.edit, .duplicate],
         [.delete],
     ]
@@ -565,7 +566,7 @@ struct MobileVaultView: View {
                         .tint(tint)
                     VStack(alignment: .leading, spacing: 4) {
                         Text(host.name).font(.headline).foregroundStyle(.primary).lineLimit(1)
-                        Text(app.library.loginAddress(for: host)).font(.caption.monospaced())
+                        Text(app.library.preferredTerminalLoginAddress(for: host)).font(.caption.monospaced())
                             .foregroundStyle(.secondary).lineLimit(1).truncationMode(.middle)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -609,8 +610,13 @@ struct MobileVaultView: View {
         switch action {
         case .ssh:
             Button("SSH", systemImage: "terminal") { open(host.id, .ssh) }
+                .disabled(!host.sshEnabled)
+        case .telnet:
+            Button("Telnet", systemImage: "terminal") { open(host.id, .telnet) }
+                .disabled(!host.telnetEnabled)
         case .sftp:
             Button("SFTP", systemImage: "folder") { open(host.id, .sftp) }
+                .disabled(!host.sshEnabled)
         case .edit:
             Button("Edit", systemImage: "pencil") { editingHost = host }
         case .duplicate:

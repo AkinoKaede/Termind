@@ -13,9 +13,9 @@ nonisolated public struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBui
         Self.descriptor(
             "list_hosts",
             """
-            List Vault and temporary Termind SSH targets without credentials. Use this to discover host IDs \
-            when no session context is attached, including in the standalone Assistant outside the sidebar. \
-            Pass a returned host's id as host_id to SSH or SFTP tools; no active terminal session is required.
+            List Vault Hosts and temporary terminal targets without credentials, including each target's enabled \
+            protocol list. SSH and SFTP tools require a returned protocol entry named ssh; Telnet targets are \
+            discoverable but no Agent Telnet execution tool is currently available.
             """,
             properties: [:], required: [], target: .host, approvalPolicy: .approve,
             concurrency: .parallel,
@@ -31,12 +31,21 @@ nonisolated public struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBui
     {
         let listing = await hosts.listing()
         let rows = listing.hosts.map { target in
-            AgentJSONValue.object([
+            let protocols = target.protocols.map { connectionProtocol in
+                AgentJSONValue.object([
+                    "name": .string(connectionProtocol.name.rawValue),
+                    "address": .string(connectionProtocol.address),
+                    "connection_state": .string(connectionProtocol.connectionState),
+                ])
+            }
+            return AgentJSONValue.object([
                 "id": .string(target.id.uuidString), "display_name": .string(target.displayName),
                 "address": .string(target.address), "tags": .array(target.tags.map(AgentJSONValue.string)),
                 "connection_state": .string(target.connectionState), "temporary": .bool(target.isTemporary),
                 "group_id": target.groupID.map { .string($0.uuidString) } ?? .null,
                 "group_path": target.groupPath.map(AgentJSONValue.string) ?? .null,
+                "preferred_terminal_protocol": .string(target.preferredTerminalProtocol.rawValue),
+                "protocols": .array(protocols),
             ])
         }
         func groupJSON(_ group: AgentHostGroupTarget) -> AgentJSONValue {

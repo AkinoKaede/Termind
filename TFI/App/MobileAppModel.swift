@@ -224,7 +224,13 @@ final class MobileAppModel {
             forwardings?.hostConfigurationChanged(hostID)
         }
         library.willDeletePortForwardings = { [weak forwardings] ids in forwardings?.stop(ids) }
-        library.didChangeHostConnection = { [weak forwardings] in forwardings?.hostConfigurationChanged($0) }
+        library.didChangeHostConnection = { [weak forwardings, weak self] hostID in
+            forwardings?.hostConfigurationChanged(hostID)
+            self?.disconnectWorkspaces(for: hostID, protocol: .ssh)
+        }
+        library.didChangeTelnetConnection = { [weak self] hostID in
+            self?.disconnectWorkspaces(for: hostID, protocol: .telnet)
+        }
         let visibleHostIDs = Set(try self.hosts.snapshot().value.hosts.map(\.id))
         for host in library.hosts where !visibleHostIDs.contains(host.id) { library.projectHostDeletion(host.id) }
         outbox.registerHostDeletionHandlers(
@@ -304,7 +310,8 @@ final class MobileAppModel {
     /// carried only by the live workspace and never enters its restoration descriptor.
     func execute(_ snippet: Snippet, on hostIDs: [Host.ID]) -> [MobileWorkspace.ID] {
         let wanted = Set(hostIDs)
-        let targets = library.searchHosts("").filter { wanted.contains($0.id) }
+        let targets = library.hosts(matching: "", for: .snippetExecution)
+            .filter { wanted.contains($0.id) }
         let opened = targets.map { makeWorkspace(host: $0, kind: .ssh, startup: .command(snippet.body)) }
         addWorkspaces(opened)
         return opened.map(\.id)
@@ -351,6 +358,19 @@ final class MobileAppModel {
         liveActivities.update(workspaceActivitySessions)
     }
 
+    private func disconnectWorkspaces(
+        for hostID: Host.ID, protocol connectionProtocol: HostTerminalProtocol
+    ) {
+        for workspace in workspaces where workspace.descriptor.hostID == hostID {
+            let matches =
+                switch (connectionProtocol, workspace.descriptor.kind) {
+                case (.ssh, .ssh), (.ssh, .sftp), (.telnet, .telnet): true
+                default: false
+                }
+            if matches { workspace.disconnect() }
+        }
+    }
+
     private func closeWorkspaces(for hostID: UUID) {
         for descriptor in savedWorkspaceDescriptors where descriptor.hostID == hostID { close(descriptor.id) }
     }
@@ -387,9 +407,14 @@ final class MobileAppModel {
     func duplicateHost(_ host: Host) {
         var copy = host
         if host.identityID.flatMap(library.identity)?.isHostCustom == true { copy.identityID = nil }
+        if host.telnetIdentityID.flatMap(library.identity)?.isHostCustom == true { copy.telnetIdentityID = nil }
         if host.proxy?.identityID.flatMap(library.identity)?.isHostCustom == true {
             copy.proxy?.identityID = nil
             copy.proxy?.username = ""
+        }
+        if host.telnetProxy?.identityID.flatMap(library.identity)?.isHostCustom == true {
+            copy.telnetProxy?.identityID = nil
+            copy.telnetProxy?.username = ""
         }
         copy.id = UUID()
         copy.name = String(localized: "\(host.name) copy")
@@ -556,7 +581,8 @@ final class MobileAppModel {
             initialCommand = nil
             recordsInitialCommandInHistory = true
             initialSFTPPath = path
-        case (.ssh, .none), (.sftp, .none), (.sftp, .command):
+        case (.ssh, .none), (.sftp, .none), (.sftp, .command),
+            (.telnet, .none), (.telnet, .command), (.telnet, .directory):
             initialCommand = nil
             recordsInitialCommandInHistory = true
             initialSFTPPath = nil

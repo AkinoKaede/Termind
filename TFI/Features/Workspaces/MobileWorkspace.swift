@@ -128,6 +128,7 @@ final class MobileWorkspace: Identifiable {
     let terminal: TerminalViewState
     private let backend: InMemoryTerminalSession
     private var ssh: SSHPTYChannel?
+    private var telnet: TelnetConnection?
     private var sftp: (any SFTPClientProtocol)?
     private var sshEventContinuation: AsyncStream<MobileSSHSessionEvent>.Continuation?
     private var sshEventTask: Task<Void, Never>?
@@ -168,6 +169,8 @@ final class MobileWorkspace: Identifiable {
                 kind: .ssh,
                 path: RemotePath.normalized(sftpChannel.path)
             )
+        case .telnet:
+            return nil
         }
     }
 
@@ -179,6 +182,8 @@ final class MobileWorkspace: Identifiable {
         case .sftp:
             guard uploadTargetProblem == nil else { return nil }
             return sftpChannel.path
+        case .telnet:
+            return nil
         }
     }
 
@@ -196,6 +201,8 @@ final class MobileWorkspace: Identifiable {
                 return String(localized: "The SFTP channel is not connected.")
             }
             return nil
+        case .telnet:
+            return String(localized: "Telnet does not support file upload.")
         }
     }
     private var connectionResumeIntent: MobileWorkspaceConnectionResumeIntent
@@ -463,7 +470,11 @@ final class MobileWorkspace: Identifiable {
 
     func receiveInteractiveTerminalInput(_ data: Data) async {
         invalidateCommandGeneration()
-        await writeSSHDirectly(data)
+        if descriptor.kind == .telnet {
+            telnet?.write(data)
+        } else {
+            await writeSSHDirectly(data)
+        }
     }
 
     private func writeSSHDirectly(_ data: Data) async {
@@ -601,6 +612,10 @@ final class MobileWorkspace: Identifiable {
             status = String(localized: "Disconnected")
             busy = false
             journey.fail(message)
+            return
+        }
+        if descriptor.kind == .telnet {
+            connectTelnet(host: host, token: token, reconnecting: reconnecting)
             return
         }
         isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
@@ -848,6 +863,81 @@ final class MobileWorkspace: Identifiable {
         }
     }
 
+    private func connectTelnet(host: Host, token: UUID, reconnecting: Bool) {
+        guard host.telnetEnabled else {
+            busy = false
+            let message = String(localized: "Telnet is disabled for this Host.")
+            connectionFailure = message
+            status = String(localized: "Disconnected")
+            journey.fail(message)
+            return
+        }
+        journey.beginTelnet(
+            host: host,
+            username: hosts.identity(for: host, protocol: .telnet)?.username,
+            mode: reconnecting ? .reconnection : .connection)
+        let terminalBackend = backend
+        let session = TelnetConnection(
+            output: { data in terminalBackend.receive(data) },
+            event: { [weak self] event in
+                Task { @MainActor in
+                    guard let self, self.generation == token else { return }
+                    self.journey.receive(event)
+                    if case .connected = event {
+                        _ = self.connection.markConnected()
+                        self.connected = true
+                        self.busy = false
+                        self.status = String(localized: "Connected")
+                        self.journey.succeed()
+                    }
+                }
+            },
+            charsetError: { [weak self] message in
+                Task { @MainActor in
+                    guard let self, self.generation == token, self.operationError == nil else { return }
+                    self.operationError = message
+                }
+            },
+            closed: { [weak self] message in
+                Task { @MainActor in
+                    guard let self, self.generation == token else { return }
+                    self.telnet = nil
+                    let message = message ?? String(localized: "The Telnet connection closed.")
+                    if self.connection.hasConnectedOnce {
+                        self.handleConnectionFailure(message)
+                    } else {
+                        self.busy = false
+                        self.connected = false
+                        self.status = String(localized: "Disconnected")
+                        self.journey.fail(message)
+                    }
+                }
+            })
+        telnet?.disconnect()
+        telnet = session
+        attempt = Task { [weak self, weak hosts] in
+            guard let self, let hosts else { return }
+            do {
+                let configuration = try hosts.telnetConnectionConfiguration(for: host)
+                try await session.connect(
+                    using: configuration,
+                    columns: UInt16(clamping: viewport.columns),
+                    rows: UInt16(clamping: viewport.rows))
+            } catch is CancellationError {
+                guard generation == token else { return }
+                busy = false
+                status = String(localized: "Disconnected")
+            } catch {
+                guard generation == token else { return }
+                telnet = nil
+                busy = false
+                connectionFailure = error.localizedDescription
+                status = String(localized: "Disconnected")
+                journey.fail(error.localizedDescription)
+            }
+        }
+    }
+
     /// Consumes the explicit launch command once, then the Startup Snippet that
     /// was freshly resolved for this physical terminal shell.
     func consumePendingInitialCommand() -> String? {
@@ -895,10 +985,12 @@ final class MobileWorkspace: Identifiable {
         attempt?.cancel()
         attempt = nil
         let oldSSH = ssh
+        let oldTelnet = telnet
         let oldSFTP = sftp
         let oldTransferContext = transferContext
         transferContext = nil
         ssh = nil
+        telnet = nil
         sftp = nil
         sftpChannel.detach()
         busy = false
@@ -909,6 +1001,7 @@ final class MobileWorkspace: Identifiable {
         journey.fail(reconnectState.lastError)
         Task {
             await oldSSH?.disconnect()
+            oldTelnet?.disconnect()
             if let oldTransferContext { await oldTransferContext.retire() } else { await oldSFTP?.disconnect() }
         }
     }
@@ -924,10 +1017,12 @@ final class MobileWorkspace: Identifiable {
         attempt?.cancel()
         attempt = nil
         let oldSSH = ssh
+        let oldTelnet = telnet
         let oldSFTP = sftp
         let oldTransferContext = transferContext
         transferContext = nil
         ssh = nil
+        telnet = nil
         sftp = nil
         sftpChannel.detach()
         busy = false
@@ -947,6 +1042,7 @@ final class MobileWorkspace: Identifiable {
         presentConnectionJourney(mode: reconnecting ? .reconnection : .connection)
         Task {
             await oldSSH?.disconnect()
+            oldTelnet?.disconnect()
             if let oldTransferContext { await oldTransferContext.retire() } else { await oldSFTP?.disconnect() }
         }
     }
@@ -993,10 +1089,12 @@ final class MobileWorkspace: Identifiable {
         attempt?.cancel()
         attempt = nil
         let oldSSH = ssh
+        let oldTelnet = telnet
         let oldSFTP = sftp
         let oldTransferContext = transferContext
         transferContext = nil
         ssh = nil
+        telnet = nil
         sftp = nil
         sftpChannel.detach()
         busy = false
@@ -1007,13 +1105,20 @@ final class MobileWorkspace: Identifiable {
             appendTerminalNotice(String(localized: "Connection lost; reconnecting…"))
         }
         if let host = hosts.host(descriptor.hostID) {
-            journey.begin(
-                host: host, route: hosts.route(for: host),
-                purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
-                username: hosts.identity(for: host)?.username, mode: .reconnection)
+            if descriptor.kind == .telnet {
+                journey.beginTelnet(
+                    host: host, username: hosts.identity(for: host, protocol: .telnet)?.username,
+                    mode: .reconnection)
+            } else {
+                journey.begin(
+                    host: host, route: hosts.route(for: host),
+                    purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
+                    username: hosts.identity(for: host)?.username, mode: .reconnection)
+            }
         }
         Task {
             await oldSSH?.disconnect()
+            oldTelnet?.disconnect()
             if let oldTransferContext { await oldTransferContext.retire() } else { await oldSFTP?.disconnect() }
         }
     }
@@ -1054,14 +1159,17 @@ final class MobileWorkspace: Identifiable {
         attempt = nil
         transferSnapshot = nil
         let oldSSH = ssh
+        let oldTelnet = telnet
         let oldSFTP = sftp
         let oldTransferContext = transferContext
         transferContext = nil
         ssh = nil
+        telnet = nil
         sftp = nil
         sftpChannel.detach()
         Task {
             await oldSSH?.disconnect()
+            oldTelnet?.disconnect()
             if let oldTransferContext { await oldTransferContext.releaseOwner() } else { await oldSFTP?.disconnect() }
         }
         busy = false
@@ -1581,6 +1689,11 @@ final class MobileWorkspace: Identifiable {
     private func resize(_ size: InMemoryTerminalViewport) async {
         guard size.columns > 0, size.rows > 0, size.widthPixels > 0, size.heightPixels > 0 else { return }
         viewport = size
+        if descriptor.kind == .telnet {
+            telnet?.resize(
+                columns: UInt16(clamping: size.columns), rows: UInt16(clamping: size.rows))
+            return
+        }
         await ssh?.resize(
             columns: UInt16(clamping: size.columns), rows: UInt16(clamping: size.rows),
             widthPixels: UInt32(clamping: size.widthPixels), heightPixels: UInt32(clamping: size.heightPixels))

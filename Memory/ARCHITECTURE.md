@@ -15,7 +15,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindDomain | Portable values/rules; Foundation, CryptoKit, AgentKit values; no UI/concrete I/O. |
 | TermindApplication | Ports, feature models, connection/import policy, remote-file-system and sync/outbox use cases; Domain, AgentKit. |
 | TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/Settings/Metrics CloudKit; Application, Domain, Persistence. |
-| TermindRemoteInfrastructure | SSH/SFTP, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
+| TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. |
 | TermindPersistence | All SwiftData models, frozen V1–V22 schemas, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
@@ -52,7 +52,8 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   Workspaces. New windows snapshot ordinary content size once, after full-size content styling; fullscreen/auxiliary
   windows cannot replace device-local last size. System-restored frames/positions win; tests use in-memory sizing.
 - Quick Open claims focus only after mounting in its active window; close retires requests. It releases toolbar Find
-  and suspends terminal autofocus. Batch Startup opens selected SSH/SFTP Hosts as panes in one new Workspace.
+  and suspends terminal autofocus. Batch Startup's SSH option opens selected preferred terminals or SFTP Hosts as panes in
+  one new Workspace; each Host resolves independently with SSH preferred over Telnet.
 - Command-W closes the focused pane, removing empty Workspaces but retaining the window; otherwise dismisses natively.
   All window-close paths confirm if that window owns any Workspaces, even hidden/disconnected. Shift-Command-W requests
   window dismissal. Clearing document-edited decoration must not change confirmation/delegate behavior.
@@ -108,7 +109,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   application writes reject it before touching Keychain. New credentials may start device-only, and device-only credentials
   may move to iCloud. New Key and Identity storage pickers default to iCloud only while the master iCloud switch, Vault
   selection and Pro access are all enabled; otherwise they default to this device. Existing credentials keep their storage.
-- A Host may own one hidden Custom SSH Identity and one hidden Custom proxy Identity. They sync as Identity records but are
+- A Host may own separate hidden Custom SSH, Telnet, SSH proxy and Telnet proxy Identities. They sync as Identity records but are
   excluded from reusable Identity lists, cannot be shared or copied to another Host, and are deleted with their owner Host.
   Custom Passwords start device-only while Vault sync is off and migrate once to iCloud when it becomes enabled; they never
   move back to device-only storage. The selected SSH Key remains an independently owned shared Key.
@@ -190,14 +191,26 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 ### Terminal behavior
 
+- A Host shares its address and organization metadata across terminal protocols, while SSH and Telnet retain independent
+  enablement, port, Identity, Charset and Proxy configuration. At least one protocol must be enabled. Existing stores migrate
+  to SSH enabled/Telnet disabled, preserving the prior port, Identity and Charset as SSH values. Disabling SSH preserves all
+  SSH-owned configuration and references while making SSH-only work unavailable; it never reroutes that work through Telnet.
+- Telnet is a direct or independently HTTP/SOCKS5-proxied TCP terminal with incremental IAC negotiation, NVT line handling,
+  TTYPE and NAWS. Its manually selected Charset is authoritative; Telnet control frames bypass text conversion. Telnet has
+  no Shell Integration, command History, command generation, working-directory actions, SFTP, or terminal drop upload.
+- Application owns the common Host use-case eligibility policy. Metrics, Port Forwarding, SFTP, Jump Hosts, Snippet batch
+  execution and Key Export require SSH at both picker and execution boundaries. Agent `list_hosts` remains a protocol-neutral
+  catalog and reports every enabled protocol per Host; SSH/SFTP tools independently enforce SSH availability.
+
 - Host environment variables are ordinary Vault-synced, non-secret configuration. Interactive SSH PTY Channels send
   them as SSH environment requests before starting the shell on every connection and reconnection. Server rejection is
   non-fatal and reports variable names, never values, in local terminal output. Exec, SFTP, Metrics, Agent, forwarding
   and background probe Channels never inherit them; there is no shell-command fallback.
-- Host Charset is Vault-synced and snapshotted by each connection attempt. It strictly covers PTY text, exec
-  commands/output and SFTP path names; file contents and raw command input remain byte-transparent. Invalid PTY or
-  Serial stream sequences are discarded with one session-visible error, while exec and SFTP operations fail before
-  returning replacement text or mutating a different path. Serial Charset is temporary session configuration.
+- Independent SSH and Telnet Charsets are Vault-synced and snapshotted by each connection attempt. SSH Charset covers
+  PTY text, exec commands/output and SFTP path names; Telnet Charset covers application bytes after IAC/NVT processing.
+  File contents and raw command input remain byte-transparent. Invalid terminal or Serial stream sequences are discarded
+  with one session-visible error, while exec and SFTP operations fail before returning replacement text or mutating a
+  different path. Serial Charset is temporary session configuration.
 - SSH worker owns PTY dimensions; retain latest valid authentication-time size/pixels. EAGAIN window-change packets keep
   original dimensions and finish before the newest request without blocking other I/O. Disconnect clears resize state;
   retired auth cannot install a PTY/clear replacement dimensions. Ghostty computes grid. Resize failure is diagnostic only.

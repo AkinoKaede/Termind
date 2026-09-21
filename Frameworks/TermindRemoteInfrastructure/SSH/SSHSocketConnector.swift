@@ -6,7 +6,7 @@ import TermindDomain
 /// Establishes the byte stream libssh2 consumes. Proxy negotiation stays below
 /// SSH so host-key verification and authentication are identical for direct and
 /// proxied connections.
-public nonisolated enum SSHSocketConnector {
+public nonisolated enum TerminalSocketConnector {
     public static func open(
         host: String, port: Int, proxy: SSHTransportProxy? = nil,
         timeout: TimeInterval = 20
@@ -313,3 +313,5 @@ public nonisolated enum SSHSocketConnector {
         return result
     }
 }
+
+public typealias SSHSocketConnector = TerminalSocketConnector

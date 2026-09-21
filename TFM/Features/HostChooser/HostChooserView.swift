@@ -17,7 +17,7 @@ nonisolated struct SnippetHostChooserRequest: Hashable, Sendable {
 }
 
 nonisolated enum HostConnectionProtocol: String, CaseIterable, Identifiable, Sendable {
-    case ssh = "SSH"
+    case terminal = "SSH"
     case sftp = "SFTP"
     case serial = "Serial"
 
@@ -25,7 +25,7 @@ nonisolated enum HostConnectionProtocol: String, CaseIterable, Identifiable, Sen
 
     func displayName(locale: Locale = .current) -> String {
         switch self {
-        case .ssh: AppLocalization.string("SSH", locale: locale)
+        case .terminal: AppLocalization.string("SSH", locale: locale)
         case .sftp: AppLocalization.string("SFTP", locale: locale)
         case .serial: AppLocalization.string("Serial", locale: locale)
         }
@@ -33,7 +33,7 @@ nonisolated enum HostConnectionProtocol: String, CaseIterable, Identifiable, Sen
 
     var target: HostOpenTarget? {
         switch self {
-        case .ssh: .sshSession
+        case .terminal: .preferredTerminal
         case .sftp: .sftpChannel
         case .serial: nil
         }
@@ -147,7 +147,7 @@ struct HostChooserView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @State private var chooser: ManagedChooserState<Host.ID>
-    @State private var connectionProtocol = HostConnectionProtocol.ssh
+    @State private var connectionProtocol = HostConnectionProtocol.terminal
     @State private var serialConfiguration = SerialConnectionConfiguration()
     @State private var serialBaudRate = "9600"
     @State private var serialPorts: [SerialPortDescriptor] = []
@@ -177,7 +177,14 @@ struct HostChooserView: View {
     }
 
     private var results: [Host] {
-        let matches = app.hostLibrary.searchHosts(query)
+        let useCase: HostUseCase =
+            switch purpose {
+            case .metrics: .metrics
+            case .snippet: .snippetExecution
+            case .connect, .batchStartup:
+                connectionProtocol == .sftp ? .sftp : .preferredTerminal
+            }
+        let matches = app.hostLibrary.hosts(matching: query, for: useCase)
         guard purpose == .metrics else { return matches }
         let monitored = Set(app.serverMetrics.selections.map(\.id))
         return matches.filter { !monitored.contains($0.id) }
@@ -269,7 +276,7 @@ struct HostChooserView: View {
     }
 
     private var availableConnectionProtocols: [HostConnectionProtocol] {
-        purpose == .connect ? HostConnectionProtocol.allCases : [.ssh, .sftp]
+        purpose == .connect ? HostConnectionProtocol.allCases : [.terminal, .sftp]
     }
 
     @ViewBuilder
@@ -300,7 +307,8 @@ struct HostChooserView: View {
                                 host: host,
                                 isCursor: chooser.cursor == host.id,
                                 isChecked: purpose.allowsMultiple
-                                    ? chooser.selected.contains(host.id) : nil
+                                    ? chooser.selected.contains(host.id) : nil,
+                                connectionProtocol: connectionProtocol
                             )
                         }
                         .buttonStyle(.plain)
@@ -601,6 +609,7 @@ struct HostChooserRow: View {
     let host: Host
     let isCursor: Bool
     var isChecked: Bool?
+    var connectionProtocol: HostConnectionProtocol = .terminal
 
     @Environment(AppModel.self) private var app
     @Environment(\.colorScheme) private var colorScheme
@@ -615,11 +624,15 @@ struct HostChooserRow: View {
                     .foregroundStyle(.primary)
                     .lineLimit(1)
 
-                Text(app.hostLibrary.loginAddress(for: host))
-                    .font(.caption.monospaced())
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
-                    .truncationMode(.middle)
+                Text(
+                    connectionProtocol == .terminal
+                        ? app.hostLibrary.preferredTerminalLoginAddress(for: host)
+                        : app.hostLibrary.loginAddress(for: host)
+                )
+                .font(.caption.monospaced())
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
             }
 
             Spacer(minLength: Metrics.Space.s)

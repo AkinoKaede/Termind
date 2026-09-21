@@ -219,6 +219,7 @@ private struct JourneyEndpointView: View {
         if let localRequirement {
             switch localRequirement {
             case .identity: return "person.fill"
+            case .telnetPassword: return "key.fill"
             case .passphrase: return "key.fill"
             case .proxyAuthentication: return "lock.shield.fill"
             }
@@ -234,6 +235,7 @@ private struct JourneyEndpointView: View {
         case .destination:
             return switch purpose {
             case .sshSession: "apple.terminal.fill"
+            case .telnetSession: "terminal.fill"
             case .sftpChannel: "folder.fill"
             case .metrics: "waveform.path.ecg"
             case .portForwarding: "arrow.left.arrow.right"

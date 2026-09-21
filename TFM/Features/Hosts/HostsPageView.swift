@@ -185,7 +185,7 @@ struct HostsPageView: ManagedCardPage {
     }
 
     func managedGhost(for host: Host) -> some View {
-        HostGhostCard(host: host, address: app.hostLibrary.loginAddress(for: host))
+        HostGhostCard(host: host, address: app.hostLibrary.preferredTerminalLoginAddress(for: host))
     }
 
     /// The canvas beside the cards, which is where New Host, New Group and the
@@ -453,14 +453,14 @@ private struct HostCard: View {
                 requestClearAllHistory: { clearHistoryHostIDs = $0 }
             )
         }
-        .help(Text("\(app.hostLibrary.loginAddress(for: host)) — \(status.label)"))
+        .help(Text("\(app.hostLibrary.preferredTerminalLoginAddress(for: host)) — \(status.label)"))
         .accessibilityLabel(host.name)
-        .accessibilityHint("Quick Connect with SSH")
+        .accessibilityHint("Quick Connect")
         .accessibilityAction(named: Text("Quick Connect"), quickConnect)
     }
 
     private func quickConnect() {
-        app.open(actionHosts, as: .sshSession, in: window)
+        app.open(actionHosts, as: .preferredTerminal, in: window)
     }
 
     private var header: some View {
@@ -471,7 +471,7 @@ private struct HostCard: View {
                 Text(host.name)
                     .font(.headline)
                     .lineLimit(1)
-                Text(app.hostLibrary.loginAddress(for: host))
+                Text(app.hostLibrary.preferredTerminalLoginAddress(for: host))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)

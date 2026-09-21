@@ -5,6 +5,7 @@ import struct TermindDomain.Host
 
 public nonisolated enum ConnectionPurpose: String, Hashable, Sendable {
     case sshSession
+    case telnetSession
     case sftpChannel = "sftpSession"
     case serialSession
     case metrics
@@ -58,6 +59,7 @@ public final class ConnectionJourney {
 
     public enum LocalRequirement: Equatable {
         case identity
+        case telnetPassword
         case passphrase
         case proxyAuthentication
     }
@@ -94,6 +96,7 @@ public final class ConnectionJourney {
     public var waitsForLocalIdentity: Bool { localRequirement == .identity }
     public var waitsForLocalPassphrase: Bool { localRequirement == .passphrase }
     public var waitsForProxyAuthentication: Bool { localRequirement == .proxyAuthentication }
+    public var waitsForTelnetPassword: Bool { localRequirement == .telnetPassword }
 
     private static var localDeviceName: String {
         #if os(macOS)
@@ -182,6 +185,63 @@ public final class ConnectionJourney {
                 + "serial connection to " + name
         )
         log(endpoint: name, message: "Opening " + address)
+    }
+
+    public func beginTelnet(
+        host: Host, username: String?, mode: Mode = .connection
+    ) {
+        completionTask?.cancel()
+        purpose = .telnetSession
+        self.mode = mode
+        let address = host.displayAddress(for: .telnet)
+        endpoints = [
+            ConnectionEndpoint(
+                id: .local, hostID: nil,
+                name: Self.localDeviceName, address: "localhost", role: .local
+            ),
+            ConnectionEndpoint(
+                id: .host(host.id), hostID: host.id, name: host.name,
+                address: username?.isEmpty == false ? "\(username!)@\(address)" : address,
+                role: .destination
+            ),
+        ]
+        phase = .connecting
+        activeEndpointIndex = 0
+        completedEndpointIndex = 0
+        checkpoint = nil
+        completedCheckpoints = [:]
+        localRequirement = nil
+        localRequirementEndpointIndex = nil
+        logs = []
+        showsLogs = false
+        log(
+            endpoint: endpoints[0].name,
+            message: (mode == .reconnection ? "Reconnecting " : "Starting ")
+                + "Telnet session to " + host.name
+        )
+        if let username, !username.isEmpty {
+            log(endpoint: host.name, message: "Using login " + username)
+        }
+    }
+
+    public func receive(_ event: TelnetConnectionEvent) {
+        guard purpose == .telnetSession, let destination = endpoints.indices.last else { return }
+        activeEndpointIndex = destination
+        let message: String
+        switch event {
+        case .openingTransport: message = String(localized: "Opening Telnet transport")
+        case .negotiatingOptions: message = String(localized: "Negotiating Telnet options")
+        case .configuringCharset: message = String(localized: "Configuring charset")
+        case .waitingForUsernamePrompt: message = String(localized: "Waiting for username prompt")
+        case .usernameSubmitted: message = String(localized: "Username submitted")
+        case .waitingForPasswordPrompt: message = String(localized: "Waiting for password prompt")
+        case .passwordSubmitted: message = String(localized: "Password submitted")
+        case .continuingManually: message = String(localized: "Continuing with manual login")
+        case .connected:
+            message = String(localized: "Host connected")
+            completedEndpointIndex = destination
+        }
+        log(endpoint: endpoints[destination].name, message: message)
     }
 
     public func receive(_ event: SSHRouteEvent) {
@@ -287,6 +347,20 @@ public final class ConnectionJourney {
         )
     }
 
+    public func waitForTelnetPassword(at hostID: Host.ID, failure: String? = nil) {
+        guard let index = endpoints.firstIndex(where: { $0.id == .host(hostID) }) else { return }
+        activeEndpointIndex = 0
+        completedEndpointIndex = 0
+        checkpoint = nil
+        localRequirement = .telnetPassword
+        localRequirementEndpointIndex = 0
+        phase = .waiting
+        log(
+            endpoint: endpoints[index].name,
+            message: failure ?? String(localized: "Waiting for a Telnet password")
+        )
+    }
+
     public func waitForHostKey(at hostID: Host.ID, fingerprint: String) {
         wait(
             at: hostID, kind: .hostKey,
@@ -383,6 +457,7 @@ extension ConnectionPurpose {
     fileprivate var logName: String {
         switch self {
         case .sshSession: "SSH session"
+        case .telnetSession: "Telnet session"
         case .sftpChannel: "SFTP channel"
         case .serialSession: "serial session"
         case .metrics: "metrics"

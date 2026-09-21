@@ -26,7 +26,9 @@ nonisolated enum BatchLayout: Hashable, Sendable {
 }
 
 nonisolated enum HostOpenTarget: Hashable, Sendable {
+    case preferredTerminal
     case sshSession
+    case telnetSession
     case sftpChannel
 }
 
@@ -255,7 +257,23 @@ final class AppModel {
         hosts.willDeletePortForwardings = { [weak forwarding] ruleIDs in
             forwarding?.stop(ruleIDs)
         }
-        hosts.didChangeHostConnection = { [weak forwarding] in forwarding?.hostConfigurationChanged($0) }
+        hosts.didChangeHostConnection = { [weak forwarding, weak self] hostID in
+            forwarding?.hostConfigurationChanged(hostID)
+            guard let self else { return }
+            let message =
+                self.hosts.host(hostID)?.sshEnabled == true
+                ? String(localized: "The Host configuration changed. Reconnect to apply it.")
+                : String(localized: "SSH is disabled for this Host.")
+            self.disconnectWorkspaces(for: hostID, protocol: .ssh, message: message)
+        }
+        hosts.didChangeTelnetConnection = { [weak self] hostID in
+            guard let self else { return }
+            let message =
+                self.hosts.host(hostID)?.telnetEnabled == true
+                ? String(localized: "The Host configuration changed. Reconnect to apply it.")
+                : String(localized: "Telnet is disabled for this Host.")
+            self.disconnectWorkspaces(for: hostID, protocol: .telnet, message: message)
+        }
         hosts.didPersistCore = { [weak repository = dependencies.hostRepository] in
             try? repository?.refresh()
         }
@@ -618,11 +636,22 @@ final class AppModel {
         }
     }
 
+    private func disconnectWorkspaces(
+        for hostID: Host.ID, protocol connectionProtocol: HostTerminalProtocol, message: String
+    ) {
+        windows = windows.filter { $0.value.value != nil }
+        for window in windows.values.compactMap(\.value) {
+            window.disconnectSessions(for: hostID, protocol: connectionProtocol, message: message)
+        }
+    }
+
     private func temporaryAgentTargets() -> [AgentHostTarget] {
         windows = windows.filter { $0.value.value != nil }
         var seen = Set<UUID>()
         return windows.values.compactMap(\.value).flatMap(\.workspaces).flatMap(\.panes)
-            .compactMap(\.sshSession).compactMap(\.agentTemporaryTarget)
+            .compactMap { pane in
+                pane.sshSession?.agentTemporaryTarget ?? pane.telnetSession?.agentTemporaryTarget
+            }
             .filter { seen.insert($0.id).inserted }
     }
 
@@ -679,7 +708,14 @@ final class AppModel {
         beginOpening(host, as: target)
 
         switch target {
+        case .preferredTerminal:
+            switch host.preferredTerminalProtocol {
+            case .ssh: return window.openSSHSession(host: host)
+            case .telnet: return window.openTelnetSession(host: host)
+            case nil: return window.openTelnetSession(host: host)
+            }
         case .sshSession: return window.openSSHSession(host: host)
+        case .telnetSession: return window.openTelnetSession(host: host)
         case .sftpChannel: return window.openSFTPChannel(host: host)
         }
     }
@@ -687,9 +723,15 @@ final class AppModel {
     @discardableResult
     func openQuickConnect(_ target: QuickConnectTarget, in window: WindowModel) -> Workspace {
         if target.isSaved {
-            return open(target.host, as: .sshSession, in: window)
+            return open(
+                target.host,
+                as: target.connectionProtocol == .ssh ? .sshSession : .telnetSession,
+                in: window)
         }
         hosts.setStatus(.connecting, for: target.host.id)
+        if target.connectionProtocol == .telnet {
+            return window.openTelnetSession(host: target.host)
+        }
         return window.openSSHSession(
             host: target.host, usernameHint: target.username, connectionRoute: target.route
         )
@@ -697,6 +739,15 @@ final class AppModel {
 
     @discardableResult
     func saveQuickConnect(_ target: QuickConnectTarget) throws -> Host {
+        if target.connectionProtocol == .telnet {
+            var host = target.host
+            host.sshEnabled = false
+            host.telnetEnabled = true
+            guard hosts.saveHost(host) else {
+                throw TermindSSHError.library(hosts.storageError ?? String(localized: "The host could not be saved."))
+            }
+            return hosts.host(host.id) ?? host
+        }
         let route = try hosts.saveConnectionRoute(target.route)
         guard let host = route.hosts.last else { throw SSHConnectionRoute.invalidRouteError }
         return host
@@ -714,13 +765,20 @@ final class AppModel {
     /// were two.
     private func beginOpening(_ host: Host, as target: HostOpenTarget) {
         if hosts.host(host.id) != nil {
+            let kind: ConnectionHistoryEntry.Kind
+            switch target {
+            case .preferredTerminal: kind = host.preferredTerminalProtocol == .telnet ? .telnet : .ssh
+            case .sshSession: kind = .ssh
+            case .telnetSession: kind = .telnet
+            case .sftpChannel: kind = .sftp
+            }
             connectionHistory.record(
-                kind: target == .sshSession ? .ssh : .sftp,
+                kind: kind,
                 for: host.id
             )
         }
         switch target {
-        case .sshSession:
+        case .preferredTerminal, .sshSession, .telnetSession:
             hosts.setStatus(.connecting, for: host.id)
         case .sftpChannel:
             break
@@ -798,7 +856,8 @@ final class AppModel {
                 ?? (snippet.targetHostIDs.isEmpty
                     ? (fallbackHostIDs ?? []) : snippet.targetHostIDs)
             let wanted = Set(ids)
-            let targets = hosts.searchHosts("").filter { wanted.contains($0.id) }
+            let targets = hosts.hosts(matching: "", for: .snippetExecution)
+                .filter { wanted.contains($0.id) }
             guard !targets.isEmpty else { continue }
             for host in targets { beginOpening(host, as: .sshSession) }
             if let workspace = window.openSnippetWorkspace(

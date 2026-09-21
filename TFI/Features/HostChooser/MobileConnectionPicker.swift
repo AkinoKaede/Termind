@@ -51,16 +51,18 @@ struct MobileConnectionPicker: View {
             title: "Connect",
             emptyDescription: "Add a host to connect to it.",
             cancel: cancel,
-            select: model.select
-        ) {
-            Section {
-                Picker("Connection Protocol", selection: $model.kind) {
-                    Text("SSH").tag(ConnectionHistoryEntry.Kind.ssh)
-                    Text("SFTP").tag(ConnectionHistoryEntry.Kind.sftp)
+            select: model.select,
+            isEligible: { host in model.kind != .sftp || host.sshEnabled },
+            header: {
+                Section {
+                    Picker("Connection Protocol", selection: $model.kind) {
+                        Text("SSH").tag(ConnectionHistoryEntry.Kind.ssh)
+                        Text("SFTP").tag(ConnectionHistoryEntry.Kind.sftp)
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
             }
-        }
+        )
     }
 }
 
@@ -121,21 +123,25 @@ struct MobileHostPicker<Header: View>: View {
     let emptyDescription: LocalizedStringKey
     let cancel: () -> Void
     let select: (Host) -> Void
+    let isEligible: (Host) -> Bool
     let header: Header
 
     init(
         library: HostLibraryModel,
+        useCase: HostUseCase? = nil,
         title: LocalizedStringKey,
         emptyDescription: LocalizedStringKey,
         cancel: @escaping () -> Void,
         select: @escaping (Host) -> Void,
+        isEligible: @escaping (Host) -> Bool = { _ in true },
         @ViewBuilder header: () -> Header
     ) {
-        _model = State(initialValue: MobileHostPickerModel(library: library))
+        _model = State(initialValue: MobileHostPickerModel(library: library, useCase: useCase))
         self.title = title
         self.emptyDescription = emptyDescription
         self.cancel = cancel
         self.select = select
+        self.isEligible = isEligible
         self.header = header()
     }
 
@@ -150,13 +156,13 @@ struct MobileHostPicker<Header: View>: View {
                 )
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
-            } else if model.hosts.isEmpty {
+            } else if eligibleHosts.isEmpty {
                 ContentUnavailableView.search(text: model.query)
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
             } else {
                 Section {
-                    ForEach(model.hosts) { host in
+                    ForEach(eligibleHosts) { host in
                         Button {
                             select(host)
                         } label: {
@@ -179,22 +185,28 @@ struct MobileHostPicker<Header: View>: View {
             }
         }
     }
+
+    private var eligibleHosts: [Host] { model.hosts.filter(isEligible) }
 }
 
 extension MobileHostPicker where Header == EmptyView {
     init(
         library: HostLibraryModel,
+        useCase: HostUseCase? = nil,
         title: LocalizedStringKey,
         emptyDescription: LocalizedStringKey,
         cancel: @escaping () -> Void,
-        select: @escaping (Host) -> Void
+        select: @escaping (Host) -> Void,
+        isEligible: @escaping (Host) -> Bool = { _ in true }
     ) {
         self.init(
             library: library,
+            useCase: useCase,
             title: title,
             emptyDescription: emptyDescription,
             cancel: cancel,
             select: select,
+            isEligible: isEligible,
             header: { EmptyView() })
     }
 }

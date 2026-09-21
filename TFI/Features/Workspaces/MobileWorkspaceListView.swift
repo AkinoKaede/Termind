@@ -37,11 +37,15 @@ struct MobileWorkspaceListView: View {
                                         .accessibilityLabel(Text(descriptor.kind.label))
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(descriptor.title).foregroundStyle(.primary).lineLimit(1)
-                                        Text(app.library.loginAddress(for: host))
-                                            .font(.caption.monospaced())
-                                            .foregroundStyle(.secondary)
-                                            .lineLimit(1)
-                                            .truncationMode(.middle)
+                                        Text(
+                                            app.library.loginAddress(
+                                                for: host,
+                                                protocol: descriptor.kind == .telnet ? .telnet : .ssh)
+                                        )
+                                        .font(.caption.monospaced())
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
                                     }
                                     Spacer(minLength: 0)
                                 }

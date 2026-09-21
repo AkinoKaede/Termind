@@ -7,11 +7,13 @@ import Foundation
 public nonisolated struct ConnectionHistoryEntry: Identifiable, Hashable, Sendable {
     public nonisolated enum Kind: String, Codable, CaseIterable, Hashable, Sendable {
         case ssh
+        case telnet
         case sftp
 
         public var label: String {
             switch self {
             case .ssh: String(localized: "SSH")
+            case .telnet: String(localized: "Telnet")
             case .sftp: String(localized: "SFTP")
             }
         }
@@ -19,6 +21,7 @@ public nonisolated struct ConnectionHistoryEntry: Identifiable, Hashable, Sendab
         public var symbol: String {
             switch self {
             case .ssh: "terminal"
+            case .telnet: "terminal"
             case .sftp: "folder"
             }
         }

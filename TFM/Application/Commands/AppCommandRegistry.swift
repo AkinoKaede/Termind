@@ -190,27 +190,39 @@ final class AppCommandRegistry {
     }
 
     private func hostCommands(_ host: Host) -> [AppCommandDescriptor] {
-        let keywords = [host.host, host.displayAddress] + host.tags
-        return [
-            AppCommandDescriptor(
-                id: "host.ssh.\(host.id.uuidString)",
-                title: host.name,
-                subtitle: String(localized: "Connect with SSH · \(host.displayAddress)"),
-                symbol: "apple.terminal",
-                section: .hosts,
-                keywords: keywords + ["ssh"],
-                target: .connectHost(host.id, .sshSession)
-            ),
-            AppCommandDescriptor(
-                id: "host.sftp.\(host.id.uuidString)",
-                title: host.name,
-                subtitle: String(localized: "Browse with SFTP · \(host.displayAddress)"),
-                symbol: "folder",
-                section: .hosts,
-                keywords: keywords + ["sftp", "files"],
-                target: .connectHost(host.id, .sftpChannel)
-            ),
-        ]
+        let keywords = [host.host] + host.supportedTerminalProtocols.map { host.displayAddress(for: $0) } + host.tags
+        var commands: [AppCommandDescriptor] = []
+        if host.sshEnabled {
+            commands.append(
+                AppCommandDescriptor(
+                    id: "host.ssh.\(host.id.uuidString)",
+                    title: host.name,
+                    subtitle: String(localized: "Connect with SSH · \(host.displayAddress(for: .ssh))"),
+                    symbol: "apple.terminal",
+                    section: .hosts,
+                    keywords: keywords + ["ssh"],
+                    target: .connectHost(host.id, .sshSession)
+                ))
+            commands.append(
+                AppCommandDescriptor(
+                    id: "host.sftp.\(host.id.uuidString)",
+                    title: host.name,
+                    subtitle: String(localized: "Browse with SFTP · \(host.displayAddress(for: .ssh))"),
+                    symbol: "folder",
+                    section: .hosts,
+                    keywords: keywords + ["sftp", "files"],
+                    target: .connectHost(host.id, .sftpChannel)
+                ))
+        }
+        if host.telnetEnabled {
+            commands.append(
+                AppCommandDescriptor(
+                    id: "host.telnet.\(host.id.uuidString)", title: host.name,
+                    subtitle: String(localized: "Connect with Telnet · \(host.displayAddress(for: .telnet))"),
+                    symbol: "terminal", section: .hosts, keywords: keywords + ["telnet"],
+                    target: .connectHost(host.id, .telnetSession)))
+        }
+        return commands
     }
 
     private func actionCommands(workspaceID: UUID?) -> [AppCommandDescriptor] {

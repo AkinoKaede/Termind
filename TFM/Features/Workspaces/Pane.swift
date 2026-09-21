@@ -17,6 +17,7 @@ enum PaneContent {
     // `sftpChannel` requires a host — there is no host-less SFTP channel,
     // because a transfer is a conversation with one machine about one path.
     case sshSession(SSHSessionModel)
+    case telnetSession(TelnetSessionModel)
     case sftpChannel(SFTPChannelModel)
     case serialSession(SerialSessionModel)
     /// A slot that has been carved out and not filled yet.
@@ -39,6 +40,7 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// means only that — a machine's tunnels used to land here too, which put a
     /// second row under Sessions for a host you already had a shell on.
     case sshSession
+    case telnetSession
     /// One host's SFTP browser. It shares the Sessions section with SSH while
     /// retaining its own kind for protocol-specific actions and iconography.
     case sftpChannel
@@ -63,7 +65,7 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// `.empty` is not combinable, which is what stops a half-arranged Workspace
     /// from being dragged into another one before it has been filled.
     var isCombinable: Bool {
-        self == .sshSession || self == .sftpChannel || self == .serialSession
+        self == .sshSession || self == .telnetSession || self == .sftpChannel || self == .serialSession
     }
 
     /// Whether a pane of this kind may be given a name.
@@ -78,14 +80,14 @@ nonisolated enum PaneKind: Hashable, Sendable {
     /// and an unfilled slot are the same story: both are named after the state
     /// they are in, and both stop existing when that state ends.
     var isRenameable: Bool {
-        self == .sshSession || self == .sftpChannel || self == .serialSession
+        self == .sshSession || self == .telnetSession || self == .sftpChannel || self == .serialSession
     }
 
     /// Only work panes have transient context worth reserving a footer for.
     /// Manager pages, forms and empty slots should use the full content height
     /// instead of permanently reporting the fallback "Not connected" state.
     var showsStatusBar: Bool {
-        self == .sshSession || self == .sftpChannel || self == .serialSession
+        self == .sshSession || self == .telnetSession || self == .sftpChannel || self == .serialSession
     }
 }
 
@@ -120,6 +122,7 @@ final class Pane: Identifiable {
     func configureConnections(using coordinator: RemoteConnectionCoordinator) {
         switch content {
         case .sshSession(let session): session.connectionCoordinator = coordinator
+        case .telnetSession: break
         case .sftpChannel(let session): session.connectionCoordinator = coordinator
         case .serialSession: break
         case .empty: break
@@ -140,6 +143,7 @@ final class Pane: Identifiable {
         switch content {
         case .sftpChannel: .sftpChannel
         case .sshSession: .sshSession
+        case .telnetSession: .telnetSession
         case .serialSession: .serialSession
         case .empty: .empty
         }
@@ -158,6 +162,7 @@ final class Pane: Identifiable {
     var symbol: String {
         switch content {
         case .sshSession: "apple.terminal"
+        case .telnetSession: "terminal"
         case .sftpChannel: "folder"
         case .serialSession: "cable.connector"
         case .empty: "rectangle.dashed"
@@ -176,6 +181,11 @@ final class Pane: Identifiable {
         return nil
     }
 
+    var telnetSession: TelnetSessionModel? {
+        if case .telnetSession(let telnetSession) = content { return telnetSession }
+        return nil
+    }
+
     var serialSession: SerialSessionModel? {
         if case .serialSession(let serialSession) = content { return serialSession }
         return nil
@@ -187,6 +197,7 @@ final class Pane: Identifiable {
     func disconnectConnection() {
         switch content {
         case .sshSession(let sshSession): sshSession.disconnect()
+        case .telnetSession(let telnetSession): telnetSession.disconnect()
         case .sftpChannel(let sftpChannel): sftpChannel.disconnect()
         case .serialSession(let serialSession): serialSession.disconnect()
         default: break
@@ -204,6 +215,8 @@ final class Pane: Identifiable {
             let replacement = sshSession.copyForReconnect()
             replacement.status = .connecting
             content = .sshSession(replacement)
+        case .telnetSession(let telnetSession):
+            telnetSession.prepareForReopen()
         case .serialSession(let serialSession):
             serialSession.prepareForReopen()
         case .sftpChannel(let sftpChannel):
@@ -216,6 +229,7 @@ final class Pane: Identifiable {
     var status: ConnectionStatus {
         switch content {
         case .sshSession(let sshSession): sshSession.status
+        case .telnetSession(let telnetSession): telnetSession.status
         case .sftpChannel(let sftpChannel): sftpChannel.status
         case .serialSession(let serialSession): serialSession.status
         default: .disconnected
@@ -225,6 +239,7 @@ final class Pane: Identifiable {
     var hasUnreadOutput: Bool {
         switch content {
         case .sshSession(let sshSession): sshSession.hasUnreadOutput
+        case .telnetSession(let telnetSession): telnetSession.hasUnreadOutput
         case .serialSession(let serialSession): serialSession.hasUnreadOutput
         default: false
         }
@@ -235,6 +250,7 @@ final class Pane: Identifiable {
     var hostID: Host.ID? {
         switch content {
         case .sshSession(let sshSession): sshSession.hostID
+        case .telnetSession(let telnetSession): telnetSession.hostID
         case .sftpChannel(let sftpChannel): sftpChannel.hostID
         case .serialSession: nil
         case .empty: nil
@@ -244,6 +260,7 @@ final class Pane: Identifiable {
     var workingDirectory: String? {
         switch content {
         case .sshSession(let sshSession): sshSession.workingDirectory
+        case .telnetSession: nil
         case .sftpChannel(let sftpChannel): sftpChannel.path
         case .serialSession: nil
         default: nil
@@ -253,6 +270,7 @@ final class Pane: Identifiable {
     var displayedWorkingDirectory: String? {
         switch content {
         case .sshSession(let sshSession): sshSession.displayedWorkingDirectory
+        case .telnetSession: nil
         case .sftpChannel(let sftpChannel): sftpChannel.displayedPath
         case .serialSession: nil
         default: nil
@@ -282,6 +300,10 @@ final class Pane: Identifiable {
             let clone = sshSession.copyForReconnect()
             clone.status = .connecting
             return Pane(.sshSession(clone))
+        case .telnetSession(let telnetSession):
+            guard let clone = telnetSession.copyForReconnect() else { return nil }
+            clone.status = .connecting
+            return Pane(.telnetSession(clone))
         case .sftpChannel(let sftpChannel):
             return Pane(.sftpChannel(sftpChannel.copyForBrowsing()))
         case .serialSession:
@@ -309,6 +331,8 @@ final class Pane: Identifiable {
         switch content {
         case .sshSession(let sshSession):
             sshSession.title
+        case .telnetSession(let telnetSession):
+            telnetSession.title
         case .sftpChannel(let sftpChannel):
             store.host(sftpChannel.hostID)?.name
                 ?? AppLocalization.string("SFTP", locale: locale)
@@ -343,6 +367,8 @@ final class Pane: Identifiable {
             // Like SFTP navigation, the shell's live directory remains useful
             // context after the user gives the pane a stable name.
             sshSession.status.isLive ? sshSession.displayedWorkingDirectory : nil
+        case .telnetSession:
+            nil
         default:
             nil
         }
@@ -385,6 +411,12 @@ extension Pane {
                 SFTPChannelModel(
                     hostID: host.id, initialPath: initialPath ?? host.sftpChannelInitialPath
                 )))
+    }
+
+    static func telnetSession(host: Host) -> Pane {
+        let session = TelnetSessionModel(host: host)
+        session.status = ConnectionStatus.connecting
+        return Pane(.telnetSession(session))
     }
 
     static func serialSession(

@@ -6,6 +6,18 @@ import TermindDomain
 import struct TermindDomain.Host
 
 nonisolated public struct AgentHostTarget: Identifiable, Hashable, Sendable, Codable {
+    public struct ProtocolSupport: Hashable, Sendable, Codable {
+        public var name: HostTerminalProtocol
+        public var address: String
+        public var connectionState: String
+
+        public init(name: HostTerminalProtocol, address: String, connectionState: String) {
+            self.name = name
+            self.address = address
+            self.connectionState = connectionState
+        }
+    }
+
     public var id: UUID
     public var displayName: String
     public var address: String
@@ -14,10 +26,14 @@ nonisolated public struct AgentHostTarget: Identifiable, Hashable, Sendable, Cod
     public var isTemporary: Bool
     public var groupID: HostGroup.ID?
     public var groupPath: String?
+    public var preferredTerminalProtocol: HostTerminalProtocol
+    public var protocols: [ProtocolSupport]
 
     public init(
         id: UUID, displayName: String, address: String, tags: [String], connectionState: String, isTemporary: Bool,
-        groupID: HostGroup.ID? = nil, groupPath: String? = nil
+        groupID: HostGroup.ID? = nil, groupPath: String? = nil,
+        preferredTerminalProtocol: HostTerminalProtocol = .ssh,
+        protocols: [ProtocolSupport]? = nil
     ) {
         self.id = id
         self.displayName = displayName
@@ -27,6 +43,11 @@ nonisolated public struct AgentHostTarget: Identifiable, Hashable, Sendable, Cod
         self.isTemporary = isTemporary
         self.groupID = groupID
         self.groupPath = groupPath
+        self.preferredTerminalProtocol = preferredTerminalProtocol
+        self.protocols =
+            protocols ?? [
+                ProtocolSupport(name: preferredTerminalProtocol, address: address, connectionState: connectionState)
+            ]
     }
 }
 
@@ -85,11 +106,21 @@ public final class AgentHostResolver: Sendable {
     public func listing() -> AgentHostListing {
         let paths = groupPaths()
         let saved = store.hosts.map { host in
-            AgentHostTarget(
-                id: host.id, displayName: host.name, address: store.loginAddress(for: host),
-                tags: host.tags, connectionState: Self.stateName(store.status(of: host.id)),
+            let state = Self.stateName(store.status(of: host.id))
+            let preferred = host.preferredTerminalProtocol ?? .ssh
+            let protocols = host.supportedTerminalProtocols.map { connectionProtocol in
+                AgentHostTarget.ProtocolSupport(
+                    name: connectionProtocol,
+                    address: store.loginAddress(for: host, protocol: connectionProtocol),
+                    connectionState: state)
+            }
+            return AgentHostTarget(
+                id: host.id, displayName: host.name,
+                address: store.loginAddress(for: host, protocol: preferred),
+                tags: host.tags, connectionState: state,
                 isTemporary: false, groupID: host.groupID,
-                groupPath: host.groupID.flatMap { paths[$0] }
+                groupPath: host.groupID.flatMap { paths[$0] },
+                preferredTerminalProtocol: preferred, protocols: protocols
             )
         }
         return AgentHostListing(
@@ -157,13 +188,19 @@ public final class AgentHostResolver: Sendable {
     }
 
     public func configuration(for id: UUID) throws -> SSHConnectionConfiguration {
-        if let host = store.host(id) { return try store.sshConnectionConfiguration(for: host) }
+        if let host = store.host(id) {
+            guard host.sshEnabled else { throw HostProtocolUnavailableError(useCase: .sshTerminal) }
+            return try store.sshConnectionConfiguration(for: host)
+        }
         if let configuration = try temporaryConfiguration(id) { return configuration }
         throw AgentToolError.invalidHost
     }
 
     public func canResolve(_ id: UUID) -> Bool {
-        store.host(id) != nil || temporaryTargets().contains { $0.id == id }
+        store.host(id)?.sshEnabled == true
+            || temporaryTargets().contains { target in
+                target.id == id && target.protocols.contains { $0.name == .ssh }
+            }
     }
 
     fileprivate struct InteractiveResolution: Sendable {
@@ -198,6 +235,9 @@ public final class AgentHostResolver: Sendable {
                 )
             }
             throw AgentToolError.invalidHost
+        }
+        guard destination.sshEnabled else {
+            throw HostProtocolUnavailableError(useCase: .sshTerminal)
         }
 
         var submissions = initial
@@ -480,6 +520,7 @@ public final class AgentHostResolver: Sendable {
             }
             return "temporary:\(id.uuidString)"
         }
+        guard host.sshEnabled else { throw HostProtocolUnavailableError(useCase: .sshTerminal) }
         let route = store.route(for: host)
         return route.enumerated().map { index, node in
             let identity = store.identity(for: node)

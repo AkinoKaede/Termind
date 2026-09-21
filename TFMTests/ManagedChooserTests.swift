@@ -69,7 +69,7 @@ struct ManagedChooserTests {
 
     @Test
     func connectionProtocolsRouteToMatchingSessionKinds() {
-        #expect(HostConnectionProtocol.ssh.target == .sshSession)
+        #expect(HostConnectionProtocol.terminal.target == .preferredTerminal)
         #expect(HostConnectionProtocol.sftp.target == .sftpChannel)
     }
 

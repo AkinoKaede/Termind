@@ -12,6 +12,7 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func snippet(_ id: Snippet.ID) -> Snippet?
     func identity(_ id: Identity.ID) -> Identity?
     func identity(for host: Host) -> Identity?
+    func identity(for host: Host, protocol connectionProtocol: HostTerminalProtocol) -> Identity?
     func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity?
     var customPasswordStorage: PasswordStorage { get }
     func key(_ id: SSHKeyRef.ID) -> SSHKeyRef?
@@ -25,6 +26,7 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
         proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission]
     ) throws -> SSHConnectionPreparation
+    func telnetConnectionConfiguration(for host: Host) throws -> TelnetConnectionConfiguration
     func sshConnectionConfiguration(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
         proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
@@ -72,6 +74,26 @@ extension RemoteSessionHostStore {
     public func snippet(_ id: Snippet.ID) -> Snippet? { nil }
     public func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity? { nil }
     public var customPasswordStorage: PasswordStorage { .iCloud }
+    public func identity(for host: Host, protocol connectionProtocol: HostTerminalProtocol) -> Identity? {
+        host.identityID(for: connectionProtocol).flatMap(identity)
+    }
+
+    public func telnetConnectionConfiguration(for host: Host) throws -> TelnetConnectionConfiguration {
+        guard host.telnetEnabled else { throw HostProtocolUnavailableError(useCase: .telnetTerminal) }
+        let identity = identity(for: host, protocol: .telnet)
+        let username = identity?.username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let password: SSHSecret?
+        if let identity, identity.usesPassword {
+            password = try connectionPasswordSecret(for: identity)
+            guard password != nil else { throw TermindSSHError.missingCredential }
+        } else {
+            password = nil
+        }
+        return TelnetConnectionConfiguration(
+            hostID: host.id, host: host.host, port: host.telnetPort,
+            username: username?.isEmpty == false ? username : nil,
+            password: password, charset: host.telnetCharset)
+    }
 
     public func prepareSSHConnection(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]

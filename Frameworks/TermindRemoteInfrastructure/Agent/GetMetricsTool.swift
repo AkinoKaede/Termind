@@ -50,6 +50,9 @@ nonisolated public struct GetMetricsTool: AgentToolDefinition, AgentToolSchemaBu
         guard let host = await hosts.listing().hosts.first(where: { $0.id == hostID }) else {
             throw AgentToolError.invalidHost
         }
+        guard host.protocols.contains(where: { $0.name == .ssh }) else {
+            throw HostProtocolUnavailableError(useCase: .metrics)
+        }
         let snapshot = await metrics.snapshot(for: hostID)
         return Self.result(
             invocation,

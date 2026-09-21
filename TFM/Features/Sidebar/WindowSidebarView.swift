@@ -684,6 +684,7 @@ private struct SnippetsSidebarView: View {
 
     private var canInsert: Bool {
         window.selectedWorkspace?.focusedPane.sshSession?.status.isLive == true
+            || window.selectedWorkspace?.focusedPane.telnetSession?.status.isLive == true
     }
 
     private func copy(_ snippet: Snippet) {
@@ -691,11 +692,8 @@ private struct SnippetsSidebarView: View {
     }
 
     private func insert(_ snippet: Snippet) {
-        guard let workspace = window.selectedWorkspace,
-            let sshSession = workspace.focusedPane.sshSession,
-            sshSession.status.isLive
-        else { return }
-        workspace.deliver(snippet.body, from: sshSession)
+        guard let workspace = window.selectedWorkspace, canInsert else { return }
+        workspace.deliverToFocusedTerminal(snippet.body)
     }
 
     private func execute(_ snippet: Snippet) {
@@ -708,14 +706,11 @@ private struct SnippetsSidebarView: View {
     }
 
     private func executeNow(_ snippet: Snippet) {
-        guard let workspace = window.selectedWorkspace,
-            let sshSession = workspace.focusedPane.sshSession,
-            sshSession.status.isLive
-        else {
+        guard let workspace = window.selectedWorkspace, canInsert else {
             destructiveSnippet = nil
             return
         }
-        workspace.deliver(snippet.body, from: sshSession, submit: true)
+        workspace.deliverToFocusedTerminal(snippet.body, submit: true)
         destructiveSnippet = nil
     }
 }
@@ -1215,7 +1210,7 @@ private struct ConnectionHistorySidebar: View {
         guard !query.isEmpty else { return allRows }
         return allRows.filter { entry, host in
             host.matches(query)
-                || app.hostLibrary.loginAddress(for: host)
+                || historyAddress(entry, host: host)
                     .localizedCaseInsensitiveContains(query)
                 || entry.kind.label.localizedCaseInsensitiveContains(query)
         }
@@ -1243,7 +1238,7 @@ private struct ConnectionHistorySidebar: View {
                     items: rows.map { entry, host in
                         .connection(
                             entry, host: host,
-                            address: app.hostLibrary.loginAddress(for: host)
+                            address: historyAddress(entry, host: host)
                         )
                     },
                     animatesStructuralChanges: false,
@@ -1269,6 +1264,11 @@ private struct ConnectionHistorySidebar: View {
         } message: {
             Text("This permanently removes all connection history without deleting any Hosts.")
         }
+    }
+
+    private func historyAddress(_ entry: ConnectionHistoryEntry, host: Host) -> String {
+        app.hostLibrary.loginAddress(
+            for: host, protocol: entry.kind == .telnet ? .telnet : .ssh)
     }
 
     private var globalMenu: [NativeMenuEntry] {
@@ -1312,9 +1312,15 @@ private struct ConnectionHistorySidebar: View {
             }
         }
         .onTapGesture(count: 2) {
+            let target: HostOpenTarget =
+                switch entry.kind {
+                case .ssh: .sshSession
+                case .telnet: .telnetSession
+                case .sftp: .sftpChannel
+                }
             app.open(
                 host,
-                as: entry.kind == .ssh ? .sshSession : .sftpChannel,
+                as: target,
                 in: window
             )
         }

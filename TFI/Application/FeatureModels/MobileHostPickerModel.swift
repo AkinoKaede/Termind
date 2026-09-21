@@ -10,13 +10,20 @@ final class MobileHostPickerModel {
     var query = ""
 
     private let library: HostLibraryModel
+    private let useCase: HostUseCase?
 
-    init(library: HostLibraryModel) { self.library = library }
+    init(library: HostLibraryModel, useCase: HostUseCase? = nil) {
+        self.library = library
+        self.useCase = useCase
+    }
 
     var isLibraryEmpty: Bool { library.hosts.isEmpty }
-    var hosts: [Host] { library.searchHosts(query) }
+    var hosts: [Host] {
+        if let useCase { return library.hosts(matching: query, for: useCase) }
+        return library.searchHosts(query)
+    }
 
-    func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }
+    func loginAddress(for host: Host) -> String { library.preferredTerminalLoginAddress(for: host) }
 }
 
 @MainActor
@@ -30,5 +37,13 @@ final class MobileConnectionPickerModel {
         self.connect = connect
     }
 
-    func select(_ host: Host) { connect(host.id, kind) }
+    func select(_ host: Host) {
+        let resolved: ConnectionHistoryEntry.Kind
+        if kind == .ssh, host.preferredTerminalProtocol == .telnet {
+            resolved = .telnet
+        } else {
+            resolved = kind
+        }
+        connect(host.id, resolved)
+    }
 }

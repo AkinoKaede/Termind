@@ -100,22 +100,26 @@ final class MobileSceneModel {
         }
     }
 
-    /// Reuses this scene's most recently selected SSH workspace for the Host.
+    /// Reuses this scene's most recently selected preferred terminal workspace for the Host.
     /// Explicit connection actions continue to call `open(hostID:kind:)` so
     /// users can still create independent SSH and SFTP workspaces.
     func activateHost(_ hostID: Host.ID) {
+        guard let host = app.library.host(hostID), let connectionProtocol = host.preferredTerminalProtocol else {
+            return
+        }
+        let kind: ConnectionHistoryEntry.Kind = connectionProtocol == .ssh ? .ssh : .telnet
         let matchingIDs = Set(
             app.workspaces.lazy
-                .filter { $0.descriptor.hostID == hostID && $0.descriptor.kind == .ssh }
+                .filter { $0.descriptor.hostID == hostID && $0.descriptor.kind == kind }
                 .map(\.id)
         )
         let workspaceID =
             recentWorkspaceIDs.first(where: matchingIDs.contains)
             ?? app.workspaces.last(where: {
-                $0.descriptor.hostID == hostID && $0.descriptor.kind == .ssh
+                $0.descriptor.hostID == hostID && $0.descriptor.kind == kind
             })?.id
         guard let workspaceID else {
-            open(hostID: hostID, kind: .ssh)
+            open(hostID: hostID, kind: kind)
             return
         }
         selectWorkspace(workspaceID)

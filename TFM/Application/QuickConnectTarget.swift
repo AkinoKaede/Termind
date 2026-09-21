@@ -8,14 +8,16 @@ nonisolated struct QuickConnectTarget: Hashable, Sendable {
     var host: Host
     var route: SSHConnectionRoute
     var isSaved: Bool
+    var connectionProtocol: HostTerminalProtocol
 
     var username: String? { route.usernames[host.id] }
     var loginAddress: String { address(for: host) }
     var routeSummary: String { route.hosts.map(address).joined(separator: " → ") }
 
     private func address(for host: Host) -> String {
-        guard let username = route.usernames[host.id], !username.isEmpty else { return host.displayAddress }
-        return "\(username)@\(host.displayAddress)"
+        let displayAddress = host.displayAddress(for: connectionProtocol)
+        guard let username = route.usernames[host.id], !username.isEmpty else { return displayAddress }
+        return "\(username)@\(displayAddress)"
     }
 }
 
@@ -25,6 +27,9 @@ enum QuickConnectResolver {
     static func resolve(
         _ input: QuickConnectInput, in library: HostLibraryModel, locale: Locale = .current
     ) throws -> QuickConnectTarget {
+        if input.connectionProtocol == .telnet {
+            return try resolveTelnet(input, in: library, locale: locale)
+        }
         var usernames: [Host.ID: String] = [:]
         var originals: [Host.ID: Host] = [:]
 
@@ -107,7 +112,41 @@ enum QuickConnectResolver {
         return QuickConnectTarget(
             host: host,
             route: SSHConnectionRoute(hosts: resolved, usernames: resolvedUsernames, sourceHostIDs: sourceIDs),
-            isSaved: library.host(host.id) == host
+            isSaved: library.host(host.id) == host,
+            connectionProtocol: .ssh
         )
+    }
+
+    private static func resolveTelnet(
+        _ input: QuickConnectInput, in library: HostLibraryModel, locale: Locale
+    ) throws -> QuickConnectTarget {
+        let matches = library.hosts.filter { $0.name == input.destination.host }
+        guard matches.count <= 1 else {
+            throw TermindSSHError.route(
+                AppLocalization.string(
+                    "More than one saved host is named “\(input.destination.host)”.", locale: locale))
+        }
+        var host =
+            matches.first
+            ?? Host(
+                name: input.destination.host, host: input.destination.host,
+                sshEnabled: false, telnetEnabled: true)
+        if matches.first != nil, !host.telnetEnabled {
+            throw HostProtocolUnavailableError(useCase: .telnetTerminal)
+        }
+        if let port = input.destination.port { host.telnetPort = port }
+        var usernames: [Host.ID: String] = [:]
+        if let username = input.destination.username {
+            let identities = library.reusableIdentities.filter {
+                $0.username == username && library.isProxyEligibleOnThisDevice($0)
+            }
+            host.telnetIdentityID = identities.count == 1 ? identities[0].id : nil
+            usernames[host.id] = username
+        } else if let username = library.identity(for: host, protocol: .telnet)?.username {
+            usernames[host.id] = username
+        }
+        return QuickConnectTarget(
+            host: host, route: SSHConnectionRoute(hosts: [host], usernames: usernames),
+            isSaved: library.host(host.id) == host, connectionProtocol: .telnet)
     }
 }

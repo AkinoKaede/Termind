@@ -18,6 +18,9 @@ extension SplitNode {
             case .sshSession(let session):
                 guard hosts.host(session.hostID) != nil else { return nil }
                 return .pane(.ssh(hostID: session.hostID))
+            case .telnetSession(let session):
+                guard hosts.host(session.hostID) != nil else { return nil }
+                return .pane(.telnet(hostID: session.hostID))
             case .sftpChannel(let session):
                 guard hosts.host(session.hostID) != nil else { return nil }
                 return .pane(.sftp(hostID: session.hostID))
@@ -49,10 +52,13 @@ extension WorkspaceTemplateLayout {
             case .empty:
                 return (.leaf(Pane(.empty)), 0)
             case .ssh(let hostID):
-                guard let host = hosts.host(hostID) else { return (.leaf(Pane(.empty)), 1) }
+                guard let host = hosts.host(hostID), host.sshEnabled else { return (.leaf(Pane(.empty)), 1) }
                 return (.leaf(.sshSession(host: host)), 0)
+            case .telnet(let hostID):
+                guard let host = hosts.host(hostID), host.telnetEnabled else { return (.leaf(Pane(.empty)), 1) }
+                return (.leaf(.telnetSession(host: host)), 0)
             case .sftp(let hostID):
-                guard let host = hosts.host(hostID) else { return (.leaf(Pane(.empty)), 1) }
+                guard let host = hosts.host(hostID), host.sshEnabled else { return (.leaf(Pane(.empty)), 1) }
                 return (.leaf(.sftpChannel(host: host)), 0)
             }
         case .split(let axis, let fraction, let first, let second):

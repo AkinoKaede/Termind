@@ -519,7 +519,7 @@ private struct PaneView: View {
                 isEnabled: isActive && window.dragging == nil,
                 receive: receivePaneDrop
             )
-        case .serialSession, .empty:
+        case .telnetSession, .serialSession, .empty:
             EmptyView()
         }
     }
@@ -578,7 +578,7 @@ private struct PaneView: View {
                 systemImage: nativeDropKind == .sftpItems
                     ? "doc.on.doc.fill" : "arrow.up.doc.fill"
             )
-        case .serialSession, .empty:
+        case .telnetSession, .serialSession, .empty:
             return nil
         }
     }
@@ -589,7 +589,7 @@ private struct PaneView: View {
             case .sshSession, .sftpChannel:
                 sftpRemoteDropRequest = SFTPRemoteDropRequest(data: data)
                 return true
-            case .serialSession, .empty:
+            case .telnetSession, .serialSession, .empty:
                 return false
             }
         }
@@ -663,6 +663,13 @@ private struct PaneView: View {
                 externalRemoteDrop: sftpRemoteDropRequest,
                 closePane: { window.closePane(pane.id) }
             )
+        case .telnetSession(let telnetSession):
+            TelnetTerminalView(
+                session: telnetSession,
+                isVisible: isActive,
+                requestsFocus: isActive && isFocused && !window.isToolbarFindFocused && !window.isQuickOpenPresented,
+                closePane: { window.closePane(pane.id) }
+            )
         case .sftpChannel(let sftpChannel):
             SFTPBrowserView(
                 sftpChannel: sftpChannel,
@@ -703,7 +710,7 @@ private struct PaneView: View {
             headerContent.background {
                 ConnectionJourneyBackground()
             }
-        } else if pane.kind == .sshSession || pane.kind == .serialSession {
+        } else if pane.kind == .sshSession || pane.kind == .telnetSession || pane.kind == .serialSession {
             headerContent.background(terminalAppearance.background)
         } else if pane.kind == .sftpChannel {
             headerContent.background(TermindColor.windowSurface)
@@ -715,6 +722,8 @@ private struct PaneView: View {
     private var presentsConnectionJourney: Bool {
         switch pane.content {
         case .sshSession(let session):
+            session.connectionJourney.isPresented
+        case .telnetSession(let session):
             session.connectionJourney.isPresented
         case .sftpChannel(let session):
             session.connectionJourney.isPresented
@@ -1015,7 +1024,7 @@ struct WelcomeView: View {
         if let template = matchingTemplates.first {
             window.openWorkspaceTemplate(template)
         } else if let host = matches.first {
-            app.open(host, as: .sshSession, in: window)
+            app.open(host, as: .preferredTerminal, in: window)
         } else if let adHoc {
             connect(adHoc)
             return
@@ -1232,6 +1241,8 @@ private struct WelcomeWorkspaceTemplateRow: View {
             switch pane {
             case .ssh(let hostID):
                 "\(app.hostLibrary.host(hostID)?.name ?? String(localized: "Unavailable Host")) · SSH"
+            case .telnet(let hostID):
+                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: "Unavailable Host")) · Telnet"
             case .sftp(let hostID):
                 "\(app.hostLibrary.host(hostID)?.name ?? String(localized: "Unavailable Host")) · SFTP"
             case .empty:
@@ -1253,7 +1264,7 @@ private struct WelcomeHostRow: View {
 
     var body: some View {
         Button {
-            app.open(host, as: .sshSession, in: window)
+            app.open(host, as: .preferredTerminal, in: window)
         } label: {
             HStack(spacing: Metrics.Space.m) {
                 StatusDot(status: app.hostLibrary.status(of: host.id))
@@ -1263,7 +1274,7 @@ private struct WelcomeHostRow: View {
                         .lineLimit(1)
                     // Resolved through the store, so a quick-connect row that
                     // matched a saved identity shows the login it will actually use.
-                    Text(app.hostLibrary.loginAddress(for: host))
+                    Text(app.hostLibrary.preferredTerminalLoginAddress(for: host))
                         .font(.caption.monospaced())
                         .foregroundStyle(.secondary)
                         .lineLimit(1)

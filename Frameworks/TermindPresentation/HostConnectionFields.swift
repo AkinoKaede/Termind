@@ -32,8 +32,17 @@ public struct HostOrganizationSection<GroupField: View, TagsField: View>: View {
 /// The same connection form inside a desktop work column or a mobile sheet.
 public struct HostConnectionFields: View {
     @Binding private var host: Host
+    @Binding private var connectionProtocol: HostTerminalProtocol
 
-    public init(host: Binding<Host>) { _host = host }
+    public init(host: Binding<Host>, protocol connectionProtocol: Binding<HostTerminalProtocol>) {
+        _host = host
+        _connectionProtocol = connectionProtocol
+    }
+
+    public init(host: Binding<Host>) {
+        _host = host
+        _connectionProtocol = .constant(.ssh)
+    }
 
     public var body: some View {
         Section("Connection") {
@@ -48,13 +57,39 @@ public struct HostConnectionFields: View {
                         .keyboardType(.URL)
                     #endif
             }
+            Picker("Protocol", selection: $connectionProtocol) {
+                ForEach(HostTerminalProtocol.allCases) { connectionProtocol in
+                    Text(connectionProtocol.displayName).tag(connectionProtocol)
+                }
+            }
+            .labelsHidden()
+            .multilineTextAlignment(.trailing)
+            .pickerStyle(.segmented)
+            .frame(maxWidth: .infinity)
+            Toggle("Enabled", isOn: enabled)
             LabeledContent("Port") {
-                TextField("Port", value: $host.port, format: .number.grouping(.never)).lineLimit(1)
+                TextField("Port", value: port, format: .number.grouping(.never)).lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)
                     #if os(iOS)
                         .keyboardType(.numberPad)
                     #endif
             }
         }
+    }
+
+    private var enabled: Binding<Bool> {
+        Binding(
+            get: { connectionProtocol == .ssh ? host.sshEnabled : host.telnetEnabled },
+            set: {
+                if connectionProtocol == .ssh { host.sshEnabled = $0 } else { host.telnetEnabled = $0 }
+            })
+    }
+
+    private var port: Binding<Int> {
+        Binding(
+            get: { connectionProtocol == .ssh ? host.sshPort : host.telnetPort },
+            set: {
+                if connectionProtocol == .ssh { host.sshPort = $0 } else { host.telnetPort = $0 }
+            })
     }
 }

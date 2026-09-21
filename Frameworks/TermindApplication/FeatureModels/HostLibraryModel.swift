@@ -33,6 +33,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
     public var willDeletePortForwardings: (([PortForwardingRule.ID]) -> Void)?
     public var didChangeHostConnection: ((Host.ID) -> Void)?
+    public var didChangeTelnetConnection: ((Host.ID) -> Void)?
     public var didPersistCore: (() -> Void)? {
         get { vault.didPersist }
         set { vault.didPersist = newValue }
@@ -319,7 +320,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// The login a host connects with, resolved through the store so renaming an
     /// identity renames it everywhere it is shown.
     public func identity(for host: Host) -> Identity? {
-        host.identityID.flatMap { identity($0) }
+        identity(for: host, protocol: .ssh)
+    }
+
+    public func identity(for host: Host, protocol connectionProtocol: HostTerminalProtocol) -> Identity? {
+        host.identityID(for: connectionProtocol).flatMap { identity($0) }
     }
 
     /// `user@host:port` — what the UI shows almost everywhere a host is named.
@@ -328,10 +333,20 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// inventing a login: a host that does not yet know who it connects as
     /// should look like one.
     public func loginAddress(for host: Host) -> String {
-        guard let username = identity(for: host)?.username, !username.isEmpty else {
-            return host.displayAddress
+        loginAddress(for: host, protocol: .ssh)
+    }
+
+    public func loginAddress(for host: Host, protocol connectionProtocol: HostTerminalProtocol) -> String {
+        let address = host.displayAddress(for: connectionProtocol)
+        guard let username = identity(for: host, protocol: connectionProtocol)?.username, !username.isEmpty else {
+            return address
         }
-        return "\(username)@\(host.displayAddress)"
+        return "\(username)@\(address)"
+    }
+
+    public func preferredTerminalLoginAddress(for host: Host) -> String {
+        guard let connectionProtocol = host.preferredTerminalProtocol else { return host.host }
+        return loginAddress(for: host, protocol: connectionProtocol)
     }
 
     /// Which identities would break if a key were deleted. The Keys list shows
@@ -372,6 +387,9 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// another question. Export is deliberately limited to hosts whose login
     /// and host-key trust have already been established elsewhere in the app.
     public func keyExportUnavailableReason(for host: Host) -> String? {
+        guard isEligible(host, for: .keyExport) else {
+            return HostProtocolUnavailableError(useCase: .keyExport).localizedDescription
+        }
         guard let identity = identity(for: host) else {
             return String(localized: "No identity")
         }
@@ -403,12 +421,59 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
         proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
     ) throws -> SSHConnectionPreparation {
+        try require(host, for: .sshTerminal)
         guard let route = validatedRoute(for: host) else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
         return try prepareSSHConnection(
             for: SSHConnectionRoute(hosts: route), submissions: submissions,
             proxySubmissions: proxySubmissions)
+    }
+
+    public func telnetConnectionConfiguration(for host: Host) throws -> TelnetConnectionConfiguration {
+        try require(host, for: .telnetTerminal)
+        let identity = identity(for: host, protocol: .telnet)
+        let username = identity?.username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let password: SSHSecret?
+        if let identity, identity.usesPassword {
+            password = try connectionPasswordSecret(for: identity)
+            guard password != nil else { throw TermindSSHError.missingCredential }
+        } else {
+            password = nil
+        }
+        return TelnetConnectionConfiguration(
+            hostID: host.id, host: host.host, port: host.telnetPort,
+            username: username?.isEmpty == false ? username : nil,
+            password: password, charset: host.telnetCharset,
+            proxy: try terminalTransportProxy(for: host.telnetProxy, ownerHostID: host.id)
+        )
+    }
+
+    private func terminalTransportProxy(
+        for proxy: HostProxy?, ownerHostID: Host.ID
+    ) throws -> TerminalTransportProxy? {
+        guard let proxy else { return nil }
+        guard proxy.isValid else {
+            throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
+        }
+        var password: SSHSecret?
+        if let identityID = proxy.identityID {
+            guard let identity = identity(identityID), identity.usesPassword else {
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: ownerHostID, serverChallenge: false,
+                    message: String(localized: "The proxy password identity is unavailable."))
+            }
+            password = try connectionPasswordSecret(for: identity)
+            guard password != nil else {
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: ownerHostID, serverChallenge: false,
+                    message: String(localized: "The proxy password is unavailable."))
+            }
+        }
+        return TerminalTransportProxy(
+            kind: proxy.kind, hostname: proxy.hostname, port: proxy.port,
+            username: proxy.username, password: password,
+            identityID: proxy.identityID, ownerHostID: ownerHostID)
     }
 
     public func prepareSSHConnection(
@@ -955,10 +1020,33 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         hosts
             .filter { host in
                 host.matches(query)
-                    || loginAddress(for: host).localizedCaseInsensitiveContains(query)
-                    || (!query.isEmpty && identity(for: host)?.matches(query) == true)
+                    || host.supportedTerminalProtocols.contains {
+                        loginAddress(for: host, protocol: $0).localizedCaseInsensitiveContains(query)
+                    }
+                    || (!query.isEmpty
+                        && host.supportedTerminalProtocols.contains {
+                            identity(for: host, protocol: $0)?.matches(query) == true
+                        })
             }
             .sorted { $0.name < $1.name }
+    }
+
+    public func hosts(matching query: String, requiring requirement: HostProtocolRequirement) -> [Host] {
+        searchHosts(query).filter { $0.supports(requirement) }
+    }
+
+    public func hosts(matching query: String, for useCase: HostUseCase) -> [Host] {
+        hosts(matching: query, requiring: useCase.protocolRequirement)
+    }
+
+    public func isEligible(_ host: Host, for useCase: HostUseCase) -> Bool {
+        host.supports(useCase.protocolRequirement)
+    }
+
+    public func require(_ host: Host, for useCase: HostUseCase) throws {
+        guard isEligible(host, for: useCase) else {
+            throw HostProtocolUnavailableError(useCase: useCase)
+        }
     }
 
     public func searchSnippets(_ query: String) -> [Snippet] {
@@ -995,7 +1083,17 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         host.name = SavedName.resolve(host.name, default: host.defaultName)
         host.portForwardingMaxConnections = Host.normalizedPortForwardingMaxConnections(
             host.portForwardingMaxConnections)
-        guard validatedRoute(for: host) != nil else {
+        guard host.preferredTerminalProtocol != nil else {
+            storageError = String(localized: "Enable SSH or Telnet before saving this Host.")
+            return false
+        }
+        guard !host.sshEnabled || (1...65_535).contains(host.sshPort),
+            !host.telnetEnabled || (1...65_535).contains(host.telnetPort)
+        else {
+            storageError = String(localized: "The enabled protocol port must be between 1 and 65535.")
+            return false
+        }
+        guard !host.sshEnabled || validatedRoute(for: host) != nil else {
             storageError = String(localized: "The selected jump host creates a routing loop or exceeds 8 hops.")
             return false
         }
@@ -1014,7 +1112,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             hosts = previous
             return false
         }
-        if let old, !old.hasSameConnectionRoute(as: host) { didChangeHostConnection?(host.id) }
+        if let old {
+            if !old.hasSameSSHConnectionRoute(as: host) { didChangeHostConnection?(host.id) }
+            if !old.hasSameTelnetConnection(as: host) { didChangeTelnetConnection?(host.id) }
+        }
         return true
     }
 
@@ -1785,9 +1886,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     @discardableResult
     public func upsert(_ forwarding: PortForwardingRule) -> Bool {
-        guard var normalized = PortForwardingEditorPolicy.normalized(forwarding), let host = host(forwarding.hostID)
+        guard var normalized = PortForwardingEditorPolicy.normalized(forwarding),
+            let host = host(forwarding.hostID), host.sshEnabled
         else {
-            storageError = String(localized: "The forwarding rule is incomplete.")
+            storageError = String(localized: "The forwarding rule requires an SSH-enabled Host.")
             return false
         }
         normalized.label = SavedName.resolve(
@@ -1829,6 +1931,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         var cursor: Host? = proposed
         var visited: Set<Host.ID> = []
         while let current = cursor {
+            guard current.sshEnabled else { return nil }
             guard visited.insert(current.id).inserted, route.count < 8 else { return nil }
             route.append(current)
             guard let jumpID = current.jumpHostID else { break }
@@ -1858,6 +1961,20 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         sshCommand(for: host, additionalArguments: [])
     }
 
+    public func telnetCommand(for host: Host) -> String {
+        var arguments: [String] = []
+        if let username = identity(for: host, protocol: .telnet)?.username
+            .trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty
+        {
+            arguments += ["-l", username]
+        }
+        arguments.append(host.host)
+        if host.telnetPort != HostTerminalProtocol.telnet.defaultPort {
+            arguments.append(String(host.telnetPort))
+        }
+        return (["telnet"] + arguments).map(Self.shellQuoted).joined(separator: " ")
+    }
+
     public func sshCommand(for rule: PortForwardingRule, host proposedHost: Host? = nil) -> String? {
         guard let destination = proposedHost ?? host(rule.hostID), destination.id == rule.hostID
         else { return nil }
@@ -1876,7 +1993,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     private func sshCommand(for destination: Host, additionalArguments: [String]) -> String? {
-        guard let route = validatedRoute(for: destination),
+        guard destination.sshEnabled, let route = validatedRoute(for: destination),
             route.allSatisfy({ $0.proxy == nil })
         else { return nil }
 

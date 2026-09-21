@@ -39,11 +39,26 @@ public nonisolated struct VaultRemoteChangePlan: Sendable {
 }
 
 extension Host {
-    public nonisolated func hasSameConnectionRoute(as other: Host) -> Bool {
+    public nonisolated func hasSameSSHConnectionRoute(as other: Host) -> Bool {
         host == other.host
-            && port == other.port
-            && identityID == other.identityID
+            && sshEnabled == other.sshEnabled
+            && sshPort == other.sshPort
+            && sshIdentityID == other.sshIdentityID
+            && sshCharset == other.sshCharset
             && jumpHostID == other.jumpHostID
             && proxy == other.proxy
+    }
+
+    public nonisolated func hasSameTelnetConnection(as other: Host) -> Bool {
+        host == other.host
+            && telnetEnabled == other.telnetEnabled
+            && telnetPort == other.telnetPort
+            && telnetIdentityID == other.telnetIdentityID
+            && telnetCharset == other.telnetCharset
+            && telnetProxy == other.telnetProxy
+    }
+
+    public nonisolated func hasSameConnectionRoute(as other: Host) -> Bool {
+        hasSameSSHConnectionRoute(as: other)
     }
 }

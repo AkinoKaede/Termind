@@ -208,6 +208,7 @@ final class Workspace: Identifiable {
     func markRead() {
         for pane in panes {
             pane.sshSession?.hasUnreadOutput = false
+            pane.telnetSession?.hasUnreadOutput = false
             pane.serialSession?.hasUnreadOutput = false
         }
     }
@@ -237,6 +238,14 @@ final class Workspace: Identifiable {
         let targets = broadcastsInput && canBroadcast ? broadcastTargets : [origin]
         for sshSession in targets {
             sshSession.insert(text, submit: submit)
+        }
+    }
+
+    func deliverToFocusedTerminal(_ text: String, submit: Bool = false) {
+        if let sshSession = focusedPane.sshSession, sshSession.status.isLive {
+            deliver(text, from: sshSession, submit: submit)
+        } else if let telnetSession = focusedPane.telnetSession, telnetSession.status.isLive {
+            telnetSession.insert(text, submit: submit)
         }
     }
 

@@ -189,6 +189,10 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     /// Admission and insertion are one MainActor operation, shared by all windows.
     @discardableResult
     public func add(_ hosts: [Host]) -> Bool {
+        guard hosts.allSatisfy(\.sshEnabled) else {
+            storageError = HostProtocolUnavailableError(useCase: .metrics).localizedDescription
+            return false
+        }
         var seen = Set(configuredSelections.map(\.id))
         let additions = hosts.filter { seen.insert($0.id).inserted }
         guard requestAddition(count: additions.count) else { return false }
@@ -425,6 +429,13 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         for server in servers {
             guard let host = hosts.host(server.id) else { continue }
             server.name = host.name
+            guard host.sshEnabled else {
+                cancel(server.id)
+                server.isConnecting = false
+                server.status = String(localized: "SSH is disabled for this Host.")
+                server.collectionState = .failed
+                continue
+            }
             server.history.removeAll { $0.date < clock.now().addingTimeInterval(-300) }
             let stamp = connectionStamp(host)
             if let old = stamps[server.id], old != stamp {
@@ -558,6 +569,14 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         guard workers[server.id] == nil else { return }
         guard let host = hosts.host(server.id) else {
             let message = String(localized: "The host is no longer available.")
+            server.isConnecting = false
+            server.status = message
+            server.collectionState = .failed
+            server.journey.fail(message)
+            return
+        }
+        guard host.sshEnabled else {
+            let message = String(localized: "SSH is disabled for this Host.")
             server.isConnecting = false
             server.status = message
             server.collectionState = .failed

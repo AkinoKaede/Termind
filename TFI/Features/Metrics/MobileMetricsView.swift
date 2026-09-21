@@ -52,6 +52,7 @@ struct MobileMetricsView: View {
             NavigationStack {
                 MobileHostPicker(
                     library: app.library,
+                    useCase: .metrics,
                     title: "Add Server",
                     emptyDescription: "Add a saved Linux server to start monitoring.",
                     cancel: { selecting = false },

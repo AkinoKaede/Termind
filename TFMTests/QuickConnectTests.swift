@@ -9,6 +9,25 @@ import struct TermindDomain.Host
 
 @Suite
 struct QuickConnectParserTests {
+    @Test(arguments: [
+        "telnet host", "telnet host 2323", "telnet -l user host", "/usr/bin/telnet -luser host 2323",
+    ])
+    func acceptsTelnetCommands(_ command: String) throws {
+        let input = try connection(command)
+        #expect(input.connectionProtocol == .telnet)
+        #expect(input.destination.host == "host")
+        if command.contains("2323") { #expect(input.destination.port == 2323) }
+        if command.contains("-l") { #expect(input.destination.username == "user") }
+    }
+
+    @Test(arguments: ["telnet", "telnet -l", "telnet host 0", "telnet -x host", "telnet host 23 uptime"])
+    func rejectsIncompleteOrUnsupportedTelnetCommands(_ command: String) {
+        switch QuickConnectParser.parse(command) {
+        case .invalid, .incomplete: break
+        default: Issue.record("Expected invalid or incomplete Telnet input: \(command)")
+        }
+    }
+
     @Test(arguments: ["user@host:2222", "ssh -p 2222 user@host", "ssh user@host -p2222", "ssh -luser -oPort=2222 host"])
     func acceptsLoginAndPort(_ command: String) throws {
         let input = try connection(command)

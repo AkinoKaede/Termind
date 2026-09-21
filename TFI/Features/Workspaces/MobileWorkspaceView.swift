@@ -180,6 +180,23 @@ struct MobileWorkspaceView: View {
                 }
             }
         }
+        if workspace.descriptor.kind == .telnet {
+            MobileToolbarOverflow(placement: .topBarTrailing) {
+                Button("Snippets", systemImage: "curlybraces") { terminalSheet = .snippets }
+                Divider()
+                Button("Next Match", systemImage: "chevron.down") {
+                    workspace.find.presentAndNavigate(.previous)
+                }
+                Button("Previous Match", systemImage: "chevron.up") {
+                    workspace.find.presentAndNavigate(.next)
+                }
+                Divider()
+                Button("Rename", systemImage: "pencil") { renameWorkspace(workspace) }
+                Button("Close", systemImage: "xmark", role: .destructive) {
+                    closeWorkspace(workspace.id)
+                }
+            }
+        }
         if isSFTP {
             MobileToolbarOverflow(placement: .topBarTrailing) {
                 Button("Previous Location", systemImage: "chevron.left") {
@@ -397,7 +414,7 @@ struct MobileWorkspaceView: View {
 
     @ViewBuilder
     private var workspaceContent: some View {
-        if workspace.descriptor.kind == .ssh {
+        if workspace.descriptor.kind != .sftp {
             ZStack {
                 VStack(spacing: 0) {
                     TerminalSurfaceView(context: workspace.terminal)
@@ -682,6 +699,8 @@ struct MobileWorkspaceView: View {
             switch launch.kind {
             case .ssh:
                 Button("Open with SSH", systemImage: "terminal") { openSameDirectory(launch) }
+            case .telnet:
+                EmptyView()
             case .sftp:
                 Button("Open with SFTP", systemImage: "folder") { openSameDirectory(launch) }
             }
@@ -816,7 +835,7 @@ private struct MobileWorkspaceSearchModifier: ViewModifier {
     @ViewBuilder
     func body(content: Content) -> some View {
         switch workspace.descriptor.kind {
-        case .ssh:
+        case .ssh, .telnet:
             searchable(content)
         case .sftp:
             content

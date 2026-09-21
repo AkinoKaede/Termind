@@ -1,5 +1,6 @@
 import Foundation
 import TermindApplication
+import TermindDomain
 
 nonisolated struct QuickConnectInput: Equatable, Sendable {
     struct Endpoint: Equatable, Sendable {
@@ -13,6 +14,7 @@ nonisolated struct QuickConnectInput: Equatable, Sendable {
     /// nil inherits the saved route; an empty array explicitly clears it.
     var jumps: [Endpoint]?
     var isCommand: Bool
+    var connectionProtocol: HostTerminalProtocol = .ssh
 }
 
 nonisolated enum QuickConnectParseResult: Equatable, Sendable {
@@ -27,10 +29,128 @@ nonisolated enum QuickConnectParser {
     static func isCommand(_ input: String) -> Bool {
         let first = input.split(whereSeparator: \.isWhitespace).first
         return first == "ssh" || first == "/usr/bin/ssh"
+            || first == "telnet" || first == "/usr/bin/telnet"
     }
 
     static func parse(_ input: String, locale: Locale = .current) -> QuickConnectParseResult {
-        SSHInputParser(locale: locale).parse(input)
+        let first = input.trimmingCharacters(in: .whitespacesAndNewlines)
+            .split(whereSeparator: \.isWhitespace).first
+        if first == "telnet" || first == "/usr/bin/telnet" {
+            return TelnetInputParser(locale: locale).parse(input)
+        }
+        return SSHInputParser(locale: locale).parse(input)
+    }
+}
+
+private nonisolated struct TelnetInputParser {
+    let locale: Locale
+
+    private func message(_ key: String.LocalizationValue) -> String {
+        AppLocalization.string(key, locale: locale)
+    }
+
+    func parse(_ input: String) -> QuickConnectParseResult {
+        do {
+            let tokens = try tokenize(input.trimmingCharacters(in: .whitespacesAndNewlines))
+            guard !tokens.isEmpty else { return .search }
+            var index = 1
+            var username: String?
+            if index < tokens.count, tokens[index].hasPrefix("-l") {
+                let option = tokens[index]
+                index += 1
+                if option == "-l" {
+                    guard index < tokens.count else {
+                        return .incomplete(message("Enter a value for -l."))
+                    }
+                    username = tokens[index]
+                    index += 1
+                } else {
+                    username = String(option.dropFirst(2))
+                }
+                guard username?.isEmpty == false else {
+                    return .invalid(message("Invalid Telnet destination."))
+                }
+            } else if index < tokens.count, tokens[index].hasPrefix("-") {
+                return .invalid(message("Unsupported Telnet option: \(tokens[index])."))
+            }
+            guard index < tokens.count else {
+                return .incomplete(message("Enter a Telnet destination."))
+            }
+            var host = tokens[index]
+            index += 1
+            if host.hasPrefix("["), host.hasSuffix("]") { host = String(host.dropFirst().dropLast()) }
+            guard validHost(host) else { return .invalid(message("Invalid Telnet destination.")) }
+            var port: Int?
+            if index < tokens.count {
+                let value = tokens[index]
+                index += 1
+                guard value.allSatisfy({ $0.isASCII && $0.isNumber }),
+                    let parsed = Int(value), (1...65_535).contains(parsed)
+                else { return .invalid(message("Invalid Telnet port.")) }
+                port = parsed
+            }
+            guard index == tokens.count else {
+                return .invalid(message("Remote commands are not supported here."))
+            }
+            return .connection(
+                QuickConnectInput(
+                    destination: .init(host: host, username: username, port: port),
+                    isCommand: true, connectionProtocol: .telnet))
+        } catch let failure as Failure {
+            switch failure {
+            case .incomplete(let value): return .incomplete(value)
+            case .invalid(let value): return .invalid(value)
+            }
+        } catch {
+            return .invalid(error.localizedDescription)
+        }
+    }
+
+    private enum Failure: Error {
+        case incomplete(String)
+        case invalid(String)
+    }
+
+    private func tokenize(_ text: String) throws -> [String] {
+        var tokens: [String] = []
+        var token = ""
+        var started = false
+        var quote: Character?
+        var escaping = false
+        for character in text {
+            if escaping {
+                token.append(character)
+                escaping = false
+            } else if character == "\\", quote != "'" {
+                escaping = true
+                started = true
+            } else if let current = quote {
+                if character == current { quote = nil } else { token.append(character) }
+            } else if character == "'" || character == "\"" {
+                quote = character
+                started = true
+            } else if character.isWhitespace {
+                if started { tokens.append(token) }
+                token = ""
+                started = false
+            } else if ";|&<>`$".contains(character) {
+                throw Failure.invalid(message("Shell expressions are not supported here."))
+            } else {
+                token.append(character)
+                started = true
+            }
+        }
+        guard quote == nil, !escaping else {
+            throw Failure.incomplete(message("Finish the quoted or escaped argument."))
+        }
+        if started { tokens.append(token) }
+        return tokens
+    }
+
+    private func validHost(_ value: String) -> Bool {
+        !value.isEmpty && !value.hasPrefix("-")
+            && value.contains(where: { $0.isLetter || $0.isNumber })
+            && !value.contains(where: { $0.isNewline || "/@[];|&<>`$\\".contains($0) })
     }
 }
 

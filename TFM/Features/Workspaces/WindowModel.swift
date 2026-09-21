@@ -211,7 +211,7 @@ final class WindowModel {
     }
 
     func isSidebarModeEnabled(_ mode: SidebarMode) -> Bool {
-        mode != .history || focusedSerialSession == nil
+        mode != .history || (focusedSerialSession == nil && focusedTelnetSession == nil)
     }
 
     func reconcileSidebarMode() {
@@ -346,7 +346,13 @@ final class WindowModel {
         selectedWorkspace?.focusedPane.serialSession
     }
 
-    var canFindInTerminal: Bool { focusedSSHSession != nil || focusedSerialSession != nil }
+    var focusedTelnetSession: TelnetSessionModel? {
+        selectedWorkspace?.focusedPane.telnetSession
+    }
+
+    var canFindInTerminal: Bool {
+        focusedSSHSession != nil || focusedTelnetSession != nil || focusedSerialSession != nil
+    }
 
     var canGenerateTerminalCommand: Bool { focusedSSHSession != nil }
 
@@ -408,7 +414,9 @@ final class WindowModel {
         case .settings:
             return nil
         case .workspace:
-            if focusedSSHSession != nil || focusedSerialSession != nil { return .terminal }
+            if focusedSSHSession != nil || focusedTelnetSession != nil || focusedSerialSession != nil {
+                return .terminal
+            }
             if focusedSFTPChannel != nil { return .sftp }
             return nil
         case .vault:
@@ -448,6 +456,7 @@ final class WindowModel {
         isToolbarFindFocused = true
         if findKind == .terminal {
             focusedSSHSession?.find.present()
+            focusedTelnetSession?.find.present()
             focusedSerialSession?.find.present()
         }
         findFocusRequest &+= 1
@@ -464,6 +473,7 @@ final class WindowModel {
     /// the two used to disagree.
     func navigateTerminalFind(_ direction: TerminalFindDirection) {
         focusedSSHSession?.find.presentAndNavigate(direction)
+        focusedTelnetSession?.find.presentAndNavigate(direction)
         focusedSerialSession?.find.presentAndNavigate(direction)
     }
 
@@ -863,6 +873,32 @@ final class WindowModel {
         return open(Workspace(pane: pane))
     }
 
+    @discardableResult
+    func openTelnetSession(host: Host) -> Workspace {
+        let pane = Pane.telnetSession(host: host)
+        numberPane(pane)
+        return open(Workspace(pane: pane))
+    }
+
+    func disconnectSessions(
+        for hostID: Host.ID, protocol connectionProtocol: HostTerminalProtocol, message: String
+    ) {
+        for pane in workspaces.flatMap(\.panes) where pane.hostID == hostID {
+            switch (connectionProtocol, pane.content) {
+            case (.ssh, .sshSession(let session)):
+                session.disconnect()
+                session.status = .failed(message)
+            case (.ssh, .sftpChannel(let channel)):
+                channel.disconnect()
+            case (.telnet, .telnetSession(let session)):
+                session.disconnect()
+                session.status = .failed(message)
+            default:
+                break
+            }
+        }
+    }
+
     /// Batch Startup opens every host as a pane of one new Workspace, tiled into a grid.
     ///
     /// Returns nil for a target that cannot be a Workspace pane — only SSH and
@@ -872,7 +908,14 @@ final class WindowModel {
     func openWorkspace(_ hosts: [Host], as target: HostOpenTarget) -> Workspace? {
         let panes: [Pane] = hosts.compactMap { host in
             switch target {
+            case .preferredTerminal:
+                switch host.preferredTerminalProtocol {
+                case .ssh: .sshSession(host: host)
+                case .telnet: .telnetSession(host: host)
+                case nil: nil
+                }
             case .sshSession: .sshSession(host: host)
+            case .telnetSession: .telnetSession(host: host)
             case .sftpChannel: .sftpChannel(host: host)
             }
         }

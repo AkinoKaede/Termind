@@ -3,7 +3,7 @@ import TermindDomain
 
 import struct TermindDomain.Host
 
-public nonisolated struct SSHTransportProxy: Sendable {
+public nonisolated struct TerminalTransportProxy: Sendable {
     public var kind: HostProxy.ProtocolKind
     public var hostname: String
     public var port: Int
@@ -37,3 +37,5 @@ public nonisolated struct SSHTransportProxy: Sendable {
     public func clearSecret() { password?.clear() }
 
 }
+
+public typealias SSHTransportProxy = TerminalTransportProxy

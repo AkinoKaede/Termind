@@ -3,6 +3,40 @@ import TermindDomain
 
 import struct TermindDomain.Host
 
+public nonisolated enum HostUseCase: Hashable, Sendable {
+    case preferredTerminal
+    case sshTerminal
+    case telnetTerminal
+    case sftp
+    case jumpHost
+    case metrics
+    case portForwarding
+    case snippetExecution
+    case keyExport
+
+    public var protocolRequirement: HostProtocolRequirement {
+        switch self {
+        case .preferredTerminal: .anyTerminal
+        case .telnetTerminal: .telnet
+        case .sshTerminal, .sftp, .jumpHost, .metrics, .portForwarding, .snippetExecution, .keyExport: .ssh
+        }
+    }
+}
+
+public nonisolated struct HostProtocolUnavailableError: LocalizedError, Equatable, Sendable {
+    public var useCase: HostUseCase
+
+    public init(useCase: HostUseCase) { self.useCase = useCase }
+
+    public var errorDescription: String? {
+        switch useCase.protocolRequirement {
+        case .anyTerminal: String(localized: "No terminal protocol is enabled for this Host.")
+        case .ssh: String(localized: "SSH is disabled for this Host.")
+        case .telnet: String(localized: "Telnet is disabled for this Host.")
+        }
+    }
+}
+
 public nonisolated struct HostLibrarySnapshot: Equatable, Sendable {
     public var hosts: [Host]
     public var groups: [HostGroup]

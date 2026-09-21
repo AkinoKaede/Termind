@@ -42,7 +42,9 @@ public nonisolated enum SecretAvailability: Equatable, Sendable {
 
 public nonisolated enum HostCustomIdentityPurpose: String, Codable, Hashable, Sendable {
     case ssh
+    case telnet
     case proxy
+    case telnetProxy
 }
 
 /// A named way of logging in: a username plus a *reference* to the secret.

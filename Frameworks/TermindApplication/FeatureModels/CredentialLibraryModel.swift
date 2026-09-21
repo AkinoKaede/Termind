@@ -24,7 +24,7 @@ public final class CredentialLibraryModel {
     public func key(_ id: SSHKeyRef.ID) -> SSHKeyRef? { library.key(id) }
     public func identities(using key: SSHKeyRef.ID) -> [Identity] { library.identities(using: key) }
     public func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }
-    public func searchHosts(_ query: String) -> [Host] { library.searchHosts(query) }
+    public func searchHosts(_ query: String) -> [Host] { library.hosts(matching: query, for: .keyExport) }
     public func searchKeys(_ query: String) -> [SSHKeyRef] { library.searchKeys(query) }
     public func searchIdentities(_ query: String) -> [Identity] { library.searchIdentities(query) }
     public func passwordAvailability(for identity: Identity) -> SecretAvailability {
@@ -40,10 +40,14 @@ public final class CredentialLibraryModel {
         try library.keyCredential(for: key)
     }
     public func keyExportUnavailableReason(for host: Host) -> String? {
-        library.keyExportUnavailableReason(for: host)
+        guard library.isEligible(host, for: .keyExport) else {
+            return HostProtocolUnavailableError(useCase: .keyExport).localizedDescription
+        }
+        return library.keyExportUnavailableReason(for: host)
     }
     public func prepareSSHConnection(for host: Host) throws -> SSHConnectionPreparation {
-        try library.prepareSSHConnection(for: host, submissions: [:])
+        try library.require(host, for: .keyExport)
+        return try library.prepareSSHConnection(for: host, submissions: [:])
     }
 
     public func upsert(_ key: SSHKeyRef, credential: StoredSSHKeyCredential? = nil) throws {

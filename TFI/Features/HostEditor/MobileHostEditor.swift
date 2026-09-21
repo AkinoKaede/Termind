@@ -8,7 +8,9 @@ import struct TermindDomain.Host
 struct MobileHostEditor: View {
     private enum EditorRoute: Hashable, Identifiable {
         case hostIdentity
+        case telnetIdentity
         case proxyIdentity
+        case telnetProxyIdentity
         case group
         case environmentVariable(Int?)
 
@@ -29,23 +31,31 @@ struct MobileHostEditor: View {
     @State private var editorRoute: EditorRoute?
     @State private var customIdentity = HostCustomIdentityDraft()
     @State private var didLoadCustom = false
+    @State private var selectedProtocol: HostTerminalProtocol
 
     init(app: MobileAppModel, host: Host) {
         self.app = app
         original = host
         _draft = State(initialValue: host)
+        _selectedProtocol = State(initialValue: host.sshEnabled ? .ssh : .telnet)
     }
 
     var body: some View {
         MobileEditorSheet(
             title: String(localized: "Host"),
             isDirty: draft != original || !customIdentity.sshUsername.isEmpty
-                || !customIdentity.sshPassword.isEmpty || customIdentity.sshKeyID != nil,
+                || !customIdentity.sshPassword.isEmpty || customIdentity.sshKeyID != nil
+                || !customIdentity.telnetUsername.isEmpty || !customIdentity.telnetPassword.isEmpty
+                || !customIdentity.telnetProxyPassword.isEmpty,
             canSave: !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                && (1...65_535).contains(draft.port)
+                && draft.preferredTerminalProtocol != nil
+                && (!draft.sshEnabled || (1...65_535).contains(draft.sshPort))
+                && (!draft.telnetEnabled || (1...65_535).contains(draft.telnetPort))
                 && customIdentity.isSSHValid(for: draft)
                 && customIdentity.isProxyValid(for: draft)
-                && draft.environmentVariablesAreValid,
+                && customIdentity.isTelnetValid(for: draft)
+                && customIdentity.isTelnetProxyValid(for: draft)
+                && (!draft.sshEnabled || draft.environmentVariablesAreValid),
             save: {
                 try customIdentity.save(into: &draft, using: library)
             },
@@ -65,108 +75,127 @@ struct MobileHostEditor: View {
                         MobileTagField(tags: $draft.tags, suggestions: library.allTags)
                     }
                 }
-                HostConnectionFields(host: $draft)
-                Section("Authentication") {
-                    Picker("Identity", selection: identityChoice) {
-                        Text("Custom").tag(Choice<Identity.ID>.unset)
-                        Divider()
-                        ForEach(library.reusableIdentities) { identity in
-                            Text(identity.name).tag(Choice.existing(identity.id))
-                        }
-                        Divider()
-                        Text("New Identity").tag(Choice<Identity.ID>.new)
-                    }
-                    if usesCustomIdentity {
-                        LabeledContent("Username") {
-                            TextField("Username", text: $customIdentity.sshUsername.singleLineText)
-                                .textInputAutocapitalization(.never).autocorrectionDisabled()
-                                .multilineTextAlignment(.trailing)
-                        }
-                        LabeledContent("Password") {
-                            RevealableSecretField("Optional", text: $customIdentity.sshPassword)
-                                .multilineTextAlignment(.trailing)
-                                .disabled(!customIdentity.sshPasswordIsEditable)
-                        }
-                        Picker("Key", selection: $customIdentity.sshKeyID) {
-                            Text("None").tag(SSHKeyRef.ID?.none)
-                            ForEach(library.keys) { key in Text(key.label).tag(SSHKeyRef.ID?.some(key.id)) }
-                        }
-                    }
-                }
-                Section("Routing") {
-                    Picker("Jump Host", selection: $draft.jumpHostID) {
-                        Text("None").tag(UUID?.none)
-                        ForEach(library.hosts.filter { $0.id != draft.id }) { Text($0.name).tag(Optional($0.id)) }
-                    }
-                    Picker("Proxy", selection: proxyKind) {
-                        Text("None").tag(HostProxy.ProtocolKind?.none)
-                        ForEach(HostProxy.ProtocolKind.allCases) { kind in
-                            Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
-                        }
-                    }
-                    if draft.proxy != nil {
-                        LabeledContent("Hostname") {
-                            TextField("Hostname", text: proxyString(\.hostname).singleLineText, axis: .horizontal)
-                                .singleLinePaste()
-                                .lineLimit(1)
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                                .keyboardType(.URL)
-                                .multilineTextAlignment(.trailing)
-                        }
-                        .accessibilityLabel("Proxy Hostname")
-                        LabeledContent("Port") {
-                            TextField("Port", value: proxyInt(\.port), format: .number.grouping(.never)).lineLimit(1)
-                                .keyboardType(.numberPad)
-                                .multilineTextAlignment(.trailing)
-                        }
-                        .accessibilityLabel("Proxy Port")
-                        Picker("Identity", selection: proxyIdentityChoice) {
-                            Text("None").tag(Choice<Identity.ID>.unset)
-                            Text("Custom").tag(Choice<Identity.ID>.custom)
+                HostConnectionFields(host: $draft, protocol: $selectedProtocol)
+                if selectedProtocol == .ssh {
+                    Section("Authentication") {
+                        Picker("Identity", selection: identityChoice) {
+                            Text("Custom").tag(Choice<Identity.ID>.unset)
                             Divider()
-                            ForEach(proxyIdentities) { identity in
-                                Text("\(identity.name) · \(identity.username)")
-                                    .tag(Choice.existing(identity.id))
+                            ForEach(library.reusableIdentities) { identity in
+                                Text(identity.name).tag(Choice.existing(identity.id))
                             }
                             Divider()
                             Text("New Identity").tag(Choice<Identity.ID>.new)
                         }
-                        .accessibilityLabel("Proxy Identity")
-                        if customIdentity.usesCustomProxy {
+                        if usesCustomIdentity {
                             LabeledContent("Username") {
-                                TextField("Username", text: proxyString(\.username).singleLineText)
+                                TextField("Username", text: $customIdentity.sshUsername.singleLineText)
                                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                                     .multilineTextAlignment(.trailing)
                             }
                             LabeledContent("Password") {
-                                RevealableSecretField("Required", text: $customIdentity.proxyPassword)
+                                RevealableSecretField("Optional", text: $customIdentity.sshPassword)
                                     .multilineTextAlignment(.trailing)
-                                    .disabled(!customIdentity.proxyPasswordIsEditable)
+                                    .disabled(!customIdentity.sshPasswordIsEditable)
                             }
-                        } else if draft.proxy?.identityID != nil {
-                            LabeledContent("Username") {
-                                TextField("Username", text: proxyString(\.username).singleLineText, axis: .horizontal)
+                            Picker("Key", selection: $customIdentity.sshKeyID) {
+                                Text("None").tag(SSHKeyRef.ID?.none)
+                                ForEach(library.keys) { key in Text(key.label).tag(SSHKeyRef.ID?.some(key.id)) }
+                            }
+                        }
+                    }
+                    Section("Routing") {
+                        Picker("Jump Host", selection: $draft.jumpHostID) {
+                            Text("None").tag(UUID?.none)
+                            ForEach(library.hosts.filter { $0.id != draft.id && $0.sshEnabled }) {
+                                Text($0.name).tag(Optional($0.id))
+                            }
+                        }
+                        Picker("Proxy", selection: proxyKind) {
+                            Text("None").tag(HostProxy.ProtocolKind?.none)
+                            ForEach(HostProxy.ProtocolKind.allCases) { kind in
+                                Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
+                            }
+                        }
+                        if draft.proxy != nil {
+                            LabeledContent("Hostname") {
+                                TextField("Hostname", text: proxyString(\.hostname).singleLineText, axis: .horizontal)
+                                    .singleLinePaste()
+                                    .lineLimit(1)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .keyboardType(.URL)
+                                    .multilineTextAlignment(.trailing)
+                            }
+                            .accessibilityLabel("Proxy Hostname")
+                            LabeledContent("Port") {
+                                TextField("Port", value: proxyInt(\.port), format: .number.grouping(.never)).lineLimit(
+                                    1
+                                )
+                                .keyboardType(.numberPad)
+                                .multilineTextAlignment(.trailing)
+                            }
+                            .accessibilityLabel("Proxy Port")
+                            Picker("Identity", selection: proxyIdentityChoice) {
+                                Text("None").tag(Choice<Identity.ID>.unset)
+                                Text("Custom").tag(Choice<Identity.ID>.custom)
+                                Divider()
+                                ForEach(proxyIdentities) { identity in
+                                    Text("\(identity.name) · \(identity.username)")
+                                        .tag(Choice.existing(identity.id))
+                                }
+                                Divider()
+                                Text("New Identity").tag(Choice<Identity.ID>.new)
+                            }
+                            .accessibilityLabel("Proxy Identity")
+                            if customIdentity.usesCustomProxy {
+                                LabeledContent("Username") {
+                                    TextField("Username", text: proxyString(\.username).singleLineText)
+                                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                        .multilineTextAlignment(.trailing)
+                                }
+                                LabeledContent("Password") {
+                                    RevealableSecretField("Required", text: $customIdentity.proxyPassword)
+                                        .multilineTextAlignment(.trailing)
+                                        .disabled(!customIdentity.proxyPasswordIsEditable)
+                                }
+                            } else if draft.proxy?.identityID != nil {
+                                LabeledContent("Username") {
+                                    TextField(
+                                        "Username", text: proxyString(\.username).singleLineText, axis: .horizontal
+                                    )
                                     .singleLinePaste()
                                     .lineLimit(1)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
                                     .multilineTextAlignment(.trailing)
+                                }
+                                .accessibilityLabel("Proxy Username")
                             }
-                            .accessibilityLabel("Proxy Username")
                         }
                     }
+                    HostSessionSection(
+                        charset: $draft.sshCharset,
+                        sftpInitialPath: $draft.sftpChannelInitialPath,
+                        startupSnippetID: startupSnippetChoice,
+                        environmentVariables: $draft.environmentVariables,
+                        snippets: library.snippets,
+                        snippetPackagePath: library.snippetPackagePath,
+                        editEnvironmentVariable: { editorRoute = .environmentVariable($0) }
+                    )
+                    HostIntegrationSection(mode: $draft.shellIntegrationMode)
+                } else {
+                    telnetAuthenticationSection
+                    telnetRoutingSection
+                    Section("Session") {
+                        Picker("Charset", selection: $draft.telnetCharset) {
+                            ForEach(RemoteCharset.allCases) { charset in
+                                Text(charset.displayName).tag(charset)
+                            }
+                        }
+                    }
+                    telnetCommandSection
                 }
-                HostSessionSection(
-                    charset: $draft.charset,
-                    sftpInitialPath: $draft.sftpChannelInitialPath,
-                    startupSnippetID: startupSnippetChoice,
-                    environmentVariables: $draft.environmentVariables,
-                    snippets: library.snippets,
-                    snippetPackagePath: library.snippetPackagePath,
-                    editEnvironmentVariable: { editorRoute = .environmentVariable($0) }
-                )
-                HostIntegrationSection(mode: $draft.shellIntegrationMode)
             }
         )
         .sheet(item: $editorRoute) { route in
@@ -180,6 +209,16 @@ struct MobileHostEditor: View {
                 ) { identity in
                     customIdentity.selectSSHIdentity(identity, on: &draft)
                 }
+            case .telnetIdentity:
+                MobileIdentityEditor(
+                    app: app,
+                    identity: Identity(
+                        name: "", username: "",
+                        passwordStorage: app.newVaultPasswordStorage),
+                    configuration: .proxy
+                ) { identity in
+                    customIdentity.selectTelnetIdentity(identity, on: &draft)
+                }
             case .proxyIdentity:
                 MobileIdentityEditor(
                     app: app,
@@ -189,6 +228,16 @@ struct MobileHostEditor: View {
                     configuration: .proxy
                 ) { identity in
                     customIdentity.selectProxyIdentity(identity, on: &draft)
+                }
+            case .telnetProxyIdentity:
+                MobileIdentityEditor(
+                    app: app,
+                    identity: Identity(
+                        name: "", username: "",
+                        passwordStorage: app.newVaultPasswordStorage),
+                    configuration: .proxy
+                ) { identity in
+                    customIdentity.selectTelnetProxyIdentity(identity, on: &draft)
                 }
             case .group:
                 MobileHostGroupEditor(app: app, group: nil, parentID: nil) { group in
@@ -213,6 +262,89 @@ struct MobileHostEditor: View {
         .onAppear(perform: loadCustomOnce)
     }
 
+    private var telnetAuthenticationSection: some View {
+        Section("Authentication") {
+            Picker("Identity", selection: telnetIdentityChoice) {
+                Text("None").tag(Choice<Identity.ID>.unset)
+                Text("Custom").tag(Choice<Identity.ID>.custom)
+                Divider()
+                ForEach(telnetIdentities) { identity in
+                    Text(identity.name).tag(Choice.existing(identity.id))
+                }
+                Divider()
+                Text("New Identity").tag(Choice<Identity.ID>.new)
+            }
+            if customIdentity.usesCustomTelnet(for: draft) {
+                LabeledContent("Username") {
+                    TextField("Username", text: $customIdentity.telnetUsername.singleLineText)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .multilineTextAlignment(.trailing)
+                }
+                LabeledContent("Password") {
+                    RevealableSecretField("Required", text: $customIdentity.telnetPassword)
+                        .multilineTextAlignment(.trailing)
+                        .disabled(!customIdentity.telnetPasswordIsEditable)
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var telnetRoutingSection: some View {
+        Section("Routing") {
+            Picker("Proxy", selection: telnetProxyKind) {
+                Text("None").tag(HostProxy.ProtocolKind?.none)
+                ForEach(HostProxy.ProtocolKind.allCases) { kind in
+                    Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
+                }
+            }
+            if draft.telnetProxy != nil {
+                LabeledContent("Hostname") {
+                    TextField("Hostname", text: telnetProxyString(\.hostname).singleLineText)
+                        .textInputAutocapitalization(.never).autocorrectionDisabled()
+                        .multilineTextAlignment(.trailing)
+                }
+                LabeledContent("Port") {
+                    TextField("Port", value: telnetProxyInt(\.port), format: .number.grouping(.never))
+                        .keyboardType(.numberPad).multilineTextAlignment(.trailing)
+                }
+                Picker("Identity", selection: telnetProxyIdentityChoice) {
+                    Text("None").tag(Choice<Identity.ID>.unset)
+                    Text("Custom").tag(Choice<Identity.ID>.custom)
+                    Divider()
+                    ForEach(telnetIdentities) { identity in
+                        Text(identity.name).tag(Choice.existing(identity.id))
+                    }
+                    Divider()
+                    Text("New Identity").tag(Choice<Identity.ID>.new)
+                }
+                if customIdentity.usesCustomTelnetProxy {
+                    LabeledContent("Username") {
+                        TextField("Username", text: telnetProxyString(\.username).singleLineText)
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
+                            .multilineTextAlignment(.trailing)
+                    }
+                    LabeledContent("Password") {
+                        RevealableSecretField("Required", text: $customIdentity.telnetProxyPassword)
+                            .multilineTextAlignment(.trailing)
+                            .disabled(!customIdentity.telnetProxyPasswordIsEditable)
+                    }
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var telnetCommandSection: some View {
+        if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            Section("Telnet Command") {
+                Text(library.telnetCommand(for: draft))
+                    .font(.caption.monospaced()).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+            }
+        }
+    }
+
     private var identityChoice: Binding<Choice<Identity.ID>> {
         Binding {
             guard let id = draft.identityID, library.identity(id)?.isHostCustom != true else { return .unset }
@@ -227,6 +359,27 @@ struct MobileHostEditor: View {
             case .new: editorRoute = .hostIdentity
             }
         }
+    }
+
+    private var telnetIdentityChoice: Binding<Choice<Identity.ID>> {
+        Binding {
+            if customIdentity.usesCustomTelnetSelection { return .custom }
+            guard let id = draft.telnetIdentityID else { return .unset }
+            return library.identity(id)?.isHostCustom == true ? .custom : .existing(id)
+        } set: { choice in
+            switch choice {
+            case .unset: customIdentity.clearTelnetIdentity(on: &draft)
+            case .custom: customIdentity.selectCustomTelnet(on: &draft)
+            case .existing(let id):
+                guard let identity = library.identity(id) else { return }
+                customIdentity.selectTelnetIdentity(identity, on: &draft)
+            case .new: editorRoute = .telnetIdentity
+            }
+        }
+    }
+
+    private var telnetIdentities: [Identity] {
+        library.reusableIdentities.filter(library.isProxyEligibleOnThisDevice)
     }
 
     private var groupChoice: Binding<Choice<HostGroup.ID>> {
@@ -257,6 +410,14 @@ struct MobileHostEditor: View {
         }
     }
 
+    private var telnetProxyKind: Binding<HostProxy.ProtocolKind?> {
+        Binding {
+            draft.telnetProxy?.kind
+        } set: { kind in
+            draft.telnetProxy = MobileHostEditorPolicy.selectProxy(kind, current: draft.telnetProxy)
+        }
+    }
+
     private func proxyString(_ keyPath: WritableKeyPath<HostProxy, String>) -> Binding<String> {
         Binding(
             get: { draft.proxy?[keyPath: keyPath] ?? "" },
@@ -269,6 +430,18 @@ struct MobileHostEditor: View {
             get: { draft.proxy?[keyPath: keyPath] ?? 0 },
             set: { draft.proxy?[keyPath: keyPath] = $0 }
         )
+    }
+
+    private func telnetProxyString(_ keyPath: WritableKeyPath<HostProxy, String>) -> Binding<String> {
+        Binding(
+            get: { draft.telnetProxy?[keyPath: keyPath] ?? "" },
+            set: { draft.telnetProxy?[keyPath: keyPath] = $0 })
+    }
+
+    private func telnetProxyInt(_ keyPath: WritableKeyPath<HostProxy, Int>) -> Binding<Int> {
+        Binding(
+            get: { draft.telnetProxy?[keyPath: keyPath] ?? 0 },
+            set: { draft.telnetProxy?[keyPath: keyPath] = $0 })
     }
 
     private var proxyIdentityChoice: Binding<Choice<Identity.ID>> {
@@ -286,6 +459,22 @@ struct MobileHostEditor: View {
                 customIdentity.selectProxyIdentity(identity, on: &draft)
             case .new:
                 editorRoute = .proxyIdentity
+            }
+        }
+    }
+
+    private var telnetProxyIdentityChoice: Binding<Choice<Identity.ID>> {
+        Binding {
+            if customIdentity.usesCustomTelnetProxy { return .custom }
+            return draft.telnetProxy?.identityID.map(Choice.existing) ?? .unset
+        } set: { choice in
+            switch choice {
+            case .unset: customIdentity.clearTelnetProxyIdentity(on: &draft)
+            case .custom: customIdentity.selectCustomTelnetProxy(on: &draft, using: library)
+            case .existing(let id):
+                guard let identity = library.identity(id) else { return }
+                customIdentity.selectTelnetProxyIdentity(identity, on: &draft)
+            case .new: editorRoute = .telnetProxyIdentity
             }
         }
     }

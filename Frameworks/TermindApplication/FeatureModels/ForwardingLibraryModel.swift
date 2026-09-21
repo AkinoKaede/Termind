@@ -12,11 +12,15 @@ public final class ForwardingLibraryModel {
         self.library = library
     }
 
-    public var hosts: [Host] { library.hosts }
+    public var hosts: [Host] { library.hosts(matching: "", for: .portForwarding) }
     public var rules: [PortForwardingRule] { library.portForwardings }
 
     @discardableResult
     public func save(_ rule: PortForwardingRule) throws -> PortForwardingRule {
+        guard let host = library.host(rule.hostID) else {
+            throw TermindSSHError.library(String(localized: "The forwarding Host is unavailable."))
+        }
+        try library.require(host, for: .portForwarding)
         guard library.upsert(rule), let saved = library.portForwarding(rule.id) else {
             throw TermindSSHError.library(library.storageError ?? String(localized: "Unable to Save"))
         }

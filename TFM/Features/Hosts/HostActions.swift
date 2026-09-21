@@ -50,17 +50,17 @@ struct HostContextMenu: View {
         // then drag the new workspace onto the one you want it beside.
         if hosts.count == 1 {
             Button("Quick Connect", systemImage: MenuSymbol.quickConnect) {
-                app.open(hosts, as: .sshSession, in: window)
+                app.open(hosts, as: .preferredTerminal, in: window)
             }
         } else {
             // The two children pick a layout rather than name a different verb,
             // so the glyph stays on the parent.
             Menu("Quick Connect", systemImage: MenuSymbol.quickConnect) {
                 Button("Separate Workspaces") {
-                    app.open(hosts, as: .sshSession, in: window)
+                    app.open(hosts, as: .preferredTerminal, in: window)
                 }
                 Button("One Workspace") {
-                    app.open(hosts, as: .sshSession, layout: .oneWorkspace, in: window)
+                    app.open(hosts, as: .preferredTerminal, layout: .oneWorkspace, in: window)
                 }
             }
         }
@@ -79,6 +79,13 @@ struct HostContextMenu: View {
                     if host.proxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
                         copy.proxy?.identityID = nil
                         copy.proxy?.username = ""
+                    }
+                    if host.telnetIdentityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
+                        copy.telnetIdentityID = nil
+                    }
+                    if host.telnetProxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
+                        copy.telnetProxy?.identityID = nil
+                        copy.telnetProxy?.username = ""
                     }
                     copy.id = UUID()
                     copy.name = String(localized: "\(host.name) copy")
@@ -170,19 +177,27 @@ enum HostMenuEntries {
             NativeMenuEntry(
                 title: String(localized: "Quick Connect"), symbol: MenuSymbol.quickConnect
             ) {
-                app.open([host], as: .sshSession, in: window)
+                app.open([host], as: .preferredTerminal, in: window)
             },
             NativeMenuEntry(
                 title: String(localized: "Connect"),
                 symbol: MenuSymbol.connect,
                 children: [
                     NativeMenuEntry(
-                        title: String(localized: "with SSH"), symbol: MenuSymbol.ssh
+                        title: String(localized: "with SSH"), symbol: MenuSymbol.ssh,
+                        isEnabled: host.sshEnabled
                     ) {
                         app.open([host], as: .sshSession, in: window)
                     },
                     NativeMenuEntry(
-                        title: String(localized: "with SFTP"), symbol: MenuSymbol.sftp
+                        title: String(localized: "with Telnet"), symbol: "terminal",
+                        isEnabled: host.telnetEnabled
+                    ) {
+                        app.open([host], as: .telnetSession, in: window)
+                    },
+                    NativeMenuEntry(
+                        title: String(localized: "with SFTP"), symbol: MenuSymbol.sftp,
+                        isEnabled: host.sshEnabled
                     ) {
                         app.open([host], as: .sftpChannel, in: window)
                     },
@@ -215,9 +230,15 @@ struct HostConnectMenu: View {
             Button("with SSH", systemImage: MenuSymbol.ssh) {
                 app.open(hosts, as: .sshSession, in: window)
             }
+            .disabled(!hosts.allSatisfy(\.sshEnabled))
+            Button("with Telnet", systemImage: "terminal") {
+                app.open(hosts, as: .telnetSession, in: window)
+            }
+            .disabled(!hosts.allSatisfy(\.telnetEnabled))
             Button("with SFTP", systemImage: MenuSymbol.sftp) {
                 app.open(hosts, as: .sftpChannel, in: window)
             }
+            .disabled(!hosts.allSatisfy(\.sshEnabled))
         }
     }
 }

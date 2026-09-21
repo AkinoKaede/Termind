@@ -77,7 +77,34 @@ public nonisolated struct HostProxy: Codable, Hashable, Sendable {
 
 }
 
-/// A saved SSH destination.
+public nonisolated enum HostTerminalProtocol: String, Codable, CaseIterable, Identifiable, Sendable {
+    case ssh
+    case telnet
+
+    public var id: Self { self }
+
+    public var displayName: String {
+        switch self {
+        case .ssh: String(localized: "SSH")
+        case .telnet: String(localized: "Telnet")
+        }
+    }
+
+    public var defaultPort: Int {
+        switch self {
+        case .ssh: 22
+        case .telnet: 23
+        }
+    }
+}
+
+public nonisolated enum HostProtocolRequirement: Hashable, Sendable {
+    case anyTerminal
+    case ssh
+    case telnet
+}
+
+/// A saved remote destination with independent SSH and Telnet profiles.
 ///
 /// This is a plain value type, not a SwiftData `@Model`. P1 swaps `HostLibraryModel`'s
 /// internals for a `ModelContext` and keeps this struct as the projection the
@@ -100,10 +127,17 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     /// rather than `hostname` because an IP address is not a hostname, and the
     /// field accepts either.
     public var host: String
-    public var port: Int = 22
+    public var sshEnabled = true
+    public var sshPort: Int = 22
     /// Which saved login to use. Optional because a host can be filed before it
     /// is known how to get into it; the connection asks at that point.
-    public var identityID: Identity.ID?
+    public var sshIdentityID: Identity.ID?
+    public var sshCharset: RemoteCharset = .utf8
+    public var telnetEnabled = false
+    public var telnetPort: Int = 23
+    public var telnetIdentityID: Identity.ID?
+    public var telnetCharset: RemoteCharset = .utf8
+    public var telnetProxy: HostProxy?
     /// An optional saved SSH host used to reach this destination. Since the
     /// jump is itself a Host, its own route can form a bounded multi-hop chain.
     public var jumpHostID: Host.ID?
@@ -113,7 +147,6 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     /// Absolute directory opened by a new SFTP channel. Empty means the
     /// authenticated user's remote home directory, resolved by SFTP at connect.
     public var sftpChannelInitialPath: String = ""
-    public var charset: RemoteCharset = .utf8
     public var groupID: HostGroup.ID?
     public var tags: [String] = []
     public var colorTag: TagColor = .none
@@ -142,14 +175,78 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     ///
     /// The `user@` half needs the identity, which lives in the store — see
     /// `HostLibraryModel.loginAddress(for:)` for the form most of the UI shows.
-    public var displayAddress: String {
+    public func displayAddress(for connectionProtocol: HostTerminalProtocol) -> String {
+        let port = port(for: connectionProtocol)
         var address = host
-        if port != 22 {
+        if port != connectionProtocol.defaultPort {
             if host.contains(":") { address = "[\(host)]" }
             address += ":\(port)"
         }
         return address
     }
+
+    public func isEnabled(_ connectionProtocol: HostTerminalProtocol) -> Bool {
+        switch connectionProtocol {
+        case .ssh: sshEnabled
+        case .telnet: telnetEnabled
+        }
+    }
+
+    public func port(for connectionProtocol: HostTerminalProtocol) -> Int {
+        switch connectionProtocol {
+        case .ssh: sshPort
+        case .telnet: telnetPort
+        }
+    }
+
+    public func identityID(for connectionProtocol: HostTerminalProtocol) -> Identity.ID? {
+        switch connectionProtocol {
+        case .ssh: sshIdentityID
+        case .telnet: telnetIdentityID
+        }
+    }
+
+    public func charset(for connectionProtocol: HostTerminalProtocol) -> RemoteCharset {
+        switch connectionProtocol {
+        case .ssh: sshCharset
+        case .telnet: telnetCharset
+        }
+    }
+
+    public var supportedTerminalProtocols: [HostTerminalProtocol] {
+        HostTerminalProtocol.allCases.filter(isEnabled)
+    }
+
+    public var preferredTerminalProtocol: HostTerminalProtocol? {
+        if sshEnabled { return .ssh }
+        if telnetEnabled { return .telnet }
+        return nil
+    }
+
+    public func supports(_ requirement: HostProtocolRequirement) -> Bool {
+        switch requirement {
+        case .anyTerminal: preferredTerminalProtocol != nil
+        case .ssh: sshEnabled
+        case .telnet: telnetEnabled
+        }
+    }
+
+    public var port: Int {
+        get { sshPort }
+        set { sshPort = newValue }
+    }
+
+    public var identityID: Identity.ID? {
+        get { sshIdentityID }
+        set { sshIdentityID = newValue }
+    }
+
+    public var charset: RemoteCharset {
+        get { sshCharset }
+        set { sshCharset = newValue }
+    }
+
+    public var displayAddress: String { displayAddress(for: .ssh) }
 
     /// Whether this host carries *every* one of `wanted`.
     ///
@@ -177,6 +274,9 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         id: UUID = UUID(), name: String, host: String, port: Int = 22, identityID: Identity.ID? = nil,
         jumpHostID: Host.ID? = nil, proxy: HostProxy? = nil, sftpChannelInitialPath: String = "",
         charset: RemoteCharset = .utf8,
+        sshEnabled: Bool = true, telnetEnabled: Bool = false, telnetPort: Int = 23,
+        telnetIdentityID: Identity.ID? = nil, telnetCharset: RemoteCharset = .utf8,
+        telnetProxy: HostProxy? = nil,
         groupID: HostGroup.ID? = nil, tags: [String] = [], colorTag: TagColor = .none,
         detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
         shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
@@ -187,12 +287,18 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.id = id
         self.name = name
         self.host = host
-        self.port = port
-        self.identityID = identityID
+        self.sshEnabled = sshEnabled
+        sshPort = port
+        sshIdentityID = identityID
+        sshCharset = charset
+        self.telnetEnabled = telnetEnabled
+        self.telnetPort = telnetPort
+        self.telnetIdentityID = telnetIdentityID
+        self.telnetCharset = telnetCharset
+        self.telnetProxy = telnetProxy
         self.jumpHostID = jumpHostID
         self.proxy = proxy
         self.sftpChannelInitialPath = sftpChannelInitialPath
-        self.charset = charset
         self.groupID = groupID
         self.tags = tags
         self.colorTag = colorTag
@@ -209,6 +315,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         case id, name, host, port, identityID, jumpHostID, proxy
         case sftpChannelInitialPath = "sftpSessionInitialPath"
         case charset
+        case sshEnabled, telnetEnabled, telnetPort, telnetIdentityID, telnetCharset, telnetProxy
         case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
         case startupSnippetID, environmentVariables, portForwardingMaxConnections
     }
@@ -218,12 +325,20 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         id = try values.decode(UUID.self, forKey: .id)
         name = try values.decode(String.self, forKey: .name)
         host = try values.decode(String.self, forKey: .host)
-        port = try values.decode(Int.self, forKey: .port)
-        identityID = try values.decodeIfPresent(UUID.self, forKey: .identityID)
+        sshEnabled = try values.decodeIfPresent(Bool.self, forKey: .sshEnabled) ?? true
+        sshPort = try values.decode(Int.self, forKey: .port)
+        sshIdentityID = try values.decodeIfPresent(UUID.self, forKey: .identityID)
+        telnetEnabled = try values.decodeIfPresent(Bool.self, forKey: .telnetEnabled) ?? false
+        telnetPort = try values.decodeIfPresent(Int.self, forKey: .telnetPort) ?? 23
+        telnetIdentityID = try values.decodeIfPresent(UUID.self, forKey: .telnetIdentityID)
+        telnetProxy = try values.decodeIfPresent(HostProxy.self, forKey: .telnetProxy)
+        telnetCharset =
+            try values.decodeIfPresent(String.self, forKey: .telnetCharset)
+            .flatMap(RemoteCharset.init(rawValue:)) ?? .utf8
         jumpHostID = try values.decodeIfPresent(UUID.self, forKey: .jumpHostID)
         proxy = try values.decodeIfPresent(HostProxy.self, forKey: .proxy)
         sftpChannelInitialPath = try values.decode(String.self, forKey: .sftpChannelInitialPath)
-        charset =
+        sshCharset =
             try values.decodeIfPresent(String.self, forKey: .charset)
             .flatMap(RemoteCharset.init(rawValue:)) ?? .utf8
         groupID = try values.decodeIfPresent(UUID.self, forKey: .groupID)
@@ -240,6 +355,34 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
             try values.decodeIfPresent(Int.self, forKey: .portForwardingMaxConnections)
                 ?? Self.defaultPortForwardingMaxConnections)
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(id, forKey: .id)
+        try values.encode(name, forKey: .name)
+        try values.encode(host, forKey: .host)
+        try values.encode(sshPort, forKey: .port)
+        try values.encodeIfPresent(sshIdentityID, forKey: .identityID)
+        try values.encodeIfPresent(jumpHostID, forKey: .jumpHostID)
+        try values.encodeIfPresent(proxy, forKey: .proxy)
+        try values.encode(sftpChannelInitialPath, forKey: .sftpChannelInitialPath)
+        try values.encode(sshCharset.rawValue, forKey: .charset)
+        try values.encode(sshEnabled, forKey: .sshEnabled)
+        try values.encode(telnetEnabled, forKey: .telnetEnabled)
+        try values.encode(telnetPort, forKey: .telnetPort)
+        try values.encodeIfPresent(telnetIdentityID, forKey: .telnetIdentityID)
+        try values.encode(telnetCharset.rawValue, forKey: .telnetCharset)
+        try values.encodeIfPresent(telnetProxy, forKey: .telnetProxy)
+        try values.encodeIfPresent(groupID, forKey: .groupID)
+        try values.encode(tags, forKey: .tags)
+        try values.encode(colorTag, forKey: .colorTag)
+        try values.encodeIfPresent(detectedDistribution, forKey: .detectedDistribution)
+        try values.encode(sortIndex, forKey: .sortIndex)
+        try values.encode(shellIntegrationMode.rawValue, forKey: .shellIntegrationMode)
+        try values.encodeIfPresent(startupSnippetID, forKey: .startupSnippetID)
+        try values.encode(environmentVariables, forKey: .environmentVariables)
+        try values.encode(portForwardingMaxConnections, forKey: .portForwardingMaxConnections)
     }
 
     public static func normalizedPortForwardingMaxConnections(_ value: Int) -> Int {
