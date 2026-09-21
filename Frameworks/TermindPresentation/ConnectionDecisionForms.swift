@@ -72,13 +72,14 @@ public struct SSHAuthenticationForm: View {
         !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (!needsPassphrase || !passphrase.isEmpty)
             && (!prompt.isProxy || !needsPasswordEntry || !password.isEmpty)
+            && !selectedIdentityPasswordIsUnavailable
     }
 
-    private var canSave: Bool {
-        guard canContinue, let selectedIdentity else { return canContinue }
-        switch library.passwordAvailability(for: selectedIdentity) {
-        case .missing, .failed: return false
-        case .notConfigured, .available: return true
+    private var selectedIdentityPasswordIsUnavailable: Bool {
+        guard let selectedIdentity else { return false }
+        return switch library.passwordAvailability(for: selectedIdentity) {
+        case .missing, .failed: true
+        case .notConfigured, .available: false
         }
     }
 
@@ -109,7 +110,7 @@ public struct SSHAuthenticationForm: View {
             if prompt.keyboardInteractive == nil, let keyboard {
                 keyboard.bridge(
                     canSubmit: canContinue,
-                    submit: { commit(save: !needsPassphrase && canSave) }, cancel: cancel)
+                    submit: { commit(save: !needsPassphrase) }, cancel: cancel)
             }
         }
         .onAppear {
@@ -249,7 +250,14 @@ public struct SSHAuthenticationForm: View {
                         Spacer()
                         continueButton
                     }
-                    saveAndContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
+                    #if os(iOS)
+                        HStack {
+                            Spacer()
+                            saveAndContinueButton
+                        }
+                    #else
+                        saveAndContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
+                    #endif
                 }
             }
         }
@@ -283,7 +291,7 @@ public struct SSHAuthenticationForm: View {
         }
         .buttonStyle(.borderedProminent)
         .keyboardShortcut(.defaultAction)
-        .disabled(!canSave)
+        .disabled(!canContinue)
     }
 
     private func updateFocusForRequirement() {
