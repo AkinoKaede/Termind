@@ -12,7 +12,7 @@ struct ExternalConnectionURLTests {
         defer { app.shutdownForTermination() }
 
         app.openExternalConnection(
-            #require(URL(string: "ssh://deploy@example.invalid:2222")),
+            try #require(URL(string: "ssh://deploy@example.invalid:2222")),
             in: window)
 
         let session = try #require(window.selectedWorkspace?.focusedPane.sshSession)
@@ -28,7 +28,7 @@ struct ExternalConnectionURLTests {
         defer { app.shutdownForTermination() }
 
         app.openExternalConnection(
-            #require(URL(string: "telnet://operator:secret@example.invalid")),
+            try #require(URL(string: "telnet://operator:secret@example.invalid")),
             in: window)
 
         #expect(window.pendingExternalConnection?.advisoryPassword == "secret")

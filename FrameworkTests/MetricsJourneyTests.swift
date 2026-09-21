@@ -170,6 +170,32 @@ struct MetricsJourneyTests {
         #expect(model.servers.isEmpty)
     }
 
+    @Test func knownHostKeyConnectsWithoutRequestingConfirmation() async throws {
+        let identity = Identity(name: "Deploy", username: "deploy")
+        let host = TermindDomain.Host(
+            name: "Monitor", host: "example.invalid", identityID: identity.id)
+        let hosts = HostLibraryModel(
+            hosts: [host], identities: [identity],
+            knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")]
+        )
+        try hosts.upsert(identity, passwordUpdate: .replace("test-only"))
+        let sampler = PortMetricsSampler()
+        let model = ServerMetricsModel(
+            hosts: hosts, preferences: PortMetricsPreferences(), makeSampler: { sampler })
+        defer { model.shutdown() }
+
+        #expect(model.add(host))
+        let server = try #require(model.servers.first)
+        try await wait { server.point != nil }
+
+        #expect(await sampler.hostKeyAuthorizationRequests == 1)
+        #expect(await sampler.hostKeyChallenges == 0)
+        #expect(server.hostKeyPrompt == nil)
+        #expect(server.hostKey == nil)
+        #expect(!server.needsAttention)
+        #expect(server.collectionState == .live)
+    }
+
     @Test func suspendingHostKeyConfirmationRequiresAFreshChallengeOnResume() async throws {
         let identity = Identity(name: "Deploy", username: "deploy")
         let host = TermindDomain.Host(name: "Monitor", host: "example.invalid", identityID: identity.id)
@@ -225,6 +251,7 @@ struct MetricsJourneyTests {
 
 private actor PortMetricsSampler: MetricsSampling {
     var connections = 0
+    var hostKeyAuthorizationRequests = 0
     var hostKeyChallenges = 0
     var processRequests = 0
     func connect(_ configuration: SSHConnectionConfiguration) async throws { connections += 1 }
@@ -234,21 +261,22 @@ private actor PortMetricsSampler: MetricsSampling {
             hostname: configuration.host, port: configuration.port,
             algorithm: .ed25519, fingerprint: "SHA256:test"
         )
+        hostKeyAuthorizationRequests += 1
         if !configuration.expectedHostKeys.contains(observation.identity) {
             hostKeyChallenges += 1
-            guard let authorizeHostKey = request.authorizeHostKey else {
-                throw TermindSSHError.untrustedHost
-            }
-            guard
-                try await authorizeHostKey(
-                    SSHHostKeyChallenge(
-                        hostID: configuration.hostID,
-                        observation: observation,
-                        expectedHostKeys: configuration.expectedHostKeys
-                    )
-                ) == .accept
-            else { throw CancellationError() }
         }
+        guard let authorizeHostKey = request.authorizeHostKey else {
+            throw TermindSSHError.untrustedHost
+        }
+        guard
+            try await authorizeHostKey(
+                SSHHostKeyChallenge(
+                    hostID: configuration.hostID,
+                    observation: observation,
+                    expectedHostKeys: configuration.expectedHostKeys
+                )
+            ) == .accept
+        else { throw CancellationError() }
         try await connect(configuration)
     }
     func sample() async throws -> MetricsSample {

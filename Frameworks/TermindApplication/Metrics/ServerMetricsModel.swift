@@ -951,6 +951,9 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private nonisolated func authorizeHostKeyFromWorker(
         _ serverID: UUID, challenge: SSHHostKeyChallenge, token: UUID
     ) async -> SSHHostKeyDecision {
+        if challenge.expectedHostKeys.contains(challenge.observation.identity) {
+            return .accept
+        }
         guard let authorization = await beginHostKeyAuthorization(serverID, challenge: challenge, token: token) else {
             return .reject
         }
