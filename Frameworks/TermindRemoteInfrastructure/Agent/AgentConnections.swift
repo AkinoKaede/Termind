@@ -384,12 +384,7 @@ public final class AgentHostResolver: Sendable {
             AgentSSHHostKeyRequest(
                 invocationID: invocationID, hostID: challenge.hostID,
                 displayName: displayName, address: address,
-                prompt: SSHHostKeyPrompt(
-                    observation: challenge.observation,
-                    kind: challenge.expectedHostKeys.isEmpty
-                        ? .firstUse
-                        : .additionalKey(trustedKeyCount: challenge.expectedHostKeys.count)
-                ),
+                prompt: SSHHostKeyPrompt(challenge: challenge),
                 allowsPersistentTrust: saved != nil
             )
         )

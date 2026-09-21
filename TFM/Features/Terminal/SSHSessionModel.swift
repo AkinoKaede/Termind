@@ -150,8 +150,8 @@ final class SSHSessionModel: Identifiable {
     private(set) var transferSnapshot: SSHAdditionalConnectionSnapshot?
     private var latestViewport = InMemoryTerminalViewport(columns: 80, rows: 24)
     var connectionRoute: SSHConnectionRoute?
-    var uriHostKeyFingerprint: SSHURIHostKeyFingerprint?
-    var isExternalTemporaryConnection = false
+    var connectionOrigin: RemoteConnectionOrigin = .library
+    var isExternalTemporaryConnection: Bool { !connectionOrigin.allowsPersistence }
     private var transientHost: Host?
     private var usernameHint: String?
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
@@ -607,13 +607,9 @@ final class SSHSessionModel: Identifiable {
                     host: host, username: username, credentials: credentials,
                     expectedHostKeys: expectedHostKeys, proxy: proxy, jumps: jumps,
                     authenticationReference: authenticationReference, attemptID: attemptID,
-                    authorizeHostKey: { [weak self, weak store] challenge in
-                        guard let self, let store else { throw CancellationError() }
-                        return await self.connection.authorizeHostKey(
-                            challenge, using: store,
-                            uriFingerprint: self.uriHostKeyFingerprint,
-                            destinationHostID: self.hostID
-                        )
+                    authorizeHostKey: { [weak self] challenge in
+                        guard let self else { throw CancellationError() }
+                        return await self.connection.authorizeHostKey(challenge)
                     }
                 )
             } catch is CancellationError {
@@ -854,7 +850,8 @@ final class SSHSessionModel: Identifiable {
                     keyboardInteractive: { [weak self] challenge in
                         guard let self, await self.connectionAttemptID == attemptID else { throw CancellationError() }
                         return try await self.connection.answerKeyboardInteractive(challenge)
-                    }
+                    },
+                    hostKeyConstraints: connectionOrigin.hostKeyConstraints
                 ),
                 shellIntegrationEnabled: isShellIntegrationEnabled,
                 columns: latestViewport.columns, rows: latestViewport.rows,
@@ -976,17 +973,16 @@ final class SSHSessionModel: Identifiable {
         mode: SSHAuthenticationPrompt.Mode = .localIdentity,
         preserveSubmission: Bool = false
     ) {
+        guard let store = statusStore else { return }
         connection.pauseForUserInteraction()
         if !preserveSubmission { suppliedAuthentications[host.id] = nil }
-        pendingAuthentication = SSHAuthenticationPrompt(
-            host: host,
-            selectedIdentityID: preserveSubmission
-                ? suppliedAuthentications[host.id]?.identityID : host.identityID,
-            username: username,
-            selectedKeyID: selectedKeyID,
+        pendingAuthentication = SSHAuthenticationPromptResolver.host(
+            host, using: store,
+            submission: preserveSubmission ? suppliedAuthentications[host.id] : nil,
+            username: username, selectedKeyID: selectedKeyID,
             failureMessage: failureMessage?.isEmpty == false ? failureMessage : nil,
-            requiresPassphrase: requiresPassphrase, mode: mode,
-            allowsSaving: !isExternalTemporaryConnection
+            mode: mode, requiresPassphrase: requiresPassphrase,
+            allowsSaving: connectionOrigin.allowsPersistence
         )
         status = .disconnected
         switch mode {
@@ -1010,29 +1006,14 @@ final class SSHSessionModel: Identifiable {
         failureMessage: String? = nil,
         mode: SSHAuthenticationPrompt.Mode = .localIdentity
     ) {
-        guard let proxy = host.proxy else { return }
+        guard host.proxy != nil else { return }
         connection.pauseForUserInteraction()
         let staged = suppliedProxyAuthentications[host.id]
-        let configuredIdentity = (staged?.identityID ?? proxy.identityID).flatMap(store.identity)
-        let selectedIdentity: Identity?
-        if let configuredIdentity {
-            switch store.passwordAvailability(for: configuredIdentity) {
-            case .available, .notConfigured: selectedIdentity = configuredIdentity
-            case .missing, .failed: selectedIdentity = nil
-            }
-        } else {
-            selectedIdentity = nil
-        }
         suppliedProxyAuthentications[host.id] = nil
-        pendingAuthentication = SSHAuthenticationPrompt(
-            host: Host(
-                id: host.id, name: String(localized: "Proxy for \(host.name)"),
-                host: proxy.hostname, port: proxy.port),
-            selectedIdentityID: selectedIdentity?.id,
-            username: staged?.username ?? proxy.username,
+        pendingAuthentication = SSHAuthenticationPromptResolver.proxy(
+            for: host, using: store, submission: staged,
             failureMessage: failureMessage, mode: mode,
-            target: .proxy(ownerHostID: host.id),
-            allowsSaving: !isExternalTemporaryConnection)
+            allowsSaving: connectionOrigin.allowsPersistence)
         status = .disconnected
         connectionJourney.waitForProxyAuthentication(at: host.id, failure: failureMessage)
     }
@@ -1078,8 +1059,7 @@ final class SSHSessionModel: Identifiable {
         let host = transientHost ?? Host(id: hostID, name: title, host: title)
         let copy = SSHSessionModel(host: host, usernameHint: usernameHint)
         copy.connectionRoute = connectionRoute
-        copy.uriHostKeyFingerprint = uriHostKeyFingerprint
-        copy.isExternalTemporaryConnection = isExternalTemporaryConnection
+        copy.connectionOrigin = connectionOrigin
         copy.connectionCoordinator = connectionCoordinator
         copy.commandHistoryStore = commandHistoryStore
         return copy

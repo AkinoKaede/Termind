@@ -8,7 +8,11 @@ struct RemoteConnectionURLTests {
     @Test
     func parsesSSHAndLegacyFingerprint() throws {
         let value = try RemoteConnectionURLParser.parse(
-            #require(URL(string: "ssh://deploy;fingerprint=ssh-rsa-00-11-22-33-44-55-66-77-88-99-aa-bb-cc-dd-ee-ff@example.com:2222/ignored"))
+            #require(
+                URL(
+                    string:
+                        "ssh://deploy;fingerprint=ssh-rsa-00-11-22-33-44-55-66-77-88-99-aa-bb-cc-dd-ee-ff@example.com:2222/ignored"
+                ))
         )
         #expect(value.kind == .ssh)
         #expect(value.username == "deploy")
@@ -16,8 +20,12 @@ struct RemoteConnectionURLTests {
         #expect(value.port == 2222)
         #expect(value.path == nil)
         #expect(value.hostKeyFingerprint?.algorithm == .rsa)
-        #expect(value.hostKeyFingerprint?.md5 == Data([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-                                                        0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff]))
+        #expect(
+            value.hostKeyFingerprint?.legacyMD5
+                == Data([
+                    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+                    0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+                ]))
     }
 
     @Test
@@ -66,7 +74,7 @@ struct RemoteConnectionURLTests {
         let fingerprint = try #require(parsed.hostKeyFingerprint)
         let matching = SSHHostKeyObservation(
             hostname: "host", port: 22, algorithm: .rsa, fingerprint: "SHA256:test",
-            legacyMD5Fingerprint: fingerprint.md5)
+            legacyMD5Fingerprint: fingerprint.legacyMD5)
         let different = SSHHostKeyObservation(
             hostname: "host", port: 22, algorithm: .rsa, fingerprint: "SHA256:test",
             legacyMD5Fingerprint: Data(repeating: 0xff, count: 16))

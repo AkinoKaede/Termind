@@ -89,10 +89,12 @@ public nonisolated enum SSHConnectionOpener {
 
     public static func authorizeHostKey(
         hostID: TermindDomain.Host.ID, observed: SSHHostKeyObservation,
-        expected: Set<SSHHostKeyIdentity>, authorizer: SSHHostKeyAuthorizer?
+        expected: Set<SSHHostKeyIdentity>, constraint: SSHHostKeyConstraint? = nil,
+        authorizer: SSHHostKeyAuthorizer?
     ) async throws {
         try await SSHPTYChannelWorker.authorizeHostKey(
-            hostID: hostID, observed: observed, expected: expected, authorizer: authorizer)
+            hostID: hostID, observed: observed, expected: expected,
+            constraint: constraint, authorizer: authorizer)
     }
 
     public static func performHandshake(

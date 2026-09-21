@@ -333,11 +333,11 @@ final class MobileAppModel {
             transientHost: host,
             connectionRoute: request.kind == .telnet ? nil : route,
             usernameHint: request.username,
-            uriHostKeyFingerprint: request.hostKeyFingerprint,
+            connectionOrigin: .externalLink(
+                hostKeyConstraints: request.hostKeyFingerprint.map { [host.id: $0] } ?? [:]),
             advisoryTelnetPassword: request.advisoryPassword.map(SSHSecret.init),
             externalSFTPResourcePath: request.kind == .sftp ? request.path : nil,
-            externalSFTPMustBeDirectory: request.sftpType == .directory,
-            isExternalTemporaryConnection: true)
+            externalSFTPMustBeDirectory: request.sftpType == .directory)
         addWorkspaces([workspace], persists: false)
         return workspace.id
     }

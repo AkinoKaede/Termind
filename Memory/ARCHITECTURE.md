@@ -97,6 +97,11 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - SSH/SFTP/mobile Workspaces/Metrics share preparation/recovery policy. Host-key approval occurs inside the actual
   socket/libssh2 handshake-to-auth attempt, never a discovery connection. Generations reject retired callbacks,
   credential results and timers.
+- Host-key constraints are declarative request data enforced at the transport boundary before interactive approval.
+  A matching Known Hosts key bypasses the authorizer; a provisional External Link fingerprint may reject but never
+  establish or override persistent trust. Unknown keys still use the shared MainActor authorization coordinator for
+  one pending decision, cancellation, Continue Once and Trust and Continue; feature models retain their own Journey
+  and retry lifetimes.
 - Every resolved Password, software Private Key, Key Passphrase and proxy Password is one-shot per physical connection
   attempt. Runtime copies share one explicitly owned, non-copy-on-write allocation; source `Data`, proxy frames and the
   allocation are overwritten before release. The transport clears it after the authentication call and every success,

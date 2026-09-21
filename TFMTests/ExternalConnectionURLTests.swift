@@ -12,13 +12,18 @@ struct ExternalConnectionURLTests {
         defer { app.shutdownForTermination() }
 
         app.openExternalConnection(
-            try #require(URL(string: "ssh://deploy@example.invalid:2222")),
+            try #require(
+                URL(
+                    string:
+                        "ssh://deploy;fingerprint=ssh-rsa-00-11-22-33-44-55-66-77-88-99-aa-bb-cc-dd-ee-ff@example.invalid:2222"
+                )),
             in: window)
 
         let session = try #require(window.selectedWorkspace?.focusedPane.sshSession)
         #expect(session.isExternalTemporaryConnection)
         #expect(session.connectionRoute?.hosts.first?.host == "example.invalid")
         #expect(session.connectionRoute?.hosts.first?.port == 2222)
+        #expect(session.connectionOrigin.hostKeyConstraints[session.hostID]?.legacyMD5.count == 16)
         #expect(app.hostLibrary.hosts.isEmpty)
     }
 

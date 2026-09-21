@@ -116,7 +116,8 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         jumps: [SSHRouteHopConfiguration], timeout: TimeInterval,
         progress: SSHRouteProgressHandler? = nil,
         authorizeHostKey: SSHHostKeyAuthorizer?,
-        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil
+        keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
+        hostKeyConstraints: [Host.ID: SSHHostKeyConstraint] = [:]
     ) async throws -> SSHRoutedSocket {
         let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.route-opening")
         let state = SSHRouteOpeningState()
@@ -151,6 +152,7 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
                         try await SSHConnectionOpener.authorizeHostKey(
                             hostID: hop.id, observed: observed,
                             expected: hop.expectedHostKeys,
+                            constraint: hostKeyConstraints[hop.id],
                             authorizer: authorizeHostKey
                         )
                         try Task.checkCancellation()

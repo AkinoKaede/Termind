@@ -250,3 +250,17 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
   two opt-in window skips. Default macOS: 1,858 passed, 65 opt-in skips, three unrelated Agent failures. Two timing failures passed
   on immediate 41-test rerun; deterministic `list_hosts` summary expectation remained. Recursive format retained
   `PortForwardingView.swift:197`.
+
+### 2026-09-22 — shared SSH host-key verification and interaction (complete)
+
+- **Change:** separated declarative Host-key constraints from interactive approval at the transport boundary. Known Hosts
+  matches bypass feature authorizers; External Link MD5 fingerprints can reject but cannot establish or override trust, and
+  matched first-use links still show the SHA-256 confirmation. One MainActor coordinator now owns pending decisions,
+  cancellation and temporary/persistent trust for sessions, SFTP, forwarding and Metrics; a shared resolver projects Host,
+  proxy and passphrase prompts while feature retry/Journey lifetimes remain separate. Typed connection origins replace the
+  external-link boolean/fingerprint pair on SSH/SFTP/mobile workspaces. Agent interaction queues remain distinct and AgentKit
+  is unchanged. Production +396/−422 lines, net −26.
+- **Verification:** TFM and generic iOS Simulator builds passed; focused Host-key/Metrics/External Link/Snapshot suites and the
+  23-test MCP upload rerun passed. The default macOS run reached 1,430 passed/65 skipped before unrelated StoreKit sandbox,
+  MCP timing and pre-existing Agent summary failures; MCP passed immediately on focused rerun and the stabilized Metrics
+  snapshot suite passed 2/2. Recursive strict format, diff and Chinese localization checks passed.

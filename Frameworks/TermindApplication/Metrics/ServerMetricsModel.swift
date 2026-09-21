@@ -19,13 +19,14 @@ public final class ServerMetric: Identifiable {
     public var gpuSnapshot: NvidiaSnapshot?
     public var gpuDate: Date?
     public var authenticationHost: Host?
-    public var hostKey: SSHHostKeyObservation?
+    public let hostKeyAuthorization = SSHHostKeyAuthorizationCoordinator()
+    public var hostKey: SSHHostKeyObservation? { hostKeyAuthorization.pending?.prompt.observation }
     public var needsAttention = false
     public let journey = ConnectionJourney()
     public let keyboardAuthentication = SSHKeyboardInteractiveQueue()
     public var authenticationPrompt: SSHAuthenticationPrompt?
-    public var hostKeyPrompt: SSHHostKeyPrompt?
-    public var hostKeyHostID: UUID?
+    public var hostKeyPrompt: SSHHostKeyPrompt? { hostKeyAuthorization.pending?.prompt }
+    public var hostKeyHostID: UUID? { hostKeyAuthorization.pending?.hostID }
     public var requiresAuthentication: Bool {
         hostKey != nil || authenticationPrompt != nil || keyboardAuthentication.current != nil
     }
@@ -69,12 +70,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private var proxySubmissions: [UUID: [UUID: SSHProxyAuthenticationSubmission]] = [:]
     private var maintenance: Task<Void, Never>?
     private var detailObservers: [UUID: UUID] = [:]
-    private var temporaryKeys: [UUID: [UUID: SSHHostKeyIdentity]] = [:]
     private var stamps: [UUID: Data] = [:]
-    private struct PendingHostKeyAuthorization {
-        var id: UUID
-        var continuation: AsyncStream<SSHHostKeyDecision>.Continuation
-    }
     private struct PendingKeyboardAuthentication {
         var id: UUID
         var task: Task<[String], any Error>
@@ -84,14 +80,9 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         var preparation: SSHConnectionPreparation?
         var sampler: any MetricsSampling
     }
-    private nonisolated struct HostKeyAuthorization: Sendable {
-        var id: UUID
-        var decisions: AsyncStream<SSHHostKeyDecision>
-    }
     private nonisolated enum RunCycleDisposition: Sendable {
         case stop, attention, retry
     }
-    private var pendingHostKeyAuthorizations: [UUID: PendingHostKeyAuthorization] = [:]
     private var pendingKeyboardAuthentications: [UUID: PendingKeyboardAuthentication] = [:]
 
     public var keepsRunning: Bool { servers.contains { $0.selection.enabled } }
@@ -230,11 +221,10 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     public func retry(_ server: ServerMetric) {
         server.journey.resume()
         server.authenticationPrompt = nil
-        server.hostKeyPrompt = nil
+        server.hostKeyAuthorization.cancelPending()
         cancel(server.id)
         server.isConnecting = false
         server.authenticationHost = nil
-        server.hostKey = nil
         server.needsAttention = false
         launch(server)
     }
@@ -314,22 +304,13 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     }
 
     public func acceptHostKey(_ server: ServerMetric, observation: SSHHostKeyObservation, remember: Bool) {
-        guard server.hostKey == observation, let hostID = server.hostKeyHostID else { return }
-        if remember {
-            hosts.trust(
-                KnownHostEntry(
-                    hostname: observation.hostname, port: observation.port,
-                    algorithm: observation.algorithm, fingerprint: observation.fingerprint, addedAt: clock.now()
-                ))
-        } else {
-            temporaryKeys[server.id, default: [:]][hostID] = observation.identity
-        }
-        server.hostKey = nil
-        server.hostKeyHostID = nil
-        server.hostKeyPrompt = nil
+        let accepted =
+            remember
+            ? server.hostKeyAuthorization.trust(observation, using: hosts, addedAt: clock.now())
+            : server.hostKeyAuthorization.continueOnce(observation)
+        guard accepted else { return }
         server.needsAttention = false
         server.journey.resume()
-        finishHostKeyAuthorization(for: server.id, decision: .accept)
     }
 
     private func preparation(
@@ -341,34 +322,19 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             for: host,
             submissions: submissions,
             proxySubmissions: proxySubmissions,
-            temporaryHostKeys: temporaryKeys[server.id] ?? [:]
+            temporaryHostKeys: server.hostKeyAuthorization.temporaryHostKeys
         )
     }
 
     private func requestAuthentication(_ server: ServerMetric, hostID: UUID, error: TermindSSHError) {
         guard let host = hosts.host(hostID) else { return }
-        if error.isProxyAuthentication, let proxy = host.proxy {
+        if error.isProxyAuthentication, host.proxy != nil {
             let staged = proxySubmissions[server.id]?[host.id]
-            let configured = (staged?.identityID ?? proxy.identityID).flatMap { hosts.identity($0) }
-            let selected: Identity?
-            if let configured {
-                switch hosts.passwordAvailability(for: configured) {
-                case .available, .notConfigured: selected = configured
-                case .missing, .failed: selected = nil
-                }
-            } else {
-                selected = nil
-            }
             server.authenticationHost = host
-            server.authenticationPrompt = SSHAuthenticationPrompt(
-                host: Host(
-                    id: host.id, name: String(localized: "Proxy for \(host.name)"),
-                    host: proxy.hostname, port: proxy.port),
-                selectedIdentityID: selected?.id,
-                username: staged?.username ?? proxy.username,
+            server.authenticationPrompt = SSHAuthenticationPromptResolver.proxy(
+                for: host, using: hosts, submission: staged,
                 failureMessage: error.localizedDescription,
-                mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity,
-                target: .proxy(ownerHostID: host.id))
+                mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity)
             server.needsAttention = true
             server.journey.waitForProxyAuthentication(at: host.id, failure: error.localizedDescription)
             return
@@ -381,11 +347,11 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             && keyID.flatMap { hosts.key($0) }?.requiresPassphraseEntry == true
             && staged?.passphrase == nil
         server.authenticationHost = host
-        server.authenticationPrompt = SSHAuthenticationPrompt(
-            host: host, selectedIdentityID: identity?.id, username: staged?.username ?? identity?.username ?? "",
-            selectedKeyID: keyID, failureMessage: error.localizedDescription, requiresPassphrase: passphrase,
-            mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity
-        )
+        server.authenticationPrompt = SSHAuthenticationPromptResolver.host(
+            host, using: hosts, submission: staged,
+            failureMessage: error.localizedDescription,
+            mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity,
+            requiresPassphrase: passphrase)
         server.needsAttention = true
         if error.isServerAuthenticationChallenge {
             server.journey.waitForAuthentication(at: host.id, failure: error.localizedDescription)
@@ -420,7 +386,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
         maintenance = nil
         for server in servers { cancel(server.id) }
         submissions = [:]
-        temporaryKeys = [:]
+        for server in servers { server.hostKeyAuthorization.reset() }
         for server in servers { server.journey.hide() }
     }
 
@@ -441,7 +407,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             if let old = stamps[server.id], old != stamp {
                 submissions[server.id] = nil
                 proxySubmissions[server.id] = nil
-                temporaryKeys[server.id] = nil
+                server.hostKeyAuthorization.reset()
                 retry(server)
             }
             stamps[server.id] = stamp
@@ -500,9 +466,8 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                     cancel(server.id)
                     server.isConnecting = false
                     server.authenticationHost = nil
-                    server.hostKey = nil
                     server.authenticationPrompt = nil
-                    server.hostKeyPrompt = nil
+                    server.hostKeyAuthorization.cancelPending()
                     server.needsAttention = false
                     if devicesChanged {
                         server.history = []
@@ -511,7 +476,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                     if !selection.enabled {
                         submissions[server.id] = nil
                         proxySubmissions[server.id] = nil
-                        temporaryKeys[server.id] = nil
+                        server.hostKeyAuthorization.reset()
                         server.journey.hide()
                     }
                 }
@@ -526,7 +491,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             if !configuredIDs.contains(server.id) {
                 submissions[server.id] = nil
                 proxySubmissions[server.id] = nil
-                temporaryKeys[server.id] = nil
+                server.hostKeyAuthorization.reset()
                 stamps[server.id] = nil
                 detailObservers = detailObservers.filter { $0.value != server.id }
             }
@@ -543,15 +508,12 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private func cancel(_ id: UUID) {
         generations[id] = nil
         workers.removeValue(forKey: id)?.cancel()
-        let hadHostKeyAuthorization = pendingHostKeyAuthorizations[id] != nil
-        finishHostKeyAuthorization(for: id, decision: .reject)
+        let hadHostKeyAuthorization = servers.first(where: { $0.id == id })?.hostKeyPrompt != nil
         let authentication = pendingKeyboardAuthentications.removeValue(forKey: id)
         authentication?.task.cancel()
         if let server = servers.first(where: { $0.id == id }) {
             if hadHostKeyAuthorization {
-                server.hostKey = nil
-                server.hostKeyHostID = nil
-                server.hostKeyPrompt = nil
+                server.hostKeyAuthorization.cancelPending()
             }
             if hadHostKeyAuthorization || authentication != nil { server.needsAttention = false }
             server.keyboardAuthentication.cancelAll()
@@ -951,61 +913,24 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private nonisolated func authorizeHostKeyFromWorker(
         _ serverID: UUID, challenge: SSHHostKeyChallenge, token: UUID
     ) async -> SSHHostKeyDecision {
-        if challenge.expectedHostKeys.contains(challenge.observation.identity) {
-            return .accept
-        }
-        guard let authorization = await beginHostKeyAuthorization(serverID, challenge: challenge, token: token) else {
-            return .reject
-        }
-        return await withTaskCancellationHandler {
-            for await decision in authorization.decisions { return decision }
-            return .reject
-        } onCancel: {
-            Task.detached { [weak self] in
-                await self?.cancelHostKeyAuthorization(for: serverID, id: authorization.id)
-            }
-        }
+        guard await isCurrent(serverID, token: token) else { return .reject }
+        return await authorizeHostKeyOnMainActor(serverID, challenge: challenge, token: token)
     }
 
-    private func beginHostKeyAuthorization(
+    private func authorizeHostKeyOnMainActor(
         _ serverID: UUID, challenge: SSHHostKeyChallenge, token: UUID
-    ) -> HostKeyAuthorization? {
-        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return nil }
-        finishHostKeyAuthorization(for: serverID, decision: .reject)
-        server.hostKey = challenge.observation
-        server.hostKeyHostID = challenge.hostID
-        server.hostKeyPrompt = SSHHostKeyPrompt(
-            observation: challenge.observation,
-            kind: challenge.expectedHostKeys.isEmpty
-                ? .firstUse
-                : .additionalKey(trustedKeyCount: challenge.expectedHostKeys.count)
-        )
-        server.status = String(localized: "Server Identity Verification Required")
-        server.needsAttention = true
-        server.journey.waitForHostKey(
-            at: challenge.hostID,
-            fingerprint: challenge.observation.fingerprint
-        )
-        let authorizationID = UUID()
-        let decisions = AsyncStream<SSHHostKeyDecision> { continuation in
-            pendingHostKeyAuthorizations[serverID] = PendingHostKeyAuthorization(
-                id: authorizationID, continuation: continuation
-            )
+    ) async -> SSHHostKeyDecision {
+        guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else {
+            return .reject
         }
-        return HostKeyAuthorization(id: authorizationID, decisions: decisions)
-    }
-
-    private func cancelHostKeyAuthorization(for serverID: UUID, id: UUID) {
-        guard pendingHostKeyAuthorizations[serverID]?.id == id else { return }
-        finishHostKeyAuthorization(for: serverID, decision: .reject)
-    }
-
-    private func finishHostKeyAuthorization(
-        for serverID: UUID, decision: SSHHostKeyDecision
-    ) {
-        guard let pending = pendingHostKeyAuthorizations.removeValue(forKey: serverID) else { return }
-        pending.continuation.yield(decision)
-        pending.continuation.finish()
+        let decision = await server.hostKeyAuthorization.authorize(challenge) { request in
+            server.status = String(localized: "Server Identity Verification Required")
+            server.needsAttention = true
+            server.journey.waitForHostKey(
+                at: request.hostID,
+                fingerprint: request.prompt.observation.fingerprint)
+        }
+        return current(serverID, token) ? decision : .reject
     }
 }
 

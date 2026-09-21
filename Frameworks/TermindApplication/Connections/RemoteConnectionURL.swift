@@ -1,6 +1,21 @@
 import Foundation
 import TermindDomain
 
+import struct TermindDomain.Host
+
+public nonisolated enum RemoteConnectionOrigin: Equatable, Sendable {
+    case library
+    case externalLink(hostKeyConstraints: [Host.ID: SSHHostKeyConstraint])
+
+    public var allowsPersistence: Bool {
+        if case .library = self { true } else { false }
+    }
+
+    public var hostKeyConstraints: [Host.ID: SSHHostKeyConstraint] {
+        if case .externalLink(let constraints) = self { constraints } else { [:] }
+    }
+}
+
 public nonisolated struct RemoteConnectionURL: Equatable, Sendable {
     public enum Kind: String, Equatable, Sendable {
         case ssh
@@ -28,11 +43,11 @@ public nonisolated struct RemoteConnectionURL: Equatable, Sendable {
     public var port: Int
     public var path: String?
     public var sftpType: SFTPType?
-    public var hostKeyFingerprint: SSHURIHostKeyFingerprint?
+    public var hostKeyFingerprint: SSHHostKeyConstraint?
 
     public init(
         kind: Kind, username: String?, advisoryPassword: String?, host: String, port: Int,
-        path: String?, sftpType: SFTPType?, hostKeyFingerprint: SSHURIHostKeyFingerprint?
+        path: String?, sftpType: SFTPType?, hostKeyFingerprint: SSHHostKeyConstraint?
     ) {
         self.kind = kind
         self.username = username
@@ -42,33 +57,6 @@ public nonisolated struct RemoteConnectionURL: Equatable, Sendable {
         self.path = path
         self.sftpType = sftpType
         self.hostKeyFingerprint = hostKeyFingerprint
-    }
-}
-
-public nonisolated struct SSHURIHostKeyFingerprint: Equatable, Sendable {
-    public enum Algorithm: String, Equatable, Sendable {
-        case rsa = "ssh-rsa"
-        case dsa = "ssh-dss"
-    }
-
-    public var algorithm: Algorithm
-    public var md5: Data
-
-    public init(algorithm: Algorithm, md5: Data) {
-        self.algorithm = algorithm
-        self.md5 = md5
-    }
-
-    public func matches(_ observation: SSHHostKeyObservation) -> Bool {
-        let algorithmMatches =
-            switch algorithm {
-            case .rsa: observation.algorithm == .rsa
-            case .dsa: false // The current transport deliberately does not negotiate ssh-dss.
-            }
-        guard algorithmMatches, let candidate = observation.legacyMD5Fingerprint,
-            candidate.count == md5.count
-        else { return false }
-        return zip(candidate, md5).reduce(UInt8(0)) { $0 | ($1.0 ^ $1.1) } == 0
     }
 }
 
@@ -134,7 +122,7 @@ public nonisolated enum RemoteConnectionURLParser {
 
     private static func parseCredentials(
         _ components: URLComponents, kind: RemoteConnectionURL.Kind
-    ) throws -> (username: String?, password: String?, fingerprint: SSHURIHostKeyFingerprint?) {
+    ) throws -> (username: String?, password: String?, fingerprint: SSHHostKeyConstraint?) {
         let password = try decode(components.percentEncodedPassword)
         if kind != .telnet, password != nil { throw RemoteConnectionURLParseError.invalidCredentials }
 
@@ -148,7 +136,7 @@ public nonisolated enum RemoteConnectionURLParser {
         let username = try nonempty(decode(String(pieces.first ?? "")))
         guard pieces.count == 2 else { return (username, nil, nil) }
 
-        var fingerprint: SSHURIHostKeyFingerprint?
+        var fingerprint: SSHHostKeyConstraint?
         for parameter in pieces[1].split(separator: ",", omittingEmptySubsequences: false) {
             let pair = parameter.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
             guard pair.count == 2, !pair[0].isEmpty else {
@@ -198,8 +186,8 @@ public nonisolated enum RemoteConnectionURLParser {
         }
     }
 
-    private static func parseFingerprint(_ value: String) throws -> SSHURIHostKeyFingerprint {
-        let algorithm: SSHURIHostKeyFingerprint.Algorithm
+    private static func parseFingerprint(_ value: String) throws -> SSHHostKeyConstraint {
+        let algorithm: SSHHostKeyConstraint.Algorithm
         let digest: Substring
         if value.hasPrefix("ssh-rsa-") {
             algorithm = .rsa
@@ -220,7 +208,7 @@ public nonisolated enum RemoteConnectionURLParser {
             }
             bytes.append(byte)
         }
-        return SSHURIHostKeyFingerprint(algorithm: algorithm, md5: Data(bytes))
+        return SSHHostKeyConstraint(algorithm: algorithm, legacyMD5: Data(bytes))
     }
 
     private static func decode(_ value: String?) throws -> String? {

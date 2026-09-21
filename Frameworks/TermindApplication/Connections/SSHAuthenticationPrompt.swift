@@ -48,3 +48,61 @@ public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Senda
     }
 
 }
+
+/// Shared projection from route metadata and staged submissions into the
+/// presentation-only authentication prompt. Connection lifetimes, retries,
+/// and credential persistence remain owned by each feature.
+@MainActor
+public enum SSHAuthenticationPromptResolver {
+    public static func host(
+        _ host: Host, using store: any RemoteSessionHostStore,
+        submission: SSHAuthenticationSubmission? = nil,
+        username: String? = nil, selectedKeyID: SSHKeyRef.ID? = nil,
+        failureMessage: String? = nil,
+        mode: SSHAuthenticationPrompt.Mode = .localIdentity,
+        requiresPassphrase: Bool? = nil, allowsSaving: Bool = true
+    ) -> SSHAuthenticationPrompt {
+        let identity = submission?.identityID.flatMap(store.identity) ?? store.identity(for: host)
+        let keyID = selectedKeyID ?? submission?.keyID ?? identity?.keyID
+        let resolvedUsername = username ?? submission?.username ?? identity?.username ?? ""
+        let needsPassphrase =
+            requiresPassphrase
+            ?? (submission?.requiresPasswordReentry != true
+                && keyID.flatMap(store.key)?.requiresPassphraseEntry == true
+                && submission?.passphrase == nil)
+        return SSHAuthenticationPrompt(
+            host: host, selectedIdentityID: submission?.identityID ?? identity?.id,
+            username: resolvedUsername, selectedKeyID: keyID,
+            failureMessage: failureMessage?.isEmpty == false ? failureMessage : nil,
+            requiresPassphrase: needsPassphrase, mode: mode,
+            allowsSaving: allowsSaving)
+    }
+
+    public static func proxy(
+        for owner: Host, using store: any RemoteSessionHostStore,
+        submission: SSHProxyAuthenticationSubmission? = nil,
+        failureMessage: String? = nil,
+        mode: SSHAuthenticationPrompt.Mode = .localIdentity,
+        allowsSaving: Bool = true
+    ) -> SSHAuthenticationPrompt? {
+        guard let proxy = owner.proxy else { return nil }
+        let configured = (submission?.identityID ?? proxy.identityID).flatMap(store.identity)
+        let selected: Identity?
+        if let configured {
+            switch store.passwordAvailability(for: configured) {
+            case .available, .notConfigured: selected = configured
+            case .missing, .failed: selected = nil
+            }
+        } else {
+            selected = nil
+        }
+        return SSHAuthenticationPrompt(
+            host: Host(
+                id: owner.id, name: String(localized: "Proxy for \(owner.name)"),
+                host: proxy.hostname, port: proxy.port),
+            selectedIdentityID: selected?.id,
+            username: submission?.username ?? proxy.username,
+            failureMessage: failureMessage, mode: mode,
+            target: .proxy(ownerHostID: owner.id), allowsSaving: allowsSaving)
+    }
+}

@@ -793,8 +793,8 @@ final class AppModel {
             if request.kind == .ssh {
                 let workspace = window.openSSHSession(
                     host: host, usernameHint: request.username, connectionRoute: route)
-                workspace.focusedPane.sshSession?.uriHostKeyFingerprint = request.hostKeyFingerprint
-                workspace.focusedPane.sshSession?.isExternalTemporaryConnection = true
+                workspace.focusedPane.sshSession?.connectionOrigin = .externalLink(
+                    hostKeyConstraints: request.hostKeyFingerprint.map { [host.id: $0] } ?? [:])
                 return
             }
             let workspace = window.openSFTPChannel(host: host)

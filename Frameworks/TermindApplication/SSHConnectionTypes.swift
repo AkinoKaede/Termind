@@ -32,14 +32,49 @@ public nonisolated struct SSHHostKeyChallenge: Hashable, Sendable {
     public var hostID: Host.ID
     public var observation: SSHHostKeyObservation
     public var expectedHostKeys: Set<SSHHostKeyIdentity>
+    /// A provisional out-of-band constraint matched this key. Persistent
+    /// Known Hosts remains authoritative and the user must still approve
+    /// first use before the key can be trusted.
+    public var provisionalConstraintMatched: Bool
 
     public init(
         hostID: Host.ID, observation: SSHHostKeyObservation,
-        expectedHostKeys: Set<SSHHostKeyIdentity>
+        expectedHostKeys: Set<SSHHostKeyIdentity>,
+        provisionalConstraintMatched: Bool = false
     ) {
         self.hostID = hostID
         self.observation = observation
         self.expectedHostKeys = expectedHostKeys
+        self.provisionalConstraintMatched = provisionalConstraintMatched
+    }
+}
+
+/// An additional, provisional host-key constraint supplied out of band.
+/// It can reject a handshake, but never creates or overrides Known Hosts trust.
+public nonisolated struct SSHHostKeyConstraint: Hashable, Sendable {
+    public enum Algorithm: String, Hashable, Sendable {
+        case rsa = "ssh-rsa"
+        case dsa = "ssh-dss"
+    }
+
+    public var algorithm: Algorithm
+    public var legacyMD5: Data
+
+    public init(algorithm: Algorithm, legacyMD5: Data) {
+        self.algorithm = algorithm
+        self.legacyMD5 = legacyMD5
+    }
+
+    public func matches(_ observation: SSHHostKeyObservation) -> Bool {
+        let algorithmMatches =
+            switch algorithm {
+            case .rsa: observation.algorithm == .rsa
+            case .dsa: false  // The transport deliberately does not negotiate ssh-dss.
+            }
+        guard algorithmMatches, let candidate = observation.legacyMD5Fingerprint,
+            candidate.count == legacyMD5.count
+        else { return false }
+        return zip(candidate, legacyMD5).reduce(UInt8(0)) { $0 | ($1.0 ^ $1.1) } == 0
     }
 }
 
@@ -89,17 +124,20 @@ public nonisolated struct SSHConnectionRequest: Sendable {
     public var authorizeHostKey: SSHHostKeyAuthorizer?
     public var keyboardInteractive: SSHKeyboardInteractiveHandler?
     public var interactionPolicy: SSHInteractionPolicy
+    public var hostKeyConstraints: [Host.ID: SSHHostKeyConstraint]
 
     public init(
         configuration: SSHConnectionConfiguration,
         authorizeHostKey: SSHHostKeyAuthorizer? = nil,
         keyboardInteractive: SSHKeyboardInteractiveHandler? = nil,
-        interactionPolicy: SSHInteractionPolicy = .allowed
+        interactionPolicy: SSHInteractionPolicy = .allowed,
+        hostKeyConstraints: [Host.ID: SSHHostKeyConstraint] = [:]
     ) {
         self.configuration = configuration
         self.authorizeHostKey = authorizeHostKey
         self.keyboardInteractive = keyboardInteractive
         self.interactionPolicy = interactionPolicy
+        self.hostKeyConstraints = hostKeyConstraints
     }
 
     public func withKeyboardInteractiveFallback(_ handler: SSHKeyboardInteractiveHandler?) -> Self {
@@ -234,6 +272,16 @@ public nonisolated struct SSHHostKeyPrompt: Hashable, Sendable {
         self.observation = observation
         self.kind = kind
         self.uriFingerprintMatched = uriFingerprintMatched
+    }
+
+    public init(challenge: SSHHostKeyChallenge) {
+        self.init(
+            observation: challenge.observation,
+            kind: challenge.expectedHostKeys.isEmpty
+                ? .firstUse
+                : .additionalKey(trustedKeyCount: challenge.expectedHostKeys.count),
+            uriFingerprintMatched: challenge.provisionalConstraintMatched
+        )
     }
 
 }

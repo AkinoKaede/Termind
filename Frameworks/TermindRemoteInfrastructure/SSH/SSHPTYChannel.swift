@@ -932,7 +932,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             proxy: configuration.proxy, jumps: configuration.jumps,
             timeout: timeout, progress: progress,
             authorizeHostKey: request.authorizeHostKey,
-            keyboardInteractive: request.keyboardInteractive
+            keyboardInteractive: request.keyboardInteractive,
+            hostKeyConstraints: request.hostKeyConstraints
         )
         let queue = DispatchQueue(label: "com.akinokaede.termind.ssh.authenticated-opening")
         let exchange = SSHKeyboardInteractiveExchange(
@@ -950,6 +951,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 try await authorizeHostKey(
                     hostID: configuration.hostID, observed: observed,
                     expected: configuration.expectedHostKeys,
+                    constraint: request.hostKeyConstraints[configuration.hostID],
                     authorizer: request.authorizeHostKey
                 )
                 try Task.checkCancellation()
@@ -1766,19 +1768,31 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
 
     public static func authorizeHostKey(
         hostID: Host.ID, observed: SSHHostKeyObservation,
-        expected: Set<SSHHostKeyIdentity>, authorizer: SSHHostKeyAuthorizer?
+        expected: Set<SSHHostKeyIdentity>, constraint: SSHHostKeyConstraint? = nil,
+        authorizer: SSHHostKeyAuthorizer?
     ) async throws {
+        let constraintMatched: Bool
+        if let constraint {
+            guard constraint.matches(observed) else { throw TermindSSHError.mismatchedHostKey }
+            constraintMatched = true
+        } else {
+            constraintMatched = false
+        }
+        if expected.contains(observed.identity) { return }
+        // A provisional fingerprint is an additional constraint, never an
+        // override for an existing, conflicting Known Hosts record.
+        if constraintMatched, !expected.isEmpty { throw TermindSSHError.mismatchedHostKey }
         if let authorizer {
             let decision = try await authorizer(
                 SSHHostKeyChallenge(
                     hostID: hostID, observation: observed,
-                    expectedHostKeys: expected
+                    expectedHostKeys: expected,
+                    provisionalConstraintMatched: constraintMatched
                 )
             )
             guard decision == .accept else { throw CancellationError() }
             return
         }
-        if expected.contains(observed.identity) { return }
         if expected.isEmpty { throw TermindSSHError.untrustedHost }
         throw TermindSSHError.hostKeyChanged(
             expected: expected.map(\.fingerprint).sorted(),

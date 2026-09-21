@@ -51,11 +51,12 @@ struct MetricsSnapshotTests {
     }
 
     @Test
-    func lifecycleStateIsStructuredAndIndependentOfLocalizedText() throws {
+    func lifecycleStateIsStructuredAndIndependentOfLocalizedText() async throws {
         let host = Host(name: "Monitor", host: "monitor.example")
         let model = ServerMetricsModel(
             hosts: HostLibraryModel(hosts: [host]), preferences: SnapshotPreferences(hostID: host.id),
-            makeSampler: { preconditionFailure("Snapshot reads cannot create samplers") }
+            makeSampler: { preconditionFailure("Snapshot reads cannot create samplers") },
+            clock: MetricsClock(sleep: { _ in try await Task.sleep(for: .seconds(3_600)) })
         )
         model.start()
         defer { model.shutdown() }
@@ -66,10 +67,16 @@ struct MetricsSnapshotTests {
             row.collectionState = state
             #expect(model.snapshot(for: host.id)?.state == state)
         }
-        row.hostKey = SSHHostKeyObservation(
+        let observation = SSHHostKeyObservation(
             hostname: host.host, port: 22, algorithm: .ed25519, fingerprint: "SHA256:test")
+        let authorization = Task {
+            await row.hostKeyAuthorization.authorize(
+                SSHHostKeyChallenge(hostID: host.id, observation: observation, expectedHostKeys: []))
+        }
+        for _ in 0..<100 where row.hostKey == nil { await Task.yield() }
         #expect(model.snapshot(for: host.id)?.state == .awaitingAuthentication)
-        row.hostKey = nil
+        row.hostKeyAuthorization.reject()
+        #expect(await authorization.value == .reject)
         model.suspend()
         #expect(model.snapshot(for: host.id)?.state == .sleeping)
         row.selection.enabled = false

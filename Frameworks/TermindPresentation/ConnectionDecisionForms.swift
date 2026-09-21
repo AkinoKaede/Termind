@@ -497,9 +497,11 @@ public struct SSHHostKeyConfirmationForm: View {
                 Text(observation.algorithm.displayName).font(.caption).foregroundStyle(.secondary)
                 Text(observation.fingerprint).font(.body.monospaced()).textSelection(.enabled)
                 if prompt.uriFingerprintMatched {
-                    Label("The legacy fingerprint in the link matches this host key.", systemImage: "link.badge.checkmark")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                    Label(
+                        "The legacy fingerprint in the link matches this host key.", systemImage: "link.badge.checkmark"
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
                 }
             }
             .padding(12)

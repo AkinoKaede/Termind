@@ -510,7 +510,7 @@ public final class PortForwardingController {
             if context.hostKeyRequestID == requestID { context.hostKeyRequestID = nil }
         }
         update(context, state: .awaitingTrust)
-        let decision = await context.connection.authorizeHostKey(challenge, using: hosts)
+        let decision = await context.connection.authorizeHostKey(challenge)
         guard isCurrent(context, attempt: attempt), !Task.isCancelled else { return .reject }
         update(context, state: .connecting)
         return decision
@@ -533,28 +533,13 @@ public final class PortForwardingController {
             fail(context, message: error.localizedDescription)
             return
         }
-        if error.isProxyAuthentication, let proxy = host.proxy {
+        if error.isProxyAuthentication, host.proxy != nil {
             let staged = context.proxySubmissions.removeValue(forKey: host.id)
-            let configured = (staged?.identityID ?? proxy.identityID).flatMap(hosts.identity)
-            let selected: Identity?
-            if let configured {
-                switch hosts.passwordAvailability(for: configured) {
-                case .available, .notConfigured: selected = configured
-                case .missing, .failed: selected = nil
-                }
-            } else {
-                selected = nil
-            }
             context.setPrompt(
-                SSHAuthenticationPrompt(
-                    host: Host(
-                        id: host.id, name: String(localized: "Proxy for \(host.name)"),
-                        host: proxy.hostname, port: proxy.port),
-                    selectedIdentityID: selected?.id,
-                    username: staged?.username ?? proxy.username,
+                SSHAuthenticationPromptResolver.proxy(
+                    for: host, using: hosts, submission: staged,
                     failureMessage: error.localizedDescription,
-                    mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity,
-                    target: .proxy(ownerHostID: host.id)))
+                    mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity))
             context.journey.waitForProxyAuthentication(at: host.id, failure: error.localizedDescription)
             update(context, state: .awaitingAuthentication)
             return
@@ -567,10 +552,11 @@ public final class PortForwardingController {
             && keyID.flatMap(hosts.key)?.requiresPassphraseEntry == true
             && staged?.passphrase == nil
         context.setPrompt(
-            SSHAuthenticationPrompt(
-                host: host, selectedIdentityID: identity?.id, username: staged?.username ?? identity?.username ?? "",
-                selectedKeyID: keyID, failureMessage: error.localizedDescription, requiresPassphrase: passphrase,
-                mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity))
+            SSHAuthenticationPromptResolver.host(
+                host, using: hosts, submission: staged,
+                failureMessage: error.localizedDescription,
+                mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity,
+                requiresPassphrase: passphrase))
         if error.isServerAuthenticationChallenge {
             context.journey.waitForAuthentication(at: host.id, failure: error.localizedDescription)
         } else if passphrase {

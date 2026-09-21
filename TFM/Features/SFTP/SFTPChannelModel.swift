@@ -176,8 +176,7 @@ final class SFTPChannelModel: Identifiable {
     private var transientHost: Host?
     private var usernameHint: String?
     private var connectionRoute: SSHConnectionRoute?
-    private var uriHostKeyFingerprint: SSHURIHostKeyFingerprint?
-    private var isExternalTemporaryConnection = false
+    private var connectionOrigin: RemoteConnectionOrigin = .library
     private var externalResourcePath: String?
     private var externalResourceMustBeDirectory = false
     var openExternalFile: ((RemoteFile) -> Void)?
@@ -220,14 +219,14 @@ final class SFTPChannelModel: Identifiable {
 
     func configureExternalConnection(
         host: Host, username: String?, route: SSHConnectionRoute,
-        fingerprint: SSHURIHostKeyFingerprint?, resourcePath: String?,
+        fingerprint: SSHHostKeyConstraint?, resourcePath: String?,
         mustBeDirectory: Bool, openFile: @escaping (RemoteFile) -> Void
     ) {
         transientHost = host
         usernameHint = username
         connectionRoute = route
-        uriHostKeyFingerprint = fingerprint
-        isExternalTemporaryConnection = true
+        connectionOrigin = .externalLink(
+            hostKeyConstraints: fingerprint.map { [host.id: $0] } ?? [:])
         externalResourcePath = resourcePath
         externalResourceMustBeDirectory = mustBeDirectory
         openExternalFile = openFile
@@ -423,11 +422,12 @@ final class SFTPChannelModel: Identifiable {
                                 proxySubmissions: attemptProxyAuthentications,
                                 temporaryHostKeys: temporaryHostKeys,
                                 trustPolicy: .allowChallenge)
-                        } ?? store.sshJumpConfigurations(
-                            for: host, submissions: attemptAuthentications,
-                            proxySubmissions: attemptProxyAuthentications,
-                            temporaryHostKeys: temporaryHostKeys,
-                            trustPolicy: .allowChallenge),
+                        }
+                            ?? store.sshJumpConfigurations(
+                                for: host, submissions: attemptAuthentications,
+                                proxySubmissions: attemptProxyAuthentications,
+                                temporaryHostKeys: temporaryHostKeys,
+                                trustPolicy: .allowChallenge),
                         charset: host.charset,
                         authenticationReference: SSHAuthenticationReference(
                             identityID: suppliedAuthentication.identityID,
@@ -452,20 +452,17 @@ final class SFTPChannelModel: Identifiable {
                 let client = try await coordinator.connectSFTP(
                     using: SSHConnectionRequest(
                         configuration: configuration,
-                        authorizeHostKey: { [weak self, weak store] challenge in
-                            guard let self, let store else { throw CancellationError() }
-                            return await self.connection.authorizeHostKey(
-                                challenge, using: store,
-                                uriFingerprint: self.uriHostKeyFingerprint,
-                                destinationHostID: self.hostID
-                            )
+                        authorizeHostKey: { [weak self] challenge in
+                            guard let self else { throw CancellationError() }
+                            return await self.connection.authorizeHostKey(challenge)
                         },
                         keyboardInteractive: { [weak self] challenge in
                             guard let self, await self.connectionAttemptID == attemptID else {
                                 throw CancellationError()
                             }
                             return try await self.connection.answerKeyboardInteractive(challenge)
-                        }
+                        },
+                        hostKeyConstraints: connectionOrigin.hostKeyConstraints
                     ),
                     progress: progressHandler(attemptID: attemptID),
                     connectionFailure: { [weak self] message in
@@ -1039,7 +1036,7 @@ final class SFTPChannelModel: Identifiable {
     }
 
     func recordOpenedFile(at path: String) {
-        if !isExternalTemporaryConnection {
+        if connectionOrigin.allowsPersistence {
             historyStore?.record(kind: .file, path: path, for: hostID)
         }
     }
@@ -1169,21 +1166,19 @@ final class SFTPChannelModel: Identifiable {
     ) {
         connection.pauseForUserInteraction()
         if !preserveSubmission { suppliedAuthentications[host.id] = nil }
-        let identity = store.identity(for: host)
         let submission = suppliedAuthentications[host.id]
-        let selectedKeyID = submission?.keyID ?? identity?.keyID
-        let username = submission?.username ?? identity?.username ?? ""
+        let selectedKeyID = submission?.keyID ?? store.identity(for: host)?.keyID
+        let username = submission?.username ?? store.identity(for: host)?.username ?? ""
         let needsPassphrase =
             requiresPassphrase
             ?? (!username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && selectedKeyID.flatMap { store.key($0) }?.requiresPassphraseEntry == true)
-        pendingAuthentication = SSHAuthenticationPrompt(
-            host: host, selectedIdentityID: submission?.identityID ?? identity?.id,
-            username: username,
+        pendingAuthentication = SSHAuthenticationPromptResolver.host(
+            host, using: store, submission: submission, username: username,
             selectedKeyID: selectedKeyID,
             failureMessage: failure,
-            requiresPassphrase: needsPassphrase,
-            mode: mode, allowsSaving: !isExternalTemporaryConnection
+            mode: mode, requiresPassphrase: needsPassphrase,
+            allowsSaving: connectionOrigin.allowsPersistence
         )
         status = .disconnected
         switch mode {
@@ -1202,27 +1197,13 @@ final class SFTPChannelModel: Identifiable {
         host: Host, store: any RemoteSessionHostStore, failure: String? = nil,
         mode: SSHAuthenticationPrompt.Mode = .localIdentity
     ) {
-        guard let proxy = host.proxy else { return }
+        guard host.proxy != nil else { return }
         connection.pauseForUserInteraction()
         let staged = suppliedProxyAuthentications.removeValue(forKey: host.id)
-        let configuredIdentity = (staged?.identityID ?? proxy.identityID).flatMap(store.identity)
-        let selectedIdentity: Identity?
-        if let configuredIdentity {
-            switch store.passwordAvailability(for: configuredIdentity) {
-            case .available, .notConfigured: selectedIdentity = configuredIdentity
-            case .missing, .failed: selectedIdentity = nil
-            }
-        } else {
-            selectedIdentity = nil
-        }
-        pendingAuthentication = SSHAuthenticationPrompt(
-            host: Host(
-                id: host.id, name: String(localized: "Proxy for \(host.name)"),
-                host: proxy.hostname, port: proxy.port),
-            selectedIdentityID: selectedIdentity?.id,
-            username: staged?.username ?? proxy.username, failureMessage: failure,
-            mode: mode, target: .proxy(ownerHostID: host.id),
-            allowsSaving: !isExternalTemporaryConnection)
+        pendingAuthentication = SSHAuthenticationPromptResolver.proxy(
+            for: host, using: store, submission: staged,
+            failureMessage: failure, mode: mode,
+            allowsSaving: connectionOrigin.allowsPersistence)
         status = .disconnected
         connectionJourney.waitForProxyAuthentication(at: host.id, failure: failure)
     }
