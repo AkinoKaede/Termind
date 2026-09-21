@@ -153,161 +153,100 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
 
 ### 2026-09-19 — unified SSH/SFTP channel scheduling (complete)
 
-- **Evidence:** `SSHExecSession`, `SFTPClient`, `SSHSessionActor`, `SSHRoutedSocket` and `SSHForwardingSession` each own a
-  libssh2 session/queue/pump. Agent pooling separates exec/SFTP and `sftp_copy` adds two dedicated connections; user
-  transfers fall back from an additional connection to serialized use of the browser client. These owners duplicate
-  connection teardown/keepalive/EAGAIN rules and prevent same-transport Channel concurrency outside forwarding.
-- **Action:** extract one authenticated transport/Channel owner and two topology policies: Channel-only and
-  connection-preferred with Channel fallback. Agent SSH uses Channel-only; Agent SFTP (including `sftp_copy`) and user
-  transfers use connection-preferred; Port Forwarding uses Channel-only. Single-Channel consumers reuse the transport
-  core without entering the scheduler. Feature domains retain independent authentication/recovery/lifetimes.
-- **Expected reduction:** remove the dedicated Agent-copy lease path and duplicated exec/SFTP/PTY/forwarding pump and
-  teardown code. Record the measured production-line change and focused/full verification only after the migration is
-  complete; no reduction or performance claim is made while this item is in progress.
-- **Result:** added explicit Channel-only/connection-preferred policies, multiplexed Agent exec, pooled Agent SFTP
-  (including copy and MCP streams), sibling-Channel fallback, lease-based limits and a single-Channel Adapter for Metrics/
-  user SSH. Removed the old exec worker, dedicated-copy leases, whole-session background handoff and blocking key export.
-  This capability is additive: tracked production changed +987/−931 lines and three new core files add 628 lines, net
-  +684; no reduction claim.
-- **Verification:** TFM and generic iOS Simulator builds passed; 99 scheduling/auth/forwarding focused tests, 53 SFTP/
-  PTY/key tests, 13 pool/Adapter tests and the 20-test AgentRuntime suite passed. Chinese localization and changed-file
-  strict format checks passed. The full macOS run reached 1,446 TFM and 363 Framework tests but retained the unrelated,
-  reproducible `LaunchFileLogServiceTests.loggerDropsUnapprovedSensitiveValues` failure; one concurrent AgentRuntime
-  cancellation failure passed immediately when its 20-test suite was rerun. Recursive format also retains the unrelated
-  existing `LoggingFilesSettings.swift:110` finding.
+- **Change:** consolidated five libssh2 session/queue/pump owners and duplicated teardown/keepalive/EAGAIN rules. Added
+  Channel-only (Agent exec/forwarding), connection-preferred with sibling-Channel fallback (Agent/user SFTP, copy/MCP streams),
+  lease limits and a single-Channel Metrics/user SSH Adapter outside scheduling. Feature auth/recovery/lifetimes stay separate.
+  Removed exec worker, dedicated-copy leases, whole-session background handoff and blocking key export. Planned deduplication
+  became additive capability: +987/−931 tracked production lines plus 628 in three new core files, net +684; no reduction claim.
+- **Verification:** TFM/generic iOS Simulator builds; 99 scheduling/auth/forwarding, 53 SFTP/PTY/key, 13 pool/Adapter and
+  20 AgentRuntime tests; Chinese localization and changed-file strict format passed. Full macOS: 1,446 TFM/363 Framework tests,
+  with unrelated reproducible `LaunchFileLogServiceTests.loggerDropsUnapprovedSensitiveValues` failure. Concurrent AgentRuntime
+  cancellation failure passed on immediate 20-test rerun. Recursive format retained `LoggingFilesSettings.swift:110`.
 
 ### 2026-09-19 — fair SFTP admission and selectable topology (complete)
 
-- **Evidence:** the app transfer coordinator admitted the first eligible queued row, so one Workspace could fill every
-  Host slot, while Agent SFTP leases bypassed the 15/5 limits entirely. User and Agent pools also fixed their topology
-  at connection-preferred even when a small transfer would not repay another SSH handshake. Internal SFTP drag providers
-  advertised both a private remote payload and a Finder file promise; reading both representations could start a redundant
-  download beside the direct remote copy.
-- **Action:** add one process scheduler shared by Workspace/terminal/edit and Agent data work, rotating Hosts and then stable
-  Workspace/Agent-run/batch sources. Resolve Smart (64 MB decimal), Channels Only and Connections Preferred only after admission;
-  retain feature-owned connection lifetimes and connection-to-Channel fallback. Extend the existing synced SFTP preference
-  record compatibly and consume the private drag payload without materializing its local-file promise.
-- **Result:** new/missing settings default to Smart and 30/10 while saved values remain unchanged. Logical file operations
-  consume identical capacity whether backed by a Channel or connection; cross-Host copy counts once globally and once per
-  endpoint. Agent control operations remain outside data capacity, `sftp_copy` uses one composite permit, and in-app remote
-  copy exposes one `.copy` row per regular file without local staging. This is additive scheduling work, not a reduction claim.
-- **Verification:** macOS and generic iOS Simulator builds passed. Focused suites passed for scheduler/session topology,
-  settings persistence/sync, Agent authentication/MCP, Agent/Workspace copy and native drag payload selection. Chinese
-  localization and diff checks passed; final full-suite/format status is recorded in the task handoff.
+- **Change:** replaced first-eligible Workspace admission and Agent bypass of 15/5 limits with one process data scheduler for
+  Workspace/terminal/edit/Agent, rotating Hosts then stable Workspace/Agent-run/batch sources. Admission precedes Smart
+  (64 MB decimal)/Channels Only/Connections Preferred selection; feature lifetimes and connection-to-Channel fallback remain.
+  Compatible synced preferences default new/missing settings to Smart and 30/10; saved values stay unchanged. Logical operations
+  cost the same for Channels/connections; cross-Host copy counts once globally/per endpoint, `sftp_copy` uses one composite permit,
+  and Agent control work is exempt. Private remote drag payloads no longer materialize Finder promises/redundant downloads;
+  remote copy has one `.copy` row/regular file, no local staging. Additive; no reduction claim.
+- **Verification:** macOS/generic iOS Simulator builds; focused scheduler/topology, settings persistence/sync, Agent auth/MCP,
+  Agent/Workspace copy and native drag-selection suites; Chinese localization and diff checks passed. Final full-suite/format
+  status remains in the task handoff, not asserted here.
 
 ### 2026-09-19 — shared Agent SSH/SFTP primary transport (complete)
 
-- **Evidence:** Agent exec and the primary Agent SFTP client still used separate authenticated transports even though the
-  non-blocking connection owner could host both Channel types. A first exec followed by SFTP therefore performed two handshakes,
-  while connection-preferred SFTP concurrency correctly needed its independent auxiliary transports.
-- **Action:** rename the exec-only session abstraction to `SSHMultiplexedSession`, expose SFTP Channel creation on it, and key the
-  Agent pool's primary entry/in-flight open by Host only. Keep SFTP admission, Smart thresholds, auxiliary connections and silent
-  Channel fallback unchanged.
-- **Result:** exec and primary SFTP now share one authentication and physical connection in either call order. A reusable full
-  non-blocking SFTP Channel client serves PTY and Agent owners; only scheduler-selected auxiliary SFTP work opens more transports.
-  Host retirement, route changes and fatal primary failures close the shared lifetime atomically, without replaying operations.
-- **Verification:** focused pool/authentication/copy tests and macOS build passed during implementation; final cross-platform,
-  localization and format status is recorded in the task handoff.
+- **Change:** replaced separate exec/primary-SFTP handshakes with Host-keyed primary entries/in-flight opens on
+  `SSHMultiplexedSession`, sharing one authentication/connection in either call order. A non-blocking SFTP Channel client serves
+  PTY/Agent owners. Admission, Smart thresholds, scheduler-selected auxiliary connections and silent Channel fallback remain.
+  Host retirement, route changes and fatal primary failures close the shared lifetime atomically; no operation replay.
+- **Verification:** focused pool/auth/copy tests and macOS build passed. Final cross-platform/localization/format status remains
+  in the task handoff, not asserted here.
 
 ### 2026-09-20 — one SFTP Channel implementation (complete)
 
-- **Evidence:** the standalone `SFTPWorker` and multiplexed `SSHSharedSFTPClient` separately implemented directory, atomic write,
-  resume, edit, streaming and copy semantics, while the Agent and terminal workers duplicated SFTP Channel ownership and EAGAIN
-  loops. The new type name also described reuse (`Shared`) rather than responsibility.
-- **Action:** keep `SFTPClient` as the public connection facade and `SSHMultiplexedSession` owner, move all file operations to
-  `SFTPChannel`, and share `SSHMultiplexedSFTPChannelOwner` across standalone, Agent and terminal transports. Rename
-  Agent pool APIs from exec-only terms to `session`, `connection` and `sftpClient`.
-- **Result:** removed the second SFTP operation engine and both feature-local Channel owners. One implementation now preserves
-  atomic rename, partial-file verification, edit permissions/version capture, streamed download validation and same-transport copy
-  for every entry point. Tracked production plus the two new files changed +1,523/−2,695 lines (net −1,172).
-- **Verification:** macOS and iOS builds, 87 focused pool/auth/edit/resume/rename/copy tests, 14 opt-in loopback SSH/SFTP wire
-  tests and all 363 Framework tests passed. The 1,465-test TFM run retained two unrelated concurrent timing failures in
-  `AgentRuntimeTests`/`MCPUploadTests`; both passed together on immediate focused rerun. Changed-file strict formatting and Chinese
-  localization checks passed; recursive formatting retains the pre-existing `LoggingFilesSettings.swift:110` finding.
+- **Change:** replaced `SFTPWorker`/`SSHSharedSFTPClient` operation engines and Agent/terminal Channel/EAGAIN owners with
+  `SFTPChannel` and `SSHMultiplexedSFTPChannelOwner` for standalone/Agent/terminal use. `SFTPClient` stays the connection facade/
+  `SSHMultiplexedSession` owner; pool APIs become `session`, `connection`, `sftpClient`. Preserved directory/resume, atomic rename,
+  partial-file checks, edit permissions/version capture, streamed download validation and same-transport copy.
+  Production including two new files: +1,523/−2,695 lines, net −1,172.
+- **Verification:** macOS/iOS builds, 87 focused pool/auth/edit/resume/rename/copy, 14 opt-in loopback wire and 363 Framework tests
+  passed. The 1,465-test TFM run had two unrelated concurrent `AgentRuntimeTests`/`MCPUploadTests` timing failures; both passed
+  together on immediate focused rerun. Changed-file strict format/Chinese localization passed; recursive format retained
+  `LoggingFilesSettings.swift:110`.
 
 ### 2026-09-20 — explicit SSH connection and Channel vocabulary (complete)
 
-- **Evidence:** `SSHMultiplexedSession` represented an authenticated reusable connection, Agent connection-pool entries were
-  named `session`, and comments called the combined routed socket/libssh2 state a transport. Conversely, SFTP subsystem
-  Channels and authenticated connection owners shared the word session. This made byte transport, libssh2's historical
-  `LIBSSH2_SESSION` handle name, authenticated connection ownership and `LIBSSH2_CHANNEL` values indistinguishable in APIs.
-- **Action:** reserve transport for the routed byte stream, introduce `SSHAuthenticatedConnection` as the owner of that stream
-  plus the libssh2 connection state, expose multiplexing through `SSHConnection`, and use libssh2-aligned PTY/exec/SFTP Channel
-  names. Split the SFTP connection-opening facade from `SFTPChannelProtocol`; keep forwarding TCP Channels as Channels.
-- **Result:** connection pooling, retry errors, forwarding owners, Agent authentication contexts, Channel budgets, SFTP sibling
-  topology and file names now reflect the protocol boundary. `SFTPConcurrencyStrategy.channelsOnly` retains its existing
-  `"channels_only"` raw value, so synced settings need no migration.
-- **Verification:** TFM and generic iOS Simulator builds passed. Sixty-six focused connection/Channel/SFTP tests passed;
-  changed-file strict formatting and Chinese localization checks passed.
+- **Change:** disambiguated `SSHMultiplexedSession`/pool `session`/transport terminology: transport means routed bytes;
+  `SSHAuthenticatedConnection` owns that stream and libssh2 connection state (`LIBSSH2_SESSION`); `SSHConnection` exposes
+  multiplexing. PTY/exec/SFTP/forwarding Channels align with `LIBSSH2_CHANNEL`; the SFTP opening facade is separate from
+  `SFTPChannelProtocol`. Pool/retry/auth/budget/topology APIs and filenames follow these boundaries.
+  `SFTPConcurrencyStrategy.channelsOnly` keeps `"channels_only"`; no synced-settings migration.
+- **Verification:** TFM/generic iOS Simulator builds, 66 focused connection/Channel/SFTP tests, changed-file strict format and
+  Chinese localization passed.
 
 ### 2026-09-20 — one-shot SSH secret ownership and connection attempts (complete)
 
-- **Evidence:** runtime credentials were represented by copy-on-write `Data` after leaving Keychain, so appending a NUL
-  could abandon an uncleared allocation. Temporary form answers were copied as `String` values into attempt dictionaries;
-  five feature owners repeated password/passphrase reentry routing. Authorized-Key export resolved every selected Host's
-  credentials eagerly and reused one one-shot configuration across several physical connections.
-- **Action:** give `SSHSecret` one explicitly owned allocation; move submitted plaintext into that owner before an attempt;
-  centralize route reentry selection; narrow connection-time secret resolution; query Keychain existence without reading
-  values; fail closed on malformed legacy private-Key envelopes; authenticate once per Host for multi-Key export.
-- **Result:** source `Data`, proxy frames and one-shot allocations are cleared through one `SecretMemory` boundary. Retry
-  state retains only selection metadata and reentry flags, while attempt copies share invalidating secret owners. The
-  session host port no longer exposes its legacy plaintext credential reads. Export preparations contain references only,
-  resolve immediately before work and open one connection with sequential exec Channels for all selected Keys. This is a
-  safety/ownership refactor; no production-line reduction is claimed.
-- **Verification:** macOS and generic iOS Simulator builds passed. Fifty-three focused authentication, Agent and
-  authorized-Key tests passed; all 381 Framework tests passed. The default macOS run finished with 1,792 passed, 64
-  opt-in skips and no failures. Changed-file strict formatting, diff checks and Chinese localization passed.
+- **Change:** replaced copy-on-write `Data`/NUL uncleared-allocation risks and temporary plaintext attempt dictionaries with
+  one owned `SSHSecret` allocation before each attempt. `SecretMemory` clears source Data/proxy frames/one-shot allocations;
+  attempt copies share invalidating owners, retries retain only selection/reentry metadata. Centralized five owners' reentry
+  routing, removed session-host plaintext reads, narrowed connection-time resolution, used existence-only Keychain queries and
+  rejected malformed legacy private-Key envelopes. Multi-Key export keeps references until work, then authenticates once/Host
+  with sequential exec Channels instead of eagerly resolving secrets/reusing one-shot configs. Safety work; no reduction claim.
+- **Verification:** macOS/generic iOS Simulator builds, 53 focused auth/Agent/authorized-Key and 381 Framework tests passed.
+  Default macOS: 1,792 passed, 64 opt-in skips, no failures. Changed-file strict format, diff and Chinese localization passed.
 
 ### 2026-09-21 — low-value test scan
 
-- **Evidence:** the macOS and iOS `ProviderHTTPIntegrationTests.swift` files were byte-for-byte identical, imported only
-  `AgentKit` and `TermindApplication`, and exercised no platform adapter. `memoryFollowsMCPInAISettings` only repeated the
-  declaration order of a four-case `CaseIterable` enum. `connectionsCategoryUsesTheConnectSymbol` only repeated one
-  direct `switch` return. The scan also reviewed the smallest suites and literal assertions; tests protecting escaping,
-  persistence compatibility, migrations, secrets, runtime library linkage and user-visible behavior remain.
-- **Action:** retain one HTTP integration smoke test in the macOS suite and delete the identical iOS copy; remove the two
-  declaration snapshots. No production code or test behavior is replaced.
-- **Result:** removed one duplicate file and two low-value tests, reducing test code by 40 lines.
-- **Verification:** the focused macOS suite passed two tests with its opt-in rendering case skipped by default; the focused
-  iOS suite passed all 23 tests. Strict formatting for changed Swift files, duplicate-file scan, diff checks and Chinese
-  localization validation passed.
+- **Change:** deleted the byte-identical iOS `ProviderHTTPIntegrationTests.swift` (AgentKit/TermindApplication only, no platform
+  adapter), retaining macOS smoke coverage. Removed `memoryFollowsMCPInAISettings` enum-order and
+  `connectionsCategoryUsesTheConnectSymbol` switch-literal snapshots: one file/two tests, −40 test lines. No production changes;
+  escaping/persistence/migration/secret/runtime-linkage/behavior coverage retained.
+- **Verification:** focused macOS: two passed, opt-in rendering skipped; iOS: 23 passed. Changed-Swift strict format,
+  duplicate-file scan, diff and Chinese localization passed.
 
 ### 2026-09-21 — shared Host Custom Identity editing (complete)
 
-- **Evidence:** `HostEditorView` and `MobileHostEditor` independently retain and load the same Custom SSH/Proxy Identity
-  fields, decide password editability, validate the same authentication combinations and perform the same Identity-before-
-  Host save sequence. Host deletion already filters projected and persistent identities by `ownerHostID`, but its tests cover
-  only one SSH Identity through the projection helper rather than both purposes through app and outbox entry points.
-- **Action:** introduce one Application-owned, memory-only Custom Identity draft for both native Host editors; retain their
-  platform controls, routes and navigation. Add end-to-end deletion coverage for SSH and proxy Custom Identities, their
-  passwords and unrelated Identity retention, and remove the inaccurate `legacy` prefix from the strict envelope test name.
-- **Expected reduction:** delete the duplicated Host-editor loading, validation and saving helpers. Record the measured
-  production-line change and focused/full verification after implementation; no reduction claim is made while in progress.
-- **Result:** one Application-owned `HostCustomIdentityDraft` now serves both native editors without persisting or describing
-  plaintext. It centralizes selection, availability, validation and Identity-before-Host saves, including metadata edits with
-  unavailable proxy passwords. Host deletion tests now cover both Custom purposes, Keychain failure reporting, app entry points
-  and selective SwiftData finalization. Production changed +204/−220 lines (net −16); no schema or localization changed.
-- **Verification:** macOS focused Identity/draft/outbox/envelope suites and the 25-test mobile Vault suite passed; TFM and generic
-  iOS Simulator builds passed. The default macOS run recorded 1,831 passed, 64 opt-in skips and two unrelated concurrent Agent
-  timing failures; both complete Agent suites passed immediately on focused rerun (35/35). Recursive strict formatting, diff
-  checks and Chinese localization checks passed.
+- **Change:** replaced `HostEditorView`/`MobileHostEditor` Custom SSH/Proxy Identity loading/editability/validation/save helpers
+  with Application-owned, memory-only `HostCustomIdentityDraft`; no plaintext persistence/descriptions. Preserved native
+  controls/routes/navigation, Identity-before-Host saves and metadata edits with unavailable proxy passwords. Expanded deletion
+  coverage from one projected SSH Identity to both purposes/passwords, `ownerHostID` isolation/unrelated retention, Keychain
+  failures, app/outbox entry points and selective SwiftData finalization; removed misleading `legacy` envelope-test prefix.
+  Production +204/−220 lines, net −16; no schema/localization changes.
+- **Verification:** macOS Identity/draft/outbox/envelope suites, 25 mobile Vault tests and TFM/generic iOS Simulator builds passed.
+  Default macOS: 1,831 passed, 64 opt-in skips, two unrelated concurrent Agent timing failures; both complete Agent suites passed
+  on immediate rerun (35/35). Recursive strict format, diff and Chinese localization passed.
 
 ### 2026-09-21 — shared desktop terminal surface (complete)
 
-- **Evidence:** `SSHSessionModel`, `TelnetSessionModel` and `SerialSessionModel` independently construct the same Ghostty
-  in-memory backend, `TerminalViewState`, resize throttle and persistent native view owner. They also repeat terminal focus/find,
-  dimmed failure output, appearance updates and Charset Error presentation even though those behaviors are transport-neutral.
-- **Action:** introduce one TFM-owned terminal surface/controller and one shared SwiftUI chrome modifier. Keep SSH authentication,
-  Shell Integration and SFTP uploads, Telnet IAC/NVT and NAWS, and Serial charset/input/local-echo behavior in their existing
-  session owners; preserve each model and native terminal lifetime.
-- **Expected reduction:** remove the three construction paths and duplicated appearance/error chrome, with an estimated net
-  reduction of 40–80 production lines. Record the measured change and verification after implementation.
-- **Result:** `PersistentTerminalViewOwner` now provides the single Ghostty backend/state/native-view ownership path used by SSH,
-  Telnet and Serial. A shared desktop chrome applies appearance and Charset Error presentation, while Telnet and Serial also reuse one
-  simple Journey/focus/font lifecycle. SSH keeps its richer authentication/upload overlays, and every transport keeps its byte
-  protocol and connection lifetime. Production changed +285/−296 lines including the new file (net −11).
-- **Verification:** the TFM build passed. The 44-test terminal-focused run had no failures and two opt-in window skips; Chinese
-  localization and changed-file strict formatting passed. The default macOS run recorded 1,858 passed, 65 opt-in skips and three
-  unrelated Agent failures; the two timing failures passed in the immediate 41-test suite rerun, while the existing deterministic
-  `list_hosts` summary expectation remained. Recursive formatting retains the unrelated existing
-  `PortForwardingView.swift:197` finding.
+- **Change:** consolidated `SSHSessionModel`/`TelnetSessionModel`/`SerialSessionModel` Ghostty backend, `TerminalViewState`,
+  resize/native-view construction and neutral focus/find/failure/appearance/error presentation under TFM-owned
+  `PersistentTerminalViewOwner` and shared desktop chrome. Telnet/Serial share simple Journey/focus/font lifecycle; SSH retains
+  auth/Shell Integration/SFTP uploads/overlays, Telnet IAC/NVT/NAWS and Serial charset/input/local echo stay local. Model/native
+  terminal/connection lifetimes remain separate. Estimated −40–80 production lines; actual +285/−296 including new file, net −11.
+- **Verification:** TFM build, Chinese localization and changed-file strict format passed; 44-test focused run: no failures,
+  two opt-in window skips. Default macOS: 1,858 passed, 65 opt-in skips, three unrelated Agent failures. Two timing failures passed
+  on immediate 41-test rerun; deterministic `list_hosts` summary expectation remained. Recursive format retained
+  `PortForwardingView.swift:197`.
