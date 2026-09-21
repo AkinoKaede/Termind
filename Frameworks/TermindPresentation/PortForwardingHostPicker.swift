@@ -17,7 +17,7 @@ public struct PortForwardingHostPicker: View {
             Picker("Host", selection: selection) {
                 Text("Select Host").tag(UUID?.none)
                 ForEach(hosts) { host in
-                    Text("\(host.name) · \(host.displayAddress)").tag(Optional(host.id))
+                    Text(PortForwardingHostPickerPresentation.title(for: host)).tag(Optional(host.id))
                 }
             }
             if hosts.isEmpty {
@@ -31,4 +31,8 @@ public struct PortForwardingHostPicker: View {
             get: { hosts.contains { $0.id == rule.hostID } ? rule.hostID : nil },
             set: { rule.hostID = $0 ?? UUID() })
     }
+}
+
+nonisolated enum PortForwardingHostPickerPresentation {
+    static func title(for host: Host) -> String { host.name }
 }

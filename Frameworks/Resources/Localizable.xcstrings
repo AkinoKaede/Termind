@@ -8123,6 +8123,46 @@
         }
       }
     },
+    "Destination Host (Port Forwarding)" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Destination Host"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目标主机"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標主機"
+          }
+        }
+      }
+    },
+    "Destination Port" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目标端口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標連接埠"
+          }
+        }
+      }
+    },
     "Destination host" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14122,6 +14162,23 @@
         }
       }
     },
+    "Local Port" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本地端口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "本機連接埠"
+          }
+        }
+      }
+    },
     "Location" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -20043,6 +20100,23 @@
         }
       }
     },
+    "Remote Port" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "远程端口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遠端連接埠"
+          }
+        }
+      }
+    },
     "Remote path" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -23214,19 +23288,36 @@
         }
       }
     },
-    "SOCKS5 on This Device → SSH Host → Requested Target" : {
+    "SOCKS5 on This Device → SSH Host → Requested Destination" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此设备的SOCKS5→SSH主机→请求的目标"
+            "value" : "此设备的SOCKS5→SSH主机→请求的目的地"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此裝置的SOCKS5→SSH主機→請求的目標"
+            "value" : "此裝置的SOCKS5→SSH主機→請求的目的地"
+          }
+        }
+      }
+    },
+    "SOCKS5 on This Mac → SSH Host → Requested Destination" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台Mac上的SOCKS5→SSH主机→请求的目的地"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這台Mac上的SOCKS5→SSH主機→請求的目的地"
           }
         }
       }
@@ -23563,19 +23654,36 @@
         }
       }
     },
-    "SSH Host → This Device → Target" : {
+    "SSH Host → This Device → Destination" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SSH主机→此设备→目标"
+            "value" : "SSH主机→此设备→目的地"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "SSH主機→此裝置→目標"
+            "value" : "SSH主機→此裝置→目的地"
+          }
+        }
+      }
+    },
+    "SSH Host → This Mac → Destination" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH主机→这台Mac→目的地"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SSH主機→這台Mac→目的地"
           }
         }
       }
@@ -24520,40 +24628,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "撤回並編輯"
-          }
-        }
-      }
-    },
-    "Target Host" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "目标主机"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "目標主機"
-          }
-        }
-      }
-    },
-    "Target Port" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "目标端口"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "目標連接埠"
           }
         }
       }
@@ -27075,19 +27149,19 @@
         }
       }
     },
-    "This Device → SSH Host → Target" : {
+    "This Device → SSH Host → Destination" : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此设备→SSH主机→目标"
+            "value" : "此设备→SSH主机→目的地"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "此裝置→SSH主機→目標"
+            "value" : "此裝置→SSH主機→目的地"
           }
         }
       }
@@ -27251,6 +27325,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這台Mac"
+          }
+        }
+      }
+    },
+    "This Mac → SSH Host → Destination" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这台Mac→SSH主机→目的地"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這台Mac→SSH主機→目的地"
           }
         }
       }

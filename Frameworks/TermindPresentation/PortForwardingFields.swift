@@ -36,31 +36,35 @@ public struct PortForwardingFields: View {
                 }
             #endif
             PortForwardingDirectionPicker(kind: $rule.kind)
-            Text(directionDescription).font(.caption).foregroundStyle(.secondary)
+            Text(LocalizedStringKey(PortForwardingFieldPresentation.directionDescription(for: rule.kind)))
+                .font(.caption).foregroundStyle(.secondary)
             LabeledContent("Bind Address") {
                 TextField("Bind Address", text: $rule.bindHost.singleLineText, axis: .horizontal).singleLinePaste()
                     .lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)
             }
-            LabeledContent("Bind Port") {
-                TextField("Bind Port", value: $rule.bindPort, format: .number.grouping(.never)).lineLimit(1)
+            let portLabel = LocalizedStringKey(PortForwardingFieldPresentation.portLabel(for: rule.kind))
+            LabeledContent(portLabel) {
+                TextField(portLabel, value: $rule.bindPort, format: .number.grouping(.never)).lineLimit(1)
                     .labelsHidden()
                     .multilineTextAlignment(.trailing)
                     #if os(iOS)
                         .keyboardType(.numberPad)
                     #endif
             }
-            if rule.kind != .dynamic {
-                LabeledContent("Target Host") {
+            if PortForwardingFieldPresentation.showsDestination(for: rule.kind) {
+                let destinationHostLabel = LocalizedStringKey("Destination Host (Port Forwarding)")
+                LabeledContent(destinationHostLabel) {
                     TextField(
-                        "Target Host",
+                        destinationHostLabel,
                         text: Binding(get: { rule.targetHost ?? "localhost" }, set: { rule.targetHost = $0 })
                             .singleLineText, axis: .horizontal
                     ).singleLinePaste().lineLimit(1).labelsHidden().multilineTextAlignment(.trailing)
                 }
-                LabeledContent("Target Port") {
+                LabeledContent("Destination Port") {
                     TextField(
-                        "Target Port", value: Binding(get: { rule.targetPort ?? 80 }, set: { rule.targetPort = $0 }),
+                        "Destination Port",
+                        value: Binding(get: { rule.targetPort ?? 80 }, set: { rule.targetPort = $0 }),
                         format: .number.grouping(.never)
                     ).lineLimit(1).labelsHidden().multilineTextAlignment(.trailing)
                         #if os(iOS)
@@ -74,14 +78,30 @@ public struct PortForwardingFields: View {
             .autocorrectionDisabled()
         #endif
     }
-    private var directionDescription: String {
-        switch rule.kind {
-        case .local: String(localized: "This Device → SSH Host → Target")
-        case .remote: String(localized: "SSH Host → This Device → Target")
-        case .dynamic: String(localized: "SOCKS5 on This Device → SSH Host → Requested Target")
-        }
+}
+
+nonisolated enum PortForwardingFieldPresentation {
+    static func portLabel(for kind: PortForwardingRule.Kind) -> String {
+        kind == .remote ? "Remote Port" : "Local Port"
     }
 
+    static func directionDescription(for kind: PortForwardingRule.Kind) -> String {
+        #if os(macOS)
+            switch kind {
+            case .local: "This Mac → SSH Host → Destination"
+            case .remote: "SSH Host → This Mac → Destination"
+            case .dynamic: "SOCKS5 on This Mac → SSH Host → Requested Destination"
+            }
+        #else
+            switch kind {
+            case .local: "This Device → SSH Host → Destination"
+            case .remote: "SSH Host → This Device → Destination"
+            case .dynamic: "SOCKS5 on This Device → SSH Host → Requested Destination"
+            }
+        #endif
+    }
+
+    static func showsDestination(for kind: PortForwardingRule.Kind) -> Bool { kind != .dynamic }
 }
 
 private struct PortForwardingDirectionPicker: View {
