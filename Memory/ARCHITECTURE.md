@@ -103,7 +103,9 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   leaving retry state; retry/session/Agent/Metrics/transfer state retains only reentry flags and non-secret Identity/Key
   provenance. Saved material is reread from Keychain for another physical connection; temporary Passwords and every
   Passphrase must be entered again. UI authentication fields clear synchronously on submission. Availability checks query
-  Keychain metadata without reading secret data; the legacy software-Key JSON envelope is parsed strictly and fails closed.
+  Keychain metadata without reading secret data. New software Keys use a magic- and version-prefixed UTF-8 envelope that
+  moves its payload directly into one-shot ownership; the legacy JSON envelope remains read-only, is parsed strictly and
+  fails closed.
 - Saved iCloud Passwords and software Keys cannot be moved to device-only storage: editors disable that destination and
   application writes reject it before touching Keychain. New credentials may start device-only, and device-only credentials
   may move to iCloud.
