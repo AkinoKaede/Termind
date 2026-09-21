@@ -1,14 +1,26 @@
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import TermindPresentation
 import UIKit
 
+nonisolated enum MobileCommandHistorySnippetFactory {
+    static func make(name: String, command: String) -> Snippet? {
+        let name = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !name.isEmpty else { return nil }
+        return Snippet(title: name, body: command)
+    }
+}
+
 struct MobileCommandHistoryView: View {
+    let library: HostLibraryModel
     let workspace: MobileWorkspace
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @State private var query = ""
     @State private var clearing = false
+    @State private var snippetEntry: CommandHistoryEntry?
+    @State private var snippetName = ""
 
     private var entries: [CommandHistoryEntry] {
         _ = workspace.commandHistory.revision
@@ -38,6 +50,10 @@ struct MobileCommandHistoryView: View {
                             }
                             Button("Insert", systemImage: "text.insert") { insert(entry) }
                                 .disabled(!workspace.connected)
+                            Button("Save as Snippet", systemImage: "curlybraces") {
+                                beginSavingSnippet(entry)
+                            }
+                            Divider()
                             Button("Delete", systemImage: "trash", role: .destructive) {
                                 workspace.commandHistory.delete(entry.id)
                             }
@@ -76,6 +92,24 @@ struct MobileCommandHistoryView: View {
             .confirmationDialog("Clear History?", isPresented: $clearing, titleVisibility: .visible) {
                 Button("Clear", role: .destructive) { workspace.commandHistory.clear(for: workspace.descriptor.hostID) }
             }
+            .alert(
+                "Save as Snippet",
+                isPresented: Binding(
+                    get: { snippetEntry != nil },
+                    set: { if !$0 { cancelSavingSnippet() } }
+                )
+            ) {
+                TextField("Snippet Name", text: $snippetName.singleLineText, axis: .horizontal)
+                    .singleLinePaste()
+                    .lineLimit(1)
+                Button("Cancel", role: .cancel, action: cancelSavingSnippet)
+                Button("Save", action: saveSnippet)
+                    .disabled(snippetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            } message: {
+                if let snippetEntry {
+                    Text(CommandHistoryPresentation.title(for: snippetEntry))
+                }
+            }
         }.mobileSheetPresentation(compact: true)
             .onDisappear { workspace.terminal.requestFocus() }
     }
@@ -103,5 +137,25 @@ struct MobileCommandHistoryView: View {
         guard workspace.connected else { return }
         dismiss()
         workspace.insertTerminalText(entry.command)
+    }
+
+    private func beginSavingSnippet(_ entry: CommandHistoryEntry) {
+        snippetName = ""
+        snippetEntry = entry
+    }
+
+    private func cancelSavingSnippet() {
+        snippetEntry = nil
+        snippetName = ""
+    }
+
+    private func saveSnippet() {
+        guard let snippetEntry,
+            let snippet = MobileCommandHistorySnippetFactory.make(
+                name: snippetName, command: snippetEntry.command
+            )
+        else { return }
+        library.upsert(snippet)
+        cancelSavingSnippet()
     }
 }

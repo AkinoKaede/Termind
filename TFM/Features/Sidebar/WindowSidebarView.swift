@@ -454,10 +454,93 @@ final class SidebarListContainer: NSView {
     }
 }
 
+@MainActor
+enum TerminalSidebarMenuBuilder {
+    static func snippets(
+        snippet: Snippet?, canInsert: Bool, locale: Locale,
+        copy: @escaping (Snippet) -> Void,
+        insert: @escaping (Snippet) -> Void
+    ) -> [NativeMenuEntry] {
+        [
+            NativeMenuEntry(
+                title: localized("Copy", locale: locale),
+                symbol: MenuSymbol.copy,
+                isEnabled: snippet != nil
+            ) {
+                if let snippet { copy(snippet) }
+            },
+            NativeMenuEntry(
+                title: localized("Insert", locale: locale),
+                symbol: MenuSymbol.insert,
+                isEnabled: snippet != nil && canInsert
+            ) {
+                if let snippet { insert(snippet) }
+            },
+        ]
+    }
+
+    static func history(
+        entry: CommandHistoryEntry?, canInsert: Bool, canClear: Bool, locale: Locale,
+        copy: @escaping (CommandHistoryEntry) -> Void,
+        insert: @escaping (CommandHistoryEntry) -> Void,
+        saveAsSnippet: @escaping (CommandHistoryEntry) -> Void,
+        remove: @escaping (CommandHistoryEntry) -> Void,
+        clear: @escaping () -> Void
+    ) -> [NativeMenuEntry] {
+        var entries = [
+            NativeMenuEntry(
+                title: localized("Copy", locale: locale),
+                symbol: MenuSymbol.copy,
+                isEnabled: entry != nil
+            ) {
+                if let entry { copy(entry) }
+            },
+            NativeMenuEntry(
+                title: localized("Insert", locale: locale),
+                symbol: MenuSymbol.insert,
+                isEnabled: entry != nil && canInsert
+            ) {
+                if let entry { insert(entry) }
+            },
+            NativeMenuEntry(
+                title: localized("Save as Snippet", locale: locale),
+                symbol: MenuSymbol.saveAsSnippet,
+                isEnabled: entry != nil
+            ) {
+                if let entry { saveAsSnippet(entry) }
+            },
+            .separator,
+        ]
+        if let entry {
+            entries.append(
+                NativeMenuEntry(
+                    title: localized("Remove this History", locale: locale),
+                    symbol: MenuSymbol.removeHistory
+                ) {
+                    remove(entry)
+                })
+        }
+        entries.append(
+            NativeMenuEntry(
+                title: localized("Clear History", locale: locale),
+                symbol: MenuSymbol.clearHistory,
+                isEnabled: canClear,
+                action: clear
+            ))
+        return entries
+    }
+
+    private static func localized(
+        _ key: String.LocalizationValue, locale: Locale
+    ) -> String {
+        AppLocalization.string(key, locale: locale)
+    }
+}
+
 // MARK: - Session Snippets
 
-/// The global Snippet shelf. Execution always respects the Snippet's saved
-/// Targets; the focused terminal is never an implicit destination.
+/// The global Snippet shelf inserts into the focused terminal. The full
+/// Snippets page remains the place for executing a Snippet on its saved Targets.
 private struct SnippetsSidebarView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
@@ -545,17 +628,14 @@ private struct SnippetsSidebarView: View {
         )
     }
 
-    /// This shelf only runs what is already saved; snippets are made on the
-    /// Snippets page. With nothing under the pointer both verbs grey out rather
-    /// than the menu not appearing, so the shelf answers a right-click the same
-    /// way wherever it lands.
+    /// With nothing under the pointer both verbs grey out rather than the menu
+    /// not appearing, so the shelf answers a right-click the same way wherever
+    /// it lands.
     private var blankAreaMenu: [NativeMenuEntry] {
-        [
-            NativeMenuEntry(title: localized("Copy"), symbol: MenuSymbol.copy, isEnabled: false),
-            NativeMenuEntry(
-                title: localized("Execute"), symbol: MenuSymbol.execute, isEnabled: false
-            ),
-        ]
+        TerminalSidebarMenuBuilder.snippets(
+            snippet: nil, canInsert: canInsert, locale: locale,
+            copy: copy, insert: insert
+        )
     }
 
     private func snippetRow(_ snippet: Snippet) -> some View {
@@ -563,17 +643,16 @@ private struct SnippetsSidebarView: View {
             snippet: snippet, isSelected: selectedSnippetID == snippet.id
         )
         .termindSidebarRow(isSelected: selectedSnippetID == snippet.id) {
-            [
-                NativeMenuEntry(title: localized("Copy"), symbol: MenuSymbol.copy) {
-                    copyToPasteboard(snippet.body)
-                },
-                NativeMenuEntry(title: localized("Execute"), symbol: MenuSymbol.execute) {
-                    requestExecution(snippet)
-                },
-            ]
+            TerminalSidebarMenuBuilder.snippets(
+                snippet: snippet, canInsert: canInsert, locale: locale,
+                copy: copy, insert: insert
+            )
         }
-        .onTapGesture(count: 2) { requestExecution(snippet) }
-        .onTapGesture { selectedSnippetID = snippet.id }
+        .onTapGesture(count: 2) { execute(snippet) }
+        .onTapGesture {
+            selectedSnippetID = snippet.id
+            insert(snippet)
+        }
     }
 
     private var displayedSnippets: [Snippet] {
@@ -603,14 +682,24 @@ private struct SnippetsSidebarView: View {
         }
     }
 
-    private func requestExecution(_ snippet: Snippet) {
-        if snippet.targetHostIDs.isEmpty {
-            window.hostChooser = .snippet(
-                SnippetHostChooserRequest(
-                    snippetIDs: [snippet.id], strategy: .fillMissingTargets
-                ))
-            return
-        }
+    private var canInsert: Bool {
+        window.selectedWorkspace?.focusedPane.sshSession?.status.isLive == true
+    }
+
+    private func copy(_ snippet: Snippet) {
+        copyToPasteboard(snippet.body)
+    }
+
+    private func insert(_ snippet: Snippet) {
+        guard let workspace = window.selectedWorkspace,
+            let sshSession = workspace.focusedPane.sshSession,
+            sshSession.status.isLive
+        else { return }
+        workspace.deliver(snippet.body, from: sshSession)
+    }
+
+    private func execute(_ snippet: Snippet) {
+        guard canInsert else { return }
         if CommandRiskClassifier.assess(snippet.body).requiresSecondConfirmation {
             destructiveSnippet = snippet
         } else {
@@ -619,7 +708,14 @@ private struct SnippetsSidebarView: View {
     }
 
     private func executeNow(_ snippet: Snippet) {
-        app.execute([snippet], in: window)
+        guard let workspace = window.selectedWorkspace,
+            let sshSession = workspace.focusedPane.sshSession,
+            sshSession.status.isLive
+        else {
+            destructiveSnippet = nil
+            return
+        }
+        workspace.deliver(snippet.body, from: sshSession, submit: true)
         destructiveSnippet = nil
     }
 }
@@ -707,6 +803,7 @@ private struct HistorySidebarView: View {
 private struct SSHCommandHistorySidebar: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.locale) private var locale
 
     @State private var query = ""
     @State private var destructiveEntry: CommandHistoryEntry?
@@ -816,22 +913,7 @@ private struct SSHCommandHistorySidebar: View {
     /// needs a row greyed out. Clear History is not one of those — it is about
     /// the list, so it stays live where there is nothing under the pointer.
     private var globalMenu: [NativeMenuEntry] {
-        [
-            NativeMenuEntry(
-                title: String(localized: "Copy"), symbol: MenuSymbol.copy, isEnabled: false
-            ),
-            NativeMenuEntry(
-                title: String(localized: "Save as Snippet"),
-                symbol: MenuSymbol.saveAsSnippet,
-                isEnabled: false
-            ),
-            .separator,
-            NativeMenuEntry(
-                title: String(localized: "Clear History"),
-                symbol: MenuSymbol.clearHistory,
-                isEnabled: !allEntries.isEmpty,
-            ) { confirmsClear = true },
-        ]
+        historyMenu(for: nil)
     }
 
     @ViewBuilder
@@ -847,10 +929,6 @@ private struct SSHCommandHistorySidebar: View {
                     .frame(height: 18)
                     .padding(.horizontal, Metrics.Space.s)
                     .padding(.vertical, 4)
-                    .background(
-                        Color.primary.opacity(0.055),
-                        in: .rect(cornerRadius: Metrics.Radius.small)
-                    )
                     .overlay {
                         RoundedRectangle(cornerRadius: Metrics.Radius.small)
                             .strokeBorder(Color.accentColor.opacity(0.55))
@@ -862,6 +940,7 @@ private struct SSHCommandHistorySidebar: View {
             }
             .padding(.vertical, 2)
             .padding(.horizontal, Metrics.Space.m)
+            .termindSidebarRowBackground(isSelected: false)
         } else {
             CommandHistoryCard(
                 entry: entry,
@@ -877,30 +956,23 @@ private struct SSHCommandHistorySidebar: View {
                 insert(entry)
             }
             .termindSidebarRow(isSelected: selectedID == entry.id) {
-                [
-                    NativeMenuEntry(
-                        title: String(localized: "Copy"), symbol: MenuSymbol.copy
-                    ) {
-                        copyToPasteboard(entry.command)
-                    },
-                    NativeMenuEntry(
-                        title: String(localized: "Save as Snippet"),
-                        symbol: MenuSymbol.saveAsSnippet
-                    ) {
-                        beginSnippetNaming(entry)
-                    },
-                    .separator,
-                    NativeMenuEntry(
-                        title: String(localized: "Remove this History"),
-                        symbol: MenuSymbol.removeHistory,
-                    ) { delete(entry) },
-                    NativeMenuEntry(
-                        title: String(localized: "Clear History"),
-                        symbol: MenuSymbol.clearHistory,
-                    ) { confirmsClear = true },
-                ]
+                historyMenu(for: entry)
             }
         }
+    }
+
+    private func historyMenu(for entry: CommandHistoryEntry?) -> [NativeMenuEntry] {
+        TerminalSidebarMenuBuilder.history(
+            entry: entry,
+            canInsert: canInsert,
+            canClear: !allEntries.isEmpty,
+            locale: locale,
+            copy: { copyToPasteboard($0.command) },
+            insert: insert,
+            saveAsSnippet: beginSnippetNaming,
+            remove: delete,
+            clear: { confirmsClear = true }
+        )
     }
 
     private var historyListItems: [SidebarListItem] {
@@ -924,13 +996,15 @@ private struct SSHCommandHistorySidebar: View {
     }
 
     private func insert(_ entry: CommandHistoryEntry) {
-        guard let workspace = window.selectedWorkspace, let sshSession = workspace.focusedPane.sshSession else {
-            return
-        }
+        guard let workspace = window.selectedWorkspace,
+            let sshSession = workspace.focusedPane.sshSession,
+            sshSession.status.isLive
+        else { return }
         workspace.deliver(entry.command, from: sshSession)
     }
 
     private func execute(_ entry: CommandHistoryEntry) {
+        guard canInsert else { return }
         if CommandRiskClassifier.assess(entry.command).requiresSecondConfirmation {
             destructiveEntry = entry
         } else {
@@ -939,7 +1013,11 @@ private struct SSHCommandHistorySidebar: View {
     }
 
     private func executeNow(_ entry: CommandHistoryEntry) {
-        guard let workspace = window.selectedWorkspace, let sshSession = workspace.focusedPane.sshSession else {
+        guard let workspace = window.selectedWorkspace,
+            let sshSession = workspace.focusedPane.sshSession,
+            sshSession.status.isLive
+        else {
+            destructiveEntry = nil
             return
         }
         workspace.deliver(entry.command, from: sshSession, submit: true)
@@ -966,6 +1044,10 @@ private struct SSHCommandHistorySidebar: View {
     private func beginSnippetNaming(_ entry: CommandHistoryEntry) {
         snippetName = ""
         namingEntryID = entry.id
+    }
+
+    private var canInsert: Bool {
+        sshSession?.status.isLive == true
     }
 
     private func cancelSnippetNaming() {
@@ -1336,14 +1418,14 @@ private struct SidebarInlineTextField: NSViewRepresentable {
         field.target = context.coordinator
         field.action = #selector(Coordinator.submit)
         field.stringValue = text
-        field.placeholderString = prompt
         field.isBezeled = false
+        field.isBordered = false
         field.drawsBackground = false
         field.focusRingType = .none
-        field.font = NSFont.preferredFont(forTextStyle: .body)
         field.lineBreakMode = .byTruncatingTail
         field.cell?.usesSingleLineMode = true
         field.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        configure(field)
         context.coordinator.requestFocus(for: field)
         return field
     }
@@ -1352,6 +1434,19 @@ private struct SidebarInlineTextField: NSViewRepresentable {
         if field.stringValue != text {
             field.stringValue = text
         }
+        configure(field)
+    }
+
+    private func configure(_ field: NSTextField) {
+        let font = NSFont.preferredFont(forTextStyle: .body)
+        field.font = font
+        field.textColor = .labelColor
+        field.placeholderAttributedString = NSAttributedString(
+            string: prompt,
+            attributes: [.font: font, .foregroundColor: NSColor.secondaryLabelColor]
+        )
+        field.currentEditor()?.textColor = .labelColor
+        field.currentEditor()?.drawsBackground = false
     }
 
     final class Coordinator: NSObject, NSTextFieldDelegate {
@@ -1375,6 +1470,8 @@ private struct SidebarInlineTextField: NSViewRepresentable {
             didRequestFocus = true
             DispatchQueue.main.async {
                 field.window?.makeFirstResponder(field)
+                field.currentEditor()?.textColor = .labelColor
+                field.currentEditor()?.drawsBackground = false
             }
         }
 

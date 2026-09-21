@@ -19,7 +19,7 @@ struct MobileTerminalListTests {
             hosts: app.library,
             commandHistory: app.commandHistory)
 
-        try await withHostedView(MobileCommandHistoryView(workspace: workspace)) { root in
+        try await withHostedView(MobileCommandHistoryView(library: app.library, workspace: workspace)) { root in
             #expect(nativeVisibleCells(in: root.view).count == 2)
 
             let newest = try #require(app.commandHistory.entries(for: host.id).first)
@@ -45,7 +45,7 @@ struct MobileTerminalListTests {
             hosts: app.library,
             commandHistory: history)
 
-        try await withHostedView(MobileCommandHistoryView(workspace: workspace)) { root in
+        try await withHostedView(MobileCommandHistoryView(library: app.library, workspace: workspace)) { root in
             #expect(history.entries(for: host.id).count == CommandHistoryModel.perHostLimit)
             let cells = nativeVisibleCells(in: root.view)
             #expect(!cells.isEmpty)

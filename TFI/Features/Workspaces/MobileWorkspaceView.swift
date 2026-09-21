@@ -231,7 +231,7 @@ struct MobileWorkspaceView: View {
                 case .snippets:
                     MobileTerminalSnippetsView(library: library, workspace: workspace)
                 case .commandHistory:
-                    MobileCommandHistoryView(workspace: workspace)
+                    MobileCommandHistoryView(library: library, workspace: workspace)
                 case .sftpHistory:
                     MobileSFTPHistoryView(workspace: workspace, open: reopenHistory)
                 }

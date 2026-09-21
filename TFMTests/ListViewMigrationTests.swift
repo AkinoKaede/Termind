@@ -300,6 +300,56 @@ struct ListViewMigrationTests {
             ]
         )
     }
+
+    @Test @MainActor
+    func terminalSidebarMenusKeepCopyInsertAndHistoryGroupingAligned() {
+        let locale = Locale(identifier: "en")
+        let snippet = Snippet(title: "Status", body: "uptime")
+        var insertedSnippet: Snippet.ID?
+        let snippetEntries = TerminalSidebarMenuBuilder.snippets(
+            snippet: snippet, canInsert: true, locale: locale,
+            copy: { _ in }, insert: { insertedSnippet = $0.id }
+        )
+
+        #expect(snippetEntries.map(\.title) == ["Copy", "Insert"])
+        #expect(snippetEntries.allSatisfy { $0.isEnabled })
+        snippetEntries[1].action()
+        #expect(insertedSnippet == snippet.id)
+
+        let disabledSnippetEntries = TerminalSidebarMenuBuilder.snippets(
+            snippet: nil, canInsert: false, locale: locale,
+            copy: { _ in }, insert: { _ in }
+        )
+        #expect(disabledSnippetEntries.map(\.title) == ["Copy", "Insert"])
+        #expect(disabledSnippetEntries.allSatisfy { !$0.isEnabled })
+
+        let history = CommandHistoryEntry(hostID: UUID(), command: "whoami")
+        let historyEntries = TerminalSidebarMenuBuilder.history(
+            entry: history, canInsert: true, canClear: true, locale: locale,
+            copy: { _ in }, insert: { _ in }, saveAsSnippet: { _ in },
+            remove: { _ in }, clear: {}
+        )
+        #expect(
+            historyEntries.map(\.title)
+                == [
+                    "Copy", "Insert", "Save as Snippet", "", "Remove this History",
+                    "Clear History",
+                ]
+        )
+        #expect(historyEntries[3].isSeparator)
+
+        let blankHistoryEntries = TerminalSidebarMenuBuilder.history(
+            entry: nil, canInsert: false, canClear: true, locale: locale,
+            copy: { _ in }, insert: { _ in }, saveAsSnippet: { _ in },
+            remove: { _ in }, clear: {}
+        )
+        #expect(
+            blankHistoryEntries.map(\.title)
+                == ["Copy", "Insert", "Save as Snippet", "", "Clear History"]
+        )
+        #expect(blankHistoryEntries.prefix(3).allSatisfy { !$0.isEnabled })
+        #expect(blankHistoryEntries.last?.isEnabled == true)
+    }
 }
 
 @Test

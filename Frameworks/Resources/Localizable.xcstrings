@@ -3439,22 +3439,6 @@
         }
       }
     },
-    "Ask Assistant" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "询问助手"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "詢問助手"
-          }
-        }
-      }
-    },
     "Ask anything…" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3467,6 +3451,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "問點什麼…"
+          }
+        }
+      }
+    },
+    "Ask Assistant" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "询问助手"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "詢問助手"
           }
         }
       }
@@ -6070,6 +6070,7 @@
       }
     },
     "Connection error" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -11657,6 +11658,7 @@
       }
     },
     "Hide" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -11738,22 +11740,6 @@
         }
       }
     },
-    "Hide Session Details" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "隐藏会话详情"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "隱藏工作階段詳細資訊"
-          }
-        }
-      }
-    },
     "Hide Secret" : {
       "localizations" : {
         "zh-Hans" : {
@@ -11766,6 +11752,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "隱藏密鑰"
+          }
+        }
+      }
+    },
+    "Hide Session Details" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏会话详情"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隱藏工作階段詳細資訊"
           }
         }
       }
@@ -22443,6 +22445,7 @@
       }
     },
     "Show" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -22640,22 +22643,6 @@
         }
       }
     },
-    "Show Session Details" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示会话详情"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "顯示工作階段詳細資訊"
-          }
-        }
-      }
-    },
     "Show Secret" : {
       "localizations" : {
         "zh-Hans" : {
@@ -22668,6 +22655,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示密鑰"
+          }
+        }
+      }
+    },
+    "Show Session Details" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示会话详情"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示工作階段詳細資訊"
           }
         }
       }
@@ -23774,6 +23777,7 @@
       }
     },
     "Startup Snippet" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

@@ -101,6 +101,23 @@ struct BroadcastInputTests {
     }
 
     @Test
+    func programmaticInsertAndSubmitUseTheSameBroadcastPath() {
+        let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
+        var firstWrites: [Data] = []
+        var secondWrites: [Data] = []
+        firstSSHSession.inputSink = { firstWrites.append($0) }
+        secondSSHSession.inputSink = { secondWrites.append($0) }
+        workspace.broadcastsInput = true
+
+        workspace.deliver("uptime", from: firstSSHSession)
+        workspace.deliver("whoami", from: firstSSHSession, submit: true)
+
+        let expected = [Data("uptime".utf8), Data("whoami\r".utf8)]
+        #expect(firstWrites == expected)
+        #expect(secondWrites == expected)
+    }
+
+    @Test
     func nonInteractiveTerminalWritesNeverBroadcast() {
         let (workspace, firstSSHSession, secondSSHSession) = makeTwoSSHSessionWorkspace()
         var firstWrites: [Data] = []

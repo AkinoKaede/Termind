@@ -11,6 +11,19 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileSnippetTests {
+    @Test func historySnippetFactoryTrimsTheNameAndPreservesCommandDefaults() throws {
+        let command = "printf first\nprintf second"
+        let snippet = try #require(
+            MobileCommandHistorySnippetFactory.make(name: "  Deploy  ", command: command)
+        )
+
+        #expect(snippet.title == "Deploy")
+        #expect(snippet.body == command)
+        #expect(snippet.packageID == nil)
+        #expect(snippet.targetHostIDs.isEmpty)
+        #expect(MobileCommandHistorySnippetFactory.make(name: " \n ", command: command) == nil)
+    }
+
     @Test func legacyTimestampFallbackIsStableUntilARealEditExists() throws {
         let suiteName = "termind.snippet-timestamp-tests.\(UUID().uuidString)"
         let defaults = try #require(UserDefaults(suiteName: suiteName))
