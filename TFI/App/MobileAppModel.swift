@@ -306,6 +306,42 @@ final class MobileAppModel {
         return workspace.id
     }
 
+    func openExternalConnection(_ request: RemoteConnectionURL) -> MobileWorkspace.ID {
+        let host: Host
+        let kind: ConnectionHistoryEntry.Kind
+        switch request.kind {
+        case .ssh:
+            host = Host(name: request.host, host: request.host, port: request.port)
+            kind = .ssh
+        case .sftp:
+            host = Host(name: request.host, host: request.host, port: request.port)
+            kind = .sftp
+        case .telnet:
+            host = Host(
+                name: request.host, host: request.host,
+                sshEnabled: false, telnetEnabled: true, telnetPort: request.port)
+            kind = .telnet
+        }
+        let route = SSHConnectionRoute(
+            hosts: [host], usernames: request.username.map { [host.id: $0] } ?? [:])
+        let workspace = MobileWorkspace(
+            descriptor: MobileWorkspaceDescriptor(
+                hostID: host.id, title: host.name, kind: kind, duplicateIndex: 0),
+            hosts: library, transfers: transfers, sftpEdits: sftpEdits,
+            terminalSettings: terminalSettings, commandHistory: commandHistory,
+            sftpHistory: sftpHistory, connectionServices: workspaceConnectionServices,
+            transientHost: host,
+            connectionRoute: request.kind == .telnet ? nil : route,
+            usernameHint: request.username,
+            uriHostKeyFingerprint: request.hostKeyFingerprint,
+            advisoryTelnetPassword: request.advisoryPassword.map(SSHSecret.init),
+            externalSFTPResourcePath: request.kind == .sftp ? request.path : nil,
+            externalSFTPMustBeDirectory: request.sftpType == .directory,
+            isExternalTemporaryConnection: true)
+        addWorkspaces([workspace], persists: false)
+        return workspace.id
+    }
+
     /// Opens one independent SSH workspace per target. The command is intentionally
     /// carried only by the live workspace and never enters its restoration descriptor.
     func execute(_ snippet: Snippet, on hostIDs: [Host.ID]) -> [MobileWorkspace.ID] {
@@ -330,7 +366,8 @@ final class MobileAppModel {
     }
 
     func close(_ id: UUID) {
-        guard savedWorkspaceDescriptors.contains(where: { $0.id == id }) else { return }
+        let wasSaved = savedWorkspaceDescriptors.contains(where: { $0.id == id })
+        guard wasSaved || workspaces.contains(where: { $0.id == id }) else { return }
         if let workspace = workspaces.first(where: { $0.id == id }) {
             workspace.didChangeState = nil
             workspace.didRequestClose = nil
@@ -338,13 +375,13 @@ final class MobileAppModel {
         }
         workspaces.removeAll { $0.id == id }
         savedWorkspaceDescriptors.removeAll { $0.id == id }
-        saveWorkspaces()
+        if wasSaved { saveWorkspaces() }
         workspaceActivitySessions.removeAll { $0.id == id }
         liveActivities.update(workspaceActivitySessions)
     }
 
     func closeAll() {
-        guard !savedWorkspaceDescriptors.isEmpty else { return }
+        guard !savedWorkspaceDescriptors.isEmpty || !workspaces.isEmpty else { return }
         let closing = workspaces
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
@@ -616,13 +653,15 @@ final class MobileAppModel {
         return index
     }
 
-    private func addWorkspaces(_ added: [MobileWorkspace]) {
+    private func addWorkspaces(_ added: [MobileWorkspace], persists: Bool = true) {
         guard !added.isEmpty else { return }
         for workspace in added { observeActivityState(of: workspace) }
         workspaces.append(contentsOf: added)
-        let savedIDs = Set(savedWorkspaceDescriptors.map(\.id))
-        savedWorkspaceDescriptors.append(contentsOf: added.map(\.descriptor).filter { !savedIDs.contains($0.id) })
-        saveWorkspaces()
+        if persists {
+            let savedIDs = Set(savedWorkspaceDescriptors.map(\.id))
+            savedWorkspaceDescriptors.append(contentsOf: added.map(\.descriptor).filter { !savedIDs.contains($0.id) })
+            saveWorkspaces()
+        }
         workspaceActivitySessions.append(contentsOf: added.map(\.activitySession))
         liveActivities.start(workspaceActivitySessions)
         for workspace in added { workspace.connect() }

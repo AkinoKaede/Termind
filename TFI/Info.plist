@@ -5,11 +5,25 @@
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
 			<key>CFBundleURLName</key>
 			<string>com.akinokaede.termind.workspace</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>termind</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.akinokaede.termind.remote-connections</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>ssh</string>
+				<string>sftp</string>
+				<string>telnet</string>
 			</array>
 		</dict>
 	</array>

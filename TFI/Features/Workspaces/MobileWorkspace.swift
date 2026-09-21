@@ -113,6 +113,15 @@ final class MobileWorkspace: Identifiable {
     private var pendingConnectionStartupCommand: MobilePendingInitialCommand?
     private var commandExcludedFromHistory: String?
     private var pendingInitialSFTPPath: String?
+    private var externalSFTPResourcePath: String?
+    private var externalSFTPMustBeDirectory = false
+    private var transientHost: Host?
+    private var connectionRoute: SSHConnectionRoute?
+    private var usernameHint: String?
+    private var uriHostKeyFingerprint: SSHURIHostKeyFingerprint?
+    private var advisoryTelnetPassword: SSHSecret?
+    private(set) var pendingExternalPreviewURL: URL?
+    let isExternalTemporaryConnection: Bool
     var pendingInitialCommand: String? { pendingCommand?.command }
     private(set) var workingDirectory: String?
     var commandGeneratorState: CommandGeneratorState { commandGeneration.state }
@@ -218,7 +227,15 @@ final class MobileWorkspace: Identifiable {
         reconnectController: SessionReconnectController = SessionReconnectController(),
         initialCommand: String? = nil,
         recordsInitialCommandInHistory: Bool = true,
-        initialSFTPPath: String? = nil
+        initialSFTPPath: String? = nil,
+        transientHost: Host? = nil,
+        connectionRoute: SSHConnectionRoute? = nil,
+        usernameHint: String? = nil,
+        uriHostKeyFingerprint: SSHURIHostKeyFingerprint? = nil,
+        advisoryTelnetPassword: SSHSecret? = nil,
+        externalSFTPResourcePath: String? = nil,
+        externalSFTPMustBeDirectory: Bool = false,
+        isExternalTemporaryConnection: Bool = false
     ) {
         self.terminalSettings = terminalSettings
         self.commandHistory = commandHistory
@@ -228,11 +245,19 @@ final class MobileWorkspace: Identifiable {
         self.sftpEdits = sftpEdits
         self.descriptor = descriptor
         self.hosts = hosts
+        self.transientHost = transientHost
+        self.connectionRoute = connectionRoute
+        self.usernameHint = usernameHint
+        self.uriHostKeyFingerprint = uriHostKeyFingerprint
+        self.advisoryTelnetPassword = advisoryTelnetPassword
+        self.externalSFTPResourcePath = externalSFTPResourcePath
+        self.externalSFTPMustBeDirectory = externalSFTPMustBeDirectory
+        self.isExternalTemporaryConnection = isExternalTemporaryConnection
         activitySession = WorkspaceActivityAttributes.Session(
             id: descriptor.id, title: descriptor.title, kind: descriptor.kind.rawValue,
             connected: false,
             iconAsset: LinuxDistributionIconCatalog.entry(
-                for: hosts.host(descriptor.hostID)?.detectedDistribution)?.asset)
+                for: (hosts.host(descriptor.hostID) ?? transientHost)?.detectedDistribution)?.asset)
         pendingCommand = initialCommand.map {
             MobilePendingInitialCommand(command: $0, recordsInHistory: recordsInitialCommandInHistory)
         }
@@ -284,7 +309,7 @@ final class MobileWorkspace: Identifiable {
     }
 
     private func makeAuthenticationPrompt() -> SSHAuthenticationPrompt? {
-        guard authenticationRequired, let host = hosts.host(authenticationHostID ?? descriptor.hostID) else {
+        guard authenticationRequired, let host = connectionHost(authenticationHostID ?? descriptor.hostID) else {
             return nil
         }
         if let proxy = host.proxy, authenticationIsProxy {
@@ -306,7 +331,8 @@ final class MobileWorkspace: Identifiable {
                 selectedIdentityID: selectedIdentity?.id,
                 username: staged?.username ?? proxy.username,
                 failureMessage: connectionFailure, mode: authenticationMode,
-                target: .proxy(ownerHostID: host.id))
+                target: .proxy(ownerHostID: host.id),
+                allowsSaving: !isExternalTemporaryConnection)
         }
         let staged = submissions[host.id]
         let identity = staged?.identityID.flatMap { hosts.identity($0) } ?? hosts.identity(for: host)
@@ -317,7 +343,8 @@ final class MobileWorkspace: Identifiable {
             requiresPassphrase: keyID.flatMap { hosts.key($0) }?.requiresPassphraseEntry == true
                 && staged?.requiresPasswordReentry != true
                 && staged?.passphrase == nil,
-            mode: authenticationMode)
+            mode: authenticationMode,
+            allowsSaving: !isExternalTemporaryConnection)
     }
 
     private var authenticationIsProxy = false
@@ -337,7 +364,7 @@ final class MobileWorkspace: Identifiable {
     func submitAuthentication(
         identityID: UUID?, username: String, password: String?, passphrase: String?, keyID: UUID?, save: Bool
     ) {
-        guard var host = hosts.host(authenticationHostID ?? descriptor.hostID) else { return }
+        guard var host = connectionHost(authenticationHostID ?? descriptor.hostID) else { return }
         let identity = identityID.flatMap { hosts.identity($0) }
         let isProxy = authenticationPrompt?.isProxy == true
         let name = ((isProxy ? nil : identity?.username) ?? username)
@@ -605,7 +632,7 @@ final class MobileWorkspace: Identifiable {
         busy = true
         connectionFailure = nil
         status = String(localized: reconnecting ? "Reconnecting" : "Connecting")
-        guard let host = hosts.host(descriptor.hostID) else {
+        guard let host = connectionHost(descriptor.hostID) else {
             let message = String(localized: "The host is no longer available.")
             connection.stopRecovery()
             connectionFailure = message
@@ -629,11 +656,11 @@ final class MobileWorkspace: Identifiable {
                 command: body, recordsInHistory: true
             )
         }
-        let route = hosts.route(for: host)
+        let route = connectionRoute?.hosts ?? hosts.route(for: host)
         journey.begin(
             host: host, route: route,
             purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
-            username: hosts.identity(for: host)?.username,
+            username: usernameHint ?? hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
         if let proxyHost = proxySubmissions.firstHostRequiringProxyPassword(in: route) {
             authenticationRequired = true
@@ -672,7 +699,10 @@ final class MobileWorkspace: Identifiable {
             busy = false
             return
         }
-        let attemptSubmissions = submissions.takeAuthenticationSecrets()
+        var attemptSubmissions = submissions.takeAuthenticationSecrets()
+        if let usernameHint, attemptSubmissions[host.id] == nil {
+            attemptSubmissions[host.id] = SSHAuthenticationSubmission(username: usernameHint)
+        }
         let attemptProxySubmissions = proxySubmissions.takeProxyAuthenticationSecrets()
         let progressHandler = connection.progressHandler(attemptID: token) { [weak self] in
             self?.generation == $0
@@ -696,7 +726,9 @@ final class MobileWorkspace: Identifiable {
                     authorizeHostKey: { [weak self, weak hosts] challenge in
                         guard let self, let hosts else { throw CancellationError() }
                         return await self.connection.authorizeHostKey(
-                            challenge, using: hosts
+                            challenge, using: hosts,
+                            uriFingerprint: self.uriHostKeyFingerprint,
+                            destinationHostID: self.descriptor.hostID
                         )
                     },
                     keyboardInteractive: { [weak self] challenge in
@@ -705,6 +737,7 @@ final class MobileWorkspace: Identifiable {
                     }
                 )
 
+                var externalFile: RemoteFile?
                 if descriptor.kind == .ssh {
                     let backend = backend
                     let handlers = startSSHEventConsumer(for: token)
@@ -749,6 +782,28 @@ final class MobileWorkspace: Identifiable {
                     let initialPath: String
                     if reconnecting {
                         initialPath = sftpChannel.path
+                    } else if let requested = externalSFTPResourcePath {
+                        let resolved: String
+                        if requested == "/~" || requested.hasPrefix("/~/") {
+                            let home = RemotePath.normalized(try await client.homeDirectory())
+                            resolved = requested == "/~" ? home : RemotePath.join(home, String(requested.dropFirst(3)))
+                        } else {
+                            resolved = RemotePath.normalized(requested)
+                        }
+                        guard let resource = try await client.attributes(at: resolved) else {
+                            throw SFTPError.operation(String(localized: "The remote file is no longer available."))
+                        }
+                        if resource.isDirectory {
+                            initialPath = resource.path
+                        } else {
+                            guard !externalSFTPMustBeDirectory else {
+                                throw SFTPError.operation(
+                                    String(localized: "The SFTP link requires a directory, but its path is a file."))
+                            }
+                            initialPath = RemotePath.parent(of: resource.path)
+                            externalFile = resource
+                        }
+                        externalSFTPResourcePath = nil
                     } else if let pendingInitialSFTPPath {
                         initialPath = pendingInitialSFTPPath
                     } else if host.sftpChannelInitialPath.isEmpty {
@@ -791,6 +846,10 @@ final class MobileWorkspace: Identifiable {
                         isInitialCommandSubmissionReady = true
                     }
                     submitPendingInitialCommandIfReady()
+                } else if let externalFile {
+                    _ = preview(externalFile) { [weak self] url in
+                        self?.pendingExternalPreviewURL = url
+                    }
                 }
             } catch {
                 guard generation == token else { return }
@@ -811,7 +870,7 @@ final class MobileWorkspace: Identifiable {
                             sshError.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity
                         authenticationHostID = sshError.routeHostID ?? descriptor.hostID
                         authenticationIsProxy = sshError.isProxyAuthentication
-                        if let endpoint = hosts.host(authenticationHostID ?? descriptor.hostID) {
+                        if let endpoint = connectionHost(authenticationHostID ?? descriptor.hostID) {
                             username =
                                 authenticationIsProxy
                                 ? (proxySubmissions[endpoint.id]?.username ?? endpoint.proxy?.username ?? "")
@@ -874,7 +933,7 @@ final class MobileWorkspace: Identifiable {
         }
         journey.beginTelnet(
             host: host,
-            username: hosts.identity(for: host, protocol: .telnet)?.username,
+            username: usernameHint ?? hosts.identity(for: host, protocol: .telnet)?.username,
             mode: reconnecting ? .reconnection : .connection)
         let terminalBackend = backend
         let session = TelnetConnection(
@@ -918,7 +977,12 @@ final class MobileWorkspace: Identifiable {
         attempt = Task { [weak self, weak hosts] in
             guard let self, let hosts else { return }
             do {
-                let configuration = try hosts.telnetConnectionConfiguration(for: host)
+                var configuration = try hosts.telnetConnectionConfiguration(for: host)
+                if let usernameHint { configuration.username = usernameHint }
+                if let password = self.advisoryTelnetPassword {
+                    configuration.password = password
+                    self.advisoryTelnetPassword = nil
+                }
                 try await session.connect(
                     using: configuration,
                     columns: UInt16(clamping: viewport.columns),
@@ -1104,16 +1168,17 @@ final class MobileWorkspace: Identifiable {
         if announcesLoss, descriptor.kind == .ssh {
             appendTerminalNotice(String(localized: "Connection lost; reconnecting…"))
         }
-        if let host = hosts.host(descriptor.hostID) {
+        if let host = connectionHost(descriptor.hostID) {
             if descriptor.kind == .telnet {
                 journey.beginTelnet(
-                    host: host, username: hosts.identity(for: host, protocol: .telnet)?.username,
+                    host: host,
+                    username: usernameHint ?? hosts.identity(for: host, protocol: .telnet)?.username,
                     mode: .reconnection)
             } else {
                 journey.begin(
-                    host: host, route: hosts.route(for: host),
+                    host: host, route: connectionRoute?.hosts ?? hosts.route(for: host),
                     purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
-                    username: hosts.identity(for: host)?.username, mode: .reconnection)
+                    username: usernameHint ?? hosts.identity(for: host)?.username, mode: .reconnection)
             }
         }
         Task {
@@ -1129,7 +1194,7 @@ final class MobileWorkspace: Identifiable {
 
     func trustHostKey(remember: Bool = true) {
         guard let observation = connection.pendingHostKey?.observation else { return }
-        if remember {
+        if remember, !isExternalTemporaryConnection {
             connection.trustHostKey(observation, using: hosts)
         } else {
             guard connection.useTemporaryHostKey(observation) else { return }
@@ -1142,6 +1207,8 @@ final class MobileWorkspace: Identifiable {
         resetCommandGeneratorShellState()
         connectionResumeIntent = .none
         connection.disconnect()
+        advisoryTelnetPassword?.clear()
+        advisoryTelnetPassword = nil
         connectionFailure = nil
         operationError = nil
         authenticationRequired = false
@@ -1175,6 +1242,15 @@ final class MobileWorkspace: Identifiable {
         busy = false
         connected = false
         status = String(localized: "Disconnected")
+    }
+
+    func consumePendingExternalPreviewURL() -> URL? {
+        defer { pendingExternalPreviewURL = nil }
+        return pendingExternalPreviewURL
+    }
+
+    private func connectionHost(_ id: Host.ID) -> Host? {
+        connectionRoute?.host(id) ?? hosts.host(id) ?? (id == descriptor.hostID ? transientHost : nil)
     }
 
     private func startSSHEventConsumer(
@@ -1597,7 +1673,9 @@ final class MobileWorkspace: Identifiable {
                 do {
                     let url = try await sftpEdits.open(
                         file, hostID: descriptor.hostID, connection: .context(transferContext), client: sftp)
-                    sftpHistory.record(kind: .file, path: file.path, for: descriptor.hostID)
+                    if !isExternalTemporaryConnection {
+                        sftpHistory.record(kind: .file, path: file.path, for: descriptor.hostID)
+                    }
                     completion(url)
                 } catch { operationError = error.localizedDescription }
             }
@@ -1617,7 +1695,9 @@ final class MobileWorkspace: Identifiable {
                 connection: .context(transferContext), scopedRoot: directory, overwrite: false
             ) { [sftpHistory, hostID = descriptor.hostID, path = file.path] state in
                 guard state == .completed else { return }
-                sftpHistory.record(kind: .file, path: path, for: hostID)
+                if !self.isExternalTemporaryConnection {
+                    sftpHistory.record(kind: .file, path: path, for: hostID)
+                }
                 completion(localURL)
             }
             return true

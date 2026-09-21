@@ -119,6 +119,8 @@ final class WindowModel {
     var assistantCommands: AssistantConversationCommands?
     var assistantOperationError: String?
     var workspaceTemplateNotice: String?
+    var pendingExternalConnection: RemoteConnectionURL?
+    var externalConnectionError: String?
     var hostStore: HostLibraryModel? {
         didSet {
             refreshSessionContext()
@@ -876,6 +878,18 @@ final class WindowModel {
     @discardableResult
     func openTelnetSession(host: Host) -> Workspace {
         let pane = Pane.telnetSession(host: host)
+        numberPane(pane)
+        return open(Workspace(pane: pane))
+    }
+
+    @discardableResult
+    func openExternalTelnetSession(
+        host: Host, username: String?, password: SSHSecret?
+    ) -> Workspace {
+        let pane = Pane.telnetSession(
+            host: host, usernameHint: username,
+            advisoryPassword: password,
+            isExternalTemporaryConnection: true)
         numberPane(pane)
         return open(Workspace(pane: pane))
     }

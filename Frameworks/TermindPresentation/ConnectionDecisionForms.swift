@@ -237,7 +237,7 @@ public struct SSHAuthenticationForm: View {
                     cancelButton
                     Spacer()
                     continueButton
-                    saveAndContinueButton
+                    if prompt.allowsSaving { saveAndContinueButton }
                 }
                 VStack(spacing: 10) {
                     HStack {
@@ -248,10 +248,12 @@ public struct SSHAuthenticationForm: View {
                     #if os(iOS)
                         HStack {
                             Spacer()
-                            saveAndContinueButton
+                            if prompt.allowsSaving { saveAndContinueButton }
                         }
                     #else
-                        saveAndContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
+                        if prompt.allowsSaving {
+                            saveAndContinueButton.frame(maxWidth: .infinity, alignment: .trailing)
+                        }
                     #endif
                 }
             }
@@ -494,6 +496,11 @@ public struct SSHHostKeyConfirmationForm: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(observation.algorithm.displayName).font(.caption).foregroundStyle(.secondary)
                 Text(observation.fingerprint).font(.body.monospaced()).textSelection(.enabled)
+                if prompt.uriFingerprintMatched {
+                    Label("The legacy fingerprint in the link matches this host key.", systemImage: "link.badge.checkmark")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)

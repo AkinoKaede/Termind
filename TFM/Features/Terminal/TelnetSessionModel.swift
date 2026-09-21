@@ -32,6 +32,9 @@ final class TelnetSessionModel: Identifiable {
     var terminalViewOwner: PersistentTerminalViewOwner { terminalSurface }
     private weak var statusStore: (any RemoteSessionHostStore)?
     private let transientHost: Host
+    private let usernameHint: String?
+    private var advisoryPassword: SSHSecret?
+    private let isExternalTemporaryConnection: Bool
     private var connection: TelnetConnection?
     private var connectionTask: Task<Void, Never>?
     private var startsOnMount = true
@@ -57,10 +60,17 @@ final class TelnetSessionModel: Identifiable {
             protocols: [.init(name: .telnet, address: address, connectionState: state)])
     }
 
-    init(host: Host) {
+    init(
+        host: Host, usernameHint: String? = nil,
+        advisoryPassword: SSHSecret? = nil,
+        isExternalTemporaryConnection: Bool = false
+    ) {
         hostID = host.id
         title = host.name
         transientHost = host
+        self.usernameHint = usernameHint
+        self.advisoryPassword = advisoryPassword
+        self.isExternalTemporaryConnection = isExternalTemporaryConnection
         let relay = TelnetSessionRelay()
         terminalSurface = PersistentTerminalViewOwner(
             write: { data, _ in
@@ -77,11 +87,14 @@ final class TelnetSessionModel: Identifiable {
         )
         relay.owner = self
         connectionJourney.beginTelnet(
-            host: host, username: nil, mode: .connection)
+            host: host, username: usernameHint, mode: .connection)
     }
 
     func copyForReconnect() -> TelnetSessionModel? {
-        TelnetSessionModel(host: statusStore?.host(hostID) ?? transientHost)
+        TelnetSessionModel(
+            host: statusStore?.host(hostID) ?? transientHost,
+            usernameHint: usernameHint,
+            isExternalTemporaryConnection: isExternalTemporaryConnection)
     }
 
     func prepareForReopen() {
@@ -106,7 +119,7 @@ final class TelnetSessionModel: Identifiable {
             fail(String(localized: "Telnet is disabled for this Host."))
             return
         }
-        let username = store.identity(for: host, protocol: .telnet)?.username
+        let username = usernameHint ?? store.identity(for: host, protocol: .telnet)?.username
         connectionJourney.beginTelnet(
             host: host, username: username,
             mode: connectionController.hasConnectedOnce ? .reconnection : .connection)
@@ -147,7 +160,12 @@ final class TelnetSessionModel: Identifiable {
         let viewport = latestViewport
         connectionTask = Task { [weak self] in
             do {
-                let configuration = try store.telnetConnectionConfiguration(for: host)
+                var configuration = try store.telnetConnectionConfiguration(for: host)
+                if let usernameHint = self?.usernameHint { configuration.username = usernameHint }
+                if let password = self?.advisoryPassword {
+                    configuration.password = password
+                    self?.advisoryPassword = nil
+                }
                 try await connection.connect(
                     using: configuration,
                     columns: UInt16(clamping: viewport.columns),
@@ -173,6 +191,8 @@ final class TelnetSessionModel: Identifiable {
         connection = nil
         status = .disconnected
         connectionController.disconnect()
+        advisoryPassword?.clear()
+        advisoryPassword = nil
     }
 
     func insert(_ text: String, submit: Bool = false) {

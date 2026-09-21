@@ -1,6 +1,111 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "Connection Link Failed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "连接链接失败" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "連線連結失敗" } }
+      }
+    },
+    "Open Telnet Connection?" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "打开Telnet连接？" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "開啟Telnet連線？" } }
+      }
+    },
+    "SFTP text transfer mode is not supported." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "不支持SFTP文本传输模式。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "不支援SFTP文字傳輸模式。" } }
+      }
+    },
+    "SSH and SFTP connection links cannot contain passwords." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "SSH和SFTP连接链接不能包含密码。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "SSH和SFTP連線連結不能包含密碼。" } }
+      }
+    },
+    "The legacy fingerprint in the link matches this host key." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "链接中的旧版指纹与此主机密钥匹配。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "連結中的舊版指紋與此主機金鑰相符。" } }
+      }
+    },
+    "The remote home directory is unavailable." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "远程主目录不可用。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "遠端個人專屬目錄無法使用。" } }
+      }
+    },
+    "The SFTP link requires a directory, but its path is a file." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "SFTP链接要求目录，但路径指向文件。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "SFTP連結要求目錄，但路徑指向檔案。" } }
+      }
+    },
+    "This connection link contains an invalid host-key fingerprint." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此连接链接包含无效的主机密钥指纹。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "此連線連結包含無效的主機金鑰指紋。" } }
+      }
+    },
+    "This connection link contains an unsupported standard parameter." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此连接链接包含不支持的标准参数。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "此連線連結包含不支援的標準參數。" } }
+      }
+    },
+    "This connection link does not contain a valid host." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此连接链接未包含有效的主机。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "此連線連結未包含有效的主機。" } }
+      }
+    },
+    "This connection link does not contain a valid port." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此连接链接未包含有效的端口。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "此連線連結未包含有效的連接埠。" } }
+      }
+    },
+    "This connection link is invalid." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此连接链接无效。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "此連線連結無效。" } }
+      }
+    },
+    "This connection link uses an unsupported protocol." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此连接链接使用了不支持的协议。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "此連線連結使用了不支援的通訊協定。" } }
+      }
+    },
+    "This link includes an advisory Telnet password. It will be used once and will not be saved." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此链接包含建议的Telnet密码。该密码仅使用一次且不会保存。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "此連結包含建議的Telnet密碼。該密碼僅使用一次且不會儲存。" } }
+      }
+    },
+    "This remote file may contain executable content. Review it before opening." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "此远程文件可能包含可执行内容。请检查后再打开。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "此遠端檔案可能包含可執行內容。請檢查後再開啟。" } }
+      }
+    },
     "" : {
       "localizations" : {
         "zh-Hans" : {

@@ -1,5 +1,6 @@
 import AgentKit
 import AgentKitScrubber
+import AppKit
 import Foundation
 import TermindApplication
 import TermindDomain
@@ -755,6 +756,78 @@ final class AppModel {
 
     func resolveQuickConnect(_ input: QuickConnectInput, locale: Locale = .current) throws -> QuickConnectTarget {
         try QuickConnectResolver.resolve(input, in: hosts, locale: locale)
+    }
+
+    func openExternalConnection(_ url: URL, in window: WindowModel) {
+        do {
+            let request = try RemoteConnectionURLParser.parse(url)
+            if request.kind == .telnet, request.advisoryPassword != nil {
+                window.pendingExternalConnection = request
+            } else {
+                openExternalConnection(request, in: window)
+            }
+        } catch {
+            window.externalConnectionError = error.localizedDescription
+        }
+    }
+
+    func confirmExternalConnection(in window: WindowModel) {
+        guard let request = window.pendingExternalConnection else { return }
+        window.pendingExternalConnection = nil
+        openExternalConnection(request, in: window)
+    }
+
+    private func openExternalConnection(_ request: RemoteConnectionURL, in window: WindowModel) {
+        switch request.kind {
+        case .telnet:
+            let host = Host(
+                name: request.host, host: request.host,
+                sshEnabled: false, telnetEnabled: true, telnetPort: request.port)
+            window.openExternalTelnetSession(
+                host: host, username: request.username,
+                password: request.advisoryPassword.map(SSHSecret.init))
+        case .ssh, .sftp:
+            let host = Host(name: request.host, host: request.host, port: request.port)
+            let route = SSHConnectionRoute(
+                hosts: [host], usernames: request.username.map { [host.id: $0] } ?? [:])
+            if request.kind == .ssh {
+                let workspace = window.openSSHSession(
+                    host: host, usernameHint: request.username, connectionRoute: route)
+                workspace.focusedPane.sshSession?.uriHostKeyFingerprint = request.hostKeyFingerprint
+                workspace.focusedPane.sshSession?.isExternalTemporaryConnection = true
+                return
+            }
+            let workspace = window.openSFTPChannel(host: host)
+            guard let channel = workspace.focusedPane.sftpChannel else { return }
+            channel.configureExternalConnection(
+                host: host, username: request.username, route: route,
+                fingerprint: request.hostKeyFingerprint,
+                resourcePath: request.path,
+                mustBeDirectory: request.sftpType == .directory
+            ) { [weak self, weak channel] file in
+                guard let self, let channel else { return }
+                channel.revealExternalFile(file)
+                guard Self.canAutomaticallyOpenExternalSFTPFile(file) else {
+                    channel.operationError = String(
+                        localized: "This remote file may contain executable content. Review it before opening.")
+                    return
+                }
+                channel.open(file, coordinator: self.sftpTransfers, edits: self.sftpEdits) { localURL in
+                    if NSWorkspace.shared.open(localURL) {
+                        channel.recordOpenedFile(at: file.path)
+                    }
+                }
+            }
+        }
+    }
+
+    private static func canAutomaticallyOpenExternalSFTPFile(_ file: RemoteFile) -> Bool {
+        guard file.kind == .file, file.permissions & 0o111 == 0 else { return false }
+        let unsafeExtensions: Set<String> = [
+            "app", "bash", "bin", "command", "dmg", "exe", "ksh", "mpkg", "pkg", "pl", "py", "rb",
+            "sh", "tool", "zsh",
+        ]
+        return !unsafeExtensions.contains((file.name as NSString).pathExtension.lowercased())
     }
 
     /// Mark as recently used, and flip the status dot.

@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import SwiftUI
+import TermindApplication
 import TermindDomain
 
 import struct TermindDomain.Host
@@ -22,6 +23,7 @@ final class MobileSceneModel {
     var workspaceID: MobileWorkspace.ID?
     var isConnectionPickerPresented = false
     var isWorkspaceUnavailable = false
+    var pendingExternalConnection: RemoteConnectionURL?
     var editingHost: Host?
     var renamingWorkspace: MobileWorkspace?
     var assistantLibraryRoute: MobileAssistantLibraryRoute?
@@ -42,7 +44,7 @@ final class MobileSceneModel {
     }
 
     var hasWorkspaces: Bool { !app.workspaces.isEmpty }
-    var canCloseAllWorkspaces: Bool { !app.savedWorkspaceDescriptors.isEmpty }
+    var canCloseAllWorkspaces: Bool { !app.savedWorkspaceDescriptors.isEmpty || !app.workspaces.isEmpty }
     var workspaceCount: Int { app.workspaces.count }
     var canCloseWorkspace: Bool { activeWorkspace != nil }
     var canUseTerminalCommands: Bool { activeWorkspace?.descriptor.kind == .ssh }
@@ -250,6 +252,19 @@ final class MobileSceneModel {
     }
 
     func open(_ url: URL) {
+        if let scheme = url.scheme?.lowercased(), ["ssh", "sftp", "telnet"].contains(scheme) {
+            do {
+                let request = try RemoteConnectionURLParser.parse(url)
+                if request.kind == .telnet, request.advisoryPassword != nil {
+                    pendingExternalConnection = request
+                } else {
+                    selectWorkspace(app.openExternalConnection(request))
+                }
+            } catch {
+                app.error = error.localizedDescription
+            }
+            return
+        }
         if WorkspaceActivityAttributes.accepts(url) {
             isWorkspaceUnavailable = false
             pendingWorkspaceID = nil
@@ -260,5 +275,11 @@ final class MobileSceneModel {
         guard let id = WorkspaceActivityAttributes.workspaceID(from: url) else { return }
         selectWorkspace(id)
         app.workspaces.first(where: { $0.id == id })?.terminal.requestFocus()
+    }
+
+    func confirmExternalConnection() {
+        guard let request = pendingExternalConnection else { return }
+        pendingExternalConnection = nil
+        selectWorkspace(app.openExternalConnection(request))
     }
 }

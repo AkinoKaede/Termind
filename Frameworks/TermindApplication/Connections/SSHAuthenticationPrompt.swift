@@ -24,10 +24,12 @@ public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Senda
     public var requiresPassphrase = false
     public var mode: Mode = .localIdentity
     public var target: Target = .host
+    public var allowsSaving = true
     public init(
         host: Host, selectedIdentityID: Identity.ID? = nil, username: String, selectedKeyID: SSHKeyRef.ID? = nil,
         failureMessage: String? = nil, requiresPassphrase: Bool = false, mode: Mode = .localIdentity,
-        keyboardInteractive: SSHKeyboardInteractiveChallenge? = nil, target: Target = .host
+        keyboardInteractive: SSHKeyboardInteractiveChallenge? = nil, target: Target = .host,
+        allowsSaving: Bool = true
     ) {
         self.host = host
         self.selectedIdentityID = selectedIdentityID
@@ -38,6 +40,7 @@ public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Senda
         self.mode = mode
         self.keyboardInteractive = keyboardInteractive
         self.target = target
+        self.allowsSaving = allowsSaving
     }
 
     public var isProxy: Bool {

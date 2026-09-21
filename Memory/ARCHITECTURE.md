@@ -158,6 +158,12 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   create session route snapshots, never replaced with saved endpoints. Routes cap at eight Hosts and reject cycles.
   Connect saves nothing. Explicit Save copies changed records/prerequisites in one Vault transaction, rolling back new
   passwords on failure; originals remain unchanged. Host-key decisions stay in the live handshake.
+- External `ssh:`, `sftp:` and `telnet:` URLs create one process-only Host and Workspace on both platforms. They reuse
+  Known Hosts only: never saved Host/Identity/proxy/jump metadata, history or restoration. SSH/SFTP URL passwords and
+  SFTP text mode are rejected; RFC 4248 Telnet credentials are confirmed and consumed once. A legacy URI MD5 host-key
+  fingerprint is an additional handshake constraint, never sufficient trust and never persisted; unknown hosts still
+  show the SHA-256 trust form. SFTP v3 stats the URL path, opens directories, previews ordinary files and requires an
+  additional user action for executable content on macOS.
 
 ### Port Forwarding
 

@@ -71,6 +71,18 @@ struct MobileRootView: View {
         .onOpenURL(perform: scene.open)
         .focusedSceneValue(\.mobileScene, scene)
         .alert(
+            "Open Telnet Connection?",
+            isPresented: Binding(
+                get: { scene.pendingExternalConnection != nil },
+                set: { if !$0 { scene.pendingExternalConnection = nil } }
+            )
+        ) {
+            Button("Cancel", role: .cancel) { scene.pendingExternalConnection = nil }
+            Button("Continue") { scene.confirmExternalConnection() }
+        } message: {
+            Text("This link includes an advisory Telnet password. It will be used once and will not be saved.")
+        }
+        .alert(
             scene.isWorkspaceUnavailable
                 ? String(localized: "Workspace Unavailable") : String(localized: "Operation Failed"),
             isPresented: Binding(

@@ -79,6 +79,23 @@ struct MobileAppTests {
 
 @Suite @MainActor
 struct MobileWorkspaceTests {
+    @Test func externalConnectionWorkspaceIsEphemeralAndDoesNotTouchVault() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let request = try RemoteConnectionURLParser.parse(
+            #require(URL(string: "ssh://deploy@example.invalid:2222")))
+        let id = app.openExternalConnection(request)
+        let workspace = try #require(app.workspaces.first { $0.id == id })
+
+        #expect(workspace.isExternalTemporaryConnection)
+        #expect(workspace.descriptor.title == "example.invalid")
+        #expect(app.savedWorkspaceDescriptors.isEmpty)
+        #expect(app.library.hosts.isEmpty)
+
+        app.close(id)
+        #expect(app.workspaces.isEmpty)
+        #expect(app.savedWorkspaceDescriptors.isEmpty)
+    }
+
     @Test func liveActivitiesUseStableDistinctWorkspaceDestinations() {
         let first = MobileWorkspaceDescriptor(hostID: UUID(), title: "Server", kind: .ssh)
         var renamed = first

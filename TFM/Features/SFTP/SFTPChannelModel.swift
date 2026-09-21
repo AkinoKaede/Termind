@@ -173,6 +173,14 @@ final class SFTPChannelModel: Identifiable {
     private var didResolveHomeForConnection = false
     private let automaticRefreshInterval: Duration
     var connectionCoordinator: RemoteConnectionCoordinator?
+    private var transientHost: Host?
+    private var usernameHint: String?
+    private var connectionRoute: SSHConnectionRoute?
+    private var uriHostKeyFingerprint: SSHURIHostKeyFingerprint?
+    private var isExternalTemporaryConnection = false
+    private var externalResourcePath: String?
+    private var externalResourceMustBeDirectory = false
+    var openExternalFile: ((RemoteFile) -> Void)?
 
     init(
         hostID: Host.ID,
@@ -209,6 +217,21 @@ final class SFTPChannelModel: Identifiable {
 
     var reconnectState: ReconnectState? { connection.reconnectState }
     var allowsRemoteMutations: Bool { status == .connected }
+
+    func configureExternalConnection(
+        host: Host, username: String?, route: SSHConnectionRoute,
+        fingerprint: SSHURIHostKeyFingerprint?, resourcePath: String?,
+        mustBeDirectory: Bool, openFile: @escaping (RemoteFile) -> Void
+    ) {
+        transientHost = host
+        usernameHint = username
+        connectionRoute = route
+        uriHostKeyFingerprint = fingerprint
+        isExternalTemporaryConnection = true
+        externalResourcePath = resourcePath
+        externalResourceMustBeDirectory = mustBeDirectory
+        openExternalFile = openFile
+    }
     var displayedPath: String? {
         guard !homeResolution.isPending else { return nil }
         return displayPath(path)
@@ -244,6 +267,10 @@ final class SFTPChannelModel: Identifiable {
         guard !selection.contains(file.id) else { return false }
         selection = [file.id]
         return true
+    }
+
+    func revealExternalFile(_ file: RemoteFile) {
+        selection = [file.id]
     }
 
     func menuTargets(for file: RemoteFile) -> [RemoteFile] {
@@ -298,7 +325,7 @@ final class SFTPChannelModel: Identifiable {
         bindStatus(to: store)
         connectionTask?.cancel()
         connection.clearHostKeyPrompt()
-        guard let host = store.host(hostID) else {
+        guard let host = connectionHost(hostID, using: store) else {
             connection.stopRecovery()
             let message = String(localized: "The host is no longer available.")
             status = .failed(message)
@@ -308,7 +335,7 @@ final class SFTPChannelModel: Identifiable {
         }
         let attemptID = UUID()
         connectionAttemptID = attemptID
-        let route = store.route(for: host)
+        let route = connectionRoute?.hosts ?? store.route(for: host)
         let stagedAuthentication = suppliedAuthentications[host.id]
         connectionJourney.begin(
             host: host, route: route, purpose: .sftpChannel,
@@ -339,7 +366,10 @@ final class SFTPChannelModel: Identifiable {
             requestAuthentication(host: host, store: store)
             return
         }
-        let attemptAuthentications = suppliedAuthentications.takeAuthenticationSecrets()
+        var attemptAuthentications = suppliedAuthentications.takeAuthenticationSecrets()
+        if let usernameHint, attemptAuthentications[host.id] == nil {
+            attemptAuthentications[host.id] = SSHAuthenticationSubmission(username: usernameHint)
+        }
         let attemptProxyAuthentications = suppliedProxyAuthentications.takeProxyAuthenticationSecrets()
         let suppliedAuthentication = attemptAuthentications[host.id]
         status = reconnecting ? .reconnecting : .connecting
@@ -387,12 +417,17 @@ final class SFTPChannelModel: Identifiable {
                         expectedHostKeys: expectedHostKeys,
                         proxy: try store.transportProxy(
                             for: host, submission: attemptProxyAuthentications[host.id]),
-                        jumps: try store.sshJumpConfigurations(
+                        jumps: try connectionRoute.map {
+                            try store.sshJumpConfigurations(
+                                for: $0, submissions: attemptAuthentications,
+                                proxySubmissions: attemptProxyAuthentications,
+                                temporaryHostKeys: temporaryHostKeys,
+                                trustPolicy: .allowChallenge)
+                        } ?? store.sshJumpConfigurations(
                             for: host, submissions: attemptAuthentications,
                             proxySubmissions: attemptProxyAuthentications,
                             temporaryHostKeys: temporaryHostKeys,
-                            trustPolicy: .allowChallenge
-                        ),
+                            trustPolicy: .allowChallenge),
                         charset: host.charset,
                         authenticationReference: SSHAuthenticationReference(
                             identityID: suppliedAuthentication.identityID,
@@ -420,7 +455,9 @@ final class SFTPChannelModel: Identifiable {
                         authorizeHostKey: { [weak self, weak store] challenge in
                             guard let self, let store else { throw CancellationError() }
                             return await self.connection.authorizeHostKey(
-                                challenge, using: store
+                                challenge, using: store,
+                                uriFingerprint: self.uriHostKeyFingerprint,
+                                destinationHostID: self.hostID
                             )
                         },
                         keyboardInteractive: { [weak self] challenge in
@@ -470,7 +507,7 @@ final class SFTPChannelModel: Identifiable {
                     self.connectionJourney.hide()
                 }
                 self.hint = ""
-                await self.reload()
+                await self.openExternalResourceIfNeeded(using: client)
                 self.startAutomaticRefresh()
             } catch is CancellationError {
                 guard self.connectionAttemptID == attemptID else { return }
@@ -485,7 +522,7 @@ final class SFTPChannelModel: Identifiable {
             } catch let error as TermindSSHError where error.shouldRequestAuthentication {
                 guard self.connectionAttemptID == attemptID else { return }
                 let authenticationHost: Host
-                if let id = error.routeHostID, let jump = store.host(id) {
+                if let id = error.routeHostID, let jump = self.connectionHost(id, using: store) {
                     authenticationHost = jump
                 } else {
                     authenticationHost = host
@@ -614,6 +651,51 @@ final class SFTPChannelModel: Identifiable {
         navigationRouter?.sftpChannel(self, didChangePath: path)
     }
 
+    private func openExternalResourceIfNeeded(using client: any SFTPChannelProtocol) async {
+        guard let requested = externalResourcePath else {
+            await reload()
+            return
+        }
+        externalResourcePath = nil
+        let resolved: String
+        if requested == "/~" || requested.hasPrefix("/~/") {
+            guard case .resolved(let home) = homeResolution else {
+                operationError = String(localized: "The remote home directory is unavailable.")
+                return
+            }
+            resolved = requested == "/~" ? home : RemotePath.join(home, String(requested.dropFirst(3)))
+        } else {
+            resolved = RemotePath.normalized(requested)
+        }
+        do {
+            guard let resource = try await client.attributes(at: resolved) else {
+                operationError = String(localized: "The remote file is no longer available.")
+                return
+            }
+            if resource.isDirectory {
+                path = resource.path
+                pathText = resource.path
+                navigationRouter?.sftpChannel(self, didChangePath: path)
+                await reload()
+                return
+            }
+            guard !externalResourceMustBeDirectory else {
+                operationError = String(localized: "The SFTP link requires a directory, but its path is a file.")
+                path = RemotePath.parent(of: resource.path)
+                pathText = path
+                await reload()
+                return
+            }
+            path = RemotePath.parent(of: resource.path)
+            pathText = path
+            navigationRouter?.sftpChannel(self, didChangePath: path)
+            await reload()
+            openExternalFile?(resource)
+        } catch {
+            operationError = error.localizedDescription
+        }
+    }
+
     func trustAndConnect(_ observation: SSHHostKeyObservation, using store: any RemoteSessionHostStore) {
         connection.trustHostKey(observation, using: store)
     }
@@ -627,7 +709,7 @@ final class SFTPChannelModel: Identifiable {
         keyID: SSHKeyRef.ID?, save: Bool, using store: any RemoteSessionHostStore
     ) {
         guard let prompt = pendingAuthentication,
-            let host = store.host(prompt.host.id)
+            let host = connectionHost(prompt.host.id, using: store)
         else { return }
 
         let selectedIdentity = identityID.flatMap { store.identity($0) }
@@ -957,7 +1039,9 @@ final class SFTPChannelModel: Identifiable {
     }
 
     func recordOpenedFile(at path: String) {
-        historyStore?.record(kind: .file, path: path, for: hostID)
+        if !isExternalTemporaryConnection {
+            historyStore?.record(kind: .file, path: path, for: hostID)
+        }
     }
 
     func reopenHistoryFile(
@@ -1099,7 +1183,7 @@ final class SFTPChannelModel: Identifiable {
             selectedKeyID: selectedKeyID,
             failureMessage: failure,
             requiresPassphrase: needsPassphrase,
-            mode: mode
+            mode: mode, allowsSaving: !isExternalTemporaryConnection
         )
         status = .disconnected
         switch mode {
@@ -1137,7 +1221,8 @@ final class SFTPChannelModel: Identifiable {
                 host: proxy.hostname, port: proxy.port),
             selectedIdentityID: selectedIdentity?.id,
             username: staged?.username ?? proxy.username, failureMessage: failure,
-            mode: mode, target: .proxy(ownerHostID: host.id))
+            mode: mode, target: .proxy(ownerHostID: host.id),
+            allowsSaving: !isExternalTemporaryConnection)
         status = .disconnected
         connectionJourney.waitForProxyAuthentication(at: host.id, failure: failure)
     }
@@ -1170,7 +1255,7 @@ final class SFTPChannelModel: Identifiable {
         additionalSnapshot = nil
         status = .reconnecting
         hint = String(localized: "Reconnecting")
-        let host = store.host(hostID)
+        let host = connectionHost(hostID, using: store)
         connection.presentReconnectJourney(
             host: host, using: store, purpose: .sftpChannel,
             username: host.flatMap { store.identity(for: $0)?.username }
@@ -1182,6 +1267,10 @@ final class SFTPChannelModel: Identifiable {
         Task {
             if let transferContext { await transferContext.retire() } else { await client?.disconnect() }
         }
+    }
+
+    private func connectionHost(_ id: Host.ID, using store: any RemoteSessionHostStore) -> Host? {
+        connectionRoute?.host(id) ?? store.host(id) ?? (id == hostID ? transientHost : nil)
     }
 
     private func deleteRecursively(

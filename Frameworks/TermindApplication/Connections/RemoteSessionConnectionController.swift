@@ -124,7 +124,8 @@ public final class RemoteSessionConnectionController {
 
     public func authorizeHostKey(
         _ challenge: SSHHostKeyChallenge,
-        using store: any RemoteSessionHostStore
+        using store: any RemoteSessionHostStore,
+        uriFingerprintMatched: Bool = false
     ) async -> SSHHostKeyDecision {
         if challenge.expectedHostKeys.contains(challenge.observation.identity) {
             return .accept
@@ -143,7 +144,8 @@ public final class RemoteSessionConnectionController {
                 observation: challenge.observation,
                 kind: challenge.expectedHostKeys.isEmpty
                     ? .firstUse
-                    : .additionalKey(trustedKeyCount: challenge.expectedHostKeys.count)
+                    : .additionalKey(trustedKeyCount: challenge.expectedHostKeys.count),
+                uriFingerprintMatched: uriFingerprintMatched
             ),
             hostID: challenge.hostID,
             fingerprint: challenge.observation.fingerprint
@@ -161,6 +163,23 @@ public final class RemoteSessionConnectionController {
                 self?.cancelHostKeyAuthorization(id: authorizationID)
             }
         }
+    }
+
+    public func authorizeHostKey(
+        _ challenge: SSHHostKeyChallenge,
+        using store: any RemoteSessionHostStore,
+        uriFingerprint: SSHURIHostKeyFingerprint?,
+        destinationHostID: Host.ID
+    ) async -> SSHHostKeyDecision {
+        guard challenge.hostID == destinationHostID, let uriFingerprint else {
+            return await authorizeHostKey(challenge, using: store)
+        }
+        guard uriFingerprint.matches(challenge.observation) else { return .reject }
+        if !challenge.expectedHostKeys.isEmpty {
+            return challenge.expectedHostKeys.contains(challenge.observation.identity) ? .accept : .reject
+        }
+        return await authorizeHostKey(
+            challenge, using: store, uriFingerprintMatched: true)
     }
 
     public func waitForHostKey(

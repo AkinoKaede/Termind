@@ -413,8 +413,15 @@ extension Pane {
                 )))
     }
 
-    static func telnetSession(host: Host) -> Pane {
-        let session = TelnetSessionModel(host: host)
+    static func telnetSession(
+        host: Host, usernameHint: String? = nil,
+        advisoryPassword: SSHSecret? = nil,
+        isExternalTemporaryConnection: Bool = false
+    ) -> Pane {
+        let session = TelnetSessionModel(
+            host: host, usernameHint: usernameHint,
+            advisoryPassword: advisoryPassword,
+            isExternalTemporaryConnection: isExternalTemporaryConnection)
         session.status = ConnectionStatus.connecting
         return Pane(.telnetSession(session))
     }

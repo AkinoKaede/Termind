@@ -8,15 +8,22 @@ public nonisolated struct SSHHostKeyObservation: Hashable, Sendable {
     public var port: Int
     public var algorithm: SSHKeyAlgorithm
     public var fingerprint: String
+    /// The legacy MD5 digest used only to validate provisional SSH/SFTP URI fingerprints.
+    /// Persistent trust and user presentation continue to use `fingerprint` (SHA-256).
+    public var legacyMD5Fingerprint: Data?
 
     public var identity: SSHHostKeyIdentity {
         SSHHostKeyIdentity(algorithm: algorithm, fingerprint: fingerprint)
     }
-    public init(hostname: String, port: Int, algorithm: SSHKeyAlgorithm, fingerprint: String) {
+    public init(
+        hostname: String, port: Int, algorithm: SSHKeyAlgorithm, fingerprint: String,
+        legacyMD5Fingerprint: Data? = nil
+    ) {
         self.hostname = hostname
         self.port = port
         self.algorithm = algorithm
         self.fingerprint = fingerprint
+        self.legacyMD5Fingerprint = legacyMD5Fingerprint
     }
 
 }
@@ -219,9 +226,14 @@ public nonisolated struct SSHHostKeyPrompt: Hashable, Sendable {
 
     public var observation: SSHHostKeyObservation
     public var kind: Kind
-    public init(observation: SSHHostKeyObservation, kind: Kind) {
+    public var uriFingerprintMatched: Bool
+    public init(
+        observation: SSHHostKeyObservation, kind: Kind,
+        uriFingerprintMatched: Bool = false
+    ) {
         self.observation = observation
         self.kind = kind
+        self.uriFingerprintMatched = uriFingerprintMatched
     }
 
 }

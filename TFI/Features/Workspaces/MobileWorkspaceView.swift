@@ -89,6 +89,10 @@ struct MobileWorkspaceView: View {
                 cancelDropLoading()
             }
             .onChange(of: workspace.uploadDestination) { _, _ in cancelDropLoading() }
+            .onChange(of: workspace.pendingExternalPreviewURL, initial: true) { _, url in
+                guard url != nil, let preview = workspace.consumePendingExternalPreviewURL() else { return }
+                presentPreview(preview)
+            }
             .onChange(of: scenePhase) { _, phase in
                 if phase != .active { openWithPresenter.isEnabled = false }
                 if phase == .active { TerminalFontCatalog.shared.refresh() }

@@ -150,6 +150,8 @@ final class SSHSessionModel: Identifiable {
     private(set) var transferSnapshot: SSHAdditionalConnectionSnapshot?
     private var latestViewport = InMemoryTerminalViewport(columns: 80, rows: 24)
     var connectionRoute: SSHConnectionRoute?
+    var uriHostKeyFingerprint: SSHURIHostKeyFingerprint?
+    var isExternalTemporaryConnection = false
     private var transientHost: Host?
     private var usernameHint: String?
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
@@ -608,7 +610,9 @@ final class SSHSessionModel: Identifiable {
                     authorizeHostKey: { [weak self, weak store] challenge in
                         guard let self, let store else { throw CancellationError() }
                         return await self.connection.authorizeHostKey(
-                            challenge, using: store
+                            challenge, using: store,
+                            uriFingerprint: self.uriHostKeyFingerprint,
+                            destinationHostID: self.hostID
                         )
                     }
                 )
@@ -981,7 +985,8 @@ final class SSHSessionModel: Identifiable {
             username: username,
             selectedKeyID: selectedKeyID,
             failureMessage: failureMessage?.isEmpty == false ? failureMessage : nil,
-            requiresPassphrase: requiresPassphrase, mode: mode
+            requiresPassphrase: requiresPassphrase, mode: mode,
+            allowsSaving: !isExternalTemporaryConnection
         )
         status = .disconnected
         switch mode {
@@ -1026,7 +1031,8 @@ final class SSHSessionModel: Identifiable {
             selectedIdentityID: selectedIdentity?.id,
             username: staged?.username ?? proxy.username,
             failureMessage: failureMessage, mode: mode,
-            target: .proxy(ownerHostID: host.id))
+            target: .proxy(ownerHostID: host.id),
+            allowsSaving: !isExternalTemporaryConnection)
         status = .disconnected
         connectionJourney.waitForProxyAuthentication(at: host.id, failure: failureMessage)
     }
@@ -1072,6 +1078,8 @@ final class SSHSessionModel: Identifiable {
         let host = transientHost ?? Host(id: hostID, name: title, host: title)
         let copy = SSHSessionModel(host: host, usernameHint: usernameHint)
         copy.connectionRoute = connectionRoute
+        copy.uriHostKeyFingerprint = uriHostKeyFingerprint
+        copy.isExternalTemporaryConnection = isExternalTemporaryConnection
         copy.connectionCoordinator = connectionCoordinator
         copy.commandHistoryStore = commandHistoryStore
         return copy

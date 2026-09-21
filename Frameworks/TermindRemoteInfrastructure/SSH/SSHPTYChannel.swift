@@ -1731,6 +1731,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
             throw connectionError(session, prefix: "The server did not provide a host-key fingerprint")
         }
         let digest = Data(bytes: hash, count: 32).base64EncodedString().replacingOccurrences(of: "=", with: "")
+        let legacyMD5Fingerprint = libssh2_hostkey_hash(session, Int32(LIBSSH2_HOSTKEY_HASH_MD5)).map {
+            Data(bytes: $0, count: 16)
+        }
         var length = 0
         var type = Int32(LIBSSH2_HOSTKEY_TYPE_UNKNOWN)
         _ = libssh2_session_hostkey(session, &length, &type)
@@ -1746,7 +1749,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         }
         return SSHHostKeyObservation(
             hostname: host, port: port, algorithm: algorithm,
-            fingerprint: "SHA256:\(digest)"
+            fingerprint: "SHA256:\(digest)", legacyMD5Fingerprint: legacyMD5Fingerprint
         )
     }
 
@@ -1765,21 +1768,22 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         hostID: Host.ID, observed: SSHHostKeyObservation,
         expected: Set<SSHHostKeyIdentity>, authorizer: SSHHostKeyAuthorizer?
     ) async throws {
-        if expected.contains(observed.identity) { return }
-        guard let authorizer else {
-            if expected.isEmpty { throw TermindSSHError.untrustedHost }
-            throw TermindSSHError.hostKeyChanged(
-                expected: expected.map(\.fingerprint).sorted(),
-                received: observed.fingerprint
+        if let authorizer {
+            let decision = try await authorizer(
+                SSHHostKeyChallenge(
+                    hostID: hostID, observation: observed,
+                    expectedHostKeys: expected
+                )
             )
+            guard decision == .accept else { throw CancellationError() }
+            return
         }
-        let decision = try await authorizer(
-            SSHHostKeyChallenge(
-                hostID: hostID, observation: observed,
-                expectedHostKeys: expected
-            )
+        if expected.contains(observed.identity) { return }
+        if expected.isEmpty { throw TermindSSHError.untrustedHost }
+        throw TermindSSHError.hostKeyChanged(
+            expected: expected.map(\.fingerprint).sorted(),
+            received: observed.fingerprint
         )
-        guard decision == .accept else { throw CancellationError() }
     }
 
     public static func performHandshake(

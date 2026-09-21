@@ -202,6 +202,7 @@ struct RootView: View {
             app.onboarding.windowBecameActive(window)
             considerOnboarding()
         }
+        .modifier(ExternalConnectionURLPresenter(app: app, window: window))
         .onChange(of: app.proAccess.status) { app.reconcileProAccess() }
         .onChange(of: onboardingContext) { considerOnboarding() }
         .onChange(of: app.onboarding.revision) { considerOnboarding() }
@@ -386,6 +387,39 @@ struct RootView: View {
 
     private var isAssistantFullScreen: Bool {
         window.selectedDestination == .assistant
+    }
+}
+
+private struct ExternalConnectionURLPresenter: ViewModifier {
+    let app: AppModel
+    let window: WindowModel
+
+    func body(content: Content) -> some View {
+        content
+            .onOpenURL { app.openExternalConnection($0, in: window) }
+            .alert(
+                "Open Telnet Connection?",
+                isPresented: Binding(
+                    get: { window.pendingExternalConnection != nil },
+                    set: { if !$0 { window.pendingExternalConnection = nil } }
+                )
+            ) {
+                Button("Cancel", role: .cancel) { window.pendingExternalConnection = nil }
+                Button("Continue") { app.confirmExternalConnection(in: window) }
+            } message: {
+                Text("This link includes an advisory Telnet password. It will be used once and will not be saved.")
+            }
+            .alert(
+                "Connection Link Failed",
+                isPresented: Binding(
+                    get: { window.externalConnectionError != nil },
+                    set: { if !$0 { window.externalConnectionError = nil } }
+                )
+            ) {
+                Button("OK") { window.externalConnectionError = nil }
+            } message: {
+                Text(window.externalConnectionError ?? "")
+            }
     }
 }
 
