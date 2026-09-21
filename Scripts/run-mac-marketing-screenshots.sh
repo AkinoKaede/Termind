@@ -13,6 +13,12 @@ marketing_scenes="${TERMIND_MAC_MARKETING_SCENES:-workspace}"
 marketing_locales="${TERMIND_MAC_MARKETING_LOCALES:-en,zh-Hans,zh-Hant}"
 local_test_pid=""
 
+macos_version="$(sw_vers -productVersion)"
+if [[ "$macos_version" != 27.* ]]; then
+    print -u2 "Mac marketing screenshots require macOS 27.x; current version is $macos_version"
+    exit 69
+fi
+
 cleanup() {
     if [[ -n "$local_test_pid" ]]; then
         kill "$local_test_pid" 2>/dev/null || true
@@ -92,36 +98,35 @@ capture() {
         -only-testing:TFMTests/MacMarketingScreenshotTests \
         test-without-building > "$test_log" 2>&1 &
     local_test_pid=$!
-    local ready_path=""
+    local ready_payload=""
 
     for _ in {1..600}; do
-        ready_path="$(
+        ready_payload="$(
             rg -o 'TERMIND_MAC_MARKETING_READY .*' "$test_log" \
                 | tail -n 1 \
                 | sed 's/TERMIND_MAC_MARKETING_READY //' \
                 || true
         )"
-        [[ -n "$ready_path" && -f "$ready_path" ]] && break
+        [[ -n "$ready_payload" ]] && break
         if ! kill -0 "$local_test_pid" 2>/dev/null; then
             tail -n 100 "$test_log" >&2
             exit 70
         fi
         sleep 0.1
     done
-    if [[ -z "$ready_path" || ! -f "$ready_path" ]]; then
+    if [[ -z "$ready_payload" ]]; then
         tail -n 100 "$test_log" >&2
         exit 70
     fi
 
     local captured_scene captured_language window_id token active key
-    IFS=$'\t' read -r captured_scene captured_language window_id token active key < "$ready_path"
+    IFS=$'\t' read -r captured_scene captured_language window_id token active key <<< "$ready_payload"
     if [[ "$captured_scene" != "$scene" || "$captured_language" != "$language" || "$active" != active || "$key" != key ]]; then
-        print -u2 "Capture window was not ready and focused: $(<"$ready_path")"
+        print -u2 "Capture window was not ready and focused: $ready_payload"
         exit 70
     fi
 
     screencapture -l "$window_id" -o "$captured"
-    touch "${ready_path:h}/ack-$token"
     if ! wait "$local_test_pid"; then
         tail -n 100 "$test_log" >&2
         exit 70

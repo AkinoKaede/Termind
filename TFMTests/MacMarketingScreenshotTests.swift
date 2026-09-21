@@ -53,30 +53,20 @@ import Testing
             try #require(NSApp.isActive && window.isKeyWindow)
             try #require(window.backingScaleFactor == 2)
 
-            let control = FileManager.default.temporaryDirectory.appending(path: "marketing-capture-control")
-            try FileManager.default.createDirectory(at: control, withIntermediateDirectories: true)
             let token = UUID().uuidString
-            let ready = control.appending(path: "ready")
             let scene = configuration.scene.rawValue
             let language = configuration.language.rawValue
-            try "\(scene)\t\(language)\t\(window.windowNumber)\t\(token)\tactive\tkey\n".write(
-                to: ready, atomically: true, encoding: .utf8)
             FileHandle.standardOutput.write(
-                Data("TERMIND_MAC_MARKETING_READY \(ready.path)\n".utf8)
+                Data(
+                    "TERMIND_MAC_MARKETING_READY \(scene)\t\(language)\t\(window.windowNumber)\t\(token)\tactive\tkey\n"
+                        .utf8)
             )
 
-            let acknowledgement = control.appending(path: "ack-\(token)")
-            for _ in 0..<600 {
-                if FileManager.default.fileExists(atPath: acknowledgement.path) {
-                    #expect(NSApp.isActive && window.isKeyWindow, "Capture window lost focus before acknowledgement")
-                    try? FileManager.default.removeItem(at: acknowledgement)
-                    try? FileManager.default.removeItem(at: ready)
-                    return
-                }
-                try await Task.sleep(for: .milliseconds(50))
-            }
-            try? FileManager.default.removeItem(at: ready)
-            Issue.record("Timed out waiting for the macOS marketing screenshot capture")
+            // Keep the key window alive long enough for the runner to observe the
+            // marker and capture it. macOS 27 prevents the runner from reading or
+            // acknowledging files inside another app's container.
+            try await Task.sleep(for: .seconds(5))
+            #expect(NSApp.isActive && window.isKeyWindow, "Capture window lost focus before the capture interval ended")
         }
     }
 #endif

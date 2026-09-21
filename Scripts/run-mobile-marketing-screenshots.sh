@@ -10,7 +10,15 @@ derived_data="$repository_directory/.build/mobile-marketing-screenshots"
 marketing_xctestrun="$derived_data/Build/Products/Marketing-TFI.xctestrun"
 marketing_scenes="${TERMIND_MARKETING_SCENES:-}"
 marketing_devices="${TERMIND_MARKETING_DEVICES:-iphone,ipad}"
-marketing_runtime="${TERMIND_MARKETING_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-26-5}"
+marketing_runtime="${TERMIND_MARKETING_RUNTIME:-com.apple.CoreSimulator.SimRuntime.iOS-27-0}"
+
+case "$marketing_runtime" in
+    com.apple.CoreSimulator.SimRuntime.iOS-27-*) ;;
+    *)
+        print -u2 "Marketing screenshots require an iOS/iPadOS 27 runtime: $marketing_runtime"
+        exit 64
+        ;;
+esac
 
 expected_capture_count() {
     if [[ -z "$marketing_scenes" ]]; then

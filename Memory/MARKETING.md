@@ -38,14 +38,16 @@ TERMIND_MARKETING_SCENES=assistant TERMIND_MARKETING_DEVICES=ipad \
 | iPhone 17 Pro Max | Portrait, 1320×2868 | vault, sftp, ssh, metrics, assistant |
 | iPad Pro 13-inch (M5) | Landscape, 2752×2064 | same |
 
-Three locales yield 30 captures. Default runtime is iOS/iPadOS 26.5; `TERMIND_MARKETING_RUNTIME` explicitly overrides it,
-never silently select a newer same-name device. iPad-only runs do not require an iPhone. Each locale is a separate process
+Three locales yield 30 captures. Screenshots require iOS/iPadOS 27 and default to the 27.0 runtime;
+`TERMIND_MARKETING_RUNTIME` may select another 27.x runtime, but never a different major version or a silently newer
+same-name device. iPad-only runs do not require an iPhone. Each locale is a separate process
 with matching Apple language/region/locale and fixture language. Status is deterministic 9:41/charged/Wi-Fi/cellular;
 iPhone uses scene-requested portrait plus simctl capture; iPad uses devicectl landscape capture/dimension validation, no rotation.
 
 Fixtures follow production Vault/Metrics/Workspaces/Assistant/Settings order. iPad Metrics shows top tabs, Vault/Assistant
 expanded sidebar; SSH/SFTP use `MobileRootView`/production Workspace pages with in-memory connection services, Workspaces
-selected/sidebar collapsed. Do not use legacy iPhone wrappers for iPad. The approved SSH/SFTP topbar set uses iPadOS 27.0:
+selected/sidebar collapsed. Do not use legacy iPhone wrappers for iPad. The approved screenshot baseline uses
+iOS/iPadOS 27.0:
 
 ```sh
 TERMIND_MARKETING_SCENES=ssh,sftp TERMIND_MARKETING_DEVICES=ipad \
@@ -61,7 +63,8 @@ all nine first boards.
 
 `TFMTests/MacMarketingScreenshotTests.swift` captures the production WindowGroup with `ScreenshotDemoConfiguration`, never
 a second RootView/terminal/transcript. It verifies app active + key window before/after capture, 300 ms focused rendering
-and native 2× scale. The runner backs up replaced raws under `.build/screenshot-backups/<timestamp>/`.
+and native 2× scale. The runner requires macOS 27.x and backs up replaced raws under
+`.build/screenshot-backups/<timestamp>/`.
 
 ```sh
 Scripts/run-mac-marketing-screenshots.sh # Workspace, all locales
@@ -72,8 +75,8 @@ TERMIND_MAC_MARKETING_SCENES=agent TERMIND_MAC_MARKETING_LOCALES=zh-Hant \
 
 Scene mapping: hosts → vault/mac, workspace → workspace/mac, agent → assistant/mac, command → command-generator/mac,
 metrics → metrics/mac-overview. Metrics detail is a development demo, not a marketing export. Locale selectors are
-`en`, `zh-Hans`, `zh-Hant`. Pinned build → serial locale launches → key-window marker → system capture by window number →
-remove only optional two-pixel transparent edge → acknowledgement/dimensions. Raw size 2360×1480, command 2044×1280.
+`en`, `zh-Hans`, `zh-Hant`. Pinned build → serial locale launches → stdout key-window marker → system capture by window
+number → remove only optional two-pixel transparent edge → completion/dimensions. Raw size 2360×1480, command 2044×1280.
 SFTP chrome/file metadata localize; terminal transcripts do not.
 
 ## Device frames and website
@@ -162,6 +165,12 @@ git diff --check
 Visually check formal/compatibility routes, Apple CTA, unclipped real device chrome, current production SFTP/navigation,
 Mac key-window appearance, owned background, Chinese fonts/terminology and 54 final exports. Capture success is not a
 full regression-suite pass; never adjust production behavior/unrelated assertions to satisfy marketing fixtures.
+
+The macOS 27 refresh on 2026-09-22 recaptured all 15 Mac sources, regenerated the three Mac Workspace frames, replaced
+24 Figma image nodes, and exported 24 affected App Store JPGs: all 18 Mac boards plus all six iPhone/iPad first boards.
+The Vault sources and boards no longer show “Host key changed.” All 54 exports retained their required dimensions; the
+24 changed files are opaque RGB JPEGs with embedded sRGB profiles. The capture runner, strict formatting, localization,
+script syntax, Astro build, Figma render review, and three-locale contact-sheet review passed.
 
 Historical evidence is in local `.build/marketing-forwarding-refresh/` and `.build/marketing-topbar-refresh/` when retained,
 not guaranteed repository artifacts. The latest recorded topbar refresh (2026-09-19) left 45 raws, 33 frames and 54 JPGs;
