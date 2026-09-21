@@ -10,6 +10,26 @@ import Testing
 
 @Suite @MainActor
 struct MobileVaultFeatureTests {
+    @Test func appDefaultsNewCredentialsToThisDeviceWhenVaultSyncIsOff() throws {
+        let domain = "MobileVaultCredentialDefaults.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)
+        let app = try MobileAppModel(inMemory: true, defaults: defaults)
+        defer { app.outbox.stop() }
+
+        #expect(app.newVaultKeyStorage == .thisDevice)
+        #expect(app.newVaultPasswordStorage == .thisDevice)
+        let generator = MobileKeyEditorModel(
+            mode: .generate,
+            credentials: app.credentials,
+            defaultStorage: app.newVaultKeyStorage)
+        #expect(generator.storage == .thisDevice)
+
+        generator.storage = .iCloud
+        #expect(generator.storage == .iCloud)
+    }
+
     @Test func hostMenuSeparatesConnectionEditingAndDeletionActions() {
         #expect(
             MobileHostMenuPolicy.sections == [

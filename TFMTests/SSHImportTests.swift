@@ -28,6 +28,26 @@ struct SSHImportTests {
     }
 
     @Test
+    func appDefaultsNewCredentialsAndSSHImportToThisMacWhenVaultSyncIsOff() throws {
+        let domain = "SSHImportDefaults.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        defaults.set(false, forKey: SettingsKey.vaultSyncEnabled)
+        let hosts = HostLibraryModel()
+        let app = AppModel(
+            hosts: hosts,
+            dependencies: AppDependencies(
+                hostRepository: InMemoryHostRepository(),
+                outboxRunner: nil,
+                settingsDefaults: defaults))
+        defer { app.shutdownForTermination() }
+
+        #expect(app.newVaultKeyStorage == .thisDevice)
+        #expect(app.newVaultPasswordStorage == .thisDevice)
+        #expect(app.makeSSHImportModel().storage == .thisDevice)
+    }
+
+    @Test
     func hashedKeysMatchPortsAndSurvivePersistenceWithoutHosts() throws {
         let entry = KnownHostEntry(hostname: hash("[2001:db8::1]:2222"), fingerprint: "SHA256:key")
         let decoded = try JSONDecoder().decode(KnownHostEntry.self, from: JSONEncoder().encode(entry))

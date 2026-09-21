@@ -68,6 +68,7 @@ final class MobileAppModel {
     let liveActivities: MobileLiveActivityController
     @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
     private let defaults: UserDefaults?
+    private let settingsDefaults: UserDefaults
     private let snippetTimestampFallback: Date
     private let background: any MobileBackgroundTaskManaging
     private let workspaceConnectionServices: MobileWorkspaceConnectionServices
@@ -139,7 +140,10 @@ final class MobileAppModel {
                 accessGroup: Bundle.main.object(forInfoDictionaryKey: "TermindKeychainAccessGroup") as? String
                     ?? "F6SUNDBBN9.com.akinokaede.termind")
         let settingsDefaults =
-            memoryOnly ? UserDefaults(suiteName: "termind.tests.\(UUID().uuidString)")! : defaults ?? .standard
+            memoryOnly
+            ? defaults ?? UserDefaults(suiteName: "termind.tests.\(UUID().uuidString)")!
+            : defaults ?? .standard
+        self.settingsDefaults = settingsDefaults
         SettingsKey.migrateSyncPreferences(in: settingsDefaults)
         let settingsPersistence = SettingsSyncPersistence(context: ModelContext(container), defaults: settingsDefaults)
         try settingsPersistence.prepare()
@@ -262,6 +266,18 @@ final class MobileAppModel {
             self?.metrics.core.applyRemoteSnapshot(snapshot)
         }
         loadRecentWorkspaces()
+    }
+
+    var newVaultKeyStorage: KeyStorage {
+        NewVaultCredentialStorage.keyStorage(
+            defaults: settingsDefaults,
+            canUseVaultSync: pro.canUse(.vaultSync))
+    }
+
+    var newVaultPasswordStorage: PasswordStorage {
+        NewVaultCredentialStorage.passwordStorage(
+            defaults: settingsDefaults,
+            canUseVaultSync: pro.canUse(.vaultSync))
     }
 
     func open(

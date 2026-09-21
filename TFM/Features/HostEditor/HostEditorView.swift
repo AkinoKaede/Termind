@@ -233,7 +233,10 @@ struct HostEditorView: View {
     private func destination(_ route: Route) -> some View {
         switch route {
         case .identity:
-            NewIdentitySheet(back: closeNestedEditor) { identity, passwordUpdate in
+            NewIdentitySheet(
+                defaultPasswordStorage: app.newVaultPasswordStorage,
+                back: closeNestedEditor
+            ) { identity, passwordUpdate in
                 try app.hostLibrary.upsert(identity, passwordUpdate: passwordUpdate)
                 draft.identityID = identity.id
             }
@@ -243,7 +246,11 @@ struct HostEditorView: View {
                 draft.groupID = group.id
             }
         case .proxyIdentity:
-            NewIdentitySheet(configuration: .proxy, back: closeNestedEditor) {
+            NewIdentitySheet(
+                configuration: .proxy,
+                defaultPasswordStorage: app.newVaultPasswordStorage,
+                back: closeNestedEditor
+            ) {
                 identity, passwordUpdate in
                 try app.hostLibrary.upsert(identity, passwordUpdate: passwordUpdate)
                 draft.proxy?.identityID = identity.id

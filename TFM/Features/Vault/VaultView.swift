@@ -53,6 +53,7 @@ struct VaultWorkDetailView: View {
         case .identityEditor(let id):
             NewIdentitySheet(
                 identity: id.flatMap(app.hostLibrary.identity),
+                defaultPasswordStorage: app.newVaultPasswordStorage,
                 create: { identity, password in
                     try app.hostLibrary.upsert(identity, passwordUpdate: password)
                     window.selectVaultItem(.identity(identity.id), on: .keychain)

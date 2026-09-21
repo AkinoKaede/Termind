@@ -75,6 +75,7 @@ struct NewIdentitySheet: View {
     init(
         identity: Identity? = nil,
         configuration: IdentityEditorConfiguration = .standard,
+        defaultPasswordStorage: PasswordStorage = .iCloud,
         back: (() -> Void)? = nil,
         create: @escaping (Identity, IdentityPasswordUpdate) throws -> Void,
         close: (() -> Void)? = nil
@@ -86,7 +87,7 @@ struct NewIdentitySheet: View {
         requestedBack = back
         _name = State(initialValue: identity?.name ?? "")
         _username = State(initialValue: identity?.username ?? "")
-        _passwordStorage = State(initialValue: identity?.passwordStorage ?? .iCloud)
+        _passwordStorage = State(initialValue: identity?.passwordStorage ?? defaultPasswordStorage)
         _keyID = State(initialValue: identity?.keyID)
         _colorTag = State(initialValue: identity?.colorTag ?? .none)
     }

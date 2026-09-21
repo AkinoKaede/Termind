@@ -124,7 +124,8 @@ struct TermindApp: App {
                         vaultSync: vaultSync, settingsSync: settingsSync,
                         metricsSync: metricsSync, metricsPreferences: metricsPersistence,
                         mcpServerSecrets: secrets,
-                        logging: logging
+                        logging: logging,
+                        settingsDefaults: .standard
                     ),
                     proAccess: proAccess,
                     appReview: .live(),

@@ -76,14 +76,20 @@ struct MobileCredentialsView: View {
         .toolbar {
             Menu {
                 Button("Generate Key", systemImage: "key") {
-                    keyEditor = MobileKeyEditorModel(mode: .generate, credentials: app.credentials)
+                    keyEditor = MobileKeyEditorModel(
+                        mode: .generate, credentials: app.credentials,
+                        defaultStorage: app.newVaultKeyStorage)
                 }
                 Button("Import Key", systemImage: "square.and.arrow.down") {
-                    keyEditor = MobileKeyEditorModel(mode: .importKey, credentials: app.credentials)
+                    keyEditor = MobileKeyEditorModel(
+                        mode: .importKey, credentials: app.credentials,
+                        defaultStorage: app.newVaultKeyStorage)
                 }
                 Divider()
                 Button("New Identity", systemImage: "person.crop.circle.badge.plus") {
-                    editing = Identity(name: "", username: "")
+                    editing = Identity(
+                        name: "", username: "",
+                        passwordStorage: app.newVaultPasswordStorage)
                 }
             } label: {
                 Label("Add", systemImage: "plus").labelStyle(.iconOnly)

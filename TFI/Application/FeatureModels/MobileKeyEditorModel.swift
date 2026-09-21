@@ -39,12 +39,17 @@ final class MobileKeyEditorModel: Identifiable {
     private var originalPrivateKey = ""
     private var didLoadPrivateKey: Bool
 
-    init(mode: Mode, credentials: CredentialLibraryModel, key: SSHKeyRef? = nil) {
+    init(
+        mode: Mode,
+        credentials: CredentialLibraryModel,
+        key: SSHKeyRef? = nil,
+        defaultStorage: KeyStorage = .iCloud
+    ) {
         self.mode = mode
         self.credentials = credentials
         original = key
         label = key?.label ?? ""
-        storage = key?.storage ?? .iCloud
+        storage = key?.storage ?? defaultStorage
         certificate = key?.certificate ?? ""
         colorTag = key?.colorTag ?? .none
         let availability = key.map { credentials.keyAvailability(for: $0) }

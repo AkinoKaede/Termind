@@ -20,6 +20,7 @@ struct AppDependencies {
     let metricsPreferences: (any MetricsConfigurationStoring)?
     let mcpServerSecrets: any SecretStoring
     let logging: any ApplicationLogManaging
+    let settingsDefaults: UserDefaults
 
     init(
         hostRepository: any HostRepository, outboxRunner: OutboxRunner?,
@@ -31,7 +32,8 @@ struct AppDependencies {
         metricsSync: MetricsSyncCoordinator? = nil,
         metricsPreferences: (any MetricsConfigurationStoring)? = nil,
         mcpServerSecrets: any SecretStoring = InMemorySecretStore(),
-        logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared
+        logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared,
+        settingsDefaults: UserDefaults = .standard
     ) {
         self.hostRepository = hostRepository
         self.outboxRunner = outboxRunner
@@ -44,14 +46,18 @@ struct AppDependencies {
         self.metricsPreferences = metricsPreferences
         self.mcpServerSecrets = mcpServerSecrets
         self.logging = logging
+        self.settingsDefaults = settingsDefaults
     }
 
     static func inMemory(hosts: [Host], groups: [HostGroup]) -> Self {
-        Self(
+        let defaults = UserDefaults(suiteName: "termind.tests.\(UUID().uuidString)")!
+        SettingsKey.migrateSyncPreferences(in: defaults)
+        return Self(
             hostRepository: InMemoryHostRepository(
                 snapshot: HostLibrarySnapshot(hosts: hosts, groups: groups)
             ),
-            outboxRunner: nil
+            outboxRunner: nil,
+            settingsDefaults: defaults
         )
     }
 }

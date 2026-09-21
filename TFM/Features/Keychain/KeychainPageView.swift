@@ -324,7 +324,9 @@ struct KeychainImportDetail: View {
     var body: some View {
         SoftwareKeyEditor(
             title: "Import Key", symbol: "square.and.arrow.down",
-            close: window.closeVaultWork, save: save
+            close: window.closeVaultWork,
+            defaultStorage: app.newVaultKeyStorage,
+            save: save
         )
     }
 
@@ -390,6 +392,7 @@ private struct SoftwareKeyEditor: View {
     init(
         existing: SSHKeyRef? = nil, title: LocalizedStringKey,
         symbol: String, close: @escaping () -> Void,
+        defaultStorage: KeyStorage = .iCloud,
         loadPrivateKey: (() throws -> String)? = nil,
         saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)? = nil,
         save:
@@ -406,7 +409,7 @@ private struct SoftwareKeyEditor: View {
         self.save = save
         _name = State(initialValue: existing?.label ?? "")
         _colorTag = State(initialValue: existing?.colorTag ?? .none)
-        _storage = State(initialValue: existing?.storage ?? .iCloud)
+        _storage = State(initialValue: existing?.storage ?? defaultStorage)
         _certificate = State(initialValue: existing?.certificate ?? "")
         _isLoading = State(initialValue: loadPrivateKey != nil)
     }
@@ -759,7 +762,10 @@ struct KeychainGenerateDetail: View {
     @Environment(WindowModel.self) private var window
 
     var body: some View {
-        GenerateKeySheet(generate: generate, close: window.closeVaultWork)
+        GenerateKeySheet(
+            defaultStorage: app.newVaultKeyStorage,
+            generate: generate,
+            close: window.closeVaultWork)
     }
 
     private func generate(
@@ -828,7 +834,7 @@ private struct GenerateKeySheet: View {
 
     @State private var label = ""
     @State private var colorTag = TagColor.none
-    @State private var storage = KeyStorage.iCloud
+    @State private var storage: KeyStorage
     @State private var kind = Kind.ed25519
     @State private var curveBits = 256
     @State private var rsaBits = 3072
@@ -845,6 +851,20 @@ private struct GenerateKeySheet: View {
         .iCloud,
         .secureEnclave,
     ]
+
+    init(
+        defaultStorage: KeyStorage = .iCloud,
+        generate:
+            @escaping (
+                String, TagColor, SSHKeyMaterial.Generation, String?, SSHKeyMaterial.Cipher, Int,
+                KeyStorage, Bool
+            ) async throws -> SSHKeyRef,
+        close: @escaping () -> Void
+    ) {
+        self.generate = generate
+        self.close = close
+        _storage = State(initialValue: defaultStorage)
+    }
 
     private var generation: SSHKeyMaterial.Generation {
         if storage == .secureEnclave { return .ecdsa(bits: 256) }

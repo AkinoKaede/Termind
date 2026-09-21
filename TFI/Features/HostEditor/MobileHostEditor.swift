@@ -128,13 +128,19 @@ struct MobileHostEditor: View {
             switch route {
             case .hostIdentity:
                 MobileIdentityEditor(
-                    app: app, identity: Identity(name: "", username: "")
+                    app: app,
+                    identity: Identity(
+                        name: "", username: "",
+                        passwordStorage: app.newVaultPasswordStorage)
                 ) { identity in
                     draft = MobileHostEditorPolicy.selectIdentity(identity, current: draft)
                 }
             case .proxyIdentity:
                 MobileIdentityEditor(
-                    app: app, identity: Identity(name: "", username: ""),
+                    app: app,
+                    identity: Identity(
+                        name: "", username: "",
+                        passwordStorage: app.newVaultPasswordStorage),
                     configuration: .proxy
                 ) { identity in
                     draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(identity, current: draft.proxy)

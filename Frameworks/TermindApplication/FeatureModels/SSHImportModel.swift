@@ -7,7 +7,7 @@ import struct TermindDomain.Host
 public final class SSHImportModel {
     public var items: [SSHImportItem] = []
     public var expanded = Set(SSHImportCategory.allCases)
-    public var storage: PasswordStorage = .iCloud
+    public var storage: PasswordStorage
     public var importColor: TagColor = .none
     public var hostGroupID: HostGroup.ID?
     public var hostTags: [String] = []
@@ -36,10 +36,16 @@ public final class SSHImportModel {
         var keyID: UUID?
     }
 
-    public init(library: HostLibraryModel, reader: any SSHImportReading, defaultUsername: String = "") {
+    public init(
+        library: HostLibraryModel,
+        reader: any SSHImportReading,
+        defaultUsername: String = "",
+        storage: PasswordStorage = .iCloud
+    ) {
         self.defaultUsername = defaultUsername
         self.library = library
         self.reader = reader
+        self.storage = storage
     }
 
     public func scan(_ url: URL, knownHostsOnly: Bool) async {

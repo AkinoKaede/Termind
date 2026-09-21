@@ -106,7 +106,8 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   Keychain metadata without reading secret data; the legacy software-Key JSON envelope is parsed strictly and fails closed.
 - Saved iCloud Passwords and software Keys cannot be moved to device-only storage: editors disable that destination and
   application writes reject it before touching Keychain. New credentials may start device-only, and device-only credentials
-  may move to iCloud.
+  may move to iCloud. New Key and Identity storage pickers default to iCloud only while the master iCloud switch, Vault
+  selection and Pro access are all enabled; otherwise they default to this device. Existing credentials keep their storage.
 - Editors whose saved Password or software Private Key is unavailable on the current device preserve its reference and
   disable secret replacement, removal, passphrase and storage changes while still allowing public metadata edits. Key
   metadata-only saves may update the SSH certificate after validating it against the saved public key, without reading or

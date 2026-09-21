@@ -109,13 +109,28 @@ final class AppModel {
     /// and a run ending is not a reason to stop a deploy.
     private let agentBackgroundCommands: AgentBackgroundCommands
     private let outboxRunner: OutboxRunner?
+    private let settingsDefaults: UserDefaults
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
     private var deletedAgentConversationIDs = Set<UUID>()
     /// Conversations already handed to the summarizer. Titling is once per
     /// conversation, and every run re-arms the hook that would do it.
 
     func makeSSHImportModel() -> SSHImportModel {
-        SSHImportModel(library: hosts, reader: SSHImportReader())
+        SSHImportModel(
+            library: hosts, reader: SSHImportReader(),
+            storage: newVaultPasswordStorage)
+    }
+
+    var newVaultKeyStorage: KeyStorage {
+        NewVaultCredentialStorage.keyStorage(
+            defaults: settingsDefaults,
+            canUseVaultSync: proAccess.canUse(.vaultSync))
+    }
+
+    var newVaultPasswordStorage: PasswordStorage {
+        NewVaultCredentialStorage.passwordStorage(
+            defaults: settingsDefaults,
+            canUseVaultSync: proAccess.canUse(.vaultSync))
     }
 
     init(
@@ -139,6 +154,7 @@ final class AppModel {
     ) {
         self.windowSizeStore = windowSizeStore
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
+        settingsDefaults = dependencies.settingsDefaults
         logging = dependencies.logging
         let externalAuthentication = ExternalAuthCoordinator(
             logger: logging.makeLogger(label: "termind.external-mcp"))

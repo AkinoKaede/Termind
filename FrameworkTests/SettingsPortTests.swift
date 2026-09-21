@@ -110,6 +110,42 @@ struct SettingsPortTests {
         #expect(defaults.bool(forKey: SettingsKey.settingsSyncEnabled))
     }
 
+    @Test func newVaultCredentialStorageRequiresBothSwitchesAndProAccess() throws {
+        let domain = "VaultCredentialStorage.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+        for iCloudEnabled in [false, true] {
+            for vaultEnabled in [false, true] {
+                for canUseVaultSync in [false, true] {
+                    defaults.set(iCloudEnabled, forKey: SettingsKey.iCloudSyncEnabled)
+                    defaults.set(vaultEnabled, forKey: SettingsKey.vaultSyncEnabled)
+                    let expectedKey: KeyStorage =
+                        iCloudEnabled && vaultEnabled && canUseVaultSync ? .iCloud : .thisDevice
+                    let expectedPassword: PasswordStorage =
+                        iCloudEnabled && vaultEnabled && canUseVaultSync ? .iCloud : .thisDevice
+
+                    #expect(
+                        NewVaultCredentialStorage.keyStorage(
+                            defaults: defaults,
+                            canUseVaultSync: canUseVaultSync) == expectedKey)
+                    #expect(
+                        NewVaultCredentialStorage.passwordStorage(
+                            defaults: defaults,
+                            canUseVaultSync: canUseVaultSync) == expectedPassword)
+                }
+            }
+        }
+    }
+
+    @Test func newVaultCredentialStorageUsesEnabledDefaultsWhenPreferencesAreMissing() throws {
+        let domain = "VaultCredentialStorageDefaults.\(UUID())"
+        let defaults = try #require(UserDefaults(suiteName: domain))
+        defer { defaults.removePersistentDomain(forName: domain) }
+
+        #expect(NewVaultCredentialStorage.keyStorage(defaults: defaults, canUseVaultSync: true) == .iCloud)
+        #expect(NewVaultCredentialStorage.passwordStorage(defaults: defaults, canUseVaultSync: true) == .iCloud)
+    }
+
     @Test func rolesTakePrecedenceOverLastSelectedModelAndDeletedModelsFallBack() {
         let provider = ModelProvider(name: "Test", models: [AIModel(id: "role"), AIModel(id: "last")])
         let role = AIModelRef(modelProviderID: provider.id, modelID: "role")

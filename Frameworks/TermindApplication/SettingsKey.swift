@@ -68,3 +68,34 @@ public nonisolated enum SettingsKey {
         if !vault && !ai { defaults.set(true, forKey: vaultSyncEnabled) }
     }
 }
+
+public nonisolated enum NewVaultCredentialStorage {
+    public static func keyStorage(
+        defaults: UserDefaults = .standard,
+        canUseVaultSync: Bool
+    ) -> KeyStorage {
+        vaultSyncIsAvailable(defaults: defaults, canUseVaultSync: canUseVaultSync)
+            ? .iCloud : .thisDevice
+    }
+
+    public static func passwordStorage(
+        defaults: UserDefaults = .standard,
+        canUseVaultSync: Bool
+    ) -> PasswordStorage {
+        vaultSyncIsAvailable(defaults: defaults, canUseVaultSync: canUseVaultSync)
+            ? .iCloud : .thisDevice
+    }
+
+    private static func vaultSyncIsAvailable(
+        defaults: UserDefaults,
+        canUseVaultSync: Bool
+    ) -> Bool {
+        let iCloudEnabled =
+            defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool
+            ?? SettingsKey.defaultICloudSyncEnabled
+        let vaultEnabled =
+            defaults.object(forKey: SettingsKey.vaultSyncEnabled) as? Bool
+            ?? SettingsKey.defaultVaultSyncEnabled
+        return iCloudEnabled && vaultEnabled && canUseVaultSync
+    }
+}
