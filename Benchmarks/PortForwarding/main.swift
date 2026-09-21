@@ -230,7 +230,7 @@ private struct BenchmarkRunner {
     }
 
     private func waitForPool(
-        _ session: any SSHForwardingSessionProtocol,
+        _ session: any SSHForwardingConnectionProtocol,
         target: Int,
         failures: FailureRecorder
     ) async throws {
