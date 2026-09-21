@@ -538,7 +538,7 @@ struct SnippetEditorSheet: View {
     @State private var bodyText: String
     @State private var packageID: SnippetPackage.ID?
     @State private var targets: Set<Host.ID>
-    @State private var path: [Route] = []
+    @State private var route: Route?
 
     init(
         snippet: Snippet? = nil, packageID: SnippetPackage.ID? = nil,
@@ -555,15 +555,21 @@ struct SnippetEditorSheet: View {
     }
 
     var body: some View {
-        NavigationStack(path: $path) {
-            editor
-                .navigationDestination(for: Route.self) { route in
-                    switch route {
-                    case .targets:
-                        SnippetTargetPickerSheet(selected: targets) { targets = $0 }
-                    }
-                }
+        ZStack {
+            if let route {
+                destination(route)
+                    .transition(.move(edge: .trailing))
+            } else {
+                editor
+                    .transition(.move(edge: .leading))
+            }
         }
+        // Keep the target picker inside the Snippet work column. A NavigationStack
+        // here is promoted by macOS into the enclosing NavigationSplitView's
+        // detail, which makes its destination cover the Snippets collection too.
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .clipped()
+        .animation(.snappy(duration: 0.2), value: route)
     }
 
     private var editor: some View {
@@ -618,11 +624,13 @@ struct SnippetEditorSheet: View {
                         Text("Targets")
                         Spacer()
                         Button {
-                            path.append(.targets)
+                            route = .targets
                         } label: {
                             Label("Add Hosts", systemImage: "plus")
                         }
                         .disabled(app.snippets.hosts.isEmpty)
+                        .accessibilityIdentifier("snippet-editor.add-hosts")
+                        .help("Add Hosts")
                     }
                 }
             }
@@ -634,6 +642,7 @@ struct SnippetEditorSheet: View {
                 Button(existing == nil ? "Add" : "Save", action: commit)
                     .keyboardShortcut(.defaultAction)
                     .disabled(trimmedTitle.isEmpty || trimmedBody.isEmpty)
+                    .accessibilityIdentifier("snippet-editor.save")
             }
             .padding(Metrics.Space.l)
         }
@@ -667,19 +676,38 @@ struct SnippetEditorSheet: View {
         )
         close()
     }
+
+    @ViewBuilder
+    private func destination(_ route: Route) -> some View {
+        switch route {
+        case .targets:
+            SnippetTargetPickerView(selected: targets, back: closeNestedEditor) {
+                targets = $0
+            }
+        }
+    }
+
+    private func closeNestedEditor() {
+        route = nil
+    }
 }
 
-private struct SnippetTargetPickerSheet: View {
+struct SnippetTargetPickerView: View {
     let save: (Set<Host.ID>) -> Void
     let initialSelection: Set<Host.ID>
+    let back: () -> Void
 
     @Environment(AppModel.self) private var app
-    @Environment(\.dismiss) private var dismiss
     @State private var chooser: ManagedChooserState<Host.ID>
+    @State private var isClosing = false
 
-    init(selected: Set<Host.ID>, save: @escaping (Set<Host.ID>) -> Void) {
+    init(
+        selected: Set<Host.ID>, back: @escaping () -> Void,
+        save: @escaping (Set<Host.ID>) -> Void
+    ) {
         self.save = save
         initialSelection = selected
+        self.back = back
         _chooser = State(
             initialValue: ManagedChooserState(mode: .multiple, selected: selected)
         )
@@ -692,13 +720,14 @@ private struct SnippetTargetPickerSheet: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: "Add Hosts", symbol: "server.rack", close: { dismiss() },
+            title: "Add Hosts", symbol: "server.rack", close: close,
             closeLabel: "Back", closeSymbol: "chevron.backward"
         ) {
             VStack(spacing: 0) {
                 header
                 Divider().opacity(0.7)
                 content
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         } footer: {
             footer
@@ -735,6 +764,7 @@ private struct SnippetTargetPickerSheet: View {
             }
         } else if results.isEmpty {
             ContentUnavailableView.search(text: query)
+                .accessibilityIdentifier("snippet-target-picker.no-results")
         } else {
             ScrollViewReader { proxy in
                 List {
@@ -749,6 +779,7 @@ private struct SnippetTargetPickerSheet: View {
                             )
                         }
                         .buttonStyle(.plain)
+                        .accessibilityIdentifier("snippet-target-picker.host.\(host.id)")
                         .id(host.id)
                         .listRowBackground(
                             chooser.cursor == host.id
@@ -782,11 +813,12 @@ private struct SnippetTargetPickerSheet: View {
             .disabled(results.isEmpty)
 
             Spacer()
-            Button("Cancel") { dismiss() }
-                .keyboardShortcut(.cancelAction)
+            Button("Cancel", action: close)
+                .accessibilityIdentifier("snippet-target-picker.cancel")
             Button("Done", action: commit)
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
+                .accessibilityIdentifier("snippet-target-picker.done")
         }
         .padding(Metrics.Space.l)
     }
@@ -811,8 +843,15 @@ private struct SnippetTargetPickerSheet: View {
     }
 
     private func commit() {
+        guard !isClosing else { return }
         save(chooser.selected)
-        dismiss()
+        close()
+    }
+
+    private func close() {
+        guard !isClosing else { return }
+        isClosing = true
+        back()
     }
 }
 
