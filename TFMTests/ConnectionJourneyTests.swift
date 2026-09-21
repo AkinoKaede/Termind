@@ -278,12 +278,11 @@ struct ConnectionJourneyTests {
     }
 
     @Test
-    func trustingTheSameFingerprintIsIdempotentAndClearsMismatch() {
+    func trustingTheSameFingerprintIsIdempotent() {
         let host = Host(name: "Server", host: "server.example")
         let original = KnownHostEntry(
             hostname: host.host, algorithm: .ed25519,
-            fingerprint: "SHA256:key", addedAt: Date(timeIntervalSince1970: 1),
-            isMismatched: true
+            fingerprint: "SHA256:key", addedAt: Date(timeIntervalSince1970: 1)
         )
         let store = HostLibraryModel(hosts: [host], knownHosts: [original])
 
@@ -298,28 +297,19 @@ struct ConnectionJourneyTests {
         #expect(entries.count == 1)
         #expect(entries[0].id == original.id)
         #expect(entries[0].addedAt == Date(timeIntervalSince1970: 2))
-        #expect(!entries[0].isMismatched)
     }
 
     @Test
-    func mismatchAndForgetOperationsApplyToTheHostKeySet() {
+    func trustAndForgetOperationsApplyToTheHostKeySet() {
         let host = Host(name: "Server", host: "server.example")
         let first = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:first")
         let second = KnownHostEntry(hostname: host.host, fingerprint: "SHA256:second")
         let store = HostLibraryModel(hosts: [host], knownHosts: [first, second])
 
-        store.markKnownHostMismatched(hostname: host.host, port: host.port)
-        for entry in store.knownHosts(for: host) {
-            #expect(entry.isMismatched)
-        }
-
         store.trust(
             KnownHostEntry(hostname: host.host, fingerprint: "SHA256:third")
         )
         #expect(store.knownHosts(for: host).count == 3)
-        for entry in store.knownHosts(for: host) {
-            #expect(!entry.isMismatched)
-        }
 
         store.forget(knownHost: first.id)
         #expect(store.knownHosts(for: host).count == 2)

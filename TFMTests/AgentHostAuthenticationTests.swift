@@ -864,7 +864,6 @@ struct AgentHostAuthenticationTests {
         #expect(decision == .accept)
         #expect(attempt.configuration.expectedHostKeys == [old.identity])
         #expect(Set(store.knownHosts(for: host).map(\.identity)) == [old.identity, observation.identity])
-        #expect(store.knownHosts(for: host).allSatisfy { !$0.isMismatched })
     }
 
     @Test

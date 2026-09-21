@@ -115,10 +115,10 @@ struct VaultSyncTests {
         #expect(Set(received.knownHosts) == Set([plain, hashed]))
 
         var edited = plain
-        edited.isMismatched = true
+        edited.algorithm = .ecdsa256
         #expect(library.saveKnownHost(edited))
         try transfer(plain.id)
-        #expect(try destinationPersistence.load().knownHosts.first { $0.id == plain.id }?.isMismatched == true)
+        #expect(try destinationPersistence.load().knownHosts.first { $0.id == plain.id }?.algorithm == .ecdsa256)
 
         #expect(library.deleteKnownHosts([plain.id]))
         try transfer(plain.id)

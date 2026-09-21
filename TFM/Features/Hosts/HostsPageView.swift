@@ -421,13 +421,6 @@ private struct HostCard: View {
 
     private var status: ConnectionStatus { app.hostLibrary.status(of: host.id) }
 
-    /// A pinned key that stopped matching. Shown here, on the host, because that
-    /// is what the fingerprint belongs to — there is no separate Known Hosts
-    /// list to go and check.
-    private var keyMismatched: Bool {
-        app.hostLibrary.knownHosts(for: host).contains(where: \.isMismatched)
-    }
-
     var body: some View {
         card.clearAllHostHistoryConfirmation(hostIDs: $clearHistoryHostIDs)
     }
@@ -486,13 +479,6 @@ private struct HostCard: View {
 
     private var footer: some View {
         HStack(spacing: Metrics.Space.xs) {
-            if keyMismatched {
-                CardChip(
-                    text: String(localized: "Host key changed"),
-                    symbol: "exclamationmark.triangle.fill",
-                    tint: .orange
-                )
-            }
             ForEach(host.tags.prefix(2), id: \.self) { tag in
                 CardChip(text: tag)
             }

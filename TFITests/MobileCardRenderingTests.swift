@@ -36,8 +36,7 @@ struct MobileCardRenderingTests {
             if index == 3 {
                 _ = app.knownHosts.save(
                     KnownHostEntry(
-                        hostname: host.host, fingerprint: "SHA256:0123456789abcdefghijklmnopqrstuvwxyzABCDE",
-                        isMismatched: true))
+                        hostname: host.host, fingerprint: "SHA256:0123456789abcdefghijklmnopqrstuvwxyzABCDE"))
             }
         }
         let editableKnownHost = KnownHostEntry(

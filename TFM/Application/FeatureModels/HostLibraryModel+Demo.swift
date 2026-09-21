@@ -174,13 +174,10 @@ extension HostLibraryModel {
                 fingerprint: "SHA256:2mF8sK1pQ7xR4vB9nL3yT6wC0dH5jA2uZgE7iOxNbVr",
                 addedAt: now.addingTimeInterval(-604_800)
             ),
-            // One deliberately broken pin, so the warning state is visible at P0
-            // instead of first appearing the day it matters.
             KnownHostEntry(
                 hostname: "staging.internal", algorithm: .rsa,
                 fingerprint: "SHA256:5vT2nB8xQ1mL7kR4pW9yC3sD6fH0jG5uZaE8iXoNbVr",
-                addedAt: now.addingTimeInterval(-15_552_000),
-                isMismatched: true
+                addedAt: now.addingTimeInterval(-15_552_000)
             ),
         ]
 

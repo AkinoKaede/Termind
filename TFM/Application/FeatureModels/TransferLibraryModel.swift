@@ -123,9 +123,6 @@ extension TransferLibraryModel: RemoteSessionHostStore {
         library.recordRemoteSystemInfo(systemInfo, for: hostID)
     }
     func trust(_ entry: KnownHostEntry) { library.trust(entry) }
-    func markKnownHostMismatched(hostname: String, port: Int) {
-        library.markKnownHostMismatched(hostname: hostname, port: port)
-    }
     @discardableResult func upsert(_ identity: Identity) -> Bool { library.upsert(identity) }
     func upsert(_ identity: Identity, passwordUpdate: IdentityPasswordUpdate) throws {
         try library.upsert(identity, passwordUpdate: passwordUpdate)

@@ -56,8 +56,6 @@ struct SSHImportTests {
         let store = HostLibraryModel(knownHosts: [decoded])
         let host = Host(name: "IPv6", host: "2001:db8::1", port: 2222)
         #expect(try store.expectedHostKeys(for: host) == [entry.identity])
-        store.markKnownHostMismatched(hostname: host.host, port: host.port)
-        #expect(store.knownHosts[0].isMismatched)
         store.forgetKnownHosts(for: host)
         #expect(store.knownHosts.isEmpty)
     }
@@ -427,8 +425,8 @@ struct SSHImportTests {
     }
 
     @Test
-    func importRetainsMismatchWarningsAndRequiresConflictReview() async {
-        let original = KnownHostEntry(hostname: "host", fingerprint: "SHA256:old", isMismatched: true)
+    func importRequiresKnownHostConflictReview() async {
+        let original = KnownHostEntry(hostname: "host", fingerprint: "SHA256:old")
         let store = HostLibraryModel(knownHosts: [original])
         let model = SSHImportModel(library: store, reader: SSHImportReader())
         model.items = [
@@ -441,7 +439,7 @@ struct SSHImportTests {
         #expect(model.canImport)
         await model.commit()
         #expect(model.completed)
-        #expect(store.knownHosts.first?.isMismatched == true)
+        #expect(store.knownHosts.first?.fingerprint == original.fingerprint)
     }
 
     @Test

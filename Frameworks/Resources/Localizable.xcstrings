@@ -12242,22 +12242,6 @@
         }
       }
     },
-    "Host key changed" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "主机密钥已更改"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "主機金鑰已更改"
-          }
-        }
-      }
-    },
     "Host key confirmation required" : {
       "extractionState" : "stale",
       "localizations" : {

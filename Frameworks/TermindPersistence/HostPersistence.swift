@@ -383,36 +383,26 @@ public enum TermindSchemaV7Models {
     }
 }
 
-@Model
-public final class PersistentKnownHost {
-    @Attribute(.unique) public var id: UUID = UUID()
-    public var hostname = ""
-    public var port = 22
-    public var algorithm = SSHKeyAlgorithm.ed25519.rawValue
-    public var fingerprint = ""
-    public var addedAt = Date(timeIntervalSince1970: 0)
-    public var isMismatched = false
+/// Frozen through V29. V30 removes the persisted mismatch flag from the live model.
+public enum TermindSchemaV29KnownHostModels {
+    @Model
+    public final class PersistentKnownHost {
+        @Attribute(.unique) public var id: UUID = UUID()
+        public var hostname = ""
+        public var port = 22
+        public var algorithm = SSHKeyAlgorithm.ed25519.rawValue
+        public var fingerprint = ""
+        public var addedAt = Date(timeIntervalSince1970: 0)
+        public var isMismatched = false
 
-    public init(_ value: KnownHostEntry) {
-        id = value.id
-        apply(value)
-    }
-
-    public func apply(_ value: KnownHostEntry) {
-        hostname = value.hostname
-        port = value.port
-        algorithm = value.algorithm.rawValue
-        fingerprint = value.fingerprint
-        addedAt = value.addedAt
-        isMismatched = value.isMismatched
-    }
-
-    public var value: KnownHostEntry {
-        KnownHostEntry(
-            id: id, hostname: hostname, port: port,
-            algorithm: SSHKeyAlgorithm(rawValue: algorithm) ?? .ed25519,
-            fingerprint: fingerprint, addedAt: addedAt, isMismatched: isMismatched
-        )
+        public init(_ value: KnownHostEntry) {
+            id = value.id
+            hostname = value.hostname
+            port = value.port
+            algorithm = value.algorithm.rawValue
+            fingerprint = value.fingerprint
+            addedAt = value.addedAt
+        }
     }
 }
 
@@ -503,7 +493,7 @@ public enum TermindSchemaV1: VersionedSchema {
             PersistentHostGroup.self,
             TermindSchemaV6Models.PersistentIdentity.self,
             TermindSchemaV6Models.PersistentSSHKey.self,
-            PersistentKnownHost.self,
+            TermindSchemaV29KnownHostModels.PersistentKnownHost.self,
             PersistentSnippetPackage.self,
             PersistentSnippet.self,
             TermindSchemaV19ForwardingModels.PersistentPortForwardingRule.self,
@@ -782,6 +772,15 @@ public enum TermindSchemaV29: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV30: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(30, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV29.models.filter {
+            $0 != TermindSchemaV29KnownHostModels.PersistentKnownHost.self
+        } + [TermindSchemaV30KnownHostModels.PersistentKnownHost.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -793,6 +792,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV18.self, TermindSchemaV19.self, TermindSchemaV20.self, TermindSchemaV21.self,
             TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV28.self, TermindSchemaV29.self,
+            TermindSchemaV30.self,
         ]
     }
 
@@ -863,6 +863,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV26.self, toVersion: TermindSchemaV27.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV27.self, toVersion: TermindSchemaV28.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV28.self, toVersion: TermindSchemaV29.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV29.self, toVersion: TermindSchemaV30.self),
         ]
     }
 }
@@ -870,3 +871,4 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
 public typealias PersistentHost = TermindSchemaV29HostModels.PersistentHost
 public typealias PersistentIdentity = TermindSchemaV25IdentityModels.PersistentIdentity
 public typealias PersistentSSHKey = TermindSchemaV7Models.PersistentSSHKey
+public typealias PersistentKnownHost = TermindSchemaV30KnownHostModels.PersistentKnownHost

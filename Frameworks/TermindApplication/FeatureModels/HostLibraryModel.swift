@@ -408,9 +408,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         guard !knownHosts.isEmpty else {
             return String(localized: "Connect once to trust this host")
         }
-        guard !knownHosts.contains(where: \.isMismatched) else {
-            return String(localized: "Host key changed")
-        }
         return nil
     }
 
@@ -1218,9 +1215,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         let endpointMatches: (KnownHostEntry) -> Bool = {
             $0.matches(hostname: entry.hostname, port: entry.port)
         }
-        for index in knownHosts.indices where endpointMatches(knownHosts[index]) {
-            knownHosts[index].isMismatched = false
-        }
         if let index = knownHosts.firstIndex(where: {
             endpointMatches($0) && $0.fingerprint == entry.fingerprint
         }) {
@@ -1235,16 +1229,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             knownHosts.append(entry)
         }
         persistCore()
-    }
-
-    public func markKnownHostMismatched(hostname: String, port: Int) {
-        var changed = false
-        for index in knownHosts.indices
-        where knownHosts[index].matches(hostname: hostname, port: port) {
-            knownHosts[index].isMismatched = true
-            changed = true
-        }
-        if changed { persistCore() }
     }
 
     public func setExpanded(_ expanded: Bool, for groupID: HostGroup.ID) {
@@ -2130,12 +2114,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         }
         let previous = knownHosts
         if let index = knownHosts.firstIndex(where: { $0.id == entry.id }) {
-            // Editing the address or key explicitly creates a new trust decision.
             if knownHosts[index].identity != entry.identity || knownHosts[index].hostname != entry.hostname
                 || knownHosts[index].port != entry.port
             {
                 entry.addedAt = Date()
-                entry.isMismatched = false
             }
             knownHosts[index] = entry
         } else {

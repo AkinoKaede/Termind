@@ -72,6 +72,8 @@ struct PersistenceCompatibilityTests {
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV26.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV27.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV28.versionIdentifier })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV29.versionIdentifier })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV30.versionIdentifier })
         #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
         #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
         #expect(TermindSchemaV25.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
@@ -84,6 +86,34 @@ struct PersistenceCompatibilityTests {
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSSHPreferences" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSFTPPreferences" })
+    }
+
+    @Test
+    func version29StoreDropsMismatchStateWithoutLosingKnownHosts() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Termind.store")
+        let oldSchema = Schema(versionedSchema: TermindSchemaV29.self)
+        let oldConfiguration = ModelConfiguration(
+            "Termind", schema: oldSchema, url: url, cloudKitDatabase: .none
+        )
+        let knownHost = KnownHostEntry(
+            hostname: "server.invalid", algorithm: .ed25519,
+            fingerprint: "SHA256:known-host"
+        )
+        var oldContainer: ModelContainer? = try ModelContainer(
+            for: oldSchema, configurations: [oldConfiguration]
+        )
+        let oldRecord = TermindSchemaV29KnownHostModels.PersistentKnownHost(knownHost)
+        oldRecord.isMismatched = true
+        oldContainer?.mainContext.insert(oldRecord)
+        try oldContainer?.mainContext.save()
+        oldContainer = nil
+
+        let migrated = try TermindPersistence.makeContainer(url: url)
+        let records = try migrated.mainContext.fetch(FetchDescriptor<PersistentKnownHost>())
+        #expect(records.map(\.value) == [knownHost])
     }
 
     @Test

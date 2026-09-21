@@ -131,12 +131,6 @@ public final class RemoteSessionConnectionController {
             return .accept
         }
         finishHostKeyAuthorization(.reject)
-        if !challenge.expectedHostKeys.isEmpty {
-            store.markKnownHostMismatched(
-                hostname: challenge.observation.hostname,
-                port: challenge.observation.port
-            )
-        }
         let authorizationID = UUID()
         hostKeyAuthorizationID = authorizationID
         waitForHostKey(

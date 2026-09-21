@@ -380,12 +380,6 @@ public final class AgentHostResolver: Sendable {
             ?? (challenge.observation.port == 22
                 ? challenge.observation.hostname
                 : "\(challenge.observation.hostname):\(challenge.observation.port)")
-        if !challenge.expectedHostKeys.isEmpty {
-            store.markKnownHostMismatched(
-                hostname: challenge.observation.hostname,
-                port: challenge.observation.port
-            )
-        }
         let response = await interaction.confirmHostKey(
             AgentSSHHostKeyRequest(
                 invocationID: invocationID, hostID: challenge.hostID,

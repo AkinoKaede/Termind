@@ -13,17 +13,13 @@ public nonisolated struct KnownHostEntry: Identifiable, Codable, Hashable, Senda
     public var algorithm: SSHKeyAlgorithm = .ed25519
     public var fingerprint: String = ""
     public var addedAt: Date = Date(timeIntervalSince1970: 0)
-    /// True once the key the server presented stopped matching the pinned one.
-    /// Kept as data rather than a transient alert so the warning survives the
-    /// dialog the user dismissed at 3am.
-    public var isMismatched: Bool = false
 
     public var identity: SSHHostKeyIdentity {
         SSHHostKeyIdentity(algorithm: algorithm, fingerprint: fingerprint)
     }
     public init(
         id: UUID = UUID(), hostname: String, port: Int = 22, algorithm: SSHKeyAlgorithm = .ed25519,
-        fingerprint: String = "", addedAt: Date = Date(timeIntervalSince1970: 0), isMismatched: Bool = false
+        fingerprint: String = "", addedAt: Date = Date(timeIntervalSince1970: 0)
     ) {
         self.id = id
         self.hostname = hostname
@@ -31,7 +27,6 @@ public nonisolated struct KnownHostEntry: Identifiable, Codable, Hashable, Senda
         self.algorithm = algorithm
         self.fingerprint = fingerprint
         self.addedAt = addedAt
-        self.isMismatched = isMismatched
     }
 
 }

@@ -64,7 +64,6 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func setConnectionStatus(_ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID)
     func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID)
     func trust(_ entry: KnownHostEntry)
-    func markKnownHostMismatched(hostname: String, port: Int)
     @discardableResult func upsert(_ identity: Identity) -> Bool
     func upsert(_ identity: Identity, passwordUpdate: IdentityPasswordUpdate) throws
     func upsert(_ host: Host)

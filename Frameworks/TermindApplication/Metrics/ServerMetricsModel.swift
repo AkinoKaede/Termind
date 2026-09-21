@@ -969,12 +969,6 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     ) -> HostKeyAuthorization? {
         guard current(serverID, token), let server = servers.first(where: { $0.id == serverID }) else { return nil }
         finishHostKeyAuthorization(for: serverID, decision: .reject)
-        if !challenge.expectedHostKeys.isEmpty {
-            hosts.markKnownHostMismatched(
-                hostname: challenge.observation.hostname,
-                port: challenge.observation.port
-            )
-        }
         server.hostKey = challenge.observation
         server.hostKeyHostID = challenge.hostID
         server.hostKeyPrompt = SSHHostKeyPrompt(

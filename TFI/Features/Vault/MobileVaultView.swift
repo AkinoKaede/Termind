@@ -572,10 +572,6 @@ struct MobileVaultView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 HStack(spacing: 6) {
-                    if app.library.knownHosts(for: host).contains(where: \.isMismatched) {
-                        MobileCardChip(
-                            title: "Host key changed", symbol: "exclamationmark.shield", tint: .orange)
-                    }
                     ForEach(MobileCardLayout.visibleTags(host.tags), id: \.self) { tag in
                         MobileCardChip(text: tag)
                     }

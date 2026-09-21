@@ -77,7 +77,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - SSH import previews are window-owned indexed public metadata. Host selection never selects credentials; imported
   identities require selected keys. The actor retains scoped descriptors/digests, not private-key text/passphrases;
   reread selected keys at unlock/commit and fail closed if changed. Picking/drop share validation; config parsing
-  executes nothing. Create credentials before one Vault save, clean up failure, never overwrite records/clear mismatch.
+  executes nothing. Create credentials before one Vault save, clean up failure, and never overwrite records.
 - macOS appearance/language are local; System appearance clears `NSApplication.appearance`. Login launch reads
   `SMAppService`, not mirrored preferences; quiet launch hides the app without suppressing its window. Mobile uses
   Apple's per-app language settings without an injected locale override.
