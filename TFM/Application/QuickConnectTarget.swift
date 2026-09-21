@@ -42,7 +42,7 @@ enum QuickConnectResolver {
             if let port = endpoint.port { host.port = port }
             if let username = endpoint.username {
                 if library.identity(for: host)?.username != username {
-                    let identities = library.identities.filter { $0.username == username }
+                    let identities = library.reusableIdentities.filter { $0.username == username }
                     host.identityID = identities.count == 1 ? identities.first?.id : nil
                 }
                 usernames[host.id] = username

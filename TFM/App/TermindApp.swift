@@ -72,6 +72,7 @@ struct TermindApp: App {
                 modelContext: container.mainContext, secrets: secrets,
                 localDefaults: isRunningTests ? nil : .standard
             )
+            if !isRunningTests { try? hosts.migrateCustomPasswordsToICloud() }
             let repository = SwiftDataHostRepository(context: container.mainContext)
             let outboxStore = SwiftDataOutboxStore(context: container.mainContext)
             let outboxRunner = OutboxRunner(store: outboxStore)
@@ -79,6 +80,7 @@ struct TermindApp: App {
                 isRunningTests
                 ? nil
                 : VaultSyncCoordinator(context: container.mainContext)
+            vaultSync?.beforeSend = { [weak hosts] in try hosts?.migrateCustomPasswordsToICloud() }
             let externalToolCalls = ToolAuditModel(
                 modelContext: container.mainContext,
                 hostName: { [weak hosts] id in hosts?.host(id)?.name }

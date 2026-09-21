@@ -56,7 +56,13 @@ struct MCPServerSettings: View {
                         .font(.system(.body, design: .monospaced))
                         .textSelection(.enabled)
                         .lineLimit(1)
-                    Button(showsToken ? "Hide" : "Show") { showsToken.toggle() }
+                    Button {
+                        showsToken.toggle()
+                    } label: {
+                        Image(systemName: showsToken ? "eye.slash" : "eye")
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(showsToken ? "Hide Secret" : "Show Secret")
                     Button("Copy") { copy(displayToken) }
                 }
             }

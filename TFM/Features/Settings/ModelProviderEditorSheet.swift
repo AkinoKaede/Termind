@@ -125,7 +125,7 @@ struct ModelProviderEditorPage: View {
     @ViewBuilder
     private var credentialSection: some View {
         Section {
-            SecureField(
+            RevealableSecretField(
                 "API Key",
                 text: Binding(
                     get: { session.secret },

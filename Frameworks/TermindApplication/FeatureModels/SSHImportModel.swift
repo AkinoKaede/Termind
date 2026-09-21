@@ -365,7 +365,7 @@ public final class SSHImportModel {
         rebuildKeyOptionIndex()
 
         let existingIdentities = Dictionary(
-            library.identities.map {
+            library.reusableIdentities.map {
                 (IdentitySignature(username: $0.username, keyID: $0.keyID), $0)
             }, uniquingKeysWith: { first, _ in first })
 
@@ -379,7 +379,7 @@ public final class SSHImportModel {
         }
 
         let signaturesPerUsername = Dictionary(grouping: signatures, by: \.username)
-        var usedNames: Set<String> = Set(library.identities.map(\.name))
+        var usedNames: Set<String> = Set(library.reusableIdentities.map(\.name))
         var identityItems: [SSHImportItem] = []
         identityItems.reserveCapacity(signatures.count)
         hostIDsByIdentityID = [:]

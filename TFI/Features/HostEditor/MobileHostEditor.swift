@@ -16,6 +16,7 @@ struct MobileHostEditor: View {
 
     private enum Choice<ID: Hashable>: Hashable {
         case unset
+        case custom
         case existing(ID)
         case new
     }
@@ -25,6 +26,12 @@ struct MobileHostEditor: View {
     let original: Host
     @State private var draft: Host
     @State private var editorRoute: EditorRoute?
+    @State private var customUsername = ""
+    @State private var customPassword = ""
+    @State private var customKeyID: SSHKeyRef.ID?
+    @State private var proxyUsesCustom = false
+    @State private var proxyCustomPassword = ""
+    @State private var didLoadCustom = false
 
     init(app: MobileAppModel, host: Host) {
         self.app = app
@@ -34,9 +41,26 @@ struct MobileHostEditor: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: "Host"), isDirty: draft != original,
-            canSave: MobileHostEditorPolicy.canSave(draft),
+            title: String(localized: "Host"),
+            isDirty: draft != original || !customUsername.isEmpty || !customPassword.isEmpty || customKeyID != nil,
+            canSave: MobileHostEditorPolicy.canSave(draft) && customIsValid && proxyIsValid,
             save: {
+                if usesCustomIdentity {
+                    let identity = try library.saveCustomIdentity(
+                        ownerHostID: draft.id, purpose: .ssh, displayName: draft.name,
+                        username: customUsername, password: customPassword, keyID: customKeyID)
+                    draft.identityID = identity?.id
+                }
+                if proxyUsesCustom, let proxy = draft.proxy {
+                    let identity = try library.saveCustomIdentity(
+                        ownerHostID: draft.id, purpose: .proxy, displayName: "\(draft.name) Proxy",
+                        username: proxy.username, password: proxyCustomPassword, keyID: nil)
+                    draft.proxy?.identityID = identity?.id
+                } else if draft.proxy == nil {
+                    _ = try library.saveCustomIdentity(
+                        ownerHostID: draft.id, purpose: .proxy, displayName: "",
+                        username: "", password: "", keyID: nil)
+                }
                 library.upsert(draft)
                 if let error = library.storageError { throw MobileEditorError.message(error) }
             },
@@ -44,12 +68,29 @@ struct MobileHostEditor: View {
                 HostConnectionFields(host: $draft)
                 Section("Authentication") {
                     Picker("Identity", selection: identityChoice) {
-                        Text("None").tag(Choice<Identity.ID>.unset)
-                        ForEach(library.identities) { identity in
+                        Text("Custom").tag(Choice<Identity.ID>.unset)
+                        Divider()
+                        ForEach(library.reusableIdentities) { identity in
                             Text(identity.name).tag(Choice.existing(identity.id))
                         }
                         Divider()
                         Text("New Identity").tag(Choice<Identity.ID>.new)
+                    }
+                    if usesCustomIdentity {
+                        LabeledContent("Username") {
+                            TextField("Username", text: $customUsername.singleLineText)
+                                .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                .multilineTextAlignment(.trailing)
+                        }
+                        LabeledContent("Password") {
+                            RevealableSecretField("Optional", text: $customPassword)
+                                .multilineTextAlignment(.trailing)
+                                .disabled(!customPasswordEditable)
+                        }
+                        Picker("Key", selection: $customKeyID) {
+                            Text("None").tag(SSHKeyRef.ID?.none)
+                            ForEach(library.keys) { key in Text(key.label).tag(SSHKeyRef.ID?.some(key.id)) }
+                        }
                     }
                 }
                 Section("Routing") {
@@ -82,6 +123,8 @@ struct MobileHostEditor: View {
                         .accessibilityLabel("Proxy Port")
                         Picker("Identity", selection: proxyIdentityChoice) {
                             Text("None").tag(Choice<Identity.ID>.unset)
+                            Text("Custom").tag(Choice<Identity.ID>.custom)
+                            Divider()
                             ForEach(proxyIdentities) { identity in
                                 Text("\(identity.name) · \(identity.username)")
                                     .tag(Choice.existing(identity.id))
@@ -90,7 +133,18 @@ struct MobileHostEditor: View {
                             Text("New Identity").tag(Choice<Identity.ID>.new)
                         }
                         .accessibilityLabel("Proxy Identity")
-                        if draft.proxy?.identityID != nil {
+                        if proxyUsesCustom {
+                            LabeledContent("Username") {
+                                TextField("Username", text: proxyString(\.username).singleLineText)
+                                    .textInputAutocapitalization(.never).autocorrectionDisabled()
+                                    .multilineTextAlignment(.trailing)
+                            }
+                            LabeledContent("Password") {
+                                RevealableSecretField("Required", text: $proxyCustomPassword)
+                                    .multilineTextAlignment(.trailing)
+                                    .disabled(!proxyCustomPasswordEditable)
+                            }
+                        } else if draft.proxy?.identityID != nil {
                             LabeledContent("Username") {
                                 TextField("Username", text: proxyString(\.username).singleLineText, axis: .horizontal)
                                     .singleLinePaste()
@@ -151,14 +205,17 @@ struct MobileHostEditor: View {
                 }
             }
         }
+        .onAppear(perform: loadCustomOnce)
     }
 
     private var identityChoice: Binding<Choice<Identity.ID>> {
         Binding {
-            draft.identityID.map(Choice.existing) ?? .unset
+            guard let id = draft.identityID, library.identity(id)?.isHostCustom != true else { return .unset }
+            return .existing(id)
         } set: { choice in
             switch choice {
-            case .unset: draft.identityID = nil
+            case .unset, .custom:
+                draft.identityID = library.customIdentity(for: draft.id, purpose: .ssh)?.id
             case .existing(let id): draft.identityID = id
             case .new: editorRoute = .hostIdentity
             }
@@ -170,7 +227,7 @@ struct MobileHostEditor: View {
             draft.groupID.map(Choice.existing) ?? .unset
         } set: { choice in
             switch choice {
-            case .unset: draft.groupID = nil
+            case .unset, .custom: draft.groupID = nil
             case .existing(let id): draft.groupID = id
             case .new: editorRoute = .group
             }
@@ -201,12 +258,20 @@ struct MobileHostEditor: View {
 
     private var proxyIdentityChoice: Binding<Choice<Identity.ID>> {
         Binding {
-            draft.proxy?.identityID.map(Choice.existing) ?? .unset
+            if proxyUsesCustom { return .custom }
+            return draft.proxy?.identityID.map(Choice.existing) ?? .unset
         } set: { choice in
             switch choice {
             case .unset:
+                proxyUsesCustom = false
                 draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(nil, current: draft.proxy)
+            case .custom:
+                proxyUsesCustom = true
+                let custom = library.customIdentity(for: draft.id, purpose: .proxy)
+                draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(custom, current: draft.proxy)
+                loadProxyPassword(custom)
             case .existing(let id):
+                proxyUsesCustom = false
                 draft.proxy = MobileHostEditorPolicy.selectProxyIdentity(library.identity(id), current: draft.proxy)
             case .new:
                 editorRoute = .proxyIdentity
@@ -215,7 +280,68 @@ struct MobileHostEditor: View {
     }
 
     private var proxyIdentities: [Identity] {
-        library.identities.filter(library.isProxyEligibleOnThisDevice)
+        library.reusableIdentities.filter(library.isProxyEligibleOnThisDevice)
+    }
+
+    private var usesCustomIdentity: Bool {
+        guard let id = draft.identityID else { return true }
+        return library.identity(id)?.isHostCustom == true
+    }
+
+    private var customPasswordEditable: Bool {
+        guard let identity = library.customIdentity(for: draft.id, purpose: .ssh), identity.usesPassword else {
+            return true
+        }
+        return library.passwordAvailability(for: identity) == .available
+    }
+
+    private var proxyCustomPasswordEditable: Bool {
+        guard let identity = library.customIdentity(for: draft.id, purpose: .proxy), identity.usesPassword else {
+            return true
+        }
+        return library.passwordAvailability(for: identity) == .available
+    }
+
+    private var customIsValid: Bool {
+        !usesCustomIdentity
+            || (!customUsername.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                || (customPassword.isEmpty && customKeyID == nil))
+    }
+
+    private var proxyIsValid: Bool {
+        guard let proxy = draft.proxy else { return true }
+        guard proxyUsesCustom else { return proxy.isValid }
+        let empty =
+            proxy.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && proxyCustomPassword.isEmpty
+        return !proxy.hostname.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && (1...65_535).contains(proxy.port)
+            && (empty
+                || (!proxy.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    && !proxyCustomPassword.isEmpty))
+    }
+
+    private func loadCustomOnce() {
+        guard !didLoadCustom else { return }
+        didLoadCustom = true
+        let custom = library.customIdentity(for: draft.id, purpose: .ssh)
+        customUsername = custom?.username ?? ""
+        customKeyID = custom?.keyID
+        if let custom, case .available = library.passwordAvailability(for: custom) {
+            customPassword = (try? library.editablePassword(for: custom)) ?? ""
+        }
+        if let custom = library.customIdentity(for: draft.id, purpose: .proxy),
+            draft.proxy?.identityID == custom.id
+        {
+            proxyUsesCustom = true
+            loadProxyPassword(custom)
+        }
+    }
+
+    private func loadProxyPassword(_ identity: Identity?) {
+        proxyCustomPassword = ""
+        guard let identity, case .available = library.passwordAvailability(for: identity) else { return }
+        proxyCustomPassword = (try? library.editablePassword(for: identity)) ?? ""
     }
 
 }

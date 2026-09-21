@@ -130,6 +130,10 @@ public final class SwiftDataHostRepository: HostRepository {
     }
 
     public func finalizeHostDeletion(_ hostID: Host.ID) throws {
+        for identity in try context.fetch(FetchDescriptor<PersistentIdentity>())
+        where identity.ownerHostID == hostID {
+            context.delete(identity)
+        }
         if let host = try persistentHost(hostID) { context.delete(host) }
         if let marker = try pendingDeletion(hostID) { context.delete(marker) }
         try commitMutation()

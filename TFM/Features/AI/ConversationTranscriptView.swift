@@ -813,7 +813,7 @@ private struct AgentUserInputCard: View {
 
             switch question.kind {
             case .secret:
-                SecureField("Secret", text: $conversation.secretInputDraft)
+                RevealableSecretField("Secret", text: $conversation.secretInputDraft)
                     .textFieldStyle(.roundedBorder)
             case .choice(let choice):
                 choiceList(choice, in: question.id)

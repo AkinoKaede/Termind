@@ -58,10 +58,11 @@ struct MobileKeyEditor: View {
                                 }
                             }
                             LabeledContent("Passphrase") {
-                                SecureField("Optional", text: $model.passphrase).multilineTextAlignment(.trailing)
+                                RevealableSecretField("Optional", text: $model.passphrase)
+                                    .multilineTextAlignment(.trailing)
                             }
                             LabeledContent("Confirm Passphrase") {
-                                SecureField("Confirm Passphrase", text: $model.confirmation)
+                                RevealableSecretField("Confirm Passphrase", text: $model.confirmation)
                                     .multilineTextAlignment(.trailing).disabled(model.passphrase.isEmpty)
                             }
                             if !model.passphrase.isEmpty {
@@ -108,7 +109,7 @@ struct MobileKeyEditor: View {
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                             }
-                            SecureField("Passphrase", text: $model.passphrase)
+                            RevealableSecretField("Passphrase", text: $model.passphrase)
                                 .multilineTextAlignment(.leading)
                                 .disabled(!model.canEditPrivateKey)
                         }

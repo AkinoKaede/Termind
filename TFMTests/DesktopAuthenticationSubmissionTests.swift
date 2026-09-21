@@ -56,7 +56,7 @@ struct DesktopAuthenticationSubmissionTests {
     }
 
     @Test(arguments: [ConnectionHistoryEntry.Kind.ssh, .sftp])
-    func failedSaveRetainsAuthenticationAndAllowsRetry(kind: ConnectionHistoryEntry.Kind) throws {
+    func clearingSavedPasswordDeletesItAndContinuesWithTheKey(kind: ConnectionHistoryEntry.Kind) throws {
         let key = protectedKey()
         let secrets = InMemorySecretStore()
         let identity = Identity(name: "Deploy", username: "deploy", credentialRef: "password", keyID: key.id)
@@ -68,14 +68,9 @@ struct DesktopAuthenticationSubmissionTests {
 
         session.submit(identityID: identity.id, username: "ignored", password: "", save: true, store: store)
 
-        #expect(session.prompt?.failureMessage?.isEmpty == false)
-        #expect(store.host(host.id) == host)
-        #expect(try store.passwordCredential(for: identity) == "old")
-
-        session.submit(identityID: identity.id, username: "ignored", password: "new", save: true, store: store)
-
         #expect(store.host(host.id)?.identityID == identity.id)
-        #expect(try store.passwordCredential(for: identity) == "new")
+        let updatedIdentity = try #require(store.identity(identity.id))
+        #expect(try store.passwordCredential(for: updatedIdentity) == nil)
         #expect(session.prompt?.requiresPassphrase == true)
         #expect(session.prompt?.failureMessage == nil)
     }
@@ -100,6 +95,8 @@ struct DesktopAuthenticationSubmissionTests {
             let saved = try #require(store.host(host.id))
             #expect(prompt.host.identityID == saved.identityID)
             #expect(store.identity(for: saved)?.username == "deploy")
+            #expect(store.identity(for: saved)?.isHostCustom == true)
+            #expect(store.reusableIdentities.isEmpty)
         }
     }
 

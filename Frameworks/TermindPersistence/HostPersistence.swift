@@ -576,7 +576,7 @@ public enum TermindSchemaV7: VersionedSchema {
         TermindSchemaV6.models.filter {
             $0 != TermindSchemaV6Models.PersistentIdentity.self
                 && $0 != TermindSchemaV6Models.PersistentSSHKey.self
-        } + [PersistentIdentity.self, PersistentSSHKey.self]
+        } + [TermindSchemaV7Models.PersistentIdentity.self, TermindSchemaV7Models.PersistentSSHKey.self]
     }
 }
 
@@ -737,6 +737,15 @@ public enum TermindSchemaV24: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV25: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(25, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV24.models.filter {
+            $0 != TermindSchemaV7Models.PersistentIdentity.self
+        } + [TermindSchemaV25IdentityModels.PersistentIdentity.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -746,7 +755,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV10.self, TermindSchemaV11.self, TermindSchemaV12.self, TermindSchemaV13.self,
             TermindSchemaV14.self, TermindSchemaV15.self, TermindSchemaV16.self, TermindSchemaV17.self,
             TermindSchemaV18.self, TermindSchemaV19.self, TermindSchemaV20.self, TermindSchemaV21.self,
-            TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self,
+            TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
         ]
     }
 
@@ -812,10 +821,11 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV21.self, toVersion: TermindSchemaV22.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV22.self, toVersion: TermindSchemaV23.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV23.self, toVersion: TermindSchemaV24.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV24.self, toVersion: TermindSchemaV25.self),
         ]
     }
 }
 
 public typealias PersistentHost = TermindSchemaV24HostModels.PersistentHost
-public typealias PersistentIdentity = TermindSchemaV7Models.PersistentIdentity
+public typealias PersistentIdentity = TermindSchemaV25IdentityModels.PersistentIdentity
 public typealias PersistentSSHKey = TermindSchemaV7Models.PersistentSSHKey

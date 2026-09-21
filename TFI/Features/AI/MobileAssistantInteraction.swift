@@ -196,7 +196,7 @@ struct MobileAssistantInteraction: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
                 .accessibilityHidden(true)
-            SecureField("Secret", text: $conversation.secretInputDraft)
+            RevealableSecretField("Secret", text: $conversation.secretInputDraft)
                 .textContentType(.password)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()

@@ -127,10 +127,12 @@ struct SSHAuthenticationSubmissionTests {
     @Test(arguments: [false, true], [String?.none, "replacement"])
     func customSaveReusesIdentityMetadataOrCreatesTheDefaultIdentity(_ existing: Bool, password: String?) throws {
         let secrets = InMemorySecretStore()
+        let hostID = UUID()
         let identity = Identity(
             name: "Production", username: "old-user", credentialRef: "password", passwordStorage: .thisDevice,
-            keyID: UUID(), notes: "Keep these notes", lastUsedAt: Date(timeIntervalSince1970: 100), colorTag: .blue)
-        let host = Host(name: "Server", host: "server.invalid", identityID: existing ? identity.id : nil)
+            keyID: UUID(), notes: "Keep these notes", lastUsedAt: Date(timeIntervalSince1970: 100), colorTag: .blue,
+            ownerHostID: existing ? hostID : nil, customPurpose: existing ? .ssh : nil)
+        let host = Host(id: hostID, name: "Server", host: "server.invalid", identityID: existing ? identity.id : nil)
         let store = HostLibraryModel(hosts: [host], identities: existing ? [identity] : [], secrets: secrets)
         try secrets.setString("old", for: identity.credentialRef, storage: identity.passwordStorage)
         let keyID = UUID()

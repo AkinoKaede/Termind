@@ -73,6 +73,13 @@ struct HostContextMenu: View {
             if showsDuplicate {
                 Button("Duplicate", systemImage: MenuSymbol.duplicate) {
                     var copy = host
+                    if host.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
+                        copy.identityID = nil
+                    }
+                    if host.proxy?.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
+                        copy.proxy?.identityID = nil
+                        copy.proxy?.username = ""
+                    }
                     copy.id = UUID()
                     copy.name = String(localized: "\(host.name) copy")
                     app.hostLibrary.upsert(copy)

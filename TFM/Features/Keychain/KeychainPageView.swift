@@ -461,7 +461,7 @@ private struct SoftwareKeyEditor: View {
                             .font(.caption)
                             .foregroundStyle(.orange)
                         }
-                        SecureField("Passphrase", text: $passphrase, prompt: Text("Optional"))
+                        RevealableSecretField("Passphrase", text: $passphrase, prompt: Text("Optional"))
                             .disabled(!canEditPrivateKey)
                     } header: {
                         fileSectionHeader("Private Key", canChoose: canEditPrivateKey) {
@@ -898,11 +898,6 @@ private struct GenerateKeySheet: View {
                     LabeledContent("Algorithm", value: "ECDSA")
                     LabeledContent("Elliptic Curve", value: "NIST P-256")
                     Toggle("Require Authentication", isOn: $requiresUserPresence)
-                    Text(
-                        "The private key cannot leave the Secure Enclave. Authentication uses Touch ID or this Mac's password when required."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 } else {
                     Picker("Algorithm", selection: $kind) {
                         ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
@@ -920,8 +915,8 @@ private struct GenerateKeySheet: View {
                             Text("4096 bit").tag(4096)
                         }
                     }
-                    SecureField("Passphrase", text: $passphrase, prompt: Text("Optional"))
-                    SecureField("Confirm Passphrase", text: $confirmation)
+                    RevealableSecretField("Passphrase", text: $passphrase, prompt: Text("Optional"))
+                    RevealableSecretField("Confirm Passphrase", text: $confirmation)
                         .disabled(passphrase.isEmpty)
                     if !passphrase.isEmpty {
                         Picker("Cipher", selection: $cipher) {
@@ -936,13 +931,6 @@ private struct GenerateKeySheet: View {
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
-                    Text(
-                        passphrase.isEmpty
-                            ? "The generated private key is stored in the selected Keychain."
-                            : "The private key is encrypted. Termind never saves its passphrase and asks for it when needed."
-                    )
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                 }
                 if let errorMessage {
                     Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
@@ -1138,8 +1126,6 @@ private struct SecureEnclaveKeyEditor: View {
                     LabeledContent("Public Key") {
                         Text(key.publicKey).font(.caption.monospaced()).textSelection(.enabled)
                     }
-                    Text("The private key cannot leave the Secure Enclave. Only its name can be changed.")
-                        .font(.caption).foregroundStyle(.secondary)
                 }
                 if let errorMessage {
                     Section { Label(errorMessage, systemImage: "exclamationmark.triangle.fill") }

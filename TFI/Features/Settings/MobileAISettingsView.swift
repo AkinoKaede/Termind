@@ -154,12 +154,12 @@ struct MobileSecretFields: View {
                     Text(isToken ? "Clear Token" : "Clear Key").tag(MobileSecretDraft.Action.clear)
                 }
                 if key.action == .replace {
-                    SecureField(isToken ? "Bearer Token" : "API Key", text: $key.text)
+                    RevealableSecretField(isToken ? "Bearer Token" : "API Key", text: $key.text)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .multilineTextAlignment(.leading)
                 }
             } else {
-                SecureField(
+                RevealableSecretField(
                     isToken ? "Bearer Token" : "API Key",
                     text: Binding(
                         get: { key.text },

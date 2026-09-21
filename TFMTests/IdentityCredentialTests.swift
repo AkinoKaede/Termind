@@ -13,6 +13,38 @@ import Testing
 @MainActor
 struct IdentityCredentialTests {
     @Test
+    func hostCustomIdentityIsHiddenMigratesOneWayAndDeletesWithHost() throws {
+        let keychain = InMemorySecretStore()
+        let suite = "IdentityCredentialTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)
+        defaults.set(true, forKey: SettingsKey.vaultSyncEnabled)
+        let host = Host(name: "Server", host: "example.com")
+        let store = HostLibraryModel(hosts: [host], secrets: keychain, localDefaults: defaults)
+
+        let result = try store.saveCustomIdentity(
+            ownerHostID: host.id, purpose: .ssh, displayName: host.name,
+            username: "deploy", password: "secret", keyID: nil)
+        let saved = try #require(result)
+        #expect(saved.isHostCustom)
+        #expect(saved.passwordStorage == .thisDevice)
+        #expect(store.reusableIdentities.isEmpty)
+        #expect(store.searchIdentities("").isEmpty)
+        #expect(try keychain.string(for: saved.credentialRef, storage: .thisDevice) == "secret")
+
+        defaults.set(true, forKey: SettingsKey.iCloudSyncEnabled)
+        try store.migrateCustomPasswordsToICloud()
+        let migrated = try #require(store.identity(saved.id))
+        #expect(migrated.passwordStorage == .iCloud)
+        #expect(try keychain.string(for: saved.credentialRef, storage: .thisDevice) == nil)
+
+        store.projectHostDeletion(host.id)
+        #expect(store.identity(saved.id) == nil)
+        #expect(try keychain.string(for: saved.credentialRef, storage: .iCloud) == nil)
+    }
+
+    @Test
     func passwordUpdatesKeepReplaceAndRemoveTheKeychainItem() throws {
         let keychain = InMemorySecretStore()
         let reference = "termind.password.\(UUID().uuidString)"

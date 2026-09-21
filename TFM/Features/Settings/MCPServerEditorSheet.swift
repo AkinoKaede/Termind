@@ -178,7 +178,7 @@ struct MCPServerEditorPage: View {
     @ViewBuilder
     private var credentialSection: some View {
         Section {
-            SecureField(
+            RevealableSecretField(
                 "Bearer Token",
                 text: Binding(get: { session.token }, set: { session.token = $0 }),
                 prompt: Text("Optional")

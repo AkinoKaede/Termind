@@ -296,7 +296,7 @@ nonisolated struct MobileIdentityEditorConfiguration: Hashable, Sendable {
             return false
         }
         guard requiresPassword else { return true }
-        return !password.isEmpty || (hasConfiguredPassword && !removesPassword)
+        return hasConfiguredPassword || !password.isEmpty
     }
 }
 
@@ -308,7 +308,8 @@ struct MobileIdentityEditor: View {
     let saved: (Identity) -> Void
     @State private var draft: Identity
     @State private var password = ""
-    @State private var removePassword = false
+    @State private var originalPassword = ""
+    @State private var didLoadPassword = false
 
     init(
         app: MobileAppModel, identity: Identity,
@@ -326,17 +327,19 @@ struct MobileIdentityEditor: View {
     var body: some View {
         MobileEditorSheet(
             title: title,
-            isDirty: draft != original || !password.isEmpty || removePassword,
+            isDirty: draft != original || password != originalPassword,
             canSave: configuration.canSave(
                 identity: draft, password: password,
-                hasConfiguredPassword: original.usesPassword, removesPassword: removePassword),
+                hasConfiguredPassword: original.usesPassword,
+                removesPassword: canEditPassword && password.isEmpty && !originalPassword.isEmpty),
             save: {
                 draft.username = draft.username.trimmingCharacters(in: .whitespacesAndNewlines)
                 draft.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 try app.library.upsert(
                     draft,
                     passwordUpdate: !canEditPassword
-                        ? .keep : removePassword ? .remove : password.isEmpty ? .keep : .replace(password))
+                        ? .keep
+                        : password == originalPassword ? .keep : password.isEmpty ? .remove : .replace(password))
                 saved(draft)
             },
             content: {
@@ -363,12 +366,9 @@ struct MobileIdentityEditor: View {
                 }
                 Section("Authentication") {
                     LabeledContent("Password") {
-                        SecureField("Password", text: $password).textContentType(.password)
-                            .multilineTextAlignment(.trailing).disabled(removePassword || !canEditPassword)
-                    }
-                    if original.usesPassword {
-                        Toggle("Remove Password", isOn: $removePassword)
-                            .disabled(!canEditPassword)
+                        RevealableSecretField("Password", text: $password)
+                            .textContentType(.password)
+                            .multilineTextAlignment(.trailing).disabled(!canEditPassword)
                     }
                     Picker("Store password in", selection: $draft.passwordStorage) {
                         Text("This Device").tag(PasswordStorage.thisDevice)
@@ -385,7 +385,13 @@ struct MobileIdentityEditor: View {
                         }
                     }
                 }
-            })
+            }
+        )
+        .onAppear(perform: loadPasswordOnce)
+        .onDisappear {
+            password = ""
+            originalPassword = ""
+        }
     }
 
     var title: String {
@@ -398,5 +404,15 @@ struct MobileIdentityEditor: View {
 
     var canEditPassword: Bool {
         !original.usesPassword || hasAvailablePassword
+    }
+
+    private func loadPasswordOnce() {
+        guard !didLoadPassword else { return }
+        didLoadPassword = true
+        guard hasAvailablePassword,
+            let loaded = try? app.credentials.editablePassword(for: original)
+        else { return }
+        password = loaded
+        originalPassword = loaded
     }
 }

@@ -54,6 +54,7 @@ public struct SSHAuthenticationForm: View {
         self.usesContainerChrome = usesContainerChrome
         let initialIdentityID = prompt.selectedIdentityID.flatMap { id -> Identity.ID? in
             guard let identity = library.identity(id) else { return nil }
+            if identity.isHostCustom { return nil }
             switch library.passwordAvailability(for: identity) {
             case .missing, .failed: return nil
             case .notConfigured, .available: return id
@@ -71,13 +72,13 @@ public struct SSHAuthenticationForm: View {
     private var canContinue: Bool {
         !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (!needsPassphrase || !passphrase.isEmpty)
-            && (!prompt.isProxy || !needsPasswordEntry || !password.isEmpty)
+            && (!prompt.isProxy || !password.isEmpty)
             && !selectedIdentityPasswordIsUnavailable
     }
 
     private var selectedIdentityPasswordIsUnavailable: Bool {
-        guard let selectedIdentity else { return false }
-        return switch library.passwordAvailability(for: selectedIdentity) {
+        guard let identity = selectedIdentity ?? initialCustomIdentity else { return false }
+        return switch library.passwordAvailability(for: identity) {
         case .missing, .failed: true
         case .notConfigured, .available: false
         }
@@ -115,6 +116,7 @@ public struct SSHAuthenticationForm: View {
         }
         .onAppear {
             if identityID != nil, selectedIdentity == nil { identityID = nil }
+            loadPassword(for: selectedIdentity ?? initialCustomIdentity)
             updateFocusForRequirement()
         }
     }
@@ -142,7 +144,7 @@ public struct SSHAuthenticationForm: View {
                 if needsPassphrase {
                     GridRow {
                         Text("Passphrase").foregroundStyle(.secondary)
-                        SecureField("Required for this connection", text: $passphrase)
+                        RevealableSecretField("Required for this connection", text: $passphrase)
                             .focused($focusedField, equals: .passphrase)
                     }
                 } else {
@@ -156,8 +158,8 @@ public struct SSHAuthenticationForm: View {
                                     String(localized: "Custom"), selected: identityID == nil
                                 )
                             }
-                            if !library.identities.isEmpty { Divider() }
-                            ForEach(library.identities) { identity in
+                            Divider()
+                            ForEach(library.reusableIdentities) { identity in
                                 Button {
                                     identitySelection.wrappedValue = identity.id
                                 } label: {
@@ -169,40 +171,33 @@ public struct SSHAuthenticationForm: View {
                             }
                         }
                     }
-                    if identityID == nil || prompt.isProxy {
+                    GridRow {
+                        Text(prompt.isProxy ? "Proxy Username" : "Username").foregroundStyle(.secondary)
+                        TextField("Username", text: usernameInput.singleLineText, axis: .horizontal)
+                            .singleLinePaste().lineLimit(1)
+                            .focused($focusedField, equals: .username)
+                    }
+                    GridRow {
+                        Text("Password").foregroundStyle(.secondary)
+                        RevealableSecretField(prompt.isProxy ? "Required" : "Optional", text: passwordInput)
+                            .focused($focusedField, equals: .password)
+                            .disabled(selectedIdentityPasswordIsUnavailable)
+                    }
+                    if !prompt.isProxy {
                         GridRow {
-                            Text(prompt.isProxy ? "Proxy Username" : "Username").foregroundStyle(.secondary)
-                            TextField("Username", text: usernameInput.singleLineText, axis: .horizontal)
-                                .singleLinePaste().lineLimit(1)
-                                .focused($focusedField, equals: .username)
-                        }
-                        if needsPasswordEntry {
-                            GridRow {
-                                Text("Password").foregroundStyle(.secondary)
-                                SecureField(prompt.isProxy ? "Required" : "Optional", text: passwordInput)
-                                    .focused($focusedField, equals: .password)
-                            }
-                            if !prompt.isProxy {
-                                GridRow {
-                                    Text("Key").foregroundStyle(.secondary)
-                                    fullWidthMenu(title: keyLabel) {
-                                        Button {
-                                            keySelection.wrappedValue = nil
-                                        } label: {
-                                            selectionMenuLabel(
-                                                String(localized: "None"), selected: keyID == nil
-                                            )
-                                        }
-                                        if !library.keys.isEmpty { Divider() }
-                                        ForEach(library.keys) { key in
-                                            Button {
-                                                keySelection.wrappedValue = key.id
-                                            } label: {
-                                                selectionMenuLabel(
-                                                    key.label, selected: keyID == key.id
-                                                )
-                                            }
-                                        }
+                            Text("Key").foregroundStyle(.secondary)
+                            fullWidthMenu(title: keyLabel) {
+                                Button {
+                                    keySelection.wrappedValue = nil
+                                } label: {
+                                    selectionMenuLabel(String(localized: "None"), selected: keyID == nil)
+                                }
+                                if !library.keys.isEmpty { Divider() }
+                                ForEach(library.keys) { key in
+                                    Button {
+                                        keySelection.wrappedValue = key.id
+                                    } label: {
+                                        selectionMenuLabel(key.label, selected: keyID == key.id)
                                     }
                                 }
                             }
@@ -305,7 +300,7 @@ public struct SSHAuthenticationForm: View {
     }
 
     private func commit(save: Bool) {
-        let submittedPassword = password.isEmpty ? nil : password
+        let submittedPassword = save ? password : (password.isEmpty ? nil : password)
         let submittedPassphrase = passphrase.isEmpty ? nil : passphrase
         password = ""
         passphrase = ""
@@ -317,6 +312,10 @@ public struct SSHAuthenticationForm: View {
 
     private var selectedIdentity: Identity? {
         identityID.flatMap { library.identity($0) }
+    }
+
+    private var initialCustomIdentity: Identity? {
+        prompt.selectedIdentityID.flatMap { library.identity($0) }.flatMap { $0.isHostCustom ? $0 : nil }
     }
 
     private var identityLabel: String {
@@ -377,11 +376,25 @@ public struct SSHAuthenticationForm: View {
             identityID
         } set: { id in
             identityID = id
-            guard let identity = id.flatMap({ library.identity($0) }) else { return }
+            guard let identity = id.flatMap({ library.identity($0) }) else {
+                let custom = initialCustomIdentity
+                username = custom?.username ?? prompt.username
+                keyID = custom?.keyID ?? prompt.selectedKeyID
+                loadPassword(for: custom)
+                return
+            }
             if !prompt.isProxy { username = identity.username }
-            password = ""
+            loadPassword(for: identity)
             passphrase = ""
             keyID = identity.keyID
+        }
+    }
+
+    private func loadPassword(for identity: Identity?) {
+        password = ""
+        guard let identity else { return }
+        if case .available = library.passwordAvailability(for: identity) {
+            password = (try? library.editablePassword(for: identity)) ?? ""
         }
     }
 

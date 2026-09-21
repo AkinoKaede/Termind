@@ -20,6 +20,11 @@ struct SyncSettings: View {
                     set: { enabled in
                         guard !enabled || app.proAccess.require(.vaultSync) else { return }
                         isEnabled = enabled
+                        if enabled {
+                            do { try app.hostLibrary.migrateCustomPasswordsToICloud() } catch {
+                                app.hostLibrary.reportStorageError(error)
+                            }
+                        }
                         app.reconcileProAccess()
                     })
             )
@@ -32,6 +37,11 @@ struct SyncSettings: View {
                         get: { includesVault },
                         set: { value in
                             includesVault = value
+                            if value {
+                                do { try app.hostLibrary.migrateCustomPasswordsToICloud() } catch {
+                                    app.hostLibrary.reportStorageError(error)
+                                }
+                            }
                             app.vaultSync?.setEnabled(value)
                         }), status: isActive ? app.vaultSync?.status : nil,
                     retry: { app.vaultSync?.retry() },

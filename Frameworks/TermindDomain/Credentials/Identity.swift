@@ -40,6 +40,11 @@ public nonisolated enum SecretAvailability: Equatable, Sendable {
     case failed(String)
 }
 
+public nonisolated enum HostCustomIdentityPurpose: String, Codable, Hashable, Sendable {
+    case ssh
+    case proxy
+}
+
 /// A named way of logging in: a username plus a *reference* to the secret.
 ///
 /// Split out from `Host` because the same login is usually reused across a whole
@@ -73,6 +78,11 @@ public nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
     public var notes: String = ""
     public var lastUsedAt: Date?
     public var colorTag: TagColor = .none
+    /// Non-nil only for a Host-private Custom identity. These identities are
+    /// resolved for connections and sync like ordinary identities, but are not
+    /// offered as reusable Vault identities.
+    public var ownerHostID: UUID?
+    public var customPurpose: HostCustomIdentityPurpose?
     /// User-defined position on the Keychain page. It is independent from the
     /// display name so renaming an identity never silently moves its card.
     public var sortIndex: Double = 0
@@ -92,6 +102,8 @@ public nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
     /// secret — and the Keychain page says so on the card rather than hiding it.
     public var hasSecret: Bool { usesPassword || usesKey }
 
+    public var isHostCustom: Bool { ownerHostID != nil && customPurpose != nil }
+
     public func matches(_ query: String) -> Bool {
         guard !query.isEmpty else { return true }
         let q = query.lowercased()
@@ -102,7 +114,8 @@ public nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
     public init(
         id: UUID = UUID(), name: String, username: String, credentialRef: String = "",
         passwordStorage: PasswordStorage = .iCloud, keyID: SSHKeyRef.ID? = nil, notes: String = "",
-        lastUsedAt: Date? = nil, colorTag: TagColor = .none, sortIndex: Double = 0
+        lastUsedAt: Date? = nil, colorTag: TagColor = .none, sortIndex: Double = 0,
+        ownerHostID: UUID? = nil, customPurpose: HostCustomIdentityPurpose? = nil
     ) {
         self.id = id
         self.name = name
@@ -114,6 +127,8 @@ public nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
         self.lastUsedAt = lastUsedAt
         self.colorTag = colorTag
         self.sortIndex = sortIndex
+        self.ownerHostID = ownerHostID
+        self.customPurpose = customPurpose
     }
 
 }
@@ -122,6 +137,7 @@ nonisolated extension Identity {
     private enum CodingKeys: String, CodingKey {
         case id, name, username, credentialRef, passwordStorage, keyID, notes
         case lastUsedAt, colorTag, sortIndex
+        case ownerHostID, customPurpose
     }
 
     /// Older Vault payloads predate identity colors. Missing or unrecognized
@@ -139,7 +155,9 @@ nonisolated extension Identity {
             notes: try container.decode(String.self, forKey: .notes),
             lastUsedAt: try container.decodeIfPresent(Date.self, forKey: .lastUsedAt),
             colorTag: (try? container.decode(TagColor.self, forKey: .colorTag)) ?? .none,
-            sortIndex: try container.decode(Double.self, forKey: .sortIndex)
+            sortIndex: try container.decode(Double.self, forKey: .sortIndex),
+            ownerHostID: try container.decodeIfPresent(UUID.self, forKey: .ownerHostID),
+            customPurpose: try container.decodeIfPresent(HostCustomIdentityPurpose.self, forKey: .customPurpose)
         )
     }
 }

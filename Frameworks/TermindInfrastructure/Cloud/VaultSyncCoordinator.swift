@@ -29,6 +29,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         set { lifecycle.status = newValue }
     }
     public var didApplyRemote: ((VaultSnapshot, Set<VaultRecordKey>) -> Void)?
+    public var beforeSend: (() throws -> Void)?
 
     public var isEnabled: Bool { lifecycle.isEnabled }
 
@@ -107,7 +108,8 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
             zoneID: zoneID, defaults: defaults,
             enabledKey: SettingsKey.vaultSyncEnabled, defaultEnabled: SettingsKey.defaultVaultSyncEnabled,
             environmentKey: SettingsKey.vaultSyncEnvironment, environmentIdentifier: environmentIdentifier,
-            signInMessage: { String(localized: "Sign in to iCloud to sync the Vault.") })
+            signInMessage: { String(localized: "Sign in to iCloud to sync the Vault.") },
+            beforeSend: { [weak self] in try self?.beforeSend?() })
     }
 
     public nonisolated func nextFetchChangesOptions(

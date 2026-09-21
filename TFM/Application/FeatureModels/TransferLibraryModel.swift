@@ -18,6 +18,10 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     func host(_ id: Host.ID) -> Host? { library.host(id) }
     func identity(_ id: Identity.ID) -> Identity? { library.identity(id) }
     func identity(for host: Host) -> Identity? { library.identity(for: host) }
+    func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity? {
+        library.customIdentity(for: hostID, purpose: purpose)
+    }
+    var customPasswordStorage: PasswordStorage { library.customPasswordStorage }
     func key(_ id: SSHKeyRef.ID) -> SSHKeyRef? { library.key(id) }
     func knownHosts(for host: Host) -> [KnownHostEntry] { library.knownHosts(for: host) }
     func route(for host: Host) -> [Host] { library.route(for: host) }

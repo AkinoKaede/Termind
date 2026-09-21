@@ -31,7 +31,7 @@ nonisolated struct IdentityEditorConfiguration: Hashable, Sendable {
             return false
         }
         guard requiresPassword else { return true }
-        return !password.isEmpty || (hasConfiguredPassword && !removesPassword)
+        return hasConfiguredPassword || !password.isEmpty
     }
 }
 
@@ -66,11 +66,12 @@ struct NewIdentitySheet: View {
     @State private var name: String
     @State private var username: String
     @State private var password = ""
+    @State private var originalPassword = ""
     @State private var passwordStorage: PasswordStorage
     @State private var keyID: SSHKeyRef.ID?
     @State private var colorTag: TagColor
-    @State private var removesPassword = false
     @State private var saveError: String?
+    @State private var didLoadPassword = false
 
     init(
         identity: Identity? = nil,
@@ -122,29 +123,8 @@ struct NewIdentitySheet: View {
                 // Both optional, and both allowed at once: a key to get in and a
                 // password the same account still asks for is an ordinary setup,
                 // not a contradiction.
-                HStack(spacing: Metrics.Space.s) {
-                    SecureField(
-                        "Password", text: $password,
-                        prompt: Text(passwordPrompt)
-                    )
-                    .disabled(removesPassword || !canEditPassword)
-
-                    if existing?.usesPassword == true && password.isEmpty && canEditPassword {
-                        Button {
-                            removesPassword.toggle()
-                        } label: {
-                            Image(systemName: removesPassword ? "arrow.counterclockwise" : "xmark")
-                                .frame(width: 16, height: 16)
-                                .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundStyle(removesPassword ? .secondary : .tertiary)
-                        .help(removesPassword ? "Keep saved password" : "Clear saved password")
-                        .accessibilityLabel(
-                            removesPassword ? "Keep saved password" : "Clear saved password"
-                        )
-                    }
-                }
+                RevealableSecretField("Password", text: $password, prompt: Text("Optional"))
+                    .disabled(!canEditPassword)
 
                 Picker("Store password in", selection: $passwordStorage) {
                     ForEach(PasswordStorage.allCases) { storage in
@@ -170,12 +150,14 @@ struct NewIdentitySheet: View {
                     ColorTagPicker(selection: $colorTag, layout: .compact)
                 }
 
-                Text(passwordHelp)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
         .formStyle(.grouped)
+        .onAppear(perform: loadPasswordOnce)
+        .onDisappear {
+            password = ""
+            originalPassword = ""
+        }
     }
 
     private var footer: some View {
@@ -207,39 +189,6 @@ struct NewIdentitySheet: View {
         username.trimmingCharacters(in: .whitespaces)
     }
 
-    private var passwordPrompt: String {
-        if removesPassword { return String(localized: "Will be cleared") }
-        if hasAvailablePassword {
-            return String(localized: "Leave blank to keep")
-        }
-        if existing?.usesPassword == true { return String(localized: "Not available on this Mac") }
-        return configuration.requiresPassword
-            ? String(localized: "Required")
-            : String(localized: "Optional")
-    }
-
-    private var passwordHelp: String {
-        if removesPassword {
-            return String(localized: "The saved password will be cleared when you save.")
-        }
-        if hasAvailablePassword {
-            return String(
-                localized:
-                    "Leave blank to keep the saved password, or enter a replacement."
-            )
-        }
-        if configuration.requiresPassword {
-            return String(
-                localized:
-                    "A username and password are required. The password stays in the Keychain."
-            )
-        }
-        return String(
-            localized:
-                "Passwords stay in the Keychain. Termind stores only a reference."
-        )
-    }
-
     private var hasAvailablePassword: Bool {
         guard let existing else { return false }
         return app.credentials.passwordAvailability(for: existing) == .available
@@ -252,9 +201,9 @@ struct NewIdentitySheet: View {
 
     private var passwordUpdate: IdentityPasswordUpdate {
         if !canEditPassword { return .keep }
-        if removesPassword { return .remove }
-        if !password.isEmpty { return .replace(password) }
-        return existing == nil ? .remove : .keep
+        if password == originalPassword { return .keep }
+        if password.isEmpty { return .remove }
+        return .replace(password)
     }
 
     private func close() {
@@ -265,8 +214,18 @@ struct NewIdentitySheet: View {
         configuration.accepts(
             username: username, password: password,
             hasConfiguredPassword: existing?.usesPassword == true,
-            removesPassword: removesPassword
+            removesPassword: canEditPassword && password.isEmpty && !originalPassword.isEmpty
         )
+    }
+
+    private func loadPasswordOnce() {
+        guard !didLoadPassword else { return }
+        didLoadPassword = true
+        guard let existing, hasAvailablePassword,
+            let loaded = try? app.credentials.editablePassword(for: existing)
+        else { return }
+        password = loaded
+        originalPassword = loaded
     }
 
     /// The view describes the password change but never mints or changes a

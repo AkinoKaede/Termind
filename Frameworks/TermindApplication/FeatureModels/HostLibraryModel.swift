@@ -25,6 +25,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public private(set) var storageError: String?
     private let vault: VaultStore
     private let keychain: any SecretStoring
+    private let defaults: UserDefaults
     private var expansionState = LibraryExpansionState()
     @ObservationIgnored private var recordedIdentityCredentialAccesses: Set<Identity.ID> = []
     /// Runtime resources live in AppModel, so deletion announces before model
@@ -85,6 +86,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         self.workspaceTemplates = workspaceTemplates
         self.vault = VaultStore(persistence: persistence)
         self.keychain = secrets
+        self.defaults = localDefaults ?? .standard
         do {
             let loaded = try vault.load(
                 fallback: VaultSnapshot(
@@ -304,6 +306,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func identity(_ id: Identity.ID) -> Identity? {
         identities.first { $0.id == id }
+    }
+
+    public var reusableIdentities: [Identity] {
+        identities.filter { !$0.isHostCustom }
+    }
+
+    public func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity? {
+        identities.first { $0.ownerHostID == hostID && $0.customPurpose == purpose }
     }
 
     /// The login a host connects with, resolved through the store so renaming an
@@ -969,7 +979,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func searchIdentities(_ query: String) -> [Identity] {
-        identities.filter { $0.matches(query) }.sorted {
+        reusableIdentities.filter { $0.matches(query) }.sorted {
             manuallyOrdered($0.sortIndex, $0.name, $1.sortIndex, $1.name)
         }
     }
@@ -1011,6 +1021,16 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// The repository is the only writer; this keeps legacy views in sync until
     /// they consume `HostLibraryModel` directly.
     public func projectHostDeletion(_ hostID: Host.ID) {
+        let owned = identities.filter { $0.ownerHostID == hostID }
+        for identity in owned where !identity.credentialRef.isEmpty {
+            do {
+                try keychain.removePassword(identity.credentialRef, storage: identity.passwordStorage)
+            } catch {
+                storageError = error.localizedDescription
+            }
+        }
+        identities.removeAll { $0.ownerHostID == hostID }
+        recordedIdentityCredentialAccesses.subtract(owned.map(\.id))
         removeHostProjection(hostID)
     }
 
@@ -1315,6 +1335,88 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         return try keychain.string(
             for: identity.credentialRef, storage: identity.passwordStorage
         )
+    }
+
+    public func editablePassword(for identity: Identity) throws -> String? {
+        try passwordCredential(for: identity)
+    }
+
+    @discardableResult
+    public func saveCustomIdentity(
+        ownerHostID: Host.ID, purpose: HostCustomIdentityPurpose, displayName: String,
+        username: String, password: String, keyID: SSHKeyRef.ID?
+    ) throws -> Identity? {
+        let username = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        let existing = customIdentity(for: ownerHostID, purpose: purpose)
+        if username.isEmpty && password.isEmpty && keyID == nil {
+            if let existing, !delete(identityID: existing.id) {
+                throw TermindSSHError.library(
+                    storageError ?? String(localized: "The identity could not be saved."))
+            }
+            return nil
+        }
+
+        var value = Identity(
+            id: existing?.id ?? UUID(), name: displayName, username: username,
+            credentialRef: existing?.credentialRef ?? "",
+            passwordStorage: existing?.passwordStorage ?? customPasswordStorage,
+            keyID: purpose == .ssh ? keyID : nil, notes: existing?.notes ?? "",
+            lastUsedAt: existing?.lastUsedAt, colorTag: existing?.colorTag ?? .none,
+            sortIndex: existing?.sortIndex ?? 0, ownerHostID: ownerHostID, customPurpose: purpose
+        )
+        let update: IdentityPasswordUpdate
+        if let existing, passwordAvailability(for: existing) != .available {
+            update = .keep
+        } else {
+            let previous = try existing.flatMap { try editablePassword(for: $0) } ?? ""
+            update = password == previous ? .keep : password.isEmpty ? .remove : .replace(password)
+        }
+        try upsert(value, passwordUpdate: update)
+        value = identity(value.id) ?? value
+        return value
+    }
+
+    public var customPasswordStorage: PasswordStorage {
+        let cloud =
+            defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool
+            ?? SettingsKey.defaultICloudSyncEnabled
+        let vault =
+            defaults.object(forKey: SettingsKey.vaultSyncEnabled) as? Bool
+            ?? SettingsKey.defaultVaultSyncEnabled
+        return cloud && vault ? .iCloud : .thisDevice
+    }
+
+    /// One-way migration for Host-private passwords when Vault sync becomes active.
+    /// The local copy is removed only after the iCloud value is verified and the
+    /// Identity metadata has committed successfully.
+    public func migrateCustomPasswordsToICloud() throws {
+        guard customPasswordStorage == .iCloud else { return }
+        for identity in identities where identity.isHostCustom && identity.passwordStorage == .thisDevice {
+            var updated = identity
+            if identity.credentialRef.isEmpty {
+                updated.passwordStorage = .iCloud
+                guard upsert(updated) else {
+                    throw TermindSSHError.library(
+                        storageError ?? String(localized: "The identity could not be saved."))
+                }
+                continue
+            }
+            guard let password = try keychain.string(for: identity.credentialRef, storage: .thisDevice) else {
+                throw TermindSSHError.library(String(localized: "The saved password is no longer available."))
+            }
+            try keychain.setString(password, for: identity.credentialRef, storage: .iCloud)
+            guard try keychain.string(for: identity.credentialRef, storage: .iCloud) == password else {
+                try? keychain.removePassword(identity.credentialRef, storage: .iCloud)
+                throw TermindSSHError.library(String(localized: "The saved password is no longer available."))
+            }
+            updated.passwordStorage = .iCloud
+            guard upsert(updated) else {
+                try? keychain.removePassword(identity.credentialRef, storage: .iCloud)
+                throw TermindSSHError.library(
+                    storageError ?? String(localized: "The identity could not be saved."))
+            }
+            try keychain.removePassword(identity.credentialRef, storage: .thisDevice)
+        }
     }
 
     public func passwordSecret(for identity: Identity) throws -> SSHSecret? {

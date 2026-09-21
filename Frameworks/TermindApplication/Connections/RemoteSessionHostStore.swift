@@ -11,6 +11,8 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func host(_ id: Host.ID) -> Host?
     func identity(_ id: Identity.ID) -> Identity?
     func identity(for host: Host) -> Identity?
+    func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity?
+    var customPasswordStorage: PasswordStorage { get }
     func key(_ id: SSHKeyRef.ID) -> SSHKeyRef?
     func knownHosts(for host: Host) -> [KnownHostEntry]
     func route(for host: Host) -> [Host]
@@ -66,6 +68,9 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public func customIdentity(for hostID: Host.ID, purpose: HostCustomIdentityPurpose) -> Identity? { nil }
+    public var customPasswordStorage: PasswordStorage { .iCloud }
+
     public func prepareSSHConnection(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
     ) throws -> SSHConnectionPreparation {
@@ -136,11 +141,13 @@ extension RemoteSessionHostStore {
                 case .notConfigured, .available:
                     break
                 }
-                try upsert(selectedIdentity, passwordUpdate: .replace(suppliedPassword))
+                try upsert(
+                    selectedIdentity,
+                    passwordUpdate: suppliedPassword.isEmpty ? .remove : .replace(suppliedPassword))
             }
             identity = selectedIdentity
         } else {
-            let candidate = self.identity(for: host)
+            let candidate = customIdentity(for: host.id, purpose: .ssh)
             let existing: Identity?
             if let candidate {
                 switch passwordAvailability(for: candidate) {
@@ -153,13 +160,16 @@ extension RemoteSessionHostStore {
             identity = Identity(
                 id: existing?.id ?? UUID(), name: existing?.name ?? submission.username,
                 username: submission.username, credentialRef: existing?.credentialRef ?? "",
-                passwordStorage: existing?.passwordStorage ?? .iCloud,
+                passwordStorage: existing?.passwordStorage ?? customPasswordStorage,
                 keyID: submission.keyID, notes: existing?.notes ?? "",
-                lastUsedAt: existing?.lastUsedAt, colorTag: existing?.colorTag ?? .none
+                lastUsedAt: existing?.lastUsedAt, colorTag: existing?.colorTag ?? .none,
+                ownerHostID: host.id, customPurpose: .ssh
             )
             try upsert(
                 identity,
-                passwordUpdate: submission.password.map(IdentityPasswordUpdate.replace)
+                passwordUpdate: suppliedPassword.map {
+                    $0.isEmpty ? IdentityPasswordUpdate.remove : .replace($0)
+                }
                     ?? (existing == nil ? .remove : .keep)
             )
         }
@@ -186,14 +196,25 @@ extension RemoteSessionHostStore {
                 case .notConfigured, .available:
                     break
                 }
-                try upsert(selectedIdentity, passwordUpdate: .replace(suppliedPassword))
+                try upsert(
+                    selectedIdentity,
+                    passwordUpdate: suppliedPassword.isEmpty ? .remove : .replace(suppliedPassword))
             }
             identity = selectedIdentity
         } else {
-            identity = Identity(name: submission.username, username: submission.username)
+            let existing = customIdentity(for: host.id, purpose: .proxy)
+            identity = Identity(
+                id: existing?.id ?? UUID(), name: existing?.name ?? submission.username,
+                username: submission.username, credentialRef: existing?.credentialRef ?? "",
+                passwordStorage: existing?.passwordStorage ?? customPasswordStorage,
+                notes: existing?.notes ?? "", lastUsedAt: existing?.lastUsedAt,
+                colorTag: existing?.colorTag ?? .none, ownerHostID: host.id, customPurpose: .proxy
+            )
             try upsert(
                 identity,
-                passwordUpdate: suppliedPassword.map(IdentityPasswordUpdate.replace) ?? .remove)
+                passwordUpdate: suppliedPassword.map {
+                    $0.isEmpty ? IdentityPasswordUpdate.remove : .replace($0)
+                } ?? .remove)
         }
         proxy.username = submission.username
         proxy.identityID = identity.id

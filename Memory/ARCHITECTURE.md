@@ -108,6 +108,13 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   application writes reject it before touching Keychain. New credentials may start device-only, and device-only credentials
   may move to iCloud. New Key and Identity storage pickers default to iCloud only while the master iCloud switch, Vault
   selection and Pro access are all enabled; otherwise they default to this device. Existing credentials keep their storage.
+- A Host may own one hidden Custom SSH Identity and one hidden Custom proxy Identity. They sync as Identity records but are
+  excluded from reusable Identity lists, cannot be shared or copied to another Host, and are deleted with their owner Host.
+  Custom Passwords start device-only while Vault sync is off and migrate once to iCloud when it becomes enabled; they never
+  move back to device-only storage. The selected SSH Key remains an independently owned shared Key.
+- Secret editors load an available saved value into a masked field. Clearing that field is the delete intent; reveal state is
+  UI-only and resets when the field disappears or the app resigns active. Plaintext must never enter logs, sync, defaults or
+  persistence, and unavailable remote credentials remain protected from replacement or deletion.
 - Editors whose saved Password or software Private Key is unavailable on the current device preserve its reference and
   disable secret replacement, removal, passphrase and storage changes while still allowing public metadata edits. Key
   metadata-only saves may update the SSH certificate after validating it against the saved public key, without reading or

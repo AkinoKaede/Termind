@@ -329,7 +329,7 @@ private struct SSHImportContent: View {
                 }
             }
             if item.requiresPassphrase {
-                SecureField(
+                RevealableSecretField(
                     "Passphrase",
                     text: Binding(get: { passphrases[item.id] ?? "" }, set: { passphrases[item.id] = $0 }),
                     prompt: Text("Passphrase")

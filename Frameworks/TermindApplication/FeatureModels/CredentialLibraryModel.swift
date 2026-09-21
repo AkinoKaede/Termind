@@ -18,7 +18,7 @@ public final class CredentialLibraryModel {
 
     public var hosts: [Host] { library.hosts }
     public var keys: [SSHKeyRef] { library.keys }
-    public var identities: [Identity] { library.identities }
+    public var identities: [Identity] { library.reusableIdentities }
     public var storageError: String? { library.storageError }
 
     public func key(_ id: SSHKeyRef.ID) -> SSHKeyRef? { library.key(id) }
@@ -29,6 +29,9 @@ public final class CredentialLibraryModel {
     public func searchIdentities(_ query: String) -> [Identity] { library.searchIdentities(query) }
     public func passwordAvailability(for identity: Identity) -> SecretAvailability {
         library.passwordAvailability(for: identity)
+    }
+    public func editablePassword(for identity: Identity) throws -> String? {
+        try library.editablePassword(for: identity)
     }
     public func keyAvailability(for key: SSHKeyRef) -> SecretAvailability {
         library.keyAvailability(for: key)

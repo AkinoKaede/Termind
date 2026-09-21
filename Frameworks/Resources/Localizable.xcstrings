@@ -11834,6 +11834,22 @@
         }
       }
     },
+    "Hide Secret" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隐藏密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "隱藏密鑰"
+          }
+        }
+      }
+    },
     "Hide tag suggestions" : {
       "localizations" : {
         "zh-Hans" : {
@@ -22828,6 +22844,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示工作階段詳細資訊"
+          }
+        }
+      }
+    },
+    "Show Secret" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示密钥"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示密鑰"
           }
         }
       }

@@ -2,6 +2,7 @@ import AgentKit
 import AppKit
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 struct ExternalAuthWindowPresenter: View {
     static let sceneID = "external-ssh-authentication"
@@ -273,7 +274,7 @@ private struct ExternalSecretRequestForm: View {
             if !request.purpose.isEmpty {
                 LabeledContent("Purpose", value: request.purpose)
             }
-            SecureField("Secret", text: $secret)
+            RevealableSecretField("Secret", text: $secret)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
             Text(

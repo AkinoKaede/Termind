@@ -182,6 +182,8 @@ final class MobileAppModel {
             persistence: persistence, secrets: secrets,
             localDefaults: memoryOnly ? nil : settingsDefaults
         )
+        if !memoryOnly { try? library.migrateCustomPasswordsToICloud() }
+        vaultSync?.beforeSend = { [weak library] in try library?.migrateCustomPasswordsToICloud() }
         metrics = MobileMetricsModel(
             preferences: metricsPersistence, hosts: library, services: dependencies.metrics)
         let speechAudio = IOSSpeechAudioInput()
@@ -384,6 +386,11 @@ final class MobileAppModel {
 
     func duplicateHost(_ host: Host) {
         var copy = host
+        if host.identityID.flatMap(library.identity)?.isHostCustom == true { copy.identityID = nil }
+        if host.proxy?.identityID.flatMap(library.identity)?.isHostCustom == true {
+            copy.proxy?.identityID = nil
+            copy.proxy?.username = ""
+        }
         copy.id = UUID()
         copy.name = String(localized: "\(host.name) copy")
         library.upsert(copy)
@@ -448,6 +455,9 @@ final class MobileAppModel {
     func setSyncEnabled(_ value: Bool, key: String) {
         guard !value || pro.require(.vaultSync) else { return }
         defaults?.set(value, forKey: key)
+        if value && (key == SettingsKey.iCloudSyncEnabled || key == SettingsKey.vaultSyncEnabled) {
+            do { try library.migrateCustomPasswordsToICloud() } catch { self.error = error.localizedDescription }
+        }
         reconcileSync()
     }
 
