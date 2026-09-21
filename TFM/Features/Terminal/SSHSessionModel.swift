@@ -237,6 +237,7 @@ final class SSHSessionModel: Identifiable {
     private var transientHost: Host?
     private var usernameHint: String?
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
+    private var suppliedProxyAuthentications: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
     private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] {
         get { connection.temporaryHostKeys }
         set { connection.temporaryHostKeys = newValue }
@@ -489,6 +490,10 @@ final class SSHSessionModel: Identifiable {
             host: host, route: route, purpose: .sshSession, username: username,
             mode: reconnecting ? .reconnection : .connection
         )
+        if let proxyHost = suppliedProxyAuthentications.firstHostRequiringProxyPassword(in: route) {
+            requestProxyAuthentication(for: proxyHost, using: store)
+            return
+        }
         if let passwordHost = suppliedAuthentications.firstHostRequiringPassword(in: route),
             let submission = suppliedAuthentications[passwordHost.id]
         {
@@ -516,6 +521,7 @@ final class SSHSessionModel: Identifiable {
             return
         }
         let attemptAuthentications = suppliedAuthentications.takeAuthenticationSecrets()
+        let attemptProxyAuthentications = suppliedProxyAuthentications.takeProxyAuthenticationSecrets()
         let suppliedAuthentication = attemptAuthentications[host.id]
         var credentials: [SSHCredentials] = []
         var credentialFailures: [String] = []
@@ -604,15 +610,18 @@ final class SSHSessionModel: Identifiable {
         let jumps: [SSHRouteHopConfiguration]
         let expectedHostKeys: Set<SSHHostKeyIdentity>
         do {
-            proxy = try store.transportProxy(for: host)
+            proxy = try store.transportProxy(
+                for: host, submission: attemptProxyAuthentications[host.id])
             if let connectionRoute {
                 jumps = try store.sshJumpConfigurations(
                     for: connectionRoute, submissions: attemptAuthentications,
+                    proxySubmissions: attemptProxyAuthentications,
                     temporaryHostKeys: temporaryHostKeys, trustPolicy: .allowChallenge
                 )
             } else {
                 jumps = try store.sshJumpConfigurations(
                     for: host, submissions: attemptAuthentications,
+                    proxySubmissions: attemptProxyAuthentications,
                     temporaryHostKeys: temporaryHostKeys, trustPolicy: .allowChallenge
                 )
             }
@@ -626,6 +635,14 @@ final class SSHSessionModel: Identifiable {
                 let id = sshError.routeHostID,
                 let jump = connectionHost(id, using: store)
             {
+                if sshError.isProxyAuthentication {
+                    connectionAttemptID = nil
+                    requestProxyAuthentication(
+                        for: jump, using: store,
+                        failureMessage: sshError.localizedDescription,
+                        mode: sshError.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity)
+                    return
+                }
                 let identity = store.identity(for: jump)
                 let submitted = suppliedAuthentications[jump.id]
                 let retryNeedsPassphrase =
@@ -703,6 +720,13 @@ final class SSHSessionModel: Identifiable {
                         authenticationHost = host
                     }
                     let authenticationIdentity = store.identity(for: authenticationHost)
+                    if sshError.isProxyAuthentication {
+                        requestProxyAuthentication(
+                            for: authenticationHost, using: store,
+                            failureMessage: sshError.localizedDescription,
+                            mode: sshError.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity)
+                        return
+                    }
                     let submitted = suppliedAuthentications[authenticationHost.id]
                     let authenticationKeyID =
                         submitted?.keyID
@@ -741,12 +765,32 @@ final class SSHSessionModel: Identifiable {
         using store: any RemoteSessionHostStore
     ) {
         let selectedIdentity = identityID.flatMap { store.identity($0) }
-        let trimmedUsername = (selectedIdentity?.username ?? username)
+        let trimmedUsername = ((pendingAuthentication?.isProxy == true ? nil : selectedIdentity?.username) ?? username)
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedUsername.isEmpty else { return }
         guard let prompt = pendingAuthentication,
             var host = connectionHost(prompt.host.id, using: store)
         else { return }
+
+        if prompt.isProxy {
+            let submission = SSHProxyAuthenticationSubmission(
+                username: trimmedUsername, password: password, identityID: selectedIdentity?.id)
+            do {
+                if save {
+                    host = try store.saveProxyAuthentication(
+                        submission, for: host, selectedIdentity: selectedIdentity,
+                        suppliedPassword: password)
+                }
+                suppliedProxyAuthentications[host.id] = submission
+                pendingAuthentication = nil
+                connectionJourney.resume()
+                connect(using: store)
+            } catch {
+                requestProxyAuthentication(
+                    for: host, using: store, failureMessage: error.localizedDescription)
+            }
+            return
+        }
 
         if prompt.requiresPassphrase,
             var staged = suppliedAuthentications[host.id]
@@ -817,6 +861,7 @@ final class SSHSessionModel: Identifiable {
         commandExcludedFromHistory = nil
         pendingAuthentication = nil
         suppliedAuthentications.removeAll()
+        suppliedProxyAuthentications.removeAll()
         connectionAttemptID = nil
         connection.disconnect()
         connectionTask?.cancel()
@@ -895,6 +940,7 @@ final class SSHSessionModel: Identifiable {
                 statusStore?.additionalConnectionSnapshot(from: configuration)
                 ?? SSHAdditionalConnectionSnapshot(configuration: configuration)
             suppliedAuthentications.removeAll()
+            suppliedProxyAuthentications.removeAll()
             temporaryHostKeys.removeAll()
             _ = connection.markConnected()
             status = .connected
@@ -1033,6 +1079,37 @@ final class SSHSessionModel: Identifiable {
         }
     }
 
+    private func requestProxyAuthentication(
+        for host: Host, using store: any RemoteSessionHostStore,
+        failureMessage: String? = nil,
+        mode: SSHAuthenticationPrompt.Mode = .localIdentity
+    ) {
+        guard let proxy = host.proxy else { return }
+        connection.pauseForUserInteraction()
+        let staged = suppliedProxyAuthentications[host.id]
+        let configuredIdentity = (staged?.identityID ?? proxy.identityID).flatMap(store.identity)
+        let selectedIdentity: Identity?
+        if let configuredIdentity {
+            switch store.passwordAvailability(for: configuredIdentity) {
+            case .available, .notConfigured: selectedIdentity = configuredIdentity
+            case .missing, .failed: selectedIdentity = nil
+            }
+        } else {
+            selectedIdentity = nil
+        }
+        suppliedProxyAuthentications[host.id] = nil
+        pendingAuthentication = SSHAuthenticationPrompt(
+            host: Host(
+                id: host.id, name: String(localized: "Proxy for \(host.name)"),
+                host: proxy.hostname, port: proxy.port),
+            selectedIdentityID: selectedIdentity?.id,
+            username: staged?.username ?? proxy.username,
+            failureMessage: failureMessage, mode: mode,
+            target: .proxy(ownerHostID: host.id))
+        status = .disconnected
+        connectionJourney.waitForProxyAuthentication(at: host.id, failure: failureMessage)
+    }
+
     private func progressHandler(attemptID: UUID) -> SSHRouteProgressHandler {
         connection.progressHandler(attemptID: attemptID) { [weak self] id in
             self?.connectionAttemptID == id
@@ -1049,6 +1126,10 @@ final class SSHSessionModel: Identifiable {
         let mapping = Dictionary(uniqueKeysWithValues: zip(route.hosts, saved.hosts).map { ($0.id, $1.id) })
         suppliedAuthentications = Dictionary(
             uniqueKeysWithValues: suppliedAuthentications.map {
+                (mapping[$0.key] ?? $0.key, $0.value)
+            })
+        suppliedProxyAuthentications = Dictionary(
+            uniqueKeysWithValues: suppliedProxyAuthentications.map {
                 (mapping[$0.key] ?? $0.key, $0.value)
             })
         temporaryHostKeys = Dictionary(

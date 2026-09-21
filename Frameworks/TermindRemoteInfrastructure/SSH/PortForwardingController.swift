@@ -71,6 +71,7 @@ public final class PortForwardingConnection {
     public fileprivate(set) var hostKeyRequestID: UUID?
     fileprivate var route: [Host]
     fileprivate var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
+    fileprivate var proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
     fileprivate var attemptID: UUID?
     fileprivate var forwardingConnection: (any SSHForwardingConnectionProtocol)?
     fileprivate var task: Task<Void, Never>?
@@ -255,8 +256,32 @@ public final class PortForwardingController {
             var host = hosts.host(prompt.host.id)
         else { return }
         let identity = identityID.flatMap(hosts.identity)
-        let name = (identity?.username ?? username).trimmingCharacters(in: .whitespacesAndNewlines)
+        let name = ((prompt.isProxy ? nil : identity?.username) ?? username)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
+        if prompt.isProxy {
+            let submission = SSHProxyAuthenticationSubmission(
+                username: name, password: password, identityID: identity?.id)
+            do {
+                if save {
+                    savingAuthentication = context
+                    defer { savingAuthentication = nil }
+                    host = try hosts.saveProxyAuthentication(
+                        submission, for: host, selectedIdentity: identity,
+                        suppliedPassword: password)
+                    context.route = hosts.route(for: hosts.host(context.hostID) ?? host)
+                }
+                context.proxySubmissions[host.id] = submission
+                context.setPrompt(nil)
+                context.journey.resume()
+                open(context)
+            } catch {
+                var failed = prompt
+                failed.failureMessage = error.localizedDescription
+                context.setPrompt(failed)
+            }
+            return
+        }
         if prompt.requiresPassphrase, var staged = context.submissions[host.id] {
             guard let passphrase, !passphrase.isEmpty else { return }
             staged.passphrase = passphrase
@@ -327,6 +352,15 @@ public final class PortForwardingController {
                 host: host, route: hosts.route(for: host), purpose: .portForwarding,
                 username: context.submissions[host.id]?.username ?? hosts.identity(for: host)?.username)
             update(context, state: .preparing)
+            if let proxyHost = context.proxySubmissions.firstHostRequiringProxyPassword(in: context.route) {
+                requestAuthentication(
+                    context,
+                    error: .proxyAuthentication(
+                        hostID: proxyHost.id, serverChallenge: false,
+                        message: String(localized: "The proxy password is unavailable.")))
+                context.attemptID = nil
+                return
+            }
             if let passwordHost = context.submissions.firstHostRequiringPassword(in: context.route) {
                 requestAuthentication(
                     context,
@@ -355,6 +389,7 @@ public final class PortForwardingController {
             }
         }
         let attemptSubmissions = silently ? [:] : context.submissions.takeAuthenticationSecrets()
+        let attemptProxySubmissions = silently ? [:] : context.proxySubmissions.takeProxyAuthenticationSecrets()
         let forwardingConnection = makeConnection(
             context.maximumConnections,
             { [weak self, weak context] id, generation, count in
@@ -393,6 +428,7 @@ public final class PortForwardingController {
                 } else {
                     let preparation = try hosts.prepareSSHConnection(
                         for: host, submissions: attemptSubmissions,
+                        proxySubmissions: attemptProxySubmissions,
                         temporaryHostKeys: context.connection.temporaryHostKeys)
                     configuration = try await preparation.resolve(trustPolicy: .allowChallenge)
                 }
@@ -436,6 +472,7 @@ public final class PortForwardingController {
                     }
                 }
                 context.submissions.removeAll()
+                context.proxySubmissions.removeAll()
                 context.connection.temporaryHostKeys.removeAll()
                 for id in activeIDs(context) {
                     if let rule = hosts.portForwarding(id) { startRule(rule, in: context) }
@@ -494,6 +531,32 @@ public final class PortForwardingController {
     private func requestAuthentication(_ context: PortForwardingConnection, error: TermindSSHError) {
         guard let host = hosts.host(error.routeHostID ?? context.hostID) else {
             fail(context, message: error.localizedDescription)
+            return
+        }
+        if error.isProxyAuthentication, let proxy = host.proxy {
+            let staged = context.proxySubmissions.removeValue(forKey: host.id)
+            let configured = (staged?.identityID ?? proxy.identityID).flatMap(hosts.identity)
+            let selected: Identity?
+            if let configured {
+                switch hosts.passwordAvailability(for: configured) {
+                case .available, .notConfigured: selected = configured
+                case .missing, .failed: selected = nil
+                }
+            } else {
+                selected = nil
+            }
+            context.setPrompt(
+                SSHAuthenticationPrompt(
+                    host: Host(
+                        id: host.id, name: String(localized: "Proxy for \(host.name)"),
+                        host: proxy.hostname, port: proxy.port),
+                    selectedIdentityID: selected?.id,
+                    username: staged?.username ?? proxy.username,
+                    failureMessage: error.localizedDescription,
+                    mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity,
+                    target: .proxy(ownerHostID: host.id)))
+            context.journey.waitForProxyAuthentication(at: host.id, failure: error.localizedDescription)
+            update(context, state: .awaitingAuthentication)
             return
         }
         let staged = context.submissions[host.id]
@@ -630,6 +693,7 @@ public final class PortForwardingController {
         context.setPrompt(nil)
         context.hostKeyRequestID = nil
         context.submissions.removeAll()
+        context.proxySubmissions.removeAll()
         context.additionalSnapshot = nil
         context.connection.disconnect()
         if connections[context.hostID] === context { connections[context.hostID] = nil }

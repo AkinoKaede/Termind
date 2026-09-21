@@ -11,15 +11,17 @@ public nonisolated struct SSHAdditionalConnectionSnapshot: Equatable, Sendable {
         public var kind: HostProxy.ProtocolKind
         public var hostname: String
         public var port: Int
+        public var username: String
         public var identityID: Identity.ID?
 
         public init(
             kind: HostProxy.ProtocolKind, hostname: String, port: Int,
-            identityID: Identity.ID?
+            username: String = "", identityID: Identity.ID?
         ) {
             self.kind = kind
             self.hostname = hostname
             self.port = port
+            self.username = username
             self.identityID = identityID
         }
     }
@@ -64,6 +66,7 @@ public nonisolated struct SSHAdditionalConnectionSnapshot: Equatable, Sendable {
             value.map {
                 Proxy(
                     kind: $0.kind, hostname: $0.hostname, port: $0.port,
+                    username: $0.username,
                     identityID: $0.identityID
                 )
             }

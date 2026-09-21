@@ -408,6 +408,7 @@ public nonisolated struct SSHCredentialResolution: Sendable {
 public nonisolated enum TermindSSHError: LocalizedError, Sendable {
     case socket(String)
     case proxy(String)
+    case proxyAuthentication(hostID: Host.ID, serverChallenge: Bool, message: String)
     case route(String)
     case routeHost(
         hostID: Host.ID, authentication: Bool, serverChallenge: Bool,
@@ -429,6 +430,7 @@ public nonisolated enum TermindSSHError: LocalizedError, Sendable {
         case .socket(let message), .proxy(let message), .route(let message),
             .library(let message), .authenticationFailed(let message):
             message
+        case .proxyAuthentication(_, _, let message): message
         case .handshake(let failure): failure.localizedDescription
         case .routeHost(_, _, _, _, let message): message
         case .hostKeyChanged(let expected, let received):
@@ -445,6 +447,7 @@ public nonisolated enum TermindSSHError: LocalizedError, Sendable {
     }
 
     public var shouldRequestAuthentication: Bool {
+        if case .proxyAuthentication = self { return true }
         if case .authenticationFailed = self { return true }
         if case .routeHost(_, let authentication, _, _, _) = self { return authentication }
         return false
@@ -453,19 +456,26 @@ public nonisolated enum TermindSSHError: LocalizedError, Sendable {
     public var isLocalAuthenticationRequirement: Bool {
         switch self {
         case .missingCredential, .keyPassphraseRequired, .missingUsername: true
+        case .proxyAuthentication(_, let serverChallenge, _): !serverChallenge
         default: false
         }
     }
 
     public var isServerAuthenticationChallenge: Bool {
+        if case .proxyAuthentication(_, let serverChallenge, _) = self { return serverChallenge }
         if case .authenticationFailed = self { return true }
         if case .routeHost(_, _, let serverChallenge, _, _) = self { return serverChallenge }
         return false
     }
 
     public var routeHostID: Host.ID? {
+        if case .proxyAuthentication(let id, _, _) = self { return id }
         guard case .routeHost(let id, _, _, _, _) = self else { return nil }
         return id
+    }
+
+    public var isProxyAuthentication: Bool {
+        if case .proxyAuthentication = self { true } else { false }
     }
 
     public var shouldRequestHostKey: Bool {

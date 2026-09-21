@@ -18923,6 +18923,36 @@
         }
       }
     },
+    "Proxy authentication required" : {
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "需要代理认证" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "需要代理驗證" } }
+      }
+    },
+    "Proxy connected" : {
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "代理已连接" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "代理已連線" } }
+      }
+    },
+    "Proxy for %@" : {
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%@的代理" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "%@的代理" } }
+      }
+    },
+    "Connecting to proxy" : {
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在连接代理" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "正在連線代理" } }
+      }
+    },
+    "Waiting for proxy authentication" : {
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在等待代理认证" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "正在等待代理驗證" } }
+      }
+    },
     "Proxy Hostname" : {
       "localizations" : {
         "zh-Hans" : {
@@ -25930,6 +25960,24 @@
             "value" : "供應商的憑證無法使用。"
           }
         }
+      }
+    },
+    "HTTP proxy authentication failed." : {
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "HTTP代理认证失败。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "HTTP代理驗證失敗。" } }
+      }
+    },
+    "The selected Identity cannot be updated on this device." : {
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法在此设备上更新所选身份。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "無法在此裝置上更新所選身分。" } }
+      }
+    },
+    "The SOCKS5 proxy rejected authentication." : {
+      "localizations" : {
+        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "SOCKS5代理拒绝了认证。" } },
+        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "SOCKS5代理拒絕了驗證。" } }
       }
     },
     "The proxy configuration is incomplete." : {

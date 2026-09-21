@@ -4,6 +4,11 @@ import TermindDomain
 import struct TermindDomain.Host
 
 public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Sendable {
+    public nonisolated enum Target: Hashable, Sendable {
+        case host
+        case proxy(ownerHostID: Host.ID)
+    }
+
     public nonisolated enum Mode: Hashable, Sendable {
         case localIdentity
         case serverChallenge
@@ -18,10 +23,11 @@ public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Senda
     public var keyboardInteractive: SSHKeyboardInteractiveChallenge?
     public var requiresPassphrase = false
     public var mode: Mode = .localIdentity
+    public var target: Target = .host
     public init(
         host: Host, selectedIdentityID: Identity.ID? = nil, username: String, selectedKeyID: SSHKeyRef.ID? = nil,
         failureMessage: String? = nil, requiresPassphrase: Bool = false, mode: Mode = .localIdentity,
-        keyboardInteractive: SSHKeyboardInteractiveChallenge? = nil
+        keyboardInteractive: SSHKeyboardInteractiveChallenge? = nil, target: Target = .host
     ) {
         self.host = host
         self.selectedIdentityID = selectedIdentityID
@@ -31,6 +37,11 @@ public nonisolated struct SSHAuthenticationPrompt: Identifiable, Hashable, Senda
         self.requiresPassphrase = requiresPassphrase
         self.mode = mode
         self.keyboardInteractive = keyboardInteractive
+        self.target = target
+    }
+
+    public var isProxy: Bool {
+        if case .proxy = target { true } else { false }
     }
 
 }

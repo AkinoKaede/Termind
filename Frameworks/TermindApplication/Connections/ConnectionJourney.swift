@@ -20,6 +20,7 @@ public nonisolated struct ConnectionEndpoint: Identifiable, Hashable, Sendable {
 
     public nonisolated enum ID: Hashable, Sendable {
         case local
+        case proxy(Host.ID)
         case host(Host.ID)
         case serial(String)
     }
@@ -112,13 +113,21 @@ public final class ConnectionJourney {
                     name: Self.localDeviceName, address: "localhost", role: .local
                 )
             ]
-            + route.enumerated().map { index, node in
-                ConnectionEndpoint(
-                    id: .host(node.id), hostID: node.id, name: node.name,
-                    address: index == route.count - 1 && username?.isEmpty == false
-                        ? "\(username!)@\(node.displayAddress)" : node.displayAddress,
-                    role: index == route.count - 1 ? .destination : .jump
-                )
+            + route.enumerated().flatMap { index, node in
+                let proxy = node.proxy.map {
+                    ConnectionEndpoint(
+                        id: .proxy(node.id), hostID: node.id,
+                        name: String(localized: "Proxy"), address: "\($0.hostname):\($0.port)", role: .jump
+                    )
+                }
+                return (proxy.map { [$0] } ?? []) + [
+                    ConnectionEndpoint(
+                        id: .host(node.id), hostID: node.id, name: node.name,
+                        address: index == route.count - 1 && username?.isEmpty == false
+                            ? "\(username!)@\(node.displayAddress)" : node.displayAddress,
+                        role: index == route.count - 1 ? .destination : .jump
+                    )
+                ]
             }
         let continuesJourney =
             phase == .connecting && endpoints == nextEndpoints
@@ -183,6 +192,12 @@ public final class ConnectionJourney {
         let hostID: Host.ID
         let message: String
         switch event {
+        case .proxyConnecting(let id):
+            hostID = id
+            message = String(localized: "Connecting to proxy")
+        case .proxyConnected(let id):
+            hostID = id
+            message = String(localized: "Proxy connected")
         case .connecting(let id):
             hostID = id
             message = String(localized: "Opening SSH transport")
@@ -199,15 +214,22 @@ public final class ConnectionJourney {
             hostID = id
             message = detail
         }
-        guard let index = endpoints.firstIndex(where: { $0.hostID == hostID }) else { return }
+        let index: Int?
+        switch event {
+        case .proxyConnecting, .proxyConnected:
+            index = endpoints.firstIndex { $0.id == .proxy(hostID) }
+        default:
+            index = endpoints.firstIndex { $0.id == .host(hostID) }
+        }
+        guard let index else { return }
 
         switch event {
-        case .connecting, .authenticating, .initializing:
+        case .proxyConnecting, .connecting, .authenticating, .initializing:
             if index > completedEndpointIndex { activeEndpointIndex = index }
         case .authenticated:
             checkpoint = nil
             activeEndpointIndex = max(activeEndpointIndex, index)
-        case .connected:
+        case .proxyConnected, .connected:
             checkpoint = nil
             completedEndpointIndex = max(completedEndpointIndex, index)
             activeEndpointIndex = max(activeEndpointIndex, index)
@@ -219,11 +241,23 @@ public final class ConnectionJourney {
         wait(at: hostID, kind: .authentication, message: failure ?? String(localized: "Waiting for authentication"))
     }
 
+    public func waitForProxyAuthentication(at hostID: Host.ID, failure: String? = nil) {
+        guard let index = endpoints.firstIndex(where: { $0.id == .proxy(hostID) }) else { return }
+        activeEndpointIndex = index
+        checkpoint = Checkpoint(endpointIndex: index, kind: .authentication)
+        localRequirement = .identity
+        phase = .waiting
+        log(
+            endpoint: endpoints[index].name,
+            message: failure ?? String(localized: "Waiting for proxy authentication")
+        )
+    }
+
     /// Pauses before transport authentication because Termind has no usable local
     /// Identity. This is not a server challenge, so the untouched route stays
     /// gray and no midpoint checkpoint is introduced.
     public func waitForLocalIdentity(at hostID: Host.ID, failure: String? = nil) {
-        guard let index = endpoints.firstIndex(where: { $0.hostID == hostID }) else { return }
+        guard let index = endpoints.firstIndex(where: { $0.id == .host(hostID) }) else { return }
         activeEndpointIndex = 0
         completedEndpointIndex = 0
         checkpoint = nil
@@ -236,7 +270,7 @@ public final class ConnectionJourney {
     }
 
     public func waitForLocalPassphrase(at hostID: Host.ID, failure: String? = nil) {
-        guard let index = endpoints.firstIndex(where: { $0.hostID == hostID }) else { return }
+        guard let index = endpoints.firstIndex(where: { $0.id == .host(hostID) }) else { return }
         activeEndpointIndex = 0
         completedEndpointIndex = 0
         checkpoint = nil
@@ -287,7 +321,7 @@ public final class ConnectionJourney {
         checkpoint = nil
         localRequirement = nil
         if let hostID,
-            let index = endpoints.firstIndex(where: { $0.hostID == hostID })
+            let index = endpoints.firstIndex(where: { $0.id == .host(hostID) })
         {
             activeEndpointIndex = index
         }
@@ -319,7 +353,7 @@ public final class ConnectionJourney {
     }
 
     private func wait(at hostID: Host.ID, kind: CheckpointKind, message: String) {
-        guard let index = endpoints.firstIndex(where: { $0.hostID == hostID }) else { return }
+        guard let index = endpoints.firstIndex(where: { $0.id == .host(hostID) }) else { return }
         activeEndpointIndex = index
         checkpoint = Checkpoint(endpointIndex: index, kind: kind)
         localRequirement = nil

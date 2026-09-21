@@ -66,6 +66,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     private var generations: [UUID: UUID] = [:]
     private var samplers: [UUID: any MetricsSampling] = [:]
     private var submissions: [UUID: [UUID: SSHAuthenticationSubmission]] = [:]
+    private var proxySubmissions: [UUID: [UUID: SSHProxyAuthenticationSubmission]] = [:]
     private var maintenance: Task<Void, Never>?
     private var detailObservers: [UUID: UUID] = [:]
     private var temporaryKeys: [UUID: [UUID: SSHHostKeyIdentity]] = [:]
@@ -256,8 +257,28 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     ) {
         guard var host = server.authenticationHost else { return }
         let identity = identityID.flatMap { hosts.identity($0) }
-        let name = (identity?.username ?? username).trimmingCharacters(in: .whitespacesAndNewlines)
+        let isProxy = server.authenticationPrompt?.isProxy == true
+        let name = ((isProxy ? nil : identity?.username) ?? username)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
+        if isProxy {
+            let submission = SSHProxyAuthenticationSubmission(
+                username: name, password: password, identityID: identity?.id)
+            do {
+                if save {
+                    host = try hosts.saveProxyAuthentication(
+                        submission, for: host, selectedIdentity: identity,
+                        suppliedPassword: password)
+                }
+                proxySubmissions[server.id, default: [:]][host.id] = submission
+                retry(server)
+            } catch {
+                server.status = error.localizedDescription
+                server.collectionState = .failed
+                server.journey.fail(error.localizedDescription, at: host.id)
+            }
+            return
+        }
         if server.authenticationPrompt?.requiresPassphrase == true,
             var staged = submissions[server.id]?[host.id]
         {
@@ -309,17 +330,45 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
 
     private func preparation(
         for host: Host, server: ServerMetric,
-        submissions: [UUID: SSHAuthenticationSubmission]
+        submissions: [UUID: SSHAuthenticationSubmission],
+        proxySubmissions: [UUID: SSHProxyAuthenticationSubmission]
     ) throws -> SSHConnectionPreparation {
         try hosts.prepareSSHConnection(
             for: host,
             submissions: submissions,
+            proxySubmissions: proxySubmissions,
             temporaryHostKeys: temporaryKeys[server.id] ?? [:]
         )
     }
 
     private func requestAuthentication(_ server: ServerMetric, hostID: UUID, error: TermindSSHError) {
         guard let host = hosts.host(hostID) else { return }
+        if error.isProxyAuthentication, let proxy = host.proxy {
+            let staged = proxySubmissions[server.id]?[host.id]
+            let configured = (staged?.identityID ?? proxy.identityID).flatMap { hosts.identity($0) }
+            let selected: Identity?
+            if let configured {
+                switch hosts.passwordAvailability(for: configured) {
+                case .available, .notConfigured: selected = configured
+                case .missing, .failed: selected = nil
+                }
+            } else {
+                selected = nil
+            }
+            server.authenticationHost = host
+            server.authenticationPrompt = SSHAuthenticationPrompt(
+                host: Host(
+                    id: host.id, name: String(localized: "Proxy for \(host.name)"),
+                    host: proxy.hostname, port: proxy.port),
+                selectedIdentityID: selected?.id,
+                username: staged?.username ?? proxy.username,
+                failureMessage: error.localizedDescription,
+                mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity,
+                target: .proxy(ownerHostID: host.id))
+            server.needsAttention = true
+            server.journey.waitForProxyAuthentication(at: host.id, failure: error.localizedDescription)
+            return
+        }
         let staged = submissions[server.id]?[host.id]
         let identity = staged?.identityID.flatMap { hosts.identity($0) } ?? hosts.identity(for: host)
         let keyID = staged?.keyID ?? identity?.keyID
@@ -346,6 +395,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
     public func suspend() {
         sleeping = true
         submissions.removeAll()
+        proxySubmissions.removeAll()
         for server in servers {
             cancel(server.id)
             server.isConnecting = false
@@ -379,6 +429,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             let stamp = connectionStamp(host)
             if let old = stamps[server.id], old != stamp {
                 submissions[server.id] = nil
+                proxySubmissions[server.id] = nil
                 temporaryKeys[server.id] = nil
                 retry(server)
             }
@@ -448,6 +499,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
                     }
                     if !selection.enabled {
                         submissions[server.id] = nil
+                        proxySubmissions[server.id] = nil
                         temporaryKeys[server.id] = nil
                         server.journey.hide()
                     }
@@ -462,6 +514,7 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             cancel(server.id)
             if !configuredIDs.contains(server.id) {
                 submissions[server.id] = nil
+                proxySubmissions[server.id] = nil
                 temporaryKeys[server.id] = nil
                 stamps[server.id] = nil
                 detailObservers = detailObservers.filter { $0.value != server.id }
@@ -686,10 +739,14 @@ public final class ServerMetricsModel: MetricsSnapshotReading {
             )
         }
         var retained = submissions[server.id] ?? [:]
+        var retainedProxies = proxySubmissions[server.id] ?? [:]
         let attemptSubmissions = retained.takeAuthenticationSecrets()
+        let attemptProxySubmissions = retainedProxies.takeProxyAuthenticationSecrets()
         submissions[server.id] = retained
+        proxySubmissions[server.id] = retainedProxies
         let preparation = try preparation(
-            for: host, server: server, submissions: attemptSubmissions
+            for: host, server: server, submissions: attemptSubmissions,
+            proxySubmissions: attemptProxySubmissions
         )
         let sampler = makeSampler()
         samplers[serverID] = sampler

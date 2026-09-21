@@ -52,7 +52,14 @@ public struct SSHAuthenticationForm: View {
         self.submit = submit
         self.cancel = cancel
         self.usesContainerChrome = usesContainerChrome
-        _identityID = State(initialValue: prompt.selectedIdentityID)
+        let initialIdentityID = prompt.selectedIdentityID.flatMap { id -> Identity.ID? in
+            guard let identity = library.identity(id) else { return nil }
+            switch library.passwordAvailability(for: identity) {
+            case .missing, .failed: return nil
+            case .notConfigured, .available: return id
+            }
+        }
+        _identityID = State(initialValue: initialIdentityID)
         _username = State(initialValue: prompt.username)
         _keyID = State(initialValue: prompt.selectedKeyID)
     }
@@ -64,10 +71,25 @@ public struct SSHAuthenticationForm: View {
     private var canContinue: Bool {
         !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             && (!needsPassphrase || !passphrase.isEmpty)
+            && (!prompt.isProxy || !needsPasswordEntry || !password.isEmpty)
+    }
+
+    private var canSave: Bool {
+        guard canContinue, let selectedIdentity else { return canContinue }
+        switch library.passwordAvailability(for: selectedIdentity) {
+        case .missing, .failed: return false
+        case .notConfigured, .available: return true
+        }
+    }
+
+    private var needsPasswordEntry: Bool {
+        guard let selectedIdentity else { return true }
+        return library.passwordAvailability(for: selectedIdentity) != .available
     }
 
     private var title: LocalizedStringKey {
         if needsPassphrase { return "Passphrase required" }
+        if prompt.isProxy { return "Proxy authentication required" }
         return prompt.mode == .localIdentity
             ? "Identity required" : "Authentication required"
     }
@@ -85,7 +107,9 @@ public struct SSHAuthenticationForm: View {
         .connectionFormChrome(isEnabled: usesContainerChrome)
         .background {
             if prompt.keyboardInteractive == nil, let keyboard {
-                keyboard.bridge(canSubmit: canContinue, submit: { commit(save: !needsPassphrase) }, cancel: cancel)
+                keyboard.bridge(
+                    canSubmit: canContinue,
+                    submit: { commit(save: !needsPassphrase && canSave) }, cancel: cancel)
             }
         }
         .onAppear {
@@ -144,36 +168,40 @@ public struct SSHAuthenticationForm: View {
                             }
                         }
                     }
-                    if identityID == nil {
+                    if identityID == nil || prompt.isProxy {
                         GridRow {
-                            Text("Username").foregroundStyle(.secondary)
+                            Text(prompt.isProxy ? "Proxy Username" : "Username").foregroundStyle(.secondary)
                             TextField("Username", text: usernameInput.singleLineText, axis: .horizontal)
                                 .singleLinePaste().lineLimit(1)
                                 .focused($focusedField, equals: .username)
                         }
-                        GridRow {
-                            Text("Password").foregroundStyle(.secondary)
-                            SecureField("Optional", text: passwordInput)
-                                .focused($focusedField, equals: .password)
-                        }
-                        GridRow {
-                            Text("Key").foregroundStyle(.secondary)
-                            fullWidthMenu(title: keyLabel) {
-                                Button {
-                                    keySelection.wrappedValue = nil
-                                } label: {
-                                    selectionMenuLabel(
-                                        String(localized: "None"), selected: keyID == nil
-                                    )
-                                }
-                                if !library.keys.isEmpty { Divider() }
-                                ForEach(library.keys) { key in
-                                    Button {
-                                        keySelection.wrappedValue = key.id
-                                    } label: {
-                                        selectionMenuLabel(
-                                            key.label, selected: keyID == key.id
-                                        )
+                        if needsPasswordEntry {
+                            GridRow {
+                                Text("Password").foregroundStyle(.secondary)
+                                SecureField(prompt.isProxy ? "Required" : "Optional", text: passwordInput)
+                                    .focused($focusedField, equals: .password)
+                            }
+                            if !prompt.isProxy {
+                                GridRow {
+                                    Text("Key").foregroundStyle(.secondary)
+                                    fullWidthMenu(title: keyLabel) {
+                                        Button {
+                                            keySelection.wrappedValue = nil
+                                        } label: {
+                                            selectionMenuLabel(
+                                                String(localized: "None"), selected: keyID == nil
+                                            )
+                                        }
+                                        if !library.keys.isEmpty { Divider() }
+                                        ForEach(library.keys) { key in
+                                            Button {
+                                                keySelection.wrappedValue = key.id
+                                            } label: {
+                                                selectionMenuLabel(
+                                                    key.label, selected: keyID == key.id
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -255,7 +283,7 @@ public struct SSHAuthenticationForm: View {
         }
         .buttonStyle(.borderedProminent)
         .keyboardShortcut(.defaultAction)
-        .disabled(!canContinue)
+        .disabled(!canSave)
     }
 
     private func updateFocusForRequirement() {
@@ -342,7 +370,7 @@ public struct SSHAuthenticationForm: View {
         } set: { id in
             identityID = id
             guard let identity = id.flatMap({ library.identity($0) }) else { return }
-            username = identity.username
+            if !prompt.isProxy { username = identity.username }
             password = ""
             passphrase = ""
             keyID = identity.keyID
@@ -354,7 +382,7 @@ public struct SSHAuthenticationForm: View {
             username
         } set: { value in
             username = value
-            if value != selectedIdentity?.username { identityID = nil }
+            if !prompt.isProxy, value != selectedIdentity?.username { identityID = nil }
         }
     }
 
@@ -363,7 +391,6 @@ public struct SSHAuthenticationForm: View {
             password
         } set: { value in
             password = value
-            if !value.isEmpty { identityID = nil }
         }
     }
 

@@ -390,16 +390,43 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// main actor. The resulting value is Sendable and contains no persistence
     /// objects, so several one-shot exports can safely run in parallel.
     public func prepareSSHConnection(
-        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
     ) throws -> SSHConnectionPreparation {
         guard let route = validatedRoute(for: host) else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
-        return try prepareSSHConnection(for: SSHConnectionRoute(hosts: route), submissions: submissions)
+        return try prepareSSHConnection(
+            for: SSHConnectionRoute(hosts: route), submissions: submissions,
+            proxySubmissions: proxySubmissions)
     }
 
     public func prepareSSHConnection(
-        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission]
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+    ) throws -> SSHConnectionPreparation {
+        guard let route = validatedRoute(for: host) else {
+            throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
+        }
+        return try prepareSSHConnection(
+            for: SSHConnectionRoute(hosts: route), submissions: submissions,
+            proxySubmissions: proxySubmissions, temporaryHostKeys: temporaryHostKeys)
+    }
+
+    public func prepareSSHConnection(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
+    ) throws -> SSHConnectionPreparation {
+        try prepareSSHConnection(
+            for: route, submissions: submissions, proxySubmissions: proxySubmissions,
+            temporaryHostKeys: [:])
+    }
+
+    public func prepareSSHConnection(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
     ) throws -> SSHConnectionPreparation {
         guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
         let submissions = route.submissions(merging: submissions)
@@ -411,8 +438,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 return SSHConnectionPreparation.Node(
                     host: node, identity: identity,
                     key: keyID.flatMap { key($0) },
-                    submission: submission, trustedKeys: Set(knownHosts(for: node).map(\.identity)),
-                    proxyIdentity: node.proxy?.identityID.flatMap { self.identity($0) }
+                    submission: submission,
+                    trustedKeys: Set(knownHosts(for: node).map(\.identity))
+                        .union(temporaryHostKeys[node.id].map { [$0] } ?? []),
+                    proxyIdentity: (proxySubmissions[node.id]?.identityID ?? node.proxy?.identityID)
+                        .flatMap { self.identity($0) },
+                    proxySubmission: proxySubmissions[node.id]
                 )
             },
             secrets: keychain,
@@ -427,13 +458,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public func sshConnectionConfiguration(
         for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission] = [:],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> SSHConnectionConfiguration {
         var accessedIdentityIDs: Set<Identity.ID> = []
         defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
         return try sshConnectionConfiguration(
-            for: host, submissions: submissions,
+            for: host, submissions: submissions, proxySubmissions: proxySubmissions,
             temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy,
             accessedIdentityIDs: &accessedIdentityIDs
         )
@@ -442,6 +474,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private func sshConnectionConfiguration(
         for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy,
         accessedIdentityIDs: inout Set<Identity.ID>
@@ -482,10 +515,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             credentials: credentials,
             expectedHostKeys: expectedHostKeys,
             proxy: try transportProxy(
-                for: host, accessedIdentityIDs: &accessedIdentityIDs
+                for: host, submission: proxySubmissions[host.id],
+                accessedIdentityIDs: &accessedIdentityIDs
             ),
             jumps: try sshJumpConfigurations(
-                for: host, submissions: submissions,
+                for: host, submissions: submissions, proxySubmissions: proxySubmissions,
                 temporaryHostKeys: temporaryHostKeys,
                 trustPolicy: trustPolicy,
                 accessedIdentityIDs: &accessedIdentityIDs
@@ -499,13 +533,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     public func sshJumpConfigurations(
         for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> [SSHRouteHopConfiguration] {
         var accessedIdentityIDs: Set<Identity.ID> = []
         defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
         return try sshJumpConfigurations(
-            for: host, submissions: submissions,
+            for: host, submissions: submissions, proxySubmissions: proxySubmissions,
             temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy,
             accessedIdentityIDs: &accessedIdentityIDs
         )
@@ -514,6 +549,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private func sshJumpConfigurations(
         for host: Host,
         submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy,
         accessedIdentityIDs: inout Set<Identity.ID>
@@ -522,13 +558,15 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
         return try sshJumpConfigurations(
-            route: route, submissions: submissions, temporaryHostKeys: temporaryHostKeys,
+            route: route, submissions: submissions, proxySubmissions: proxySubmissions,
+            temporaryHostKeys: temporaryHostKeys,
             trustPolicy: trustPolicy, accessedIdentityIDs: &accessedIdentityIDs
         )
     }
 
     public func sshJumpConfigurations(
         for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> [SSHRouteHopConfiguration] {
@@ -537,6 +575,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
         return try sshJumpConfigurations(
             route: route.hosts, submissions: route.submissions(merging: submissions),
+            proxySubmissions: proxySubmissions,
             temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy,
             accessedIdentityIDs: &accessedIdentityIDs
         )
@@ -544,6 +583,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     private func sshJumpConfigurations(
         route: [Host], submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy,
         accessedIdentityIDs: inout Set<Identity.ID>
     ) throws -> [SSHRouteHopConfiguration] {
@@ -552,17 +592,20 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 if let submission = submissions[jump.id] {
                     return try sshRouteHopConfiguration(
                         for: jump, submission: submission,
+                        proxySubmission: proxySubmissions[jump.id],
                         temporaryHostKeys: temporaryHostKeys,
                         trustPolicy: trustPolicy,
                         accessedIdentityIDs: &accessedIdentityIDs
                     )
                 }
                 return try sshRouteHopConfiguration(
-                    for: jump, temporaryHostKeys: temporaryHostKeys,
+                    for: jump, proxySubmission: proxySubmissions[jump.id],
+                    temporaryHostKeys: temporaryHostKeys,
                     trustPolicy: trustPolicy,
                     accessedIdentityIDs: &accessedIdentityIDs
                 )
             } catch {
+                if (error as? TermindSSHError)?.isProxyAuthentication == true { throw error }
                 let authentication =
                     switch error as? TermindSSHError {
                     case .missingCredential, .missingUsername, .keyPassphraseRequired: true
@@ -583,7 +626,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     private func sshRouteHopConfiguration(
-        for host: Host, temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
+        for host: Host, proxySubmission: SSHProxyAuthenticationSubmission?,
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy,
         accessedIdentityIDs: inout Set<Identity.ID>
     ) throws -> SSHRouteHopConfiguration {
@@ -606,7 +650,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             username: username, credentials: resolution.credentials,
             expectedHostKeys: expectedHostKeys,
             proxy: try transportProxy(
-                for: host, accessedIdentityIDs: &accessedIdentityIDs
+                for: host, submission: proxySubmission,
+                accessedIdentityIDs: &accessedIdentityIDs
             ),
             authenticationReference: additionalAuthenticationReference(
                 host: host, submission: nil
@@ -616,6 +661,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     private func sshRouteHopConfiguration(
         for host: Host, submission: SSHAuthenticationSubmission,
+        proxySubmission: SSHProxyAuthenticationSubmission?,
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy,
         accessedIdentityIDs: inout Set<Identity.ID>
@@ -635,7 +681,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             username: username, credentials: credentials,
             expectedHostKeys: expectedHostKeys,
             proxy: try transportProxy(
-                for: host, accessedIdentityIDs: &accessedIdentityIDs
+                for: host, submission: proxySubmission,
+                accessedIdentityIDs: &accessedIdentityIDs
             ),
             authenticationReference: additionalAuthenticationReference(
                 host: host, submission: submission
@@ -703,35 +750,52 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     public func transportProxy(for host: Host) throws -> SSHTransportProxy? {
+        try transportProxy(for: host, submission: nil)
+    }
+
+    public func transportProxy(
+        for host: Host, submission: SSHProxyAuthenticationSubmission?
+    ) throws -> SSHTransportProxy? {
         var accessedIdentityIDs: Set<Identity.ID> = []
         defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
         return try transportProxy(
-            for: host, accessedIdentityIDs: &accessedIdentityIDs
+            for: host, submission: submission, accessedIdentityIDs: &accessedIdentityIDs
         )
     }
 
     private func transportProxy(
-        for host: Host, accessedIdentityIDs: inout Set<Identity.ID>
+        for host: Host, submission: SSHProxyAuthenticationSubmission?,
+        accessedIdentityIDs: inout Set<Identity.ID>
     ) throws -> SSHTransportProxy? {
         guard let proxy = host.proxy else { return nil }
         guard proxy.isValid else {
             throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
         }
-        var password: SSHSecret?
-        if let identityID = proxy.identityID {
+        var password = submission?.passwordForConnection()
+        if password == nil, let identityID = submission?.identityID ?? proxy.identityID {
             guard let identity = identity(identityID), identity.usesPassword else {
-                throw TermindSSHError.proxy(String(localized: "The proxy password identity is unavailable."))
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: host.id, serverChallenge: false,
+                    message: String(localized: "The proxy password identity is unavailable."))
             }
-            password = try passwordSecret(for: identity)
+            do {
+                password = try passwordSecret(for: identity)
+            } catch {
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: host.id, serverChallenge: false, message: error.localizedDescription)
+            }
             guard password != nil else {
-                throw TermindSSHError.proxy(String(localized: "The proxy password is unavailable."))
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: host.id, serverChallenge: false,
+                    message: String(localized: "The proxy password is unavailable."))
             }
             accessedIdentityIDs.insert(identity.id)
         }
         return SSHTransportProxy(
             kind: proxy.kind, hostname: proxy.hostname, port: proxy.port,
-            username: proxy.username, password: password,
-            identityID: proxy.identityID
+            username: submission?.username ?? proxy.username, password: password,
+            identityID: submission?.identityID ?? proxy.identityID,
+            ownerHostID: host.id
         )
     }
 

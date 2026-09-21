@@ -10,9 +10,10 @@ public nonisolated struct SSHTransportProxy: Sendable {
     public var username: String
     public var password: SSHSecret?
     public var identityID: Identity.ID?
+    public var ownerHostID: Host.ID?
     public init(
         kind: HostProxy.ProtocolKind, hostname: String, port: Int, username: String,
-        password: SSHSecret? = nil, identityID: Identity.ID? = nil
+        password: SSHSecret? = nil, identityID: Identity.ID? = nil, ownerHostID: Host.ID? = nil
     ) {
         self.kind = kind
         self.hostname = hostname
@@ -20,15 +21,16 @@ public nonisolated struct SSHTransportProxy: Sendable {
         self.username = username
         self.password = password
         self.identityID = identityID
+        self.ownerHostID = ownerHostID
     }
 
     public init(
         kind: HostProxy.ProtocolKind, hostname: String, port: Int, username: String,
-        password: String?, identityID: Identity.ID? = nil
+        password: String?, identityID: Identity.ID? = nil, ownerHostID: Host.ID? = nil
     ) {
         self.init(
             kind: kind, hostname: hostname, port: port, username: username,
-            password: password.map(SSHSecret.init), identityID: identityID
+            password: password.map(SSHSecret.init), identityID: identityID, ownerHostID: ownerHostID
         )
     }
 

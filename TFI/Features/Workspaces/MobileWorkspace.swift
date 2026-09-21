@@ -77,6 +77,7 @@ final class MobileWorkspace: Identifiable {
         set { connection.temporaryHostKeys = newValue }
     }
     private var submissions: [UUID: SSHAuthenticationSubmission] = [:]
+    private var proxySubmissions: [UUID: SSHProxyAuthenticationSubmission] = [:]
     let sftpChannel: MobileSFTPChannelModel
     let sftpEdits: SFTPEditService?
     let transfers: SFTPTransferCoordinator?
@@ -277,6 +278,27 @@ final class MobileWorkspace: Identifiable {
         guard authenticationRequired, let host = hosts.host(authenticationHostID ?? descriptor.hostID) else {
             return nil
         }
+        if let proxy = host.proxy, authenticationIsProxy {
+            let staged = proxySubmissions[host.id]
+            let configuredIdentity = (staged?.identityID ?? proxy.identityID).flatMap { hosts.identity($0) }
+            let selectedIdentity: Identity?
+            if let configuredIdentity {
+                switch hosts.passwordAvailability(for: configuredIdentity) {
+                case .available, .notConfigured: selectedIdentity = configuredIdentity
+                case .missing, .failed: selectedIdentity = nil
+                }
+            } else {
+                selectedIdentity = nil
+            }
+            return SSHAuthenticationPrompt(
+                host: Host(
+                    id: host.id, name: String(localized: "Proxy for \(host.name)"),
+                    host: proxy.hostname, port: proxy.port),
+                selectedIdentityID: selectedIdentity?.id,
+                username: staged?.username ?? proxy.username,
+                failureMessage: connectionFailure, mode: authenticationMode,
+                target: .proxy(ownerHostID: host.id))
+        }
         let staged = submissions[host.id]
         let identity = staged?.identityID.flatMap { hosts.identity($0) } ?? hosts.identity(for: host)
         let keyID = staged?.keyID ?? identity?.keyID
@@ -288,6 +310,8 @@ final class MobileWorkspace: Identifiable {
                 && staged?.passphrase == nil,
             mode: authenticationMode)
     }
+
+    private var authenticationIsProxy = false
 
     var hostKeyPrompt: SSHHostKeyPrompt? { connection.pendingHostKey }
 
@@ -306,8 +330,32 @@ final class MobileWorkspace: Identifiable {
     ) {
         guard var host = hosts.host(authenticationHostID ?? descriptor.hostID) else { return }
         let identity = identityID.flatMap { hosts.identity($0) }
-        let name = (identity?.username ?? username).trimmingCharacters(in: .whitespacesAndNewlines)
+        let isProxy = authenticationPrompt?.isProxy == true
+        let name = ((isProxy ? nil : identity?.username) ?? username)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !name.isEmpty else { return }
+        if isProxy {
+            let submission = SSHProxyAuthenticationSubmission(
+                username: name, password: password, identityID: identity?.id)
+            do {
+                if save {
+                    host = try hosts.saveProxyAuthentication(
+                        submission, for: host, selectedIdentity: identity,
+                        suppliedPassword: password)
+                }
+                proxySubmissions[host.id] = submission
+            } catch {
+                connectionFailure = error.localizedDescription
+                authenticationPrompt = makeAuthenticationPrompt()
+                return
+            }
+            authenticationRequired = false
+            authenticationIsProxy = false
+            authenticationPrompt = nil
+            journey.resume()
+            connect()
+            return
+        }
         if authenticationPrompt?.requiresPassphrase == true, var staged = submissions[host.id] {
             guard let passphrase, !passphrase.isEmpty else { return }
             staged.passphrase = passphrase
@@ -559,6 +607,17 @@ final class MobileWorkspace: Identifiable {
             purpose: descriptor.kind == .ssh ? .sshSession : .sftpChannel,
             username: hosts.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection)
+        if let proxyHost = proxySubmissions.firstHostRequiringProxyPassword(in: route) {
+            authenticationRequired = true
+            authenticationIsProxy = true
+            authenticationMode = .localIdentity
+            authenticationHostID = proxyHost.id
+            username = proxySubmissions[proxyHost.id]?.username ?? proxyHost.proxy?.username ?? ""
+            authenticationPrompt = makeAuthenticationPrompt()
+            journey.waitForProxyAuthentication(at: proxyHost.id)
+            busy = false
+            return
+        }
         if let passwordHost = submissions.firstHostRequiringPassword(in: route) {
             authenticationRequired = true
             authenticationMode = .localIdentity
@@ -586,6 +645,7 @@ final class MobileWorkspace: Identifiable {
             return
         }
         let attemptSubmissions = submissions.takeAuthenticationSecrets()
+        let attemptProxySubmissions = proxySubmissions.takeProxyAuthenticationSecrets()
         let progressHandler = connection.progressHandler(attemptID: token) { [weak self] in
             self?.generation == $0
         }
@@ -595,7 +655,10 @@ final class MobileWorkspace: Identifiable {
             defer { if generation == token { busy = false } }
             guard generation == token, !Task.isCancelled else { return }
             do {
-                let preparation = try preparation(for: host, submissions: attemptSubmissions)
+                let preparation = try hosts.prepareSSHConnection(
+                    for: host, submissions: attemptSubmissions,
+                    proxySubmissions: attemptProxySubmissions,
+                    temporaryHostKeys: temporaryKeys)
                 let config = try await preparation.resolve(
                     trustPolicy: .allowChallenge
                 )
@@ -676,6 +739,7 @@ final class MobileWorkspace: Identifiable {
                         snapshot: additionalSnapshot, hostStore: hosts, channel: sftp)
                 }
                 submissions.removeAll()
+                proxySubmissions.removeAll()
                 let wasReconnecting = connection.markConnected()
                 connected = true
                 status = String(localized: "Connected")
@@ -707,12 +771,19 @@ final class MobileWorkspace: Identifiable {
                         authenticationMode =
                             sshError.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity
                         authenticationHostID = sshError.routeHostID ?? descriptor.hostID
+                        authenticationIsProxy = sshError.isProxyAuthentication
                         if let endpoint = hosts.host(authenticationHostID ?? descriptor.hostID) {
                             username =
-                                submissions[endpoint.id]?.username ?? hosts.identity(for: endpoint)?.username ?? ""
+                                authenticationIsProxy
+                                ? (proxySubmissions[endpoint.id]?.username ?? endpoint.proxy?.username ?? "")
+                                : (submissions[endpoint.id]?.username ?? hosts.identity(for: endpoint)?.username ?? "")
                         }
                         authenticationPrompt = makeAuthenticationPrompt()
-                        if authenticationPrompt?.requiresPassphrase == true {
+                        if authenticationIsProxy {
+                            journey.waitForProxyAuthentication(
+                                at: authenticationHostID ?? descriptor.hostID,
+                                failure: error.localizedDescription)
+                        } else if authenticationPrompt?.requiresPassphrase == true {
                             journey.waitForLocalPassphrase(
                                 at: authenticationHostID ?? descriptor.hostID, failure: error.localizedDescription)
                         } else if sshError.isServerAuthenticationChallenge {
@@ -836,6 +907,7 @@ final class MobileWorkspace: Identifiable {
         connection.clearHostKeyPrompt()
         temporaryKeys.removeAll()
         submissions.removeAll()
+        proxySubmissions.removeAll()
         connectionFailure = nil
         operationError = nil
         connection.suspendForForegroundResume(reconnecting: reconnecting)
@@ -938,6 +1010,7 @@ final class MobileWorkspace: Identifiable {
         authenticationRequired = false
         authenticationPrompt = nil
         submissions.removeAll()
+        proxySubmissions.removeAll()
 
         activeHistoryID = nil
         pendingCommand = nil

@@ -15,6 +15,42 @@ import struct TermindDomain.Host
 @Suite(.serialized)
 @MainActor
 struct AgentHostAuthenticationTests {
+    @Test
+    func proxyAuthenticationUsesTheAgentInteractionWithoutChangingItsUsername() async throws {
+        let sshIdentity = Identity(name: "SSH", username: "deploy")
+        let missingProxy = Identity(
+            name: "Proxy", username: "identity-user",
+            credentialRef: "termind.password.proxy-missing")
+        let host = Host(
+            name: "Server", host: "server.example", identityID: sshIdentity.id,
+            proxy: HostProxy(
+                hostname: "proxy.example", username: "proxy-user",
+                identityID: missingProxy.id))
+        let store = HostLibraryModel(
+            hosts: [host], identities: [sshIdentity, missingProxy],
+            knownHosts: [KnownHostEntry(hostname: host.host, fingerprint: "SHA256:test")],
+            secrets: MemoryHostSecretStore())
+        let interaction = AuthenticationResponder { request in
+            guard case .proxy(let ownerHostID) = request.mode else {
+                return .cancelled
+            }
+            #expect(ownerHostID == host.id)
+            #expect(request.selectedIdentityID == nil)
+            #expect(request.username == "proxy-user")
+            return .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: request.username, password: "one-use", save: false))
+        }
+        let session = AgentSSHAuthenticationContext(
+            resolver: AgentHostResolver(store: store), hostID: host.id,
+            invocationID: UUID(), interaction: interaction.sshInteraction)
+
+        let configuration = try await session.configuration()
+        #expect(configuration.proxy?.username == "proxy-user")
+        #expect(try #require(configuration.proxy?.password) == "one-use")
+        #expect(store.host(host.id)?.proxy?.identityID == missingProxy.id)
+    }
+
     @Test func usernameOnlyIdentityDoesNotRequireCredentialEntry() async throws {
         let identity = Identity(name: "OTP", username: "deploy")
         let host = Host(name: "Server", host: "server.example", identityID: identity.id)
@@ -178,6 +214,8 @@ struct AgentHostAuthenticationTests {
                         keyID: key.id, save: false
                     ))
             case .keyboardInteractive:
+                return .cancelled
+            case .proxy:
                 return .cancelled
             case .passphrase(let keyID):
                 #expect(keyID == key.id)

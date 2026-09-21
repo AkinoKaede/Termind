@@ -15,6 +15,7 @@ nonisolated enum RemoteLogging {
         switch error {
         case .socket: return "socket"
         case .proxy: return "proxy"
+        case .proxyAuthentication: return "proxy_authentication"
         case .route: return "route"
         case .routeHost(_, let authentication, _, let hostKey, _):
             if authentication { return "route_authentication" }

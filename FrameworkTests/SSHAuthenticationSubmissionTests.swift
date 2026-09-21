@@ -5,6 +5,53 @@ import Testing
 
 @Suite @MainActor
 struct SSHAuthenticationSubmissionTests {
+    @Test
+    func missingIdentityCannotBeOverwrittenAndCustomSaveCreatesAReplacement() throws {
+        let secrets = InMemorySecretStore()
+        let missing = Identity(
+            name: "Synced", username: "deploy", credentialRef: "termind.password.missing")
+        let host = Host(name: "Server", host: "server.invalid", identityID: missing.id)
+        let store = HostLibraryModel(hosts: [host], identities: [missing], secrets: secrets)
+        let selected = SSHAuthenticationSubmission(
+            username: "deploy", password: "temporary", identityID: missing.id)
+
+        #expect(throws: TermindSSHError.self) {
+            _ = try store.saveAuthentication(
+                selected, for: host, selectedIdentity: missing, suppliedPassword: "temporary")
+        }
+
+        let custom = SSHAuthenticationSubmission(username: "deploy", password: "replacement")
+        let updated = try store.saveAuthentication(
+            custom, for: host, selectedIdentity: nil, suppliedPassword: "replacement")
+        let replacement = try #require(store.identity(for: updated))
+        #expect(replacement.id != missing.id)
+        #expect(store.passwordAvailability(for: missing) == .missing)
+        #expect(try store.passwordCredential(for: replacement) == "replacement")
+    }
+
+    @Test
+    func proxyCustomSaveDoesNotOverwriteItsMissingIdentity() throws {
+        let secrets = InMemorySecretStore()
+        let missing = Identity(
+            name: "Synced Proxy", username: "identity-user",
+            credentialRef: "termind.password.proxy-missing")
+        let host = Host(
+            name: "Server", host: "server.invalid",
+            proxy: HostProxy(
+                hostname: "proxy.invalid", username: "proxy-user", identityID: missing.id))
+        let store = HostLibraryModel(hosts: [host], identities: [missing], secrets: secrets)
+        let submission = SSHProxyAuthenticationSubmission(
+            username: "proxy-user", password: "replacement")
+
+        let updated = try store.saveProxyAuthentication(
+            submission, for: host, selectedIdentity: nil, suppliedPassword: "replacement")
+        let replacement = try #require(updated.proxy?.identityID.flatMap(store.identity))
+        #expect(replacement.id != missing.id)
+        #expect(updated.proxy?.username == "proxy-user")
+        #expect(store.passwordAvailability(for: missing) == .missing)
+        #expect(try store.passwordCredential(for: replacement) == "replacement")
+    }
+
     @Test(arguments: [String?.none, "", "supplied"])
     func selectedPasswordRemainsReferenceOnlyUnlessExplicitlySupplied(_ password: String?) throws {
         let secrets = InMemorySecretStore()

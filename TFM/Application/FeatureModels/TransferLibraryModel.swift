@@ -31,43 +31,51 @@ extension TransferLibraryModel: RemoteSessionHostStore {
         )
     }
     func prepareSSHConnection(
-        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission]
     ) throws -> SSHConnectionPreparation {
-        try library.prepareSSHConnection(for: host, submissions: submissions)
+        try library.prepareSSHConnection(
+            for: host, submissions: submissions, proxySubmissions: proxySubmissions)
     }
     func sshConnectionConfiguration(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHConnectionConfiguration {
         try library.sshConnectionConfiguration(
-            for: host, submissions: submissions,
+            for: host, submissions: submissions, proxySubmissions: proxySubmissions,
             temporaryHostKeys: temporaryHostKeys,
             trustPolicy: trustPolicy
         )
     }
     func sshJumpConfigurations(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy
     ) throws -> [SSHRouteHopConfiguration] {
         try library.sshJumpConfigurations(
-            for: host, submissions: submissions,
+            for: host, submissions: submissions, proxySubmissions: proxySubmissions,
             temporaryHostKeys: temporaryHostKeys,
             trustPolicy: trustPolicy
         )
     }
     func prepareSSHConnection(
-        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission]
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission]
     ) throws -> SSHConnectionPreparation {
-        try library.prepareSSHConnection(for: route, submissions: submissions)
+        try library.prepareSSHConnection(
+            for: route, submissions: submissions, proxySubmissions: proxySubmissions)
     }
     func sshJumpConfigurations(
         for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy
     ) throws -> [SSHRouteHopConfiguration] {
         try library.sshJumpConfigurations(
-            for: route, submissions: submissions, temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy
+            for: route, submissions: submissions, proxySubmissions: proxySubmissions,
+            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy
         )
     }
     func saveConnectionRoute(
@@ -82,11 +90,19 @@ extension TransferLibraryModel: RemoteSessionHostStore {
     func transportProxy(for host: Host) throws -> SSHTransportProxy? {
         try library.transportProxy(for: host)
     }
+    func transportProxy(
+        for host: Host, submission: SSHProxyAuthenticationSubmission?
+    ) throws -> SSHTransportProxy? {
+        try library.transportProxy(for: host, submission: submission)
+    }
     func sshCredentials(for identity: Identity) -> SSHCredentialResolution {
         library.sshCredentials(for: identity)
     }
     func passwordSecret(for identity: Identity) throws -> SSHSecret? {
         try library.passwordSecret(for: identity)
+    }
+    func passwordAvailability(for identity: Identity) -> SecretAvailability {
+        library.passwordAvailability(for: identity)
     }
     func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential? {
         try library.keySecretCredential(for: key)

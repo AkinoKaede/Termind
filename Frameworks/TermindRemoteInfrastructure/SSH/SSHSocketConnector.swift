@@ -129,6 +129,11 @@ public nonisolated enum SSHSocketConnector {
         let fields = firstLine.split(separator: " ")
         guard fields.count >= 2, let status = Int(fields[1]), (200..<300).contains(status) else {
             let status = fields.count >= 2 ? String(fields[1]) : "invalid"
+            if status == "407", let hostID = proxy.ownerHostID {
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: hostID, serverChallenge: true,
+                    message: String(localized: "HTTP proxy authentication failed."))
+            }
             throw TermindSSHError.proxy("HTTP CONNECT failed with status \(status).")
         }
     }
@@ -140,10 +145,22 @@ public nonisolated enum SSHSocketConnector {
         try writeAll(socket, Data(usesAuthentication ? [0x05, 0x01, 0x02] : [0x05, 0x01, 0x00]))
         let selection = try readExactly(socket, count: 2)
         guard selection[0] == 0x05, selection[1] != 0xff else {
+            if let hostID = proxy.ownerHostID {
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: hostID, serverChallenge: true,
+                    message: usesAuthentication
+                        ? String(localized: "The SOCKS5 proxy rejected authentication.")
+                        : String(localized: "The SOCKS5 proxy requires a password."))
+            }
             throw TermindSSHError.proxy("The SOCKS5 proxy does not accept the configured authentication method.")
         }
         if selection[1] == 0x02 {
             guard let password = proxy.password else {
+                if let hostID = proxy.ownerHostID {
+                    throw TermindSSHError.proxyAuthentication(
+                        hostID: hostID, serverChallenge: true,
+                        message: String(localized: "The SOCKS5 proxy requires a password."))
+                }
                 throw TermindSSHError.proxy("The SOCKS5 proxy requires a password.")
             }
             let username = Data(proxy.username.utf8)
@@ -164,6 +181,11 @@ public nonisolated enum SSHSocketConnector {
             }
             let result = try readExactly(socket, count: 2)
             guard result[1] == 0 else {
+                if let hostID = proxy.ownerHostID {
+                    throw TermindSSHError.proxyAuthentication(
+                        hostID: hostID, serverChallenge: true,
+                        message: String(localized: "SOCKS5 proxy authentication failed."))
+                }
                 throw TermindSSHError.proxy("SOCKS5 proxy authentication failed.")
             }
         } else if selection[1] != 0x00 {

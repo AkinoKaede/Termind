@@ -133,6 +133,11 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   temporary passwords never enter reusable snapshots. Username-only/SSH `none` remain eligible. Cancellation interrupts
   opening. A terminal drop tries an independent SFTP preflight when durable references are available; any non-cancellation
   failure falls back to SFTP Channels on the already authenticated PTY connection without presenting a form.
+- Each configured proxy is an explicit Journey endpoint owned by its SSH Host. Missing local proxy passwords and explicit
+  HTTP/SOCKS authentication rejection use the same local authentication surfaces as SSH across sessions, Metrics,
+  forwarding, Assistant and external MCP requests. Proxy submissions are separate from SSH submissions; snapshots retain
+  only proxy network data, username and Identity ID. An Identity whose password lookup is missing or failed opens as Custom
+  with the inherited username and cannot be overwritten while selected.
 - Username-only Identities try `none`, then advertised methods. Device-local `lastUsedAt` tracks successful saved-secret
   reads, not authentication. Batch route reads; missing/availability/edit reads do not count. First access per Identity/
   process writes directly without Vault journal/refresh; sync strips this field and preserves local values on apply.

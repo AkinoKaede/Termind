@@ -127,12 +127,15 @@ public nonisolated final class SSHRoutedSocket: @unchecked Sendable {
         )
         return try await withTaskCancellationHandler {
             do {
+                let firstProxy = jumps.first?.proxy ?? proxy
+                if let id = firstProxy?.ownerHostID { progress?(.proxyConnecting(id)) }
                 try await queue.perform {
                     try state.openFirst(
                         destinationHost: host, destinationPort: port,
                         destinationProxy: proxy, jumps: jumps, timeout: timeout
                     )
                 }
+                if let id = firstProxy?.ownerHostID { progress?(.proxyConnected(id)) }
                 for index in jumps.indices {
                     try Task.checkCancellation()
                     let hop = jumps[index]
@@ -361,11 +364,18 @@ private nonisolated final class SSHRouteOpeningState: @unchecked Sendable {
         setCancellableSocket(currentSocket)
         if let nextProxy {
             do {
+                if let id = nextProxy.ownerHostID { progress?(.proxyConnecting(id)) }
                 try SSHSocketConnector.negotiate(
                     socket: currentSocket, host: nextHost,
                     port: nextPort, proxy: nextProxy
                 )
+                if let id = nextProxy.ownerHostID { progress?(.proxyConnected(id)) }
             } catch {
+                if error is TermindSSHError,
+                    (error as? TermindSSHError)?.isProxyAuthentication == true
+                {
+                    throw error
+                }
                 throw TermindSSHError.route(
                     "Proxy after Jump Host \(level) (\(hop.name)): \(error.localizedDescription)"
                 )

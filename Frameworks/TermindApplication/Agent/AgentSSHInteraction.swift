@@ -11,6 +11,7 @@ import struct TermindDomain.Host
 nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable, Sendable {
     public nonisolated enum Mode: Hashable, Sendable {
         case identity
+        case proxy(ownerHostID: Host.ID)
         case keyboardInteractive(SSHKeyboardInteractiveChallenge)
         case passphrase(keyID: SSHKeyRef.ID)
     }
@@ -36,7 +37,12 @@ nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable,
     }
 
     public var journeyPrompt: SSHAuthenticationPrompt {
-        SSHAuthenticationPrompt(
+        let target: SSHAuthenticationPrompt.Target
+        switch mode {
+        case .proxy(let ownerHostID): target = .proxy(ownerHostID: ownerHostID)
+        default: target = .host
+        }
+        return SSHAuthenticationPrompt(
             host: Host(id: hostID, name: displayName, host: address),
             selectedIdentityID: selectedIdentityID,
             username: username,
@@ -44,7 +50,7 @@ nonisolated public struct AgentSSHAuthenticationRequest: Identifiable, Hashable,
             failureMessage: failureMessage,
             requiresPassphrase: requiresPassphrase,
             mode: failureMessage == nil ? .localIdentity : .serverChallenge,
-            keyboardInteractive: keyboardInteractive
+            keyboardInteractive: keyboardInteractive, target: target
         )
     }
 

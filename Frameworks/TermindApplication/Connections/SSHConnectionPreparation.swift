@@ -15,9 +15,11 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         public var submission: SSHAuthenticationSubmission?
         public var trustedKeys: Set<SSHHostKeyIdentity>
         public var proxyIdentity: Identity?
+        public var proxySubmission: SSHProxyAuthenticationSubmission?
         public init(
             host: Host, identity: Identity?, key: SSHKeyRef?, submission: SSHAuthenticationSubmission?,
-            trustedKeys: Set<SSHHostKeyIdentity>, proxyIdentity: Identity?
+            trustedKeys: Set<SSHHostKeyIdentity>, proxyIdentity: Identity?,
+            proxySubmission: SSHProxyAuthenticationSubmission? = nil
         ) {
             self.host = host
             self.identity = identity
@@ -25,6 +27,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             self.submission = submission
             self.trustedKeys = trustedKeys
             self.proxyIdentity = proxyIdentity
+            self.proxySubmission = proxySubmission
         }
 
     }
@@ -82,6 +85,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             } catch {
                 if error is CancellationError { throw error }
                 let ssh = error as? TermindSSHError
+                if ssh?.isProxyAuthentication == true { throw error }
                 throw TermindSSHError.routeHost(
                     hostID: node.host.id, authentication: ssh?.isLocalAuthenticationRequirement == true,
                     serverChallenge: false, hostKey: isUntrusted(ssh),
@@ -189,21 +193,35 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         guard proxy.isValid else {
             throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
         }
-        var password: SSHSecret?
-        if proxy.identityID != nil {
-            guard let identity = node.proxyIdentity, identity.usesPassword else {
-                throw TermindSSHError.proxy(String(localized: "The proxy password identity is unavailable."))
+        var password = node.proxySubmission?.passwordForConnection()
+        let identity =
+            node.proxySubmission?.identityID.flatMap { id in
+                node.proxyIdentity?.id == id ? node.proxyIdentity : nil
+            } ?? (node.proxySubmission == nil ? node.proxyIdentity : nil)
+        if password == nil, proxy.identityID != nil || node.proxySubmission?.identityID != nil {
+            guard let identity, identity.usesPassword else {
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: node.host.id, serverChallenge: false,
+                    message: String(localized: "The proxy password identity is unavailable."))
             }
-            password = try secrets.sshSecret(for: identity.credentialRef, storage: identity.passwordStorage)
+            do {
+                password = try secrets.sshSecret(for: identity.credentialRef, storage: identity.passwordStorage)
+            } catch {
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: node.host.id, serverChallenge: false, message: error.localizedDescription)
+            }
             guard password != nil else {
-                throw TermindSSHError.proxy(String(localized: "The proxy password is unavailable."))
+                throw TermindSSHError.proxyAuthentication(
+                    hostID: node.host.id, serverChallenge: false,
+                    message: String(localized: "The proxy password is unavailable."))
             }
             accessedIdentityIDs.insert(identity.id)
         }
         return SSHTransportProxy(
             kind: proxy.kind, hostname: proxy.hostname, port: proxy.port,
-            username: proxy.username, password: password,
-            identityID: proxy.identityID
+            username: node.proxySubmission?.username ?? proxy.username, password: password,
+            identityID: node.proxySubmission?.identityID ?? proxy.identityID,
+            ownerHostID: node.host.id
         )
     }
 

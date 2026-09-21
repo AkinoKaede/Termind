@@ -169,6 +169,7 @@ public final class AgentHostResolver: Sendable {
     fileprivate struct InteractiveResolution: Sendable {
         var configuration: SSHConnectionConfiguration
         var submissions: [Host.ID: SSHAuthenticationSubmission]
+        var proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission]
         var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
     }
 
@@ -180,8 +181,10 @@ public final class AgentHostResolver: Sendable {
         invocationID: AgentToolInvocation.ID,
         interaction: AgentSSHInteraction,
         submissions initial: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions initialProxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys initialTemporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         forcedHostID initialForcedHostID: Host.ID? = nil,
+        forcedProxy initialForcedProxy: Bool = false,
         failure initialFailure: String? = nil
     ) async throws -> InteractiveResolution {
         guard let destination = store.host(id) else {
@@ -190,6 +193,7 @@ public final class AgentHostResolver: Sendable {
             if let configuration = try temporaryConfiguration(id) {
                 return InteractiveResolution(
                     configuration: configuration, submissions: initial,
+                    proxySubmissions: initialProxySubmissions,
                     temporaryHostKeys: initialTemporaryHostKeys
                 )
             }
@@ -197,14 +201,56 @@ public final class AgentHostResolver: Sendable {
         }
 
         var submissions = initial
+        var proxySubmissions = initialProxySubmissions
         let temporaryHostKeys = initialTemporaryHostKeys
         var forcedHostID = initialForcedHostID
+        var forcedProxy = initialForcedProxy
         var failure = initialFailure
         // Match Terminal and SFTP: resolve local credential requirements first,
         // then begin the network handshake and host-key verification. In
         // particular, a protected key must raise Passphrase even when the peer
         // later fails before returning its SSH banner.
         for node in store.route(for: destination) {
+            while proxyAuthenticationRequired(
+                for: node, submissions: proxySubmissions,
+                forcedHostID: forcedHostID, forcedProxy: forcedProxy
+            ) {
+                guard let proxy = node.proxy else { break }
+                let existing = proxySubmissions[node.id]
+                let configuredIdentity = (existing?.identityID ?? proxy.identityID).flatMap(store.identity)
+                let selectedIdentity: Identity?
+                if let configuredIdentity {
+                    switch store.passwordAvailability(for: configuredIdentity) {
+                    case .available, .notConfigured: selectedIdentity = configuredIdentity
+                    case .missing, .failed: selectedIdentity = nil
+                    }
+                } else {
+                    selectedIdentity = nil
+                }
+                let request = AgentSSHAuthenticationRequest(
+                    invocationID: invocationID, hostID: node.id,
+                    displayName: String(localized: "Proxy for \(node.name)"),
+                    address: "\(proxy.hostname):\(proxy.port)", mode: .proxy(ownerHostID: node.id),
+                    selectedIdentityID: selectedIdentity?.id,
+                    username: existing?.username ?? proxy.username, failureMessage: failure)
+                switch await interaction.authenticate(request) {
+                case .cancelled, .keyboardInteractive:
+                    throw AgentToolError.cancelled
+                case .submit(let answer):
+                    let submission = SSHProxyAuthenticationSubmission(
+                        username: answer.username, password: answer.password, identityID: answer.identityID)
+                    if answer.save {
+                        _ = try store.saveProxyAuthentication(
+                            submission, for: node,
+                            selectedIdentity: answer.identityID.flatMap(store.identity),
+                            suppliedPassword: answer.password)
+                    }
+                    proxySubmissions[node.id] = submission
+                }
+                forcedHostID = nil
+                forcedProxy = false
+                failure = nil
+            }
             while let requirement = authenticationRequirement(
                 for: node, submissions: submissions, forcedHostID: forcedHostID
             ) {
@@ -243,6 +289,7 @@ public final class AgentHostResolver: Sendable {
                     }
                 }
                 forcedHostID = nil
+                forcedProxy = false
                 failure = nil
             }
 
@@ -253,11 +300,31 @@ public final class AgentHostResolver: Sendable {
         return InteractiveResolution(
             configuration: try store.sshConnectionConfiguration(
                 for: destination, submissions: attemptSubmissions,
+                proxySubmissions: proxySubmissions.takeProxyAuthenticationSecrets(),
                 temporaryHostKeys: temporaryHostKeys,
                 trustPolicy: .allowChallenge
             ),
-            submissions: retainedSubmissions, temporaryHostKeys: temporaryHostKeys
+            submissions: retainedSubmissions, proxySubmissions: proxySubmissions,
+            temporaryHostKeys: temporaryHostKeys
         )
+    }
+
+    private func proxyAuthenticationRequired(
+        for host: Host, submissions: [Host.ID: SSHProxyAuthenticationSubmission],
+        forcedHostID: Host.ID?, forcedProxy: Bool
+    ) -> Bool {
+        guard let proxy = host.proxy else { return false }
+        if forcedProxy, forcedHostID == host.id { return true }
+        if let submission = submissions[host.id] {
+            return submission.requiresPasswordReentry
+        }
+        guard let identityID = proxy.identityID, let identity = store.identity(identityID) else {
+            return proxy.identityID != nil
+        }
+        switch store.passwordAvailability(for: identity) {
+        case .available: return false
+        case .notConfigured, .missing, .failed: return true
+        }
     }
 
     fileprivate func confirmHostKey(
@@ -471,11 +538,13 @@ public actor AgentSSHAuthenticationContext {
     private let invocationID: AgentToolInvocation.ID
     private let interaction: AgentSSHInteraction
     private var submissions: [Host.ID: SSHAuthenticationSubmission] = [:]
+    private var proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
     private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:]
     private var cached: SSHConnectionConfiguration?
     private var generation: UInt64 = 0
     private var pending: Pending?
     private var forcedHostID: Host.ID?
+    private var forcedProxy = false
     private var failure: String?
     private struct PendingHostKey {
         var fingerprint: String
@@ -508,14 +577,17 @@ public actor AgentSSHAuthenticationContext {
             let invocationID = invocationID
             let interaction = interaction
             let submissions = submissions
+            let proxySubmissions = proxySubmissions
             let temporaryHostKeys = temporaryHostKeys
             let forcedHostID = forcedHostID
+            let forcedProxy = forcedProxy
             let failure = failure
             let task = Task {
                 try await resolver.interactiveConfiguration(
                     for: hostID, invocationID: invocationID, interaction: interaction,
-                    submissions: submissions, temporaryHostKeys: temporaryHostKeys,
-                    forcedHostID: forcedHostID, failure: failure
+                    submissions: submissions, proxySubmissions: proxySubmissions,
+                    temporaryHostKeys: temporaryHostKeys,
+                    forcedHostID: forcedHostID, forcedProxy: forcedProxy, failure: failure
                 )
             }
             active = Pending(generation: currentGeneration, task: task)
@@ -526,9 +598,11 @@ public actor AgentSSHAuthenticationContext {
             let resolution = try await active.task.value
             if generation == active.generation {
                 submissions = resolution.submissions
+                proxySubmissions = resolution.proxySubmissions
                 temporaryHostKeys = resolution.temporaryHostKeys
                 cached = resolution.configuration
                 forcedHostID = nil
+                forcedProxy = false
                 failure = nil
                 if pending?.generation == active.generation { pending = nil }
             }
@@ -570,12 +644,14 @@ public actor AgentSSHAuthenticationContext {
         pending?.task.cancel()
         pending = nil
         forcedHostID = target
+        forcedProxy = error.isProxyAuthentication
         failure = error.localizedDescription
     }
 
     public func didAuthenticate(generation authenticatedGeneration: UInt64) {
         guard authenticatedGeneration == generation else { return }
         submissions.removeAll()
+        proxySubmissions.removeAll()
         cached?.clearSecrets()
         cached = nil
         pending?.task.cancel()

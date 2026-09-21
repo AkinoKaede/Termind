@@ -19,23 +19,28 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
         trustPolicy: SSHHostTrustPolicy
     ) throws -> Set<SSHHostKeyIdentity>
     func prepareSSHConnection(
-        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission]
     ) throws -> SSHConnectionPreparation
     func sshConnectionConfiguration(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHConnectionConfiguration
     func sshJumpConfigurations(
         for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
         trustPolicy: SSHHostTrustPolicy
     ) throws -> [SSHRouteHopConfiguration]
     func prepareSSHConnection(
-        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission]
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission]
     ) throws -> SSHConnectionPreparation
     func sshJumpConfigurations(
         for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy
     ) throws -> [SSHRouteHopConfiguration]
     func saveConnectionRoute(
@@ -43,8 +48,12 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
         authenticationHostID: Host.ID?, suppliedPassword: String?
     ) throws -> SSHConnectionRoute
     func transportProxy(for host: Host) throws -> SSHTransportProxy?
+    func transportProxy(
+        for host: Host, submission: SSHProxyAuthenticationSubmission?
+    ) throws -> SSHTransportProxy?
     func sshCredentials(for identity: Identity) -> SSHCredentialResolution
     func passwordSecret(for identity: Identity) throws -> SSHSecret?
+    func passwordAvailability(for identity: Identity) -> SecretAvailability
     func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential?
     func recordIdentityCredentialAccess(_ identityIDs: Set<Identity.ID>, at date: Date)
     func setConnectionStatus(_ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID)
@@ -57,6 +66,45 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
 }
 
 extension RemoteSessionHostStore {
+    public func prepareSSHConnection(
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation {
+        try prepareSSHConnection(for: host, submissions: submissions, proxySubmissions: [:])
+    }
+
+    public func sshConnectionConfiguration(
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy
+    ) throws -> SSHConnectionConfiguration {
+        try sshConnectionConfiguration(
+            for: host, submissions: submissions, proxySubmissions: [:],
+            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy)
+    }
+
+    public func sshJumpConfigurations(
+        for host: Host, submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy
+    ) throws -> [SSHRouteHopConfiguration] {
+        try sshJumpConfigurations(
+            for: host, submissions: submissions, proxySubmissions: [:],
+            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy)
+    }
+
+    public func prepareSSHConnection(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission]
+    ) throws -> SSHConnectionPreparation {
+        try prepareSSHConnection(for: route, submissions: submissions, proxySubmissions: [:])
+    }
+
+    public func sshJumpConfigurations(
+        for route: SSHConnectionRoute, submissions: [Host.ID: SSHAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy
+    ) throws -> [SSHRouteHopConfiguration] {
+        try sshJumpConfigurations(
+            for: route, submissions: submissions, proxySubmissions: [:],
+            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy)
+    }
+
     /// Captures a desktop authentication form without saving its input. A
     /// selected Identity stays reference-only so its saved password is read
     /// directly into a one-shot buffer only when the connection is resolved.
@@ -81,11 +129,27 @@ extension RemoteSessionHostStore {
         let identity: Identity
         if let selectedIdentity {
             if let suppliedPassword {
+                switch passwordAvailability(for: selectedIdentity) {
+                case .missing, .failed:
+                    throw TermindSSHError.library(
+                        String(localized: "The selected Identity cannot be updated on this device."))
+                case .notConfigured, .available:
+                    break
+                }
                 try upsert(selectedIdentity, passwordUpdate: .replace(suppliedPassword))
             }
             identity = selectedIdentity
         } else {
-            let existing = self.identity(for: host)
+            let candidate = self.identity(for: host)
+            let existing: Identity?
+            if let candidate {
+                switch passwordAvailability(for: candidate) {
+                case .missing, .failed: existing = nil
+                case .notConfigured, .available: existing = candidate
+                }
+            } else {
+                existing = nil
+            }
             identity = Identity(
                 id: existing?.id ?? UUID(), name: existing?.name ?? submission.username,
                 username: submission.username, credentialRef: existing?.credentialRef ?? "",
@@ -105,6 +169,40 @@ extension RemoteSessionHostStore {
         return updated
     }
 
+    public func saveProxyAuthentication(
+        _ submission: SSHProxyAuthenticationSubmission, for host: Host,
+        selectedIdentity: Identity?, suppliedPassword: String?
+    ) throws -> Host {
+        guard var proxy = host.proxy else {
+            throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
+        }
+        let identity: Identity
+        if let selectedIdentity {
+            if let suppliedPassword {
+                switch passwordAvailability(for: selectedIdentity) {
+                case .missing, .failed:
+                    throw TermindSSHError.library(
+                        String(localized: "The selected Identity cannot be updated on this device."))
+                case .notConfigured, .available:
+                    break
+                }
+                try upsert(selectedIdentity, passwordUpdate: .replace(suppliedPassword))
+            }
+            identity = selectedIdentity
+        } else {
+            identity = Identity(name: submission.username, username: submission.username)
+            try upsert(
+                identity,
+                passwordUpdate: suppliedPassword.map(IdentityPasswordUpdate.replace) ?? .remove)
+        }
+        proxy.username = submission.username
+        proxy.identityID = identity.id
+        var updated = host
+        updated.proxy = proxy
+        upsert(updated)
+        return updated
+    }
+
     /// Captures the authenticated route without retaining password, key, or
     /// passphrase material. Once-only trust is deliberately not promoted into
     /// permission for additional connections.
@@ -119,6 +217,7 @@ extension RemoteSessionHostStore {
             value.map {
                 SSHAdditionalConnectionSnapshot.Proxy(
                     kind: $0.kind, hostname: $0.hostname, port: $0.port,
+                    username: $0.username,
                     identityID: $0.identityID
                 )
             }
@@ -151,13 +250,13 @@ extension RemoteSessionHostStore {
         from snapshot: SSHAdditionalConnectionSnapshot
     ) throws -> SSHConnectionRequest {
         func proxy(
-            _ value: SSHAdditionalConnectionSnapshot.Proxy?
+            _ value: SSHAdditionalConnectionSnapshot.Proxy?, ownerHostID: Host.ID
         ) throws -> SSHTransportProxy? {
             guard let value else { return nil }
             guard let identityID = value.identityID else {
                 return SSHTransportProxy(
                     kind: value.kind, hostname: value.hostname, port: value.port,
-                    username: ""
+                    username: value.username, ownerHostID: ownerHostID
                 )
             }
             guard let identity = identity(identityID) else {
@@ -167,8 +266,8 @@ extension RemoteSessionHostStore {
             guard let password else { throw TermindSSHError.missingCredential }
             return SSHTransportProxy(
                 kind: value.kind, hostname: value.hostname, port: value.port,
-                username: identity.username, password: password,
-                identityID: identity.id
+                username: value.username, password: password,
+                identityID: identity.id, ownerHostID: ownerHostID
             )
         }
 
@@ -243,7 +342,7 @@ extension RemoteSessionHostStore {
                 id: node.id, name: node.name, host: node.host, port: node.port,
                 username: resolved.username, credentials: resolved.credentials,
                 expectedHostKeys: node.expectedHostKeys,
-                proxy: try proxy(node.proxy),
+                proxy: try proxy(node.proxy, ownerHostID: node.id),
                 authenticationReference: node.authentication
             )
         }
@@ -252,7 +351,7 @@ extension RemoteSessionHostStore {
             port: snapshot.target.port, username: targetAuthentication.username,
             credentials: targetAuthentication.credentials,
             expectedHostKeys: snapshot.target.expectedHostKeys,
-            proxy: try proxy(snapshot.target.proxy), jumps: jumps,
+            proxy: try proxy(snapshot.target.proxy, ownerHostID: snapshot.target.id), jumps: jumps,
             authenticationReference: snapshot.target.authentication
         )
         return SSHConnectionRequest(
@@ -315,6 +414,22 @@ extension RemoteSessionHostStore {
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
     ) throws -> SSHConnectionPreparation {
         var preparation = try prepareSSHConnection(for: host, submissions: submissions)
+        for index in preparation.nodes.indices {
+            if let key = temporaryHostKeys[preparation.nodes[index].host.id] {
+                preparation.nodes[index].trustedKeys.insert(key)
+            }
+        }
+        return preparation
+    }
+
+    public func prepareSSHConnection(
+        for host: Host,
+        submissions: [Host.ID: SSHAuthenticationSubmission],
+        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity]
+    ) throws -> SSHConnectionPreparation {
+        var preparation = try prepareSSHConnection(
+            for: host, submissions: submissions, proxySubmissions: proxySubmissions)
         for index in preparation.nodes.indices {
             if let key = temporaryHostKeys[preparation.nodes[index].host.id] {
                 preparation.nodes[index].trustedKeys.insert(key)

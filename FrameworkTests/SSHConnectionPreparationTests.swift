@@ -5,6 +5,75 @@ import Testing
 
 @Suite
 struct SSHConnectionPreparationTests {
+    @Test @MainActor
+    func journeyPlacesProxyBeforeItsOwningHost() {
+        let host = Host(
+            name: "Server", host: "server.invalid",
+            proxy: HostProxy(hostname: "proxy.invalid", port: 1080))
+        let journey = ConnectionJourney()
+        journey.begin(host: host, route: [host], purpose: .sshSession, username: "deploy")
+
+        #expect(journey.endpoints.map(\.id) == [.local, .proxy(host.id), .host(host.id)])
+        journey.waitForProxyAuthentication(at: host.id)
+        #expect(journey.activeEndpointIndex == 1)
+        journey.resume()
+        journey.waitForAuthentication(at: host.id)
+        #expect(journey.activeEndpointIndex == 2)
+    }
+
+    @Test
+    func proxySubmissionSuppliesOneShotPasswordAndPreservesProxyUsername() async throws {
+        let identity = Identity(name: "SSH", username: "deploy")
+        let proxyIdentity = Identity(
+            name: "Proxy", username: "identity-user", credentialRef: "proxy.missing")
+        let host = Host(
+            name: "Server", host: "server.invalid", identityID: identity.id,
+            proxy: HostProxy(
+                hostname: "proxy.invalid", username: "proxy-user", identityID: proxyIdentity.id))
+        let preparation = SSHConnectionPreparation(
+            nodes: [
+                .init(
+                    host: host, identity: identity, key: nil, submission: nil,
+                    trustedKeys: [], proxyIdentity: proxyIdentity,
+                    proxySubmission: SSHProxyAuthenticationSubmission(
+                        username: "custom-proxy-user", password: "one-use"))
+            ],
+            secrets: MappedPreparationSecrets())
+
+        let configuration = try await preparation.resolve(trustPolicy: .allowChallenge)
+        #expect(configuration.proxy?.username == "custom-proxy-user")
+        #expect(configuration.proxy?.ownerHostID == host.id)
+        #expect(try #require(configuration.proxy?.password) == "one-use")
+    }
+
+    @Test
+    func missingProxyPasswordReportsItsOwningHost() async {
+        let identity = Identity(name: "SSH", username: "deploy")
+        let proxyIdentity = Identity(
+            name: "Proxy", username: "proxy", credentialRef: "proxy.missing")
+        let host = Host(
+            name: "Server", host: "server.invalid", identityID: identity.id,
+            proxy: HostProxy(
+                hostname: "proxy.invalid", username: "proxy", identityID: proxyIdentity.id))
+        let preparation = SSHConnectionPreparation(
+            nodes: [
+                .init(
+                    host: host, identity: identity, key: nil, submission: nil,
+                    trustedKeys: [], proxyIdentity: proxyIdentity)
+            ], secrets: MappedPreparationSecrets())
+
+        do {
+            _ = try await preparation.resolve(trustPolicy: .allowChallenge)
+            Issue.record("Expected proxy authentication")
+        } catch let error as TermindSSHError {
+            #expect(error.isProxyAuthentication)
+            #expect(error.routeHostID == host.id)
+            #expect(!error.isServerAuthenticationChallenge)
+        } catch {
+            Issue.record("Unexpected error: \(error)")
+        }
+    }
+
     @Test func usernameOnlyIdentityReachesServerAuthentication() async throws {
         let preparation = makePreparation(
             identity: Identity(name: "OTP", username: "deploy"),

@@ -158,6 +158,7 @@ final class SFTPChannelModel: Identifiable {
     private var automaticRefreshTask: Task<Void, Never>?
     private var uploadRefreshTask: Task<Void, Never>?
     private var suppliedAuthentications: [Host.ID: SSHAuthenticationSubmission] = [:]
+    private var suppliedProxyAuthentications: [Host.ID: SSHProxyAuthenticationSubmission] = [:]
     private var temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] {
         get { connection.temporaryHostKeys }
         set { connection.temporaryHostKeys = newValue }
@@ -314,6 +315,10 @@ final class SFTPChannelModel: Identifiable {
             username: stagedAuthentication?.username ?? store.identity(for: host)?.username,
             mode: reconnecting ? .reconnection : .connection
         )
+        if let proxyHost = suppliedProxyAuthentications.firstHostRequiringProxyPassword(in: route) {
+            requestProxyAuthentication(host: proxyHost, store: store)
+            return
+        }
         if let passwordHost = suppliedAuthentications.firstHostRequiringPassword(in: route) {
             requestAuthentication(
                 host: passwordHost, store: store,
@@ -335,6 +340,7 @@ final class SFTPChannelModel: Identifiable {
             return
         }
         let attemptAuthentications = suppliedAuthentications.takeAuthenticationSecrets()
+        let attemptProxyAuthentications = suppliedProxyAuthentications.takeProxyAuthenticationSecrets()
         let suppliedAuthentication = attemptAuthentications[host.id]
         status = reconnecting ? .reconnecting : .connecting
         hint =
@@ -379,9 +385,11 @@ final class SFTPChannelModel: Identifiable {
                         username: suppliedAuthentication.username,
                         credentials: credentials,
                         expectedHostKeys: expectedHostKeys,
-                        proxy: try store.transportProxy(for: host),
+                        proxy: try store.transportProxy(
+                            for: host, submission: attemptProxyAuthentications[host.id]),
                         jumps: try store.sshJumpConfigurations(
                             for: host, submissions: attemptAuthentications,
+                            proxySubmissions: attemptProxyAuthentications,
                             temporaryHostKeys: temporaryHostKeys,
                             trustPolicy: .allowChallenge
                         ),
@@ -399,6 +407,7 @@ final class SFTPChannelModel: Identifiable {
                 } else {
                     configuration = try store.sshConnectionConfiguration(
                         for: host, submissions: attemptAuthentications,
+                        proxySubmissions: attemptProxyAuthentications,
                         temporaryHostKeys: temporaryHostKeys,
                         trustPolicy: .allowChallenge
                     )
@@ -448,6 +457,7 @@ final class SFTPChannelModel: Identifiable {
                     snapshot: additionalSnapshot, hostStore: store, channel: client)
                 self.additionalSnapshot = additionalSnapshot
                 self.suppliedAuthentications.removeAll()
+                self.suppliedProxyAuthentications.removeAll()
                 self.temporaryHostKeys.removeAll()
                 self.pendingAuthentication = nil
                 let presentsConnectionJourney = self.connectionJourney.isPresented
@@ -478,6 +488,13 @@ final class SFTPChannelModel: Identifiable {
                     authenticationHost = jump
                 } else {
                     authenticationHost = host
+                }
+                if error.isProxyAuthentication {
+                    self.requestProxyAuthentication(
+                        host: authenticationHost, store: store,
+                        failure: error.localizedDescription,
+                        mode: error.isServerAuthenticationChallenge ? .serverChallenge : .localIdentity)
+                    return
                 }
                 let submitted = self.suppliedAuthentications[authenticationHost.id]
                 let retryNeedsPassphrase =
@@ -526,6 +543,7 @@ final class SFTPChannelModel: Identifiable {
         cancelPendingBatch()
         pendingAuthentication = nil
         suppliedAuthentications.removeAll()
+        suppliedProxyAuthentications.removeAll()
         connectionTask?.cancel()
         connectionTask = nil
         connectionAttemptID = nil
@@ -611,6 +629,30 @@ final class SFTPChannelModel: Identifiable {
             let host = store.host(prompt.host.id)
         else { return }
 
+        let selectedIdentity = identityID.flatMap { store.identity($0) }
+        let submittedUsername = ((prompt.isProxy ? nil : selectedIdentity?.username) ?? username)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !submittedUsername.isEmpty else { return }
+
+        if prompt.isProxy {
+            let submission = SSHProxyAuthenticationSubmission(
+                username: submittedUsername, password: password, identityID: selectedIdentity?.id)
+            do {
+                if save {
+                    _ = try store.saveProxyAuthentication(
+                        submission, for: host, selectedIdentity: selectedIdentity,
+                        suppliedPassword: password)
+                }
+                suppliedProxyAuthentications[host.id] = submission
+                pendingAuthentication = nil
+                connectionJourney.resume()
+                connect(using: store)
+            } catch {
+                requestProxyAuthentication(host: host, store: store, failure: error.localizedDescription)
+            }
+            return
+        }
+
         if prompt.requiresPassphrase,
             var staged = suppliedAuthentications[host.id]
         {
@@ -623,10 +665,6 @@ final class SFTPChannelModel: Identifiable {
             return
         }
 
-        let selectedIdentity = identityID.flatMap { store.identity($0) }
-        let submittedUsername = (selectedIdentity?.username ?? username)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !submittedUsername.isEmpty else { return }
         let submittedKeyID = selectedIdentity?.keyID ?? keyID
         let submission: SSHAuthenticationSubmission
         do {
@@ -1073,6 +1111,34 @@ final class SFTPChannelModel: Identifiable {
         case .serverChallenge:
             connectionJourney.waitForAuthentication(at: host.id, failure: failure)
         }
+    }
+
+    private func requestProxyAuthentication(
+        host: Host, store: any RemoteSessionHostStore, failure: String? = nil,
+        mode: SSHAuthenticationPrompt.Mode = .localIdentity
+    ) {
+        guard let proxy = host.proxy else { return }
+        connection.pauseForUserInteraction()
+        let staged = suppliedProxyAuthentications.removeValue(forKey: host.id)
+        let configuredIdentity = (staged?.identityID ?? proxy.identityID).flatMap(store.identity)
+        let selectedIdentity: Identity?
+        if let configuredIdentity {
+            switch store.passwordAvailability(for: configuredIdentity) {
+            case .available, .notConfigured: selectedIdentity = configuredIdentity
+            case .missing, .failed: selectedIdentity = nil
+            }
+        } else {
+            selectedIdentity = nil
+        }
+        pendingAuthentication = SSHAuthenticationPrompt(
+            host: Host(
+                id: host.id, name: String(localized: "Proxy for \(host.name)"),
+                host: proxy.hostname, port: proxy.port),
+            selectedIdentityID: selectedIdentity?.id,
+            username: staged?.username ?? proxy.username, failureMessage: failure,
+            mode: mode, target: .proxy(ownerHostID: host.id))
+        status = .disconnected
+        connectionJourney.waitForProxyAuthentication(at: host.id, failure: failure)
     }
 
     private func progressHandler(attemptID: UUID) -> SSHRouteProgressHandler {
