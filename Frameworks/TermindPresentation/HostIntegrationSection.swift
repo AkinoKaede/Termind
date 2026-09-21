@@ -22,19 +22,25 @@ public struct HostIntegrationSection: View {
 public struct HostSessionSection: View {
     @Binding private var sftpInitialPath: String
     @Binding private var startupSnippetID: Snippet.ID?
+    @Binding private var environmentVariables: [HostEnvironmentVariable]
     private let snippets: [Snippet]
     private let snippetPackagePath: (SnippetPackage.ID?) -> String?
+    private let editEnvironmentVariable: (Int?) -> Void
 
     public init(
         sftpInitialPath: Binding<String>,
         startupSnippetID: Binding<Snippet.ID?> = .constant(nil),
+        environmentVariables: Binding<[HostEnvironmentVariable]> = .constant([]),
         snippets: [Snippet] = [],
-        snippetPackagePath: @escaping (SnippetPackage.ID?) -> String? = { _ in nil }
+        snippetPackagePath: @escaping (SnippetPackage.ID?) -> String? = { _ in nil },
+        editEnvironmentVariable: @escaping (Int?) -> Void = { _ in }
     ) {
         _sftpInitialPath = sftpInitialPath
         _startupSnippetID = startupSnippetID
+        _environmentVariables = environmentVariables
         self.snippets = snippets
         self.snippetPackagePath = snippetPackagePath
+        self.editEnvironmentVariable = editEnvironmentVariable
     }
 
     public var body: some View {
@@ -63,6 +69,68 @@ public struct HostSessionSection: View {
             .pickerStyle(.menu)
             .menuOrder(.fixed)
         }
+
+        Section("Environment Variables") {
+            ForEach(environmentVariables.indices, id: \.self) { index in
+                environmentVariableRow(at: index)
+            }
+
+            Button {
+                editEnvironmentVariable(nil)
+            } label: {
+                HStack(spacing: 8) {
+                    Text("Add Environment Variable")
+                    Spacer(minLength: 8)
+                    Image(systemName: "chevron.right")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                        .accessibilityHidden(true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+        }
+    }
+
+    @ViewBuilder
+    private func environmentVariableRow(at index: Int) -> some View {
+        #if os(iOS)
+            Button {
+                editEnvironmentVariable(index)
+            } label: {
+                environmentVariableLabel(at: index)
+            }
+            .buttonStyle(.plain)
+            .swipeActions {
+                Button("Delete", role: .destructive) {
+                    environmentVariables.remove(at: index)
+                }
+            }
+        #else
+            HStack(spacing: 8) {
+                Button {
+                    editEnvironmentVariable(index)
+                } label: {
+                    environmentVariableLabel(at: index)
+                }
+                .buttonStyle(.plain)
+                Button("Delete", systemImage: "xmark", role: .destructive) {
+                    environmentVariables.remove(at: index)
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.borderless)
+            }
+        #endif
+    }
+
+    private func environmentVariableLabel(at index: Int) -> some View {
+        Text("\(environmentVariables[index].variable)=\(environmentVariables[index].value)")
+            .font(.body.monospaced())
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
     }
 
     private func snippetLabel(_ snippet: Snippet) -> String {

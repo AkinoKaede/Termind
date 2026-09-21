@@ -34,6 +34,31 @@ struct HostShellIntegrationTests {
             Host.self, from: JSONSerialization.data(withJSONObject: json)
         )
         #expect(decoded.startupSnippetID == nil)
+        #expect(decoded.environmentVariables.isEmpty)
+    }
+
+    @Test func environmentVariablesValidateAndRoundTripInOrder() throws {
+        let variables = [
+            HostEnvironmentVariable(variable: "TERMIND_ENV", value: "production"),
+            HostEnvironmentVariable(variable: "EMPTY", value: ""),
+        ]
+        let host = Host(name: "Server", host: "server.invalid", environmentVariables: variables)
+        #expect(host.environmentVariablesAreValid)
+        #expect(try JSONDecoder().decode(Host.self, from: JSONEncoder().encode(host)) == host)
+        #expect(PersistentHost(host).value == host)
+
+        #expect(!HostEnvironmentVariable(variable: "1INVALID", value: "value").isValid)
+        #expect(!HostEnvironmentVariable(variable: "HAS SPACE", value: "value").isValid)
+        #expect(!HostEnvironmentVariable(variable: "VALID", value: "value\0suffix").isValid)
+        #expect(
+            !Host(
+                name: "Duplicate", host: "server.invalid",
+                environmentVariables: [
+                    HostEnvironmentVariable(variable: "SAME", value: "one"),
+                    HostEnvironmentVariable(variable: "SAME", value: "two"),
+                ]
+            ).environmentVariablesAreValid
+        )
     }
 
     @Test func savedModesSyncAndCanReturnToFollowingGlobalSettings() throws {

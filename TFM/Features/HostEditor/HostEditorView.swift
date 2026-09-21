@@ -14,6 +14,7 @@ struct HostEditorView: View {
         case identity
         case proxyIdentity
         case group
+        case environmentVariable(Int?)
     }
 
     let hostID: Host.ID?
@@ -201,8 +202,10 @@ struct HostEditorView: View {
             HostSessionSection(
                 sftpInitialPath: $draft.sftpChannelInitialPath,
                 startupSnippetID: startupSnippetChoice,
+                environmentVariables: $draft.environmentVariables,
                 snippets: app.hostLibrary.snippets,
-                snippetPackagePath: app.hostLibrary.snippetPackagePath
+                snippetPackagePath: app.hostLibrary.snippetPackagePath,
+                editEnvironmentVariable: { route = .environmentVariable($0) }
             )
 
             Section("Port Forwarding") {
@@ -281,6 +284,21 @@ struct HostEditorView: View {
                 identity, passwordUpdate in
                 try app.hostLibrary.upsert(identity, passwordUpdate: passwordUpdate)
                 customIdentity.selectProxyIdentity(identity, on: &draft)
+            }
+        case .environmentVariable(let index):
+            HostEnvironmentVariableEditor(
+                variable: index.map { draft.environmentVariables[$0] },
+                usedVariables: Set(
+                    draft.environmentVariables.indices.compactMap {
+                        $0 == index ? nil : draft.environmentVariables[$0].variable
+                    }),
+                back: closeNestedEditor
+            ) { variable in
+                if let index {
+                    draft.environmentVariables[index] = variable
+                } else {
+                    draft.environmentVariables.append(variable)
+                }
             }
 
         }
@@ -498,6 +516,7 @@ struct HostEditorView: View {
             && (1...65_535).contains(draft.port)
             && customIdentity.isProxyValid(for: draft)
             && customIdentity.isSSHValid(for: draft)
+            && draft.environmentVariablesAreValid
             && (draft.sftpChannelInitialPath.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 || draft.sftpChannelInitialPath.hasPrefix("/"))
             && app.hostLibrary.validatedRoute(for: draft) != nil
@@ -536,5 +555,71 @@ struct HostEditorView: View {
     /// Return to Hosts so the saved or retained record is immediately visible.
     private func closeTab() {
         window.openPage(.hosts)
+    }
+}
+
+private struct HostEnvironmentVariableEditor: View {
+    let original: HostEnvironmentVariable?
+    let usedVariables: Set<String>
+    let back: () -> Void
+    let save: (HostEnvironmentVariable) -> Void
+
+    @State private var draft: HostEnvironmentVariable
+
+    init(
+        variable: HostEnvironmentVariable?, usedVariables: Set<String>, back: @escaping () -> Void,
+        save: @escaping (HostEnvironmentVariable) -> Void
+    ) {
+        original = variable
+        self.usedVariables = usedVariables
+        self.back = back
+        self.save = save
+        _draft = State(initialValue: variable ?? HostEnvironmentVariable(variable: "", value: ""))
+    }
+
+    var body: some View {
+        VaultDetailScaffold(
+            title: original == nil ? "New Environment Variable" : "Edit Environment Variable",
+            symbol: "text.line.first.and.arrowtriangle.forward", close: back,
+            closeLabel: "Back", closeSymbol: "chevron.backward"
+        ) {
+            Form {
+                Section {
+                    LabeledContent("Variable") {
+                        TextField("Variable", text: $draft.variable.singleLineText)
+                            .singleLinePaste()
+                            .lineLimit(1)
+                            .labelsHidden()
+                            .multilineTextAlignment(.trailing)
+                            .font(.body.monospaced())
+                    }
+                    LabeledContent("Value") {
+                        TextField("Value", text: $draft.value.singleLineText)
+                            .singleLinePaste()
+                            .lineLimit(1)
+                            .labelsHidden()
+                            .multilineTextAlignment(.trailing)
+                            .font(.body.monospaced())
+                    }
+                }
+            }
+            .formStyle(.grouped)
+        } footer: {
+            HStack {
+                Spacer()
+                Button("Cancel", action: back).keyboardShortcut(.cancelAction)
+                Button(original == nil ? "Add" : "Save") {
+                    save(draft)
+                    back()
+                }
+                .keyboardShortcut(.defaultAction)
+                .disabled(!isValid)
+            }
+            .padding(Metrics.Space.l)
+        }
+    }
+
+    private var isValid: Bool {
+        draft.isValid && !usedVariables.contains(draft.variable)
     }
 }

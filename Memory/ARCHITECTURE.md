@@ -190,6 +190,10 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 ### Terminal behavior
 
+- Host environment variables are ordinary Vault-synced, non-secret configuration. Interactive SSH PTY Channels send
+  them as SSH environment requests before starting the shell on every connection and reconnection. Server rejection is
+  non-fatal and reports variable names, never values, in local terminal output. Exec, SFTP, Metrics, Agent, forwarding
+  and background probe Channels never inherit them; there is no shell-command fallback.
 - SSH worker owns PTY dimensions; retain latest valid authentication-time size/pixels. EAGAIN window-change packets keep
   original dimensions and finish before the newest request without blocking other I/O. Disconnect clears resize state;
   retired auth cannot install a PTY/clear replacement dimensions. Ghostty computes grid. Resize failure is diagnostic only.

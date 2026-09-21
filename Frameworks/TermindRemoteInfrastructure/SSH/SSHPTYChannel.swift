@@ -602,9 +602,12 @@ public actor SSHPTYChannel {
     public typealias OutputHandler = @Sendable (Data) -> Void
     public typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void
     public typealias ShellIntegrationHandler = @Sendable (SSHShellIntegrationEvent) -> Void
+    public typealias EnvironmentRejectionHandler = @Sendable ([String]) -> Void
 
     private nonisolated let worker: SSHPTYChannelWorker
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
+    private var environmentVariables: [HostEnvironmentVariable] = []
+    private var environmentRejection: EnvironmentRejectionHandler = { _ in }
 
     public init(
         output: @escaping OutputHandler, exit: @escaping ExitHandler,
@@ -690,9 +693,19 @@ public actor SSHPTYChannel {
         defer { request.configuration.clearSecrets() }
         try await worker.connect(
             using: request.withKeyboardInteractiveFallback(keyboardInteractive),
+            environmentVariables: environmentVariables,
+            environmentRejection: environmentRejection,
             shellIntegrationEnabled: shellIntegrationEnabled,
             columns: columns, rows: rows, progress: progress
         )
+    }
+
+    public func configureEnvironment(
+        _ variables: [HostEnvironmentVariable],
+        rejection: @escaping EnvironmentRejectionHandler = { _ in }
+    ) {
+        environmentVariables = variables
+        environmentRejection = rejection
     }
 
     public func write(_ data: Data) {
@@ -1011,6 +1024,8 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
 
     public func connect(
         using request: SSHConnectionRequest,
+        environmentVariables: [HostEnvironmentVariable],
+        environmentRejection: @escaping SSHPTYChannel.EnvironmentRejectionHandler,
         shellIntegrationEnabled: Bool,
         columns: UInt16, rows: UInt16,
         progress: SSHRouteProgressHandler?
@@ -1059,6 +1074,22 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 )
                 guard pty == 0 else { throw Self.connectionError(created, prefix: "PTY request failed") }
                 ptyResize.didCreatePTY(size: size)
+                var rejectedVariables: [String] = []
+                for environmentVariable in environmentVariables {
+                    let result = environmentVariable.variable.withCString { variable in
+                        environmentVariable.value.withCString { value in
+                            libssh2_channel_setenv_ex(
+                                openedChannel, variable, UInt32(environmentVariable.variable.utf8.count),
+                                value, UInt32(environmentVariable.value.utf8.count))
+                        }
+                    }
+                    if result == LIBSSH2_ERROR_CHANNEL_REQUEST_DENIED {
+                        rejectedVariables.append(environmentVariable.variable)
+                    } else if result != 0 {
+                        throw Self.connectionError(created, prefix: "SSH environment request failed")
+                    }
+                }
+                if !rejectedVariables.isEmpty { environmentRejection(rejectedVariables) }
                 guard libssh2_channel_process_startup(openedChannel, "shell", 5, nil, 0) == 0 else {
                     throw Self.connectionError(created, prefix: "Remote shell request failed")
                 }

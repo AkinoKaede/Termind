@@ -932,6 +932,11 @@ final class SSHSessionModel: Identifiable {
         )
         ssh = actor
         do {
+            await actor.configureEnvironment(host.environmentVariables) { variables in
+                let list = variables.joined(separator: ", ")
+                let warning = String(localized: "The server rejected these environment variables: \(list)")
+                backend.receive(Data("\r\n⚠︎ \(warning)\r\n".utf8))
+            }
             try await actor.connect(
                 using: SSHConnectionRequest(
                     configuration: configuration,

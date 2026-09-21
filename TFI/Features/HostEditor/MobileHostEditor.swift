@@ -6,12 +6,13 @@ import TermindPresentation
 import struct TermindDomain.Host
 
 struct MobileHostEditor: View {
-    private enum EditorRoute: String, Identifiable {
+    private enum EditorRoute: Hashable, Identifiable {
         case hostIdentity
         case proxyIdentity
         case group
+        case environmentVariable(Int?)
 
-        var id: String { rawValue }
+        var id: Self { self }
     }
 
     private enum Choice<ID: Hashable>: Hashable {
@@ -43,7 +44,8 @@ struct MobileHostEditor: View {
             canSave: !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                 && (1...65_535).contains(draft.port)
                 && customIdentity.isSSHValid(for: draft)
-                && customIdentity.isProxyValid(for: draft),
+                && customIdentity.isProxyValid(for: draft)
+                && draft.environmentVariablesAreValid,
             save: {
                 try customIdentity.save(into: &draft, using: library)
             },
@@ -158,8 +160,10 @@ struct MobileHostEditor: View {
                 HostSessionSection(
                     sftpInitialPath: $draft.sftpChannelInitialPath,
                     startupSnippetID: startupSnippetChoice,
+                    environmentVariables: $draft.environmentVariables,
                     snippets: library.snippets,
-                    snippetPackagePath: library.snippetPackagePath
+                    snippetPackagePath: library.snippetPackagePath,
+                    editEnvironmentVariable: { editorRoute = .environmentVariable($0) }
                 )
                 HostIntegrationSection(mode: $draft.shellIntegrationMode)
             }
@@ -188,6 +192,20 @@ struct MobileHostEditor: View {
             case .group:
                 MobileHostGroupEditor(app: app, group: nil, parentID: nil) { group in
                     draft.groupID = group.id
+                }
+            case .environmentVariable(let index):
+                MobileHostEnvironmentVariableEditor(
+                    variable: index.map { draft.environmentVariables[$0] },
+                    usedVariables: Set(
+                        draft.environmentVariables.indices.compactMap {
+                            $0 == index ? nil : draft.environmentVariables[$0].variable
+                        })
+                ) { variable in
+                    if let index {
+                        draft.environmentVariables[index] = variable
+                    } else {
+                        draft.environmentVariables.append(variable)
+                    }
                 }
             }
         }
@@ -285,6 +303,58 @@ struct MobileHostEditor: View {
         customIdentity = HostCustomIdentityDraft(host: draft, library: library)
     }
 
+}
+
+private struct MobileHostEnvironmentVariableEditor: View {
+    let original: HostEnvironmentVariable
+    let isNew: Bool
+    let usedVariables: Set<String>
+    let didSave: (HostEnvironmentVariable) -> Void
+    @State private var draft: HostEnvironmentVariable
+
+    init(
+        variable: HostEnvironmentVariable?, usedVariables: Set<String>,
+        didSave: @escaping (HostEnvironmentVariable) -> Void
+    ) {
+        let initial = variable ?? HostEnvironmentVariable(variable: "", value: "")
+        original = initial
+        isNew = variable == nil
+        self.usedVariables = usedVariables
+        self.didSave = didSave
+        _draft = State(initialValue: initial)
+    }
+
+    var body: some View {
+        MobileEditorSheet(
+            title: String(localized: isNew ? "New Environment Variable" : "Edit Environment Variable"),
+            isDirty: draft != original,
+            canSave: draft.isValid && !usedVariables.contains(draft.variable),
+            compact: true,
+            save: { didSave(draft) },
+            content: {
+                LabeledContent("Variable") {
+                    TextField("Variable", text: $draft.variable.singleLineText)
+                        .singleLinePaste()
+                        .lineLimit(1)
+                        .labelsHidden()
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .multilineTextAlignment(.trailing)
+                        .font(.body.monospaced())
+                }
+                LabeledContent("Value") {
+                    TextField("Value", text: $draft.value.singleLineText)
+                        .singleLinePaste()
+                        .lineLimit(1)
+                        .labelsHidden()
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .multilineTextAlignment(.trailing)
+                        .font(.body.monospaced())
+                }
+            }
+        )
+    }
 }
 
 nonisolated enum MobileHostEditorPolicy {

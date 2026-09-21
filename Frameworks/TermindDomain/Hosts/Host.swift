@@ -1,5 +1,32 @@
 import Foundation
 
+public nonisolated struct HostEnvironmentVariable: Codable, Hashable, Sendable {
+    public var variable: String
+    public var value: String
+
+    public init(variable: String, value: String) {
+        self.variable = variable
+        self.value = value
+    }
+
+    public var isValid: Bool {
+        guard let first = variable.utf8.first,
+            first == Character("_").asciiValue || first.isASCIILetter,
+            !variable.contains("\0"), !value.contains("\0")
+        else { return false }
+        return variable.utf8.dropFirst().allSatisfy {
+            $0 == Character("_").asciiValue || $0.isASCIILetter || $0.isASCIIDigit
+        }
+    }
+}
+nonisolated
+
+    extension UInt8
+{
+    fileprivate var isASCIILetter: Bool { (65...90).contains(self) || (97...122).contains(self) }
+    fileprivate var isASCIIDigit: Bool { (48...57).contains(self) }
+}
+
 public nonisolated struct HostProxy: Codable, Hashable, Sendable {
     public nonisolated enum ProtocolKind: String, Codable, CaseIterable, Identifiable, Sendable {
         case http
@@ -93,6 +120,9 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
     /// A reusable script submitted after each interactive SSH shell becomes ready.
     /// The body is resolved from the Snippet library for every connection attempt.
     public var startupSnippetID: Snippet.ID?
+    /// Plain-text variables requested on interactive PTY channels before the shell starts.
+    /// Servers may reject individual variables according to their AcceptEnv policy.
+    public var environmentVariables: [HostEnvironmentVariable] = []
     /// Physical SSH connections available to local and dynamic forwarding on supported platforms.
     public var portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
     /// Last distribution reported by Shell Integration for this saved Host.
@@ -149,6 +179,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         detectedDistribution: DetectedDistribution? = nil, sortIndex: Double = 0,
         shellIntegrationMode: HostShellIntegrationMode = .followGlobalSettings,
         startupSnippetID: Snippet.ID? = nil,
+        environmentVariables: [HostEnvironmentVariable] = [],
         portForwardingMaxConnections: Int = Self.defaultPortForwardingMaxConnections
     ) {
         self.id = id
@@ -166,6 +197,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         self.sortIndex = sortIndex
         self.shellIntegrationMode = shellIntegrationMode
         self.startupSnippetID = startupSnippetID
+        self.environmentVariables = environmentVariables
         self.portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
             portForwardingMaxConnections)
     }
@@ -174,7 +206,7 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
         case id, name, host, port, identityID, jumpHostID, proxy
         case sftpChannelInitialPath = "sftpSessionInitialPath"
         case groupID, tags, colorTag, detectedDistribution, sortIndex, shellIntegrationMode
-        case startupSnippetID, portForwardingMaxConnections
+        case startupSnippetID, environmentVariables, portForwardingMaxConnections
     }
 
     public init(from decoder: any Decoder) throws {
@@ -196,6 +228,8 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
             try values.decodeIfPresent(String.self, forKey: .shellIntegrationMode)
             .flatMap(HostShellIntegrationMode.init(rawValue:)) ?? .followGlobalSettings
         startupSnippetID = try values.decodeIfPresent(Snippet.ID.self, forKey: .startupSnippetID)
+        environmentVariables =
+            try values.decodeIfPresent([HostEnvironmentVariable].self, forKey: .environmentVariables) ?? []
         portForwardingMaxConnections = Self.normalizedPortForwardingMaxConnections(
             try values.decodeIfPresent(Int.self, forKey: .portForwardingMaxConnections)
                 ?? Self.defaultPortForwardingMaxConnections)
@@ -203,6 +237,11 @@ public nonisolated struct Host: Identifiable, Codable, Hashable, Sendable {
 
     public static func normalizedPortForwardingMaxConnections(_ value: Int) -> Int {
         min(max(value, portForwardingMaxConnectionsRange.lowerBound), portForwardingMaxConnectionsRange.upperBound)
+    }
+
+    public var environmentVariablesAreValid: Bool {
+        environmentVariables.allSatisfy(\.isValid)
+            && Set(environmentVariables.map(\.variable)).count == environmentVariables.count
     }
 
 }
