@@ -8,89 +8,6 @@ import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
 
-/// Marks the synchronous part of an AppKit terminal interaction.
-///
-/// Ghostty's in-memory backend uses one callback for everything written toward
-/// the host: keyboard input, paste bytes, mouse reports, focus reports, and
-/// terminal protocol replies. Broadcast Input must copy only the first two.
-/// The native view enters this scope around keyboard/AppKit paste handling, and
-/// the backend callback consumes its synchronous or short-lived deferred ticket
-/// before hopping back to MainActor.
-nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
-    private static let deferredWriteWindowNanoseconds: UInt64 = 100_000_000
-    private let lock = NSLock()
-    private var depth = 0
-    private var writeGeneration: UInt64 = 0
-    private var deferredWriteDeadline: UInt64?
-    private var bracketedPaste: (tail: Data, deadline: UInt64)?
-    private static let pasteStart = Data("\u{1B}[200~".utf8)
-    private static let pasteEnd = Data("\u{1B}[201~".utf8)
-
-    var isActive: Bool {
-        lock.withLock { depth > 0 }
-    }
-
-    func withInteraction<Result>(
-        allowsDeferredWrite: Bool = true,
-        _ operation: () throws -> Result
-    ) rethrows -> Result {
-        let generation = lock.withLock { () -> UInt64 in
-            depth += 1
-            return writeGeneration
-        }
-        defer {
-            lock.withLock {
-                depth -= 1
-                guard allowsDeferredWrite, writeGeneration == generation else { return }
-                deferredWriteDeadline =
-                    DispatchTime.now().uptimeNanoseconds
-                    &+ Self.deferredWriteWindowNanoseconds
-            }
-        }
-        return try operation()
-    }
-
-    /// Classifies the backend callback while it still has the input event's
-    /// provenance. Ordinarily Ghostty writes synchronously. The short-lived
-    /// deferred ticket covers callbacks it schedules just after AppKit returns.
-    /// A bracketed paste can arrive as separate opening, body, and closing writes;
-    /// retain its provenance through the closing marker, even across callbacks.
-    /// Both the initial ticket and an interrupted paste expire promptly.
-    func classifyWrite(_ data: Data = Data()) -> Bool {
-        lock.withLock {
-            writeGeneration &+= 1
-            let now = DispatchTime.now().uptimeNanoseconds
-            if let paste = bracketedPaste, now > paste.deadline {
-                bracketedPaste = nil
-            }
-            let isInteractive =
-                depth > 0 || bracketedPaste != nil
-                || deferredWriteDeadline.map { now <= $0 } == true
-            deferredWriteDeadline = nil
-            guard isInteractive else { return false }
-
-            let pasteBytes: Data
-            if let paste = bracketedPaste {
-                pasteBytes = paste.tail + data
-            } else if data.starts(with: Self.pasteStart) {
-                pasteBytes = Data(data.dropFirst(Self.pasteStart.count))
-            } else {
-                return true
-            }
-            if pasteBytes.range(of: Self.pasteEnd) != nil {
-                bracketedPaste = nil
-            } else {
-                // Keep a bounded tail to recognize a split closing marker.
-                bracketedPaste = (
-                    Data(pasteBytes.suffix(Self.pasteEnd.count - 1)),
-                    now &+ Self.deferredWriteWindowNanoseconds
-                )
-            }
-            return true
-        }
-    }
-}
-
 /// Workspace-owned routing for terminal input and shell completion.
 /// Class-bound so a sshSession can keep the relationship weak while panes move
 /// between Workspaces.
@@ -211,14 +128,12 @@ final class SSHSessionModel: Identifiable {
     let connection = RemoteSessionConnectionController()
     var connectionJourney: ConnectionJourney { connection.journey }
 
-    let terminalState: TerminalViewState
-    #if canImport(AppKit)
-        /// Owns the native terminal across SplitNode reparenting. Keeping this
-        /// beside the sshSession makes the surface lifetime match the SSH sshSession,
-        /// rather than the transient SwiftUI branch that currently displays it.
-        let terminalViewOwner: PersistentTerminalViewOwner
-    #endif
-    private let terminalBackend: InMemoryTerminalSession
+    private let terminalSurface: PersistentTerminalViewOwner
+    var terminalState: TerminalViewState { terminalSurface.state }
+    /// Owns the native terminal across SplitNode reparenting. Keeping this
+    /// beside the sshSession makes the surface lifetime match the SSH sshSession,
+    /// rather than the transient SwiftUI branch that currently displays it.
+    var terminalViewOwner: PersistentTerminalViewOwner { terminalSurface }
     private weak var statusStore: (any RemoteSessionHostStore)?
     weak var commandHistoryStore: CommandHistoryModel?
     private var ssh: SSHPTYChannel?
@@ -327,9 +242,8 @@ final class SSHSessionModel: Identifiable {
             )
         }
         let relay = SSHSessionRelay()
-        let backend = InMemoryTerminalSession(
-            write: { data in
-                let isInteractiveInput = relay.inputCapture.classifyWrite(data)
+        let surface = PersistentTerminalViewOwner(
+            write: { data, isInteractiveInput in
                 Task { @MainActor in
                     relay.owner?.handleTerminalWrite(
                         data, isInteractiveInput: isInteractiveInput
@@ -338,23 +252,12 @@ final class SSHSessionModel: Identifiable {
             },
             resize: { viewport in
                 Task { @MainActor in relay.owner?.resizeSSH(viewport) }
-            },
-            suppressesPixelOnlyResizes: true
+            }
         )
-        let state = TerminalViewState(configSource: .none)
-        state.configuration = TerminalSurfaceOptions(
-            backend: .inMemory(backend), resizeThrottleMilliseconds: 35
-        )
-        terminalBackend = backend
-        terminalState = state
-        #if canImport(AppKit)
-            terminalViewOwner = PersistentTerminalViewOwner(
-                state: state, inputCapture: relay.inputCapture
-            )
-        #endif
+        terminalSurface = surface
         relay.owner = self
-        observeWorkingDirectory(from: state, through: relay)
-        observeRemoteWindowTitle(from: state, through: relay)
+        observeWorkingDirectory(from: surface.state, through: relay)
+        observeRemoteWindowTitle(from: surface.state, through: relay)
     }
 
     var agentTemporaryTarget: AgentHostTarget? {
@@ -389,17 +292,11 @@ final class SSHSessionModel: Identifiable {
     }
 
     func requestTerminalFocus() {
-        #if canImport(AppKit)
-            terminalViewOwner.requestFocus()
-        #else
-            terminalState.requestFocus()
-        #endif
+        terminalSurface.requestFocus()
     }
 
     private func performFindBinding(_ action: String) {
-        #if canImport(AppKit)
-            terminalViewOwner.performBindingAction(action)
-        #endif
+        terminalSurface.performBindingAction(action)
     }
 
     /// Text arriving at this sshSession's prompt — the one way anything reaches a
@@ -917,9 +814,9 @@ final class SSHSessionModel: Identifiable {
             charset: host.charset,
             authenticationReference: authenticationReference
         )
-        let backend = terminalBackend
+        let terminalSurface = terminalSurface
         let actor = (connectionCoordinator ?? RemoteConnectionCoordinator()).makePTYChannel(
-            output: { data in backend.receive(data) },
+            output: { data in terminalSurface.receive(data) },
             exit: { [weak self] result in
                 Task { @MainActor in
                     guard let self, self.connectionAttemptID == attemptID else { return }
@@ -944,7 +841,7 @@ final class SSHSessionModel: Identifiable {
             await actor.configureEnvironment(host.environmentVariables) { variables in
                 let list = variables.joined(separator: ", ")
                 let warning = String(localized: "The server rejected these environment variables: \(list)")
-                backend.receive(Data("\r\n⚠︎ \(warning)\r\n".utf8))
+                terminalSurface.receive(Data("\r\n⚠︎ \(warning)\r\n".utf8))
             }
             try await actor.connect(
                 using: SSHConnectionRequest(
@@ -1065,7 +962,7 @@ final class SSHSessionModel: Identifiable {
     }
 
     private func appendTerminalNotice(_ message: String) {
-        terminalBackend.receive(Data("\r\n\u{001B}[2m[Termind] \(message)\u{001B}[0m\r\n".utf8))
+        terminalSurface.appendNotice(message)
     }
 
     private func requestAuthentication(
@@ -1368,7 +1265,6 @@ final class SSHSessionModel: Identifiable {
 
 private final class SSHSessionRelay: @unchecked Sendable {
     weak var owner: SSHSessionModel?
-    let inputCapture = TerminalInteractiveInputCapture()
 }
 
 // MARK: - Demo data
@@ -1392,12 +1288,12 @@ extension SSHSessionModel {
         // behind when a narrow demo pane reflows that content.
         Task { [weak sshSession] in
             try? await Task.sleep(for: .milliseconds(350))
-            sshSession?.terminalBackend.receive(Data("\u{001B}[2J\u{001B}[H".utf8))
-            sshSession?.terminalBackend.receive(bytes)
+            sshSession?.terminalSurface.receive(Data("\u{001B}[2J\u{001B}[H".utf8))
+            sshSession?.terminalSurface.receive(bytes)
             // The demo has no remote PTY to synchronize Ghostty's interactive
             // cursor with received output. Hide that cursor for static captures
             // instead of advertising a caret at a position no shell reported.
-            sshSession?.terminalBackend.receive(Data("\u{001B}[?25l".utf8))
+            sshSession?.terminalSurface.receive(Data("\u{001B}[?25l".utf8))
             sshSession?.terminalState.terminalDidChangeWorkingDirectory("/var/log/nginx")
         }
         return sshSession

@@ -90,7 +90,6 @@ struct TerminalPlaceholderView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
-    @TerminalAppearanceSettings private var terminalAppearance
     @Environment(\.scenePhase) private var scenePhase
     @FocusState private var terminalFocused: Bool
     @State private var pendingUploadChannel: SFTPChannelModel?
@@ -115,10 +114,10 @@ struct TerminalPlaceholderView: View {
     /// terminal alone answers for the pane.
     var body: some View {
         terminalSurface
+            .desktopTerminalChrome(state: sshSession.terminalState, charsetError: charsetError)
             .overlay(alignment: .bottom) { uploadDecoration }
             .overlay { connectionJourney }
             .animation(Motion.panel, value: uploadNotice)
-            .background(terminalAppearance.background)
             .onAppear {
                 // The mounted view is the final source of truth after any drag,
                 // merge, detach, or SwiftUI tree rebuild. Reassert the relationship
@@ -127,7 +126,6 @@ struct TerminalPlaceholderView: View {
                 sshSession.inputRouter = workspace
                 terminalFocused = requestsFocus
                 TerminalFontCatalog.shared.refresh()
-                sshSession.terminalState.applyPreferences(terminalAppearance.preferences, font: terminalAppearance.font)
                 sshSession.connectIfNeeded(using: app.hostLibrary)
                 if requestsFocus { sshSession.requestTerminalFocus() }
             }
@@ -148,9 +146,6 @@ struct TerminalPlaceholderView: View {
                 terminalFocused = false
                 cancelPendingUpload()
             }
-            .onChange(of: terminalAppearance) { _, appearance in
-                sshSession.terminalState.applyPreferences(appearance.preferences, font: appearance.font)
-            }
             .onChange(of: scenePhase) { _, phase in
                 if phase == .active { TerminalFontCatalog.shared.refresh() }
             }
@@ -166,17 +161,12 @@ struct TerminalPlaceholderView: View {
             } message: {
                 Text("Use this choice for all conflicts in this batch.")
             }
-            .alert("Charset Error", isPresented: charsetErrorPresented) {
-                Button("OK", role: .cancel) { sshSession.charsetError = nil }
-            } message: {
-                Text(sshSession.charsetError ?? "")
-            }
     }
 
-    private var charsetErrorPresented: Binding<Bool> {
+    private var charsetError: Binding<String?> {
         Binding(
-            get: { sshSession.charsetError != nil },
-            set: { if !$0 { sshSession.charsetError = nil } }
+            get: { sshSession.charsetError },
+            set: { sshSession.charsetError = $0 }
         )
     }
 

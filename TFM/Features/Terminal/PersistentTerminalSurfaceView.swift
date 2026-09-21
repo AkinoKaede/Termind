@@ -13,9 +13,9 @@
     /// surface attached to the shared controller, losing the visible grid and
     /// scrollback.
     ///
-    /// The owner below lives with `SSHSessionModel`, not with the transient
-    /// representable. Reparenting therefore moves the same native view and the
-    /// same surface into the new container instead of constructing either one.
+    /// The owner below lives with its terminal session model, not with the
+    /// transient representable. Reparenting therefore moves the same native view
+    /// and surface into the new container instead of constructing either one.
     struct PersistentTerminalSurfaceView: NSViewRepresentable {
         let state: TerminalViewState
         let owner: PersistentTerminalViewOwner
@@ -202,13 +202,13 @@
         }
     }
 
-    /// Strong owner for the native terminal view. There is exactly one of these
-    /// per `SSHSessionModel`, so SplitNode mutations cannot change native
-    /// view identity or trigger a Ghostty surface rebuild.
+    /// Strong owner for one terminal backend, state and native view, so SplitNode
+    /// mutations cannot change view identity or lose the screen buffer.
     @MainActor
     final class PersistentTerminalViewOwner {
         private let terminalView: TermindTerminalView
-        private let state: TerminalViewState
+        let state: TerminalViewState
+        nonisolated private let backend: InMemoryTerminalSession
         private weak var container: TerminalMountView?
         private var mountConstraints: [NSLayoutConstraint] = []
         private var appliedVisibility: Bool?
@@ -218,9 +218,20 @@
         private var ownerIdentifier: ObjectIdentifier { ObjectIdentifier(self) }
 
         init(
-            state: TerminalViewState,
-            inputCapture: TerminalInteractiveInputCapture
+            write: @escaping @Sendable (Data, Bool) -> Void,
+            resize: @escaping @Sendable (InMemoryTerminalViewport) -> Void
         ) {
+            let inputCapture = TerminalInteractiveInputCapture()
+            let backend = InMemoryTerminalSession(
+                write: { data in write(data, inputCapture.classifyWrite(data)) },
+                resize: resize,
+                suppressesPixelOnlyResizes: true
+            )
+            let state = TerminalViewState(configSource: .none)
+            state.configuration = TerminalSurfaceOptions(
+                backend: .inMemory(backend), resizeThrottleMilliseconds: 35
+            )
+            self.backend = backend
             self.state = state
             let terminal = TermindTerminalView(frame: .zero)
             terminal.inputCapture = inputCapture
@@ -229,6 +240,14 @@
             terminal.configuration = state.configuration
             terminal.controller = state.controller
             terminalView = terminal
+        }
+
+        nonisolated func receive(_ data: Data) {
+            backend.receive(data)
+        }
+
+        func appendNotice(_ message: String) {
+            receive(Data("\r\n\u{001B}[2m[Termind] \(message)\u{001B}[0m\r\n".utf8))
         }
 
         /// Idempotent: ordinary SwiftUI updates stop after the reference checks.

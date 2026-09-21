@@ -10,7 +10,6 @@ import struct TermindDomain.Host
 @MainActor
 private final class TelnetSessionRelay {
     weak var owner: TelnetSessionModel?
-    let inputCapture = TerminalInteractiveInputCapture()
 }
 
 @Observable
@@ -28,11 +27,9 @@ final class TelnetSessionModel: Identifiable {
         focus: { [weak self] in self?.requestTerminalFocus() }
     )
 
-    let terminalState: TerminalViewState
-    #if canImport(AppKit)
-        let terminalViewOwner: PersistentTerminalViewOwner
-    #endif
-    private let terminalBackend: InMemoryTerminalSession
+    private let terminalSurface: PersistentTerminalViewOwner
+    var terminalState: TerminalViewState { terminalSurface.state }
+    var terminalViewOwner: PersistentTerminalViewOwner { terminalSurface }
     private weak var statusStore: (any RemoteSessionHostStore)?
     private let transientHost: Host
     private var connection: TelnetConnection?
@@ -65,9 +62,8 @@ final class TelnetSessionModel: Identifiable {
         title = host.name
         transientHost = host
         let relay = TelnetSessionRelay()
-        let backend = InMemoryTerminalSession(
-            write: { data in
-                _ = relay.inputCapture.classifyWrite(data)
+        terminalSurface = PersistentTerminalViewOwner(
+            write: { data, _ in
                 Task { @MainActor in relay.owner?.connection?.write(data) }
             },
             resize: { viewport in
@@ -77,18 +73,8 @@ final class TelnetSessionModel: Identifiable {
                         columns: UInt16(clamping: viewport.columns),
                         rows: UInt16(clamping: viewport.rows))
                 }
-            },
-            suppressesPixelOnlyResizes: true
+            }
         )
-        let state = TerminalViewState(configSource: .none)
-        state.configuration = TerminalSurfaceOptions(
-            backend: .inMemory(backend), resizeThrottleMilliseconds: 35)
-        terminalBackend = backend
-        terminalState = state
-        #if canImport(AppKit)
-            terminalViewOwner = PersistentTerminalViewOwner(
-                state: state, inputCapture: relay.inputCapture)
-        #endif
         relay.owner = self
         connectionJourney.beginTelnet(
             host: host, username: nil, mode: .connection)
@@ -126,11 +112,11 @@ final class TelnetSessionModel: Identifiable {
             mode: connectionController.hasConnectedOnce ? .reconnection : .connection)
         status = connectionController.hasConnectedOnce ? .reconnecting : .connecting
 
-        let backend = terminalBackend
+        let terminalSurface = terminalSurface
         let token = UUID()
         let connection = TelnetConnection(
             output: { [weak self] data in
-                backend.receive(data)
+                terminalSurface.receive(data)
                 Task { @MainActor in self?.hasUnreadOutput = true }
             },
             event: { [weak self] event in
@@ -199,12 +185,11 @@ final class TelnetSessionModel: Identifiable {
         connection = nil
         status = .failed(message)
         connectionJourney.fail(message)
-        terminalBackend.receive(
-            Data("\r\n\u{001B}[2m[Termind] \(message)\u{001B}[0m\r\n".utf8))
+        terminalSurface.appendNotice(message)
     }
 
-    func requestTerminalFocus() { terminalViewOwner.requestFocus() }
-    private func performFind(_ action: String) { terminalViewOwner.performBindingAction(action) }
+    func requestTerminalFocus() { terminalSurface.requestFocus() }
+    private func performFind(_ action: String) { terminalSurface.performBindingAction(action) }
 }
 
 struct TelnetTerminalView: View {
@@ -213,51 +198,28 @@ struct TelnetTerminalView: View {
     let requestsFocus: Bool
     let closePane: () -> Void
 
-    @TerminalAppearanceSettings private var terminalAppearance
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        PersistentTerminalSurfaceView(
+        SimpleDesktopTerminalView(
             state: session.terminalState,
             owner: session.terminalViewOwner,
+            journey: session.connectionJourney,
             isVisible: isVisible,
-            requestsFocus: requestsFocus && !session.connectionJourney.isPresented
+            requestsFocus: requestsFocus,
+            charsetError: charsetError,
+            connectIfNeeded: { session.connectIfNeeded(using: app.hostLibrary) },
+            retry: { session.connect(using: app.hostLibrary) },
+            requestFocus: session.requestTerminalFocus,
+            closePane: closePane
         )
-        .background(terminalAppearance.background)
-        .overlay { journey }
-        .onAppear {
-            session.terminalState.applyPreferences(
-                terminalAppearance.preferences, font: terminalAppearance.font)
-            session.connectIfNeeded(using: app.hostLibrary)
-        }
-        .onChange(of: terminalAppearance) { _, appearance in
-            session.terminalState.applyPreferences(appearance.preferences, font: appearance.font)
-        }
-        .alert("Charset Error", isPresented: charsetErrorPresented) {
-            Button("OK", role: .cancel) { session.charsetError = nil }
-        } message: {
-            Text(session.charsetError ?? "")
-        }
     }
 
-    private var charsetErrorPresented: Binding<Bool> {
+    private var charsetError: Binding<String?> {
         Binding(
-            get: { session.charsetError != nil },
-            set: { if !$0 { session.charsetError = nil } })
+            get: { session.charsetError },
+            set: { session.charsetError = $0 }
+        )
     }
 
-    @ViewBuilder
-    private var journey: some View {
-        if isVisible, session.connectionJourney.isPresented {
-            ConnectionJourneyView(
-                journey: session.connectionJourney,
-                submitAuthentication: { _, _, _, _, _, _ in },
-                continueHostKey: { _ in }, trustHostKey: { _ in },
-                denyHostKey: closePane,
-                retry: { session.connect(using: app.hostLibrary) },
-                cancel: closePane,
-                failureCancelLabel: "Close", failureRetryLabel: "Reconnect",
-                compactFailureActions: true)
-        }
-    }
 }

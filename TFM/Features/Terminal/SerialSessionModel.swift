@@ -8,7 +8,6 @@ import TermindRemoteInfrastructure
 @MainActor
 private final class SerialSessionRelay {
     weak var owner: SerialSessionModel?
-    let inputCapture = TerminalInteractiveInputCapture()
     let decoder: RemoteCharsetStreamConverter
 
     init(charset: RemoteCharset) {
@@ -35,11 +34,9 @@ final class SerialSessionModel: Identifiable {
         focus: { [weak self] in self?.requestTerminalFocus() }
     )
 
-    let terminalState: TerminalViewState
-    #if canImport(AppKit)
-        let terminalViewOwner: PersistentTerminalViewOwner
-    #endif
-    private let terminalBackend: InMemoryTerminalSession
+    private let terminalSurface: PersistentTerminalViewOwner
+    var terminalState: TerminalViewState { terminalSurface.state }
+    var terminalViewOwner: PersistentTerminalViewOwner { terminalSurface }
     private let service: any SerialPortServing
     private let relay: SerialSessionRelay
     private let inputConverter: RemoteCharsetStreamConverter
@@ -64,25 +61,12 @@ final class SerialSessionModel: Identifiable {
         self.relay = relay
         inputConverter = try! RemoteCharsetStreamConverter(charset: configuration.charset, direction: .encoding)
         outputConverter = relay.decoder
-        let backend = InMemoryTerminalSession(
-            write: { data in
-                let interactive = relay.inputCapture.classifyWrite(data)
+        terminalSurface = PersistentTerminalViewOwner(
+            write: { data, interactive in
                 Task { @MainActor in relay.owner?.handleTerminalWrite(data, interactive: interactive) }
             },
-            resize: { _ in },
-            suppressesPixelOnlyResizes: true
+            resize: { _ in }
         )
-        let state = TerminalViewState(configSource: .none)
-        state.configuration = TerminalSurfaceOptions(
-            backend: .inMemory(backend), resizeThrottleMilliseconds: 35
-        )
-        terminalBackend = backend
-        terminalState = state
-        #if canImport(AppKit)
-            terminalViewOwner = PersistentTerminalViewOwner(
-                state: state, inputCapture: relay.inputCapture
-            )
-        #endif
         relay.owner = self
         // Present the shared Journey before SwiftUI mounts the pane, preventing
         // a one-frame flash of the empty Ghostty surface before `onAppear`
@@ -110,7 +94,7 @@ final class SerialSessionModel: Identifiable {
         connectionJourney.beginSerial(name: title, address: devicePath)
         let service = service
         let configuration = configuration
-        let backend = terminalBackend
+        let terminalSurface = terminalSurface
         let decoder = outputConverter
         let reference = WeakSerialSessionReference(self)
         connectionTask = Task { [weak self] in
@@ -121,7 +105,7 @@ final class SerialSessionModel: Identifiable {
                     receive: { data in
                         do {
                             let converted = try decoder.convert(data, recoveringInvalidInput: true)
-                            if !converted.data.isEmpty { backend.receive(converted.data) }
+                            if !converted.data.isEmpty { terminalSurface.receive(converted.data) }
                             if converted.rejectedInput {
                                 let message = RemoteCharsetConversionError(
                                     charset: configuration.charset, direction: .decoding
@@ -189,9 +173,7 @@ final class SerialSessionModel: Identifiable {
         if let connection { Task { await connection.close() } }
         status = .failed(message)
         connectionJourney.fail(message)
-        terminalBackend.receive(
-            Data("\r\n\u{001B}[2m[Termind] \(message)\u{001B}[0m\r\n".utf8)
-        )
+        terminalSurface.appendNotice(message)
     }
 
     func handleTerminalWrite(_ data: Data, interactive: Bool) {
@@ -204,7 +186,7 @@ final class SerialSessionModel: Identifiable {
             if charsetError == nil { charsetError = error.localizedDescription }
             return
         }
-        if interactive, configuration.localEcho { terminalBackend.receive(source) }
+        if interactive, configuration.localEcho { terminalSurface.receive(source) }
         Task {
             do { try await connection.write(output) } catch {
                 await MainActor.run { self.fail(error.localizedDescription) }
@@ -215,7 +197,7 @@ final class SerialSessionModel: Identifiable {
     private func finishCharsetOutput() {
         do {
             let converted = try outputConverter.finish(recoveringInvalidInput: true)
-            if !converted.data.isEmpty { terminalBackend.receive(converted.data) }
+            if !converted.data.isEmpty { terminalSurface.receive(converted.data) }
             if converted.rejectedInput, charsetError == nil {
                 charsetError =
                     RemoteCharsetConversionError(
@@ -228,17 +210,11 @@ final class SerialSessionModel: Identifiable {
     }
 
     func requestTerminalFocus() {
-        #if canImport(AppKit)
-            terminalViewOwner.requestFocus()
-        #else
-            terminalState.requestFocus()
-        #endif
+        terminalSurface.requestFocus()
     }
 
     private func performFind(_ action: String) {
-        #if canImport(AppKit)
-            terminalViewOwner.performBindingAction(action)
-        #endif
+        terminalSurface.performBindingAction(action)
     }
 
 }
@@ -249,68 +225,26 @@ struct SerialTerminalView: View {
     let requestsFocus: Bool
     let closePane: () -> Void
 
-    @TerminalAppearanceSettings private var terminalAppearance
-    @Environment(\.scenePhase) private var scenePhase
-    @FocusState private var focused: Bool
-
     var body: some View {
-        PersistentTerminalSurfaceView(
+        SimpleDesktopTerminalView(
             state: session.terminalState,
             owner: session.terminalViewOwner,
+            journey: session.connectionJourney,
             isVisible: isVisible,
-            requestsFocus: requestsFocus && !session.connectionJourney.isPresented
+            requestsFocus: requestsFocus,
+            charsetError: charsetError,
+            connectIfNeeded: session.connectIfNeeded,
+            retry: session.connect,
+            requestFocus: session.requestTerminalFocus,
+            closePane: closePane
         )
-        .background(terminalAppearance.background)
-        .overlay { connectionJourney }
-        .focused($focused)
-        .onAppear {
-            TerminalFontCatalog.shared.refresh()
-            session.terminalState.applyPreferences(terminalAppearance.preferences, font: terminalAppearance.font)
-            session.connectIfNeeded()
-            if requestsFocus { session.requestTerminalFocus() }
-        }
-        .onChange(of: requestsFocus) { _, value in
-            focused = value
-            if value, !session.connectionJourney.isPresented { session.requestTerminalFocus() }
-        }
-        .onChange(of: session.connectionJourney.isPresented) { _, presented in
-            if !presented, requestsFocus { session.requestTerminalFocus() }
-        }
-        .onChange(of: terminalAppearance) { _, appearance in
-            session.terminalState.applyPreferences(appearance.preferences, font: appearance.font)
-        }
-        .onChange(of: scenePhase) { _, phase in
-            if phase == .active { TerminalFontCatalog.shared.refresh() }
-        }
-        .alert("Charset Error", isPresented: charsetErrorPresented) {
-            Button("OK", role: .cancel) { session.charsetError = nil }
-        } message: {
-            Text(session.charsetError ?? "")
-        }
     }
 
-    private var charsetErrorPresented: Binding<Bool> {
+    private var charsetError: Binding<String?> {
         Binding(
-            get: { session.charsetError != nil },
-            set: { if !$0 { session.charsetError = nil } }
+            get: { session.charsetError },
+            set: { session.charsetError = $0 }
         )
     }
 
-    @ViewBuilder
-    private var connectionJourney: some View {
-        if isVisible, session.connectionJourney.isPresented {
-            ConnectionJourneyView(
-                journey: session.connectionJourney,
-                submitAuthentication: { _, _, _, _, _, _ in },
-                continueHostKey: { _ in },
-                trustHostKey: { _ in },
-                denyHostKey: closePane,
-                retry: session.connect,
-                cancel: closePane,
-                failureCancelLabel: "Close",
-                failureRetryLabel: "Reconnect",
-                compactFailureActions: true
-            )
-        }
-    }
 }

@@ -291,3 +291,23 @@ never justifies extraction. Keep schemas, native lists/terminal teardown and loc
   iOS Simulator builds passed. The default macOS run recorded 1,831 passed, 64 opt-in skips and two unrelated concurrent Agent
   timing failures; both complete Agent suites passed immediately on focused rerun (35/35). Recursive strict formatting, diff
   checks and Chinese localization checks passed.
+
+### 2026-09-21 — shared desktop terminal surface (complete)
+
+- **Evidence:** `SSHSessionModel`, `TelnetSessionModel` and `SerialSessionModel` independently construct the same Ghostty
+  in-memory backend, `TerminalViewState`, resize throttle and persistent native view owner. They also repeat terminal focus/find,
+  dimmed failure output, appearance updates and Charset Error presentation even though those behaviors are transport-neutral.
+- **Action:** introduce one TFM-owned terminal surface/controller and one shared SwiftUI chrome modifier. Keep SSH authentication,
+  Shell Integration and SFTP uploads, Telnet IAC/NVT and NAWS, and Serial charset/input/local-echo behavior in their existing
+  session owners; preserve each model and native terminal lifetime.
+- **Expected reduction:** remove the three construction paths and duplicated appearance/error chrome, with an estimated net
+  reduction of 40–80 production lines. Record the measured change and verification after implementation.
+- **Result:** `PersistentTerminalViewOwner` now provides the single Ghostty backend/state/native-view ownership path used by SSH,
+  Telnet and Serial. A shared desktop chrome applies appearance and Charset Error presentation, while Telnet and Serial also reuse one
+  simple Journey/focus/font lifecycle. SSH keeps its richer authentication/upload overlays, and every transport keeps its byte
+  protocol and connection lifetime. Production changed +285/−296 lines including the new file (net −11).
+- **Verification:** the TFM build passed. The 44-test terminal-focused run had no failures and two opt-in window skips; Chinese
+  localization and changed-file strict formatting passed. The default macOS run recorded 1,858 passed, 65 opt-in skips and three
+  unrelated Agent failures; the two timing failures passed in the immediate 41-test suite rerun, while the existing deterministic
+  `list_hosts` summary expectation remained. Recursive formatting retains the unrelated existing
+  `PortForwardingView.swift:197` finding.
