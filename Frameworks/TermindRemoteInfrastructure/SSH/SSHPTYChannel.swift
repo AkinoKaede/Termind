@@ -11,6 +11,23 @@ import struct TermindDomain.Host
 /// The probe, its echo, and the installation command stay inside this state
 /// machine; only the login banner and the final integrated prompt are emitted.
 public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
+    enum Diagnostic: Sendable, Equatable {
+        enum TimeoutStage: String, Sendable {
+            case lateProbe = "late_probe"
+            case installation
+        }
+
+        enum SkipReason: String, Sendable {
+            case unsupportedShell = "unsupported_shell"
+            case userInput = "user_input"
+        }
+
+        case probeDelayed
+        case installed(late: Bool, homeResolved: Bool, systemInfoAvailable: Bool)
+        case skipped(SkipReason)
+        case timedOut(stage: TimeoutStage, late: Bool)
+    }
+
     public nonisolated struct Update: Sendable {
         public var command: Data?
         public var visibleOutput: Data?
@@ -20,6 +37,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         public var systemInfo: RemoteSystemInfo?
         public var homeDirectory: String?
         public var homeResolutionUnavailable = false
+        var diagnostic: Diagnostic?
 
     }
 
@@ -117,7 +135,10 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             phase = isEchoingProbe ? .suppressingLateProbe : .scanningForLateProbe
             if isEchoingProbe { deadline = now + Self.responseTimeout }
             lastActivity = nil
-            return Update(visibleOutput: visible, homeResolutionUnavailable: true)
+            return Update(
+                visibleOutput: visible, homeResolutionUnavailable: true,
+                diagnostic: .probeDelayed
+            )
         case .scanningForLateProbe:
             guard let lastActivity, now >= lastActivity + Self.quietTimeout,
                 !buffer.isEmpty
@@ -133,14 +154,20 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             else { return Update() }
             let visible = outputAfterLastLineBreak(in: buffer)
             finish()
-            return Update(visibleOutput: visible, isComplete: true)
+            return Update(
+                visibleOutput: visible, isComplete: true,
+                diagnostic: .timedOut(stage: .lateProbe, late: true)
+            )
         case .installing where now >= deadline:
             let visible =
                 installationStartedLate
                 ? outputAfterLastLineBreak(in: buffer)
                 : cleanBufferedOutput()
             finish()
-            return Update(visibleOutput: visible, isComplete: true)
+            return Update(
+                visibleOutput: visible, isComplete: true,
+                diagnostic: .timedOut(stage: .installation, late: installationStartedLate)
+            )
         case .probing, .installing, .complete:
             return Update()
         }
@@ -174,13 +201,24 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         let suffix = Data(buffer[buffer.index(after: lineEnd)...])
         buffer.removeAll(keepingCapacity: false)
 
-        guard let command = installationCommand(for: shell), !(isLate && userDidWrite) else {
+        guard let command = installationCommand(for: shell) else {
             var visible = preservedOutput
             visible.append(suffix)
             finish()
             return Update(
                 visibleOutput: visible, isComplete: true, shell: detectedShell,
-                systemInfo: detectedSystemInfo
+                systemInfo: detectedSystemInfo,
+                diagnostic: .skipped(.unsupportedShell)
+            )
+        }
+        guard !(isLate && userDidWrite) else {
+            var visible = preservedOutput
+            visible.append(suffix)
+            finish()
+            return Update(
+                visibleOutput: visible, isComplete: true, shell: detectedShell,
+                systemInfo: detectedSystemInfo,
+                diagnostic: .skipped(.userInput)
             )
         }
         phase = .installing
@@ -204,7 +242,11 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             visibleOutput: visible, isComplete: true,
             integrationInstalled: true, shell: detectedShell,
             systemInfo: detectedSystemInfo,
-            homeDirectory: homeDirectory
+            homeDirectory: homeDirectory,
+            diagnostic: .installed(
+                late: installationStartedLate, homeResolved: homeDirectory != nil,
+                systemInfoAvailable: detectedSystemInfo != nil
+            )
         )
     }
 
@@ -319,7 +361,8 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             integrationInstalled: update.integrationInstalled,
             shell: update.shell, systemInfo: update.systemInfo,
             homeDirectory: update.homeDirectory,
-            homeResolutionUnavailable: update.homeResolutionUnavailable
+            homeResolutionUnavailable: update.homeResolutionUnavailable,
+            diagnostic: update.diagnostic
         )
     }
 
@@ -696,6 +739,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private let pendingWrites = SSHByteQueue(chunkSize: 32_700)
     private var ptyResize = SSHPTYResizeState()
     private var shellIntegration: RemoteShellIntegrationBootstrap?
+    private var shellIntegrationLifecycleLogger: RemoteShellIntegrationLifecycleLogger
     private var commandEventFilter: RemoteCommandEventFilter?
     private var didReportExit = false
     private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
@@ -712,6 +756,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         self.exit = exit
         self.shellIntegrationHandler = shellIntegrationHandler
         self.logger = logger
+        shellIntegrationLifecycleLogger = RemoteShellIntegrationLifecycleLogger(logger: logger)
         self.maxSessionsPolicy = maxSessionsPolicy
         sftpChannelOwner = SSHMultiplexedSFTPChannelOwner(
             queue: queue,
@@ -1021,6 +1066,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 libssh2_session_set_blocking(created, 0)
                 libssh2_keepalive_config(created, 1, 20)
                 didReportExit = false
+                shellIntegrationLifecycleLogger.begin(
+                    hostID: request.configuration.hostID,
+                    enabled: shellIntegrationEnabled
+                )
                 if shellIntegrationEnabled {
                     let bootstrap = RemoteShellIntegrationBootstrap()
                     pendingWrites.append(bootstrap.startCommand)
@@ -1391,6 +1440,9 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private func applyShellIntegrationUpdate(
         _ update: RemoteShellIntegrationBootstrap.Update
     ) {
+        if let diagnostic = update.diagnostic, let hostID {
+            shellIntegrationLifecycleLogger.record(diagnostic, hostID: hostID)
+        }
         if let command = update.command {
             pendingWrites.append(command)
         }
@@ -1439,6 +1491,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private func closeTerminalSession() {
         pendingWrites.removeAll()
         ptyResize.reset()
+        if let hostID { shellIntegrationLifecycleLogger.sessionEnded(hostID: hostID) }
         shellIntegration = nil
         commandEventFilter = nil
         hostID = nil
@@ -1460,6 +1513,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         self.connection = nil
         pendingWrites.removeAll()
         ptyResize.reset()
+        if let hostID { shellIntegrationLifecycleLogger.sessionEnded(hostID: hostID) }
         shellIntegration = nil
         commandEventFilter = nil
         hostID = nil

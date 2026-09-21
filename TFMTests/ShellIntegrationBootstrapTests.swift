@@ -4,10 +4,10 @@ import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
 import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
 
 @testable import Termind
+@testable import TermindRemoteInfrastructure
 
 @Suite
 struct ShellIntegrationBootstrapTests {
@@ -56,6 +56,10 @@ struct ShellIntegrationBootstrapTests {
 
         #expect(completed.isComplete)
         #expect(completed.homeDirectory == "/home/user")
+        #expect(
+            completed.diagnostic
+                == .installed(late: false, homeResolved: true, systemInfoAvailable: true)
+        )
         #expect(
             completed.systemInfo
                 == RemoteSystemInfo(
@@ -409,6 +413,7 @@ struct ShellIntegrationBootstrapTests {
         #expect(update.isComplete)
         #expect(update.visibleOutput == Data("prompt> ".utf8))
         #expect(update.homeResolutionUnavailable || update.isComplete)
+        #expect(update.diagnostic == .skipped(.unsupportedShell))
     }
 
     @Test
@@ -440,6 +445,7 @@ struct ShellIntegrationBootstrapTests {
 
         #expect(visible == "Welcome\r\nodd> ")
         #expect(!update.isComplete)
+        #expect(update.diagnostic == .probeDelayed)
         #expect(!visible.contains("TIMEOUT"))
         #expect(!visible.contains("syntax error"))
     }
@@ -487,6 +493,10 @@ struct ShellIntegrationBootstrapTests {
 
         #expect(completed.isComplete)
         #expect(completed.homeDirectory == "/home/user")
+        #expect(
+            completed.diagnostic
+                == .installed(late: true, homeResolved: true, systemInfoAvailable: false)
+        )
         #expect(visible == "\u{1B}]7;file://localhost/home/user\u{7}user@host$ ")
         #expect(!visible.contains("__TRMD_"))
         #expect(!visible.contains("__termind_"))
@@ -507,6 +517,7 @@ struct ShellIntegrationBootstrapTests {
 
         #expect(completed.command == nil)
         #expect(completed.isComplete)
+        #expect(completed.diagnostic == .skipped(.unsupportedShell))
         #expect(visible == "router# ")
         #expect(!visible.contains("printf"))
         #expect(!visible.contains("__TRMD_"))
@@ -528,6 +539,7 @@ struct ShellIntegrationBootstrapTests {
         let completed = bootstrap.poll(now: 3_600_000_000)
         let visible = String(decoding: try #require(completed.visibleOutput), as: UTF8.self)
         #expect(completed.isComplete)
+        #expect(completed.diagnostic == .timedOut(stage: .lateProbe, late: true))
         #expect(visible == "odd> ")
         #expect(!visible.contains("printf"))
         #expect(!visible.contains("command not found"))
@@ -554,6 +566,7 @@ struct ShellIntegrationBootstrapTests {
         let completed = bootstrap.poll(now: 6_100_000_000)
         let visible = String(decoding: try #require(completed.visibleOutput), as: UTF8.self)
         #expect(completed.isComplete)
+        #expect(completed.diagnostic == .timedOut(stage: .installation, late: true))
         #expect(visible == "user@host$ ")
         #expect(!visible.contains("__termind_"))
         #expect(!visible.contains("syntax error"))
@@ -589,6 +602,7 @@ struct ShellIntegrationBootstrapTests {
 
         #expect(completed.command == nil)
         #expect(completed.isComplete)
+        #expect(completed.diagnostic == .skipped(.userInput))
         #expect(visible == "user@host$ ls -")
         #expect(!visible.contains("__TRMD_"))
         #expect(!visible.contains("printf"))
