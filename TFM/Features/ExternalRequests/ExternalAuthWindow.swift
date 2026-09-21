@@ -302,11 +302,14 @@ private struct ExternalSecretRequestForm: View {
 
     private func submitSecret() {
         guard let question, !secret.isEmpty else { return }
-        let value = secret
+        var bytes = Data(secret.utf8)
         secret = ""
         submit(
             .answered([
-                AgentUserInputAnswer(questionID: question.id, value: .secret(value))
+                AgentUserInputAnswer(
+                    questionID: question.id,
+                    value: .secret(AgentSecret(consumingUTF8: &bytes))
+                )
             ]))
     }
 

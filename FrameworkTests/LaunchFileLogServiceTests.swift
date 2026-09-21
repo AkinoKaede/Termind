@@ -204,7 +204,7 @@ private actor MetricsLogSession: SSHConnectionProtocol {
     init(result: SSHExecResult) { self.result = result }
     func connect(using _: SSHConnectionConfiguration) async throws {}
     func execute(
-        _: String, workingDirectory _: String?, stdin _: Data?, timeout _: TimeInterval,
+        _: String, workingDirectory _: String?, stdin _: SSHCommandInput?, timeout _: TimeInterval,
         outputLimit _: Int, onOutput _: SSHExecOutputHandler?
     ) async throws -> SSHExecResult { result }
     func openSFTPChannel() async throws -> any SFTPChannelProtocol { throw SFTPError.notConnected }

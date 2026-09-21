@@ -500,7 +500,7 @@ private actor CopySSHConnection: SSHConnectionProtocol {
 
     func connect(using configuration: SSHConnectionConfiguration) async throws {}
     func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?, timeout: TimeInterval,
+        _ command: String, workingDirectory: String?, stdin: SSHCommandInput?, timeout: TimeInterval,
         outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         throw AgentToolError.invalidArguments("Unexpected exec in SFTP copy test")

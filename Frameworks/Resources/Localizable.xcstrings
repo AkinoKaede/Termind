@@ -6067,6 +6067,23 @@
         }
       }
     },
+    "Connecting to proxy" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在连接代理"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在連線代理"
+          }
+        }
+      }
+    },
     "Connecting…" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8123,15 +8140,9 @@
         }
       }
     },
-    "Destination Host (Port Forwarding)" : {
+    "Destination host" : {
       "extractionState" : "manual",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Destination Host"
-          }
-        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8146,26 +8157,15 @@
         }
       }
     },
-    "Destination Port" : {
+    "Destination Host (Port Forwarding)" : {
       "extractionState" : "manual",
       "localizations" : {
-        "zh-Hans" : {
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "目标端口"
+            "value" : "Destination Host"
           }
         },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "目標連接埠"
-          }
-        }
-      }
-    },
-    "Destination host" : {
-      "extractionState" : "manual",
-      "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8193,6 +8193,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "目標路徑"
+          }
+        }
+      }
+    },
+    "Destination Port" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目标端口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目標連接埠"
           }
         }
       }
@@ -12210,6 +12227,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "HTTP下載無法使用。"
+          }
+        }
+      }
+    },
+    "HTTP proxy authentication failed." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP代理认证失败。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "HTTP代理驗證失敗。"
           }
         }
       }
@@ -18981,33 +19015,53 @@
       }
     },
     "Proxy authentication required" : {
+      "extractionState" : "stale",
       "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "需要代理认证" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "需要代理驗證" } }
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要代理认证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "需要代理驗證"
+          }
+        }
       }
     },
     "Proxy connected" : {
+      "extractionState" : "stale",
       "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "代理已连接" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "代理已連線" } }
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "代理已连接"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "代理已連線"
+          }
+        }
       }
     },
     "Proxy for %@" : {
       "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "%@的代理" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "%@的代理" } }
-      }
-    },
-    "Connecting to proxy" : {
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在连接代理" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "正在連線代理" } }
-      }
-    },
-    "Waiting for proxy authentication" : {
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "正在等待代理认证" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "正在等待代理驗證" } }
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@的代理"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@的代理"
+          }
+        }
       }
     },
     "Proxy Hostname" : {
@@ -20100,23 +20154,6 @@
         }
       }
     },
-    "Remote Port" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "远程端口"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "遠端連接埠"
-          }
-        }
-      }
-    },
     "Remote path" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -20146,6 +20183,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "遠端路徑"
+          }
+        }
+      }
+    },
+    "Remote Port" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "远程端口"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "遠端連接埠"
           }
         }
       }
@@ -26036,24 +26090,6 @@
         }
       }
     },
-    "HTTP proxy authentication failed." : {
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "HTTP代理认证失败。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "HTTP代理驗證失敗。" } }
-      }
-    },
-    "The selected Identity cannot be updated on this device." : {
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "无法在此设备上更新所选身份。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "無法在此裝置上更新所選身分。" } }
-      }
-    },
-    "The SOCKS5 proxy rejected authentication." : {
-      "localizations" : {
-        "zh-Hans" : { "stringUnit" : { "state" : "translated", "value" : "SOCKS5代理拒绝了认证。" } },
-        "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "SOCKS5代理拒絕了驗證。" } }
-      }
-    },
     "The proxy configuration is incomplete." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26338,6 +26374,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選取的的主機沒有登入使用者名稱。"
+          }
+        }
+      }
+    },
+    "The selected Identity cannot be updated on this device." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法在此设备上更新所选身份。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法在此裝置上更新所選身分。"
           }
         }
       }
@@ -26656,6 +26709,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "SFTP複製來源在傳輸期間變大。"
+          }
+        }
+      }
+    },
+    "The SOCKS5 proxy rejected authentication." : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SOCKS5代理拒绝了认证。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "SOCKS5代理拒絕了驗證。"
           }
         }
       }
@@ -29797,6 +29867,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "等待確認"
+          }
+        }
+      }
+    },
+    "Waiting for proxy authentication" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待代理认证"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "正在等待代理驗證"
           }
         }
       }

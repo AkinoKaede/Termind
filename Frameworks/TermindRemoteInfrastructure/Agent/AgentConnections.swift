@@ -1284,7 +1284,7 @@ public actor AgentConnectionPool {
     /// the one-connection policy and is surfaced; anything that failed after the
     /// command started is also surfaced because replay could duplicate effects.
     public func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?,
+        _ command: String, workingDirectory: String?, stdin: SSHCommandInput?,
         timeout: TimeInterval, outputLimit: Int, hostID: UUID,
         configuration override: RequestResolving? = nil,
         onOutput: SSHExecOutputHandler? = nil

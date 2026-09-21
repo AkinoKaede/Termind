@@ -188,7 +188,9 @@ struct MCPServerToolsTests {
         }
         authentication.respondSecret(
             .answered([
-                AgentUserInputAnswer(questionID: "secret", value: .secret("TOP-SECRET"))
+                AgentUserInputAnswer(
+                    questionID: "secret", value: .secret(agentSecret("TOP-SECRET"))
+                )
             ]))
 
         let result = try await call.value
@@ -206,7 +208,7 @@ struct MCPServerToolsTests {
                 purpose: "sudo password"
             )
         )
-        #expect(consumed == "TOP-SECRET")
+        #expect(try consumed.withUnsafeBytes { Array($0) } == Array("TOP-SECRET".utf8))
         await #expect(throws: SecretBrokerError.notFound) {
             _ = try await broker.consume(
                 handle,
@@ -259,8 +261,8 @@ struct MCPServerToolsTests {
         let server = makeMCPServerTools(externalAuthentication: authentication)
         let broker = SecretBroker()
         let runID = UUID()
-        _ = await broker.issue(
-            "secret",
+        _ = try await broker.issue(
+            agentSecret("secret"),
             binding: SecretBinding(
                 runID: runID, toolName: "ssh_exec", hostID: UUID(), purpose: "test"
             )

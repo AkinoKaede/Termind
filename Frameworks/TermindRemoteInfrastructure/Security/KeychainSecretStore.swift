@@ -30,8 +30,6 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
     private static let passwordService = "com.akinokaede.termind.passwords.v1"
     private static let softwareKeyService = "com.akinokaede.termind.ssh-software-keys.v1"
     private static let enclaveService = "com.akinokaede.termind.secure-enclave-handles.v1"
-    private static let softwareKeyMagic = Data("termind-ssh-key\0".utf8)
-    private static let softwareKeyFormatVersion: UInt8 = 0x01
 
     private let accessGroup: String
 
@@ -92,14 +90,14 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
     {
         try validate(account, prefix: "termind.key.")
         guard
-            var data = try data(
+            let data = try data(
                 for: account, service: service(for: storage),
                 synchronizable: storage == .iCloud
             )
         else { return nil }
         switch storage {
         case .thisDevice, .iCloud:
-            return .software(try Self.decodeSoftwareKey(from: &data))
+            return .software(try JSONDecoder().decode(SSHPrivateKeySecret.self, from: data))
         case .secureEnclave:
             guard !data.isEmpty else { throw KeychainSecretError.unexpectedValue }
             return .secureEnclave(SecureEnclaveKeyCredential(dataRepresentation: data))
@@ -127,7 +125,7 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         defer { SecretMemory.clear(&data) }
         switch storage {
         case .thisDevice, .iCloud:
-            return .software(try Self.decodeSoftwareKeyRuntimeSecret(from: &data))
+            return .software(try Self.decodePrivateKeySecret(from: &data))
         case .secureEnclave:
             guard !data.isEmpty else { throw KeychainSecretError.unexpectedValue }
             return .secureEnclave(SecureEnclaveKeyCredential(dataRepresentation: data))
@@ -141,7 +139,7 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         var data: Data?
         switch (value, storage) {
         case (.software(let secret), .thisDevice), (.software(let secret), .iCloud):
-            data = Self.encodeSoftwareKey(secret)
+            data = try JSONEncoder().encode(secret)
         case (.secureEnclave(let credential), .secureEnclave):
             data = credential.dataRepresentation
         case (nil, _):
@@ -161,50 +159,11 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
         )
     }
 
-    static func encodeSoftwareKey(_ secret: SSHPrivateKeySecret) -> Data {
-        var data = Data()
-        data.reserveCapacity(Self.softwareKeyMagic.count + 1 + secret.privateKey.utf8.count)
-        data.append(Self.softwareKeyMagic)
-        data.append(Self.softwareKeyFormatVersion)
-        data.append(contentsOf: secret.privateKey.utf8)
-        return data
-    }
-
-    static func decodeSoftwareKey(from data: inout Data) throws -> SSHPrivateKeySecret {
-        defer { SecretMemory.clear(&data) }
-        if let payload = try currentSoftwareKeyPayload(in: data) {
-            guard let privateKey = String(data: data[payload], encoding: .utf8) else {
-                throw KeychainSecretError.unexpectedValue
-            }
-            return SSHPrivateKeySecret(privateKey: privateKey)
-        }
-        do {
-            return try JSONDecoder().decode(SSHPrivateKeySecret.self, from: data)
-        } catch {
-            throw KeychainSecretError.unexpectedValue
-        }
-    }
-
-    /// Decodes the current envelope directly into one-shot ownership. The
-    /// legacy JSON path remains strict and never materializes the private key as
-    /// an immutable Swift `String`.
-    static func decodeSoftwareKeyRuntimeSecret(from data: inout Data) throws -> SSHSecret {
-        defer { SecretMemory.clear(&data) }
-        if let payload = try currentSoftwareKeyPayload(in: data) {
-            guard isValidUTF8(data, in: payload) else {
-                throw KeychainSecretError.unexpectedValue
-            }
-            return SSHSecret(consumingUTF8: &data, range: payload)
-        }
-        return try decodeLegacySoftwareKeyRuntimeSecret(from: &data)
-    }
-
     /// Strictly decodes the legacy single-field JSON envelope without creating
     /// an immutable Swift `String` containing the private key. Corrupted shapes
     /// fail closed instead of being searched for a matching field substring.
-    private static func decodeLegacySoftwareKeyRuntimeSecret(from data: inout Data) throws
-        -> SSHSecret
-    {
+    static func decodePrivateKeySecret(from data: inout Data) throws -> SSHSecret {
+        defer { SecretMemory.clear(&data) }
         var index = data.startIndex
         func skipWhitespace() {
             while index < data.endIndex, [0x20, 0x09, 0x0A, 0x0D].contains(data[index]) {
@@ -239,9 +198,6 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
                 try consume(0x7D)
                 skipWhitespace()
                 guard index == data.endIndex else {
-                    throw KeychainSecretError.unexpectedValue
-                }
-                guard isValidUTF8(result, in: result.startIndex..<result.endIndex) else {
                     throw KeychainSecretError.unexpectedValue
                 }
                 return SSHSecret(consumingUTF8: &result)
@@ -279,74 +235,6 @@ public nonisolated struct KeychainSecretStore: SecretStoring, Sendable {
             }
         }
         throw KeychainSecretError.unexpectedValue
-    }
-
-    /// Returns `nil` only for a legacy value. Once any complete or truncated
-    /// current-format magic is present, malformed data fails closed.
-    private static func currentSoftwareKeyPayload(in data: Data) throws -> Range<Data.Index>? {
-        if data.starts(with: Self.softwareKeyMagic) {
-            let versionIndex = data.index(data.startIndex, offsetBy: Self.softwareKeyMagic.count)
-            guard versionIndex < data.endIndex else { throw KeychainSecretError.unexpectedValue }
-            guard data[versionIndex] == Self.softwareKeyFormatVersion else {
-                throw KeychainSecretError.unexpectedValue
-            }
-            let payloadStart = data.index(after: versionIndex)
-            guard payloadStart < data.endIndex else { throw KeychainSecretError.unexpectedValue }
-            return payloadStart..<data.endIndex
-        }
-        if !data.isEmpty && Self.softwareKeyMagic.starts(with: data) {
-            throw KeychainSecretError.unexpectedValue
-        }
-        return nil
-    }
-
-    private static func isValidUTF8(_ data: Data, in range: Range<Data.Index>) -> Bool {
-        var index = range.lowerBound
-        func continuation() -> UInt8? {
-            guard index < range.upperBound else { return nil }
-            let byte = data[index]
-            guard byte >= 0x80 && byte <= 0xBF else { return nil }
-            index = data.index(after: index)
-            return byte
-        }
-
-        while index < range.upperBound {
-            let first = data[index]
-            index = data.index(after: index)
-            switch first {
-            case 0x00...0x7F:
-                continue
-            case 0xC2...0xDF:
-                guard continuation() != nil else { return false }
-            case 0xE0:
-                guard let second = continuation(), second >= 0xA0, continuation() != nil else {
-                    return false
-                }
-            case 0xE1...0xEC, 0xEE...0xEF:
-                guard continuation() != nil, continuation() != nil else { return false }
-            case 0xED:
-                guard let second = continuation(), second <= 0x9F, continuation() != nil else {
-                    return false
-                }
-            case 0xF0:
-                guard
-                    let second = continuation(), second >= 0x90,
-                    continuation() != nil, continuation() != nil
-                else { return false }
-            case 0xF1...0xF3:
-                guard
-                    continuation() != nil, continuation() != nil, continuation() != nil
-                else { return false }
-            case 0xF4:
-                guard
-                    let second = continuation(), second <= 0x8F,
-                    continuation() != nil, continuation() != nil
-                else { return false }
-            default:
-                return false
-            }
-        }
-        return true
     }
 
     private static func hex(_ byte: UInt8) -> UInt8? {

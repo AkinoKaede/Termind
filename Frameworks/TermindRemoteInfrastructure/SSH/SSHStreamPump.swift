@@ -1,6 +1,7 @@
 import CSSH2
 import Darwin
 import Foundation
+import TermindApplication
 
 /// Capacity and scheduling are independent: a larger receive allowance never
 /// grants one flow a larger turn or reserves additional queue memory.
@@ -38,24 +39,31 @@ nonisolated struct SSHForwardingTuning: Sendable {
 /// new socket data arrives while an earlier write is blocked.
 nonisolated final class SSHByteQueue {
     let chunkSize: Int
+    let zeroizesConsumedBytes: Bool
 
-    init(chunkSize: Int = 32 * 1024) {
+    init(chunkSize: Int = 32 * 1024, zeroizesConsumedBytes: Bool = false) {
         precondition(chunkSize > 0)
         self.chunkSize = chunkSize
+        self.zeroizesConsumedBytes = zeroizesConsumedBytes
     }
 
     private final class Chunk {
         let bytes: UnsafeMutableRawPointer
         let size: Int
+        let zeroizesOnRelease: Bool
         var offset = 0
 
-        init(_ source: UnsafeRawBufferPointer) {
+        init(_ source: UnsafeRawBufferPointer, zeroizesOnRelease: Bool) {
             size = source.count
+            self.zeroizesOnRelease = zeroizesOnRelease
             bytes = .allocate(byteCount: size, alignment: 1)
             bytes.copyMemory(from: source.baseAddress!, byteCount: size)
         }
 
-        deinit { bytes.deallocate() }
+        deinit {
+            if zeroizesOnRelease { SecretMemory.clear(bytes, count: size) }
+            bytes.deallocate()
+        }
     }
 
     private var chunks: [Chunk?] = []
@@ -70,7 +78,12 @@ nonisolated final class SSHByteQueue {
         var offset = 0
         while offset < bytes.count {
             let end = min(offset + chunkSize, bytes.count)
-            chunks.append(Chunk(UnsafeRawBufferPointer(rebasing: bytes[offset..<end])))
+            chunks.append(
+                Chunk(
+                    UnsafeRawBufferPointer(rebasing: bytes[offset..<end]),
+                    zeroizesOnRelease: zeroizesConsumedBytes
+                )
+            )
             offset = end
         }
         count += bytes.count
@@ -124,6 +137,9 @@ nonisolated final class SSHByteQueue {
         while remaining > 0 {
             let chunk = chunks[head]!
             let consumed = min(remaining, chunk.size - chunk.offset)
+            if zeroizesConsumedBytes {
+                SecretMemory.clear(chunk.bytes + chunk.offset, count: consumed)
+            }
             chunk.offset += consumed
             remaining -= consumed
             if chunk.offset == chunk.size {

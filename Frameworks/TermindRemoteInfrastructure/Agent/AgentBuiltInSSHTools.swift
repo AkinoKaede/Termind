@@ -353,7 +353,9 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
         let arguments = try Arguments(invocation)
         let hostID = try arguments.uuid("host_id")
         let command = try arguments.string("command")
-        var input = arguments.optionalString("stdin").map { Data($0.utf8) }
+        var input = arguments.optionalString("stdin").map {
+            SSHCommandInput.plain(Data($0.utf8))
+        }
         if let rawHandle = arguments.optionalString("secret_handle") {
             guard let handleID = UUID(uuidString: rawHandle) else {
                 throw AgentToolError.invalidArguments(
@@ -363,7 +365,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                 )
             }
             let purpose = try arguments.string("stdin_purpose")
-            let secret: String
+            let secret: AgentSecret
             do {
                 secret = try await context.secretBroker.consume(
                     SecretHandle(id: handleID),
@@ -383,7 +385,7 @@ nonisolated public struct SSHExecTool: AgentToolDefinition, AgentToolSchemaBuild
                         + "Call request_user_secret again with matching values."
                 )
             }
-            input = Data(secret.utf8)
+            input = .secret(secret)
         }
         // Live output, so a command that takes a minute is a card
         // filling in rather than a spinner. Reported, never returned:

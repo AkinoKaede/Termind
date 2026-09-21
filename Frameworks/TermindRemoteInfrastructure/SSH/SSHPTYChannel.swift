@@ -927,7 +927,7 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 #"umask 077; dir="$HOME/.ssh"; file="$dir/authorized_keys"; mkdir -p "$dir" && touch "$file" && chmod 700 "$dir" && chmod 600 "$file" && IFS= read -r comment && IFS= read -r key && { LC_ALL=C grep -Fqx -- "$key" "$file" || printf '%s\n%s\n' "$comment" "$key" >> "$file"; }"#
             for input in inputs {
                 let result = try await connection.execute(
-                    command, workingDirectory: nil, stdin: input, timeout: 20,
+                    command, workingDirectory: nil, stdin: .plain(input), timeout: 20,
                     outputLimit: 64 * 1024, onOutput: nil)
                 guard result.exitCode == 0 else {
                     let detail = result.stderr.trimmingCharacters(in: .whitespacesAndNewlines)

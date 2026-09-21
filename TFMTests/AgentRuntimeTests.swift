@@ -943,7 +943,7 @@ struct AgentRuntimeTests {
         let binding = SecretBinding(
             runID: UUID(), toolName: "ssh_exec", hostID: UUID(), purpose: "sudo"
         )
-        let handle = await broker.issue("password", binding: binding)
+        let handle = try await broker.issue(agentSecret("password"), binding: binding)
 
         await #expect(throws: SecretBrokerError.bindingMismatch) {
             try await broker.consume(
@@ -954,7 +954,8 @@ struct AgentRuntimeTests {
                 )
             )
         }
-        #expect(try await broker.consume(handle, matching: binding) == "password")
+        let consumed = try await broker.consume(handle, matching: binding)
+        #expect(try consumed.withUnsafeBytes { Array($0) } == Array("password".utf8))
         await #expect(throws: SecretBrokerError.notFound) {
             try await broker.consume(handle, matching: binding)
         }

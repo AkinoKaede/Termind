@@ -135,7 +135,7 @@ private actor FramedMetricsSession: SSHConnectionProtocol {
     func connect(using _: SSHConnectionConfiguration) async throws {}
 
     func execute(
-        _ command: String, workingDirectory _: String?, stdin _: Data?, timeout _: TimeInterval,
+        _ command: String, workingDirectory _: String?, stdin _: SSHCommandInput?, timeout _: TimeInterval,
         outputLimit _: Int, onOutput _: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         executedCommands.append(command)

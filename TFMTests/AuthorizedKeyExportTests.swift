@@ -37,65 +37,25 @@ struct AuthorizedKeyExportTests {
     }
 
     @Test
-    func softwareKeyEnvelopeRoundTripsWithoutKeepingTheSourceBuffer() throws {
-        let privateKey = "-----BEGIN TEST-----\nsecret-钥匙\n-----END TEST-----"
-        let stored = SSHPrivateKeySecret(privateKey: privateKey)
-        var encoded = KeychainSecretStore.encodeSoftwareKey(stored)
-
-        #expect(encoded.starts(with: Data("termind-ssh-key\0".utf8) + Data([0x01])))
-        let decoded = try KeychainSecretStore.decodeSoftwareKey(from: &encoded)
-        #expect(encoded.isEmpty)
-        #expect(decoded == stored)
-
-        var runtimeEncoded = KeychainSecretStore.encodeSoftwareKey(stored)
-        let runtime = try KeychainSecretStore.decodeSoftwareKeyRuntimeSecret(from: &runtimeEncoded)
-        #expect(runtimeEncoded.isEmpty)
-        #expect(runtime.matches(privateKey))
-    }
-
-    @Test
     func legacyPrivateKeyEnvelopeRequiresACompleteJSONObject() throws {
         var encoded = try JSONEncoder().encode(
             SSHPrivateKeySecret(privateKey: "-----BEGIN TEST-----\nsecret\n-----END TEST-----")
         )
-        let secret = try KeychainSecretStore.decodeSoftwareKeyRuntimeSecret(from: &encoded)
+        let secret = try KeychainSecretStore.decodePrivateKeySecret(from: &encoded)
         #expect(encoded.isEmpty)
         #expect(secret.matches("-----BEGIN TEST-----\nsecret\n-----END TEST-----"))
 
         #expect(throws: KeychainSecretError.self) {
             var data = Data(#"{"privateKey":"secret""#.utf8)
-            _ = try KeychainSecretStore.decodeSoftwareKeyRuntimeSecret(
+            _ = try KeychainSecretStore.decodePrivateKeySecret(
                 from: &data
             )
         }
         #expect(throws: KeychainSecretError.self) {
             var data = Data(#"{"privateKey":"secret"} trailing"#.utf8)
-            _ = try KeychainSecretStore.decodeSoftwareKeyRuntimeSecret(
+            _ = try KeychainSecretStore.decodePrivateKeySecret(
                 from: &data
             )
-        }
-    }
-
-    @Test
-    func currentSoftwareKeyEnvelopeRejectsMalformedValuesWithoutJSONFallback() {
-        let magic = Data("termind-ssh-key\0".utf8)
-        let malformed: [Data] = [
-            magic.prefix(5),
-            magic,
-            magic + Data([0x02]) + Data(#"{"privateKey":"fallback"}"#.utf8),
-            magic + Data([0x01]),
-            magic + Data([0x01, 0xC0, 0x80]),
-        ].map(Data.init)
-
-        for value in malformed {
-            #expect(throws: KeychainSecretError.self) {
-                var data = value
-                _ = try KeychainSecretStore.decodeSoftwareKey(from: &data)
-            }
-            #expect(throws: KeychainSecretError.self) {
-                var data = value
-                _ = try KeychainSecretStore.decodeSoftwareKeyRuntimeSecret(from: &data)
-            }
         }
     }
 
@@ -150,11 +110,21 @@ private actor AuthorizedKeyConnection: SSHConnectionProtocol {
     }
 
     func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?,
+        _ command: String, workingDirectory: String?, stdin: SSHCommandInput?,
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         executions += 1
-        inputs.append(stdin.map { String(decoding: $0, as: UTF8.self) } ?? "")
+        let input: String
+        switch stdin {
+        case .plain(let bytes):
+            input = String(decoding: bytes, as: UTF8.self)
+        case .secret(let secret):
+            defer { secret.clear() }
+            input = try secret.withUnsafeBytes { String(decoding: $0, as: UTF8.self) }
+        case nil:
+            input = ""
+        }
+        inputs.append(input)
         return SSHExecResult(
             stdout: "", stderr: "", exitCode: 0,
             stdoutTruncated: false, stderrTruncated: false

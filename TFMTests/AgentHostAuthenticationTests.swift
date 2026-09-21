@@ -1401,7 +1401,7 @@ private actor AuthenticationSSHConnection: SSHConnectionProtocol {
 
     func connect(using configuration: SSHConnectionConfiguration) async throws {}
     func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?,
+        _ command: String, workingDirectory: String?, stdin: SSHCommandInput?,
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         SSHExecResult(

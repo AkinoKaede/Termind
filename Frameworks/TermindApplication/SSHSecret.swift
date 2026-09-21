@@ -44,17 +44,8 @@ public nonisolated final class SSHSecret: @unchecked Sendable {
     /// Copies a freshly read UTF-8 buffer into wipeable ownership, then clears
     /// the source buffer before returning. The final allocation includes a NUL
     /// terminator without asking `Data` to grow or reallocate its plaintext.
-    public convenience init(consumingUTF8 bytes: inout Data) {
-        self.init(consumingUTF8: &bytes, range: bytes.startIndex..<bytes.endIndex)
-    }
-
-    /// Copies only `range` into wipeable ownership, then clears the complete
-    /// source buffer. This lets versioned secret envelopes discard their header
-    /// without allocating an intermediate plaintext `Data` value.
-    public init(consumingUTF8 bytes: inout Data, range: Range<Data.Index>) {
-        precondition(range.lowerBound >= bytes.startIndex && range.upperBound <= bytes.endIndex)
-        let offset = bytes.distance(from: bytes.startIndex, to: range.lowerBound)
-        let count = bytes.distance(from: range.lowerBound, to: range.upperBound)
+    public init(consumingUTF8 bytes: inout Data) {
+        let count = bytes.count
         let pointer = UnsafeMutableRawPointer.allocate(
             byteCount: count + 1,
             alignment: MemoryLayout<UInt8>.alignment
@@ -62,7 +53,7 @@ public nonisolated final class SSHSecret: @unchecked Sendable {
         if count > 0 {
             bytes.withUnsafeBytes { raw in
                 guard let source = raw.baseAddress else { return }
-                pointer.copyMemory(from: source.advanced(by: offset), byteCount: count)
+                pointer.copyMemory(from: source, byteCount: count)
             }
         }
         pointer.storeBytes(of: UInt8(0), toByteOffset: count, as: UInt8.self)

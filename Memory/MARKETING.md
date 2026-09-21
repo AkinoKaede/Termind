@@ -54,7 +54,7 @@ TERMIND_MARKETING_RUNTIME=com.apple.CoreSimulator.SimRuntime.iOS-27-0 \
 ```
 
 Recapture affected scenes in **every locale**, regenerate matching frames/boards only. Vault/Metrics/Assistant map to mobile
-boards 04–06; SSH/SFTP to 02–03. First boards additionally depend on iPhone SSH and iPad SFTP, so those source changes affect
+boards 04–06; SSH/SFTP to 02–03. First boards additionally depend on iPhone Assistant and iPad SFTP, so those source changes affect
 all nine first boards.
 
 ### Mac
@@ -112,7 +112,7 @@ iPad 13-inch 2752×2064.
 
 | Board | iPhone / iPad | Mac |
 | --- | --- | --- |
-| 01 | Mac Workspace + iPhone SSH + iPad SFTP | same |
+| 01 | Mac Workspace + iPhone Assistant + iPad SFTP | same |
 | 02 | SSH | Workspace |
 | 03 | SFTP | Metrics |
 | 04 | Metrics | Assistant |

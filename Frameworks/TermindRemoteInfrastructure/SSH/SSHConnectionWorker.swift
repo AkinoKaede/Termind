@@ -37,7 +37,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         let onOutput: SSHExecOutputHandler?
         let continuation: CheckedContinuation<SSHExecResult, any Error>
         let channelLease: SSHChannelLease
-        let input = SSHByteQueue(chunkSize: 32_700)
+        let input = SSHByteQueue(chunkSize: 32_700, zeroizesConsumedBytes: true)
         var phase = Phase.opening
         var execChannel: OpaquePointer?
         var sentEOF = false
@@ -52,11 +52,11 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
         var completed = false
 
         init(
-            command: String, workingDirectory: String?, stdin: Data?, timeout: TimeInterval,
+            command: String, workingDirectory: String?, stdin: SSHCommandInput?, timeout: TimeInterval,
             outputLimit: Int, cancellation: TransferCancellationToken,
             onOutput: SSHExecOutputHandler?, channelLease: SSHChannelLease,
             continuation: CheckedContinuation<SSHExecResult, any Error>
-        ) {
+        ) throws {
             let effective: String
             if let cwd = workingDirectory?.trimmingCharacters(in: .whitespacesAndNewlines), !cwd.isEmpty {
                 effective = "cd -- \(Self.shellQuote(cwd)) && /bin/sh -lc \(Self.shellQuote(command))"
@@ -70,9 +70,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             self.onOutput = onOutput
             self.channelLease = channelLease
             self.continuation = continuation
-            var input = stdin ?? Data()
-            if !input.isEmpty, input.last != 0x0A { input.append(0x0A) }
-            self.input.append(input)
+            try stdin?.append(to: input)
             sentEOF = input.isEmpty
         }
 
@@ -178,7 +176,7 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
     }
 
     func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?, timeout: TimeInterval,
+        _ command: String, workingDirectory: String?, stdin: SSHCommandInput?, timeout: TimeInterval,
         outputLimit: Int, cancellation: TransferCancellationToken, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         guard !command.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -206,10 +204,17 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
                             throwing: SSHCommandExecutionError.connectionUnavailable(TermindSSHError.disconnected))
                         return
                     }
-                    let context = SSHExecChannel(
-                        command: command, workingDirectory: workingDirectory, stdin: stdin,
-                        timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
-                        onOutput: onOutput, channelLease: channelLease, continuation: continuation)
+                    let context: SSHExecChannel
+                    do {
+                        context = try SSHExecChannel(
+                            command: command, workingDirectory: workingDirectory, stdin: stdin,
+                            timeout: timeout, outputLimit: outputLimit, cancellation: cancellation,
+                            onOutput: onOutput, channelLease: channelLease, continuation: continuation)
+                    } catch {
+                        channelLease.release()
+                        continuation.resume(throwing: error)
+                        return
+                    }
                     commands[context.id] = context
                     pendingOpens.insert(context.id)
                     schedulePump()

@@ -242,15 +242,11 @@ struct ExternalAuthCoordinatorTests {
             return false
         }
 
-        coordinator.respondSecret(
-            .answered([
-                AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
-            ]))
-        #expect(
-            await task.value
-                == .answered([
-                    AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
-                ]))
+        let response = AgentUserInputResponse.answered([
+            AgentUserInputAnswer(questionID: "secret", value: .secret(agentSecret("value")))
+        ])
+        coordinator.respondSecret(response)
+        #expect(await task.value == response)
 
         let ordinary = AgentUserInputRequest(
             questions: [AgentUserQuestion(id: "text", prompt: "Name", kind: .text)]
@@ -338,7 +334,9 @@ struct ExternalAuthCoordinatorTests {
         try await waitUntil { coordinator.current?.id == request.id }
         coordinator.respondSecret(
             .answered([
-                AgentUserInputAnswer(questionID: "secret", value: .secret("value"))
+                AgentUserInputAnswer(
+                    questionID: "secret", value: .secret(agentSecret("value"))
+                )
             ]))
         guard case .answered = await secret.value else {
             Issue.record("expected the secret request to be answered")

@@ -2271,8 +2271,11 @@ public final class ConversationModel: Identifiable {
             let draft = userInputDraft(for: question.id)
             switch question.kind {
             case .secret:
+                var bytes = Data(secretInputDraft.utf8)
+                secretInputDraft = ""
                 return AgentUserInputAnswer(
-                    questionID: question.id, value: .secret(secretInputDraft)
+                    questionID: question.id,
+                    value: .secret(AgentSecret(consumingUTF8: &bytes))
                 )
             case .text:
                 return AgentUserInputAnswer(questionID: question.id, value: .text(draft.text))

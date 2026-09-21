@@ -165,7 +165,8 @@ public actor SSHMetricsSampler: MetricsSampling {
         let transportLimit = outputLimit.addingReportingOverflow(Self.framingAllowance)
         let raw = try await adapter.withConnection { connection in
             try await connection.execute(
-                framedCommand, workingDirectory: workingDirectory, stdin: stdin,
+                framedCommand, workingDirectory: workingDirectory,
+                stdin: stdin.map(SSHCommandInput.plain),
                 timeout: timeout, outputLimit: transportLimit.overflow ? outputLimit : transportLimit.partialValue,
                 onOutput: onOutput)
         }

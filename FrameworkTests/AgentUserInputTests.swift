@@ -720,7 +720,7 @@ struct AgentUserInputTests {
     }
 
     @Test
-    func aSecretAnswersThroughItsOwnDraftAndNotTheSharedOne() async {
+    func aSecretAnswersThroughItsOwnDraftAndNotTheSharedOne() async throws {
         let conversation = ConversationModel()
         let pending = AgentUserInputRequest(
             questions: [AgentUserQuestion(id: "secret", prompt: "Sudo password?", kind: .secret)]
@@ -736,12 +736,13 @@ struct AgentUserInputTests {
         #expect(conversation.canSubmitUserInput)
         conversation.submitUserInput()
 
-        #expect(
-            await answering.value
-                == .answered([
-                    AgentUserInputAnswer(questionID: "secret", value: .secret("hunter2"))
-                ])
-        )
+        guard case .answered(let answers) = await answering.value,
+            case .secret(let secret)? = answers.first?.value
+        else {
+            Issue.record("Expected one secret answer")
+            return
+        }
+        #expect(try secret.withUnsafeBytes { Array($0) } == Array("hunter2".utf8))
         // Never left behind in the plain drafts, which are what the transcript
         // and the next question read from.
         #expect(conversation.userInputDraft(for: "secret").text.isEmpty)
@@ -805,7 +806,7 @@ struct AgentUserInputTests {
     func aSecretIsNeverReportedBackToTheModel() {
         let rows = RequestUserInputTool.reported(
             [AgentUserQuestion(id: "secret", prompt: "Password?", kind: .secret)],
-            [AgentUserInputAnswer(questionID: "secret", value: .secret("hunter2"))]
+            [AgentUserInputAnswer(questionID: "secret", value: .secret(agentSecret("hunter2")))]
         )
         #expect(field(rows[0], "answer") == .null)
         #expect(field(rows[0], "custom_text") == .null)
@@ -815,6 +816,11 @@ struct AgentUserInputTests {
 
     private func field(_ row: AgentJSONValue, _ key: String) -> AgentJSONValue? {
         row.objectValue?[key]
+    }
+
+    private func agentSecret(_ value: String) -> AgentSecret {
+        var bytes = Data(value.utf8)
+        return AgentSecret(consumingUTF8: &bytes)
     }
 
     private func argumentsFor(_ toolName: String, timeout: Int) -> AgentJSONValue {

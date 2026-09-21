@@ -1,3 +1,4 @@
+import AgentKit
 import CSSH2
 import Darwin
 import Foundation
@@ -7,6 +8,27 @@ import Testing
 
 @Suite
 struct SSHForwardingPumpTests {
+    @Test
+    func secretCommandInputMovesIntoTheZeroizingQueueAndAddsANewline() throws {
+        var bytes = Data("sudo-password".utf8)
+        let secret = AgentSecret(consumingUTF8: &bytes)
+        let queue = SSHByteQueue(chunkSize: 4, zeroizesConsumedBytes: true)
+
+        try SSHCommandInput.secret(secret).append(to: queue)
+
+        #expect(secret.isConsumed)
+        #expect(bytes.isEmpty)
+        var queued: [UInt8] = []
+        while !queue.isEmpty {
+            let count = queue.withFirstBytes { bytes -> Int in
+                queued.append(contentsOf: bytes)
+                return bytes.count
+            }
+            queue.consume(count)
+        }
+        #expect(queued == Array("sudo-password\n".utf8))
+    }
+
     @Test func blockedWriteKeepsItsPointerLengthAndBytesWhileMoreDataArrives() {
         let queue = SSHByteQueue()
         queue.append(Data(repeating: 0x31, count: 100))

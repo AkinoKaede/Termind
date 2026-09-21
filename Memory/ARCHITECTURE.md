@@ -103,9 +103,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   leaving retry state; retry/session/Agent/Metrics/transfer state retains only reentry flags and non-secret Identity/Key
   provenance. Saved material is reread from Keychain for another physical connection; temporary Passwords and every
   Passphrase must be entered again. UI authentication fields clear synchronously on submission. Availability checks query
-  Keychain metadata without reading secret data. New software Keys use a magic- and version-prefixed UTF-8 envelope that
-  moves its payload directly into one-shot ownership; the legacy JSON envelope remains read-only, is parsed strictly and
-  fails closed.
+  Keychain metadata without reading secret data; the legacy software-Key JSON envelope is parsed strictly and fails closed.
 - Saved iCloud Passwords and software Keys cannot be moved to device-only storage: editors disable that destination and
   application writes reject it before touching Keychain. New credentials may start device-only, and device-only credentials
   may move to iCloud.
@@ -331,6 +329,10 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
   SFTP. Standalone Assistant can discover Hosts without sidebar attachment; ask only for ambiguity. App auth handles SSH prerequisites;
   `request_user_secret` is for command secrets. Suggestions create user-operated cards, never execute. Deterministic provider schemas/cache
   keys; cached tokens never double-count usage.
+- `request_user_secret` converts the UI's unavoidable transient `String` into AgentKit-owned `AgentSecret` memory at submission. Its broker
+  transfers one-shot ownership without plaintext `String` copies; `ssh_exec` copies borrowed bytes directly into a zeroizing stdin queue
+  that wipes sent prefixes and all remaining bytes on teardown. AgentKit and Termind deliberately keep separate `SecretMemory`
+  implementations so neither package owns the other's security boundary.
 - Concurrent batches require every call parallel; preflight may tighten (`ssh_exec` proven-safe only, destructive MCP sequential). Answers stay
   model-ordered, including refusals/cancellation. Questions/approvals queue singly; hooks cannot remove structural authorization. Command
   classification unwraps bounded known syntax; unknown/complex/unsupported input fails closed as state-changing.

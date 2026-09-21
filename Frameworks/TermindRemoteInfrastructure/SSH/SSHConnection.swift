@@ -1,3 +1,4 @@
+import AgentKit
 import Foundation
 import Logging
 import TermindApplication
@@ -23,6 +24,27 @@ public nonisolated struct SSHExecResult: Hashable, Sendable {
     }
 }
 
+public nonisolated enum SSHCommandInput: Sendable {
+    case plain(Data)
+    case secret(AgentSecret)
+
+    func append(to queue: SSHByteQueue) throws {
+        switch self {
+        case .plain(var bytes):
+            if !bytes.isEmpty, bytes.last != 0x0A { bytes.append(0x0A) }
+            queue.append(bytes)
+        case .secret(let secret):
+            defer { secret.clear() }
+            try secret.withUnsafeBytes { bytes in
+                queue.append(bytes)
+                if !bytes.isEmpty, bytes.last != 0x0A {
+                    queue.append(contentsOf: [0x0A])
+                }
+            }
+        }
+    }
+}
+
 /// The one failure that is safe to retry on a replacement connection. It is
 /// emitted only before the remote process has started.
 public nonisolated enum SSHCommandExecutionError: LocalizedError, Sendable {
@@ -44,7 +66,7 @@ public nonisolated protocol SSHConnectionProtocol: AnyObject, Sendable {
     func connect(using configuration: SSHConnectionConfiguration) async throws
     func connect(using request: SSHConnectionRequest) async throws
     func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?,
+        _ command: String, workingDirectory: String?, stdin: SSHCommandInput?,
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult
     func openSFTPChannel() async throws -> any SFTPChannelProtocol
@@ -94,7 +116,7 @@ public actor SSHConnection: SSHConnectionProtocol {
     }
 
     public func execute(
-        _ command: String, workingDirectory: String?, stdin: Data?,
+        _ command: String, workingDirectory: String?, stdin: SSHCommandInput?,
         timeout: TimeInterval, outputLimit: Int, onOutput: SSHExecOutputHandler?
     ) async throws -> SSHExecResult {
         let cancellation = TransferCancellationToken()
