@@ -231,7 +231,6 @@ struct MobileMCPEditor: View {
                 if !model.draft.url.isEmpty && !model.hasValidURL {
                     Text("Enter an HTTP or HTTPS MCP URL.").font(.caption).foregroundStyle(.orange)
                 }
-                Text(model.draft.transport.detail).font(.caption).foregroundStyle(.secondary)
                 if model.running { ProgressView() }
                 if let connection = model.connection { Text(connection).font(.caption).textSelection(.enabled) }
             }
@@ -253,8 +252,6 @@ struct MobileMCPEditor: View {
                 Button("Add Header", systemImage: "plus") { editingHeader = MCPHeader() }
             } header: {
                 Text("Custom Headers")
-            } footer: {
-                Text("Custom headers are stored as plain text. For secrets, use the bearer token field above.")
             }
             Section("Tools") {
                 if model.draft.tools.isEmpty { Text("Connect to see what this server offers.") }

@@ -1919,22 +1919,6 @@
         }
       }
     },
-    "A username and password are required. The password stays in the Keychain." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "需要用户名和密码。密码会保存在钥匙串中。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "需要使用者名稱和密碼。密碼會儲存在鑰匙圈中。"
-          }
-        }
-      }
-    },
     "A Workspace template with this name already exists." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2923,22 +2907,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一律包含"
-          }
-        }
-      }
-    },
-    "An identity keeps a username and its credentials together. Secrets stay in the Keychain." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "身份将用户名及其凭据保存在一起。密钥始终存储在钥匙串中。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "身分將使用者名稱及其認證資訊儲存在一起。金鑰一律儲存在鑰匙圈中。"
           }
         }
       }
@@ -5053,22 +5021,6 @@
         }
       }
     },
-    "Clear saved password" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除已保存的密码"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "清除已儲存的密碼"
-          }
-        }
-      }
-    },
     "Clear search" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6559,22 +6511,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已複製檔案"
-          }
-        }
-      }
-    },
-    "Copies selected terminal text to the clipboard when you release the mouse button." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "松开鼠标按键时，将选中的终端文本复制到剪贴板。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "放開滑鼠按鍵時，將選取的終端機文字複製到剪貼簿。"
           }
         }
       }
@@ -11019,22 +10955,6 @@
         }
       }
     },
-    "For secrets, use the bearer token field above." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "敏感信息请使用上方的Bearer Token字段。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "敏感資訊請使用上方的Bearer Token欄位。"
-          }
-        }
-      }
-    },
     "Force push can overwrite remote history." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -13379,22 +13299,6 @@
         }
       }
     },
-    "Keep saved password" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存已保存的密码"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "儲存已儲存的密碼"
-          }
-        }
-      }
-    },
     "Keep Snippets" : {
       "localizations" : {
         "zh-Hans" : {
@@ -13765,38 +13669,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "留空以使用遠端主目錄，或輸入絕對路徑。"
-          }
-        }
-      }
-    },
-    "Leave blank to keep" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "留下空白保留"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "留下空白保留"
-          }
-        }
-      }
-    },
-    "Leave blank to keep the saved password, or enter a replacement." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "留空以保留已保存的密码，或输入新密码。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "留空以保留已儲存的密碼，或輸入新密碼。"
           }
         }
       }
@@ -16675,22 +16547,6 @@
         }
       }
     },
-    "Not available on this Mac" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此Mac上不可用"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此Mac上無法使用"
-          }
-        }
-      }
-    },
     "not connected" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -17971,22 +17827,6 @@
         }
       }
     },
-    "Passwords stay in the Keychain. Termind stores only a reference." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "密码始终存储在钥匙串中。Termind只存储一个引用。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "密碼一律儲存在鑰匙圈中。Termind只儲存一個參照。"
-          }
-        }
-      }
-    },
     "Paste" : {
       "localizations" : {
         "zh-Hans" : {
@@ -18731,22 +18571,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "按⌘P搜尋頁面、工作區、主機和指令。"
-          }
-        }
-      }
-    },
-    "Press Fetch" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "按键获取"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "按下「取得」"
           }
         }
       }
@@ -22096,22 +21920,6 @@
         }
       }
     },
-    "Select the models you want to add. You can fetch the rest later." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "选择要添加的模型，其余模型稍后仍可获取。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "選擇要新增的模型，其餘模型稍後仍可取得。"
-          }
-        }
-      }
-    },
     "Select the required jump host or deselect this host." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -22942,24 +22750,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "展開工作過程"
-          }
-        }
-      }
-    },
-    "Shows the focused SSH terminal's reported title after Help in the macOS menu bar." : {
-      "comment" : "A description of the feature that shows the name of the focused terminal in the menu bar.",
-      "isCommentAutoGenerated" : true,
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在macOS菜单栏的“帮助”后显示当前SSH终端报告的标题。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在macOS選單欄的「幫助」後顯示目前SSH終端報告的標題。"
           }
         }
       }
@@ -24920,22 +24710,6 @@
         }
       }
     },
-    "Termind opens behind your other windows. Click its icon in the Dock to show it." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind会在其他窗口后面打开。点按程序坞中的图标即可显示。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Termind會在其他視窗後面開啟。點按程式塢中的圖示即可顯示。"
-          }
-        }
-      }
-    },
     "Termind Pro" : {
       "comment" : "The name of the app.",
       "isCommentAutoGenerated" : true,
@@ -25477,22 +25251,6 @@
         }
       }
     },
-    "The generated private key is stored in the selected Keychain." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "生成的私钥存储在选定的钥匙串中。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "產生的私密金鑰儲存在選定的鑰匙圈中。"
-          }
-        }
-      }
-    },
     "The host could not be saved." : {
       "localizations" : {
         "zh-Hans" : {
@@ -26018,38 +25776,6 @@
         }
       }
     },
-    "The private key cannot leave the Secure Enclave. Authentication uses Touch ID or this Mac's password when required." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "私钥无法离开安全隔区。需要认证时会使用Touch ID或这台Mac的密码。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "私密金鑰無法離開安全隔區。需要認證時會使用Touch ID或這台Mac的密碼。"
-          }
-        }
-      }
-    },
-    "The private key cannot leave the Secure Enclave. Only its name can be changed." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "私钥无法离开安全隔区，只能更改其名称。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "私密金鑰無法離開安全隔區，只能更改其名稱。"
-          }
-        }
-      }
-    },
     "The private key could not be read: %@" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -26063,22 +25789,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "無法讀取私密金鑰：%@"
-          }
-        }
-      }
-    },
-    "The private key is encrypted. Termind never saves its passphrase and asks for it when needed." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "私钥已加密。Termind不会保存其密码短语，需要时会再次询问。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "私密金鑰已加密。Termind不會儲存其金鑰密碼，需要時會再次詢問。"
           }
         }
       }
@@ -26355,22 +26065,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這台Mac上無法使用已儲存的密碼。更改儲存方式前請重新輸入。"
-          }
-        }
-      }
-    },
-    "The saved password will be cleared when you save." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "保存时保存的密码将被清除。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "儲存時儲存的密碼將被清除。"
           }
         }
       }
@@ -30217,22 +29911,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你想做什麼？"
-          }
-        }
-      }
-    },
-    "Will be cleared" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "将被清除"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "將被清除"
           }
         }
       }

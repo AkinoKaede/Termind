@@ -129,11 +129,6 @@ struct MCPServerEditorPage: View {
                 .singleLinePaste()
                 .lineLimit(1)
 
-            Text(server.transport.detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
             connectRow(server)
         } header: {
             Text("Connection")
@@ -224,10 +219,6 @@ struct MCPServerEditorPage: View {
             FormNavigationAction(title: "Add Header", action: addHeader)
         } header: {
             Text("Custom Headers")
-        } footer: {
-            Text("For secrets, use the bearer token field above.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
         }
     }
 

@@ -625,15 +625,8 @@ private struct StartupSettings: View {
                 }
             }
 
-            Toggle(isOn: $opensQuietly) {
-                VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                    Text("Open Hidden at Login")
-                    Text("Termind opens behind your other windows. Click its icon in the Dock to show it.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .disabled(!loginItem.isEnabled)
+            Toggle("Open Hidden at Login", isOn: $opensQuietly)
+                .disabled(!loginItem.isEnabled)
 
             if loginItem.requiresApproval {
                 LabeledContent {
@@ -737,14 +730,7 @@ private struct TerminalSettings: View {
                 }
             }
             Section("Mouse") {
-                Toggle(isOn: binding(\.copyOnSelect)) {
-                    VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                        Text("Copy on Selection")
-                        Text("Copies selected terminal text to the clipboard when you release the mouse button.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
-                }
+                Toggle("Copy on Selection", isOn: binding(\.copyOnSelect))
                 Toggle(isOn: binding(\.pasteOnRightClick)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
                         Text("Paste on Right-Click")
@@ -768,16 +754,7 @@ private struct TerminalSettings: View {
                     }
                 }
 
-                Toggle(isOn: binding(\.remoteWindowTitleInMenuBar)) {
-                    VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                        Text("Show Terminal Title in Menu Bar")
-                        Text(
-                            "Shows the focused SSH terminal's reported title after Help in the macOS menu bar."
-                        )
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                    }
-                }
+                Toggle("Show Terminal Title in Menu Bar", isOn: binding(\.remoteWindowTitleInMenuBar))
             }
         }
         .onAppear {

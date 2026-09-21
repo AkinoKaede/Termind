@@ -276,7 +276,7 @@ struct ModelListEditor: View {
                 Text(provider?.models.isEmpty == true ? "No Models Yet" : "No Match")
                     .font(.callout)
                     .foregroundStyle(.secondary)
-                if provider?.models.isEmpty == true {
+                if provider?.models.isEmpty == true, let emptyHint {
                     Text(emptyHint)
                         .font(.caption)
                         .foregroundStyle(.tertiary)
@@ -310,10 +310,9 @@ struct ModelListEditor: View {
         }
     }
 
-    private var emptyHint: LocalizedStringKey {
-        guard let provider else { return "" }
-        if provider.resolvedModelsURL == nil { return "Add a URL, then press Fetch" }
-        return "Press Fetch"
+    private var emptyHint: LocalizedStringKey? {
+        guard provider?.resolvedModelsURL == nil else { return nil }
+        return "Add a URL, then press Fetch"
     }
 
     // MARK: - Detail
@@ -815,9 +814,6 @@ private struct CandidatePicker: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             Text("\(candidates.count) Models Offered")
                 .font(.headline)
-            Text("Select the models you want to add. You can fetch the rest later.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
 
             TermindSearchField(text: queryBinding, prompt: "Filter", density: .compact)
 
