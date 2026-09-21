@@ -31,7 +31,7 @@ struct MobileKeyEditor: View {
                                 Text("Secure Enclave").tag(KeyStorage.secureEnclave)
                             }
                         }
-                        .disabled(!model.canSelectThisDevice)
+                        .disabled(!model.canEditPrivateKey || !model.canSelectThisDevice)
                     }
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Color")
@@ -92,12 +92,14 @@ struct MobileKeyEditor: View {
                             Button(model.mode == .edit ? "Choose Replacement" : "Choose File", systemImage: "folder") {
                                 choosingFile = true
                             }
+                            .disabled(!model.canEditPrivateKey)
                             TextEditor(text: $model.privateKey)
                                 .multilineTextAlignment(.leading)
                                 .font(.body.monospaced())
                                 .frame(minHeight: 150)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
+                                .disabled(!model.canEditPrivateKey)
                             if model.replacesPublicKey {
                                 Label(
                                     "Replacing this private key changes its public key. Hosts using the old key may reject the next connection.",
@@ -108,6 +110,7 @@ struct MobileKeyEditor: View {
                             }
                             SecureField("Passphrase", text: $model.passphrase)
                                 .multilineTextAlignment(.leading)
+                                .disabled(!model.canEditPrivateKey)
                         }
                     }
                 }

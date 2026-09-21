@@ -35,6 +35,7 @@ final class MobileKeyEditorModel: Identifiable {
     private(set) var isLoadingPrivateKey: Bool
     private(set) var privateKeyLoadError: String?
     private(set) var inspectedMaterial: SSHKeyMaterial?
+    private(set) var canEditPrivateKey: Bool
     private var originalPrivateKey = ""
     private var didLoadPrivateKey: Bool
 
@@ -46,9 +47,25 @@ final class MobileKeyEditorModel: Identifiable {
         storage = key?.storage ?? .iCloud
         certificate = key?.certificate ?? ""
         colorTag = key?.colorTag ?? .none
-        let loadsPrivateKey = mode == .edit && key?.storage != .secureEnclave
+        let availability = key.map { credentials.keyAvailability(for: $0) }
+        let keyIsAvailable = availability == .some(.available)
+        let editsPrivateKey =
+            mode != .edit
+            || (key?.storage != .secureEnclave && keyIsAvailable)
+        canEditPrivateKey = editsPrivateKey
+        let loadsPrivateKey = mode == .edit && editsPrivateKey
         isLoadingPrivateKey = loadsPrivateKey
         didLoadPrivateKey = !loadsPrivateKey
+        if mode == .edit, key?.storage != .secureEnclave, !keyIsAvailable {
+            switch availability {
+            case .some(.failed(let message)):
+                privateKeyLoadError = message
+            case .some(.missing), .some(.notConfigured), .none:
+                privateKeyLoadError = String(localized: "The private key is unavailable on this device.")
+            case .some(.available):
+                break
+            }
+        }
     }
 
     var isDirty: Bool {
@@ -58,6 +75,9 @@ final class MobileKeyEditorModel: Identifiable {
             || curveBits != 256 || rsaBits != 3072 || cipher != .aes256 || rounds != 100 || !confirmation.isEmpty
     }
     var canSave: Bool {
+        if mode == .edit, let original, original.storage != .secureEnclave, !canEditPrivateKey {
+            return !isLoadingPrivateKey && storage == original.storage && privateKey.isEmpty && passphrase.isEmpty
+        }
         let encryptionIsValid =
             mode != .generate || storage == .secureEnclave || passphrase.isEmpty
             || (passphrase == confirmation && rounds > 0)
@@ -131,6 +151,9 @@ final class MobileKeyEditorModel: Identifiable {
             didLoadPrivateKey = true
         } catch {
             privateKeyLoadError = error.localizedDescription
+            canEditPrivateKey = false
+            privateKey = ""
+            originalPrivateKey = ""
         }
     }
 
@@ -163,6 +186,7 @@ final class MobileKeyEditorModel: Identifiable {
     }
 
     func loadFile(_ url: URL) async throws {
+        guard canEditPrivateKey else { throw CocoaError(.fileReadNoPermission) }
         let infersName = SoftwareKeyFileImporter.shouldInferName(from: label)
         let result = try await Task.detached { try SoftwareKeyFileImporter.read(urls: [url], infersName: infersName) }
             .value
@@ -187,6 +211,13 @@ final class MobileKeyEditorModel: Identifiable {
             if key.storage == .secureEnclave {
                 key.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
                 key.colorTag = colorTag
+                try credentials.upsert(key)
+                return
+            }
+            if !canEditPrivateKey {
+                key.label = label.trimmingCharacters(in: .whitespacesAndNewlines)
+                key.colorTag = colorTag
+                key.certificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
                 try credentials.upsert(key)
                 return
             }

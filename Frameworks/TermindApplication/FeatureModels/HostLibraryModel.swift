@@ -1149,9 +1149,14 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             )
         }
 
-        let oldPassword =
-            previousReference.isEmpty
-            ? nil : try keychain.string(for: previousReference, storage: previousStorage)
+        var oldPassword: String?
+        func loadOldPassword() throws -> String? {
+            if let oldPassword { return oldPassword }
+            guard !previousReference.isEmpty else { return nil }
+            let loaded = try keychain.string(for: previousReference, storage: previousStorage)
+            oldPassword = loaded
+            return loaded
+        }
         let identitySnapshot = identities
         let hostSnapshot = hosts
         var wroteDestination = false
@@ -1160,7 +1165,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             case .keep:
                 updated.credentialRef = previousReference
                 if previousStorage != updated.passwordStorage, !previousReference.isEmpty {
-                    guard let oldPassword else {
+                    guard let oldPassword = try loadOldPassword() else {
                         throw TermindSSHError.library(
                             String(
                                 localized:
@@ -1183,6 +1188,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                     previousReference.isEmpty
                     ? "termind.password.\(UUID().uuidString)"
                     : previousReference
+                _ = try loadOldPassword()
                 try keychain.setString(password, for: reference, storage: updated.passwordStorage)
                 wroteDestination = true
                 updated.credentialRef = reference

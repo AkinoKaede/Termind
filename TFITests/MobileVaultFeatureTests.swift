@@ -241,14 +241,17 @@ struct MobileVaultFeatureTests {
         #expect(MobileIdentityEditorConfiguration.standard.showsKey)
         #expect(
             MobileIdentityEditorConfiguration.standard.canSave(
-                identity: identity, password: "", hasSavedPassword: false, removesPassword: false))
+                identity: identity, password: "", hasConfiguredPassword: false, removesPassword: false))
         #expect(!MobileIdentityEditorConfiguration.proxy.showsKey)
         #expect(
             !MobileIdentityEditorConfiguration.proxy.canSave(
-                identity: identity, password: "", hasSavedPassword: false, removesPassword: false))
+                identity: identity, password: "", hasConfiguredPassword: false, removesPassword: false))
         #expect(
             MobileIdentityEditorConfiguration.proxy.canSave(
-                identity: identity, password: "secret", hasSavedPassword: false, removesPassword: false))
+                identity: identity, password: "secret", hasConfiguredPassword: false, removesPassword: false))
+        #expect(
+            MobileIdentityEditorConfiguration.proxy.canSave(
+                identity: identity, password: "", hasConfiguredPassword: true, removesPassword: false))
     }
 
     @Test func identityEditorUsesNewAndEditTitles() throws {
@@ -432,7 +435,7 @@ struct MobileVaultFeatureTests {
         #expect(try app.credentials.keyCredential(for: updated) == .software(secret))
     }
 
-    @Test func missingPrivateKeyCannotBeOverwrittenByMetadataOnlyEdit() async throws {
+    @Test func missingPrivateKeyAllowsMetadataOnlyEditWithoutCreatingACredential() async throws {
         let original = SSHKeyRef(
             label: "Missing", publicKey: "ssh-ed25519 test", fingerprint: "SHA256:test",
             credentialRef: "termind.key.\(UUID())", storage: .thisDevice)
@@ -442,10 +445,44 @@ struct MobileVaultFeatureTests {
 
         await editor.loadPrivateKey()
         #expect(editor.privateKeyLoadError != nil)
+        #expect(!editor.canEditPrivateKey)
+        #expect(editor.canSave)
+
+        editor.storage = .iCloud
         #expect(!editor.canSave)
-        editor.label = "Should Not Save"
+        editor.storage = original.storage
+        editor.privateKey = "replacement"
+        #expect(!editor.canSave)
+        editor.privateKey = ""
+        editor.certificate = "not an SSH certificate"
+        #expect(editor.canSave)
         await #expect(throws: (any Error).self) { try await editor.save() }
         #expect(credentials.key(original.id) == original)
+        editor.certificate = ""
+
+        editor.label = "Renamed Missing"
+        editor.colorTag = .orange
+        try await editor.save()
+        let updated = try #require(credentials.key(original.id))
+        #expect(updated.label == "Renamed Missing")
+        #expect(updated.colorTag == .orange)
+        #expect(updated.credentialRef == original.credentialRef)
+        #expect(updated.publicKey == original.publicKey)
+        #expect(try credentials.keyCredential(for: updated) == nil)
+    }
+
+    @Test func missingIdentityPasswordLocksOnlyPasswordEditing() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let identity = Identity(
+            name: "Remote", username: "deploy", credentialRef: "termind.password.remote",
+            passwordStorage: .thisDevice)
+        app.library.upsert(identity)
+
+        let editor = MobileIdentityEditor(app: app, identity: identity)
+        #expect(!editor.canEditPassword)
+        #expect(
+            MobileIdentityEditorConfiguration.standard.canSave(
+                identity: identity, password: "", hasConfiguredPassword: true, removesPassword: false))
     }
 
     @Test func invalidPrivateKeyAndCertificateEditsPreserveTheOriginalCredential() async throws {

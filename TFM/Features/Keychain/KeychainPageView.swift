@@ -367,6 +367,7 @@ private struct SoftwareKeyEditor: View {
             _ name: String, _ colorTag: TagColor, _ storage: KeyStorage, _ privateKey: String,
             _ passphrase: String?, _ certificate: String, _ material: SSHKeyMaterial
         ) async throws -> SSHKeyRef
+    let saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)?
 
     @State private var name: String
     @State private var colorTag: TagColor
@@ -377,6 +378,7 @@ private struct SoftwareKeyEditor: View {
     @State private var certificate: String
     @State private var material: SSHKeyMaterial?
     @State private var isLoading: Bool
+    @State private var canEditPrivateKey = true
     @State private var isChoosingFile = false
     @State private var fileChoice: FileChoice = .privateKey
     @State private var isWorking = false
@@ -389,6 +391,7 @@ private struct SoftwareKeyEditor: View {
         existing: SSHKeyRef? = nil, title: LocalizedStringKey,
         symbol: String, close: @escaping () -> Void,
         loadPrivateKey: (() throws -> String)? = nil,
+        saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)? = nil,
         save:
             @escaping (
                 String, TagColor, KeyStorage, String, String?, String, SSHKeyMaterial
@@ -399,6 +402,7 @@ private struct SoftwareKeyEditor: View {
         self.symbol = symbol
         self.close = close
         self.loadPrivateKey = loadPrivateKey
+        self.saveMetadata = saveMetadata
         self.save = save
         _name = State(initialValue: existing?.label ?? "")
         _colorTag = State(initialValue: existing?.colorTag ?? .none)
@@ -431,7 +435,7 @@ private struct SoftwareKeyEditor: View {
                             Label("This Mac", systemImage: "lock.laptopcomputer")
                                 .tag(KeyStorage.thisDevice)
                         }
-                        .disabled(existing?.storage == .iCloud)
+                        .disabled(!canEditPrivateKey || existing?.storage == .iCloud)
                         LabeledContent("Color") {
                             ColorTagPicker(selection: $colorTag, layout: .compact)
                         }
@@ -443,6 +447,7 @@ private struct SoftwareKeyEditor: View {
                             placeholder: "Paste a private key, or drag one in"
                         )
                         .accessibilityLabel("Private Key")
+                        .disabled(!canEditPrivateKey)
                         if let existing, let material,
                             material.publicKey != existing.publicKey
                         {
@@ -454,8 +459,11 @@ private struct SoftwareKeyEditor: View {
                             .foregroundStyle(.orange)
                         }
                         SecureField("Passphrase", text: $passphrase, prompt: Text("Optional"))
+                            .disabled(!canEditPrivateKey)
                     } header: {
-                        fileSectionHeader("Private Key") { chooseFile(for: .privateKey) }
+                        fileSectionHeader("Private Key", canChoose: canEditPrivateKey) {
+                            chooseFile(for: .privateKey)
+                        }
                     }
 
                     Section("Public Key") {
@@ -491,7 +499,7 @@ private struct SoftwareKeyEditor: View {
                     Task { await commit() }
                 }
                 .keyboardShortcut(.defaultAction)
-                .disabled(isWorking || isLoading || privateKey.isEmpty)
+                .disabled(isWorking || isLoading || (canEditPrivateKey && privateKey.isEmpty))
             }
             .padding()
         }
@@ -508,7 +516,7 @@ private struct SoftwareKeyEditor: View {
             NativeDropTarget(
                 targetedKind: $nativeDropKind,
                 acceptedKinds: [.files],
-                isEnabled: !isLoading && !isWorking,
+                isEnabled: canEditPrivateKey && !isLoading && !isWorking,
                 receive: { payload in receive(urls: payload.fileURLs) }
             )
         }
@@ -564,12 +572,13 @@ private struct SoftwareKeyEditor: View {
     /// section title. With the editor no longer drawn as a box, that row had
     /// nothing left to attach to and read as a second heading.
     private func fileSectionHeader(
-        _ title: LocalizedStringKey, choose: @escaping () -> Void
+        _ title: LocalizedStringKey, canChoose: Bool = true, choose: @escaping () -> Void
     ) -> some View {
         HStack {
             Text(title)
             Spacer()
             Button("Choose", action: choose)
+                .disabled(!canChoose)
         }
     }
 
@@ -578,6 +587,17 @@ private struct SoftwareKeyEditor: View {
         isWorking = true
         errorMessage = nil
         do {
+            let normalizedCertificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !canEditPrivateKey, let existing, let saveMetadata {
+                if !normalizedCertificate.isEmpty {
+                    _ = try SSHUserCertificate.parse(normalizedCertificate, matching: existing.publicKey)
+                }
+                _ = try saveMetadata(
+                    name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, normalizedCertificate
+                )
+                close()
+                return
+            }
             let passphrase = passphrase.isEmpty ? nil : passphrase
             let inspected: SSHKeyMaterial
             if let existing, privateKey == originalPrivateKey {
@@ -595,7 +615,6 @@ private struct SoftwareKeyEditor: View {
                     )
                 }.value
             }
-            let normalizedCertificate = certificate.trimmingCharacters(in: .whitespacesAndNewlines)
             if !normalizedCertificate.isEmpty {
                 _ = try SSHUserCertificate.parse(
                     normalizedCertificate, matching: inspected.publicKey
@@ -655,6 +674,9 @@ private struct SoftwareKeyEditor: View {
             originalPrivateKey = privateKey
         } catch {
             errorMessage = error.localizedDescription
+            canEditPrivateKey = false
+            privateKey = ""
+            originalPrivateKey = ""
         }
         isLoading = false
     }
@@ -977,6 +999,11 @@ struct KeychainEditDetail: View {
                     existing: key, title: "Edit Key", symbol: "pencil",
                     close: window.closeVaultWork,
                     loadPrivateKey: { try loadPrivateKey(key) },
+                    saveMetadata: { name, colorTag, certificate in
+                        try saveSoftwareKeyMetadata(
+                            key, name: name, colorTag: colorTag, certificate: certificate
+                        )
+                    },
                     save: {
                         name, colorTag, storage, privateKey, passphrase, certificate, material in
                         try await saveSoftwareKey(
@@ -1023,6 +1050,18 @@ struct KeychainEditDetail: View {
                 SSHPrivateKeySecret(privateKey: privateKey)
             )
         )
+        window.selectVaultItem(.key(updated.id), on: .keychain)
+        return updated
+    }
+
+    private func saveSoftwareKeyMetadata(
+        _ original: SSHKeyRef, name: String, colorTag: TagColor, certificate: String
+    ) throws -> SSHKeyRef {
+        var updated = original
+        updated.label = name
+        updated.colorTag = colorTag
+        updated.certificate = certificate
+        try app.credentials.upsert(updated)
         window.selectVaultItem(.key(updated.id), on: .keychain)
         return updated
     }

@@ -284,13 +284,13 @@ nonisolated struct MobileIdentityEditorConfiguration: Hashable, Sendable {
     static let proxy = MobileIdentityEditorConfiguration(showsKey: false, requiresPassword: true)
 
     func canSave(
-        identity: Identity, password: String, hasSavedPassword: Bool, removesPassword: Bool
+        identity: Identity, password: String, hasConfiguredPassword: Bool, removesPassword: Bool
     ) -> Bool {
         guard !identity.username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return false
         }
         guard requiresPassword else { return true }
-        return !password.isEmpty || (hasSavedPassword && !removesPassword)
+        return !password.isEmpty || (hasConfiguredPassword && !removesPassword)
     }
 }
 
@@ -323,12 +323,14 @@ struct MobileIdentityEditor: View {
             isDirty: draft != original || !password.isEmpty || removePassword,
             canSave: configuration.canSave(
                 identity: draft, password: password,
-                hasSavedPassword: hasAvailablePassword, removesPassword: removePassword),
+                hasConfiguredPassword: original.usesPassword, removesPassword: removePassword),
             save: {
                 draft.username = draft.username.trimmingCharacters(in: .whitespacesAndNewlines)
                 draft.name = draft.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 try app.library.upsert(
-                    draft, passwordUpdate: removePassword ? .remove : password.isEmpty ? .keep : .replace(password))
+                    draft,
+                    passwordUpdate: !canEditPassword
+                        ? .keep : removePassword ? .remove : password.isEmpty ? .keep : .replace(password))
                 saved(draft)
             },
             content: {
@@ -356,14 +358,20 @@ struct MobileIdentityEditor: View {
                 Section("Authentication") {
                     LabeledContent("Password") {
                         SecureField("Password", text: $password).textContentType(.password)
-                            .multilineTextAlignment(.trailing).disabled(removePassword)
+                            .multilineTextAlignment(.trailing).disabled(removePassword || !canEditPassword)
                     }
-                    if original.usesPassword { Toggle("Remove Password", isOn: $removePassword) }
+                    if original.usesPassword {
+                        Toggle("Remove Password", isOn: $removePassword)
+                            .disabled(!canEditPassword)
+                    }
                     Picker("Store password in", selection: $draft.passwordStorage) {
                         Text("This Device").tag(PasswordStorage.thisDevice)
                         Text("iCloud").tag(PasswordStorage.iCloud)
                     }
-                    .disabled(original.usesPassword && original.passwordStorage == .iCloud)
+                    .disabled(
+                        !canEditPassword
+                            || (original.usesPassword && original.passwordStorage == .iCloud)
+                    )
                     if configuration.showsKey {
                         Picker("Key", selection: $draft.keyID) {
                             Text("None").tag(UUID?.none)
@@ -380,5 +388,9 @@ struct MobileIdentityEditor: View {
 
     private var hasAvailablePassword: Bool {
         original.usesPassword && app.credentials.passwordAvailability(for: original) == .available
+    }
+
+    var canEditPassword: Bool {
+        !original.usesPassword || hasAvailablePassword
     }
 }

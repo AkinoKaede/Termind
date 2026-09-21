@@ -66,6 +66,26 @@ struct IdentityCredentialTests {
     }
 
     @Test
+    func missingPasswordAllowsMetadataOnlyEditWithoutChangingItsReference() throws {
+        let reference = "termind.password.\(UUID().uuidString)"
+        let identity = Identity(
+            name: "Remote", username: "deploy", credentialRef: reference,
+            passwordStorage: .thisDevice)
+        let store = HostLibraryModel(identities: [identity], secrets: InMemorySecretStore())
+
+        var renamed = identity
+        renamed.name = "Renamed Remote"
+        renamed.colorTag = .orange
+        try store.upsert(renamed, passwordUpdate: .keep)
+
+        let updated = try #require(store.identity(identity.id))
+        #expect(updated.name == "Renamed Remote")
+        #expect(updated.colorTag == .orange)
+        #expect(updated.credentialRef == reference)
+        #expect(store.passwordAvailability(for: updated) == .missing)
+    }
+
+    @Test
     func iCloudPasswordCannotMoveToThisDevice() throws {
         let keychain = InMemorySecretStore()
         let reference = "termind.password.\(UUID().uuidString)"

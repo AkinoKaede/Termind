@@ -107,6 +107,10 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - Saved iCloud Passwords and software Keys cannot be moved to device-only storage: editors disable that destination and
   application writes reject it before touching Keychain. New credentials may start device-only, and device-only credentials
   may move to iCloud.
+- Editors whose saved Password or software Private Key is unavailable on the current device preserve its reference and
+  disable secret replacement, removal, passphrase and storage changes while still allowing public metadata edits. Key
+  metadata-only saves may update the SSH certificate after validating it against the saved public key, without reading or
+  writing the missing credential. Secure Enclave Keys retain their existing metadata-only editor.
 - New AI Provider keys, Vertex service accounts and remote MCP tokens use iCloud Keychain only after both the master iCloud
   and Settings switches are on and account/merge authorization completes; otherwise they use device-only Keychain. Once a
   reference has entered iCloud it stays there even if either switch is later disabled.

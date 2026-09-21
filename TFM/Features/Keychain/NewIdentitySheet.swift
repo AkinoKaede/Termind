@@ -25,13 +25,13 @@ nonisolated struct IdentityEditorConfiguration: Hashable, Sendable {
 
     func accepts(
         username: String, password: String,
-        hasSavedPassword: Bool, removesPassword: Bool
+        hasConfiguredPassword: Bool, removesPassword: Bool
     ) -> Bool {
         guard !username.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             return false
         }
         guard requiresPassword else { return true }
-        return !password.isEmpty || (hasSavedPassword && !removesPassword)
+        return !password.isEmpty || (hasConfiguredPassword && !removesPassword)
     }
 }
 
@@ -126,9 +126,9 @@ struct NewIdentitySheet: View {
                         "Password", text: $password,
                         prompt: Text(passwordPrompt)
                     )
-                    .disabled(removesPassword)
+                    .disabled(removesPassword || !canEditPassword)
 
-                    if existing?.usesPassword == true && password.isEmpty {
+                    if existing?.usesPassword == true && password.isEmpty && canEditPassword {
                         Button {
                             removesPassword.toggle()
                         } label: {
@@ -151,7 +151,10 @@ struct NewIdentitySheet: View {
                             .tag(storage)
                     }
                 }
-                .disabled(existing?.usesPassword == true && existing?.passwordStorage == .iCloud)
+                .disabled(
+                    !canEditPassword
+                        || (existing?.usesPassword == true && existing?.passwordStorage == .iCloud)
+                )
 
                 if configuration.showsKey {
                     Picker("Key", selection: $keyID) {
@@ -241,7 +244,13 @@ struct NewIdentitySheet: View {
         return app.credentials.passwordAvailability(for: existing) == .available
     }
 
+    var canEditPassword: Bool {
+        guard let existing, existing.usesPassword else { return true }
+        return hasAvailablePassword
+    }
+
     private var passwordUpdate: IdentityPasswordUpdate {
+        if !canEditPassword { return .keep }
         if removesPassword { return .remove }
         if !password.isEmpty { return .replace(password) }
         return existing == nil ? .remove : .keep
@@ -254,7 +263,7 @@ struct NewIdentitySheet: View {
     private var isValid: Bool {
         configuration.accepts(
             username: username, password: password,
-            hasSavedPassword: hasAvailablePassword,
+            hasConfiguredPassword: existing?.usesPassword == true,
             removesPassword: removesPassword
         )
     }
