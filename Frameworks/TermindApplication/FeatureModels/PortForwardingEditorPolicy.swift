@@ -8,7 +8,11 @@ public nonisolated enum PortForwardingEditorPolicy {
     public static func canStart(
         _ id: PortForwardingRule.ID, savedRule: PortForwardingRule?, savedHost: Host?, isRuntimeActive: Bool
     ) -> Bool {
-        savedRule?.id == id && savedRule?.isValid == true && savedRule?.hostID == savedHost?.id && !isRuntimeActive
+        savedRule?.id == id
+            && savedRule?.isValid == true
+            && savedRule?.hostID == savedHost?.id
+            && savedHost?.sshEnabled == true
+            && !isRuntimeActive
     }
 
     public static func normalized(_ rule: PortForwardingRule) -> PortForwardingRule? {

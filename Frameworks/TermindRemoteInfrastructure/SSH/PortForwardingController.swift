@@ -168,7 +168,7 @@ public final class PortForwardingController {
 
     public func start(_ id: PortForwardingRule.ID) {
         guard !state(for: id).isActive, let rule = hosts.portForwarding(id), rule.isValid,
-            let host = hosts.host(rule.hostID)
+            let host = hosts.host(rule.hostID), host.sshEnabled
         else { return }
         logger.info(
             "forwarding.requested",

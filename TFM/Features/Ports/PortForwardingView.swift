@@ -189,7 +189,13 @@ struct PortForwardingDetailView: View {
                                     Button("Stop") { app.forwarding.stop(draft.id) }
                                 } else {
                                     Button(runtime.isFailed ? "Retry" : "Start") { app.forwarding.start(draft.id) }
-                                        .disabled(saved == nil || normalized != saved || !canSave)
+                                        .disabled(
+                                            saved == nil || normalized != saved || !canSave
+                                                || !PortForwardingEditorPolicy.canStart(
+                                                    draft.id, savedRule: saved,
+                                                    savedHost: app.hostLibrary.host(draft.hostID),
+                                                    isRuntimeActive: runtime.isActive)
+                                        )
                                 }
                             }
                         }

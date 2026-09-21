@@ -99,6 +99,7 @@ struct MobileForwardingView: View {
             isRuntimeActive: app.forwardings.state(for: rule.id).isActive)
     }
     private func start(_ rule: PortForwardingRule) {
+        guard canStart(rule) else { return }
         showing = rule.id
         app.forwardings.start(rule.id)
     }
@@ -184,7 +185,10 @@ struct MobileForwardingDetailView: View {
                         runtime.isFailed ? "Retry" : "Start", systemImage: runtime.isFailed ? "arrow.clockwise" : "play"
                     ) {
                         app.forwardings.start(ruleID)
-                    }.disabled(app.library.host(rule.hostID) == nil || !rule.isValid)
+                    }.disabled(
+                        !PortForwardingEditorPolicy.canStart(
+                            ruleID, savedRule: rule, savedHost: app.library.host(rule.hostID),
+                            isRuntimeActive: runtime.isActive))
                 }
             }
             ToolbarItem(placement: .secondaryAction) {
