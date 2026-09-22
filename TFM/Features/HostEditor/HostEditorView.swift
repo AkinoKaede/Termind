@@ -748,7 +748,7 @@ struct HostEditorView: View {
                     .lineLimit(2)
             }
             Spacer()
-            Button("Discard", action: closeTab)
+            Button("Cancel", action: cancel)
             Button("Save") { saveAndClose() }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)

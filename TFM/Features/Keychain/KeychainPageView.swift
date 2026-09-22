@@ -525,7 +525,10 @@ private struct SoftwareKeyEditor: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: title, symbol: symbol, close: existing == nil ? close : cancelEditing,
+            title: title, symbol: symbol,
+            close: {
+                if existing == nil { close() } else { cancelEditing() }
+            },
             closeLabel: existing == nil ? "Close" : "Cancel"
         ) {
             if isLoading {
@@ -607,7 +610,9 @@ private struct SoftwareKeyEditor: View {
                 }
                 Spacer()
                 if isWorking { ProgressView().controlSize(.small) }
-                Button(existing == nil ? "Cancel" : "Discard", action: close)
+                Button("Cancel") {
+                    if existing == nil { close() } else { cancelEditing() }
+                }
                 Button(existing == nil ? "Import" : "Save") {
                     Task {
                         guard await commitChanges() else { return }
@@ -1302,7 +1307,7 @@ private struct SecureEnclaveKeyEditor: View {
             HStack(spacing: Metrics.Space.m) {
                 Button("Delete", role: .destructive) { confirmsDeletion = true }
                 Spacer()
-                Button("Discard", action: close)
+                Button("Cancel", action: cancelEditing)
                 Button("Save", action: saveAndClose)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)

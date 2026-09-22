@@ -695,7 +695,7 @@ struct SnippetEditorSheet: View {
                     Button("Delete", role: .destructive) { confirmsDeletion = true }
                 }
                 Spacer()
-                Button("Discard", action: close)
+                Button("Cancel", action: cancelEditing)
                 Button("Save", action: saveAndClose)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)

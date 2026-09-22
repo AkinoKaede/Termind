@@ -102,7 +102,10 @@ struct NewIdentitySheet: View {
     var body: some View {
         VaultDetailScaffold(
             title: LocalizedStringKey(existing == nil ? configuration.newTitle : configuration.editTitle),
-            symbol: "person.badge.key.fill", close: requestedClose == nil ? close : cancelEditing,
+            symbol: "person.badge.key.fill",
+            close: {
+                if requestedClose == nil { close() } else { cancelEditing() }
+            },
             closeLabel: requestedClose == nil ? "Back" : "Cancel",
             closeSymbol: requestedClose == nil ? "chevron.backward" : "xmark"
         ) {
@@ -157,7 +160,9 @@ struct NewIdentitySheet: View {
                 Button("Delete", role: .destructive) { confirmsDeletion = true }
             }
             Spacer()
-            Button("Discard", action: close)
+            Button("Cancel") {
+                if requestedClose == nil { close() } else { cancelEditing() }
+            }
             Button("Save", action: saveAndClose)
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
