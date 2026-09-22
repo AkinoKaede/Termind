@@ -5,7 +5,7 @@ description: Product metadata, entitlement expectations, App Store Connect owner
 tags: [app-store, storekit, commerce, subscriptions, release]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift

@@ -1,0 +1,242 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:d571512d2bbb036fb97369a80a51af74729053b8d7d4164b178ba7b1e0919d80",
+  "claims": [
+    {
+      "id": "claim_8809151c43594803b83cf0451d849112",
+      "statement": "The AgentKit directory is a Git submodule reference checkout, while the app build declares a remote versioned AgentKit dependency and records its resolved revision separately.",
+      "evidence": [
+        {
+          "resource": "repo://.gitmodules",
+          "version": "repo-file-v1:sha256:d44aba833f5460dbae6fe83e58327069b8ca0528c32f0bd299bf7d56e1acb99c"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
+          "version": "repo-file-v1:sha256:02109cb8656598ce20a6c8f9a527e97630ffd1b5f00ea9536425abc0417187fd"
+        }
+      ]
+    },
+    {
+      "id": "claim_c30ab060a63746de941e1d93178d3177",
+      "statement": "AgentKit separates its dependency-free core product from the optional AgentKitScrubber web adapter, package tests and localized runtime resources.",
+      "evidence": [
+        {
+          "resource": "repo://AgentKit/Package.swift",
+          "version": "repo-file-v1:sha256:1c36e29cab099a934aefdd13b4b69aa25d2d1112ceebe79814bf76f82a8119eb"
+        },
+        {
+          "resource": "repo://AgentKit/Scripts/build-localizations.sh",
+          "version": "repo-file-v1:sha256:4aa30ad6ba5f603cb6a9273caff26c795dd289b3975f073135aec9bb0dfbd7b4"
+        },
+        {
+          "resource": "repo://AgentKit/Sources/AgentKitScrubber/ScrubberWebClient.swift#L5-L42",
+          "version": "repo-lines-v1:sha256:52b4ba668c4d518aadf28ba19616de10ed9d3cec835ac363425edfe56c7974b9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4MjQ0NjI3Yjc0YzgwZTgxZmQxNzBkMWE0Yzg2NzQ2YmUyNjlmYTU1OTliZjllNThjMGY1MzdiZmY5N2JiMWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYyMDZmNDQ4MzJkNjEzY2VkNTAzZDU1MDYyMjQ2NWI0YjkxMTE3OWUyNzc4OTZiYmQ1NzZmY2U3NjRmODdkYTgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAyNTM1ZGM2M2FjMjAzMmZkMzNjOGMzODkwYjI3ZTgzZWM1M2U3MzQzNjIyMTA4NjBjNWEzNjUyZThlOGJlNzIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyMWY5MDkxYmZiMTcyOGFhMjM1YThkODRkMDFlNGU0ODMyZDJlNzQ0NDNiMWYxZTM2NDU0ZmNhYTY5MGFkZWIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4f82ef52c1ca40a590331502b7555a7e",
+      "statement": "AgentKit's core separates runtime/provider/security/MCP responsibilities and supplies built-in tool families for planning/tasks, scratch files, skills/memory, user interaction and web access; Termind host tools are supplied externally.",
+      "evidence": [
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/MCP/MCPClient.swift",
+          "version": "repo-file-v1:sha256:aed93434f1924318015810fafd1b9b3ce15cad1212fcc84fc1d1e72c5ab7725c"
+        },
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift",
+          "version": "repo-file-v1:sha256:dd5e6ea3dd365910d2a30a88da9029bd972a547b511503e9665857da494271c3"
+        },
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Security/AgentSecurity.swift",
+          "version": "repo-file-v1:sha256:efd9b3e1b6c1e46095286e26371b2a16a8873cabfc6b755f4e500541725ebe7e"
+        },
+        {
+          "resource": "repo://AgentKit/Sources/AgentKit/Tools/AgentToolCatalog.swift#L3-L87",
+          "version": "repo-lines-v1:sha256:e60d96794abf3e3a386b20497dbf7fec55f57322d0990a4dace69a920df6e4c0:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0YzNmZmM3NDEwZmU0M2UwYTgzNDk1YTJmOTFhZDhjZDc0NzRlYjBjMDkyZmZmZjMwZTUyZWRhZjczNzZjNTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVjYjc4YTBhYmU3YWE5YTA1YmY5NDJhYWZhMmQ0Y2Y5NjQ0ZTVlZDc4MjAwYTcyZTYxY2EzMDM1YmU5ZTc2ODAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjczZjlmOGMyNTYyM2ZkYzAwNTEzNGIzYzFiZmRhM2JiNWRmYjgyZTE0NzE3NjQyNTBmMDNhMzI2YTNiMWY3OGQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L5-L68",
+          "version": "repo-lines-v1:sha256:b37728d2b6eed175b24a9d2761439467c6455e58de8c995e99c80bcdd740c58f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NTgzYWUxYWM2NTU4YTlmNGQ0MTYyYzcxZDJjMTk4OTE3OWI2MDljYWE0MDg0OTMzYjZlY2E5YWEzYWU1ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMDBjMjE3MTcwZWFmOGZmOGRmMTgyYzc0Y2FkZDY2YjQ0NWFiOTZiYTVmY2YzOWYyZGE0MjM3YzdmYTA3ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOGJkYjA3YzQ1MDc0ZDQ1OGM1ZTE2N2I2YmNiYzNkNDQ3M2E1NzNlZTExYzQyMzI0NjBjMmIyODZmNmRiNDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0b2e0fe8e2d147048e55cd6d6711c104",
+      "statement": "TermindMCPBridge translates newline-delimited stdio JSON-RPC to bearer-authenticated HTTP, retains session/protocol headers, forwards responses, and requests session deletion at EOF; desktop HTTP transport and MCP application tools remain separate owners.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:ad52ce8d73955e9220c24a05db6827b45359c2de46b59d5f315f733354bfc0fd"
+        },
+        {
+          "resource": "repo://TFM/Infrastructure/MCP/MCPServerSession.swift",
+          "version": "repo-file-v1:sha256:9757ec7e8d8f430cd49b5d95587dc362883d16d7fceaa12efda1036e25865b92"
+        },
+        {
+          "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift",
+          "version": "repo-file-v1:sha256:5a91a4b29083f71858834b4b1adee9fb64551de704e850ebe8026926ff9a6b9b"
+        },
+        {
+          "resource": "repo://TermindMCPBridge/main.swift#L4-L87",
+          "version": "repo-lines-v1:sha256:ecccf30acbd284a663e31c1aa7f40e224b2264fb038003a81dceaa30c6449866:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3M2Y1YTY5MGEwZjAwODY0Y2RmNDU3MjY3OTAxZjNkNzg5ZmRjYzgwNzQ5NzlmNWUzMDQ2ODVlMjFiMzNlNTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0ODcxYWY5NDg1Yzg3ZThjMGM0ZGNhN2IyYTI3MThiOWY5YTJmN2QxM2RlYWM1Y2MyYTY5YzgyNWVhY2ViZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8b29b34cd7fb44258296dad1567c4158",
+      "statement": "TermindWidgets renders ActivityKit summaries and workspace links using WorkspaceActivitySupport source shared with TFI; the bounded payload contains session summaries but no credentials or terminal output, and app-native services own activity updates.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Platform/MobileLiveActivityController.swift",
+          "version": "repo-file-v1:sha256:f10587ec652f59536cc9e3051ea887a94999182c3dfc5e3d8852b8f442671a2a"
+        },
+        {
+          "resource": "repo://TFIWidgets/WorkspaceLiveActivity.swift#L6-L52",
+          "version": "repo-lines-v1:sha256:cd3c4ccacb8be12c499b6aba3117a2c5233ef2beb1ce0a7f5bb96a1742d9c690:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmODhlNjc1Yzg4M2QwZTJiNWU2ZTkzMmNkNjU1NDVhMGVlOTU3MzJjODk2ZmZjZjBjMGMzYTRhMzIzMDk0Y2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiZjQxNGZiMjQ2NmU1MmIzYzA1N2M1NjUyZmVkZmVmYjljYjYyYWVmMzJiZmRlMWU4NjkyODkxYTU3NTdkOGQifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+        },
+        {
+          "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift",
+          "version": "repo-file-v1:sha256:6a3a6d3f4c71848cedcee5af633454d0dbc37f946f9ecf07c8a1d70ae635600c"
+        }
+      ]
+    },
+    {
+      "id": "claim_871ae8626cd744a19f5702b2dcb3e281",
+      "statement": "The three test targets separate shared, desktop and mobile checks; original-module synthetic V1/V14 stores preserve migration evidence, and the forwarding benchmark is a standalone executable independent of app/test hosting.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L46-L52",
+          "version": "repo-lines-v1:sha256:436355ec1ca59bf6c5029bbfbe5c16334f8af9488288634641a1bfc7b98288c4:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWYxODBmOWMxMjY5MDNiY2MzMzFhYTk1NDU2ZTQ5NDQ0YTdkNGQwMTFlOGEyYTgzZjVkYzg3MDIzOTE4MTJkMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWFmYjk2MDZmNWIwZDhmNjM0YjI2MDM3OGQ2ZWNlMjUzYjVjMTQ0N2E5YmYxZDA0OTM0OTQ0MGE4YjVlYmYwOSJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L5-L14",
+          "version": "repo-lines-v1:sha256:4d2ece4bd3cc980ac07ceebbe3c6f012cf2a17d5e087150df1ad69e91ea5b976:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzOGJkODA4OGNkOThjMmEyYmY3Y2VlMDI4NjY1NDk0ZTkwNDBiNGJiMzUwYWIzMGNlYzk4ZjJmZjQ5ZDI1MjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmNGQ3NzU3NjdlNzBiMGI3ZDE3YjNhNTkzNmM2ZDY2NDc3YmE3NzZlMTNmYzM5NmEyOGMxODY5MzQyMjQwODIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkNWQ5OGQzMjUyMTczOThhMmMwODM4OWMxZTI4NTA0MjEwNjA0NjhlM2MyOTg3YTg0YjAxYzQzNGVlNmQ3MmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkMzUwNTE2MzRmYzcyMzY3ZGVlYTFhZTI4NzFkMjk0MTY2ZDNlNDM5MTgwOTdiOGUzMTVlZmE3OTU1ZDM5YjcifQ"
+        },
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L1-L21",
+          "version": "repo-lines-v1:sha256:e3ddb6b1bcb7563b63da531f216d3acb8837d52222548b173b661a217a6ab01c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1OGEyZDdmYzIzNTUyOWMzYWJiMjVmNmUzZDA4N2I2NGE1YmJkMGRkZTU5OTgxMTMzNGU3NDkzNTAyMmQxMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4OTJkZmZiOTYyYjg1NzE3MGE5ZGYwMDIwYzJlNWZmMTY0MzE0NDk3YzI4ZjBmZWU3NDQ5ZGJmZGNmZGRlMDcifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/Fixtures/README.md",
+          "version": "repo-file-v1:sha256:df7270ec39f1e785912f5f41e0a9ac12dc140f051530f35f350ee927ffbccd4a"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L5-L21",
+          "version": "repo-lines-v1:sha256:98306357e42814b24b1aa8f79d3e9d07347124bc26ff146d80b8ed5d90d4ef9f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2ZGQ1ZmEyNWE4NWIwYTBhODU3MDBkOTk2ZTIxMzgyMWEwZjk2MmU0NmVkNGU5NDY5ZDVlYzNkYmI2YmM4ZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkMTZmOTdkOTZhZjllZjZjYjY3NGUyNzIxZTU3MmQ2YTFlNWRkOTY4MDJmOGIwZmIxM2RhZGVkNGI3NjYwNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyNTMyNzdkNWRjOTAyZTI1OGVlNmZmMmY0MzA4YjRkYTQ2ZGJmM2Y3NmI1N2Q4MzQ1NWU5OGMyMTg3OGU5NTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a945a4b41dcf4e69849bbdcee724ffd4",
+      "statement": "Repository scripts cover version/resource maintenance, remote fixtures/forwarding measurement, and screenshot/device-frame production, with Python tests for version and benchmark tooling.",
+      "evidence": [
+        {
+          "resource": "repo://Marketing/README.md",
+          "version": "repo-file-v1:sha256:97866af84c8b01df60e0e125b61a85836eaa9156052aeac3c3ddb0c234cad81f"
+        },
+        {
+          "resource": "repo://Scripts/Tests/test_bump_version.py",
+          "version": "repo-file-v1:sha256:3ea79fc679ff9d01f34a2c7b9f8b6b461793c19a061befd29d9471401f8e58d9"
+        },
+        {
+          "resource": "repo://Scripts/Tests/test_port_forwarding_benchmark.py",
+          "version": "repo-file-v1:sha256:131e9bb9089ea820c28f57c7096e8e55fb78f73598bb4ab641a2cf45c3f3a04e"
+        },
+        {
+          "resource": "repo://Scripts/check-zh-localization.sh",
+          "version": "repo-file-v1:sha256:065d662aa579090c80e0fe93ab13ecb447c112ceebbc8a1ec29a1c39b9b8e3ef"
+        },
+        {
+          "resource": "repo://Scripts/update-linux-distribution-icons.sh",
+          "version": "repo-file-v1:sha256:6554e0ab2064d73f9aedf5c5334a7b113a5e78f2964f95812ebadaefba0b23b1"
+        },
+        {
+          "resource": "repo://Scripts/update-pi-model-catalog.sh",
+          "version": "repo-file-v1:sha256:27158e0d707210321d7c9b73cedd3f3cc81056dc72b5dc42cd764db12bb13990"
+        }
+      ]
+    },
+    {
+      "id": "claim_064e94c9f0bc42d8b09bc1a831c38961",
+      "statement": "LandingPage is a separate Astro build with English, Simplified Chinese and Traditional Chinese locale helpers, legacy zh redirects, shared components/layouts, and an explicit allowlist importing marketing device frames rather than copying them into public assets.",
+      "evidence": [
+        {
+          "resource": "repo://LandingPage/package.json",
+          "version": "repo-file-v1:sha256:394edb8c9c67744600e13244e95a3a3089556fb93f3b9727bf35ec9eb979c8ed"
+        },
+        {
+          "resource": "repo://LandingPage/src/layouts/BaseLayout.astro",
+          "version": "repo-file-v1:sha256:0a7aa51bcd06be442a2f6d81e5346a70441c6aab3292363731f7f917d9020690"
+        },
+        {
+          "resource": "repo://LandingPage/src/lib/i18n.ts",
+          "version": "repo-file-v1:sha256:2af667afc033d02b9af34d1a7b9757cfe72e20823c4228ad7c07049f6cfe21cb"
+        },
+        {
+          "resource": "repo://LandingPage/src/lib/marketingImages.ts",
+          "version": "repo-file-v1:sha256:a833aaad7967fd7a2a5acaf51a2ce83ae3183e60d074916117dbc3cd29c87303"
+        },
+        {
+          "resource": "repo://LandingPage/src/pages/zh/index.astro",
+          "version": "repo-file-v1:sha256:ae726a2708c03ede9aafa9d5a639e390e42fd8121824d7c4885267e1ec38f66e"
+        },
+        {
+          "resource": "repo://Marketing/README.md#L1-L15",
+          "version": "repo-lines-v1:sha256:79a161d0d13113d989c6294c39a83615a1aab840ddd1a0b34cee9a6aa3b673dc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ZWVjOTcwYTBkNmExMWI0Y2UzYzEzYmI3MTE2N2MyZTFiNmQ2OTYyZTU0NmFjM2U3YjE4ZTNjY2NjODFkODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZGZmNDIxOTMxNDE2ZWQ2MjcyYzhiMmEwZDVlZTgyMDAwYjFlYmNiZTAyNzNmZWVkZmM2MDhkMTdhNjZkMDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg1M2Q2M2MwZTM2ZTUwY2VhZjkwZmY4ZjBkYjkxZDg0ZDcxZjVhZWUxYWMzYjFlMzcyYjIzYjdkM2YxZTVlODYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_007ca03617d6410daff00909e70a2a96",
+      "statement": "Marketing separates final locale/device App Store artwork from immutable source captures and reproducible device frames; Astro produces optimized image outputs from allowlisted frame imports, while Design/Brand retains the brand master and visual guidance.",
+      "evidence": [
+        {
+          "resource": "repo://Design/Brand/README.md",
+          "version": "repo-file-v1:sha256:0a6acb7b1c5971e5cc513cf9f8de6625465d0ca79c5dcf02e3dc25f2ef72cf06"
+        },
+        {
+          "resource": "repo://LandingPage/src/components/ScreenshotPicture.astro",
+          "version": "repo-file-v1:sha256:b681fc11c50f4bd3eadc1f0353c4e82f2c3045624b95273efed055d1ae414bfa"
+        },
+        {
+          "resource": "repo://LandingPage/src/lib/marketingImages.ts",
+          "version": "repo-file-v1:sha256:a833aaad7967fd7a2a5acaf51a2ce83ae3183e60d074916117dbc3cd29c87303"
+        },
+        {
+          "resource": "repo://Marketing/README.md",
+          "version": "repo-file-v1:sha256:97866af84c8b01df60e0e125b61a85836eaa9156052aeac3c3ddb0c234cad81f"
+        }
+      ]
+    },
+    {
+      "id": "claim_6e998ef58d954dc5a3fffb452ee4e7d1",
+      "statement": "Xcode project metadata controls build targets, schemes, embedding and package resolution, while scheduled/manual repository automation refreshes OpenWiki and opens a documentation pull request rather than serving app runtime behavior.",
+      "evidence": [
+        {
+          "resource": "repo://.github/workflows/openwiki-update.yml",
+          "version": "repo-file-v1:sha256:ced8692496880cc64d341ffc8dc0f5a507006bca94ad7f48e2d01afad096acaf"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme",
+          "version": "repo-file-v1:sha256:6215ae5d2e32c9f76d70d6401196b14937f7be4b1e06b67db2297f3b81d86aa4"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T03:45:03.442Z"
+  }
+}

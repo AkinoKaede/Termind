@@ -3,9 +3,6 @@ type: asset-production-operations
 title: Marketing Assets, Screenshot Production, Figma Exports, and App Icons
 description: End-to-end rules for localized captures, device frames, website imagery, App Store boards, Figma exports, and layered app-icon sources.
 tags: [marketing, screenshots, figma, app-store, app-icons, localization]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-554fe71f1ba6efebee0d020c
     resource: repo://LandingPage/src/lib/marketingImages.ts
@@ -48,6 +45,9 @@ sources:
   - id: openwiki-source-e2813ac17589f2155998862e
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
 generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T03:23:14.035Z
 ---
 
 # Marketing Assets, Screenshot Production, Figma Exports, and App Icons

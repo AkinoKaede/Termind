@@ -1,0 +1,258 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:d1599e833448b20031493f69c8c932476f7baf92aa01314913874144abcbae24",
+  "claims": [
+    {
+      "id": "claim_6e30bc8cde134c23815d274543d0786c",
+      "statement": "Domain directories hold portable records and rules for hosts, credentials, connections, sessions, transfers, shell commands, sync and templates rather than live transports or concrete storage, and forbidden imports are checked by ArchitectureBoundaryTests.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Credentials/Identity.swift",
+          "version": "repo-file-v1:sha256:48c8c56526f0623938b4509df03fe907e1e2e3066ada5be644b2f752136cdb13"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Hosts/Host.swift",
+          "version": "repo-file-v1:sha256:98a984b1d0adac4987eed0397fed2ec13c97a8cabffd1af4962729391cfcff6e"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Shell/CommandRiskEngine.swift",
+          "version": "repo-file-v1:sha256:9a0c652e044686cf640298be1a540d481365619f68082dc61e07e3a1550c5396"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Transfers/SFTPTransfer.swift",
+          "version": "repo-file-v1:sha256:429494882181f1e24f40b546dea9b663bc60bd7902615cb6f92c25558092fea2"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Workspaces/WorkspaceTemplate.swift",
+          "version": "repo-file-v1:sha256:f8f290109abf9bc7dfdd8ac83e5364a21c6e3af84d925f17d4a34c6e9640f2ee"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L80-L90",
+          "version": "repo-lines-v1:sha256:a70e1a96a99859ec9b7f3e1565cbbb3bdcf6991b3d966bd5ffd2c694de8b1225:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc5YzFiMjZiYzE3ODkyMDBjMGY1MmVlMjhhM2IyZjkzNTRjNWY5YWNhZWUyYzM4NGExNWUyN2FiYmM3NjYwYzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjNTgwYmEwNmVkMzJhOGFhYWJlYWVkNmM5NTgzYTBlMWU3ODllY2QzOGYxMzlmNjcyYWMzMGQ5ZTExNzEzOGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmMmRmOWFkMzQwYjRjNzdlZWE0ODZkNGI4MGJkZWUwNDYwNjQ2ODgzMmVlMDc5NjJkOTRiYzA4YjA1NzRhMmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU3ZWFjNmUzNGY1Nzg0NTJlMzc5YWU4NTgxMjdmMzJjNDQwZTk4MjVjYTM0N2ZiMDAxZTZiMDJjZWNhY2IxMjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b0f4b9a91a374bf5840d021723955410",
+      "statement": "Application owns portable use-case and feature state, including broad HostLibraryModel projections, connection journey/trust/retry coordination, and remote-filesystem and repository ports instead of concrete storage and transports.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift#L101-L179",
+          "version": "repo-lines-v1:sha256:533ca74e852fad806712c7bbfa14a245975770751697182a16e72cb80eabaa5b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1NWU3MzgwNTBkYTA4Y2YyMTc2ZTk2ZTljMTY3OWVlYTJkN2JkM2FmMTY4OTY2YmZhYWQ0ZWYwZWI0MDRiYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhlZjgwMTAyNmM3NTkzM2I1NTdhZGYyYzNiZGRiNmVkYjg1Y2Y3MWMwZTcwYTczYTU5OTBmNjA0MzBjMzhjNjQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L7-L58",
+          "version": "repo-lines-v1:sha256:00b21bada37700f2f5d9ce78816cc1ed89498d6ecb0ea0a9a11016a3f8465358:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5MjlmNGU2OTQ5Y2I4MDA4NjM5YjNjYjkzM2UwNWVmZjRkZWMxNjZhNjdjZDBkOGVjMWVlOGRmYjQzYTQ2YmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0ZjI4MTVkYTkyMmViNWViYTAxNTcxYmViZTlhOTI3ZjM0NDMxODYyMjA0NDYwMDU5MzA0NzdmYTdiYmI2ODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyNDU3YzEzMDE3YjZmZjJkZmI0ZTE1ODFlMGU1MWVjYzNkZGEzNGI1YzEzYjlmM2NiMDM0NTg1Y2FmMzIzNjQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Repositories/VaultStore.swift",
+          "version": "repo-file-v1:sha256:d8bb004dde7b76449c9eb658f138263fdb6ae45dcc161b1a5a0c73bc12d3d92f"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift",
+          "version": "repo-file-v1:sha256:b3b3059070319461a5def85944e803948e907b87ff3c749fc83ba24e184afe0e"
+        }
+      ]
+    },
+    {
+      "id": "claim_669c4efa77b1457a9e7a8c398bdf1243",
+      "statement": "Application Agent coordinates conversation execution through an injected registry and AgentKit services; Remote Infrastructure Agent registers host resolution, SSH/SFTP, metrics and scratch-transfer capabilities alongside runtime-owned tools.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L6-L44",
+          "version": "repo-lines-v1:sha256:c45de1cccebc1889e8de88bb9520e33aeaba05e6c2c8faa7876eba2acb7f3493:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3YzgyYWM5Yzk2MGJhNjIyNDBlYWZkZDE0ZTY2NTI1NjQ2MTMzOTE5NjU2MzNiODhlMWIwNjk5MjY2MGI2NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhZDFiYmYwZjdkYWQyYTAyNGQxMzBmZjQzOWQ5M2Y0ODZhZDQwMmQ5Y2U5N2Q3ZDVhMDZhYTUxNjFlMmIyZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4MjgyYmRhZjE5OTYzODdkODg5MzczMjM0Njc1ZjQ2YTI5N2UxN2RhZjAxMGJjMWI5OGMzNjA0Zjk5OGEwNDMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L5-L68",
+          "version": "repo-lines-v1:sha256:b37728d2b6eed175b24a9d2761439467c6455e58de8c995e99c80bcdd740c58f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NTgzYWUxYWM2NTU4YTlmNGQ0MTYyYzcxZDJjMTk4OTE3OWI2MDljYWE0MDg0OTMzYjZlY2E5YWEzYWU1ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMDBjMjE3MTcwZWFmOGZmOGRmMTgyYzc0Y2FkZDY2YjQ0NWFiOTZiYTVmY2YzOWYyZGE0MjM3YzdmYTA3ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOGJkYjA3YzQ1MDc0ZDQ1OGM1ZTE2N2I2YmNiYzNkNDQ3M2E1NzNlZTExYzQyMzI0NjBjMmIyODZmNmRiNDgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L92-L162",
+          "version": "repo-lines-v1:sha256:09fca2c0116fdebff0ef1b1a8a2dca8ab7fb0923bc8c7d9bab717fd87297bee5:eyJzZWxlY3RlZExpbmVDb3VudCI6NzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4YWJiMjc3OTAyNGI2NzIxNWQ5ODVjYzIwODdjZDRmMzU2YWFiZTJiNWNmMTNmNDA2ZDA3YWFhMjE1ZTBlZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkzNWVhY2VkYTg4Yzg0MTA1MTk1ZjI1ODQ0MGQwNTYzMjMwNjM1YWJlZDA2YjhlOTM2NzYwZDM1MDk5OGU5MTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4ed733207e8b495f9fb9f0db86f1ad04",
+      "statement": "Persistence owns the versioned SwiftData schema/container and persistence adapters, while GRDBMemoryStore separately owns a lazily opened SQLite memory database and full-text message index.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/AISecretStore.swift",
+          "version": "repo-file-v1:sha256:39f0b10f3adf7bf4bf751f9e370e221c8613b8924c40063e8865bc75b6bbdafd"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift#L6-L47",
+          "version": "repo-lines-v1:sha256:367ad381b7e20356b66e497b9e380ad6c8d11ce26150386d054664175c7b2dda:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2ZTgzNWJiMzkzNjdhODBkMDdiMDkxZDJmZGIwODFhZGM0YThkYTg0NmQ4MjhjYjM1YzUzY2IwYzUyMjc4MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZWFjYTU1MGI4N2Y4MTM4MGM0NDM2MDc1YTA3MDQ0NGJkMTRhYWQ4MzMwNTZmNjE0MmYyMDdiNzlhNjdkMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3NTFkYmVhZWI2MDk3MWM4NGIwNWEzYjVjNWZlMmIyN2E2NmY0MjQxZTM5NTkwOTQ1NzU4NzljZGVkMjg1YTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
+          "version": "repo-file-v1:sha256:3f83df3e24721a73fd95f95172c13eeddbf3cfe6c815d51601f6e856068c27b8"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L191-L205",
+          "version": "repo-lines-v1:sha256:c4ec94e716e4cb8b2c13ee93ce7d370e5a3800eae469b89cf13c6870f5fcc45a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMDlmOWExMjczZjgzNDQ3YzRiNzFiYmEyN2YwODAzMzcyMTkyZWZlODBiNmMwMmM1MzA4Y2U1YThkOTI4N2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0MzM5NTc5NTQ5OTAyMTEzNTE2MTA2Mzc0OGM4NTM0ODkyODlkOWExYzlmNDIzMGJkMmM5NzliYjU0NjZlNzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_15c2069e54654cb49ac2a21c36d8dae6",
+      "statement": "Explicit Infrastructure CloudKit coordinators use Persistence journals and stores; the shared SwiftData container disables automatic CloudKit storage, so sync is not an automatic model-container transport.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift",
+          "version": "repo-file-v1:sha256:0231838249d91135b86f0d348eff2d704d3f48820530225f4fb7b3ca71bae69b"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift",
+          "version": "repo-file-v1:sha256:e3743dd6e71f7d3f182c325c1006c3a88aaaa5cd0f96e5cc043e9a6538128c58"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L7-L110",
+          "version": "repo-lines-v1:sha256:7c39d427cfa35171fc07fba08e4211e6ad13bab2d90ae186502c9db6c6bb3776:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzZGRhYzFmMWExMTQ1ZGI0NzdlMzA3NGY2N2FiYjk2ZTk3NDc0M2RhYTYxYzZiZGQ3Mjg0MTAxMWJlYWE2OTU0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1YjdlMmY3MDI5ODRjOTkzZTc3MDhkZWZiZWJhNzdlZDQ1MDkyYjRhNTNlMGZkM2I0YzQzMjkxN2Q3OWU3MGFiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhMzBjNzI1ZjE3YjkzYjRkNTA1YmExMjA5Nzk0MTdmM2U1NzM1MzYxZGY5NjFiY2JkMGM0ZjhlOGRlNmYxNjJmIn0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
+          "version": "repo-file-v1:sha256:3f83df3e24721a73fd95f95172c13eeddbf3cfe6c815d51601f6e856068c27b8"
+        }
+      ]
+    },
+    {
+      "id": "claim_0c911060db0b42a2bd8558b9e730a09b",
+      "statement": "General Infrastructure separates StoreKit entitlement services, launch-file logging, attachment/skill imports, metrics parsers and Apple speech recognition; speech recognition receives an injected audio-input capability rather than owning app-native capture policy.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift",
+          "version": "repo-file-v1:sha256:04545870ebec216975e2c1ae4359e31bb2763b2681005afdcda57023886c7b78"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L1-L85",
+          "version": "repo-lines-v1:sha256:648ae54b495db3779ce5c2f968ce50b65010eaaff4484506f081c03457ea3ee8:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTliNzVmNjRiMTA2ZWI1NDRkZTIwMWY1OTkxMjJkNzVhYmM0ODNjNWIxNTZiYmE2YzA1YzBmOTU2ZGJjM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZhNWVlMDUwYjRiOGIxZjczMTcwM2E3ZTkwZjQ3NzgxNWNiMjAzZTUzYzE4MjhjN2Q0ZWRlODdmZTQ5ZjM5MWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIwNTE3NmU4MmQyODI4MzNmZGU5Nzk4NGExZTc3MjIzOTdjOGQzNWFhNjYyNjQ1MWI2NjQ2NWIwNjJmYzhlYmQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/LinuxMetricsParser.swift",
+          "version": "repo-file-v1:sha256:5593aa4e03f0a3c57a9e944395205c121e48ce03ff3bb9b8ed9e59ccec66b4ca"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Logging/LaunchFileLogService.swift",
+          "version": "repo-file-v1:sha256:3007e0e7092d7615cecf67b91d1bc947509ac91024158fcc050c3f0c501f2a65"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Speech/AppleSpeechTranscriptionService.swift#L1-L87",
+          "version": "repo-lines-v1:sha256:6352972ae1a937dff795e1f856178f850d5e918b8402c3a58e00774e9f07e791:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlZmQxOTg3MWRkOTZjYmM5YTM5Y2RhYmNkZDY1YmUwMjBhODQ0OTRkMzMwNDUxODM1OTNmNGRlMTJmODhlNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVjOWEyZmZhM2I3MjdlYjRlY2NlYmQ5MjU1MWVmZGYzZDUyYzljMDFmZTZlNWI2NTg3NzRkNDY3Njc3MTA1MTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b3f4b0e1f8f04be6a1b215ce680e698d",
+      "statement": "Remote Infrastructure SSH owns connection and channel protocol machinery while Transfers owns file-operation scheduling, transfer contexts and edit lifecycles; logical file admission, SSH session-channel admission and physical connection count are distinct controls.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnection.swift#L63-L90",
+          "version": "repo-lines-v1:sha256:3164f5fe477a6bc014fca034c0fed56c8c039884e744eb6e994b6b76166fe1b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI0YTM2NWE5MGVjMTFlOTA0MzI3NTJjZjkzNzZlYzVlZDM2YjgwYmE1ZThlNjg1NGZjZjk4OTcwZDMwNDQ0NjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmODRiMDEwYjZlMWY0OGQ4MmMyYmM4ZTlhYmQ5Y2Q4NWRkNDVhYWI0YmYwMjdhZDI2YTA5OTU2ZDAwMWZlNjQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift",
+          "version": "repo-file-v1:sha256:d70a2d3a8181b8823d7662fb60d0c16b1b20d32c4e0607f99a453c44e3db62ad"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift",
+          "version": "repo-file-v1:sha256:5de1464ab564c4f8e6f070cfcfb9b58d10ce2ed5db963787ea3e9a1b412755cd"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPEditService.swift",
+          "version": "repo-file-v1:sha256:7018e5ad54cbb39036eaa1f953e0e2f8cd47315c16ce9f51fcc2dca0fe9c06f4"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift",
+          "version": "repo-file-v1:sha256:d3b7475b33fb9336feff196b058ff9a4824f776b92ff9672fb49d6f69e70d978"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L78-L130",
+          "version": "repo-lines-v1:sha256:e40e7d35b50b70b7b5c4f18fb5197a6ef3ce99dc496bcd4f962b9267320b4431:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhNjJhYTkyN2M1ZmY1YzlmNjk0ZDJlNGJjZWFmODVmNTg3MDUyMjkxODYzNjJkNWU1MzFjZDRmY2JlZDkwNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzZjljZGY2MTc5ZWZmZjc5OThlZWJkNDhmNzRlYTJhYmU2OTA2YjM5MmFiMzljYmMyMjVhOWRhMmFkMzVkZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmYTUyMmViMzUwNWYwNjhiNTJkZjYxNTVmZmE5OGMzZDA0YzE1MzhjMWUxZWNiNmUyMzIzMDZhMjZiY2FiNTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZiZTdlYjA0YjEyNzE1YzZjYzlmNDFjNzk1M2ZhMzRmNjM1NjM0ZGJmZWE0OTU1ZWEwN2I5ZjM4NTVlNjRkYWYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8bd04d4baab849948d47145b459c0829",
+      "statement": "Remote Infrastructure Security implements Keychain and key handling, SSHImport reads/stages concrete import sources, and Telnet is a separate transport rather than a path to SSH-only functionality.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSHImport/SSHImportReader.swift",
+          "version": "repo-file-v1:sha256:c9cc26d252d733380b45186c70699fc3ef7e1d09fa323b5fbd40a82d466ebece"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/KeychainSecretStore.swift",
+          "version": "repo-file-v1:sha256:2405251e16865f91611d0e4a999663542dfec5fc318785d1e9f66457632619e4"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Security/SecureEnclaveKey.swift",
+          "version": "repo-file-v1:sha256:a514900656b0f5fca4f65a51d01b623035cdd8a38f2052270e612256a03a730c"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift",
+          "version": "repo-file-v1:sha256:3d74287bd690b560f5feacf29180580fb4552f6d56be4247d00a7011642376d0"
+        }
+      ]
+    },
+    {
+      "id": "claim_00ce8379c73c4b37a5316b4cfb07a86c",
+      "statement": "Presentation contains shared forms, formatting, transcript state, SFTP presentation and terminal appearance, while architecture tests prohibit native UI, persistence and remote-infrastructure dependencies in this framework.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/AssistantTranscriptPresentationState.swift#L6-L44",
+          "version": "repo-lines-v1:sha256:f9ecbc961f95aecdc449c42921074a82d24baeb3a14a49d0eb6e53f3d6b2dcad:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5YmYzM2M3N2QyMzg5MzY2ODA4Y2RlZmNhNTNjNzUzMjMzNzMxYzI0ZWYyOWM2ZjIzNTE1NWM5NDliYTZjYTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzOGNiZTU0MDNhODcyNDlmNWE4MjY3ZGEwOTg1MDk2ZmVkMDQ3ZTZjOTJkOGMyZmE2YTUxYmMwMWVjZDdiOTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4Zjg1M2VhNGM5ZDhhMmRkNDk3M2M5MDRjMmJlM2FjZTZkNjE1NDdiYTQxYWYxZDBjZTM0ZDJiZjAzNGJhNGEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/IdentityFormSections.swift",
+          "version": "repo-file-v1:sha256:7c3c7dd1ba4148f10f1ce45aa97b648555ff481c59d69097d544dce24e66aac0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/SFTP/RemoteFile%2BPresentation.swift",
+          "version": "repo-file-v1:sha256:e27e838481f8b11824eb5d37bce36d22b5c66cbb14464fae3785f77ecd058aa5"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift",
+          "version": "repo-file-v1:sha256:a8ac25cdd81d3d6205d9a1645a307d05b17e4f7690cdb2d8d25cd536d9ca449b"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L179-L189",
+          "version": "repo-lines-v1:sha256:9ae795cb580db70eb440a08fa626cf8b370a155c52c4f587825aa8585d631216:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkNDI5OTVlMWFiMGZhNTYyM2ViZDQ4NzRmMDliZDFhYjBmMjY2OWVkOGQ0Y2E3ZmIyMjU4NjMzYmE0MTVkNjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3NDI5ODQ5YmU0MTZhMzMzMmY5NTcyYmY1NTM5ZDkzOTZjNDEzMjY1MWE4MzhiZGRhZGIzN2IwNzg1OWViMmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a394377c2c224dd28a7ce8861088948f",
+      "statement": "Shared resources provide bundle localization, privacy/model metadata and distribution-icon catalogs/assets, while distribution-icon licensing is stored separately and platform-specific icons remain app-owned.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L5-L13",
+          "version": "repo-lines-v1:sha256:5bf8f722418eac38057a37c2f664f7f78762650fe7e8d0d55318d6aa97bcaba3:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjM4YmQ4MDg4Y2Q5OGMyYTJiZjdjZWUwMjg2NjU0OTRlOTA0MGI0YmIzNTBhYjMwY2VjOThmMmZmNDlkMjUyMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQxNDRhYTY2MzdkYjRiY2Q3MWYxZmE2NDc0MGI1YTJmMDk1YzZiYWYyM2JlOWU1NzJhMGE4Y2VkODJkNzIyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmQ1ZDk4ZDMyNTIxNzM5OGEyYzA4Mzg5YzFlMjg1MDQyMTA2MDQ2OGUzYzI5ODdhODRiMDFjNDM0ZWU2ZDcyZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWQwMTdmYTAzMWI3MzUzMDUxZTQ5YWQxNjI0YTFhNjBlMjAzYzhmYTljN2QxYjE0YjY2ZjU3YjlkMTU5Mzg5NSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/Resources/LinuxDistributionIcons.json",
+          "version": "repo-file-v1:sha256:be46e0d01c6afe28488d3994494278effe58c68d38004913c78b7b76e3bc5abe"
+        },
+        {
+          "resource": "repo://Frameworks/Resources/LinuxDistributionIcons/SimpleIcons.DISCLAIMER.md",
+          "version": "repo-file-v1:sha256:f921095158b73e61e675ff99b327930fa95ad6f4cf667d414ffe8ae585205724"
+        },
+        {
+          "resource": "repo://Frameworks/Resources/PrivacyInfo.xcprivacy",
+          "version": "repo-file-v1:sha256:b844a37603d2a0333ffc87d7c6e50cd7f2563a456f8754ad817778036207cece"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift",
+          "version": "repo-file-v1:sha256:a129d782efe875c18706468fc0aaf8d5191c71287e0ac1f1559027f1fcc13821"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T03:45:03.442Z"
+  }
+}

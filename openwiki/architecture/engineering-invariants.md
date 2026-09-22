@@ -5,7 +5,7 @@ description: Exhaustive architecture, ownership, lifecycle, security, persistenc
 tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:33:04.232Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md

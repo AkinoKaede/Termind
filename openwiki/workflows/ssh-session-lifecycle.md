@@ -5,7 +5,7 @@ description: Traces how Termind prepares SSH and Telnet connections, routes them
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T02:21:47.705Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift

@@ -5,7 +5,7 @@ description: "How Termind installs session-local Bash, Zsh, and Fish hooks over 
 tags: [ssh, terminal, shell-integration, osc, command-history, charset, lifecycle]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T02:43:23.140Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
     resource: repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift

@@ -3,9 +3,6 @@ type: architecture boundaries
 title: System Boundaries and Dependency Ownership
 description: Static framework layers, platform composition roots, persistence ownership, and the external AgentKit boundary that keep Termind changes dependency-safe.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -27,7 +24,10 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "omp", at: "2026-09-22T03:23:14.035Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T03:23:14.035Z
 ---
 
 # System Boundaries and Dependency Ownership
@@ -62,6 +62,8 @@ flowchart TD
 ```
 
 This diagram shows the permitted ownership direction at a high level; apps assemble shared layers and are never dependencies of them.
+
+For a directory-oriented view, start with the [Module and Directory Architecture Map](module-map.md). Its companion guides describe the shared frameworks, native apps, and supporting systems through their second-level functional directories; the build graph there uses explicit consumer-to-dependency arrows.
 
 ## Layer responsibilities
 

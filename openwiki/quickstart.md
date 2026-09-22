@@ -3,9 +3,6 @@ type: engineering quickstart
 title: Termind Engineering Quickstart
 description: A task-oriented guide to finding the right Termind owner, lifecycle boundary, workflow documentation, and focused validation before making a change.
 tags: [engineering, architecture, routing, testing, macos, ios]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T02:51:54.212Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -25,12 +22,23 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
+generated: { by: "omp", at: "2026-09-22T03:23:14.035Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T03:23:14.035Z
 ---
 
 # Termind Engineering Quickstart
 
 Termind is one Xcode project with two native products: `TFM` for macOS and `TFI` for iPhone/iPad. They compose shared static frameworks, but platform UI and lifecycle remain app-owned. Start from the task you intend to change, identify the state and dependency owner, then use the focused tests that protect that boundary. Source and tests are authoritative. Read [Cross-Cutting Engineering Invariants](/openwiki/architecture/engineering-invariants.md) for the exhaustive safety contract, then use the routed specialist page for mechanisms, release operations, and historical benchmark constraints.
+
+## Explore modules and directories
+
+Start with the [Module and Directory Architecture Map](/openwiki/architecture/module-map.md) for module ownership and dependency diagrams. Its companion guides cover at least second-level functional directories, explicitly identify flat modules, and distinguish directory containment from runtime ownership:
+
+- [Shared Framework Directory Responsibilities](/openwiki/architecture/shared-module-directories.md): the six frameworks and shared bundle resources.
+- [Native App Directory Responsibilities](/openwiki/architecture/native-app-directories.md): TFM/TFI application, feature, infrastructure, platform, UI, and resource areas.
+- [Supporting Products, Packages, and Tooling](/openwiki/architecture/supporting-system-directories.md): AgentKit, bridge, widgets, tests, benchmarks, website, assets, and automation.
 
 ## Before editing
 
@@ -44,6 +52,7 @@ Termind is one Xcode project with two native products: `TFM` for macOS and `TFI`
 
 | If you are changing… | Start here | Also inspect | Focused validation |
 | --- | --- | --- | --- |
+| Finding what a module or nested directory owns, or understanding how modules collaborate | [Module and Directory Architecture Map](/openwiki/architecture/module-map.md) | Shared-framework, native-app, and supporting-system directory guides | Follow the owning feature's focused tests; use architecture checks for dependency changes |
 | App startup, dependency assembly, window/scene behavior, backgrounding, or shutdown | [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md) | `TFM/App/TermindApp.swift`, `TFI/App/TermindIOSApp.swift` | Relevant `TFMTests` or `TFITests` lifecycle/window suite |
 | A module import, framework placement, SwiftData model, shared resource, or AgentKit-facing API | [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md) | `TFMTests/ArchitectureBoundaryTests.swift` and the owning composition root | `ArchitectureBoundaryTests` plus the affected feature tests |
 | TFM window chrome, Navigator modes, split panes, persistent workspaces, Vault editors, or desktop Assistant rendering | [TFM Desktop UI Architecture](/openwiki/architecture/desktop-ui.md) | Component and ownership diagrams; [UI Design Principles](/openwiki/concepts/ui-design-principles.md) | Window/sidebar, workspace layout, responsive editor and transcript tests |

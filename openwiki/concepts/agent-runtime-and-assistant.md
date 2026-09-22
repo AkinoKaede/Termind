@@ -5,7 +5,7 @@ description: How Termind assembles AgentKit into durable assistant conversations
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-66f32c7d0994c9f18c0e5a98
     resource: repo://.build/verify-zh-hans/ios/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift

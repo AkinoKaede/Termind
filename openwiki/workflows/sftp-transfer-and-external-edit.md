@@ -5,7 +5,7 @@ description: How SFTP browser operations become scheduled transfers, choose an S
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T02:21:47.705Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift

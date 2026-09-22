@@ -3,9 +3,6 @@ type: architecture
 title: Platform Runtime, App Composition, and Lifetimes
 description: How Termind composes shared services and persistence on macOS and iOS, and where app-wide, window-local, scene-local, and session state begin and end.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T02:51:54.212Z
 sources:
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
@@ -36,6 +33,9 @@ sources:
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
 generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T03:23:14.035Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes

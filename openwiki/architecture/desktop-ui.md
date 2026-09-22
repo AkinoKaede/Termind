@@ -5,7 +5,7 @@ description: "How the macOS app composes its native window shell, persistent wor
 tags: [macos, tfm, ui, navigation, workspaces, swiftui, appkit, design]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T02:51:54.212Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift

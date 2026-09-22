@@ -3,9 +3,6 @@ type: benchmark-operations
 title: Port Forwarding Benchmark Design, Results, and Reproduction
 description: Historical forwarding measurements, workload semantics, retained transport decisions, comparison limits, and reproducible loopback commands.
 tags: [ssh, port-forwarding, benchmark, performance, openssh]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-7f5c1cb6f348742514987bf8
     resource: repo://Benchmarks/PortForwarding/main.swift
@@ -20,6 +17,9 @@ sources:
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
 generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T03:23:14.035Z
 ---
 
 # Port Forwarding Benchmark Design, Results, and Reproduction

@@ -5,7 +5,7 @@ description: How Termind owns SwiftData and GRDB durable data, evolves compatibl
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-4ddcdd630c9bc1c622a037df
     resource: repo://Frameworks/TermindApplication/SecretStoring.swift

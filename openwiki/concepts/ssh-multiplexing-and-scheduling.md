@@ -5,7 +5,7 @@ description: "The concrete ownership and scheduling layers behind Termind SSH: p
 tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T02:43:23.140Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-8e06414c0a0a26e45de192bd
     resource: repo://Frameworks/TermindDomain/Connections/SSHPreferences.swift

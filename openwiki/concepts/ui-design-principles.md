@@ -5,7 +5,7 @@ description: "Source-backed UI principles for TFM and TFI: semantic visual syste
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T02:51:54.212Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-400e4d9303a3f9d98f90660d
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptEntry.swift

@@ -5,7 +5,7 @@ description: "How the iPhone/iPad app composes registered feature stacks, scene-
 tags: [ios, ipados, tfi, ui, navigation, adaptive-layout, swiftui, uikit]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T02:51:54.212Z
+    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift

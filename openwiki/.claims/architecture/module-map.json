@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:c740751a98fe7565940e6e626722edf984d736c49aba612260c8d8fb2ef94c56",
+  "claims": [
+    {
+      "id": "claim_34230e88036241baad093fb8de5bac8e",
+      "statement": "The six shared framework targets have explicit inward build dependencies: Application depends on Domain; Persistence and Presentation on Application and Domain; Infrastructure on Persistence, Application and Domain; Remote Infrastructure on Infrastructure, Application and Domain. Both native app targets depend on all six.",
+      "evidence": [
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+        }
+      ]
+    },
+    {
+      "id": "claim_2324a55cebbd45be98b1e10c43bd8612",
+      "statement": "Shared frameworks cannot import either app target, while Domain, Application and Presentation have additional implementation and platform restrictions enforced by ArchitectureBoundaryTests.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L205",
+          "version": "repo-lines-v1:sha256:6f9d39ddb763be1beb60a35b34cd7d75ce295813b69e1c913dabfa886fb87672:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMDlmOWExMjczZjgzNDQ3YzRiNzFiYmEyN2YwODAzMzcyMTkyZWZlODBiNmMwMmM1MzA4Y2U1YThkOTI4N2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0MzM5NTc5NTQ5OTAyMTEzNTE2MTA2Mzc0OGM4NTM0ODkyODlkOWExYzlmNDIzMGJkMmM5NzliYjU0NjZlNzYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L70-L122",
+          "version": "repo-lines-v1:sha256:99e13181818902dd10a0752232d9b88d1202274b2d8bb1f6662e37bd185bcdb5:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkOTZjN2U3ZTUxOGViZWYxZjQ2ZGJiNmM3OGRmYTM5MjBkZjE3OGE0NmQ1MTQ0MGFjY2YwNjc3ZTE5YjMyMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg5MjdkODJhMjlhYzUyNjBiY2I0NjJkZjEwYmI2MmQ3ZjUwODg1ZjAwNWVmY2MwMTcyY2Y0ZjRjMDliZjE0MTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU3MzQyYWI0YTU1NDg5ZmFhZjMxZDM3NTgwY2YzZjI5MmYxZmUwMjI2MzhhMWRkZGQxNzM0YTBiYzZkM2ZhZjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_21d4af48001440ed87086cb064ff3378",
+      "statement": "The application targets assemble concrete stores and services; desktop WindowModel owns window-local workspaces and navigation, whereas mobile scene navigation selects app-owned live workspace instances.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:f84584e85c49f80b312450980f1a741b62d7816892c3a0574edf5312e8fa4adc"
+        },
+        {
+          "resource": "repo://TFI/App/MobileSceneModel.swift#L9-L48",
+          "version": "repo-lines-v1:sha256:c97b3079703d5b843ec181ca74ca90ffdaba21804a82899731ee8a8e6e6fee56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlMzBiMWNmYzNlMDdhNWQzNDFjZTY5NjdjZDYzMTI4MWQzYzQwYmYzMWQzNTI1MTM2M2MyNzYxN2NiZmIwMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNTQ1YzBjNDIzZTliY2M2YjQ2MmYyZDE3MjM1MzA5NzkwNzI5ZDAyNzEwYjIzYWM0MjA1YWUxYjdkYzgzN2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlMzM2NGIwNzc5MDQ0MmMxZjE2NTM1MjJlZDhiMzY1ODcxNDNiZTZlNzEwNDA2ZmZjOTI5ZDZhM2U5ODcyY2IifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L13-L159",
+          "version": "repo-lines-v1:sha256:4c3e634889e145d4c87210fbe24bbe3604039684abb44ccebb708343b5ac6cd2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1Y2ZiZGJiNTAxNmFjN2RlZWE1NmU4OTBhZTkzYWQ3NzM2NWNiNGQ4YTBkODY4YjJlNmM5YmUzY2MxMWM0NjRkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5YTE1YWJkZGFiMDU4NmY2YmMxYjFhYzVmYzdiMGIyYTk3MzM1ZWNjOTYyNTg5ZDc3YThiMGJiMTNkYThmNGQzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1YTJkYjY2ZjRhNTMyNTc1ZGM1MGZiYzkxY2Y0YmNhOGIxNWQ3ZThkMmJlOWY1Y2MxOGUwNjYyNjU5YzBhNWY4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MmMzODZhMWQ3MWExZDc1Nzk2NzM1MWJiMTdiNTU2MWVkMjNkODYwYzc0NjUxODVkZTBmNjliN2ZkZjFlYTViIn0"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L15-L106",
+          "version": "repo-lines-v1:sha256:6531d20ce697bdbcd8d29c4d93f1ced4851f4d6bc48e5e9f9d8f0609eaab3034:eyJzZWxlY3RlZExpbmVDb3VudCI6OTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwOTJkZGExNzNhMjQyOTg1N2E4ZTE0NjQzODVlOTU3MDFjZTM5MDU5ZDFhYzhjNGIwYjMzY2RhMmE1ZWEyMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyYzE3ZTc4YTkyNDNkYmFhZWY3ZDczZDdlMTZjYTc5YmFlMjNlOTlkNDE4ZjE2NTAwZTgwZjYyNmNmMzMzYzEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_caa2ceec25e74113b09ace71e14dff97",
+      "statement": "The MCP bridge is a separate authenticated stdio-to-HTTP executable, the widget renders ActivityKit workspace summaries, and the forwarding benchmark is a standalone shared-framework consumer rather than app/test-host logic.",
+      "evidence": [
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L1-L21",
+          "version": "repo-lines-v1:sha256:e3ddb6b1bcb7563b63da531f216d3acb8837d52222548b173b661a217a6ab01c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1OGEyZDdmYzIzNTUyOWMzYWJiMjVmNmUzZDA4N2I2NGE1YmJkMGRkZTU5OTgxMTMzNGU3NDkzNTAyMmQxMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4OTJkZmZiOTYyYjg1NzE3MGE5ZGYwMDIwYzJlNWZmMTY0MzE0NDk3YzI4ZjBmZWU3NDQ5ZGJmZGNmZGRlMDcifQ"
+        },
+        {
+          "resource": "repo://TFIWidgets/WorkspaceLiveActivity.swift#L6-L52",
+          "version": "repo-lines-v1:sha256:cd3c4ccacb8be12c499b6aba3117a2c5233ef2beb1ce0a7f5bb96a1742d9c690:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmODhlNjc1Yzg4M2QwZTJiNWU2ZTkzMmNkNjU1NDVhMGVlOTU3MzJjODk2ZmZjZjBjMGMzYTRhMzIzMDk0Y2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiZjQxNGZiMjQ2NmU1MmIzYzA1N2M1NjUyZmVkZmVmYjljYjYyYWVmMzJiZmRlMWU4NjkyODkxYTU3NTdkOGQifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+        },
+        {
+          "resource": "repo://TermindMCPBridge/main.swift#L4-L87",
+          "version": "repo-lines-v1:sha256:ecccf30acbd284a663e31c1aa7f40e224b2264fb038003a81dceaa30c6449866:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3M2Y1YTY5MGEwZjAwODY0Y2RmNDU3MjY3OTAxZjNkNzg5ZmRjYzgwNzQ5NzlmNWUzMDQ2ODVlMjFiMzNlNTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0ODcxYWY5NDg1Yzg3ZThjMGM0ZGNhN2IyYTI3MThiOWY5YTJmN2QxM2RlYWM1Y2MyYTY5YzgyNWVhY2ViZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        },
+        {
+          "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift#L4-L41",
+          "version": "repo-lines-v1:sha256:b23f58dadcdfc0f02ca591368dc6b9ab3c6792391da006474389c3dc4df14cab:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc0MzJiYWQ2MmU2M2RlM2Q2MmI4NmZjMGYwZGI3OTk2ODAwNzdhOTgxMTc1MmUzYTYzNWE1NDZjMjY2NTY3MjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRhNWU1NDIyN2I4NTBjMGQ1MzE2ZDcwMDBkMDkxNDEyMTMwNzI1YjU2ZWQxZjk5MjlkNDhjZTIwZWE2NDU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFiZWNmMmM1YzNiMzhlM2IwOThjM2JmYjk2MjhkODdiYmQxMDQ1MGM5M2U4ZWFhMGE5YmUzNGZiZGY3MjUwYmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3838ae44b04f4f94b54d6354e7287a49",
+      "statement": "AgentKit has a reference submodule checkout but Xcode declares a versioned remote package; Termind registers host-specific SSH/SFTP tools on its side of the host-neutral runtime boundary.",
+      "evidence": [
+        {
+          "resource": "repo://.gitmodules",
+          "version": "repo-file-v1:sha256:d44aba833f5460dbae6fe83e58327069b8ca0528c32f0bd299bf7d56e1acb99c"
+        },
+        {
+          "resource": "repo://AGENTS.md#L16-L18",
+          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTVkOTdmMmUwNzM5MTAzZjc1MTA1MjljNjA1Zjg0OTIzMTdkNDJmNDA5NzEwNGFmMmRkMjBiOGUyNmZhMmNmNyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L5-L68",
+          "version": "repo-lines-v1:sha256:b37728d2b6eed175b24a9d2761439467c6455e58de8c995e99c80bcdd740c58f:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NTgzYWUxYWM2NTU4YTlmNGQ0MTYyYzcxZDJjMTk4OTE3OWI2MDljYWE0MDg0OTMzYjZlY2E5YWEzYWU1ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMDBjMjE3MTcwZWFmOGZmOGRmMTgyYzc0Y2FkZDY2YjQ0NWFiOTZiYTVmY2YzOWYyZGE0MjM3YzdmYTA3ZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxOGJkYjA3YzQ1MDc0ZDQ1OGM1ZTE2N2I2YmNiYzNkNDQ3M2E1NzNlZTExYzQyMzI0NjBjMmIyODZmNmRiNDgifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+        }
+      ]
+    },
+    {
+      "id": "claim_8a0a58443efc4ec8ac181749aa968477",
+      "statement": "Cross-feature responsibility is split among Application policy, concrete shared adapters, Persistence stores and native owners: remote files use a filesystem port plus a transfer coordinator; Assistant execution uses an injected tool-registry factory; Vault sync uses persistence journals; speech uses an injected native audio input.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L6-L44",
+          "version": "repo-lines-v1:sha256:c45de1cccebc1889e8de88bb9520e33aeaba05e6c2c8faa7876eba2acb7f3493:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3YzgyYWM5Yzk2MGJhNjIyNDBlYWZkZDE0ZTY2NTI1NjQ2MTMzOTE5NjU2MzNiODhlMWIwNjk5MjY2MGI2NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhZDFiYmYwZjdkYWQyYTAyNGQxMzBmZjQzOWQ5M2Y0ODZhZDQwMmQ5Y2U5N2Q3ZDVhMDZhYTUxNjFlMmIyZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4MjgyYmRhZjE5OTYzODdkODg5MzczMjM0Njc1ZjQ2YTI5N2UxN2RhZjAxMGJjMWI5OGMzNjA0Zjk5OGEwNDMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift#L4-L14",
+          "version": "repo-lines-v1:sha256:ce92958f184f7427126be5f0045c85a121a0317b2bcd2c60fe14cd86865a6729:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4MjFjYzM3NDQ0NmVjYzg1NGM1ZjEzZGQ2MjI2YTk3YzI1NGJhOWJjOGM2YTY2MzE3YWQ4ZTgxODI5N2FkODkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3NDk0Mzc2NWVlNTY3ZGY4Zjk2MjA3OTkwNzBhY2ViNjVmYmRmNDdjMDA4OGZkMTUzNTBlNGRhNzAzNDY4YWYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L7-L62",
+          "version": "repo-lines-v1:sha256:fc034f6f2bbd33b6ba610a823bc3bee643f198b20401f96a82f0cda5e6f7e1a5:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViN2UyZjcwMjk4NGM5OTNlNzcwOGRlZmJlYmE3N2VkNDUwOTJiNGE1M2UwZmQzYjRjNDMyOTE3ZDc5ZTcwYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY0ODdhNjEwMjAzMTE4NmJmNzcxYzA2YjAxMGQ4NWZiZGUyZGVlNzFkOTA5YmVkZDM2OTUwMTc5ZDM1NWM4NjgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L78-L130",
+          "version": "repo-lines-v1:sha256:e40e7d35b50b70b7b5c4f18fb5197a6ef3ce99dc496bcd4f962b9267320b4431:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhNjJhYTkyN2M1ZmY1YzlmNjk0ZDJlNGJjZWFmODVmNTg3MDUyMjkxODYzNjJkNWU1MzFjZDRmY2JlZDkwNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzZjljZGY2MTc5ZWZmZjc5OThlZWJkNDhmNzRlYTJhYmU2OTA2YjM5MmFiMzljYmMyMjVhOWRhMmFkMzVkZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmYTUyMmViMzUwNWYwNjhiNTJkZjYxNTVmZmE5OGMzZDA0YzE1MzhjMWUxZWNiNmUyMzIzMDZhMjZiY2FiNTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZiZTdlYjA0YjEyNzE1YzZjYzlmNDFjNzk1M2ZhMzRmNjM1NjM0ZGJmZWE0OTU1ZWEwN2I5ZjM4NTVlNjRkYWYifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T03:23:14.035Z"
+  }
+}
