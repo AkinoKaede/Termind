@@ -18,13 +18,13 @@ struct MobileWorkspaceMenuTests {
                 library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
                 workspace: workspace, workspaces: [opened, dormant],
                 selectWorkspace: { _ in }, renameWorkspace: { _ in }, canCloseMultipleWorkspaces: true,
-                openSameDirectory: { _ in }, closeWorkspace: { _ in }, closeOtherWorkspaces: { _ in },
-                closeAllWorkspaces: {}
+                openSameDirectory: { _ in }, closeWorkspace: { _ in }, closeOtherWorkspaces: { _ in }
             )
             .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: true))
         ) { navigation in
             let button = try #require(toolbarButton(named: "Workspaces", in: navigation))
-            let actions = try await resolvedMenuActions(#require(button.menu), in: navigation.view)
+            let menu = try await resolvedMenu(#require(button.menu), in: navigation.view)
+            let actions = menuActions(menu)
             #expect(actions.map(\.title) == ["Opened", "Dormant"])
         }
     }
@@ -37,14 +37,24 @@ struct MobileWorkspaceMenuTests {
             LifecycleMenuHost(canCloseMultipleWorkspaces: canCloseMultipleWorkspaces)
         ) { navigation in
             let button = try #require(toolbarButton(named: "Workspace Actions", in: navigation))
-            let actions = try await resolvedMenuActions(#require(button.menu), in: navigation.view)
+            let menu = try await resolvedMenu(#require(button.menu), in: navigation.view)
+            let actions = menuActions(menu)
             let expected =
                 canCloseMultipleWorkspaces
-                ? ["Rename", "Close", "Close Other Workspaces", "Close All Workspaces"]
+                ? ["Rename", "Close", "Close Other Workspaces"]
                 : ["Rename", "Close"]
             #expect(actions.map(\.title) == expected)
             #expect(!actions[0].attributes.contains(.destructive))
             #expect(actions.dropFirst().allSatisfy { $0.attributes.contains(.destructive) })
+            #expect(actions.contains { $0.title == "Close All Workspaces" } == false)
+            if canCloseMultipleWorkspaces {
+                let closeOthers = try #require(actions.last)
+                #expect(closeOthers.image == UIImage(systemName: "xmark"))
+            }
+            let separatedActions = menu.children.compactMap { $0 as? UIMenu }
+                .filter { $0.options.contains(.displayInline) }
+                .map { menuActions($0).map(\.title) }
+            #expect(separatedActions == (canCloseMultipleWorkspaces ? [["Close Other Workspaces"]] : []))
         }
     }
 
@@ -69,7 +79,7 @@ struct MobileWorkspaceMenuTests {
         try await check(navigation)
     }
 
-    private func resolvedMenuActions(_ menu: UIMenu, in view: UIView) async throws -> [UIAction] {
+    private func resolvedMenu(_ menu: UIMenu, in view: UIView) async throws -> UIMenu {
         let button = UIButton(frame: CGRect(x: 100, y: 100, width: 44, height: 44))
         button.menu = menu
         button.showsMenuAsPrimaryAction = true
@@ -78,14 +88,14 @@ struct MobileWorkspaceMenuTests {
         button.performPrimaryAction()
         try await Task.sleep(for: .milliseconds(500))
         let interaction = try #require(button.contextMenuInteraction)
-        var actions: [UIAction] = []
+        var resolvedMenu: UIMenu?
         interaction.updateVisibleMenu { resolved in
-            actions = menuActions(resolved)
+            resolvedMenu = resolved
             return resolved
         }
         interaction.dismissMenu()
         try await Task.sleep(for: .milliseconds(300))
-        return actions
+        return try #require(resolvedMenu)
     }
 
     private func menuActions(_ menu: UIMenu) -> [UIAction] {
@@ -132,7 +142,7 @@ private struct LifecycleMenuHost: View {
                     Menu {
                         MobileWorkspaceLifecycleMenuActions(
                             canCloseMultipleWorkspaces: canCloseMultipleWorkspaces,
-                            rename: {}, close: {}, closeOthers: {}, closeAll: {})
+                            rename: {}, close: {}, closeOthers: {})
                     } label: {
                         Label("Workspace Actions", systemImage: "ellipsis")
                     }

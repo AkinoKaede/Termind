@@ -180,7 +180,7 @@ struct MobileWorkspaceDropTests {
                     workspace: workspace, workspaces: [workspace.descriptor], selectWorkspace: { _ in },
                     renameWorkspace: { _ in }, canCloseMultipleWorkspaces: false,
                     openSameDirectory: { _ in }, closeWorkspace: { _ in },
-                    closeOtherWorkspaces: { _ in }, closeAllWorkspaces: {})
+                    closeOtherWorkspaces: { _ in })
             }
             .environment(\.scenePhase, .active))
         window.rootViewController = controller
@@ -240,7 +240,7 @@ struct MobileWorkspaceDropTests {
                     workspace: workspace, workspaces: [workspace.descriptor], selectWorkspace: { _ in },
                     renameWorkspace: { _ in }, canCloseMultipleWorkspaces: false,
                     openSameDirectory: { _ in }, closeWorkspace: { _ in },
-                    closeOtherWorkspaces: { _ in }, closeAllWorkspaces: {})
+                    closeOtherWorkspaces: { _ in })
             }
             .environment(\.scenePhase, .active)
             .transaction { $0.disablesAnimations = true })

@@ -84,8 +84,7 @@ struct MobileWorkspaceListView: View {
                     canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
                     openSameDirectory: scene.openSameDirectory,
                     closeWorkspace: scene.closeWorkspace,
-                    closeOtherWorkspaces: scene.closeOtherWorkspaces,
-                    closeAllWorkspaces: scene.closeAllWorkspaces
+                    closeOtherWorkspaces: scene.closeOtherWorkspaces
                 )
                 // The title menu replaces this pushed detail in place. A new identity tears down
                 // SFTP's native search state before an SSH detail is mounted.
@@ -171,8 +170,7 @@ struct MobileWorkspaceListView: View {
                     canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
                     rename: { scene.beginWorkspaceRename(item.descriptor) },
                     close: { scene.closeWorkspace(item.id) },
-                    closeOthers: { scene.closeOtherWorkspaces(than: item.id) },
-                    closeAll: scene.closeAllWorkspaces
+                    closeOthers: { scene.closeOtherWorkspaces(than: item.id) }
                 )
             }
         }

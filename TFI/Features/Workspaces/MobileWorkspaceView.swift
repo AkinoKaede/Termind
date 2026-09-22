@@ -29,7 +29,6 @@ struct MobileWorkspaceView: View {
     let openSameDirectory: (MobileWorkspaceDirectoryLaunch) -> Void
     let closeWorkspace: (UUID) -> Void
     let closeOtherWorkspaces: (UUID) -> Void
-    let closeAllWorkspaces: () -> Void
     @State private var terminalSheet: TerminalSheet?
     @State private var importing = false
     @State private var directoryName = ""
@@ -245,8 +244,7 @@ struct MobileWorkspaceView: View {
             canCloseMultipleWorkspaces: canCloseMultipleWorkspaces,
             rename: { renameWorkspace(workspace.descriptor) },
             close: { closeWorkspace(workspace.id) },
-            closeOthers: { closeOtherWorkspaces(workspace.id) },
-            closeAll: closeAllWorkspaces
+            closeOthers: { closeOtherWorkspaces(workspace.id) }
         )
     }
 
@@ -751,15 +749,13 @@ struct MobileWorkspaceLifecycleMenuActions: View {
     let rename: () -> Void
     let close: () -> Void
     let closeOthers: () -> Void
-    let closeAll: () -> Void
 
     var body: some View {
         Button("Rename", systemImage: "pencil", action: rename)
-        Divider()
         Button("Close", systemImage: "xmark", role: .destructive, action: close)
         if canCloseMultipleWorkspaces {
-            Button("Close Other Workspaces", role: .destructive, action: closeOthers)
-            Button("Close All Workspaces", systemImage: "xmark", role: .destructive, action: closeAll)
+            Divider()
+            Button("Close Other Workspaces", systemImage: "xmark", role: .destructive, action: closeOthers)
         }
     }
 }

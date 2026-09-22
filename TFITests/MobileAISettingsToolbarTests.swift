@@ -81,7 +81,7 @@ private struct WorkspaceTabBarHarness: View {
                         selectWorkspace: { _ in }, renameWorkspace: { _ in },
                         canCloseMultipleWorkspaces: false,
                         openSameDirectory: { _ in }, closeWorkspace: { _ in },
-                        closeOtherWorkspaces: { _ in }, closeAllWorkspaces: {})
+                        closeOtherWorkspaces: { _ in })
                 } else {
                     Text("Workspaces")
                 }
