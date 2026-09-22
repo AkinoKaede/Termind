@@ -8,6 +8,24 @@ private enum MobileWorkspaceListMetrics {
     static let rowSpacing: CGFloat = 12
 }
 
+enum MobileWorkspaceConnectionIndicator: Equatable {
+    case connected
+    case busy
+
+    static func resolve(connected: Bool, busy: Bool, reconnecting: Bool) -> Self? {
+        if connected { return .connected }
+        if busy || reconnecting { return .busy }
+        return nil
+    }
+
+    var tint: Color {
+        switch self {
+        case .connected: .green
+        case .busy: .orange
+        }
+    }
+}
+
 /// The registered Workspaces destination.
 struct MobileWorkspaceListView: View {
     let app: MobileAppModel
@@ -111,9 +129,15 @@ struct MobileWorkspaceListView: View {
                 HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
                     ZStack(alignment: .bottomTrailing) {
                         hostIcon(item.host)
-                        if let workspace = item.workspace {
+                        if let workspace = item.workspace,
+                            let indicator = MobileWorkspaceConnectionIndicator.resolve(
+                                connected: workspace.connected,
+                                busy: workspace.busy,
+                                reconnecting: workspace.reconnectState != nil
+                            )
+                        {
                             Circle()
-                                .fill(statusTint(for: workspace))
+                                .fill(indicator.tint)
                                 .frame(width: 8, height: 8)
                                 .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
                         }
@@ -266,9 +290,4 @@ struct MobileWorkspaceListView: View {
         }
     }
 
-    private func statusTint(for workspace: MobileWorkspace) -> Color {
-        if workspace.connected { return .green }
-        if workspace.busy || workspace.reconnectState != nil { return .orange }
-        return .secondary
-    }
 }

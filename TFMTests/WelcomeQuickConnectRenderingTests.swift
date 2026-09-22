@@ -2,12 +2,130 @@ import AppKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import Testing
 
 @testable import Termind
 
 @Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct WelcomeQuickConnectRenderingTests {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
+    func welcomeGlassRowsRenderRecentsHostsAndOneOffConnections(_ language: String) async throws {
+        let localDeviceID = UUID()
+        let ubuntuDistribution = try #require(DetectedDistribution(id: "ubuntu"))
+        let unknownDistribution = try #require(DetectedDistribution(id: "termind-test-os"))
+        let ubuntu = Host(
+            name: "Ubuntu Server", host: "ubuntu.example", colorTag: .orange,
+            detectedDistribution: ubuntuDistribution
+        )
+        let unknown = Host(
+            name: "Unknown Server", host: "unknown.example",
+            detectedDistribution: unknownDistribution
+        )
+        let disconnected = Host(
+            name: "Disconnected Server", host: "disconnected.example"
+        )
+        let template = WorkspaceTemplate(
+            name: "Operations",
+            layout: .split(
+                axis: .horizontal,
+                fraction: 0.5,
+                first: .pane(.ssh(hostID: ubuntu.id)),
+                second: .pane(.ssh(hostID: unknown.id))
+            )
+        )
+        let library = HostLibraryModel(
+            hosts: [ubuntu, unknown, disconnected], workspaceTemplates: [template]
+        )
+        library.setStatus(.connected, for: ubuntu.id)
+        library.setStatus(.connecting, for: unknown.id)
+        let history = ConnectionHistoryModel(
+            entries: [
+                ConnectionHistoryEntry(
+                    hostID: ubuntu.id, kind: .ssh,
+                    connectedAt: Date(timeIntervalSince1970: 20),
+                    sourceDeviceID: localDeviceID
+                ),
+                ConnectionHistoryEntry(
+                    hostID: unknown.id, kind: .ssh,
+                    connectedAt: Date(timeIntervalSince1970: 10),
+                    sourceDeviceID: localDeviceID
+                ),
+                ConnectionHistoryEntry(
+                    hostID: disconnected.id, kind: .ssh,
+                    connectedAt: Date(timeIntervalSince1970: 5),
+                    sourceDeviceID: localDeviceID
+                ),
+            ],
+            sourceDeviceID: localDeviceID
+        )
+        let app = AppModel(hosts: library, connectionHistory: history)
+        let navigation = WindowModel()
+        let controller = NSHostingController(
+            rootView: WelcomeView().environment(app).environment(navigation)
+                .environment(\.locale, Locale(identifier: language))
+        )
+        let window = NSWindow(
+            contentRect: CGRect(x: 0, y: 0, width: 680, height: 620),
+            styleMask: [.titled, .resizable], backing: .buffered, defer: false
+        )
+        window.isReleasedWhenClosed = false
+        controller.sizingOptions = []
+        window.contentViewController = controller
+        window.makeKeyAndOrderFront(nil)
+        window.setContentSize(CGSize(width: 680, height: 620))
+        controller.view.frame = CGRect(x: 0, y: 0, width: 680, height: 620)
+        defer {
+            app.shutdownForTermination()
+            window.orderOut(nil)
+            window.contentViewController = nil
+            window.close()
+        }
+
+        #expect(LinuxDistributionIconCatalog.entry(for: ubuntuDistribution) != nil)
+        #expect(LinuxDistributionIconCatalog.entry(for: unknownDistribution) == nil)
+
+        try await Task.sleep(for: .milliseconds(150))
+        let field = try #require(
+            descendants(controller.view).compactMap { $0 as? NSTextField }.first { $0.isEditable }
+        )
+        for (appearanceName, appearance) in [
+            ("light", NSAppearance.Name.aqua),
+            ("dark", NSAppearance.Name.darkAqua),
+        ] {
+            window.appearance = NSAppearance(named: appearance)
+
+            try await update(field, with: "", in: controller.view)
+            try capture(
+                controller.view,
+                name: "welcome-glass-recents-\(appearanceName)-\(language)"
+            )
+
+            try await update(field, with: "Server", in: controller.view)
+            try capture(
+                controller.view,
+                name: "welcome-glass-hosts-\(appearanceName)-\(language)"
+            )
+
+            try await update(field, with: "ssh deploy@one-off.example", in: controller.view)
+            try capture(
+                controller.view,
+                name: "welcome-glass-connect-once-\(appearanceName)-\(language)"
+            )
+
+            window.setContentSize(CGSize(width: 360, height: 620))
+            controller.view.frame = CGRect(x: 0, y: 0, width: 360, height: 620)
+            try await Task.sleep(for: .milliseconds(50))
+            controller.view.layoutSubtreeIfNeeded()
+            try capture(
+                controller.view,
+                name: "welcome-glass-narrow-\(appearanceName)-\(language)"
+            )
+            window.setContentSize(CGSize(width: 680, height: 620))
+            controller.view.frame = CGRect(x: 0, y: 0, width: 680, height: 620)
+        }
+    }
+
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
     func welcomePreviewsCommandsAndRejectsRemoteCommands(_ language: String) async throws {
         let library = HostLibraryModel()
@@ -79,6 +197,15 @@ struct WelcomeQuickConnectRenderingTests {
 
     private func descendants(_ view: NSView) -> [NSView] {
         [view] + view.subviews.flatMap(descendants)
+    }
+
+    private func update(_ field: NSTextField, with value: String, in view: NSView) async throws {
+        field.stringValue = value
+        field.delegate?.controlTextDidChange?(
+            Notification(name: NSControl.textDidChangeNotification, object: field)
+        )
+        try await Task.sleep(for: .milliseconds(50))
+        view.layoutSubtreeIfNeeded()
     }
 
     private func capture(_ view: NSView, name: String) throws {

@@ -1057,10 +1057,28 @@ struct WelcomeView: View {
     // MARK: - Actions
 
     private var actions: some View {
-        HStack(spacing: Metrics.Space.l) {
-            Button("Connect") { app.connect(in: window) }
-            Button("Batch Startup") { app.batchStartup(in: window) }
-            Button("New Chat") { window.openNewAssistantChat() }
+        WelcomeGlassGroup(spacing: Metrics.Space.l) {
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: Metrics.Space.l) {
+                    actionButtons
+                }
+                VStack(spacing: Metrics.Space.s) {
+                    actionButtons
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var actionButtons: some View {
+        WelcomeActionButton(title: "Connect", symbol: MenuSymbol.connect) {
+            app.connect(in: window)
+        }
+        WelcomeActionButton(title: "Batch Startup", symbol: MenuSymbol.batchStartup) {
+            app.batchStartup(in: window)
+        }
+        WelcomeActionButton(title: "New Chat", symbol: MenuSymbol.newChat) {
+            window.openNewAssistantChat()
         }
     }
 
@@ -1126,8 +1144,70 @@ struct WelcomeView: View {
             Text(title)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
-            content()
+            WelcomeGlassGroup(spacing: Metrics.Space.s) {
+                VStack(spacing: Metrics.Space.s) {
+                    content()
+                }
+            }
         }
+    }
+}
+
+/// Liquid Glass renders neighbouring controls as one responsive family on
+/// macOS 26. Earlier systems keep the same layout while each child uses the
+/// native material fallback supplied by `termindGlassSurface`.
+private struct WelcomeGlassGroup<Content: View>: View {
+    let spacing: CGFloat
+    @ViewBuilder let content: Content
+
+    @ViewBuilder
+    var body: some View {
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing) {
+                content
+            }
+        } else {
+            content
+        }
+    }
+}
+
+private struct WelcomeActionButton: View {
+    let title: LocalizedStringKey
+    let symbol: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Label(title, systemImage: symbol)
+                .font(.callout.weight(.medium))
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, Metrics.Space.l)
+                .padding(.vertical, Metrics.Space.s)
+                .contentShape(.capsule)
+        }
+        .buttonStyle(.plain)
+        .termindGlassCapsule(isInteractive: true)
+    }
+}
+
+private struct WelcomeLeadingIcon: View {
+    let symbol: String
+    var tint: Color = .accentColor
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: Metrics.Welcome.leadingIconSize * 0.25)
+            .fill(tint.opacity(0.16))
+            .frame(
+                width: Metrics.Welcome.leadingIconSize,
+                height: Metrics.Welcome.leadingIconSize
+            )
+            .overlay {
+                Image(systemName: symbol)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(tint)
+            }
+            .accessibilityHidden(true)
     }
 }
 
@@ -1144,6 +1224,10 @@ private struct WelcomeWorkspaceTemplateRow: View {
     @ViewBuilder
     var body: some View {
         content
+            .termindGlassSurface(
+                cornerRadius: Metrics.Radius.medium,
+                isInteractive: !isRenaming
+            )
             .contextMenu {
                 Button("Rename", systemImage: MenuSymbol.rename) { beginRename() }
                 Divider()
@@ -1184,9 +1268,7 @@ private struct WelcomeWorkspaceTemplateRow: View {
 
     private var row: some View {
         HStack(spacing: Metrics.Space.m) {
-            Image(systemName: "rectangle.split.2x1")
-                .foregroundStyle(.secondary)
-                .frame(width: Metrics.Welcome.leadingIconWidth)
+            WelcomeLeadingIcon(symbol: MenuSymbol.workspace)
             if isRenaming {
                 SidebarInlineRenameField(
                     text: $renameTitle,
@@ -1220,7 +1302,6 @@ private struct WelcomeWorkspaceTemplateRow: View {
             maxHeight: Metrics.Welcome.rowHeight,
             alignment: .leading
         )
-        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.medium))
         .contentShape(.rect)
     }
 
@@ -1273,8 +1354,10 @@ private struct WelcomeHostRow: View {
             app.open(host, as: .preferredTerminal, in: window)
         } label: {
             HStack(spacing: Metrics.Space.m) {
-                StatusDot(status: app.hostLibrary.status(of: host.id))
-                    .frame(width: Metrics.Welcome.leadingIconWidth)
+                WelcomeHostIcon(
+                    host: host,
+                    status: app.hostLibrary.status(of: host.id)
+                )
                 VStack(alignment: .leading, spacing: Metrics.Space.xs) {
                     Text(host.name)
                         .lineLimit(1)
@@ -1296,10 +1379,10 @@ private struct WelcomeHostRow: View {
                 maxHeight: Metrics.Welcome.rowHeight,
                 alignment: .leading
             )
-            .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.medium))
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
+        .termindGlassSurface(cornerRadius: Metrics.Radius.medium, isInteractive: true)
         .contextMenu {
             HostContextMenu(
                 host: host,
@@ -1323,6 +1406,45 @@ private struct WelcomeHostRow: View {
     }
 }
 
+private struct WelcomeHostIcon: View {
+    let host: Host
+    let status: ConnectionStatus
+
+    @Environment(\.colorScheme) private var colorScheme
+
+    var body: some View {
+        HostSystemIcon(
+            asset: distributionEntry?.asset,
+            size: Metrics.Welcome.leadingIconSize
+        )
+        .tint(iconTint)
+        .overlay(alignment: .bottomTrailing) {
+            if status != .disconnected {
+                StatusDot(status: status, size: Metrics.Sidebar.statusDot)
+                    .padding(2)
+                    .background(TermindColor.windowSurface, in: .circle)
+                    .overlay {
+                        Circle()
+                            .strokeBorder(TermindColor.separator.opacity(0.8), lineWidth: 0.5)
+                    }
+                    .offset(x: 2, y: 2)
+            }
+        }
+    }
+
+    private var distributionEntry: LinuxDistributionIconEntry? {
+        LinuxDistributionIconCatalog.entry(for: host.detectedDistribution)
+    }
+
+    private var iconTint: Color {
+        host.colorTag.color
+            ?? distributionEntry.flatMap {
+                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
+            }
+            ?? TermindColor.accent
+    }
+}
+
 /// A resolved command preview. Only the explicit actions open or save it.
 private struct WelcomeQuickConnectRow: View {
     let target: QuickConnectTarget
@@ -1331,9 +1453,7 @@ private struct WelcomeQuickConnectRow: View {
 
     var body: some View {
         HStack(spacing: Metrics.Space.m) {
-            Image(systemName: "network")
-                .foregroundStyle(.secondary)
-                .frame(width: Metrics.Welcome.leadingIconWidth)
+            WelcomeLeadingIcon(symbol: MenuSymbol.connect)
             VStack(alignment: .leading, spacing: 2) {
                 Text(target.loginAddress)
                     .font(.callout.monospaced())
@@ -1360,7 +1480,7 @@ private struct WelcomeQuickConnectRow: View {
         .padding(.horizontal, Metrics.Space.l)
         .padding(.vertical, Metrics.Space.s)
         .frame(maxWidth: .infinity, minHeight: Metrics.Welcome.rowHeight, alignment: .leading)
-        .background(.quaternary.opacity(0.4), in: .rect(cornerRadius: Metrics.Radius.medium))
+        .termindGlassSurface(cornerRadius: Metrics.Radius.medium)
     }
 }
 

@@ -142,7 +142,10 @@ nonisolated enum Metrics {
         /// Templates, recent/saved hosts, and one-off connections share one
         /// row rhythm even though some carry a second line of detail.
         static let rowHeight: CGFloat = 52
-        static let leadingIconWidth: CGFloat = 16
+        /// The same artwork footprint for templates, Hosts and one-off
+        /// connections. Large enough for a recognisable distribution mark and
+        /// its overlaid connection state without making the row feel like a card.
+        static let leadingIconSize: CGFloat = 32
     }
 
     enum StatusBar {

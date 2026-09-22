@@ -12,6 +12,29 @@ import UIKit
 
 @Suite @MainActor
 struct MobileCardTests {
+    @Test func workspaceConnectionIndicatorHidesDisconnectedWorkspaces() {
+        #expect(
+            MobileWorkspaceConnectionIndicator.resolve(
+                connected: false, busy: false, reconnecting: false
+            ) == nil
+        )
+        #expect(
+            MobileWorkspaceConnectionIndicator.resolve(
+                connected: true, busy: false, reconnecting: false
+            ) == .connected
+        )
+        #expect(
+            MobileWorkspaceConnectionIndicator.resolve(
+                connected: false, busy: true, reconnecting: false
+            ) == .busy
+        )
+        #expect(
+            MobileWorkspaceConnectionIndicator.resolve(
+                connected: false, busy: false, reconnecting: true
+            ) == .busy
+        )
+    }
+
     @Test func cardColumnsFollowContainerWidthOnEveryDevice() {
         for width: CGFloat in [0, 288, 370, 660, 1024] {
             #expect(MobileCardLayout.columns(width: width, accessibilitySize: true) == 1)
