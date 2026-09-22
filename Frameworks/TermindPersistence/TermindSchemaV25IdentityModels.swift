@@ -30,7 +30,7 @@ public enum TermindSchemaV25IdentityModels {
             passwordStorage = value.passwordStorage.rawValue
             keyID = value.keyID
             notes = value.notes
-            lastUsedAt = value.lastUsedAt
+            lastUsedAt = nil
             colorTag = value.colorTag.rawValue
             sortIndex = value.sortIndex
             ownerHostID = value.ownerHostID
@@ -41,7 +41,7 @@ public enum TermindSchemaV25IdentityModels {
             Identity(
                 id: id, name: name, username: username, credentialRef: credentialRef,
                 passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .iCloud,
-                keyID: keyID, notes: notes, lastUsedAt: lastUsedAt,
+                keyID: keyID, notes: notes,
                 colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex,
                 ownerHostID: ownerHostID,
                 customPurpose: customPurpose.flatMap(HostCustomIdentityPurpose.init(rawValue:))

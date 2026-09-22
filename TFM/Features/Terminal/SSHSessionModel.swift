@@ -452,9 +452,7 @@ final class SSHSessionModel: Identifiable {
             if let keyID = suppliedAuthentication.keyID {
                 if let key = store.key(keyID) {
                     do {
-                        if let credential = try store.connectionKeySecretCredential(
-                            for: key, identityID: suppliedAuthentication.identityID
-                        ) {
+                        if let credential = try store.connectionKeySecretCredential(for: key) {
                             credentials.append(
                                 credential.sshCredential(
                                     publicKey: key.publicKey, certificate: key.certificate,

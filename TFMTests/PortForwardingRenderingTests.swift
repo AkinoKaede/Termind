@@ -376,8 +376,9 @@ struct PortForwardingRenderingTests {
     let snapshot: VaultSnapshot
     init(snapshot: VaultSnapshot) { self.snapshot = snapshot }
     func load() throws -> VaultSnapshot { snapshot }
-    func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet { throw CocoaError(.fileWriteNoPermission) }
-    func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {}
+    func save(
+        _ snapshot: VaultSnapshot, touching keys: Set<VaultRecordKey>
+    ) throws -> VaultMutationSet { throw CocoaError(.fileWriteNoPermission) }
     func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
         throw CocoaError(.fileWriteNoPermission)
     }

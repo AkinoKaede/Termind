@@ -61,7 +61,7 @@ struct MobileCardRenderingTests {
         try app.library.upsert(
             Identity(
                 name: "Deployment / 部署", username: "deploy", keyID: key.id,
-                lastUsedAt: .now.addingTimeInterval(-3_600), colorTag: .purple),
+                colorTag: .purple),
             passwordUpdate: .replace("rendering-fixture"))
         _ = app.library.upsert(
             Identity(name: "Missing Key / 密钥缺失", username: "missing", keyID: UUID(), colorTag: .orange))

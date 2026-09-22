@@ -60,7 +60,6 @@ public protocol RemoteSessionHostStore: AnyObject, Sendable {
     func passwordSecret(for identity: Identity) throws -> SSHSecret?
     func passwordAvailability(for identity: Identity) -> SecretAvailability
     func keySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential?
-    func recordIdentityCredentialAccess(_ identityIDs: Set<Identity.ID>, at date: Date)
     func setConnectionStatus(_ status: ConnectionStatus, connectionID: UUID, hostID: Host.ID)
     func recordRemoteSystemInfo(_ systemInfo: RemoteSystemInfo?, for hostID: Host.ID)
     func trust(_ entry: KnownHostEntry)
@@ -185,7 +184,7 @@ extension RemoteSessionHostStore {
                 username: submission.username, credentialRef: existing?.credentialRef ?? "",
                 passwordStorage: existing?.passwordStorage ?? customPasswordStorage,
                 keyID: submission.keyID, notes: existing?.notes ?? "",
-                lastUsedAt: existing?.lastUsedAt, colorTag: existing?.colorTag ?? .none,
+                colorTag: existing?.colorTag ?? .none,
                 ownerHostID: host.id, customPurpose: .ssh
             )
             try upsert(
@@ -230,7 +229,7 @@ extension RemoteSessionHostStore {
                 id: existing?.id ?? UUID(), name: existing?.name ?? submission.username,
                 username: submission.username, credentialRef: existing?.credentialRef ?? "",
                 passwordStorage: existing?.passwordStorage ?? customPasswordStorage,
-                notes: existing?.notes ?? "", lastUsedAt: existing?.lastUsedAt,
+                notes: existing?.notes ?? "",
                 colorTag: existing?.colorTag ?? .none, ownerHostID: host.id, customPurpose: .proxy
             )
             try upsert(
@@ -337,9 +336,7 @@ extension RemoteSessionHostStore {
                         credentials.append(.interactionRequired)
                     } else {
                         do {
-                            if let stored = try connectionKeySecretCredential(
-                                for: key, identityID: resolvedIdentity?.id
-                            ) {
+                            if let stored = try connectionKeySecretCredential(for: key) {
                                 credentials.append(
                                     stored.sshCredential(
                                         publicKey: key.publicKey,
@@ -405,21 +402,11 @@ extension RemoteSessionHostStore {
     }
 
     public func connectionPasswordSecret(for identity: Identity) throws -> SSHSecret? {
-        let password = try passwordSecret(for: identity)
-        if password != nil {
-            recordIdentityCredentialAccess([identity.id], at: Date())
-        }
-        return password
+        try passwordSecret(for: identity)
     }
 
-    public func connectionKeySecretCredential(
-        for key: SSHKeyRef, identityID: Identity.ID?
-    ) throws -> SSHResolvedKeyCredential? {
-        let credential = try keySecretCredential(for: key)
-        if credential != nil, let identityID {
-            recordIdentityCredentialAccess([identityID], at: Date())
-        }
-        return credential
+    public func connectionKeySecretCredential(for key: SSHKeyRef) throws -> SSHResolvedKeyCredential? {
+        try keySecretCredential(for: key)
     }
 
     public func expectedHostKeys(

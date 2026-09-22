@@ -3,8 +3,6 @@ import TermindDomain
 
 import struct TermindDomain.Host
 
-public typealias SSHCredentialAccessHandler = @Sendable (Set<Identity.ID>, Date) -> Void
-
 /// A value snapshot taken on MainActor. Resolving Keychain references can block and
 /// therefore happens on a detached worker, before any SSH transport is opened.
 public nonisolated struct SSHConnectionPreparation: Sendable {
@@ -33,7 +31,6 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
     }
     public var nodes: [Node]
     public var secrets: any SSHRuntimeSecretResolving
-    public var credentialAccessHandler: SSHCredentialAccessHandler?
 
     public func resolve(
         discoveryOnly: Bool = false,
@@ -57,12 +54,6 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
     private func resolveSynchronously(
         discoveryOnly: Bool, trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHConnectionConfiguration {
-        var accessedIdentityIDs: Set<Identity.ID> = []
-        defer {
-            if !accessedIdentityIDs.isEmpty {
-                credentialAccessHandler?(accessedIdentityIDs, Date())
-            }
-        }
         guard let target = nodes.last else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
@@ -70,7 +61,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         for (offset, node) in nodes.dropLast().enumerated() {
             do {
                 try Task.checkCancellation()
-                let material = try credentials(node, accessedIdentityIDs: &accessedIdentityIDs)
+                let material = try credentials(node)
                 if trustPolicy == .requireKnownHost, node.trustedKeys.isEmpty {
                     throw TermindSSHError.untrustedHost
                 }
@@ -79,7 +70,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                         id: node.host.id, name: node.host.name, host: node.host.host, port: node.host.port,
                         username: material.0, credentials: material.1,
                         expectedHostKeys: node.trustedKeys,
-                        proxy: try proxy(node, accessedIdentityIDs: &accessedIdentityIDs),
+                        proxy: try proxy(node),
                         authenticationReference: authenticationReference(for: node)
                     ))
             } catch {
@@ -98,14 +89,14 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         let material =
             discoveryOnly
             ? ("", [SSHCredentials]())
-            : try credentials(target, accessedIdentityIDs: &accessedIdentityIDs)
+            : try credentials(target)
         if !discoveryOnly, trustPolicy == .requireKnownHost, target.trustedKeys.isEmpty {
             throw TermindSSHError.untrustedHost
         }
         return SSHConnectionConfiguration(
             hostID: target.host.id, host: target.host.host, port: target.host.port,
             username: material.0, credentials: material.1, expectedHostKeys: target.trustedKeys,
-            proxy: try proxy(target, accessedIdentityIDs: &accessedIdentityIDs), jumps: jumps,
+            proxy: try proxy(target), jumps: jumps,
             charset: target.host.charset,
             authenticationReference: authenticationReference(for: target)
         )
@@ -130,9 +121,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         )
     }
 
-    private func credentials(
-        _ node: Node, accessedIdentityIDs: inout Set<Identity.ID>
-    ) throws -> (String, [SSHCredentials]) {
+    private func credentials(_ node: Node) throws -> (String, [SSHCredentials]) {
         let username = (node.submission?.username ?? node.identity?.username ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         guard !username.isEmpty else { throw TermindSSHError.missingUsername }
@@ -145,9 +134,6 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
             let stored: SSHResolvedKeyCredential?
             do {
                 stored = try secrets.sshKeyCredential(for: key.credentialRef, storage: key.storage)
-                if stored != nil, let identity = connectionIdentity(for: node) {
-                    accessedIdentityIDs.insert(identity.id)
-                }
             } catch {
                 stored = nil
                 retrievalFailure = error
@@ -173,7 +159,6 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                     for: identity.credentialRef, storage: identity.passwordStorage
                 ) {
                     result.append(.password(password))
-                    accessedIdentityIDs.insert(identity.id)
                 }
             } catch {
                 if retrievalFailure == nil { retrievalFailure = error }
@@ -187,9 +172,7 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         return (username, result)
     }
 
-    private func proxy(
-        _ node: Node, accessedIdentityIDs: inout Set<Identity.ID>
-    ) throws -> SSHTransportProxy? {
+    private func proxy(_ node: Node) throws -> SSHTransportProxy? {
         guard let proxy = node.host.proxy else { return nil }
         guard proxy.isValid else {
             throw TermindSSHError.proxy(String(localized: "The proxy configuration is incomplete."))
@@ -216,7 +199,6 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
                     hostID: node.host.id, serverChallenge: false,
                     message: String(localized: "The proxy password is unavailable."))
             }
-            accessedIdentityIDs.insert(identity.id)
         }
         return SSHTransportProxy(
             kind: proxy.kind, hostname: proxy.hostname, port: proxy.port,
@@ -235,13 +217,9 @@ public nonisolated struct SSHConnectionPreparation: Sendable {
         return node.identity
     }
 
-    public init(
-        nodes: [Node], secrets: any SSHRuntimeSecretResolving,
-        credentialAccessHandler: SSHCredentialAccessHandler? = nil
-    ) {
+    public init(nodes: [Node], secrets: any SSHRuntimeSecretResolving) {
         self.nodes = nodes
         self.secrets = secrets
-        self.credentialAccessHandler = credentialAccessHandler
     }
 
 }

@@ -210,7 +210,6 @@ struct NewIdentitySheet: View {
             passwordStorage: passwordStorage,
             keyID: configuration.showsKey ? keyID : nil,
             notes: existing?.notes ?? "",
-            lastUsedAt: existing?.lastUsedAt,
             colorTag: colorTag
         )
         do {

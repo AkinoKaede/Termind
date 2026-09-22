@@ -21,20 +21,13 @@ public final class VaultStore {
         return snapshot
     }
 
-    public func save(_ snapshot: VaultSnapshot) throws {
+    public func save(_ snapshot: VaultSnapshot, touching keys: Set<VaultRecordKey> = []) throws {
         if let persistence {
-            let mutations = try persistence.save(snapshot)
+            let mutations = try persistence.save(snapshot, touching: keys)
             refreshModificationDates()
             didRecordChanges?(mutations)
         }
         didPersist?()
-    }
-
-    /// Device-local usage metadata bypasses the Vault journal and repository
-    /// refresh callbacks because it does not change connection configuration.
-    public func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {
-        guard !updates.isEmpty else { return }
-        try persistence?.saveIdentityLastUsedAt(updates)
     }
 
     public func modifiedAt(for key: VaultRecordKey) -> Date? {

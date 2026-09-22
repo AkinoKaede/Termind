@@ -78,7 +78,6 @@ public nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
     /// it. `nil` means this identity has no key.
     public var keyID: SSHKeyRef.ID?
     public var notes: String = ""
-    public var lastUsedAt: Date?
     public var colorTag: TagColor = .none
     /// Non-nil only for a Host-private Custom identity. These identities are
     /// resolved for connections and sync like ordinary identities, but are not
@@ -116,7 +115,7 @@ public nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
     public init(
         id: UUID = UUID(), name: String, username: String, credentialRef: String = "",
         passwordStorage: PasswordStorage = .iCloud, keyID: SSHKeyRef.ID? = nil, notes: String = "",
-        lastUsedAt: Date? = nil, colorTag: TagColor = .none, sortIndex: Double = 0,
+        colorTag: TagColor = .none, sortIndex: Double = 0,
         ownerHostID: UUID? = nil, customPurpose: HostCustomIdentityPurpose? = nil
     ) {
         self.id = id
@@ -126,7 +125,6 @@ public nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
         self.passwordStorage = passwordStorage
         self.keyID = keyID
         self.notes = notes
-        self.lastUsedAt = lastUsedAt
         self.colorTag = colorTag
         self.sortIndex = sortIndex
         self.ownerHostID = ownerHostID
@@ -138,7 +136,7 @@ public nonisolated struct Identity: Identifiable, Codable, Hashable, Sendable {
 nonisolated extension Identity {
     private enum CodingKeys: String, CodingKey {
         case id, name, username, credentialRef, passwordStorage, keyID, notes
-        case lastUsedAt, colorTag, sortIndex
+        case colorTag, sortIndex
         case ownerHostID, customPurpose
     }
 
@@ -155,7 +153,6 @@ nonisolated extension Identity {
             passwordStorage: try container.decode(PasswordStorage.self, forKey: .passwordStorage),
             keyID: try container.decodeIfPresent(SSHKeyRef.ID.self, forKey: .keyID),
             notes: try container.decode(String.self, forKey: .notes),
-            lastUsedAt: try container.decodeIfPresent(Date.self, forKey: .lastUsedAt),
             colorTag: (try? container.decode(TagColor.self, forKey: .colorTag)) ?? .none,
             sortIndex: try container.decode(Double.self, forKey: .sortIndex),
             ownerHostID: try container.decodeIfPresent(UUID.self, forKey: .ownerHostID),

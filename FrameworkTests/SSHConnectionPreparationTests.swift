@@ -180,63 +180,12 @@ struct SSHConnectionPreparationTests {
     }
 
     @Test
-    func reportsJumpAndProxyReadsEvenWhenTheTargetCredentialIsMissing() async {
-        let jumpIdentity = Identity(
-            name: "Jump", username: "jump", credentialRef: "password.jump"
-        )
-        let proxyIdentity = Identity(
-            name: "Proxy", username: "proxy", credentialRef: "password.proxy"
-        )
-        let targetIdentity = Identity(
-            name: "Target", username: "target", credentialRef: "password.target"
-        )
-        let jump = Host(
-            name: "Jump", host: "jump.invalid", identityID: jumpIdentity.id,
-            proxy: HostProxy(
-                hostname: "proxy.invalid", username: "proxy",
-                identityID: proxyIdentity.id
-            )
-        )
-        let target = Host(
-            name: "Target", host: "target.invalid", identityID: targetIdentity.id,
-            jumpHostID: jump.id
-        )
-        let recorder = PreparationAccessRecorder()
-        let preparation = SSHConnectionPreparation(
-            nodes: [
-                SSHConnectionPreparation.Node(
-                    host: jump, identity: jumpIdentity, key: nil, submission: nil,
-                    trustedKeys: [], proxyIdentity: proxyIdentity
-                ),
-                SSHConnectionPreparation.Node(
-                    host: target, identity: targetIdentity, key: nil, submission: nil,
-                    trustedKeys: [], proxyIdentity: nil
-                ),
-            ],
-            secrets: MappedPreparationSecrets(
-                passwords: [
-                    jumpIdentity.credentialRef: "jump-secret",
-                    proxyIdentity.credentialRef: "proxy-secret",
-                ]
-            ),
-            credentialAccessHandler: { recorder.record($0, at: $1) }
-        )
-
-        await #expect(throws: TermindSSHError.self) {
-            _ = try await preparation.resolve(trustPolicy: .allowChallenge)
-        }
-        #expect(recorder.identityIDs == [jumpIdentity.id, proxyIdentity.id])
-        #expect(recorder.callCount == 1)
-    }
-
-    @Test
     func protectedKeyIsNotReadBeforePassphraseIsRequested() async {
         let key = SSHKeyRef(
             label: "Protected", publicKey: "ssh-ed25519 test",
             credentialRef: "key.protected", hasPassphrase: true
         )
         let identity = Identity(name: "Deploy", username: "deploy", keyID: key.id)
-        let recorder = PreparationAccessRecorder()
         let preparation = makePreparation(
             identity: identity, key: key,
             secrets: MappedPreparationSecrets(
@@ -245,47 +194,17 @@ struct SSHConnectionPreparationTests {
                         SSHPrivateKeySecret(privateKey: "encrypted")
                     )
                 ]
-            ),
-            credentialAccessHandler: { recorder.record($0, at: $1) }
+            )
         )
 
         await #expect(throws: TermindSSHError.self) {
             _ = try await preparation.resolve(trustPolicy: .allowChallenge)
         }
-        #expect(recorder.identityIDs.isEmpty)
-        #expect(recorder.callCount == 0)
-    }
-
-    @Test
-    func inlinePasswordIsNotReportedAsSavedIdentityAccess() async throws {
-        let identity = Identity(name: "Deploy", username: "deploy")
-        let host = Host(name: "Server", host: "server.invalid", identityID: identity.id)
-        let recorder = PreparationAccessRecorder()
-        let preparation = SSHConnectionPreparation(
-            nodes: [
-                SSHConnectionPreparation.Node(
-                    host: host, identity: identity, key: nil,
-                    submission: SSHAuthenticationSubmission(
-                        username: identity.username, password: "inline",
-                        identityID: identity.id
-                    ),
-                    trustedKeys: [], proxyIdentity: nil
-                )
-            ],
-            secrets: MappedPreparationSecrets(),
-            credentialAccessHandler: { recorder.record($0, at: $1) }
-        )
-
-        _ = try await preparation.resolve(trustPolicy: .allowChallenge)
-
-        #expect(recorder.identityIDs.isEmpty)
-        #expect(recorder.callCount == 0)
     }
 
     private func makePreparation(
         identity: Identity, key: SSHKeyRef? = nil,
-        secrets: any SecretStoring,
-        credentialAccessHandler: SSHCredentialAccessHandler? = nil
+        secrets: any SecretStoring
     ) -> SSHConnectionPreparation {
         let host = Host(name: "Monitor", host: "example.invalid", identityID: identity.id)
         return SSHConnectionPreparation(
@@ -295,25 +214,8 @@ struct SSHConnectionPreparationTests {
                     trustedKeys: [], proxyIdentity: nil
                 )
             ],
-            secrets: secrets,
-            credentialAccessHandler: credentialAccessHandler
+            secrets: secrets
         )
-    }
-}
-
-private nonisolated final class PreparationAccessRecorder: @unchecked Sendable {
-    private let lock = NSLock()
-    private var recordedIdentityIDs: Set<Identity.ID> = []
-    private var recordedCallCount = 0
-
-    var identityIDs: Set<Identity.ID> { lock.withLock { recordedIdentityIDs } }
-    var callCount: Int { lock.withLock { recordedCallCount } }
-
-    func record(_ identityIDs: Set<Identity.ID>, at date: Date) {
-        lock.withLock {
-            recordedIdentityIDs.formUnion(identityIDs)
-            recordedCallCount += 1
-        }
     }
 }
 

@@ -44,28 +44,21 @@ public final class HostPersistence {
     }
 
     public func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet {
+        try save(snapshot, touching: [])
+    }
+
+    public func save(
+        _ snapshot: VaultSnapshot, touching keys: Set<VaultRecordKey>
+    ) throws -> VaultMutationSet {
         do {
             let oldSnapshot = try fetchSnapshot()
             let journal = VaultSyncJournal(context: context)
             _ = try journal.bootstrapIfNeeded(oldSnapshot)
-            let mutations = try journal.recordLocalChanges(from: oldSnapshot, to: snapshot)
+            let mutations = try journal.recordLocalChanges(
+                from: oldSnapshot, to: snapshot, touching: keys)
             try persist(snapshot)
             try context.save()
             return mutations
-        } catch {
-            context.rollback()
-            throw error
-        }
-    }
-
-    public func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {
-        guard !updates.isEmpty else { return }
-        do {
-            for row in try context.fetch(FetchDescriptor<PersistentIdentity>()) {
-                guard let date = updates[row.id], row.lastUsedAt.map({ $0 >= date }) != true else { continue }
-                row.lastUsedAt = date
-            }
-            if context.hasChanges { try context.save() }
         } catch {
             context.rollback()
             throw error

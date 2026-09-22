@@ -217,7 +217,7 @@ private struct MobileIdentityCredentialCard: View {
             HStack(spacing: 6) {
                 secretChips
                 Spacer(minLength: 6)
-                lastUsedLabel
+                modifiedLabel
             }
             .frame(maxWidth: .infinity)
             .clipped()
@@ -254,16 +254,23 @@ private struct MobileIdentityCredentialCard: View {
         }
     }
 
-    private var lastUsedLabel: some View {
+    private var modifiedLabel: some View {
         Text(
-            identity.lastUsedAt?.formatted(.relative(presentation: .numeric))
-                ?? String(localized: "Never")
+            modifiedAt?.formatted(.relative(presentation: .numeric))
+                ?? String(localized: "Unknown")
         )
         .font(.caption2)
         .foregroundStyle(.tertiary)
         .lineLimit(1)
         .fixedSize(horizontal: true, vertical: false)
         .layoutPriority(1)
+    }
+
+    private var modifiedAt: Date? {
+        guard let date = credentials.identityModifiedAt(identity.id),
+            date > VaultVersion.baselineDate
+        else { return nil }
+        return date
     }
 }
 

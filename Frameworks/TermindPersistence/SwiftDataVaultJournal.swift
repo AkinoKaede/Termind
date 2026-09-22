@@ -39,10 +39,7 @@ extension VaultSnapshot {
             value.isExpanded = true
             result[VaultRecordKey(kind: .hostGroup, id: value.id)] = .hostGroup(value)
         }
-        for var value in identities {
-            value.lastUsedAt = nil
-            result[VaultRecordKey(kind: .identity, id: value.id)] = .identity(value)
-        }
+        for value in identities { result[VaultRecordKey(kind: .identity, id: value.id)] = .identity(value) }
         for value in keys {
             result[VaultRecordKey(kind: .sshKey, id: value.id)] = .sshKey(value)
         }
@@ -83,9 +80,7 @@ extension VaultSnapshot {
         switch payload {
         case .host(let value): upsert(value, in: &hosts)
         case .hostGroup(let value): upsert(value, in: &groups)
-        case .identity(var value):
-            value.lastUsedAt = identities.first(where: { $0.id == value.id })?.lastUsedAt
-            upsert(value, in: &identities)
+        case .identity(let value): upsert(value, in: &identities)
         case .sshKey(let value): upsert(value, in: &keys)
         case .knownHost(let value): upsert(value, in: &knownHosts)
         case .snippet(let value): upsert(value, in: &snippets)
@@ -133,9 +128,6 @@ extension VaultRecordPayload {
         case .hostGroup(var value):
             value.isExpanded = true
             return .hostGroup(value)
-        case .identity(var value):
-            value.lastUsedAt = nil
-            return .identity(value)
         case .snippetPackage(var value):
             value.isExpanded = true
             return .snippetPackage(value)
@@ -189,6 +181,7 @@ public final class VaultSyncJournal {
 
     public func recordLocalChanges(
         from oldSnapshot: VaultSnapshot, to newSnapshot: VaultSnapshot,
+        touching touchedKeys: Set<VaultRecordKey> = [],
         now: Date = .now
     ) throws -> VaultMutationSet {
         let state = try state()
@@ -197,7 +190,7 @@ public final class VaultSyncJournal {
         var entries = try entriesByName()
         var changed = Set<VaultRecordKey>()
 
-        for (key, payload) in new where old[key] != payload {
+        for (key, payload) in new where old[key] != payload || touchedKeys.contains(key) {
             let row = entries[key.recordName]
             let envelope = VaultEnvelope(
                 key: key,

@@ -250,7 +250,7 @@ public enum TermindSchemaV6Models {
             passwordStorage = value.passwordStorage.rawValue
             keyID = value.keyID
             notes = value.notes
-            lastUsedAt = value.lastUsedAt
+            lastUsedAt = nil
             sortIndex = value.sortIndex
         }
     }
@@ -315,7 +315,7 @@ public enum TermindSchemaV7Models {
             passwordStorage = value.passwordStorage.rawValue
             keyID = value.keyID
             notes = value.notes
-            lastUsedAt = value.lastUsedAt
+            lastUsedAt = nil
             colorTag = value.colorTag.rawValue
             sortIndex = value.sortIndex
         }
@@ -324,7 +324,7 @@ public enum TermindSchemaV7Models {
             Identity(
                 id: id, name: name, username: username, credentialRef: credentialRef,
                 passwordStorage: PasswordStorage(rawValue: passwordStorage) ?? .iCloud,
-                keyID: keyID, notes: notes, lastUsedAt: lastUsedAt,
+                keyID: keyID, notes: notes,
                 colorTag: TagColor(rawValue: colorTag) ?? .none, sortIndex: sortIndex
             )
         }
@@ -787,6 +787,15 @@ public enum TermindSchemaV32: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV33: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(33, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV32.models.filter {
+            $0 != TermindSchemaV25IdentityModels.PersistentIdentity.self
+        } + [TermindSchemaV33IdentityModels.PersistentIdentity.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -799,6 +808,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV30.self, TermindSchemaV31.self,
             TermindSchemaV32.self,
+            TermindSchemaV33.self,
         ]
     }
 
@@ -891,11 +901,12 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
                     try context.save()
                 }
             ),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV32.self, toVersion: TermindSchemaV33.self),
         ]
     }
 }
 
 public typealias PersistentHost = TermindSchemaV32HostModels.PersistentHost
-public typealias PersistentIdentity = TermindSchemaV25IdentityModels.PersistentIdentity
+public typealias PersistentIdentity = TermindSchemaV33IdentityModels.PersistentIdentity
 public typealias PersistentSSHKey = TermindSchemaV7Models.PersistentSSHKey
 public typealias PersistentKnownHost = TermindSchemaV30KnownHostModels.PersistentKnownHost

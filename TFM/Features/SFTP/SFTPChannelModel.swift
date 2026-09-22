@@ -387,9 +387,7 @@ final class SFTPChannelModel: Identifiable {
                     var credentials: [SSHCredentials] = []
                     if let keyID = suppliedAuthentication.keyID,
                         let key = store.key(keyID),
-                        let stored = try? store.connectionKeySecretCredential(
-                            for: key, identityID: suppliedAuthentication.identityID
-                        )
+                        let stored = try? store.connectionKeySecretCredential(for: key)
                     {
                         credentials.append(
                             stored.sshCredential(

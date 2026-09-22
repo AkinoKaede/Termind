@@ -51,13 +51,13 @@ extension HostLibraryModel {
         let deploy = Identity(
             name: text("Deploy", "部署账号", "部署帳號"), username: "deploy", keyID: personalKey.id,
             notes: text("Production web tier", "生产环境 Web 层", "正式環境 Web 層"),
-            lastUsedAt: now, colorTag: .green
+            colorTag: .green
         )
         let postgres = Identity(
             name: text("Postgres admin", "Postgres 管理员", "Postgres 管理員"), username: "postgres",
             credentialRef: "termind.password.postgres", keyID: workKey.id,
             notes: text("Key to get in, password for sudo", "使用密钥登录，密码用于 sudo", "使用金鑰登入，密碼用於 sudo"),
-            lastUsedAt: now.addingTimeInterval(-7_200), colorTag: .orange
+            colorTag: .orange
         )
         let consoleRoot = Identity(
             name: text("Console root", "控制台 root", "主控台 root"), username: "root",

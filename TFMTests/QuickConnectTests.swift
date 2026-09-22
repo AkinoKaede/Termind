@@ -309,13 +309,14 @@ private final class QuickConnectPersistence: VaultPersisting {
     var saveCount = 0
     init(snapshot: VaultSnapshot) { self.snapshot = snapshot }
     func load() throws -> VaultSnapshot { snapshot }
-    func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet {
+    func save(
+        _ snapshot: VaultSnapshot, touching keys: Set<VaultRecordKey>
+    ) throws -> VaultMutationSet {
         saveCount += 1
         if failsSave { throw CocoaError(.fileWriteUnknown) }
         self.snapshot = snapshot
         return .empty
     }
-    func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {}
     func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
         VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
     }

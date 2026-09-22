@@ -66,7 +66,6 @@ struct SSHAuthenticationSubmissionTests {
         #expect(submission.password == password)
         #expect(submission.passphrase == "one-use")
         #expect(submission.identityID == identity.id)
-        #expect(store.identity(identity.id)?.lastUsedAt == nil)
         #expect(try store.passwordCredential(for: identity) == "saved")
     }
 
@@ -99,7 +98,6 @@ struct SSHAuthenticationSubmissionTests {
         let submission = try store.authenticationSubmission(
             username: "deploy", password: "supplied", passphrase: nil, keyID: nil, selectedIdentity: identity)
         #expect(submission.password == "supplied")
-        #expect(store.identity(identity.id)?.lastUsedAt == nil)
     }
 
     @Test(arguments: [false, true])
@@ -130,7 +128,7 @@ struct SSHAuthenticationSubmissionTests {
         let hostID = UUID()
         let identity = Identity(
             name: "Production", username: "old-user", credentialRef: "password", passwordStorage: .thisDevice,
-            keyID: UUID(), notes: "Keep these notes", lastUsedAt: Date(timeIntervalSince1970: 100), colorTag: .blue,
+            keyID: UUID(), notes: "Keep these notes", colorTag: .blue,
             ownerHostID: existing ? hostID : nil, customPurpose: existing ? .ssh : nil)
         let host = Host(id: hostID, name: "Server", host: "server.invalid", identityID: existing ? identity.id : nil)
         let store = HostLibraryModel(hosts: [host], identities: existing ? [identity] : [], secrets: secrets)
@@ -153,7 +151,6 @@ struct SSHAuthenticationSubmissionTests {
         if existing {
             #expect(saved.id == identity.id)
             #expect(saved.notes == identity.notes)
-            #expect(saved.lastUsedAt == identity.lastUsedAt)
             #expect(saved.colorTag == identity.colorTag)
             #expect(saved.credentialRef == identity.credentialRef)
         } else if password == nil {
@@ -236,12 +233,13 @@ private final class AuthenticationPersistence: VaultPersisting {
 
     init(snapshot: VaultSnapshot) { self.snapshot = snapshot }
     func load() throws -> VaultSnapshot { snapshot }
-    func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet {
+    func save(
+        _ snapshot: VaultSnapshot, touching keys: Set<VaultRecordKey>
+    ) throws -> VaultMutationSet {
         if failsSave { throw CocoaError(.fileWriteUnknown) }
         self.snapshot = snapshot
         return .empty
     }
-    func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {}
     func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
         VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
     }

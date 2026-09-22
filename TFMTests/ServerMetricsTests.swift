@@ -503,14 +503,12 @@ struct ServerMetricsLifecycleTests {
     }
 
     @Test
-    func recordingCredentialAccessDoesNotRestartConnection() async throws {
+    func reconcilingUnchangedCredentialsDoesNotRestartConnection() async throws {
         let fixture = try Fixture()
         defer { fixture.model.shutdown() }
         fixture.model.add(fixture.host)
         let server = try #require(fixture.model.servers.first)
         await eventually { server.point != nil }
-        await eventually { fixture.hosts.identity(for: fixture.host)?.lastUsedAt != nil }
-
         fixture.model.reconcile()
         fixture.model.reconcile()
 

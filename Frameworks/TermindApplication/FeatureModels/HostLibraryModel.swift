@@ -27,7 +27,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private let keychain: any SecretStoring
     private let defaults: UserDefaults
     private var expansionState = LibraryExpansionState()
-    @ObservationIgnored private var recordedIdentityCredentialAccesses: Set<Identity.ID> = []
     /// Runtime resources live in AppModel, so deletion announces before model
     /// references are removed and the controller can stop listeners cleanly.
     public var willDeleteHost: ((Host.ID, [PortForwardingRule.ID]) -> Void)?
@@ -141,6 +140,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func snippetModifiedAt(_ id: Snippet.ID) -> Date? {
         vault.modifiedAt(for: VaultRecordKey(kind: .snippet, id: id))
+    }
+
+    public func identityModifiedAt(_ id: Identity.ID) -> Date? {
+        vault.modifiedAt(for: VaultRecordKey(kind: .identity, id: id))
     }
 
     public func snippetPackage(_ id: SnippetPackage.ID) -> SnippetPackage? {
@@ -518,12 +521,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                     proxySubmission: proxySubmissions[node.id]
                 )
             },
-            secrets: keychain,
-            credentialAccessHandler: { [weak self] identityIDs, date in
-                Task { @MainActor [weak self] in
-                    self?.recordIdentityCredentialAccess(identityIDs, at: date)
-                }
-            }
+            secrets: keychain
         )
     }
 
@@ -534,40 +532,19 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> SSHConnectionConfiguration {
-        var accessedIdentityIDs: Set<Identity.ID> = []
-        defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
-        return try sshConnectionConfiguration(
-            for: host, submissions: submissions, proxySubmissions: proxySubmissions,
-            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy,
-            accessedIdentityIDs: &accessedIdentityIDs
-        )
-    }
-
-    private func sshConnectionConfiguration(
-        for host: Host,
-        submissions: [Host.ID: SSHAuthenticationSubmission],
-        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
-        trustPolicy: SSHHostTrustPolicy,
-        accessedIdentityIDs: inout Set<Identity.ID>
-    ) throws -> SSHConnectionConfiguration {
         let username: String
         let credentials: [SSHCredentials]
         if let submission = submissions[host.id] {
             username = submission.username.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !username.isEmpty else { throw TermindSSHError.missingUsername }
-            credentials = try sshCredentials(
-                for: submission, accessedIdentityIDs: &accessedIdentityIDs
-            )
+            credentials = try sshCredentials(for: submission)
         } else {
             guard let identity = identity(for: host) else {
                 throw TermindSSHError.missingCredential
             }
             username = identity.username.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !username.isEmpty else { throw TermindSSHError.missingUsername }
-            let resolution = sshCredentials(
-                for: identity, accessedIdentityIDs: &accessedIdentityIDs
-            )
+            let resolution = sshCredentials(for: identity)
             guard resolution.requiredPassphraseKeyID == nil else {
                 throw TermindSSHError.keyPassphraseRequired
             }
@@ -586,15 +563,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             hostID: host.id, host: host.host, port: host.port, username: username,
             credentials: credentials,
             expectedHostKeys: expectedHostKeys,
-            proxy: try transportProxy(
-                for: host, submission: proxySubmissions[host.id],
-                accessedIdentityIDs: &accessedIdentityIDs
-            ),
+            proxy: try transportProxy(for: host, submission: proxySubmissions[host.id]),
             jumps: try sshJumpConfigurations(
                 for: host, submissions: submissions, proxySubmissions: proxySubmissions,
                 temporaryHostKeys: temporaryHostKeys,
-                trustPolicy: trustPolicy,
-                accessedIdentityIDs: &accessedIdentityIDs
+                trustPolicy: trustPolicy
             ),
             charset: host.charset,
             authenticationReference: additionalAuthenticationReference(
@@ -610,30 +583,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity] = [:],
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> [SSHRouteHopConfiguration] {
-        var accessedIdentityIDs: Set<Identity.ID> = []
-        defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
-        return try sshJumpConfigurations(
-            for: host, submissions: submissions, proxySubmissions: proxySubmissions,
-            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy,
-            accessedIdentityIDs: &accessedIdentityIDs
-        )
-    }
-
-    private func sshJumpConfigurations(
-        for host: Host,
-        submissions: [Host.ID: SSHAuthenticationSubmission],
-        proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
-        trustPolicy: SSHHostTrustPolicy,
-        accessedIdentityIDs: inout Set<Identity.ID>
-    ) throws -> [SSHRouteHopConfiguration] {
         guard let route = validatedRoute(for: host) else {
             throw TermindSSHError.route(String(localized: "The Jump Host route is invalid or exceeds eight hosts."))
         }
         return try sshJumpConfigurations(
             route: route, submissions: submissions, proxySubmissions: proxySubmissions,
             temporaryHostKeys: temporaryHostKeys,
-            trustPolicy: trustPolicy, accessedIdentityIDs: &accessedIdentityIDs
+            trustPolicy: trustPolicy
         )
     }
 
@@ -644,21 +600,17 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         trustPolicy: SSHHostTrustPolicy = .requireKnownHost
     ) throws -> [SSHRouteHopConfiguration] {
         guard route.isValid else { throw SSHConnectionRoute.invalidRouteError }
-        var accessedIdentityIDs: Set<Identity.ID> = []
-        defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
         return try sshJumpConfigurations(
             route: route.hosts, submissions: route.submissions(merging: submissions),
             proxySubmissions: proxySubmissions,
-            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy,
-            accessedIdentityIDs: &accessedIdentityIDs
+            temporaryHostKeys: temporaryHostKeys, trustPolicy: trustPolicy
         )
     }
 
     private func sshJumpConfigurations(
         route: [Host], submissions: [Host.ID: SSHAuthenticationSubmission],
         proxySubmissions: [Host.ID: SSHProxyAuthenticationSubmission],
-        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy,
-        accessedIdentityIDs: inout Set<Identity.ID>
+        temporaryHostKeys: [Host.ID: SSHHostKeyIdentity], trustPolicy: SSHHostTrustPolicy
     ) throws -> [SSHRouteHopConfiguration] {
         return try route.dropLast().enumerated().map { offset, jump in
             do {
@@ -667,15 +619,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                         for: jump, submission: submission,
                         proxySubmission: proxySubmissions[jump.id],
                         temporaryHostKeys: temporaryHostKeys,
-                        trustPolicy: trustPolicy,
-                        accessedIdentityIDs: &accessedIdentityIDs
+                        trustPolicy: trustPolicy
                     )
                 }
                 return try sshRouteHopConfiguration(
                     for: jump, proxySubmission: proxySubmissions[jump.id],
                     temporaryHostKeys: temporaryHostKeys,
-                    trustPolicy: trustPolicy,
-                    accessedIdentityIDs: &accessedIdentityIDs
+                    trustPolicy: trustPolicy
                 )
             } catch {
                 if (error as? TermindSSHError)?.isProxyAuthentication == true { throw error }
@@ -701,8 +651,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     private func sshRouteHopConfiguration(
         for host: Host, proxySubmission: SSHProxyAuthenticationSubmission?,
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
-        trustPolicy: SSHHostTrustPolicy,
-        accessedIdentityIDs: inout Set<Identity.ID>
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHRouteHopConfiguration {
         guard let identity = identity(for: host) else { throw TermindSSHError.missingCredential }
         let username = identity.username.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -711,9 +660,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             for: host, temporaryHostKeys: temporaryHostKeys,
             trustPolicy: trustPolicy
         )
-        let resolution = sshCredentials(
-            for: identity, accessedIdentityIDs: &accessedIdentityIDs
-        )
+        let resolution = sshCredentials(for: identity)
         guard resolution.requiredPassphraseKeyID == nil else {
             throw TermindSSHError.keyPassphraseRequired
         }
@@ -722,10 +669,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             id: host.id, name: host.name, host: host.host, port: host.port,
             username: username, credentials: resolution.credentials,
             expectedHostKeys: expectedHostKeys,
-            proxy: try transportProxy(
-                for: host, submission: proxySubmission,
-                accessedIdentityIDs: &accessedIdentityIDs
-            ),
+            proxy: try transportProxy(for: host, submission: proxySubmission),
             authenticationReference: additionalAuthenticationReference(
                 host: host, submission: nil
             )
@@ -736,8 +680,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         for host: Host, submission: SSHAuthenticationSubmission,
         proxySubmission: SSHProxyAuthenticationSubmission?,
         temporaryHostKeys: [Host.ID: SSHHostKeyIdentity],
-        trustPolicy: SSHHostTrustPolicy,
-        accessedIdentityIDs: inout Set<Identity.ID>
+        trustPolicy: SSHHostTrustPolicy
     ) throws -> SSHRouteHopConfiguration {
         let username = submission.username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !username.isEmpty else { throw TermindSSHError.missingUsername }
@@ -745,18 +688,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             for: host, temporaryHostKeys: temporaryHostKeys,
             trustPolicy: trustPolicy
         )
-        let credentials = try sshCredentials(
-            for: submission, accessedIdentityIDs: &accessedIdentityIDs
-        )
+        let credentials = try sshCredentials(for: submission)
         guard submission.keyID == nil || !credentials.isEmpty else { throw TermindSSHError.missingCredential }
         return SSHRouteHopConfiguration(
             id: host.id, name: host.name, host: host.host, port: host.port,
             username: username, credentials: credentials,
             expectedHostKeys: expectedHostKeys,
-            proxy: try transportProxy(
-                for: host, submission: proxySubmission,
-                accessedIdentityIDs: &accessedIdentityIDs
-            ),
+            proxy: try transportProxy(for: host, submission: proxySubmission),
             authenticationReference: additionalAuthenticationReference(
                 host: host, submission: submission
             )
@@ -787,19 +725,13 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         )
     }
 
-    private func sshCredentials(
-        for submission: SSHAuthenticationSubmission,
-        accessedIdentityIDs: inout Set<Identity.ID>
-    ) throws -> [SSHCredentials] {
+    private func sshCredentials(for submission: SSHAuthenticationSubmission) throws -> [SSHCredentials] {
         var credentials: [SSHCredentials] = []
         if let keyID = submission.keyID, let key = key(keyID) {
             if key.requiresPassphraseEntry, !submission.hasPassphrase {
                 throw TermindSSHError.keyPassphraseRequired
             }
             if let stored = try keySecretCredential(for: key) {
-                if let identityID = submission.identityID {
-                    accessedIdentityIDs.insert(identityID)
-                }
                 credentials.append(
                     stored.sshCredential(
                         publicKey: key.publicKey, certificate: key.certificate,
@@ -817,7 +749,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             let password = try passwordSecret(for: identity)
         {
             credentials.append(.password(password))
-            accessedIdentityIDs.insert(identityID)
         }
         return credentials
     }
@@ -828,17 +759,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func transportProxy(
         for host: Host, submission: SSHProxyAuthenticationSubmission?
-    ) throws -> SSHTransportProxy? {
-        var accessedIdentityIDs: Set<Identity.ID> = []
-        defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
-        return try transportProxy(
-            for: host, submission: submission, accessedIdentityIDs: &accessedIdentityIDs
-        )
-    }
-
-    private func transportProxy(
-        for host: Host, submission: SSHProxyAuthenticationSubmission?,
-        accessedIdentityIDs: inout Set<Identity.ID>
     ) throws -> SSHTransportProxy? {
         guard let proxy = host.proxy else { return nil }
         guard proxy.isValid else {
@@ -862,7 +782,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                     hostID: host.id, serverChallenge: false,
                     message: String(localized: "The proxy password is unavailable."))
             }
-            accessedIdentityIDs.insert(identity.id)
         }
         return SSHTransportProxy(
             kind: proxy.kind, hostname: proxy.hostname, port: proxy.port,
@@ -875,16 +794,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Loads Key and Password independently so one damaged or missing Keychain
     /// item does not suppress the other usable credential.
     public func sshCredentials(for identity: Identity) -> SSHCredentialResolution {
-        var accessedIdentityIDs: Set<Identity.ID> = []
-        defer { recordIdentityCredentialAccess(accessedIdentityIDs, at: Date()) }
-        return sshCredentials(
-            for: identity, accessedIdentityIDs: &accessedIdentityIDs
-        )
-    }
-
-    private func sshCredentials(
-        for identity: Identity, accessedIdentityIDs: inout Set<Identity.ID>
-    ) -> SSHCredentialResolution {
         var credentials: [SSHCredentials] = []
         var failures: [String] = []
         var requiredPassphraseKeyID: SSHKeyRef.ID?
@@ -896,7 +805,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 } else {
                     do {
                         if let credential = try keySecretCredential(for: key) {
-                            accessedIdentityIDs.insert(identity.id)
                             credentials.append(
                                 credential.sshCredential(
                                     publicKey: key.publicKey, certificate: key.certificate,
@@ -925,7 +833,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             do {
                 if let password = try passwordSecret(for: identity) {
                     credentials.append(.password(password))
-                    accessedIdentityIDs.insert(identity.id)
                 } else {
                     failures.append(
                         String(localized: "The saved password is no longer available.")
@@ -942,54 +849,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             hasConfiguredCredential: identity.hasSecret,
             requiredPassphraseKeyID: requiredPassphraseKeyID
         )
-    }
-
-    /// Persists connection-specific credential access without turning ordinary
-    /// Keychain inspection into Identity usage. A failed save restores the
-    /// observable projection while retaining the storage error for presentation.
-    public func recordIdentityCredentialAccess(
-        _ identityIDs: Set<Identity.ID>, at date: Date = Date()
-    ) {
-        let pending = identityIDs.subtracting(recordedIdentityCredentialAccesses)
-        guard !pending.isEmpty else { return }
-        let previous = identities
-        var updates: [Identity.ID: Date] = [:]
-        var found: Set<Identity.ID> = []
-        for index in identities.indices where pending.contains(identities[index].id) {
-            let id = identities[index].id
-            found.insert(id)
-            if identities[index].lastUsedAt.map({ $0 >= date }) != true {
-                identities[index].lastUsedAt = date
-                updates[id] = date
-            }
-        }
-        guard !found.isEmpty else { return }
-        do {
-            try vault.saveIdentityLastUsedAt(updates)
-            recordedIdentityCredentialAccesses.formUnion(found)
-            storageError = nil
-        } catch {
-            identities = previous
-            storageError = error.localizedDescription
-        }
-    }
-
-    private static func identityConnectionFieldsChanged(_ old: Identity, _ new: Identity) -> Bool {
-        old.username != new.username
-            || old.credentialRef != new.credentialRef
-            || old.passwordStorage != new.passwordStorage
-            || old.keyID != new.keyID
-    }
-
-    private static func keyConnectionFieldsChanged(_ old: SSHKeyRef, _ new: SSHKeyRef) -> Bool {
-        old.algorithm != new.algorithm
-            || old.publicKey != new.publicKey
-            || old.certificate != new.certificate
-            || old.fingerprint != new.fingerprint
-            || old.credentialRef != new.credentialRef
-            || old.storage != new.storage
-            || old.hasPassphrase != new.hasPassphrase
-            || old.requiresUserPresence != new.requiresUserPresence
     }
 
     /// Every host tag, deduplicated case-insensitively and sorted.
@@ -1129,7 +988,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             }
         }
         identities.removeAll { $0.ownerHostID == hostID }
-        recordedIdentityCredentialAccesses.subtract(owned.map(\.id))
         removeHostProjection(hostID)
     }
 
@@ -1253,6 +1111,11 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// is sorted by name wherever it is shown, so there is no order to keep.
     @discardableResult
     public func upsert(_ identity: Identity) -> Bool {
+        upsert(identity, touchingModificationDate: false)
+    }
+
+    @discardableResult
+    private func upsert(_ identity: Identity, touchingModificationDate: Bool) -> Bool {
         var identity = identity
         identity.name = SavedName.resolve(identity.name, default: identity.defaultName)
         if let previous = self.identity(identity.id),
@@ -1265,17 +1128,10 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         }
         let identitySnapshot = identities
         let hostSnapshot = hosts
-        var resetsCredentialAccess = false
         if let index = identities.firstIndex(where: { $0.id == identity.id }) {
             let previous = identities[index]
             var updated = identity
             updated.sortIndex = previous.sortIndex
-            if let lastUsedAt = previous.lastUsedAt,
-                updated.lastUsedAt.map({ $0 < lastUsedAt }) != false
-            {
-                updated.lastUsedAt = lastUsedAt
-            }
-            resetsCredentialAccess = Self.identityConnectionFieldsChanged(previous, updated)
             identities[index] = updated
         } else {
             var new = identity
@@ -1288,12 +1144,15 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 hosts[index].proxy?.username = ""
             }
         }
-        let saved = persistCore()
+        let touchedKeys: Set<VaultRecordKey> =
+            touchingModificationDate
+            ? [VaultRecordKey(kind: .identity, id: identity.id)]
+            : []
+        let saved = persistCore(touching: touchedKeys)
         if !saved {
             identities = identitySnapshot
             hosts = hostSnapshot
         }
-        if saved, resetsCredentialAccess { recordedIdentityCredentialAccesses.remove(identity.id) }
         return saved
     }
 
@@ -1371,7 +1230,12 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             throw error
         }
 
-        guard upsert(updated) else {
+        let changesPassword: Bool
+        switch passwordUpdate {
+        case .keep: changesPassword = false
+        case .replace, .remove: changesPassword = true
+        }
+        guard upsert(updated, touchingModificationDate: changesPassword) else {
             identities = identitySnapshot
             hosts = hostSnapshot
             do {
@@ -1395,8 +1259,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 storageError ?? String(localized: "The identity could not be saved.")
             )
         }
-        if case .replace = passwordUpdate { recordedIdentityCredentialAccesses.remove(updated.id) }
-
         let removesPrevious =
             !previousReference.isEmpty
             && (updated.credentialRef.isEmpty || previousStorage != updated.passwordStorage)
@@ -1447,7 +1309,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             credentialRef: existing?.credentialRef ?? "",
             passwordStorage: existing?.passwordStorage ?? customPasswordStorage,
             keyID: purpose == .ssh ? keyID : nil, notes: existing?.notes ?? "",
-            lastUsedAt: existing?.lastUsedAt, colorTag: existing?.colorTag ?? .none,
+            colorTag: existing?.colorTag ?? .none,
             sortIndex: existing?.sortIndex ?? 0, ownerHostID: ownerHostID, customPurpose: purpose
         )
         let update: IdentityPasswordUpdate
@@ -1575,7 +1437,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
             }
             return false
         }
-        recordedIdentityCredentialAccesses.remove(identityID)
         return true
     }
 
@@ -1588,8 +1449,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 String(localized: "iCloud credentials cannot be moved to This Device.")
             )
         }
-        let resetsCredentialAccess =
-            credential != nil || previousKey.map { Self.keyConnectionFieldsChanged($0, key) } == true
         if key.storage == .secureEnclave, !key.certificate.isEmpty {
             throw TermindSSHError.library(
                 String(localized: "Secure Enclave keys cannot store an SSH certificate.")
@@ -1653,10 +1512,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 storageError ?? String(localized: "The key could not be saved.")
             )
         }
-        if resetsCredentialAccess {
-            recordedIdentityCredentialAccesses.subtract(identities(using: key.id).map(\.id))
-        }
-
         if changesLocation, let previousKey {
             do {
                 try keychain.removeKeyCredential(
@@ -1714,7 +1569,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
 
     public func delete(keyID: SSHKeyRef.ID) throws {
         guard let key = key(keyID) else { return }
-        let affectedIdentityIDs = Set(identities(using: keyID).map(\.id))
         let credential = try keyCredential(for: key)
         try keychain.removeKeyCredential(key.credentialRef, storage: key.storage)
         let keySnapshot = keys
@@ -1735,7 +1589,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                 storageError ?? String(localized: "The key could not be deleted.")
             )
         }
-        recordedIdentityCredentialAccesses.subtract(affectedIdentityIDs)
     }
 
     /// Adds or updates a group. A new group is placed after its last sibling
@@ -2326,7 +2179,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     }
 
     @discardableResult
-    private func persistCore() -> Bool {
+    private func persistCore(touching touchedKeys: Set<VaultRecordKey> = []) -> Bool {
         do {
             try vault.save(
                 VaultSnapshot(
@@ -2334,7 +2187,8 @@ public final class HostLibraryModel: RemoteSessionHostStore {
                     keys: keys, knownHosts: knownHosts, snippets: snippets,
                     snippetPackages: snippetPackages, portForwardings: portForwardings,
                     workspaceTemplates: workspaceTemplates
-                ))
+                ),
+                touching: touchedKeys)
             storageError = nil
             return true
         } catch {
@@ -2346,8 +2200,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
     /// Applies a CloudKit-imported projection without writing it back as a new
     /// local edit. Runtime connection and transfer state intentionally remain.
     public func replacePersistedSnapshot(_ snapshot: VaultSnapshot) {
-        let previousIdentities = Dictionary(uniqueKeysWithValues: identities.map { ($0.id, $0) })
-        let previousKeys = Dictionary(uniqueKeysWithValues: keys.map { ($0.id, $0) })
         hosts = snapshot.hosts
         groups = snapshot.groups
         identities = normalizedManualOrder(
@@ -2355,23 +2207,6 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         )
         keys = normalizedManualOrder(
             snapshot.keys, sortIndex: \SSHKeyRef.sortIndex, name: \SSHKeyRef.label
-        )
-        let currentIdentityIDs = Set(identities.map(\.id))
-        recordedIdentityCredentialAccesses.formIntersection(currentIdentityIDs)
-        for identity in identities {
-            if let previous = previousIdentities[identity.id],
-                Self.identityConnectionFieldsChanged(previous, identity)
-            {
-                recordedIdentityCredentialAccesses.remove(identity.id)
-            }
-        }
-        let currentKeys = Dictionary(uniqueKeysWithValues: keys.map { ($0.id, $0) })
-        let changedKeyIDs = Set(previousKeys.keys).union(currentKeys.keys).filter { id in
-            guard let previous = previousKeys[id], let current = currentKeys[id] else { return true }
-            return Self.keyConnectionFieldsChanged(previous, current)
-        }
-        recordedIdentityCredentialAccesses.subtract(
-            identities.filter { $0.keyID.map(changedKeyIDs.contains) == true }.map(\.id)
         )
         knownHosts = snapshot.knownHosts
         snippets = normalizedSnippetOrder(snapshot.snippets)

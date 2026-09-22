@@ -22,6 +22,7 @@ public final class CredentialLibraryModel {
     public var storageError: String? { library.storageError }
 
     public func key(_ id: SSHKeyRef.ID) -> SSHKeyRef? { library.key(id) }
+    public func identityModifiedAt(_ id: Identity.ID) -> Date? { library.identityModifiedAt(id) }
     public func identities(using key: SSHKeyRef.ID) -> [Identity] { library.identities(using: key) }
     public func loginAddress(for host: Host) -> String { library.loginAddress(for: host) }
     public func searchHosts(_ query: String) -> [Host] { library.hosts(matching: query, for: .keyExport) }

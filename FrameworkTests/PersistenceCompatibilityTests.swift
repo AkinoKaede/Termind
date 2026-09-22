@@ -76,6 +76,7 @@ struct PersistenceCompatibilityTests {
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV30.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV31.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV32.versionIdentifier })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV33.versionIdentifier })
         #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
         #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
         #expect(TermindSchemaV25.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
@@ -99,6 +100,14 @@ struct PersistenceCompatibilityTests {
         #expect(
             !TermindSchemaV32.models.contains {
                 $0 == TermindSchemaV29HostModels.PersistentHost.self
+            })
+        #expect(
+            TermindSchemaV33.models.contains {
+                $0 == TermindSchemaV33IdentityModels.PersistentIdentity.self
+            })
+        #expect(
+            !TermindSchemaV33.models.contains {
+                $0 == TermindSchemaV25IdentityModels.PersistentIdentity.self
             })
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSSHPreferences" })
@@ -147,6 +156,49 @@ struct PersistenceCompatibilityTests {
         #expect(sourceDevice.id == state.installationID)
         #expect(sourceDevice.displayName == ProcessInfo.processInfo.hostName)
         #expect(history.endedAt == nil)
+    }
+
+    @Test
+    func version32StoreDropsIdentityUsageAndPreservesConfigurationAndJournalDate() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Termind.store")
+        let oldSchema = Schema(versionedSchema: TermindSchemaV32.self)
+        let oldConfiguration = ModelConfiguration(
+            "Termind", schema: oldSchema, url: url, cloudKitDatabase: .none
+        )
+        let identity = Identity(
+            name: "Before V33", username: "deploy", credentialRef: "termind.password.deploy",
+            colorTag: .purple)
+        let modifiedAt = Date(timeIntervalSince1970: 500)
+        let recordKey = VaultRecordKey(kind: .identity, id: identity.id)
+        var oldContainer: ModelContainer? = try ModelContainer(
+            for: oldSchema, configurations: [oldConfiguration]
+        )
+        let oldIdentity = TermindSchemaV25IdentityModels.PersistentIdentity(identity)
+        oldIdentity.lastUsedAt = Date(timeIntervalSince1970: 900)
+        oldContainer?.mainContext.insert(oldIdentity)
+        oldContainer?.mainContext.insert(
+            try PersistentVaultSyncEntry(
+                envelope: VaultEnvelope(
+                    key: recordKey,
+                    version: VaultVersion(modifiedAt: modifiedAt, counter: 0, writerID: UUID()),
+                    payload: .identity(identity)),
+                needsUpload: false))
+        try oldContainer?.mainContext.save()
+        oldContainer = nil
+
+        let migrated = try TermindPersistence.makeContainer(url: url)
+        let saved = try #require(
+            migrated.mainContext.fetch(FetchDescriptor<PersistentIdentity>()).first?.value)
+        let dates = try HostPersistence(context: migrated.mainContext).modificationDates()
+
+        #expect(saved.name == identity.name)
+        #expect(saved.username == identity.username)
+        #expect(saved.credentialRef == identity.credentialRef)
+        #expect(saved.colorTag == identity.colorTag)
+        #expect(dates[recordKey] == modifiedAt)
     }
 
     @Test

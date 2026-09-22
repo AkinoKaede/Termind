@@ -1682,9 +1682,9 @@ private struct IdentityCard: View {
                     Spacer(minLength: Metrics.Space.xs)
 
                     Text(
-                        identity.lastUsedAt
+                        modifiedAt
                             .map { $0.formatted(.relative(presentation: .numeric)) }
-                            ?? String(localized: "Never")
+                            ?? String(localized: "Unknown")
                     )
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -1699,6 +1699,13 @@ private struct IdentityCard: View {
             DestructiveMenuButton("Delete", action: delete)
         }
         .help(Text(identity.notes.isEmpty ? identity.username : identity.notes))
+    }
+
+    private var modifiedAt: Date? {
+        guard let date = app.credentials.identityModifiedAt(identity.id),
+            date > VaultVersion.baselineDate
+        else { return nil }
+        return date
     }
 
     /// One chip per secret the identity actually has — so a login with both

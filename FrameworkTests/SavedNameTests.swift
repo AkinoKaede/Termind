@@ -189,13 +189,14 @@ private final class NameVaultPersistence: VaultPersisting {
     var fails = false
     init(_ snapshot: VaultSnapshot) { self.snapshot = snapshot }
     func load() throws -> VaultSnapshot { snapshot }
-    func save(_ snapshot: VaultSnapshot) throws -> VaultMutationSet {
+    func save(
+        _ snapshot: VaultSnapshot, touching keys: Set<VaultRecordKey>
+    ) throws -> VaultMutationSet {
         if fails { throw CocoaError(.fileWriteUnknown) }
         self.snapshot = snapshot
         writes += 1
         return .empty
     }
-    func saveIdentityLastUsedAt(_ updates: [Identity.ID: Date]) throws {}
     func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
         VaultRemoteApplyResult(snapshot: snapshot, acceptedKeys: [], needsUpload: [])
     }
