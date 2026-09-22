@@ -1,10 +1,12 @@
 ---
 type: "Reference"
 title: "Remote services and forwarding"
+description: "Cross-service ownership of SSH terminal, metrics, SFTP, Agent, and forwarding runtimes, with routing to detailed channel scheduling, shell integration, and multi-connection dispatch mechanisms."
+tags: [ssh, terminal, metrics, sftp, port-forwarding, scheduling]
 openwiki_generated: true
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
+    at: 2026-09-22T02:43:23.140Z
 sources:
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
@@ -20,19 +22,44 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift
   - id: openwiki-source-600c0f7b9ebcdcb58b4a0d05
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMetricsSampler.swift
+  - id: openwiki-source-f3c300fe43c8f1ceb0906ed3
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
+  - id: openwiki-source-b347308e8c5cc6c0b0d29b7d
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
+  - id: openwiki-source-c4b6e224fdbea6dcd393344d
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-52a93fdcfe9295de26f2b72d
     resource: repo://FrameworkTests/SSHMetricsSamplerTests.swift
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
 ---
 
 
 SSH is a shared transport substrate, not a single shared runtime. Terminal sessions, Metrics, port forwarding, SFTP, and Agent work can all use SSH, but each feature owns its own intent, connection lifetime, interaction surface, and recovery policy. In particular, a live authentication result or a forwarding listener is memory-only: it is not restored from saved Host or forwarding-rule data. See [SSH session lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for the general connection journey and [Agent runtime and assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for Agent-specific transport ownership.
+
+## Implementation deep dives
+
+This page explains service ownership. Follow these guides when changing the actual algorithms:
+
+- [SSH Multiplexing, Channel Admission, and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md): distinguish a physical connection from its channels, trace exec/SFTP turns on the libssh2 owner, and understand readiness, retry buffers, and backpressure.
+- [Shell Integration: Bootstrap, OSC Events, and Terminal State](/openwiki/concepts/shell-integration.md): follow probe/install timeouts, Bash/Zsh/Fish hooks, output filtering, cwd/home, command history, and compose state.
+- [Port Forwarding: Multi-Connection Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md): follow pool warm-up, accepted-socket assignment, single-worker remote forwarding, per-flow pumping, recovery, and teardown.
+- [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md): follow file admission through context topology selection, extra-connection fallback, transfer completion, and edit ownership.
+
+### The limits count different resources
+
+| Control | Scope and accounting unit | It does not mean |
+| --- | --- | --- |
+| `SSHMaxSessionsPolicy` / `SSHChannelBudget` | A shared preference creates a separate FIFO lease budget for shell, exec, and subsystem channels on each physical connection. | A process-wide socket limit or a cap on forwarded TCP flows. |
+| `SFTPConcurrencyScheduler` | One admitted logical file operation process-wide, with a slot on every distinct endpoint Host and optional exclusive borrowed resources. | One permit per SSH channel/socket; a two-endpoint copy still consumes one global permit. |
+| `SSHForwardingConnectionPool` | A Host-context target for physical connections; only local/dynamic registrations require auxiliary slots. | An SFTP file limit or multiple workers for one remote listener. |
+
+These controls compose rather than replace each other. For example, an SFTP file can already hold its global/per-host permit while waiting for a session-channel lease on a busy primary connection.
 
 ## Service boundaries
 

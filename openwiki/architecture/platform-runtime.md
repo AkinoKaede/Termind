@@ -5,7 +5,7 @@ description: How Termind composes shared services and persistence on macOS and i
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
+    at: 2026-09-22T02:51:54.212Z
 sources:
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
@@ -35,7 +35,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -43,6 +43,14 @@ generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
 Termind has separate native application targets—`TFM` for macOS and `TFI` for iOS/iPadOS—but both compose the same layered frameworks into a platform-owned runtime. The application target owns startup, native lifecycle hooks, dependency assembly, platform UI, and the boundary between durable app data and live UI/session state. Shared frameworks do not import either app target.
 
 The most important lifetime rule is: **stores, coordinators, and durable-data services are app-wide; navigation, presentation, and desktop workspace ownership are local to a window; mobile navigation is local to a scene; live transports belong to the workspace/session that opened them.** Do not move state across those boundaries merely to make a UI path convenient.
+
+## UI structure and design guides
+
+This page explains runtime composition and lifetime boundaries. For the component trees and user-facing presentation rules, continue with:
+
+- [TFM Desktop UI Architecture](/openwiki/architecture/desktop-ui.md): window shell, persistent workspace deck, split panes, Vault list/detail, managed cards and native transcript ownership.
+- [TFI Mobile UI Architecture](/openwiki/architecture/mobile-ui.md): registered feature stacks, scene-local routes, shared workspaces, usable-region layout, mobile toolbars and native input continuity.
+- [UI Design Principles and Shared Presentation Boundaries](/openwiki/concepts/ui-design-principles.md): what the platforms share, where their visual/input policies intentionally differ, and how to extend them without merging runtime ownership.
 
 ## Lifetime map
 

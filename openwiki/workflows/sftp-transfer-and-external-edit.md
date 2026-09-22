@@ -5,10 +5,12 @@ description: How SFTP browser operations become scheduled transfers, choose an S
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
+    at: 2026-09-22T02:21:47.705Z
 sources:
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
+  - id: openwiki-source-0c82bf45bc197f879a54fd3a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
   - id: openwiki-source-f45e107ba4ae15ff23a99333
@@ -37,7 +39,7 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+generated: { by: "omp", at: "2026-09-22T02:21:47.705Z" }
 ---
 
 ## Scope and operating model
@@ -100,6 +102,85 @@ sequenceDiagram
 A context keeps the browser **control** channel independent where possible. `channelsOnly` opens sibling SFTP channels, falling back to a serialized primary lease rather than silently opening another connection. `connectionsPreferred` probes one additional connection without interaction; success marks the context connection-capable, while a non-cancellation failure marks it channel-capable for later jobs and leaves active work untouched. A cancelled probe does not cache that degradation. The special terminal preflight role can donate a successful independent connection to the first job; if independent preflight requires interaction, terminal work uses its PTY transport and fixes the generation to channels. [^context-topology] [^context-probe] [^terminal-preflight]
 
 The coordinator acquires two endpoint leases in stable context-ID order for a remote copy and shares one lease when both endpoints are the same context. This avoids competing acquisition order and needless duplicate use of one transport. [^remote-copy-leases]
+
+## Scheduling algorithm: admission is not transport capacity
+
+The coordinator's `schedule()` creates an admission task for each eligible queued row, waits for any pending preference update, and calls `acquire`. Only after a permit arrives and the row/runtime still exists does it store that permit, reserve context slots, mark the transfer running, and ask for a channel lease. A row can therefore be **running but still waiting for a subsystem or serialized primary**; admitted file count is not the number of sockets currently transferring bytes. The permit remains held through channel acquisition, I/O and lease cleanup. `finish` releases context ownership and the active permit before scheduling again.
+
+`nextEligibleRequest` is a two-level rotation, not one global FIFO:
+
+```text
+while active file count < globalLimit:
+    visit anchor hosts starting after lastGrantedHost
+    within each host, visit sources starting after that host's lastGrantedSource
+    inspect only the head request of each source queue
+    skip if any endpoint is at its per-host limit or an exclusive resource is busy
+    grant the first eligible head; update host/source rotation cursors
+    stop when no eligible head exists
+```
+
+Each request normalizes its endpoint set to include the anchor. A copy is anchored to its destination when available, while capacity is charged to both distinct endpoint Hosts. Workspace identity is the managed context's ID (destination context for a copy); otherwise the coordinator uses the batch ID. The Agent supplies an `agentRun` identity for scheduled data work.
+
+This has three consequences:
+
+- FIFO is preserved **within one source queue**. The scheduler can skip a blocked source to consider a different source/host, but does not look past that source's blocked head.
+- Rotation is a grant-order fairness policy, not preemption or a bandwidth reservation. Long-running files keep their permits until release. Lowering limits cannot revoke active permits; it only delays future grants until capacity fits again.
+- A remote copy consumes one global permit and one slot per distinct Host, regardless of whether it later needs one or two endpoint leases. A borrowed channel adds an exclusive resource ID so jobs cannot simultaneously use that same borrowed resource.
+
+Tests make the policy concrete: after a workspace used the sole slot, a queued Agent source can precede more work from that workspace; another Host gets a turn before the previous Host; two workspace queues can split five same-host grants 3/2. These are controlled queued examples, not a guarantee that a later-arriving operation displaces an already active file.
+
+### Smart mode is selected at grant time
+
+The request retains its byte count, but `drain()` selects its mode using the **current preferences when admitted**. The returned permit's mode is immutable. The boundary is decimal **64,000,000 bytes** (64 MB), not 64 MiB: equal-to-boundary and unknown sizes use `channelsOnly`; strictly greater known sizes use `connectionsPreferred`. Mode decides the allowed topology preference, not extra file capacity.
+
+## Topology decision table for a managed context
+
+The full sequence lives in `SFTPTransferContext.acquire`; read it in order rather than treating the selected strategy as an unconditional socket-opening command. While an initial capability probe is in flight, other acquisitions wait for its result. After that, primary role and busy state determine reuse.
+
+| Primary role | `channelsOnly` | `connectionsPreferred` |
+| --- | --- | --- |
+| `control` (browser) | Prefer a sibling subsystem, leaving the browser's control channel free. If sibling opening fails, wait for and serialize on the primary. | Try a silent additional connection unless capability already downgraded to channels; then try a sibling; final fallback serializes the primary. |
+| `donatedConnection` (successful independent preflight) | Lease the idle preflight primary first; overlapping work uses siblings. | Lease the idle preflight primary first; overlap can open independent connections, then downgrade to siblings/primary after failure. |
+| `ptyConnectionFallback` | Lease the idle SFTP primary on the PTY transport first; overlap uses siblings. | Starts with channel-only capability, so it does not re-probe extra connections for a large file while that primary generation is alive; uses primary/siblings. |
+
+A context's capability is **unknown → connections** on a successful silent open, or **unknown/connections → channels** on a non-cancellation failure. The first unknown probe is serialized, but once connection capability is known later admitted jobs can attempt extra opens concurrently. Browser-context cancellation is checked before caching degradation; a cancelled probe does not condemn the generation to channel fallback. Successful sibling opening does not turn an unknown context into connection-capable.
+
+These fallbacks include two distinct kinds of waiting:
+
+1. `openSiblingChannel` can wait for the per-connection `SSHChannelBudget` before libssh2 ever tries initialization. A full local session budget is not automatically interpreted as failure, and does not cause the context to open a new socket by itself.
+2. If sibling initialization actually fails, the context waits on `primaryBusy` and leases the primary serially. Context waiters are a dictionary resumed together by `wakeWaiters`; do not attribute the scheduler's FIFO guarantee to this fallback waiter mechanism.
+
+A browser-context extra connection or sibling is leased for the operation and disconnected on release, rather than kept in a warm auxiliary pool. The context primary is retained by owner/transfer references. If it was closed after detach/pause, a later explicit resume can silently recreate a primary from its snapshot and resets capability; `channelsOnly` cannot conjure an already-authenticated transport that no longer exists. The saved form always opens a fresh client and the borrowed form always returns the external channel with a no-op lease release; neither runs the managed-context topology table.
+
+### Worked connection/channel counts
+
+Assume setup succeeds, no other files consume the stated limits, and the SSH session-channel budget permits the requested siblings:
+
+| Scenario | Active logical files | Physical connections and SFTP subsystems |
+| --- | --- | --- |
+| Browser control primary, three files, Channels Only | 3 | One connection with its browser control subsystem plus three sibling data subsystems; the control channel is not a fourth file permit. |
+| Donated primary, two files at exactly 64,000,000 bytes, Smart | 2 | One independent preflight connection; its primary subsystem plus one sibling. |
+| Same donated primary, two files strictly above the threshold, Smart | 2 | The donated connection plus one silently opened connection; no sibling is needed on the successful path. |
+| PTY fallback, three large files, Smart | 3 | The existing PTY connection with the terminal session channel plus three SFTP subsystems (the fallback primary and two siblings); no new connection probe. |
+| Donated preflight, seven files, per-host limit 5, Connections Preferred | At most 5 | Initially the donated connection plus four additional connections; remaining files wait for permits. |
+
+`SFTPTransferContextTests` checks the sibling/open counts, the threshold, a five-file terminal batch, and two contexts sharing a five-file Host limit. With `MaxSessions = 10`, a browser control channel plus ten admitted Channels Only files cannot all have sibling subsystems at once: the extra acquisition waits for a channel lease even though it already holds a file permit. This is an example of independent limits, not permission to silently exceed either one.
+
+## Agent SFTP reuse is related, not identical
+
+Agent data work joins the same file-admission mechanism through `AgentSSHAuthenticationRegistry.withSFTP` when `schedulesDataTransfer` is true. Metadata calls can bypass a data permit and default to channel mode; callers with a supplied permit do not acquire/release it twice. Authentication and the channel lease are obtained inside that admitted operation.
+
+`AgentConnectionPool.acquireSFTP` first reuses an eligible idle record, preferring least-recently-used idle records; channel-only mode limits record reuse to the primary. If that primary is busy, channel-only work opens a sibling and can wait/retry the primary on sibling failure. Connection-preferred overlap joins a per-Host unknown-capability probe or opens another silent connection after capability is known. Pooled records become idle on lease release; ephemeral siblings are disconnected. Idle auxiliaries can later be swept, unlike the coordinator context's operation-scoped extras.
+
+Do not copy browser-context assumptions wholesale into this pool. In particular, the Agent's shared initial-probe catch updates capability before rethrowing cancellation, whereas the browser context checks cancellation before recording a downgrade. They also have different final fallback paths and cache lifetimes. Review the specific owner and tests for a scheduling change rather than inventing one universal SFTP pool.
+
+## From a file lease to libssh2 turns
+
+A sibling channel shares the same driver's transport identity. `SSHMultiplexedSFTPChannelOwner` serializes each raw libssh2 call on its SSH owner's queue, uses the encrypted buffer's bounded pass/backpressure, and returns to an async 2 ms retry sleep on EAGAIN. File fairness above does not imply strict round-robin ordering for every SFTP packet below. See [SSH Multiplexing and Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md).
+
+Copy's topology check is driver identity, **not merely equal Host IDs**. If both concrete `SFTPChannel` endpoints share it, `copyOnSharedTransport` alternates reads of at most 64 KiB with destination writes on the shared owner. Otherwise the socket-pair relay runs producer and consumer tasks concurrently; failure cancels the group and stops the relay. Stable lease acquisition order, the shared-driver fast path, and file-admission accounting solve different problems and should not be collapsed.
+
+To compare with port forwarding, use [Forwarding Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md): forwarding prewarms a Host-level target and assigns accepted TCP flows to retained workers, rather than creating a connection-per-file lease. For terminal-to-SFTP cwd/availability prerequisites, use [Shell Integration](/openwiki/concepts/shell-integration.md).
 
 ## Transfer state, resume, cleanup, and ownership
 

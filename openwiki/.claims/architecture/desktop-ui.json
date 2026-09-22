@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:d3b79d8cc51a720b38f06a1c8dc127782900a85f704bee57b59abaf8bf3f8d30",
+  "claims": [
+    {
+      "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
+      "statement": "TFM shares AppModel across main windows but creates per-window WindowModel state; RootView supplies that model through the environment and focused scene values, while external authentication uses a separate scene removed from ordinary scene-opening commands.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/RootView.swift#L189-L212",
+          "version": "repo-lines-v1:sha256:d71f166db375946ef90321a74b2b3943f9137b43d68003f6991b1c9c56dbc5e9:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmNTg3OGE2YmZmYTQ4OTg5M2U1ZDljYjAzNjU1Y2QyMzBkNTNjODI1MzNlNmM1MzllNjcyMzVjN2ZhOTQ3NDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3NzRiNTdmMDI4YzVkNTlhYTZiNWJjMzJhN2Y3ODhiY2NlZTk3Y2QzYzRmNGJmZjJlNjRmNjI0MjVlMGYwYWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQwODBmODZmZDI2OGM5MDgyMDQzM2EwYTU1Zjk5MWFhM2M3NWMyZmRmNjc0NTRkYzA0MDgwNzUwNjk0ZjM2MzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVmZjY1OGMwNzA0YjlkODZkZWVjOTc1M2EyODI3YWM3YzJlYTE5ZmRjMGQwYWU5ZDBiM2YyMzdmMzZhN2M5ZWIifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L150-L194",
+          "version": "repo-lines-v1:sha256:00c8269a3e30e0a6c21609b9611182d7db6ea597b5034e06084b9777a951d26b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwMWZjNjEwMWEwZjJiMGNiNmFkNTEyYzg2MzExYzEyNzllM2VlZjMwNWExMDQwMTc5MzUzMTQ4N2MxYTllNDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2YzczNjhlYWI2MWJhOGIxYWJlYTEwZmIxMTE3OTIzZjk5ODA2NjU4ZDFiNjcyODkyMjU5ODAxOTIxYWI0N2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwZTJhYTI2ZTg3N2YxZWE5MzA4NjE5NmU0Nzg2N2U5MGYzNTk4ODI2MDA0MmY2YTM1YzEzZTlkNDRlOTVhM2MifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a3a9d8910c524019afd270300d91ffd1",
+      "statement": "RootView owns one NavigationSplitView and window toolbar, overlays status on the active workspace without docking it, and places Vault, Assistant, Metrics and Settings in front of a persistent workspace deck.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/RootView.swift#L33-L113",
+          "version": "repo-lines-v1:sha256:8913b022efb5a07ab706ebe6a1a7b1525c4450e3b9d74bd547e9963252c1afb9:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMDhhOGI4NmMyMTkzOTMzMWNlMmRlNzQ4Y2MwMjQyODI5NmExNWUyOWUwMTJmOWI1YjI5YmE3NTQ5MDViOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1YjBiYjljODYyYTczYjRiNDU5MzM0ZDE4Y2UxZjFjNzk0YTQ1ZmZiMTY1YzY2MGEwOWQ1NDgwZjg1OWJiZDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5OGYxYTA0YmVlNzFjM2NmYzJiNDcxOWU2ZmQ5MGM5NmY0N2E5MWU0ZDJmZGU3ODgzNTNjMDM3MDQ2NmY5ZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRmZGVlN2NkMWQ1ZDFjYzE2Njc3Njg5ZTc2MzcwODEyYjUxMzEyZThhMTc0YWQ0YTE1OTM0NzRjODk1ZWFmNTgifQ"
+        },
+        {
+          "resource": "repo://TFM/App/RootView.swift#L338-L386",
+          "version": "repo-lines-v1:sha256:f0b2ae44180a4334c03b0e087292f318df3a66f475b3fbbdfc60784351930cb0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExZGM3ZDc4ZWRlZDE0NzliZDk3YTZjN2UzYWQ0OGQxNzFhNjRhZTNlMTQ1MGNhNjBlZGRlYzY0YTViOTFlZTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2MTcxMDUwNWVkNzc3MzZhNzZlZmNmOGM1YWMxNzUxNzczYjg1Mzc0NzhjN2U2YmJlM2Y4YTNiNDA4ZmNjMjkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0acb6b4def5948e6a4460d6fa6b7e9fa",
+      "statement": "WindowModel separates destination, sidebar mode, page selections/searches, presentation routes and focused workspace state; user sidebar activation can restore Assistant's prior destination, while History is disallowed for focused Telnet/serial sessions.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L10-L134",
+          "version": "repo-lines-v1:sha256:22601aaff9d328068b1fdf3e19c6d087be1345821e56a2dcfd89439f6a14e53b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkNjU2ODhjMWU1N2RkOGFlY2U1MDk2ZWUzNGVjNTQ1YTc2MTFkYjFkYmNmYWVmMDAwNzI2ZGFjOWU1M2YwNjdiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjZGEzMTJmZTE1NTcwNDM5MzM0YmM5MDBkYjQ0Mjk1MzYyZjM4OWY1YzZlZDhlNDE1YjgyMmMwZjdmMDQyYzQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyNzY2YWJkZGRkYWYzY2JmODc1MTU4MGY1Mjk2NDNhNDE3M2M5YWE0NzQ2MDYyNjhkOThjZDNhYWQ1YjQ2Zjc1In0"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L15-L112",
+          "version": "repo-lines-v1:sha256:5f84807a4eb3379b2ae4b1841e09ecb705650709c818098c52f8d4ee3e1a622e:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwOTJkZGExNzNhMjQyOTg1N2E4ZTE0NjQzODVlOTU3MDFjZTM5MDU5ZDFhYzhjNGIwYjMzY2RhMmE1ZWEyMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2ODZlODYxYmYwOTRlZTkxYTNlOGZjMTUxZWQ2YjUwNzc4MjRhM2FiMzg0NGVlNDk5NjI2ZWVhNmRlYWYzOGMifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L191-L268",
+          "version": "repo-lines-v1:sha256:f5718d1b71ad7c7def6b624cde665c906c9802551770e7f53d160988ddcb29cf:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4ZjlmNWVkNjdiMGJlMDE1ZjczN2JmOTQ3NmFhMzMwOTJiM2I1NmM4NDRiMWUyMDYxZWY1ODY1NTNmMDk3ZmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmNDY1NmRkY2JkMzQ5ZjUxNWNlMGVhMTk3ZmI3YmRmYjUxYzNiOGM4OTk1MmUyZTQzZWRjNTA0ZThlMjU0NWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4OWI1ODU5NmY1OWExZjU2ZDIyOGEyMzlhZTI2MzMyMDU3MDg3YTc3MjFiMmZlYWRjYTMxYzI5MWViMWRjZjQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_06d39725ef0143c0a6dce17ce0125e86",
+      "statement": "The persistent workspace deck retains all open workspace views, gates hidden interaction/accessibility, parks hidden layouts at identity-keyed cached usable sizes, and prunes closed IDs rather than relaying every container resize to hidden split trees.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/RootView.swift#L338-L356",
+          "version": "repo-lines-v1:sha256:b633b5e83bd4ab48cc86823138859bc2895d3eab20f6d75a4a3812c3a5c2333f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1Y2E5MDNhMWE1YmZlMTQ0OTM3NWE4OWFmMWZlZTZkODgyN2JjMDRmYWVkYjczMWNlYmUyMzA0MmU5NWJhMGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExZGM3ZDc4ZWRlZDE0NzliZDk3YTZjN2UzYWQ0OGQxNzFhNjRhZTNlMTQ1MGNhNjBlZGRlYzY0YTViOTFlZTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3YjZlZTM3OGExYTEyM2Q2ZGEzMDJkYTM5MTk5MjEwYmE0MWMyNmJlZjNmYWFiOGRlZjY2YWVmM2I2MzVkOTgifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/PersistentWorkspaceDeckLayout.swift#L20-L108",
+          "version": "repo-lines-v1:sha256:36c22131a55ec5b65823348af839c0293b5a92ddefbe81767e35d7639cd91675:eyJzZWxlY3RlZExpbmVDb3VudCI6ODksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwYTE2OTVjOWVlODY1YjZlODA3Nzc2NWVmZDRhYjFkOGZmN2YzM2ZmY2EzNDExNGIxYTg5Zjk2ZTczOGFkYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift#L74-L134",
+          "version": "repo-lines-v1:sha256:9d7c190805419307ba5211d61e72ec659015727987fd841592067a8d6eb192e6:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAzYWE5YjQ2YTMyZGVmZTczNGM5YzZlY2Q3Mjg0ZjM0NzJkZTM3MmY3MTgzYjVmODI2YjQxMTVjNzhiOWQyZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b365ec9386aa45e4bce94b9bf4c68e9a",
+      "statement": "WorkspaceContentView renders stable-ID split leaves and fraction-based branches, previews divider movement locally, keeps a dragged source mounted while omitting it from preview geometry, and disables hidden-workspace shortcut owners.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L176-L285",
+          "version": "repo-lines-v1:sha256:5134b0bd318bd899fa1579a853f15b51469662b047f32ff3a55dbccd6ff29e7c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhYTJkODRhMzFkYTc0M2EzMzg3ZTNiNmJkYTE5OTc1Njg1ZWVkN2U0YzQ1MGM0MWJiOWMyYThkYzIwOGQ5NzU3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkMDg3ODhjMDM5NzhjMGMzY2I1Nzc5ZWI1ZTZlYjE3ZGU3OTE3OWYyOTYxZmY0ZTFhNWYyYzk1OThmZDkwNTRkIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1ZGEyNzI3NjZmMDhhODkwYjdlM2Y3NTk3OWFiOGIyNjNiNDNmYWUxN2VkZTcwMTcwNGVlYjAxYjhiMGQ0ODAwIn0"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L48-L112",
+          "version": "repo-lines-v1:sha256:de3f598a948f020128b7e0148afc9a3163fc403e3912d2c1f9da49b9e8adebf2:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0NDkzM2JlYmY3OGIxOGFkNjc4Mjk0MzM1NjdjYzk4MWNlYjdiM2FlOGIyZTRlNjA5NjRlOWYwNDQ4MjJmNTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxZjM2M2EwMzVkZGQ0Yjc3NDMwODE4YzExOGI3ZWUxMTJmYjk2MDQ5YWRmNThkOTIxMDgzMWM1YWNlZGY5NGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2Y2E1NzUwYmI4OWNmMDJkYjkzZGFmNjY1NDk4MDI0M2NmY2U1Y2EzNDY5Nzk5ZmE0YTk0ZmE1NmQ5NWQ0MTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwMTM0MTQ3MjQ1YTAyNDFkZGVmNjlhNTFiZmIwNzYzMDI4MzNkZWZiZTcxNWI0ZDNjMmRjM2E3ZGQ2NzBkOTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_64dc4408c2b440c6af34f6b948dac351",
+      "statement": "Vault list/editor children retain identity across the split breakpoint; a covered list keeps its cached size and editor transitions animate position and reserved space rather than resizing the form.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Vault/VaultWorkspaceView.swift#L15-L99",
+          "version": "repo-lines-v1:sha256:e7b1d3162b4921f3534c97d5e853e4156f5572dca3293ade07c64f0c79e23dac:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjZTQ1ODEzN2ZkNzk3MGI1MzZkYmI3NDc1MDY3NjUyNTc3ODA3ZmFhNzIwMjY3NDU2N2M3NWU5ZWY5M2IyN2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_cc630e7ab5c3431095f27b3a7bf6e683",
+      "statement": "ManagedCardPage supplies typed sections, stable item IDs, externally owned selection, capabilities and business views to a reusable renderer; drop geometry yields stable-ID mutation intent while resource-specific actions and presentation remain with the page.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/UI/Managed/ManagedCardPage.swift#L166-L270",
+          "version": "repo-lines-v1:sha256:163099e2bf8642a65bf5f109ed97a94391eccff6d279c4a2878cf40e88d94917:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiMjA4N2Y3ODgwZGRiMjI0NzdkZWIyNTA3NjgyNTUyMDgyNWU3ZmZkZWQyZmY4MGYxNWYwNjU3Y2VmZWE4OWZjIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2NWE2ZjEwNTViZWI5YmVkMDAwZjFiYzc3N2ZhOWYzOGEwNTZlNmQxYjFkZTg5YWFlYTdjOTgxZDUyZWRkZjdhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJkYTQ5YmM5ZDM0MDM0M2IxNTBhNGVjZmEwZTEyYjg0NDE1ODZkMjhiMmQ1OTczZDRhNmU5OTdmZTg1ZDI5YTZmIn0"
+        },
+        {
+          "resource": "repo://TFM/UI/Managed/ManagedCardPage.swift#L6-L163",
+          "version": "repo-lines-v1:sha256:d1192ab4a16076d4b949c9aaa5fe7803f9f1f59f5ecc227acc66788726330b69:eyJzZWxlY3RlZExpbmVDb3VudCI6MTU4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2M2Q5YjEwYjUzMDUwMjgxM2M1MGRhMmUwMDNjNWFjM2FmMjdkZjk0MDRkZmE0N2ZlOGM1MDFlMzJjYjRhMmUxIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxOTUwMmY5ZWEzMWZhNmI4OGNlZTI3OWJkNmVhMDc5YWNhOWZiMzZkYWViZGY2ZmI5NTUxYTdjYzdjNTNiNDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0ODgxZmMxMzdiMjIxOWE3Yjc2ZTc3YmNlODRjMzYyMzAwNDkzY2IzOTIwZmZmMzFjYzBjY2Q0NDQ2NjI2ZTFjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_1361b995f8e646c6a534186edcd83dc7",
+      "statement": "The workspace compact Assistant has routing separate from the full Assistant destination and composes transcript/interaction regions with explicit terminal context; Escape cannot fall through from a blocking interaction into closing the conversation.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L7-L14",
+          "version": "repo-lines-v1:sha256:a3755412e818d877b2c9c59bc75105e21157bb4519e47f13f4ee6fd2764de97b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmFlZDhjNWNjMzg0MGRjMjMwYTRiNGY3MTExN2UxZGE4MjRmZmJmYjA5ZTZjMWVmYWY4M2U1Mzc5MTNkNjkzZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTcxZGE3NDM0NTdjMDNhMjQwNDRhMTk3NTQ2MGE2YzQ4OTllODBiNzUyOGUzMDRkMzE0ZDY3ZmU1NWE0MTYwNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWMwMDRmMzdkODZkOTFjYzUyZGY1ZDhiYjAyYjU0YmI1ODk5YjA1MWYzY2M0YTU5ODk2ZDFiNTZjYjQ1NGNiMiJ9"
+        },
+        {
+          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L89-L225",
+          "version": "repo-lines-v1:sha256:a235a02d0e28feb4b79c8d8a6f5e3844a9598fd35568c864ee8ed9cabfbc4c8d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5MTFlOGI2MmUzM2JjNDg0MWM4NmE1MmJiZmQ0MjRhZTQxZTBiYmVhODI0MjJkMTBlMGQyMGI5ZjMwNWZiNDBjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1NTAzMmU5NjRkMDkzMjM1MWU1ZDE4NTI2OTI4MWIxNzFhM2EwOWIwOGIyODZlNjYxZWE0NzAzMjNjODJlYjRkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyYTFiOTczN2RlNTU1MTEwZjU1YmYyZmI2N2UxNzk1ZTU1ODA4NDdjYTQzOWI0YjBkZmJjN2U1YmZjNGU1YjcxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_0d6597fc4a834df3a50ee13a514a20e4",
+      "statement": "TFM transcript owners are cached per window by conversation and surface, preserving native list and presentation state across mounts; the default eight-owner LRU trims unmounted candidates without forcibly evicting mounted surfaces.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/AI/TranscriptListView.swift#L113-L155",
+          "version": "repo-lines-v1:sha256:b0a2bbea3a31751d53d263fce80b4747b349be8806a0ef7029d69b94ef991c5b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyOTIzMzk5NzVlNWVkZTE3NjkzMjlmOGFhY2I0YTJkODRjOWQzODkzNzFiYzljM2U4OTE5NTQ3NGJmODE0Y2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwOGY1NDk4YTdjNzIyZmEzNzgxMmIyNGU3ODNiNTQ2MzlhYjIwYzcyZGU3MzliM2U3N2VmMmI0N2JjOTI4NGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4MzUxNzM0YWU0ZjMxODBiNGM5ZTNmOWYxZjJhYWUyNmRlMDZlZDBmZGMxOWU2ZDhiMDNlYTkwNjJkYWViZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzNjM2YTE3MTJlNGZmZjcxMjVhZTBmMmQ2YTRjNDI4ZDRmNTlkMjNmMjFkNzk4MWJjNWVlNzY4N2U3ZDFiZWQifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/AI/TranscriptListView.swift#L229-L316",
+          "version": "repo-lines-v1:sha256:6ef569238eb6062020862d6ffa07f08588826db3232bdeaeb678f9a62f913a43:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkMzQ4OThiZDNmY2JmNTVlNDViMGYzNjQ0NmZkZmJkY2UzZmY1YzM5YzBiYjBhZTY5OGUzMWY4OThmODA4YWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkZDBiMmU3NDkyMmQ3NGY1MWRhMDlmMWRhMjU4NmNlOWM2NmE1NjVjNDczZDk3ZTA0Nzc1ZmQ2MDU0ODNmNjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRhMTc1YTAxMTVjOTI2MzIwOTlmZDNhZTYwNWUwYTdkZDlkOWI5MWI1ZWJmOTY2OWFhOTg4Y2JiNGZkZmY4M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyOThmZDE1YmNiNzRjOTY4MWIzYjhmMTFmMmViODk3MzdiNDEyYWM1NDFjY2IwZjYyMzkzZWU3MDM2NmNiNWQifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L79-L85",
+          "version": "repo-lines-v1:sha256:b69a1a372b311f2063b3336a7711b85a4fe987e441fed3547c6eee91b09aca0a:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzVlYmVlMmE0NGY1NjRhNDMwNDQwMjM1ZGYzMTY5Y2Y3MDZjNmI4ZmFmZDJhY2ZlYTNkNzNhZWI4YzRiYWRmMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTZmYTQwYzVjYjhhOTFjNWU0YThmYjg1NGNlZTAxMzE5YzJiN2E0ZTliM2U0ZGJjZDg0MWQzODdlZTk0MDMwMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjQyODk0NTYwODIzMzA5MTM4MzBhYTg2Nzg0ZjcyYmMwYjcxZTU3YWFmM2ViNmMwNzM3ODFhMDY2MTg5ZjhkMyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODJlYjAyNzczNGZjNjk5NDAyZjQ1YmI0NjMxNjRlM2FhODI4NmVkMDBjZWJjMjk2ZjAxOWFjYjUxNDMxZDUyNyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_7a2deac25d6743f7a2d4968eb179b904",
+      "statement": "ResponsivePageLayoutTests includes visible-window-gated narrow editor cases in English and both Chinese variants, while its offscreen Metrics case verifies native table identity, sorting and scroll retention across width changes.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/ResponsivePageLayoutTests.swift#L11-L145",
+          "version": "repo-lines-v1:sha256:5b068452fbef1aa51055084952ffe5a65659654f7005cb478088ce4aec0273cb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwNTliNmRmNjgzMTA0ODE5MDZmMjgxZDIyMWIyMGQ3MDNmYjRkMWM2YzIwZjU0YjI4ODI4N2FhZWJhYWU5YzQ2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI2NmI1ZjE4ODA5MTA2ZDU5MmUxMDc5OTcxODA5ZGZlMWFjMjQ5OGNhYzcwZjBiOWQ5ZTllZDUzOTQ0ZjQ3YzAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmNWJlYWMxN2RmMTlmMTQzYmQ5MzE5MWU0MWRiZmNhZjgzY2Q3ZmUyMjQ4YWIwMTQ0ZDg2MmRlMDkxNmRlMjBlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjNTAwNGFkN2FkNDNkZjUwNTZkNzI5ZTVlYTQyMzVmMmUyMTk1MjA5ZjM2OTQzZWY1YWMxMmIxNzE2NTI1OWMxIn0"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T02:51:54.212Z"
+  }
+}

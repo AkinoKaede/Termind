@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:a662291087c13d029a1df20ca0146d683e78704cee78016e30152e3701dcfe4c",
+  "claims": [
+    {
+      "id": "claim_fbb919f62a2d4ab88aafcc4c1186731b",
+      "statement": "TFI registers Vault, Metrics, Workspaces, Assistant and Settings once through MobileFeatureRegistry, rejects duplicate IDs, and renders one NavigationStack per registration inside a sidebar-adaptable TabView.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileFeatureRegistry.swift#L33-L117",
+          "version": "repo-lines-v1:sha256:d364588db1f38ceccea3efc2c9e341dc2217c7aa5a52f4271de1af1e566e39d0:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyYzBhYjFhNzUwMDZhMDA3NTE5YjhmZTgyNGQzOTVlNGVjM2JkNWJhMjY1MDNjZjA5ZTJkZGY5ZWMxYTI0MTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiZTBhODk2YTNjYjAzNmM0NDZiNDgyMTA3MDA4ZDZkOTZmNTdkNzA2MGRiNDk4ZjQ5YTVhNjhkNDI1ZWI4NGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileRootView.swift#L6-L45",
+          "version": "repo-lines-v1:sha256:b834a79fc6ea73d5f538e434a971465a547981778a11473875c7fc2dea3a98e0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZlMzA0ODhhNDJjZmI4Y2M1YTgzMjM2YjRjNmM0YmE4NTg3YTY1ZDlmNWZhNDUyZGE4ZjY2MzhkMjhjNDZlYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiNTgwYjRjZTYxYzIyNTk3MGFmOGYxOGIzZTJmMmNjNmQ2NjRhMzIwOTY4MTI4ZmVhMWU2NjhkOGQwNGExZjEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkxMzlmYjYwZDNhYzI2ODlkY2VkNjQ1NTJiNDJlOTZmNjZjMjE5YmYxYTA1YmY1YjhiN2I2MGEzNTgyY2Q5NDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2MTlhZGM1NjcxMTNjZmI2YWE4YTM2ZmI4N2U5ZWI3N2FhZGFlNjU4MDc3ZDRlODQ0NGNkNGM0NWM1YTFiNWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1d7bbd68fa0c4fc59513ce9d4306d506",
+      "statement": "MobileSceneModel owns scene-local routes, workspace selection and an Assistant library over shared application services; host activation reuses the scene's recent matching terminal workspace while explicit connection actions can create independent workspaces.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileSceneModel.swift#L83-L128",
+          "version": "repo-lines-v1:sha256:ab6c66761d5743f76343b319a30dbdb113dffcf9b01a21a180e87ef109d63c60:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwOTA1MzRlNGFlMDdmZThiMGM5MTk4MWE3MGY1ZDFjMmM4ZWE1YzMzZmY5OWEzZGQ2YTBjMWQwNWM3NzBmNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0OTBmZjExZjVjZTJiYzA2ZTFkODlhZTNjZmEyN2Y4NzhiMzZhNzE4Yjg0NjU4ZDFlNjI3OGExNjdmNjFiMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjYzk0ZjdiZjEyMjBmOTFjNDQxODMzYjYxMGRjZGQ1MGM1N2ViNjc1YzNiYzY0YmY3Y2EyZThlYzkxNzBhYmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNmMDZjZDBkMzM2MDE5NDAwZDMzYmMwYTA3ZDBhMTE5ZTViZTAxZTFlYjhiY2M1MWM1Nzg4NTM1ZTQ5NjJmNjEifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileSceneModel.swift#L9-L42",
+          "version": "repo-lines-v1:sha256:e5998ce27bda04ed0b490b5d1148e9b4b664b062f03fb15af16bde8edc4e8dea:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlMzBiMWNmYzNlMDdhNWQzNDFjZTY5NjdjZDYzMTI4MWQzYzQwYmYzMWQzNTI1MTM2M2MyNzYxN2NiZmIwMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0Zjc3ZWUyMTVmMDIxOWU5NjFjNzM3NGFhNTQ2MzA4ZjNjMGVlZDI3MzQzZmEyYjY0Y2EwYjZhZmVkMmQwYzYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwMmY3OGRkOTFmY2NiMDNkNTg4MDU0YTRkNjhkMmRlYTU2NTgzODI3ODU5ODNlMTEwOGZiN2IzOTY5MTdkMWUifQ"
+        },
+        {
+          "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift#L243-L306",
+          "version": "repo-lines-v1:sha256:49f1bce4a65005b1a5ad1f81083f3d10026f66f89e587a688a8625139aadec14:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxMzhmZDI5OTQ0ZGQyMDFhMDBlYWM2MjRhZGRiMzM1Yjg0ZTcwOWQ3YmViZmUyMTZjNTE2MTE2ZGQ3NmJiMmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0dea8b77853f44fa8371c862252d7682",
+      "statement": "Cross-tab workspace selection stores a pending workspace ID and switches to Workspaces before the destination task yields and activates the push; replacing pushed details uses workspace identity, and restored workspaces are published before connecting.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L584-L600",
+          "version": "repo-lines-v1:sha256:4695fd57bfd1677ccfbaa7ef3e23c87ff6c636ab1d93fe889299f5b87723ace0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4YjM0MjE2MjYzZjM3NTkzNDUyZGMyNDNlYTQyNTQ3MDJkZTEzYjI0OTliYTQ4ODYxODk2NTI4NGNmNDQzNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1NWE2YmQ5MDhjMTBjOGM0MzYyZDBkNDAyZDI0Y2JkMDY2MDgyYjNjMjQ0N2YwZTA0MjZhYjEzY2M4NDc2M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY4ZDgxNTIzY2NhNWZlYmRiNWVhZDU5MDU2NmU5NjhlMTVkOTViZjRlODNlZjNkYjExNmJhOGM1NThhNDY0ZDQifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileSceneModel.swift#L142-L178",
+          "version": "repo-lines-v1:sha256:4124b1e32581d0253871aa6cb5e808434339a36b8b5d5d26641924d744c374a4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2MzdmYjc1Yjc0N2Q4NDhkYmI3NjVlNGQwYTdmZTg1NmI4NDNhZTA4ZWE4MDU5N2I3NDY1NWUyMWFiZjIyYzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU4NmIyYjk3ZWIxODI1ZmE4YWE5ZmEyYzlkMzBkNWMzNzEzYzQ2NTgyOWQ2MDA0YTNmNmMxYzgyZDY3NWY2NWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVhOGQ3MWI2M2IzZWRjOTkwNGU2YTUyMzcwN2QwMDhhNzU5ZmZiMTg2NmE3NmQ3OGM1ZWU1M2Y4NTc5NTdlYjkifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift#L97-L134",
+          "version": "repo-lines-v1:sha256:8ed777a702c5cf095c6e8561b8a55394782bc121e7c768eb32cd6fb2ebda7900:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMTcwZDgwNGM3OGE1OWFlZGM1NDE3Njk4MmYyMGQ0NjI3NDAwNDVkMjQ1MDBhMzAzMDNmZmUwZTFkZGZlMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwMTk0OGE1ODI0YmJmZmFkZTU5ZTM4ZjQzNTA4MTFjYzI1ZDdkMTdlMmY0MzQ2NjZkOTgzMGYzMTUxNTdlYzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhYTlhY2ZlMTgzNjhiYzc0YWRkODViZDRhYTJkMTMyYjdhNDBhYWQxNjY0ZDAyNDJkYTgwZDY0OGQ3Y2U5ZjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f7833291ad804b5e8df8ad299da5103b",
+      "statement": "MobileContentRegions computes a largest continuous obstacle-free rectangle and an optional usable pair around an active division, retaining overlapping candidates; occlusions alone do not create a split.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/DesignSystem/MobileContentRegions.swift#L3-L105",
+          "version": "repo-lines-v1:sha256:71b6f3d89fbf3450b46fcb1debc5f82841ec9fa75cab124145eea8367ee3f950:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAzLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhZWJmMTg3MGFiMmNhZWI2MjVlYTc4Yzc2MjMxMWEwNjMyYmZkYjMzZmQwZTcyMzljMWE0ZTA3MDMzNTQ1MjYwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MiwicHJlY2VkaW5nQ29udGV4dEhhc2giOiIzNTk2NWZlOGY4OWQ1NDllNmE5MWNmOWIyMTBkYzU3MDhhMGQ4NTkxOTFiOTk0MjZmOWEwYzMwZGM1ZDZlOWZjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJmMjI1MmVlMTBjYjkyOTZmMzZkOWFiZGQ4NGMwYzRjNmU0OWUxNTczNzMzNTdhMWEwNWE2ZmJkNGNjMzZlMWMxIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_3756aa96e03d48109d75e3ee48be75d8",
+      "statement": "Reserved-region and vertical-toolbar system queries are gated by both TERMIND_HAS_IOS_27_1_SDK and iOS runtime availability, with injectable test regions and fallback behavior; compact/regular layout is only a separate size-class hint.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/DesignSystem/MobileContentRegions.swift#L107-L137",
+          "version": "repo-lines-v1:sha256:7a691c61df5fdcd3624bd197ed8e56c0d9cd1f8632794c4a9d2a2637306605d3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQxZDljYWJlZDk0OGRkZWZhMjk4MmY3ZTY0MDE0YmIwMTUxMWYxMzgyY2ZkYTg0OTU5MzgzYWU1NWQzMzJiODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiNTM1Y2UyOTdjYTM5YzdmZmVmNDQxZjhjZmE4ZWQ0NWRmMGRlMzg3Yzg2Y2FkZjYwMzQ0ZTY5Zjg3M2ViZmUifQ"
+        },
+        {
+          "resource": "repo://TFI/DesignSystem/MobileLayoutEnvironment.swift#L3-L14",
+          "version": "repo-lines-v1:sha256:5f15aae79627c3d5fc16686563b9c84439fbd1ad55eef1c7485aacc147f845b6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5MjBmY2M4MjM4OTczZjc3ZGU4MGM0MDczYjM4YzViNzEwNjBkOGM2ZjM4MTQ5N2UxZTU0Nzk2MzFkYWMxMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1OTY1ZmU4Zjg5ZDU0OWU2YTkxY2Y5YjIxMGRjNTcwOGEwZDg1OTE5MWI5OTQyNmY5YTBjMzBkYzVkNmU5ZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFI/DesignSystem/MobileToolbarEnvironment.swift#L3-L54",
+          "version": "repo-lines-v1:sha256:b56c53266e16c75ff79a519dd609349c8be9eaa4d3baf6603da6236c7037bc30:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4NWRiZDhlMjkyYWJhMTBjZGFjZjJiZjU5M2I4OTM0YWQ5ZWUyNjEwMWMxN2M1ZTBkYmMzNGY3MDgwNjBjNzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM1OTY1ZmU4Zjg5ZDU0OWU2YTkxY2Y5YjIxMGRjNTcwOGEwZDg1OTE5MWI5OTQyNmY5YTBjMzBkYzVkNmU5ZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f700a112a37b4bf6abd0e0238cfe07b3",
+      "statement": "MobilePaneLayout retains valid child sizes without replacing native surfaces; workspace content uses a continuous region while Assistant uses transcript/interaction regions, and both separately gate hidden hit testing and accessibility.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/DesignSystem/MobileContentRegions.swift#L138-L163",
+          "version": "repo-lines-v1:sha256:c6c6e516865f5bdc89834ad893a875e31ed619ccb60fceaa4e62e36ea547e77e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZkNDg2NDhjOTA2YTJlMjI2Y2RhZjdiYTljN2IzZDA1ODA3NjRiZDIwMmUzZTVmZTZiZjY4YTU1NWEwYzM0ZmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift#L470-L510",
+          "version": "repo-lines-v1:sha256:e9b974874173a4ff5d1e7e2d6317dbd3b20b189c7b9f5bbc73c075866c59cdb0:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1OTA0ODUyMzg4MjVlMWRlYTYyMjQxNmU1M2Y4ZGFiOWVkODQ0NTAxMDc4Yzg2MmRiMjU2OTAzNTY5YmNhNjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkZWFkMDAzZDlhN2U2MzkzYzkxZmI0MDM5NjNhOGNmMzIxYWZkMThkNGQ3ODYxYmEyNTIzNGEyMmViNjJmYWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0ZTFlNWJhMDRiZDMwZjMwMDA3ZjY1MTJkNWM2MzRhOGNiMDRjMzJiYzFkM2EyYTY3ODM0YjY5ZTJiY2Q5NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNhNjM3ZmU5YWQyZjE1YWNlNjQzOWE0OWUwMWRmYjI2M2M2ZDkwM2VjMjVjZjlmYmM3ZGJlYzExOWZjZjNjNDIifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L108-L135",
+          "version": "repo-lines-v1:sha256:a03eb7daabb1c8a1986e421d7763dfdc849ee50e34d46e2ec9276435b7c710ad:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5YjkzOTM5MjI3Y2RlYjcwZTQzMDExZTkwYWQwZGFmZjdhNzNjZTg4Njg2YWQxOTQzM2VkMTQ3OWEwMWI0MTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlZmMzZjA3MTQ3ZWY0OWE1NDEyMjEzZjExOWViNTE4YWFjZjBiNTYwY2QzNWZkMWZiNWI2MjhlZWExYTVkMjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZjNjI3MGZmY2YwOGZiNjMxNTgwZDdkOGUzMjk5Zjg3YjEwNmQ0NWExODljOWI1ZmU1MTMwMTk1YjdkMTU0MWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA2MGFmNmJjY2NhMDlmZmZhZTc0MmUxZGU0ODgyYjI3NDQ4N2U3MDZjN2QzYmRmZTY3NjJkMTFiM2JjMWI3ZWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_748f112d3d0b4cf4ab8dc8a29b1dbc6a",
+      "statement": "Mobile workspace switcher style and tab visibility follow toolbar placement, while SSH, Telnet and SFTP have distinct toolbar actions and per-action connection/capability gates.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/DesignSystem/MobileToolbarEnvironment.swift#L3-L10",
+          "version": "repo-lines-v1:sha256:c2c2c6cc83fb13a43da977780d588d98f9a511a89ae9829800d1bddd3072d00b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzg1ZGJkOGUyOTJhYmExMGNkYWNmMmJmNTkzYjg5MzRhZDllZTI2MTAxYzE3YzVlMGRiYzM0ZjcwODA2MGM3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjIsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzU5NjVmZThmODlkNTQ5ZTZhOTFjZjliMjEwZGM1NzA4YTBkODU5MTkxYjk5NDI2ZjlhMGMzMGRjNWQ2ZTlmYyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2RmNDc2ZTkyYjVhYWU0NDY4OTFhNzZiNGJmMzE4NDRjZTgwY2MxNTg0NmFlM2ZmOWI4N2U5YTE5NzZiOGYyMiJ9"
+        },
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L136-L251",
+          "version": "repo-lines-v1:sha256:976c28bf78aa6392599820075c94032e15056dca9dd496cb1d760930b9e40847:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhNjJmNmU2M2U0MjE3OTlkODZiZTU1OWVmNzFhNDAzMzJjYzM2M2JhNmM2NzlhYTk1Mjg5Njc5YjZjMTVmOGFlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1YjNmYzQwMDRkNTU5YWM3ZWE5MjVlZTljOGYzMTA4MmUwZTFkODI2Nzc4OGM0MTBjMjQ1MzEyY2MxMjZjZGZhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4NjE1ZjdkYWRmOGM3ODMxMmJkMTE4MmIxODgyNzQ5NmQ4ZmM2YTY3MWFiM2Y4MWM1YzcwOWY4NTBkNTE3YWRkIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_fb3544d0980c48599887d6612b11baab",
+      "statement": "MobileTerminalSurface owns its native terminal beyond SwiftUI navigation; added Find commands preserve ordinary terminal key handling and intercept Escape only while Find is presented.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Platform/MobileTerminalSurface.swift#L6-L69",
+          "version": "repo-lines-v1:sha256:3624f801251beed293020479cdb34a78602161708c16e117e725216ec47b3618:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlMDFlMWE0NWVhYmVhMzQ0NDkxYWU2MzhhZmFhZTdkOTIxMDFiNWViNWY3ZjVkY2QxOTg5NmE3ZDc4NWI4Y2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5ZGYyMTVkM2NjNmU2YWIwOGZmMGZhZWNmZDc1MmIzNWQ4N2M1YjdiMDMzODU5M2U5YmFjYjk4MjFkZmIwYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a88cbc6d056546b8aabc5e7739084fe9",
+      "statement": "Workspace-view disappearance disables external presentation/drop handling and cancels drop loading rather than directly disconnecting the workspace, with drop activity also gated by scene activity.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L65-L105",
+          "version": "repo-lines-v1:sha256:b287ecf4f8ee1bfad66491a3c69f6237734a8e15f4e849b61fbd9742e2899c66:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiMWUwMzMyZjgzNmM4ZWJlYzI0YjBlNGNjY2RkZTljMmEzZjRlNDczODRiZDdmN2VmM2JlZWY2YmJkMGUzNWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1Nzc4NmY4YjgyMjM2NjdlYmYzMTExNDg0ODk3YzIwZDE4NDVkYWIyOTNlYzY0NWZlNjVhOWExMjE4YTgyM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYyY2M0NmY3M2JkNWNlOTUwY2ExYWY5YmQzYWY3MjUyNzQxYzAzMDczMTU5MTNiYWQ2MDAwOTcxYWJjNTkzZGYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e3dd2b1edf154b89a1354de59e82fd70",
+      "statement": "Mobile Assistant shares application-owned execution/store services while scene libraries select conversations; focus restoration after replacement revalidates conversation identity, and the view composes an incremental native transcript with a measured scrolling interaction region.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift#L243-L306",
+          "version": "repo-lines-v1:sha256:49f1bce4a65005b1a5ad1f81083f3d10026f66f89e587a688a8625139aadec14:eyJzZWxlY3RlZExpbmVDb3VudCI6NjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgxMzhmZDI5OTQ0ZGQyMDFhMDBlYWM2MjRhZGRiMzM1Yjg0ZTcwOWQ3YmViZmUyMTZjNTE2MTE2ZGQ3NmJiMmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift#L9-L39",
+          "version": "repo-lines-v1:sha256:82b51c51f7632b9209f536cc1ff9f4eff1e9b61477387dbf7369a46f05bd8809:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4ZDUwMzc5NDJmNThhMWQwZWRlN2QxNDYwNmMwZTJlOTE2OGUwMzRkNDFiYTU2ZThkMTA5YTRlNzY5NTgxZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIwYWZkMDliMDljYTY2Y2Y0YmIyN2QwZWMxOWQ2ODUyMzA1OTYxNWE4OGQ2MzRjYTIzYjMxYjdmYmM1OGY5MDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ4NjlhNmI3MWE1OTA2NzY4MWZkOTE5ZWJlNThkZmMzODZkMzI3YTRhNmJlMDFiMGI0YWYwYmFkMmViYWY3MzcifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/AI/MobileAssistantConversation.swift#L447-L544",
+          "version": "repo-lines-v1:sha256:faa0f3af974bcc94ad86beb910bbf1472ed30b41c38daeff0ce7879220b8ba03:eyJzZWxlY3RlZExpbmVDb3VudCI6OTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlNjUyYzFiYmFkYjBkNmExNmM5MzI1MmQyM2FjMzljNjlhOTE2ZGFlN2UxZWNhZTM4M2I1ODIxMGY5OGFhZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiYjRiNzI3ZmE2ZGQ3OWEzNzlhMzIxMjU1Zjg3Y2MwODFmODg5Nzk2MDc1ZDQ4YzM0NDhhMjcxNzQzMmFjYTAifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Assistant/MobileAssistantView.swift#L201-L235",
+          "version": "repo-lines-v1:sha256:4623f534ceb1da048c60fd5fe8898f82c06f8c1758d82d4ef01c9463a3476903:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmMDAyYmMwYjBiODRlYjRjOTAyOTY3MjI5OWUyY2I0ZGFkZDI0YzM2OWEwOGNjNzQxODliZmYxNDIwY2JmMGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAyMjc5NjRkNmQ4OGIwNWViMGZiZDZjMzY3MTYzYTdmNzY5MjljNmVlN2E5Y2UxZDRkZjRmN2Y0MWIzNGUxNGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmMDRmY2IyNWUxOTUxOGU4ZDU4MjY1MmUxNWQyMjBkZjUwNWVkZmI0OTllMjUxNTY1YjZmYjAyY2MwYzZiYjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e7423fe4f094438aaacb38fb8f626adf",
+      "statement": "TFI aggregates scene phases before entering background handling; background expiry suspends workspaces, stops forwarding, pauses transfers and expires Assistant work, while an active scene resumes retained workspaces and appropriate services.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L491-L523",
+          "version": "repo-lines-v1:sha256:3e5f5ee2eaa48a81fe415e9bb3d77294bdb003e45542404a755bb1e569796e90:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExYjYwOWM3ODJiMmM2NDVhM2M2ZDFmOWMyMDA3YzdjMGVlMWI5MTI1YjJjOGIxOTU0YTFlMTVjY2UxM2VkYjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMGVhYzUyYWE2NjM0MDczNjQ0MjU1MTg2YTc5NGIxMjdmYzQ5MTA2NTRmYTNhMjBiOTgzMjMxOTIxZWU2ZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwZTJhMWYwNzIwY2I4YWNhODQ4ZjIzNzM0N2E4YjUzNGY2YTEzZDVhZTBmMTQ3MDE4ODQ5ZmZjYjkxOTRlZWMifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileRootView.swift#L49-L74",
+          "version": "repo-lines-v1:sha256:427a1b65cef9a08c166a810c9819f16094bdadda3efd6d064bf1010c9467c8c8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwNmIyOTNhY2FiZjI2YWJjZmZmNDhiYzNlZmVkZTIzZmEyMDFiYjA3MDMzMDMxYzcwOWVkZDc2NmQ1YjQ2NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRkNGM4YzM4M2UxNWUxNjA3Njg3NDNkZjUwZTY1MWE0N2YzOWY5YTcxZWJjYzMwOGMwMTFlOWQyZTRiMjE4Y2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM2MTlhZGM1NjcxMTNjZmI2YWE4YTM2ZmI4N2U5ZWI3N2FhZGFlNjU4MDc3ZDRlODQ0NGNkNGM0NWM1YTFiNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1OGE3YWU2OTU4YjYxMGZmMmRhM2Q1ZDM0MjdjMWYyZDZlMDQ2NzRmYzdkZjEyNzgwYThhMWU0NzFkODVhNjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b97c7e449e5b4b0e95aa983dbef8cad9",
+      "statement": "MobileAdaptiveLayoutTests validates five native destinations across widths/languages/Dynamic Type and retained native list, focus and marked-text identity through injected region changes, rather than proving behavior on every physical device.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift#L9-L180",
+          "version": "repo-lines-v1:sha256:fd1dfb3439ec991b16afb53f24aebc218d39fe34cb89144a79d75a4fa14cad8c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2MTcxN2I0ZjY1MWU3NTQ5ZTUzN2QxZDg3ZGNmODNhNWRiYjkxODAzNmJjZDExMDRkYWM4M2QxMmNkNzZlNTYzIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMGE4ODZkMjJlMjhmYThjZmFkMzg2ZTUzMzlmN2JhNGFmNDEzM2U4NGRmMjU5YTYwNTNjNjJiMzI4ZjQ2Y2U3IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJiY2JlNmZkZjFkNDEyOTVmNjUwMmJhODFjNWQyYjdmZTdkOWZhMDFmZTU0NWQ3ZTZhMmFiY2M5YmUzMjRiOGI0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjMTNhOTQ2OThjNjNhZjM5MmJkMWI0YTZkZWIwZWI5ZjdmYzFlNWVjZTQ0MGM1OTU3MTdkYmEyYjM2ZGJjYTU4In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_19b54bd8848c4be3964fb5d9df46007c",
+      "statement": "Mobile card columns derive from measured width, with accessibility Dynamic Type forcing one column instead of a fixed phone/tablet count.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Design/MobileDesignTokens.swift#L3-L16",
+          "version": "repo-lines-v1:sha256:9942ca35a253f97eef9813e34a3351e94136b20663ae8bff5329a07bef6515d8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2M2E0MDYxMjcxNjkxZGY5ZTZlNzNhNDc2ZjY2MGZiNDAzZmE3OGYwNDBjNDVjZTBhMmUzM2ViZmFlYmNlMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmODVkNWEwZjU0NTg4ZWEyNzdkOTIyZjAwMzZjOGFiYjMxNDg0YzQ4Y2UwNzY0MjZjMjdjMTA5NWVmZDE4OTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        },
+        {
+          "resource": "repo://TFI/UI/Managed/MobileCards.swift#L16-L36",
+          "version": "repo-lines-v1:sha256:6da6b4de4629b151fe2d915afe6eafcc3013b98cccccdccc1cfda9a9aa2a47ea:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiMTc4YjMyZGYyYWZhNjMxODU1ZThhZWViMDNhNTg1YzM0MWE1OGRjYWZkZWJkNWJmMDYxZmViNjhlMjgzYTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE0M2NlZmIwZjcyMmRiNzRjN2E2YzI2OTgwMzU1ZjQyMjA0Yzc3NjJlNzY0ZjI4YTFhMzk4OGU5MmMzMjgxZWMifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T02:51:54.212Z"
+  }
+}

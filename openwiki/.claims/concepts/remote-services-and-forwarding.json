@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a5119333dde48ffa8eb6bc9978c53286e04e316ad5ab041d1b989f56e5315d0c",
+  "pageVersion": "sha256:10ea95f6fb5ea0feb5b5f8460c1c8c84091a3d340782befcf5566bda2d187362",
   "claims": [
     {
       "id": "claim_7c677489fd8b4a4fadd006a4da4e9937",
@@ -173,10 +173,28 @@
           "version": "repo-lines-v1:sha256:126ca2648f3109930cbb465d7a74bfc5658d320d430810327b912dc24d3cfa67:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjZGFlMzAyOTk2ZDRmOTVmMmEyNjM1MjE1NDI0Njc5YjIyMDgwNGJlOWFlNDI0N2YxOTJhOWY2OTQ2MjY0YjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU0NGJkNjE1ZDNhNTc5OTNkMTE2NWY1MWRhMmQxMjA4YzY2YzI2YTVjZDU1NzI5MjJjOWFkMTE5YTdlYTIxZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkZDcyYTdjYjEzOTAyMmM5MWUxNjFkZjlmMmFjMjMwNTRmZWQ5OWU4MTRmMGZkOTcxYWQ2NjkwYzdhYjhkNzUifQ"
         }
       ]
+    },
+    {
+      "id": "claim_230f868f2d7243f3af8c52f923ccc951",
+      "statement": "SFTP file admission precedes context channel acquisition, so an operation may hold a global/per-host file permit while waiting for a session-channel budget lease; file permits and per-connection channel limits are distinct controls.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMultiplexedSFTPChannelOwner.swift#L77-L87",
+          "version": "repo-lines-v1:sha256:1a1557053779412a1d1fbfe9ee02060e7644425dc0727d31baf45291237fef1f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY3Yjk2NGEzMjUyYTE1ZTlmYWQwMDRjMzMxNjllOGEwMzQxZTZkZGZlNjY4NDM3YzZmZDQzMmFlNDM4YTA4YzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ3MGI3YTI5OTkwMzg0MzU0NmQzOWJhZGQ4OTc0OGJjYzE1M2U0NDZmZGVmOThkMGVkNWRmZmViNzFmZTI2MGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyNGZjMjBiZGY3MTUyZGVhZGUzNTkzZTczZjIyYjg1MmIzNDA4MTVmZDZkOGIxOWYyMTY5ZTE1OTZkNTM4ZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkZmMyYTI5ZjY1MzVkYTM5NWM1ZDRlZDJjZWUwN2VhZDUwNGIxNTM3YjBlYmYyZGU3ZjkyMDJkODM5NTM3NTQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L99-L188",
+          "version": "repo-lines-v1:sha256:66bc442c33d6cd347e25766a912d6e5aa904ff35fbd79cb65d9b0da8bdef9739:eyJzZWxlY3RlZExpbmVDb3VudCI6OTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1NDUwN2Y4NGExN2EwZDY2Zjc1NzU0ZGJmZmEyZjJhODNmZmYwODg4NWUyMmEyNDI5ZmRlNmQzNTljNzVmMjIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzYmRlNWRjNDUwMWI5ZTk1NWQxN2ZjZThlMmZkMGEyYTIwNzkwMTQwYjNhYWVjNTQwYTJhNmYyMGZhY2M1MTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNlMjMzODU2ZGRmZDZjYmUwMzUyNmJmZTEwMjcwYWYwMDc5MGZjZTQ4YTgwODQ0MzdmN2MwZGE4YzJhMTJmODcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift#L488-L552",
+          "version": "repo-lines-v1:sha256:517342c98e35cff6cb998aecd82535e3ee5f3866f6b9ff6ce05fb886ed0eac4c:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg1YjdjZWMyMGY5OWFlYzBhY2NkZTMwNTkwMjZmNjlkNDk3NDNhNWM0M2M2YThlMjMyNDdjZjBmZDRjNjgwY2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNjcwZmIzOGY4NGVlMDAxM2IwMWVmM2JlMDc4N2ZmOGMxMzJmMzNjODVjMzY5MTM5YzIxNjFhNGU4Yjg3Y2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwNDU3Y2EwZThhZjE2NjNkMmM3NDg3NmQyNjJlOTUxOTNlOTEyNmFhZGY0ZmI4MmQ3NzVhN2VjOThmYmMxODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMWFjYmUwMzNiOWVmMGE2NWY3YjgxOTBjNzMxZWYyMTVkNzI5ZjkyZGUyZDk5NDMzMDEwMWY0NGE0YmY2ZDkifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T01:13:21.371Z"
+    "at": "2026-09-22T02:43:23.140Z"
   }
 }

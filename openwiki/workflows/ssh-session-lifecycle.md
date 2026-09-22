@@ -5,7 +5,7 @@ description: Traces how Termind prepares SSH and Telnet connections, routes them
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:13:21.371Z
+    at: 2026-09-22T02:21:47.705Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
@@ -39,7 +39,7 @@ sources:
     resource: repo://TFMTests/ConnectionJourneyTests.swift
   - id: openwiki-source-578f30372fe67f8688f44b76
     resource: repo://TFMTests/WindowStateTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "omp", at: "2026-09-22T02:21:47.705Z" }
 ---
 
 # SSH, Telnet, Trust, and Workspace Session Lifecycle
@@ -149,6 +149,15 @@ An authenticated SSH connection has one serial libssh2 owner. `SSHConnection` is
 The worker's generation token invalidates socket events, timers, and scheduled pumps after cleanup. Disconnect increments that generation, cancels timers, fails outstanding commands, closes multiplexed SFTP channels and the channel budget, and closes the authenticated transport. Connection-level socket failure is reported once, then uses the same cleanup path. This establishes two related invariants: libssh2 is never entered concurrently, and a retired connection cannot have a stale event revive or mutate its replacement.
 
 Feature models apply the same idea at the UI boundary. `RemoteSessionConnectionController.progressHandler(attemptID:isCurrent:)` forwards route progress to `ConnectionJourney` only for the current attempt. Mobile workspaces replace their UUID generation when connecting, backgrounding, exiting, or retiring work, and guard every asynchronous completion against it. Late connection, transfer-preparation, socket, and timer callbacks therefore cannot attach an obsolete transport, clear newer state, or enqueue work after explicit close.
+
+### Continue into post-authentication mechanics
+
+Authentication answers whether a transport may be installed. The next layer decides how its work progresses and how additional transports are obtained:
+
+- [SSH Multiplexing, Channel Admission, and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md) explains per-connection session leases, serial libssh2 ownership, exec state machines, SFTP retry turns, and buffer backpressure.
+- [Shell Integration: Bootstrap, OSC Events, and Terminal State](/openwiki/concepts/shell-integration.md) follows the PTY-only probe/install exchange, shell hooks, charset-aware event filtering, history, cwd/home, and platform-specific prompt readiness.
+- [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md) explains file permits before channel acquisition, independent-connection preference, sibling/primary fallback, and detached transfer ownership.
+- [Port Forwarding: Multi-Connection Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md) follows pool publication, local/SOCKS flow assignment, primary-only remote listeners, and the distinction between auxiliary repair and whole-context recovery.
 
 ## Retry, retirement, and workspace behavior
 

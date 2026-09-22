@@ -5,7 +5,7 @@ description: A task-oriented guide to finding the right Termind owner, lifecycle
 tags: [engineering, architecture, routing, testing, macos, ios]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T01:31:00.738Z
+    at: 2026-09-22T02:51:54.212Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -25,7 +25,7 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-22T01:31:00.738Z" }
+generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
 ---
 
 # Termind Engineering Quickstart
@@ -46,8 +46,14 @@ Termind is one Xcode project with two native products: `TFM` for macOS and `TFI`
 | --- | --- | --- | --- |
 | App startup, dependency assembly, window/scene behavior, backgrounding, or shutdown | [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md) | `TFM/App/TermindApp.swift`, `TFI/App/TermindIOSApp.swift` | Relevant `TFMTests` or `TFITests` lifecycle/window suite |
 | A module import, framework placement, SwiftData model, shared resource, or AgentKit-facing API | [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md) | `TFMTests/ArchitectureBoundaryTests.swift` and the owning composition root | `ArchitectureBoundaryTests` plus the affected feature tests |
+| TFM window chrome, Navigator modes, split panes, persistent workspaces, Vault editors, or desktop Assistant rendering | [TFM Desktop UI Architecture](/openwiki/architecture/desktop-ui.md) | Component and ownership diagrams; [UI Design Principles](/openwiki/concepts/ui-design-principles.md) | Window/sidebar, workspace layout, responsive editor and transcript tests |
+| TFI feature tabs, scene routes, mobile toolbars, adaptive regions, terminal continuity, or composer focus | [TFI Mobile UI Architecture](/openwiki/architecture/mobile-ui.md) | Scene-versus-runtime ownership and native surface identity across layout changes | `MobileAdaptiveLayoutTests` plus scene, workspace and Assistant behavior tests |
+| Shared form fields, presentation values, visual tokens, collection interaction, accessibility, or cross-platform UI reuse | [UI Design Principles and Shared Presentation Boundaries](/openwiki/concepts/ui-design-principles.md) | Platform-specific owners; architecture restrictions on shared presentation and native adapters | `ArchitectureBoundaryTests`, input/presentation tests, and targeted multilingual rendering checks |
 | SSH, Telnet, proxy/jump routing, trust prompts, credentials, or workspace reconnect | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) | Remote Infrastructure callers and the owning session feature | SSH preparation, host-key, authentication, journey, and session tests |
 | Terminal services, metrics, port forwarding, channel limits, or shared remote transport policy | [Remote Services: Terminal, Metrics, and Port Forwarding](/openwiki/concepts/remote-services-and-forwarding.md) | [Port Forwarding Benchmarks](/openwiki/operations/port-forwarding-benchmarks.md) for measurement semantics | The relevant terminal, metrics, or forwarding suite |
+| SSH connection reuse, session-channel admission, exec/SFTP queue turns, libssh2 retries, or backpressure | [SSH Multiplexing, Channel Admission, and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md) | Separate file permits, channel leases, owner queues, and physical pools before changing a limit | `SSHMaxSessionsPolicyTests`, `SSHForwardingPumpTests`, and the affected Agent/SFTP tests |
+| Shell bootstrap, Bash/Zsh/Fish hooks, OSC parsing, cwd/home, command history, or prompt/draft readiness | [Shell Integration: Bootstrap, OSC Events, and Terminal State](/openwiki/concepts/shell-integration.md) | Preserve desktop/mobile differences in event delivery and prompt readiness | `ShellIntegrationBootstrapTests`, `CommandHistoryTests`, and mobile command-generator tests |
+| Forwarding pool warm-up, local/SOCKS distribution, remote listeners, silent recovery, or listener retirement | [Port Forwarding: Multi-Connection Pool and Flow Dispatch](/openwiki/workflows/port-forwarding-pool-and-dispatch.md) | Distinguish auxiliary repair from whole-context recovery; use the benchmark guide for measurements | Pump and reconnect suites; opt-in forwarding wire tests when the fixture is available |
 | SFTP browsing, transfer scheduling/topology, conflict behavior, resume, external editing, or cleanup | [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md) | The feature owner plus `SFTPTransferContext`/scheduler callers | Matching SFTP transfer, edit, conflict, or mobile SFTP tests |
 | Assistant turns, approval, host tools, skills, scratch space, agent persistence, or Hermes memory | [Assistant, Agent Runtime, Skills, and Memory](/openwiki/concepts/agent-runtime-and-assistant.md) | AgentKit boundary in [System Boundaries](/openwiki/architecture/system-boundaries.md) | Agent, approval, scratch, skill, or memory suites in `TFMTests`/`FrameworkTests` |
 | Hosts, Vault records, migrations, Keychain references, repositories, or data compatibility | [Persistent Data, Migrations, and Secret Boundaries](/openwiki/concepts/persistence-and-secrets.md) | Persistence compatibility tests and schema owners | Persistence, repository, secret, and migration tests |
