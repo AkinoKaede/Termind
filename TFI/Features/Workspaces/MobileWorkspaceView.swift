@@ -22,9 +22,9 @@ struct MobileWorkspaceView: View {
     let pro: ProAccessController
     let commandGenerator: any CommandGenerating
     @Bindable var workspace: MobileWorkspace
-    let workspaces: [MobileWorkspace]
+    let workspaces: [MobileWorkspaceDescriptor]
     let selectWorkspace: (UUID) -> Void
-    let renameWorkspace: (MobileWorkspace) -> Void
+    let renameWorkspace: (MobileWorkspaceDescriptor) -> Void
     let canCloseMultipleWorkspaces: Bool
     let openSameDirectory: (MobileWorkspaceDirectoryLaunch) -> Void
     let closeWorkspace: (UUID) -> Void
@@ -43,7 +43,6 @@ struct MobileWorkspaceView: View {
     @State private var workspaceIsVisible = false
     @State private var uploadDropTask: Task<Void, Never>?
     @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.mobileToolbarLayout) private var toolbarLayout
     @TerminalFontSettings private var font
     @State private var downloadTarget: RemoteFile?
@@ -244,7 +243,7 @@ struct MobileWorkspaceView: View {
     private var workspaceLifecycleActions: some View {
         MobileWorkspaceLifecycleMenuActions(
             canCloseMultipleWorkspaces: canCloseMultipleWorkspaces,
-            rename: { renameWorkspace(workspace) },
+            rename: { renameWorkspace(workspace.descriptor) },
             close: { closeWorkspace(workspace.id) },
             closeOthers: { closeOtherWorkspaces(workspace.id) },
             closeAll: closeAllWorkspaces
@@ -699,42 +698,12 @@ struct MobileWorkspaceView: View {
     }
 
     @ViewBuilder
-    private func workspaceTitleMenuLabel(for candidate: MobileWorkspace) -> some View {
+    private func workspaceTitleMenuLabel(for candidate: MobileWorkspaceDescriptor) -> some View {
         if candidate.id == workspace.id {
-            Label(candidate.descriptor.title, systemImage: "checkmark")
+            Label(candidate.title, systemImage: "checkmark")
         } else {
-            Label {
-                Text(candidate.descriptor.title)
-            } icon: {
-                workspaceMenuIcon(for: candidate)
-            }
+            Label(candidate.title, systemImage: candidate.kind.symbol)
         }
-    }
-
-    private func workspaceMenuIcon(for candidate: MobileWorkspace) -> some View {
-        let host = library.host(candidate.descriptor.hostID)
-        let distribution = host.flatMap { LinuxDistributionIconCatalog.entry(for: $0.detectedDistribution) }
-        let tint =
-            host?.colorTag.color
-            ?? distribution.flatMap {
-                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
-            }
-            ?? .accentColor
-        return ZStack(alignment: .bottomTrailing) {
-            HostSystemIcon(asset: distribution?.asset, size: 20, showsBackground: false)
-                .tint(tint)
-            Circle()
-                .fill(workspaceMenuStatusTint(for: candidate))
-                .frame(width: 6, height: 6)
-                .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1) }
-        }
-        .frame(width: 20, height: 20)
-    }
-
-    private func workspaceMenuStatusTint(for candidate: MobileWorkspace) -> Color {
-        if candidate.connected { return .green }
-        if candidate.busy || candidate.reconnectState != nil { return .orange }
-        return .secondary
     }
 
     @ViewBuilder

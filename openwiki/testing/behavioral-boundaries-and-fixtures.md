@@ -44,10 +44,10 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T09:51:39.958Z
+    at: 2026-09-22T11:34:21.807Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -95,6 +95,8 @@ The safety fixture substitutes only the CloudKit transport. It uses the producti
 Disk-backed tests separately migrate a V30 store to V31, import legacy quarantine, reopen interrupted state and verify that journal intent and recovery flags survive. Scope tests vary container, environment, account, zone and owner independently. Lifecycle tests hold fetches and inject persistence/lookup failures, exercise overlapping explicit operations and automatic callbacks, and prove that an old or failed engine cannot reopen upload authorization.
 
 Connection-history coverage adds a V31-to-V32 disk migration, Vault codec/merge/tombstone tests, event start/end lifetime checks, stable local-device filtering and deterministic retention of 300 stored events. Migration and sync tests also verify the independent generic device directory: old events receive the installation ID, a separate `DeviceRecord` is created, and changing that record's name updates resolution without rewriting events. Desktop tests distinguish local Welcome Recents from the 100-row all-device sidebar projection. Mobile tests distinguish local per-Host Recents and host-only quick actions from the 100-event Vault History page, including preferred SSH/Telnet activation, disabled protocol actions, device-name search and multilingual light/dark screenshots. Serial remains outside the connection-history enum and mobile workspace routes.
+
+Compatibility coverage continues through V33: the V32-to-V33 fixture verifies that removing Identity usage metadata preserves Identity configuration and its independent Vault journal modification date.
 
 These tests do not prove unknown-field round trips through an actual historical binary, Production schema deployment, or signed-device delivery. Keep those checks in [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md); a fake transport passing is not evidence that iCloud has delivered a record.
 

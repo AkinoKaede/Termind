@@ -6,6 +6,29 @@ import UIKit
 
 @Suite(.serialized) @MainActor
 struct MobileWorkspaceMenuTests {
+    @Test func switcherIncludesOpenedAndDormantWorkspaceDescriptorsInOrder() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let opened = MobileWorkspaceDescriptor(hostID: UUID(), title: "Opened", kind: .ssh)
+        let dormant = MobileWorkspaceDescriptor(hostID: UUID(), title: "Dormant", kind: .sftp)
+        let workspace = MobileWorkspace(descriptor: opened, hosts: app.library)
+        defer { workspace.disconnect() }
+
+        try await withNavigation(
+            MobileWorkspaceView(
+                library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
+                workspace: workspace, workspaces: [opened, dormant],
+                selectWorkspace: { _ in }, renameWorkspace: { _ in }, canCloseMultipleWorkspaces: true,
+                openSameDirectory: { _ in }, closeWorkspace: { _ in }, closeOtherWorkspaces: { _ in },
+                closeAllWorkspaces: {}
+            )
+            .environment(\.mobileToolbarLayout, MobileToolbarLayout(isTopBar: true))
+        ) { navigation in
+            let button = try #require(toolbarButton(named: "Workspaces", in: navigation))
+            let actions = try await resolvedMenuActions(#require(button.menu), in: navigation.view)
+            #expect(actions.map(\.title) == ["Opened", "Dormant"])
+        }
+    }
+
     @Test(arguments: [false, true])
     func lifecycleActionsOnlyShowBatchClosingWhenMultipleWorkspacesCanClose(
         canCloseMultipleWorkspaces: Bool

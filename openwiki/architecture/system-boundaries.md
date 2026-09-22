@@ -14,6 +14,8 @@ sources:
     resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
   - id: openwiki-source-7367aa06bc3b7ce470e78113
     resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
+  - id: openwiki-source-fe1dc993163bb9ff61397be7
+    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-4217f56e034013cb8704d525
     resource: repo://Frameworks/TermindPersistence/SwiftDataConnectionHistoryRepository.swift
   - id: openwiki-source-0b6ab59ec6a684de8101ff8e
@@ -36,10 +38,10 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-22T10:02:02.985Z" }
+generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T10:02:02.985Z
+    at: 2026-09-22T11:34:21.807Z
 ---
 
 # System Boundaries and Dependency Ownership
@@ -99,7 +101,7 @@ The checks also prohibit all shared frameworks from importing `Termind` or `Term
 
 ## Persistence is a single-owner boundary
 
-`TermindPersistence` exports the complete current schema (`TermindSchemaV32`) and builds a `ModelContainer` using its migration plan. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
+`TermindPersistence` exports the complete current schema (`TermindSchemaV33`) and builds a `ModelContainer` using its migration plan. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
 
 Connection history follows the same boundary: Domain owns the portable event value, Application owns the observable model and repository protocol, and Persistence owns its SwiftData shape and Vault-journal transaction. The reusable ID-to-name mapping is deliberately separate: Domain owns `DeviceRecord`, Application owns `DeviceDirectoryModel` and `DeviceDirectoryRepository`, and Persistence owns `PersistentDeviceRecord` plus the SwiftData adapter. A history event merely references `sourceDeviceID`; it does not own or capture the device name. Platform apps inject connection lifecycles, acquire their native system display name, and choose local versus all-device presentation; they do not declare stored models.
 

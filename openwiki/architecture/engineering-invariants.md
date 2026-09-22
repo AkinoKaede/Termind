@@ -85,7 +85,7 @@ sources:
 generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T09:51:39.958Z
+    at: 2026-09-22T11:34:21.807Z
 ---
 
 # Cross-Cutting Engineering Invariants

@@ -85,7 +85,7 @@ sources:
 generated: { by: "codex", at: "2026-09-22T10:02:02.985Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T10:02:02.985Z
+    at: 2026-09-22T11:34:21.807Z
 ---
 
 # Native App Directory Responsibilities

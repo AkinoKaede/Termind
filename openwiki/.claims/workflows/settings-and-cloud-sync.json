@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4c76e612db1b0e6ac951727a79725e55ece21dac8f56cf59871859bbb2e8edb1",
+  "pageVersion": "sha256:a1336fb6bb6fa0733b3bf551d203c4bfcbfff5097545cea1d5614309428ce74d",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -102,7 +102,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
+          "version": "repo-file-v1:sha256:41fe85b84350f855a0bb51655cea0423cf1a3b61003ca3ab0ffac859991aa94b"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
@@ -114,7 +114,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
-          "version": "repo-file-v1:sha256:c727e97334d7ac3d7e5a820afe328a8c1809c08d73abd9c03e91287599d66fb0"
+          "version": "repo-file-v1:sha256:bce6af5c5b9287e3c05817bd18bc59bdfb8836b85f92c35005eac37273ed736e"
         }
       ]
     },
@@ -168,23 +168,19 @@
     },
     {
       "id": "claim_97b5c72b36a0402b9bc1cfcd918efcb2",
-      "statement": "Vault synchronization strips device-local expansion and identity-use metadata from outgoing envelopes and preserves local identity usage when applying remote configuration; Settings explicitly keeps debug/review and terminal typography keys device-local.",
+      "statement": "Vault synchronization normalizes device-local group and package expansion metadata instead of sending it, the live V33 Identity shape no longer contains lastUsedAt usage metadata, and Settings explicitly keeps debug/review and terminal typography keys device-local.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L4-L14",
-          "version": "repo-lines-v1:sha256:5d2fe3af880ad8eef162becc00b07eaa94beb68a2a00f575a2d230cb16adaac7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiNTVjODY0YzFkM2E1ZTEzZWYzOGNiZTIyMWMzZjM4OWJhZGI2OThjYjA1MzQxZWRhN2ZmYzFiM2U0M2RlNTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhZWIwMGEzODU4ZGRmODA5ODEyMTRkYTJiYzYzYmZjZTY0YjQ3NTE1ZDYwNDQ3MDdmOWFiNGNjZDliZDI1MjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzYzM3Zjc0MjU5M2I1MzcyYTU1NjAyZmZmYjZkYzE2ZmFjMDY5MDU4ZmUxNDE0NDg2MjIwMzYwNjgxZTA3OGMifQ"
+          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift",
+          "version": "repo-file-v1:sha256:001f421cdc4e1a1f2acd705f3d7505150ab6204a499070208f9f3208431c970c"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L46-L49",
-          "version": "repo-lines-v1:sha256:8a77f82d7e289935c72cbb60441c5efe97b365ea2c4a35ea4e32ac190560984a:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDY5ZWRhM2Y3ZTYzOWMwNDVmMzAzZWZkYWM5ZTIzYjhhMWJkZDRlMGI2MDU0MGVlZjlkZDJhYjRhM2EyNTMxYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTEyOTdlMTdiZDY0ZDBhZjVjMDMxMDc5YTQzOTYwN2ZiZmZkMDEzNzM4NjNkMjE3NmFiZGQwM2QyODBkOTUzMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWMzYjg3MzJjYzI1MGY1M2U5MTgyYTYwOWRmMmMxMGU1M2MwMGNkZDUzMjQ3MjFjMDAwODVlMzYxMjJiOGFlZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiY2RkYmI4NzAxMGRiYmY0ZmI0MzY5OGU4OTZiZmYwOTdjNzU4YTJkZDI2ZDYzOGE3NTQyMWJjMzgzNjYwN2ViMiJ9"
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
+          "version": "repo-file-v1:sha256:bce6af5c5b9287e3c05817bd18bc59bdfb8836b85f92c35005eac37273ed736e"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift#L123-L146",
-          "version": "repo-lines-v1:sha256:65b2f8d89161d7e0ebbc5e959de6a7083d249228c9749cdd8f3a504a0e08bdb8:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5MDQ0MmQyYzUxNDNlNjFlYWU5YmQwZWViMDU4N2VjNTA1ZmUyNjVjYmU4MDk4ZDgzOTc0ZWVjY2NkODk1NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNGY2MWQ0YWEzNzkxMTQ4YTUyNGZmNzA2YWE5YTg2MjQwMDZkNGNhMTIzZWM3NWU4YjQzOTRlYmZkYjdhOWUifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift#L34-L65",
-          "version": "repo-lines-v1:sha256:e81dc7bac3b134b668502cd364bba460b861a78c050c217dd36f6f26b2616fb9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNDI2YTcwYmQzZjVhZDc1ZTRhNGVlM2NiZDMyZGFkYmZiMjNhMWI5MGVhZTVlNzUxZTk5NWIyN2RjNDFhZjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ4MzgwYzMxY2E3OThlNWY2ZDVkN2Q1NDdkZThlNjE1ZGEyOGI1ZGQ5MWQwMTFmYmZkMGRmZDkzMWJhMjczNzgifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift",
+          "version": "repo-file-v1:sha256:5003174b324bccdcd35d4aad831b07154f339117d344713e9cf850e86833f021"
         }
       ]
     },
@@ -252,7 +248,7 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
+          "version": "repo-file-v1:sha256:41fe85b84350f855a0bb51655cea0423cf1a3b61003ca3ab0ffac859991aa94b"
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift",
@@ -338,17 +334,17 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
-          "version": "repo-file-v1:sha256:c727e97334d7ac3d7e5a820afe328a8c1809c08d73abd9c03e91287599d66fb0"
+          "version": "repo-file-v1:sha256:bce6af5c5b9287e3c05817bd18bc59bdfb8836b85f92c35005eac37273ed736e"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift",
-          "version": "repo-file-v1:sha256:19a4f6918e448a30a33daa7390989a96e4340e6c17e03534e9bd17e229439de9"
+          "version": "repo-file-v1:sha256:4208b9910c5530f219ff7148de966e3d47b72671b58d2a9c7a1d38c8f980ac92"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T09:17:11.491Z"
+    "at": "2026-09-22T11:34:21.807Z"
   }
 }

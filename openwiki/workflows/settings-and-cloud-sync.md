@@ -42,6 +42,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-a0d614d618b11f103ec246ae
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
+  - id: openwiki-source-15e5026028d13d2202844f68
+    resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-87b90af0bd504e35083a8414
@@ -60,10 +62,10 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T09:17:11.491Z
+    at: 2026-09-22T11:34:21.807Z
 ---
 
 # Settings, Vault, Metrics, and Cloud Sync Workflow
@@ -137,7 +139,7 @@ On fetch, coordinators process only their zone and accepted record types. They d
 
 Merge is deterministic: newer versions win; an older remote value causes the local value to be requeued. For equal versions whose payloads differ, encoded bytes provide a deterministic tie-breaker. Settings and Metrics additionally collapse multiple fetched versions of one key before deciding, so batch delivery order does not affect the result. A `serverRecordChanged` save failure runs the server record through the same validation path as a fetch. A supported envelope either establishes an identical local version as uploaded or requeues the winning local result; an unsupported envelope is quarantined instead of silently retrying a stale local payload. Successful sends clear `needsUpload` only if the journal still holds the sent version, so a newer local edit cannot be incorrectly acknowledged.
 
-Vault projections deliberately remove device-local presentation/usage metadata from envelopes: group/package expansion is normalized and identity `lastUsedAt` is omitted, while applying a remote identity preserves the local usage timestamp. Settings likewise excludes explicitly device-local defaults such as debug/logging, review history, and terminal font family/size/follow-theme-size. Settings record-type compatibility is intentional: SSH and SFTP preferences use distinct types in the Settings zone so older clients can ignore newer records before decoding.
+Vault projections deliberately remove device-local presentation metadata from envelopes: group and package expansion is normalized rather than synchronized. The live V33 Identity shape no longer contains `lastUsedAt` usage metadata. Settings likewise excludes explicitly device-local defaults such as debug/logging, review history, and terminal font family/size/follow-theme-size. Settings record-type compatibility is intentional: SSH and SFTP preferences use distinct types in the Settings zone so older clients can ignore newer records before decoding.
 
 Connection history is an exception to “configuration-only Vault” by design: each event is an independent `connectionHistory` Vault key using the same `VaultItem` record type and V1 envelope. Existing local events bootstrap even after the original Vault bootstrap completed. Insert, end-time update, deletion and clear reconcile history rows with the journal in one transaction; logical deletions use ordinary envelope tombstones. Remote events may arrive before their referenced Host and remain stored but hidden until that Host exists. After local or remote merge, deterministic start-time/UUID ordering retains the newest 300 and journals tombstones for the overflow, allowing devices to converge. Platform views then choose a stable-source-device local projection or the complete synchronized event stream.
 

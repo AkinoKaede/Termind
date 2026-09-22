@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:acb6af63437610432dc40d7788ee89b512c3d0687c32b3088fe72c176c5a6bfd",
+  "pageVersion": "sha256:392a5cd29488846a61161bf56d2b7a9e5d87640c51cea9de02d4a7f679efe676",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -120,7 +120,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:4e71ea8935acb91019318067495b9123e1540ea7c74c407f49ed804648ecb77d"
+          "version": "repo-file-v1:sha256:91868100b77cc0aca7a6c119f4dfeb7c17fda8e21018788dff6b1b4bb709066c"
         }
       ]
     },
@@ -138,7 +138,7 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
+          "version": "repo-file-v1:sha256:41fe85b84350f855a0bb51655cea0423cf1a3b61003ca3ab0ffac859991aa94b"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
@@ -182,17 +182,17 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
-          "version": "repo-file-v1:sha256:c727e97334d7ac3d7e5a820afe328a8c1809c08d73abd9c03e91287599d66fb0"
+          "version": "repo-file-v1:sha256:bce6af5c5b9287e3c05817bd18bc59bdfb8836b85f92c35005eac37273ed736e"
         },
         {
           "resource": "repo://TFMTests/VaultSyncTests.swift",
-          "version": "repo-file-v1:sha256:5098275a86373a8299364cb1f487ac69b07a22a712da9644bd7dc86bd76b0941"
+          "version": "repo-file-v1:sha256:43cfca7990751c8b39bc13e19f561fba99edaa0bbc8d96232b456d9418981e7e"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T09:51:39.958Z"
+    "at": "2026-09-22T11:34:21.807Z"
   }
 }

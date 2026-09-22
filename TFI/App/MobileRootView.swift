@@ -41,9 +41,9 @@ struct MobileRootView: View {
         .sheet(isPresented: Binding(get: { app.pro.isPaywallPresented }, set: { app.pro.isPaywallPresented = $0 })) {
             MobileProView(pro: app.pro)
         }
-        .sheet(item: $scene.renamingWorkspace) { workspace in
-            MobileWorkspaceRenameView(workspace: workspace) { title in
-                app.renameWorkspace(workspace.id, to: title)
+        .sheet(item: $scene.renamingWorkspace) { descriptor in
+            MobileWorkspaceRenameView(descriptor: descriptor) { title in
+                app.renameWorkspace(descriptor.id, to: title)
             }
         }
         .onChange(of: scenePhase, initial: true) { _, phase in

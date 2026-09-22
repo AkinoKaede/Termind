@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:abc66b27a943dab3394bc6d58bd9353a336a69a9e76afa6a3df35739c803e564",
+  "pageVersion": "sha256:39f747ee778af3ed681b7fbcc46facf80f7fe3dc6233760e56c85515641f7ae8",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -22,7 +22,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
+          "version": "repo-file-v1:sha256:99027dc9f52c9df892fa1a52d5236e1b2940613ea5bc1bb23fc7b215c05f068e"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift#L19-L33",
@@ -44,11 +44,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
+          "version": "repo-file-v1:sha256:1861792f3f00f64e974298d8d61e0d8b9538bb1e78d2c2f0cd8318359ee36290"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
-          "version": "repo-file-v1:sha256:e795822b9fdd0257bfa13088cec2d09b38e8b6d3757bc4f322f7ab999560a229"
+          "version": "repo-file-v1:sha256:3279e1780ccbe60d036b141a306261ed99fe10dbee0ec890671bb7573997b6ea"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
@@ -154,11 +154,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
+          "version": "repo-file-v1:sha256:1861792f3f00f64e974298d8d61e0d8b9538bb1e78d2c2f0cd8318359ee36290"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:c09fe88df3cf6750e10e7fdbfde73b89bf17bc1acc94ad0e7f3f169f4934f293"
+          "version": "repo-file-v1:sha256:3aed203d6e01bca706733b899b9636aa4808717dea3a8f2d044fd01db08a33d5"
         },
         {
           "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift",
@@ -166,7 +166,7 @@
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
-          "version": "repo-file-v1:sha256:c0bd40724858241894caa3d378d8d7cf5e04ec80d26b5480a8036d5e643ac2e4"
+          "version": "repo-file-v1:sha256:f4a0aba7ad07392adbc7b5e56e5c6ff67e41cfd3f4ace4cdd9754a5a487ef0ce"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceStoreTests.swift",
@@ -180,11 +180,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:0bc3fd0f5052bbc3ae57a157adf11e614d7a228aca3b7517b2996cdd52e3b7a0"
+          "version": "repo-file-v1:sha256:fe75c0ab4a89d01ab803fa20fae886ad659de7d6f093a0107bde1016ed28a87e"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L770-L895",
-          "version": "repo-lines-v1:sha256:73dc81eb20101571d798c214cdd216be804ae8e8db29b7e8f191dc6eca8377df:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmN2QzZTNlY2JlYzc4Y2U2NmVjMjQ5YWRmYzU1NWY4NzVlNGNlODMwYmIyMTg0MWJhZWQwYzA0NWY4ZGE1ODMyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkMWIwNTQ4OTc3Njg1MTE4N2EyMTEwODI0ODZkOGUyYjc1NWQxMTJkMjYxOGNjNjQ0NjE4NDk4ZjdhOTFkNzdjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwY2YzMTVkYmQ1MWNiMGU3NGUzZWYwNTQxMzk5NzZlNjAxNjJlZTVhZmMzYTlkZGE0MzI5NTdlMjgyMWRhMDQ5In0"
+          "version": "repo-lines-v1:sha256:13d97d80bdac697f0a344b2f92f76de714dd6824005f1c5b2a19eaed7ae1c885:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmN2QzZTNlY2JlYzc4Y2U2NmVjMjQ5YWRmYzU1NWY4NzVlNGNlODMwYmIyMTg0MWJhZWQwYzA0NWY4ZGE1ODMyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkMWIwNTQ4OTc3Njg1MTE4N2EyMTEwODI0ODZkOGUyYjc1NWQxMTJkMjYxOGNjNjQ0NjE4NDk4ZjdhOTFkNzdjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwY2YzMTVkYmQ1MWNiMGU3NGUzZWYwNTQxMzk5NzZlNjAxNjJlZTVhZmMzYTlkZGE0MzI5NTdlMjgyMWRhMDQ5In0"
         }
       ]
     },
@@ -194,7 +194,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
+          "version": "repo-file-v1:sha256:41fe85b84350f855a0bb51655cea0423cf1a3b61003ca3ab0ffac859991aa94b"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
@@ -240,13 +240,13 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
-          "version": "repo-file-v1:sha256:c727e97334d7ac3d7e5a820afe328a8c1809c08d73abd9c03e91287599d66fb0"
+          "version": "repo-file-v1:sha256:bce6af5c5b9287e3c05817bd18bc59bdfb8836b85f92c35005eac37273ed736e"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T09:51:39.958Z"
+    "at": "2026-09-22T11:34:21.807Z"
   }
 }

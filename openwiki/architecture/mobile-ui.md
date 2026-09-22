@@ -26,8 +26,6 @@ sources:
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-d43ef236ba4bbb23d8dab797
     resource: repo://TFI/Features/Assistant/MobileAssistantView.swift
-  - id: openwiki-source-20a5e70f2b015b63e86a0c0d
-    resource: repo://TFI/Features/HostChooser/MobileConnectionPicker.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-a337b6f93e72977e59faaf14
@@ -42,10 +40,14 @@ sources:
     resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
-generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+  - id: openwiki-source-b822b041afbf829d09a8555a
+    resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-11c91698354a4f95be3c4654
+    resource: repo://TFITests/MobileWorkspaceMenuTests.swift
+generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T09:51:39.958Z
+    at: 2026-09-22T11:34:21.807Z
 ---
 
 # TFI Mobile UI Architecture
@@ -123,6 +125,18 @@ Host activation and explicit connection actions are different:
 
 Unavailable saved workspace IDs produce an explicit unavailable state; a stale route does not silently open some other Host. Root-level deep links, quick actions and focused scene commands dispatch through that scene's model.
 
+The Workspaces destination deliberately presents saved descriptors and live runtimes as one collection. `MobileAppModel`
+seeds a display-order ID list from persisted descriptors, appends a Workspace only the first time it appears, and removes
+an ID only when that Workspace is closed. Restoring a saved descriptor attaches a shared `MobileWorkspace` runtime to the
+existing row instead of moving it. Newly created and process-only external Workspaces append in appearance order. The same
+ordered descriptor projection drives the list and the detail switcher, so choosing a dormant saved item connects it without
+reordering either surface.
+
+Every row uses the same title, login address, protocol label and lifecycle actions. A live runtime adds the eight-point
+connection-state dot; a saved-but-dormant descriptor has no dot. Rename edits either the live descriptor or the saved
+descriptor directly, while Close removes the saved item and also disconnects it when a runtime exists. The detail switcher
+includes both kinds, marks the selected descriptor with a checkmark, and uses the protocol symbol for every other item.
+
 ### Local Recents versus synchronized History
 
 The Workspaces destination and the Vault expose different projections over the shared synchronized event stream:
@@ -131,9 +145,10 @@ The Workspaces destination and the Vault expose different projections over the s
 - Home Screen quick actions use the same local per-Host projection, publish at most three host-only `server.rack` items, and resolve the current preferred terminal protocol at activation. Older payloads that carried a protocol still decode, but that stale protocol is ignored.
 - Vault's History page follows Known Hosts and displays up to 100 individual events from every synchronized device. The leading symbol remains protocol-specific, while the right column and search resolve the event's `sourceDeviceID` through the reusable synchronized device directory. Row deletion removes one event; **Clear History** clears the complete timeline.
 
-Workspaces, Recent Workspaces and local Recents align their text from the same 36-point Host distribution icon slot and 12-point gap. Live Workspaces overlay an eight-point status dot inside that slot; recent/restored rows have no live status dot. Workspaces and Recent Workspaces show protocol at the common right edge, while aggregated Recents deliberately omits it. TFI exposes no Serial workspace or connection-history kind.
-
-The Workspace title switcher uses a separate compact icon treatment: an unselected item shows its Host distribution icon with a connection-state dot, while the selected item replaces that composite with the ordinary checkmark and therefore carries no status dot.
+The unified Workspaces rows and local Recents align their text from the same 36-point Host distribution icon slot and
+12-point gap. Workspace rows always show protocol at the common right edge and only live runtimes overlay the status dot;
+aggregated Recents omits both protocol and live state. Local Recents replaces the empty Workspace section rather than
+appearing beside saved-but-dormant Workspaces. TFI exposes no Serial workspace or connection-history kind.
 
 ## Adaptation has three inputs, not one device check
 

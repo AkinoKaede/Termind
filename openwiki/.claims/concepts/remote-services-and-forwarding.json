@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0ad48d7eea0ecc929457a1bca2df7de4bef0220eab49611c612e4fe607d8f241",
+  "pageVersion": "sha256:df4482efaa9bf8c8456a93e90ca849b5c53f58754ec6b5f653cc9acffd52fda9",
   "claims": [
     {
       "id": "claim_7c677489fd8b4a4fadd006a4da4e9937",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift",
-          "version": "repo-file-v1:sha256:53e8bd31827b67f5311e090ac6228b83bcae0c8d7275e2c0cc0601bd26dcc561"
+          "version": "repo-file-v1:sha256:c2c7071fecac0b38378bc2fee6df83992ca904b371b80c75802ea3d8363fade7"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
@@ -195,6 +195,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T05:59:31.338Z"
+    "at": "2026-09-22T11:34:21.807Z"
   }
 }

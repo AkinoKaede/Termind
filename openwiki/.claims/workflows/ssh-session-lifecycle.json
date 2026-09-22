@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:de289b6e1e1e71bba3d5a3c274bc561e74dbd8732e2f57e0adbdb3e69f7a7fb2",
+  "pageVersion": "sha256:1c3a728083dd0fd403bf9e9e1cedb2079dfe280c3f037e0de4b6c1a072818a75",
   "claims": [
     {
       "id": "claim_69a9de4ce918417c8a44c6c87c9f6564",
-      "statement": "`SSHConnectionPreparation` resolves a target plus ordered jump-hop configurations before transport opening, performs Keychain-dependent resolution in a cancellable detached task, and applies strict Known Hosts preparation or defers unknown-key approval according to the selected trust policy.",
+      "statement": "SSHConnectionPreparation resolves a target plus ordered jump-hop configurations before transport opening, performs Keychain-dependent resolution in a cancellable detached task, and applies strict Known Hosts preparation or defers unknown-key approval according to the selected trust policy.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L8-L111",
-          "version": "repo-lines-v1:sha256:e8dccb3482f88aa1739cd3284764baa20f2772b93909c49e615bfc96cb8fa042:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2Mjk0OGRiOTNjODVkYTYzNGYwMTU3NWYxN2ZmNzkwZjlhNTMyOGM1YjcwOWI4MDUxOTY2YWMwZWIzZjAzZDg3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1OTA5YTUzYTYxOGQwMjhlMWQzMDAwYzBhN2FiY2VlY2JlNWZiMzdmNGU1MTFlZmU0NjY0M2ZhZDZlNjY4NzJmIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2YTU2MzA1Y2E0NzVhZDc3Yjc1ZTNhNzM1ZGU5Nzc2OGI1MDVhNjk3Zjg0MjE1M2RiY2JmNmI0M2NhNjdhMDZlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2Y2M4NmMwMmE1YmE3YTliYmQyMzg1YjRkMTg0YzgyMTNjYzk5M2JiOTU5M2FkOGNmMDkxMzA3YjMxYjQ3ZmIxIn0"
+          "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift",
+          "version": "repo-file-v1:sha256:7a3aa22b4982e33473739e92b7e0a5485d42774720b2f0cae5f79308c10513eb"
         }
       ]
     },
@@ -22,7 +22,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift#L190-L226",
-          "version": "repo-lines-v1:sha256:fe3ca236926ed04b784df0df23fdc28577affe4c5b98b748c1c316603850d949:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1NDYzNjBjMjlkNzhmNzM2NTZkNDE3NmI5ZWE1NWQ0NTcyMWJiM2I1ODg1Y2MwODhjZTdhNzU3YzhhNTFhYmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzZTAyYjZkNTk3NTA1YTQyOGFkNDUyMTBlNDRiZTA1N2U3MjI0NWU3ODYzMjc0NWY5ZjhiNTQ1MDg5ODk5OTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjMDkwMDc0ZTgwNWM0YjE5Y2QyZDM5OTAyOWE2MGQ3OTI3YWVkMzc4ZTMzYTlkNmZmZTMxZWM2NGY3MTRjMTcifQ"
+          "version": "repo-lines-v1:sha256:c78c5a792e94d2c551faeff31233b0c9f1688f72b50e6c1c52baafdadf6a05d6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM3ZDhiNGQzOTIyNzU4YTJmOWUyYzg4MWYxOTk1ZWJhM2M4ZTJhYjY2YjY0NmMyOGE4NDljOWRmNmE1MjZhYzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIzZTAyYjZkNTk3NTA1YTQyOGFkNDUyMTBlNDRiZTA1N2U3MjI0NWU3ODYzMjc0NWY5ZjhiNTQ1MDg5ODk5OTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjMDkwMDc0ZTgwNWM0YjE5Y2QyZDM5OTAyOWE2MGQ3OTI3YWVkMzc4ZTMzYTlkNmZmZTMxZWM2NGY3MTRjMTcifQ"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHRoutedSocket.swift#L131-L176",
@@ -130,7 +130,7 @@
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
-          "version": "repo-file-v1:sha256:c0bd40724858241894caa3d378d8d7cf5e04ec80d26b5480a8036d5e643ac2e4"
+          "version": "repo-file-v1:sha256:f4a0aba7ad07392adbc7b5e56e5c6ff67e41cfd3f4ace4cdd9754a5a487ef0ce"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceStoreTests.swift",
@@ -167,6 +167,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T11:34:21.807Z"
   }
 }

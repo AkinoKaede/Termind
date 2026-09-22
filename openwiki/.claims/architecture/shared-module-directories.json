@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:8f4fafaa7a5c62b52e73921856983f69fcafed01d18b9f2903aa53d8b883eec5",
+  "pageVersion": "sha256:8477e980e76c27f6b9eeb9c8b9a93f6fc37ee858ae5819a9da3bd7b97f383ee9",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindDomain/Credentials/Identity.swift",
-          "version": "repo-file-v1:sha256:48c8c56526f0623938b4509df03fe907e1e2e3066ada5be644b2f752136cdb13"
+          "version": "repo-file-v1:sha256:38f54b4dfd0761ea5eb1350c763116fcb185dc814eb2cb504c1577eac2f248a5"
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Hosts/Host.swift",
@@ -42,11 +42,11 @@
         },
         {
           "resource": "repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift#L7-L58",
-          "version": "repo-lines-v1:sha256:00b21bada37700f2f5d9ce78816cc1ed89498d6ecb0ea0a9a11016a3f8465358:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5MjlmNGU2OTQ5Y2I4MDA4NjM5YjNjYjkzM2UwNWVmZjRkZWMxNjZhNjdjZDBkOGVjMWVlOGRmYjQzYTQ2YmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0ZjI4MTVkYTkyMmViNWViYTAxNTcxYmViZTlhOTI3ZjM0NDMxODYyMjA0NDYwMDU5MzA0NzdmYTdiYmI2ODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyNDU3YzEzMDE3YjZmZjJkZmI0ZTE1ODFlMGU1MWVjYzNkZGEzNGI1YzEzYjlmM2NiMDM0NTg1Y2FmMzIzNjQifQ"
+          "version": "repo-lines-v1:sha256:ea9c8a4e9600665686af415ab6d7a97d4ba1905caf5a980981ad1aad0ed38d62:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5MjlmNGU2OTQ5Y2I4MDA4NjM5YjNjYjkzM2UwNWVmZjRkZWMxNjZhNjdjZDBkOGVjMWVlOGRmYjQzYTQ2YmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0ZjI4MTVkYTkyMmViNWViYTAxNTcxYmViZTlhOTI3ZjM0NDMxODYyMjA0NDYwMDU5MzA0NzdmYTdiYmI2ODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyNDU3YzEzMDE3YjZmZjJkZmI0ZTE1ODFlMGU1MWVjYzNkZGEzNGI1YzEzYjlmM2NiMDM0NTg1Y2FmMzIzNjQifQ"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Repositories/VaultStore.swift",
-          "version": "repo-file-v1:sha256:d8bb004dde7b76449c9eb658f138263fdb6ae45dcc161b1a5a0c73bc12d3d92f"
+          "version": "repo-file-v1:sha256:005eaac1fabf9fe986ff866035ea13dc519301146c5b10d9613e9df01a47fd47"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift",
@@ -90,7 +90,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:4e71ea8935acb91019318067495b9123e1540ea7c74c407f49ed804648ecb77d"
+          "version": "repo-file-v1:sha256:91868100b77cc0aca7a6c119f4dfeb7c17fda8e21018788dff6b1b4bb709066c"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
@@ -98,7 +98,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
+          "version": "repo-file-v1:sha256:99027dc9f52c9df892fa1a52d5236e1b2940613ea5bc1bb23fc7b215c05f068e"
         }
       ]
     },
@@ -128,7 +128,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
+          "version": "repo-file-v1:sha256:99027dc9f52c9df892fa1a52d5236e1b2940613ea5bc1bb23fc7b215c05f068e"
         }
       ]
     },
@@ -291,6 +291,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T10:02:02.985Z"
+    "at": "2026-09-22T11:34:21.807Z"
   }
 }

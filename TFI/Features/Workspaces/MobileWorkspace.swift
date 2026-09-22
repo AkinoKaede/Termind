@@ -120,6 +120,14 @@ final class MobileWorkspace: Identifiable {
     private var usernameHint: String?
     private let connectionOrigin: RemoteConnectionOrigin
     var isExternalTemporaryConnection: Bool { !connectionOrigin.allowsPersistence }
+    var presentationHost: Host? { connectionHost(descriptor.hostID) }
+    var temporaryLoginAddress: String? {
+        guard hosts.host(descriptor.hostID) == nil, let host = presentationHost else { return nil }
+        let connectionProtocol: HostTerminalProtocol = descriptor.kind == .telnet ? .telnet : .ssh
+        let address = host.displayAddress(for: connectionProtocol)
+        guard let usernameHint, !usernameHint.isEmpty else { return address }
+        return "\(usernameHint)@\(address)"
+    }
     private var advisoryTelnetPassword: SSHSecret?
     private(set) var pendingExternalPreviewURL: URL?
     var pendingInitialCommand: String? { pendingCommand?.command }

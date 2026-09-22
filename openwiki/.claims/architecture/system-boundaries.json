@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:17dc0f2b25ec8c65104d2cb491b9afc63b341e639478ff0bcfdfcf583e74a55f",
+  "pageVersion": "sha256:0b0ea65c8f99eafc07573ee48a92854ed136e4499e1a50382c1e7a9f6a57087b",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -36,15 +36,19 @@
     },
     {
       "id": "claim_04df7977ba1a43bfba0b2585bc5f185a",
-      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; its current container uses TermindSchemaV32 and architecture tests reject @Model declarations outside TermindPersistence.",
+      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; its current container uses TermindSchemaV33 and architecture tests reject @Model declarations outside TermindPersistence.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
           "version": "repo-file-v1:sha256:7cd9b9e940106ce07b1fc987586fc9c6ca1c4f9489cabb02791b627a05a1eedb"
         },
         {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
+          "version": "repo-file-v1:sha256:91868100b77cc0aca7a6c119f4dfeb7c17fda8e21018788dff6b1b4bb709066c"
+        },
+        {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
+          "version": "repo-file-v1:sha256:99027dc9f52c9df892fa1a52d5236e1b2940613ea5bc1bb23fc7b215c05f068e"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
@@ -58,11 +62,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
+          "version": "repo-file-v1:sha256:99027dc9f52c9df892fa1a52d5236e1b2940613ea5bc1bb23fc7b215c05f068e"
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
+          "version": "repo-file-v1:sha256:1861792f3f00f64e974298d8d61e0d8b9538bb1e78d2c2f0cd8318359ee36290"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift",
@@ -172,7 +176,7 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
+          "version": "repo-file-v1:sha256:1861792f3f00f64e974298d8d61e0d8b9538bb1e78d2c2f0cd8318359ee36290"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
@@ -183,6 +187,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T10:02:02.985Z"
+    "at": "2026-09-22T11:34:21.807Z"
   }
 }

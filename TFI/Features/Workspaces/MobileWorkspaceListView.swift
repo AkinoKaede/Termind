@@ -27,56 +27,10 @@ struct MobileWorkspaceListView: View {
                     Label("Transfers", systemImage: "arrow.up.arrow.down")
                 }
             }
-            if !app.workspaces.isEmpty || (app.recentWorkspaces.isEmpty && historyRows.isEmpty) {
+            if !app.orderedWorkspaceItems.isEmpty || historyRows.isEmpty {
                 Section("Workspaces") { workspaceRows }
             }
-            if !app.recentWorkspaces.isEmpty {
-                Section("Recent Workspaces") {
-                    ForEach(app.recentWorkspaces) { descriptor in
-                        if let host = app.library.host(descriptor.hostID) {
-                            Button {
-                                scene.selectWorkspace(descriptor.id)
-                            } label: {
-                                HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
-                                    hostIcon(host)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        HStack(alignment: .center, spacing: 12) {
-                                            Text(descriptor.title).foregroundStyle(.primary).lineLimit(1)
-                                            Spacer(minLength: 12)
-                                            protocolLabel(descriptor.kind)
-                                        }
-                                        Text(
-                                            app.library.loginAddress(
-                                                for: host,
-                                                protocol: descriptor.kind == .telnet ? .telnet : .ssh)
-                                        )
-                                        .font(.caption.monospaced())
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                    }
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                }
-                                .contentShape(.rect)
-                                .accessibilityElement(children: .combine)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityIdentifier("recent-workspace-\(descriptor.id)")
-                            .swipeActions {
-                                Button("Remove", systemImage: "trash", role: .destructive) {
-                                    scene.closeWorkspace(descriptor.id)
-                                }
-                            }
-                            .contextMenu {
-                                Button("Remove", systemImage: "trash", role: .destructive) {
-                                    scene.closeWorkspace(descriptor.id)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-            if app.workspaces.isEmpty, app.recentWorkspaces.isEmpty, !historyRows.isEmpty {
+            if app.orderedWorkspaceItems.isEmpty, !historyRows.isEmpty {
                 Section("Recents") { historyRowsContent }
             }
         }
@@ -106,7 +60,7 @@ struct MobileWorkspaceListView: View {
             if let workspace = app.workspaces.first(where: { $0.id == id }) {
                 MobileWorkspaceView(
                     library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
-                    workspace: workspace, workspaces: app.workspaces,
+                    workspace: workspace, workspaces: app.orderedWorkspaceItems.map(\.descriptor),
                     selectWorkspace: scene.selectWorkspace,
                     renameWorkspace: scene.beginWorkspaceRename,
                     canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
@@ -142,7 +96,7 @@ struct MobileWorkspaceListView: View {
 
     @ViewBuilder
     private var workspaceRows: some View {
-        if app.workspaces.isEmpty {
+        if app.orderedWorkspaceItems.isEmpty {
             ContentUnavailableView(
                 "No Workspaces", systemImage: "terminal",
                 description: Text("Use Connect to start a workspace.")
@@ -150,25 +104,31 @@ struct MobileWorkspaceListView: View {
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
         }
-        ForEach(app.workspaces) { workspace in
+        ForEach(app.orderedWorkspaceItems) { item in
             Button {
-                scene.selectWorkspace(workspace.id)
+                scene.selectWorkspace(item.id)
             } label: {
                 HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
                     ZStack(alignment: .bottomTrailing) {
-                        hostIcon(app.library.host(workspace.descriptor.hostID))
-                        Circle()
-                            .fill(statusTint(for: workspace))
-                            .frame(width: 8, height: 8)
-                            .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
+                        hostIcon(item.host)
+                        if let workspace = item.workspace {
+                            Circle()
+                                .fill(statusTint(for: workspace))
+                                .frame(width: 8, height: 8)
+                                .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
+                        }
                     }
                     VStack(alignment: .leading, spacing: 2) {
                         HStack(alignment: .center, spacing: 12) {
-                            Text(workspace.descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                            Text(item.descriptor.title).foregroundStyle(.primary).lineLimit(1)
                             Spacer(minLength: 12)
-                            protocolLabel(workspace.descriptor.kind)
+                            protocolLabel(item.descriptor.kind)
                         }
-                        Text(workspace.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                        Text(item.loginAddress)
+                            .font(.caption.monospaced())
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -176,17 +136,18 @@ struct MobileWorkspaceListView: View {
                 .contentShape(.rect)
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("workspace-\(item.id)")
             .swipeActions {
                 Button("Close", systemImage: "xmark", role: .destructive) {
-                    scene.closeWorkspace(workspace.id)
+                    scene.closeWorkspace(item.id)
                 }
             }
             .contextMenu {
                 MobileWorkspaceLifecycleMenuActions(
                     canCloseMultipleWorkspaces: scene.canCloseMultipleWorkspaces,
-                    rename: { scene.beginWorkspaceRename(workspace) },
-                    close: { scene.closeWorkspace(workspace.id) },
-                    closeOthers: { scene.closeOtherWorkspaces(than: workspace.id) },
+                    rename: { scene.beginWorkspaceRename(item.descriptor) },
+                    close: { scene.closeWorkspace(item.id) },
+                    closeOthers: { scene.closeOtherWorkspaces(than: item.id) },
                     closeAll: scene.closeAllWorkspaces
                 )
             }

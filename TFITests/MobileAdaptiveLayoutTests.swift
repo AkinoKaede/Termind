@@ -637,8 +637,9 @@ struct MobileAdaptiveLayoutTests {
                 let navigation = try #require(navigation(titled: title, in: root))
                 let page = try #require(navigation.topViewController)
                 let list = try #require(find(UICollectionView.self, in: page.view))
-                #expect(list.numberOfSections == 2)  // Transfers and Recent Workspaces; history stays hidden.
+                #expect(list.numberOfSections == 2)  // Transfers and the unified Workspaces section.
                 #expect((0..<list.numberOfSections).contains { list.numberOfItems(inSection: $0) == 2 })
+                #expect(app.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
                 let width = sizeClass == .compact ? "narrow" : "wide"
                 capture(root, name: "recent-workspaces-\(width)-\(language)")
                 // SwiftUI Button uses its gesture action, not UICollectionView's selection delegate.
@@ -647,6 +648,9 @@ struct MobileAdaptiveLayoutTests {
                 #expect(scene.workspaceID == descriptors[1].id)
                 #expect(app.workspaces.map(\.id) == [descriptors[1].id])
                 #expect(app.recentWorkspaces == [descriptors[0]])
+                #expect(app.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
+                #expect(list.numberOfSections == 2)
+                #expect((0..<list.numberOfSections).contains { list.numberOfItems(inSection: $0) == 2 })
                 #expect(navigation.viewControllers.count == 2)
                 capture(root, name: "recent-workspace-opened-\(width)-\(language)")
                 navigation.popViewController(animated: false)

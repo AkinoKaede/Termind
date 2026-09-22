@@ -90,10 +90,18 @@ struct MobileWorkspaceTests {
         #expect(workspace.descriptor.title == "example.invalid")
         #expect(app.savedWorkspaceDescriptors.isEmpty)
         #expect(app.library.hosts.isEmpty)
+        #expect(app.orderedWorkspaceItems.map(\.id) == [id])
+        #expect(app.orderedWorkspaceItems.first?.loginAddress == "deploy@example.invalid:2222")
+
+        let savedHost = TermindDomain.Host(name: "Saved", host: "saved.example.invalid")
+        app.library.upsert(savedHost)
+        let savedID = try #require(app.open(hostID: savedHost.id, kind: .ssh))
+        #expect(app.orderedWorkspaceItems.map(\.id) == [id, savedID])
 
         app.close(id)
-        #expect(app.workspaces.isEmpty)
-        #expect(app.savedWorkspaceDescriptors.isEmpty)
+        #expect(app.orderedWorkspaceItems.map(\.id) == [savedID])
+        app.close(savedID)
+        #expect(app.orderedWorkspaceItems.isEmpty)
     }
 
     @Test func liveActivitiesUseStableDistinctWorkspaceDestinations() {
@@ -1409,6 +1417,34 @@ private actor MobileTestSFTPClient: SFTPClientProtocol {
 
 @Suite @MainActor
 struct MobileWorkspaceRestorationTests {
+    @Test func displayOrderDoesNotChangeWhenSavedWorkspacesOpenOrRename() throws {
+        let fixture = try Fixture()
+        defer { fixture.cleanUp() }
+        let seed = try fixture.makeApp()
+        let host = try fixture.installHost(in: seed)
+        let descriptors = (0..<3).map {
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Saved \($0)", kind: .ssh, duplicateIndex: $0)
+        }
+        try fixture.store().save(descriptors)
+        let app = try fixture.makeApp()
+        defer { app.closeAll() }
+
+        #expect(app.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
+        _ = try #require(app.openWorkspace(descriptors[1].id))
+        #expect(app.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
+        #expect(app.renameWorkspace(descriptors[1].id, to: "Opened"))
+        #expect(app.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id))
+        #expect(app.orderedWorkspaceItems.map(\.descriptor.title) == ["Saved 0", "Opened", "Saved 2"])
+
+        #expect(app.renameWorkspace(descriptors[0].id, to: "Still Dormant"))
+        #expect(app.workspaces.map(\.id) == [descriptors[1].id])
+        #expect(app.orderedWorkspaceItems.map(\.descriptor.title) == ["Still Dormant", "Opened", "Saved 2"])
+        #expect(try fixture.store().load().map(\.title) == ["Still Dormant", "Opened", "Saved 2"])
+
+        let appended = try #require(app.open(hostID: host.id, kind: .sftp))
+        #expect(app.orderedWorkspaceItems.map(\.id) == descriptors.map(\.id) + [appended])
+    }
+
     @Test func relaunchPreservesDescriptorsWithoutConnectingOrReplayingCommands() throws {
         let fixture = try Fixture()
         defer { fixture.cleanUp() }

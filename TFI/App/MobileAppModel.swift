@@ -18,6 +18,16 @@ private enum MobileWorkspaceStartup {
     case directory(String)
 }
 
+@MainActor
+struct MobileWorkspaceItem: Identifiable {
+    let descriptor: MobileWorkspaceDescriptor
+    let workspace: MobileWorkspace?
+    let host: Host?
+    let loginAddress: String
+
+    var id: MobileWorkspaceDescriptor.ID { descriptor.id }
+}
+
 enum MobileSnippetTimestamp {
     static let fallbackKey = "mobile.snippets.baselineModifiedAtFallback.v1"
 
@@ -78,10 +88,33 @@ final class MobileAppModel {
     private let workspaceConnectionServices: MobileWorkspaceConnectionServices
     private let workspaceStore: MobileWorkspaceStore
     private(set) var savedWorkspaceDescriptors: [MobileWorkspaceDescriptor] = []
+    private var workspaceDisplayOrder: [MobileWorkspaceDescriptor.ID] = []
 
     var recentWorkspaces: [MobileWorkspaceDescriptor] {
         let opened = Set(workspaces.map(\.id))
         return savedWorkspaceDescriptors.filter { !opened.contains($0.id) }
+    }
+
+    var orderedWorkspaceItems: [MobileWorkspaceItem] {
+        workspaceDisplayOrder.compactMap { id in
+            let workspace = workspaces.first { $0.id == id }
+            guard let descriptor = workspace?.descriptor ?? savedWorkspaceDescriptors.first(where: { $0.id == id })
+            else { return nil }
+            let host = library.host(descriptor.hostID) ?? workspace?.presentationHost
+            let loginAddress =
+                workspace?.temporaryLoginAddress
+                ?? host.map {
+                    library.loginAddress(
+                        for: $0,
+                        protocol: descriptor.kind == .telnet ? .telnet : .ssh)
+                }
+                ?? descriptor.title
+            return MobileWorkspaceItem(
+                descriptor: descriptor,
+                workspace: workspace,
+                host: host,
+                loginAddress: loginAddress)
+        }
     }
 
     let outbox: OutboxRunner
@@ -374,11 +407,19 @@ final class MobileAppModel {
 
     @discardableResult
     func renameWorkspace(_ id: MobileWorkspace.ID, to title: String) -> Bool {
-        guard let workspace = workspaces.first(where: { $0.id == id }), workspace.rename(to: title) else {
-            return false
+        let title = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !title.isEmpty else { return false }
+        let workspace = workspaces.first { $0.id == id }
+        let savedIndex = savedWorkspaceDescriptors.firstIndex { $0.id == id }
+        guard workspace != nil || savedIndex != nil else { return false }
+        if let workspace {
+            guard workspace.rename(to: title) else { return false }
+        } else {
+            guard let savedIndex, savedWorkspaceDescriptors[savedIndex].title != title else { return false }
+            savedWorkspaceDescriptors[savedIndex].title = title
         }
-        if let index = savedWorkspaceDescriptors.firstIndex(where: { $0.id == id }) {
-            savedWorkspaceDescriptors[index] = workspace.descriptor
+        if let savedIndex, let workspace {
+            savedWorkspaceDescriptors[savedIndex] = workspace.descriptor
         }
         saveWorkspaces()
         return true
@@ -395,6 +436,7 @@ final class MobileAppModel {
         }
         workspaces.removeAll { $0.id == id }
         savedWorkspaceDescriptors.removeAll { $0.id == id }
+        workspaceDisplayOrder.removeAll { $0 == id }
         if wasSaved { saveWorkspaces() }
         workspaceActivitySessions.removeAll { $0.id == id }
         liveActivities.update(workspaceActivitySessions)
@@ -411,6 +453,7 @@ final class MobileAppModel {
         let closing = workspaces.filter { $0.id != id }
         workspaces.removeAll { $0.id != id }
         savedWorkspaceDescriptors.removeAll { $0.id != id }
+        workspaceDisplayOrder.removeAll { $0 != id }
         saveWorkspaces()
         workspaceActivitySessions.removeAll { $0.id != id }
         for workspace in closing {
@@ -427,6 +470,7 @@ final class MobileAppModel {
         let closing = workspaces
         workspaces.removeAll()
         savedWorkspaceDescriptors.removeAll()
+        workspaceDisplayOrder.removeAll()
         saveWorkspaces()
         workspaceActivitySessions.removeAll()
         for workspace in closing {
@@ -630,6 +674,7 @@ final class MobileAppModel {
         do {
             let descriptors = try workspaceStore.load()
             savedWorkspaceDescriptors = descriptors.filter { library.host($0.hostID) != nil }
+            workspaceDisplayOrder = savedWorkspaceDescriptors.map(\.id)
             if savedWorkspaceDescriptors.count != descriptors.count { saveWorkspaces() }
         } catch {
             self.error = String(localized: "Saved workspaces could not be restored. The saved data has been kept.")
@@ -702,6 +747,10 @@ final class MobileAppModel {
 
     private func addWorkspaces(_ added: [MobileWorkspace], persists: Bool = true) {
         guard !added.isEmpty else { return }
+        var orderedIDs = Set(workspaceDisplayOrder)
+        for id in added.map(\.id) where orderedIDs.insert(id).inserted {
+            workspaceDisplayOrder.append(id)
+        }
         for workspace in added {
             observeActivityState(of: workspace)
             startConnectionHistory(for: workspace)

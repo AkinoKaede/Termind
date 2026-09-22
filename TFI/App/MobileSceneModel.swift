@@ -25,7 +25,7 @@ final class MobileSceneModel {
     var isWorkspaceUnavailable = false
     var pendingExternalConnection: RemoteConnectionURL?
     var editingHost: Host?
-    var renamingWorkspace: MobileWorkspace?
+    var renamingWorkspace: MobileWorkspaceDescriptor?
     var assistantLibraryRoute: MobileAssistantLibraryRoute?
     private(set) var reviewPageID: String?
 
@@ -221,8 +221,8 @@ final class MobileSceneModel {
         workspace.find.presentAndNavigate(direction)
     }
 
-    func beginWorkspaceRename(_ workspace: MobileWorkspace) {
-        renamingWorkspace = workspace
+    func beginWorkspaceRename(_ descriptor: MobileWorkspaceDescriptor) {
+        renamingWorkspace = descriptor
     }
 
     func closeWorkspace(_ id: MobileWorkspace.ID) {

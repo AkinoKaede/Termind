@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4d35b994301024766ef57f8f9efd46cc6b838886c341a3c18e9bec652aae0af7",
+  "pageVersion": "sha256:380061db2e83cfce09c0c64a2a8fbd37156aad0e810d165ecc9eb3c988af5c68",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -68,7 +68,7 @@
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift#L82-L97",
-          "version": "repo-lines-v1:sha256:5df6428ec900727f44626d2c096d50e92042158a81388fadcc35d921682677fc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiYTBlYWExNjRiMWFkNGRlZDY3YTA5MTJiOTczNzgyYjVlODFiMTk5MzljYWVkOTk4NGQ1YjhiZDkyZjVmMWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0N2NmYWJkMWNhNjMyYzI3ZGI2NzhkMTk1ZmJiN2MxMzQ2MmE1YjNkYjA1N2FhZDMxODY3OWI5ZDk4NmQwNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmZWMxZTJiYjEyZmY5NzEyY2M4MThiZWI1MDY3MTdjZjU0OWE2MDgzYWFjZTUzZDczNTBmZWRhODVkODhmMDQifQ"
+          "version": "repo-lines-v1:sha256:1a4d99ab5038f9942a7989bc46636609897554324a3297ea641a3205889d95f7:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiYTBlYWExNjRiMWFkNGRlZDY3YTA5MTJiOTczNzgyYjVlODFiMTk5MzljYWVkOTk4NGQ1YjhiZDkyZjVmMWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0N2NmYWJkMWNhNjMyYzI3ZGI2NzhkMTk1ZmJiN2MxMzQ2MmE1YjNkYjA1N2FhZDMxODY3OWI5ZDk4NmQwNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmZWMxZTJiYjEyZmY5NzEyY2M4MThiZWI1MDY3MTdjZjU0OWE2MDgzYWFjZTUzZDczNTBmZWRhODVkODhmMDQifQ"
         }
       ]
     },
@@ -150,11 +150,11 @@
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Persistence compatibility tests open historical SwiftData fixtures through the shared container factory, assert retained records and migration outcomes through V32, and verify independent in-memory containers expose the full schema.",
+      "statement": "Persistence compatibility tests open historical SwiftData fixtures through the shared container factory, assert retained records and migration outcomes through V33, and verify independent in-memory containers expose the full schema.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:0bc3fd0f5052bbc3ae57a157adf11e614d7a228aca3b7517b2996cdd52e3b7a0"
+          "version": "repo-file-v1:sha256:fe75c0ab4a89d01ab803fa20fae886ad659de7d6f093a0107bde1016ed28a87e"
         }
       ]
     },
@@ -210,7 +210,7 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
+          "version": "repo-file-v1:sha256:41fe85b84350f855a0bb51655cea0423cf1a3b61003ca3ab0ffac859991aa94b"
         }
       ]
     },
@@ -220,11 +220,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:0bc3fd0f5052bbc3ae57a157adf11e614d7a228aca3b7517b2996cdd52e3b7a0"
+          "version": "repo-file-v1:sha256:fe75c0ab4a89d01ab803fa20fae886ad659de7d6f093a0107bde1016ed28a87e"
         },
         {
           "resource": "repo://TFITests/MobileCardRenderingTests.swift",
-          "version": "repo-file-v1:sha256:407d0032835320626af2fa6ba04922430189a6d82855d394c0f1bfcc02cb1147"
+          "version": "repo-file-v1:sha256:90ca1c139d848451a57fd799f86760b088037baebb619bb8192fe677710d2077"
         },
         {
           "resource": "repo://TFITests/MobileConnectionPickerTests.swift",
@@ -236,13 +236,13 @@
         },
         {
           "resource": "repo://TFMTests/VaultSyncTests.swift",
-          "version": "repo-file-v1:sha256:5098275a86373a8299364cb1f487ac69b07a22a712da9644bd7dc86bd76b0941"
+          "version": "repo-file-v1:sha256:43cfca7990751c8b39bc13e19f561fba99edaa0bbc8d96232b456d9418981e7e"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T09:51:39.958Z"
+    "at": "2026-09-22T11:34:21.807Z"
   }
 }

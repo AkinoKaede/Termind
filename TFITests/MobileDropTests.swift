@@ -177,7 +177,7 @@ struct MobileWorkspaceDropTests {
             rootView: NavigationStack {
                 MobileWorkspaceView(
                     library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
-                    workspace: workspace, workspaces: [workspace], selectWorkspace: { _ in },
+                    workspace: workspace, workspaces: [workspace.descriptor], selectWorkspace: { _ in },
                     renameWorkspace: { _ in }, canCloseMultipleWorkspaces: false,
                     openSameDirectory: { _ in }, closeWorkspace: { _ in },
                     closeOtherWorkspaces: { _ in }, closeAllWorkspaces: {})
@@ -237,7 +237,7 @@ struct MobileWorkspaceDropTests {
             rootView: NavigationStack {
                 MobileWorkspaceView(
                     library: app.library, pro: app.pro, commandGenerator: app.commandGenerator,
-                    workspace: workspace, workspaces: [workspace], selectWorkspace: { _ in },
+                    workspace: workspace, workspaces: [workspace.descriptor], selectWorkspace: { _ in },
                     renameWorkspace: { _ in }, canCloseMultipleWorkspaces: false,
                     openSameDirectory: { _ in }, closeWorkspace: { _ in },
                     closeOtherWorkspaces: { _ in }, closeAllWorkspaces: {})

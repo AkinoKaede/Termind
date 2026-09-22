@@ -7,10 +7,10 @@ struct MobileWorkspaceRenameView: View {
     let save: (String) -> Void
     @State private var title: String
 
-    init(workspace: MobileWorkspace, save: @escaping (String) -> Void) {
-        originalTitle = workspace.descriptor.title
+    init(descriptor: MobileWorkspaceDescriptor, save: @escaping (String) -> Void) {
+        originalTitle = descriptor.title
         self.save = save
-        _title = State(initialValue: workspace.descriptor.title)
+        _title = State(initialValue: descriptor.title)
     }
 
     var body: some View {
