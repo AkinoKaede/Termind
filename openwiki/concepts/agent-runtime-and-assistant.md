@@ -5,10 +5,12 @@ description: How Termind assembles AgentKit into durable assistant conversations
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-66f32c7d0994c9f18c0e5a98
     resource: repo://.build/verify-zh-hans/ios/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
+  - id: openwiki-source-8037e2358a2c4f9b2c722a11
+    resource: repo://AGENTS.md
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
@@ -21,18 +23,20 @@ sources:
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
+  - id: openwiki-source-1fc00d0407016efa5a0378eb
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-e1a028bd99d4dbe6d1e14f6a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
-  - id: openwiki-source-1970087a236604bd6a1f375d
-    resource: repo://Memory/ARCHITECTURE.md
   - id: openwiki-source-715de8d16be5a3d06ae915ad
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-d57db929d0047db53dd73cdd
     resource: repo://TFMTests/AgentRuntimeTests.swift
   - id: openwiki-source-1d8dcc1fdf14c37b90cc9e07
     resource: repo://TFMTests/AgentScratchTests.swift
+  - id: openwiki-source-7e117096f381ecc32caff068
+    resource: repo://TFMTests/AgentSkillTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
 ---
 

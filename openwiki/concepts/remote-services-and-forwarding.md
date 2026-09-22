@@ -4,12 +4,14 @@ title: "Remote services and forwarding"
 openwiki_generated: true
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
   - id: openwiki-source-21096ca5afd2c8baca7c623c
     resource: repo://Frameworks/TermindDomain/Connections/PortForwardingRule.swift
+  - id: openwiki-source-1c845e5af67c400566be83bd
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-89716908f306ca7371832cce
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift
   - id: openwiki-source-20118197848107cfa8e87aa9
@@ -22,11 +24,11 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-52a93fdcfe9295de26f2b72d
     resource: repo://FrameworkTests/SSHMetricsSamplerTests.swift
-  - id: openwiki-source-1970087a236604bd6a1f375d
-    resource: repo://Memory/ARCHITECTURE.md
   - id: openwiki-source-7468ad597251e97aa63a1c55
     resource: repo://TFMTests/PortForwardingReconnectTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+  - id: openwiki-source-ec3ec372dd69a7df3113c6b1
+    resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
+generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
 ---
 
 
@@ -138,7 +140,7 @@ A route/Host configuration edit, deleted/replaced rule, or explicit stop invalid
 
 ## Operational and change guidance
 
-- Treat port-forwarding maximum connections as a throughput/concurrency control, not a universal latency improvement. The historical benchmark report documents loopback results and limits, and explicitly keeps remote forwarding single-worker: [Memory/PORT_FORWARDING_PERFORMANCE.md](repo://Memory/PORT_FORWARDING_PERFORMANCE.md).
+- Treat port-forwarding maximum connections as a throughput/concurrency control, not a universal latency improvement. The historical loopback results, their limits, and the intentionally single-worker remote-forwarding topology are documented in [Port Forwarding Benchmark Design, Results, and Reproduction](/openwiki/operations/port-forwarding-benchmarks.md).
 - Preserve readiness-driven, bounded forwarding I/O. The forwarding transport uses immutable queues and socket readiness; plaintext queues pause at 2 MiB per direction/flow and resume below 1 MiB, while encrypted output is bounded per SSH session. These are per-flow/session guardrails, not a global process memory cap.
 - Do not merge service lifetimes merely because they share SSH primitives. A forwarding listener/pool, a terminal PTY, a metrics sampler, and Agent transport have different owners and retry/authentication boundaries.
 - Test lifecycle changes with the focused forwarding suites. `TFMTests/PortForwardingReconnectTests.swift` covers shared-context reconnect, capped backoff, generation rejection, silent recovery, remembered versus temporary trust, and cleanup ordering. `TFMTests/PortForwardingFeatureTests.swift` covers rule normalization/validation, Host-route constraints, deletion cleanup, persistence behavior, and command rendering.

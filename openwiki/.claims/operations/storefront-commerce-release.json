@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:cba3a7b25399102a3dc8fd6a8803c805a21563cd3eec49c896beecc20840f84d",
+  "claims": [
+    {
+      "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
+      "statement": "The local StoreKit configuration defines family-shareable products `com.akinokaede.termind.pro.annual` at 3.99 per year and `com.akinokaede.termind.pro` at 9.99 as a non-consumable, with the annual product in the `Termind Pro` group and a two-week free introductory offer.",
+      "evidence": [
+        {
+          "resource": "repo://StoreKit/Termind.storekit",
+          "version": "repo-file-v1:sha256:4ba8675f25ff9e0c642008c0bd0f9e2c7e27f0c2014f87b90d53f0a967c1d5a5"
+        }
+      ]
+    },
+    {
+      "id": "claim_e1178ea51b27421ebe0f794b429d1f51",
+      "statement": "The local StoreKit fixture contains English, Simplified Chinese, and Traditional Chinese names and descriptions for both the annual and lifetime products.",
+      "evidence": [
+        {
+          "resource": "repo://StoreKit/Termind.storekit",
+          "version": "repo-file-v1:sha256:4ba8675f25ff9e0c642008c0bd0f9e2c7e27f0c2014f87b90d53f0a967c1d5a5"
+        }
+      ]
+    },
+    {
+      "id": "claim_753dad266c1f47ef96d99dc23bcb0dbb",
+      "statement": "Only verified StoreKit transactions grant Pro: a qualifying lifetime entitlement takes precedence, while annual trial, subscribed, and grace states grant access and billing retry, expiration, revocation, or failed verification do not.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L22-L79",
+          "version": "repo-lines-v1:sha256:73c9e30b10b53977a839d1365696abecec97e9ed4385e738764f170e89d7ec03:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjczMWIzNTVmNTRjYTY5NDMyYTJiZTU2NDZhMjBjOTk5NDJmMjk1M2M2ZTYwNTI0ZGM3MDcwYzI0YWMxN2VmOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ0NGEwMjE2ZTU3NDAxODJmYjc0ZTdmYTlmMmZhMjZhOGZkMzcyMjc4MDhiNmVkNjVkODdlYWFkN2M3ODY0YmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L279-L405",
+          "version": "repo-lines-v1:sha256:9314706aa8abbd898cb440f5d98cba674b5ee9bd20678b4208252aa1dd79269a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIxMmI0YjY0ZmVkN2ZhODcyNDk5ZGViNjg2YWRkN2ZiNWExNjQzODkwMmMzODM1NjJhZWEwMTIwMzgyYzgxNDVlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJmN2U2N2JkZTUwMGIwYzEwZGUzYWQ3NGU2MWE3NDY0ZjBmODI3Y2MxNWVmMmQ1ZTBlZGQwYmE1ZmNjYjc5YjEyIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjYzI2YTZjYjc4NGQ5ZDUyOWZjMzRlZWNkMTRkMGY2YzcxODk0Yjk0Yjc2NTQ2NGQ5NDE1MmZmODM3MTNiOWVjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjMzljZDZlM2ViYjRmYjk3YTIzMDEwNGFmYzQwZDE2YjI1ZmIxMmFiZGU1NjVjNzcyYzdjZDMyOGJiMzkxZmUxIn0"
+        },
+        {
+          "resource": "repo://TFMTests/ProAccessTests.swift#L12-L48",
+          "version": "repo-lines-v1:sha256:7c269e3940165ee673bc73c2404a69f92598f9e14bf50c5a13bdb51ba51b8681:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzNTAxM2IwNWQ1YjBmZWQ5NTY5OGYwMjI2NTZmZWQ4MmY4NjM5NGFjYWYwNTY0N2YyNjQ0ZjcwYmU3MjY4MDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_d6f9d02fc85c4fbd8cf0d06bd8c754a3",
+      "statement": "Product metadata loading is independent from entitlement refresh, so a catalog failure does not remove already verified access; the controller also observes transaction updates and handles deferred purchase completion.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L120-L220",
+          "version": "repo-lines-v1:sha256:17e98d2f90a56ac79377a5077fc902ffa610dc23f4ca70529521f98ff4bf951c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhZTZlOGU1MzlkNGZjNTNmZDA1YzZjZmFhNWYyOTM1Y2JmNmZjMWI5MjhjMzFhMjQ4NmIwMzFjM2Y1OTNkMWFlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1NjkxZmE1OWJlNjg5MjM2OGYyMzcwNWRlZjkzZTRmNjc5NzNiMDE0ZDEwZDAwYTMyNDE4NDQ4ZTU2YTAwNmVmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhMjBkMTU1N2Y5M2IzN2IyMTA0YWVlNDE1NmJiNWE5YWZjNjc0NWU5OTA2ZDYwOWJlODc3ZGQ2OTI3MjJjNTYwIn0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L408-L439",
+          "version": "repo-lines-v1:sha256:7f78457b5cdc3f6d39462cdb1fa4c4872f187d67290d94e76b88f361134ab3d4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlMTA1YjI3MWEzZTU0Zjc4Y2MxZWY1MmMzNTY4ZjYwNzViMTY3ZTZjYmI3ZmI5MDhkZDI4ZDUzNTcxNmY2NWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjOTI3YmRlM2Q4OGIxYWQ1MzcxY2FkMjFiZDc1MjViYWY1MWNhYzNkNjgyYWJhODg0ZTNiMGRiNGI5YzBlYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3MWYzYTI5NWQ1NjE5YjQwMGY5MDkwNWJiYTVhMzg3NmIzYTVlZmJjYWNiMzkxNmNjZmYxYmQ0NWIzZmMxZjAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift#L64-L122",
+          "version": "repo-lines-v1:sha256:e299315be2ffdb2539d969f5b795fcace4e81a4520c173e4bb12b5e7fccccd20:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5NDg5M2U3MzMyMjljMGFiYmMxMTAzYzYwMzQ5NGJlNjA3OTQ4YzRiOTk5YjQxN2VjMzBlZDA3ZDIzZTk3NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0OGQ3NjU1YWUzZGY0MzgwYTU3MDMzZjkyYmIxNTFmYjJiMGNhOWEyODVkZjA4MTIxOWEyZGE3NmRjNjlkZjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6fa732935af2426fb937e410254e3f76",
+      "statement": "The app's Pro gate vocabulary covers assistant use, terminal file upload, remote MCP, the built-in MCP server, Vault sync, and unlimited Metrics rather than the ordinary Workspace composition features.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift#L3-L10",
+          "version": "repo-lines-v1:sha256:5fdfef11a66bbf817666613a29e471ab7328b43b35785a7ae598872602518436:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGRlMWMyNzI0YTk5NDlkNGNmODMxOGZmZDFhNzIyMzNjMzZlN2M5OWE4ZGQwMGFkMzhkODgzY2M1OWJmNjI1ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjIsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTE4YmZjYzA1ZGE1ZWQ5YjU1ZGM1NzI1YTRmY2RhZWM1YzI1NzVmZGY0Y2UyMmExOTkwOWIxYjNmNGRlODFmZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMzMzYzVkNDFmMjAyMWQwOTk1YzcwYmYxZjU1ZDE2ZmY3YjM5OTkxYmY2MDg1OTU2NTQ3NmFhNjU1MDM4ZDRiOCJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift#L93-L118",
+          "version": "repo-lines-v1:sha256:6a76d54ef19ad5c6b564234115af5f6d34dd4d600f01435ccb6ed36cebdbdf5f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkMDE3YjUwYWY0OTFiMzExZTAwMzA0N2UzMGMyYWUxMDFkZDRkZjllMzRkNmE5YmI5OGEyZTIzZjIzNDI4NWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEzMGQ3MDNjMjIxZGFkNmRhMzg4Yzk5MjdjOTQyN2I5YTY5NTBiYmNlZTliMzM0NGY4OGY4YjAxOTZmNGU0OWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3YWNjMWEyNTVjNDVmNzk5ZTAyYjM4Zjg1MGVmOGIzMDMwOTNiZTE5OTZiMDIwNTE5MjU0YzRkNjYyYTViMzAifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T01:13:21.371Z"
+  }
+}

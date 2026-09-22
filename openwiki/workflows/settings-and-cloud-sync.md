@@ -5,7 +5,7 @@ description: How Termind independently synchronizes Vault, Settings, and Metrics
 tags: [cloudkit, synchronization, settings, vault, metrics, secrets, swiftdata]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
@@ -31,7 +31,7 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
 ---
 
 # Settings, Vault, Metrics, and Cloud Sync Workflow
@@ -127,7 +127,7 @@ The store retains pending-deletion markers before deleting Keychain values and n
 
 ## Operations and extension guidance
 
-CloudKit deployment is separate from a passing local build. Deploy and validate the private container schema in Development and Production, preserving category zone names, record types, and subscription IDs; deploy `SFTPPreferencesItem` before clients upload it. Run signed-device checks across multiple devices on one account and explicitly test offline edits, per-category and master pause/resume, delayed Keychain delivery, account switching, and Pro expiration. See [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) and `Memory/SETTINGS_SYNC_RELEASE.md` for the release matrix.
+CloudKit deployment is separate from a passing local build. Deploy and validate the private container schema in Development and Production, preserving category zone names, record types, and subscription IDs; deploy `SFTPPreferencesItem` before clients upload it. Run signed-device checks across multiple devices on one account and explicitly test offline edits, per-category and master pause/resume, delayed Keychain delivery, account switching, and Pro expiration. See [CloudKit Schema Deployment and Signed-Device Release Readiness](/openwiki/operations/cloudkit-release-readiness.md) for the full release matrix and [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for ordinary build gates.
 
 When adding a synchronized category, do not share an existing coordinator or journal. Create a category-owned zone/subscription/record type, persistence journal/state/quarantine models, coordinator record coding and delegate handling, independent enable/environment keys, and an adapter to `CloudSyncLifecycle`. Preserve fetch-before-send and current-engine checks in every `nextRecordZoneChangeBatch` implementation. Decide which fields are truly portable before adding them to envelopes; normalize or omit device-local runtime/UI metadata, and keep credentials in Keychain behind references.
 

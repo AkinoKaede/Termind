@@ -5,8 +5,10 @@ description: Traces how Termind prepares SSH and Telnet connections, routes them
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
+  - id: openwiki-source-cb178f0d078ab3218679c80e
+    resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
   - id: openwiki-source-5aa101e9f8e2906832f58121
     resource: repo://Frameworks/TermindApplication/Connections/SSHConnectionPreparation.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
@@ -25,12 +27,18 @@ sources:
     resource: repo://FrameworkTests/SSHConnectionPreparationTests.swift
   - id: openwiki-source-2635e6aecc48e14adbb07b91
     resource: repo://FrameworkTests/SSHHostKeyAuthorizationTests.swift
-  - id: openwiki-source-1970087a236604bd6a1f375d
-    resource: repo://Memory/ARCHITECTURE.md
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-350d4a794cfef67e406ddf9b
+    resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
+  - id: openwiki-source-b822b041afbf829d09a8555a
+    resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-9b78a7e39bfa08bea5192722
+    resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
+  - id: openwiki-source-578f30372fe67f8688f44b76
+    resource: repo://TFMTests/WindowStateTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
 ---
 

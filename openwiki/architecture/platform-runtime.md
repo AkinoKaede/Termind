@@ -5,10 +5,10 @@ description: How Termind composes shared services and persistence on macOS and i
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
-  - id: openwiki-source-1970087a236604bd6a1f375d
-    resource: repo://Memory/ARCHITECTURE.md
+  - id: openwiki-source-cd0be716a2446029f345525a
+    resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-dc9295278cc250ed20567540
     resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -31,6 +31,8 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
+  - id: openwiki-source-d3d065330c730839f5cc6112
+    resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }

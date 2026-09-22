@@ -17,11 +17,9 @@ The agent runtime is `AgentKit`, a separate open-source package developed in the
 
 Xcode builds the pinned tag, not the sibling working tree, so an uncommitted change in `../AgentKit` is invisible to the app. A change that spans both sides takes three steps: make and test the package change, tag and push a release from `../AgentKit`, then bump `minimumVersion` in `project.pbxproj` and re-resolve so `Package.resolved` records the new revision. Both files belong in the same commit as the app-side change that needs them.
 
-## Architecture Records & Refactoring Memory
+## Architecture Records
 
-Treat `Memory/` as durable engineering context. Read `ARCHITECTURE.md` before changing dependencies, navigation ownership, state lifetimes, persistence, agent execution, permissions, or secret handling. Update invalidated invariants and keep `ArchitectureBoundaryTests` aligned.
-
-`REFACTOR.md` is the English-only redundancy backlog. Lifecycle: confirm an item with `rg` → record evidence, action, and estimated reduction → implement one independent, code-reducing change → run risk-appropriate tests → mark its status and verification. Append rather than rewrite, retain completed items, and preserve SwiftUI/AppKit boundaries.
+Treat `openwiki/` as durable just-in-time engineering context. Start with `openwiki/quickstart.md` before changing dependencies, navigation ownership, state lifetimes, persistence, agent execution, permissions, secret handling, or release operations, then follow its topic-specific page to current source and tests. Source code and tests remain authoritative. Refresh invalidated OpenWiki content through the OpenWiki lifecycle and keep `ArchitectureBoundaryTests` aligned; do not maintain a parallel refactoring log.
 
 ## Build, Test, and Development Commands
 

@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:4b9fd6f22c64cf0d1a0bc5bb84b6564a5adb41d9e096bd5f2ef479e11566a065",
+  "claims": [
+    {
+      "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
+      "statement": "Marketing source captures, generated device frames, and final App Store exports are separate artifact stages, and the Astro site imports an explicit allowlist of frames rather than copies in `LandingPage/public`.",
+      "evidence": [
+        {
+          "resource": "repo://LandingPage/src/lib/marketingImages.ts",
+          "version": "repo-file-v1:sha256:a833aaad7967fd7a2a5acaf51a2ce83ae3183e60d074916117dbc3cd29c87303"
+        },
+        {
+          "resource": "repo://Marketing/README.md#L1-L12",
+          "version": "repo-lines-v1:sha256:f2c16c474d335990ae4354e53981d1471c530da5af9bb088cf8618484cb95437:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ZWVjOTcwYTBkNmExMWI0Y2UzYzEzYmI3MTE2N2MyZTFiNmQ2OTYyZTU0NmFjM2U3YjE4ZTNjY2NjODFkODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmODNjODhjOGE2NWNkZWEyZWFkNDNkZDQyY2RhZWU1ODFkZWQ5OTQ4NDIyZTY4ZDhkMTUwMTY1MjRmY2Y2OTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2YjBlZTVkNWIzMDRhODlhYmE4YWI5MWNmZDc4YjZjOWE0NWIxYmQ1MDliNGY0NWE4ZmViZmE4MWFlMjc1ZjQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8823c677227344a8b3988d86f78b99d1",
+      "statement": "The mobile screenshot runner uses iOS/iPadOS 27, captures English, Simplified Chinese, and Traditional Chinese through `MobileMarketingScreenshotTests`, validates expected counts, and supports scoped device/scene runs without requiring an iPhone for iPad-only capture.",
+      "evidence": [
+        {
+          "resource": "repo://Marketing/README.md#L14-L48",
+          "version": "repo-lines-v1:sha256:14443f6764d44ce29817ccd4f7d2083a64a9fef3a1aba87d02c19be27da5400f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMWY1YzVlZWVlOTQ1NjZhZGFkOTQ5YmQ1ODhmY2IyN2YxMzkzMDVhNTFlZDk4ZjBmMmY3MmQwOTBlYjVjYmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkZjI4NTlmYjAyYWVlMjI5NGVkNjljZTJkOWZjMjE1NTcwNGU1ZTUzZjg4YWZjYTcxNmQ5MjZhODE2NTBmNzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViNDFiYmQ1MmFjOWEwMDUxMjRjNWM4ZmZkNTM5NGQzY2ViNjZmMGY2OGVjZjlkZTljOTA1NWYxNWNlZTVjMzgifQ"
+        },
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:2ac10d61a82f9df7c6b62de9a3ed0b4efb4f62827fe53d69dc783432a1221a39"
+        },
+        {
+          "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:e6d64ebc5a15d70f6184596ceba3d177f624ba0de28b2eaf66b129db499ca629"
+        }
+      ]
+    },
+    {
+      "id": "claim_2d0f8761e1444da29b488ffc330eabb9",
+      "statement": "The Mac screenshot runner uses resolved packages on macOS 27, captures production-window scenes serially by locale, requires a key window, validates output dimensions, and backs up replaced captures.",
+      "evidence": [
+        {
+          "resource": "repo://Marketing/README.md#L14-L48",
+          "version": "repo-lines-v1:sha256:14443f6764d44ce29817ccd4f7d2083a64a9fef3a1aba87d02c19be27da5400f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMWY1YzVlZWVlOTQ1NjZhZGFkOTQ5YmQ1ODhmY2IyN2YxMzkzMDVhNTFlZDk4ZjBmMmY3MmQwOTBlYjVjYmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkZjI4NTlmYjAyYWVlMjI5NGVkNjljZTJkOWZjMjE1NTcwNGU1ZTUzZjg4YWZjYTcxNmQ5MjZhODE2NTBmNzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViNDFiYmQ1MmFjOWEwMDUxMjRjNWM4ZmZkNTM5NGQzY2ViNjZmMGY2OGVjZjlkZTljOTA1NWYxNWNlZTVjMzgifQ"
+        },
+        {
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:2ada0e1cbf1bb7aafd3156e6b449749de147dcf270fa304c9a1bca12d4c88728"
+        },
+        {
+          "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift",
+          "version": "repo-file-v1:sha256:3a22e5ac4937d078cbebf86a59fa8fb1d70d54af75d4b2c9c5f09f37c79ac697"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec11fbc018f34348bb4374476abd4915",
+      "statement": "`generate-mockuphone-assets.py` reads captures without modifying them and emits distinct framed PNGs using iPhone 15 Pro Max, iPad Pro 13-inch, and MacBook Pro 16-inch templates at fixed 1530×3036, 2960×2290, and 4340×2860 canvas sizes.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/generate-mockuphone-assets.py#L1-L56",
+          "version": "repo-lines-v1:sha256:67a95e435692f4c4b3dbb95db0f981caf7025d3cc6526fb52c0df7f48d1345df:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2ODJjYmRiNGM4YjA3NTE4YmY0ODZjNTg5OTBmYzM5MTc4M2FhMjBhOTE2YmZiMjdhZDIxMWViMWQ1YzM2NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFiMjFjODdkZDVkY2FjOWU3MGUzYjNjNjBmM2FkNzMxZDJhYzI2N2M0NWE3MGI2ZDQ5YWU4YTRmMDY5OTk0ODIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJmOTExYjBjNzY0ZDMzNjM1YjM2MmM5MGZjNGIyY2JkNTFiODhjNmFhYjQxM2VjYWJhMmVjNjVlZWU5YmZhMDEifQ"
+        },
+        {
+          "resource": "repo://Scripts/generate-mockuphone-assets.py#L117-L170",
+          "version": "repo-lines-v1:sha256:3a23a0050696ef122fe1a6f939f6d47401356c18d4259df53b74c5e0e95f89a3:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhN2FjMmQ4ODc1NTQ3ZmRmMGIyMDg5OTEzMzZlOTgwNGUyN2YxZDM5ODM2MzU3ODg0ZDkxYWU3MmFlOWQzYjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5YWUzN2Y2OWI2MmRjMGJmYzdkNGJiNTQ5NGFiMDEzMGQwMzJlZjgwOGQxZDA4MzY2NWY5Y2Y5ZWYyYWNlODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI0MDJhNzFkYjlkM2QzNjAxZmNiNzA1MTdkM2RlMjhiM2ZkNWYwZTFkZGJiNjU5ZmE0ZDQ4OGQxYmIwZTdhNzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA4ZWM1ODc5MWMxOWI5YzdhZjg4OWFjZmJiODc0ZTMzNDIxYjFkZjY3Zjg4YjlhZWFjMzNjNmJlY2I4Nzc5NmEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_613057b4cfd146daad146fed13e1fe84",
+      "statement": "The checked-in App Store delivery is organized into English, Simplified Chinese, and Traditional Chinese directories for Mac, iPhone 6.5-inch, and iPad 13-inch, with boards numbered 01 through 06.",
+      "evidence": [
+        {
+          "resource": "repo://Marketing/AppStore/en/ipad-13/06-vault.jpg",
+          "version": "repo-file-v1:sha256:ae1b550674945fc291ded4d247a5c03c5992c093a320d0d4d53e03cc56ce37a5"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/en/iphone-6.5/01-three-screens.jpg",
+          "version": "repo-file-v1:sha256:f53039d7128eaf4d2462a31e06878cdfd81444bbfe28932a7f500f42b2c38e57"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/en/mac/01-three-screens.jpg",
+          "version": "repo-file-v1:sha256:b75fd8ca0e8c158fbdca23f478a9b01f96351a36215883ca60c45f4c360d6ce6"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/en/mac/06-command-generator.jpg",
+          "version": "repo-file-v1:sha256:f5a798495f0a6cc1b007273452d3d2c543665ad52388ed67eb2376043c14346c"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/zh-hans/ipad-13/01-three-screens.jpg",
+          "version": "repo-file-v1:sha256:766b3a49db418bf387dc03ee744edc4df91840f17b4ee238dd6b1fb0d0d9e940"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/zh-hans/iphone-6.5/06-vault.jpg",
+          "version": "repo-file-v1:sha256:d833e8a85cd6ad12d3d3656930af0a1318cf9fc33f73218940754d779b8d108b"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/zh-hans/mac/01-three-screens.jpg",
+          "version": "repo-file-v1:sha256:c87c2bb745f4c778782f79ae8820d0d1a69c72eecf6fa79a53e92f10319afbf4"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/zh-hant/ipad-13/06-vault.jpg",
+          "version": "repo-file-v1:sha256:816fc389dbbb2b2be9f641123352a8bf7cd6935f82d802dfc178c8c339cf75df"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/zh-hant/iphone-6.5/01-three-screens.jpg",
+          "version": "repo-file-v1:sha256:ace8c3fb03084e3282b6812da076d36cdc2bc32f28afa5fd4a91a51e2f36eee9"
+        },
+        {
+          "resource": "repo://Marketing/AppStore/zh-hant/mac/06-command-generator.jpg",
+          "version": "repo-file-v1:sha256:1458ac95f459b1a1bb5f8270f858e0680f0e699d77e0c00ad9a5bfac5648df80"
+        }
+      ]
+    },
+    {
+      "id": "claim_c1603ca199b145848e87fc187eeff350",
+      "statement": "Both platform app icons are layered Icon Composer sources containing Terminal, FrontWindow, MiddleWindow, and BackWindow SVG groups with disabled glass/specular/translucency; the three window layers have a 0.08 neutral shadow while Terminal has none.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Resources/AppIcon.icon/icon.json",
+          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
+        },
+        {
+          "resource": "repo://TFM/Resources/AppIcon.icon/icon.json",
+          "version": "repo-file-v1:sha256:d4571a483f85110373beda908f514f0d97f6020d0241ff036afe2a24999c72e0"
+        }
+      ]
+    },
+    {
+      "id": "claim_86960987b4364deda6c51fe2c76d52bc",
+      "statement": "The Xcode project selects `AppIcon` as the compiled asset-catalog icon name for the application targets.",
+      "evidence": [
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:2a2bcccf7f6514fee0573fdd868c54bd98fa151a69e0eb4ae45f9b09fa2f956b"
+        }
+      ]
+    },
+    {
+      "id": "claim_e56106f7228844fc80c889cbaf7e5ff1",
+      "statement": "The marketing capture scripts keep Swift package resolution pinned with `-onlyUsePackageVersionsFromResolvedFile`.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:2ada0e1cbf1bb7aafd3156e6b449749de147dcf270fa304c9a1bca12d4c88728"
+        },
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
+          "version": "repo-file-v1:sha256:2ac10d61a82f9df7c6b62de9a3ed0b4efb4f62827fe53d69dc783432a1221a39"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T01:13:21.371Z"
+  }
+}

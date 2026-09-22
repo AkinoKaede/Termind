@@ -5,14 +5,14 @@ description: How the macOS-only Termind MCP listener authenticates local clients
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
-  - id: openwiki-source-1970087a236604bd6a1f375d
-    resource: repo://Memory/ARCHITECTURE.md
   - id: openwiki-source-a62bfbbc7de13a894444718b
     resource: repo://TermindMCPBridge/main.swift
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-b8fca76c89564e16eccfbb53
     resource: repo://TFM/App/MCPServerController.swift
   - id: openwiki-source-76b1cdca4a02038756187f92

@@ -5,7 +5,7 @@ description: Focused regression strategy for Termind's shared frameworks and mac
 tags: [testing, regression, fixtures, architecture, persistence, security, lifecycle, ui]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md

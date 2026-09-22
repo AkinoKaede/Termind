@@ -1,7 +1,74 @@
-# Termind architecture
+---
+type: architecture-contract
+title: Cross-Cutting Engineering Invariants
+description: Exhaustive architecture, ownership, lifecycle, security, persistence, remote-session, agent, sync, and mobile safety contracts that span Termind's specialized wiki pages.
+tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T01:33:04.232Z
+sources:
+  - id: openwiki-source-8037e2358a2c4f9b2c722a11
+    resource: repo://AGENTS.md
+  - id: openwiki-source-4f78037bc69b6dfc293aca3d
+    resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
+  - id: openwiki-source-cd3e43e60522274ce1f1908b
+    resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-1d1f503a260f304a969fcee4
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
+  - id: openwiki-source-3effdff7f6b04e2a66d8f651
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
+  - id: openwiki-source-04ef2b2f02773f8833db9a8b
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
+  - id: openwiki-source-eaa9d39ab551840299164d96
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
+  - id: openwiki-source-7a9c6d90cba4ebd1d1398673
+    resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-1c845e5af67c400566be83bd
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
+  - id: openwiki-source-d2d4c06f734241db3badc1f5
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-dd3df578da8881d8ba0638e6
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
+  - id: openwiki-source-b9bae3a52f35a3a412f81e10
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPConcurrencyScheduler.swift
+  - id: openwiki-source-79d8ded739aa8dd4fa3f5cdf
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPEditService.swift
+  - id: openwiki-source-c4b6e224fdbea6dcd393344d
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
+  - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
+    resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
+  - id: openwiki-source-db40aa993661b07f1a9aff6d
+    resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-e43a0da5ab77c2fc3554244d
+    resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
+    resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-350d4a794cfef67e406ddf9b
+    resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
+  - id: openwiki-source-b822b041afbf829d09a8555a
+    resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-9b78a7e39bfa08bea5192722
+    resource: repo://TFITests/MobileWorkspaceStoreTests.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-22b9fca540c3029c5ace451e
+    resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-d3d065330c730839f5cc6112
+    resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+generated: { by: "codex", at: "2026-09-22T01:33:04.232Z" }
+---
 
-Current ownership and safety contracts; implementation details belong in code/tests, completed-work evidence in
-[REFACTOR.md](REFACTOR.md). Read before changing dependencies, lifetimes, persistence, execution or secrets.
+# Cross-Cutting Engineering Invariants
+
+This is the exhaustive cross-cutting contract for changes whose consequences span more than one specialized page. Source code and tests remain authoritative; when implementation intentionally changes an invariant, update the relevant focused page, this contract, and the boundary or behavioral tests together. Completed refactoring history is intentionally not retained here.
+
+Use [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md) for layer placement, [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md) for composition, and the linked workflow/concept pages for deeper mechanisms.
 
 ## Modules and persistence
 
@@ -197,7 +264,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   forwarding rather than sessions and never consume this budget.
 - Public send/receive adapters accept complete encrypted packets and apply bounded backpressure outside library calls,
   avoiding pinned libssh2's lost forwarded-tcpip confirmation on EAGAIN. Teardown discards writes/returns EOF; descriptors
-  close after cancellation handlers. See [performance](PORT_FORWARDING_PERFORMANCE.md) for budgets, rationale and measurement
+  close after cancellation handlers. See [Port Forwarding Benchmark Design, Results, and Reproduction](/openwiki/operations/port-forwarding-benchmarks.md) for budgets, rationale and measurement
   limits; buffers are per flow/session, never a global memory cap.
 
 ### Terminal behavior
@@ -428,7 +495,7 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - `ProAccessController` is app-wide. StoreKit metadata/verified transactions alone determine offers/access; permanent wins, trial/subscribed/grace
   grant access, metadata failures do not remove it. Foreground/minutely expiration checks. Presentation derives values, native paywalls navigate.
   Workspace composition/broadcast/batch open/multi-host snippets/local templates are free; sync/other Pro features use current entitlement.
-  Product IDs, localized copy and release checks: [APP_STORE_COMMERCE.md](APP_STORE_COMMERCE.md).
+  Product IDs, localized copy and release checks are in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md).
 - App-wide/device-local `AppReviewController` records attempts before StoreKit, never claims display. Automatic criteria: seven days, three active
   dates, five foreground Workspace minutes, three quiet seconds entering Vault/Settings; input/focus/navigation/sleep/modal cancels. Once/version,
   120-day cooldown including manual review. Tests/screenshots disable live requests; native observation remains app-owned.
@@ -464,7 +531,7 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - `AISecretStore` migration needs verified account/cloud copy/durable local marker; reads never cache, deletion markers prevent resurrection.
   Custom MCP headers/terminal text are ordinary synced settings, explicit credentials never CloudKit. Tombstones/unresolved references survive
   partial fetch; cloud beats baseline. Duplicate skill names/MCP namespaces retain all data but only lowest UUID executes. Metrics hides records
-  awaiting their Vault Host. Signed-device/deployment checks: [SETTINGS_SYNC_RELEASE.md](SETTINGS_SYNC_RELEASE.md).
+  awaiting their Vault Host. Signed-device and deployment checks are in [CloudKit Schema Deployment and Signed-Device Release Readiness](/openwiki/operations/cloudkit-release-readiness.md).
 
 ## Mobile boundaries
 

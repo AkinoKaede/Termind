@@ -5,7 +5,7 @@ description: How SFTP browser operations become scheduled transfers, choose an S
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
@@ -31,20 +31,18 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-d92ce4bb378fe3506b55c85a
     resource: repo://FrameworkTests/SFTPRemoteConflictResolverTests.swift
-  - id: openwiki-source-1970087a236604bd6a1f375d
-    resource: repo://Memory/ARCHITECTURE.md
   - id: openwiki-source-83498f1ebb2addd4dded3bc1
     resource: repo://TFMTests/SFTPConcurrencySchedulerTests.swift
   - id: openwiki-source-bdee3a21bf24d48b877a78fe
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
 ---
 
 ## Scope and operating model
 
-SFTP file work is split deliberately: browser and application models prepare batches and own UI choices; `SFTPTransferCoordinator` owns queued transfer runtime, admission, progress, cancellation, and completion; `SFTPTransferContext` owns a generation-scoped authenticated primary connection; and `SFTPChannel` implements actual libssh2 file I/O. `SFTPClient` is only the connect/disconnect facade around its primary channel. This division lets standalone SFTP, browser transfers, terminal-drop transfers, and edits share atomic write, resume, and copy mechanics without sharing a pane lifetime. [^architecture-sftp] [^client-channel]
+SFTP file work is split deliberately: browser and application models prepare batches and own UI choices; `SFTPTransferCoordinator` owns queued transfer runtime, admission, progress, cancellation, and completion; `SFTPTransferContext` owns a generation-scoped authenticated primary connection; and `SFTPChannel` implements actual libssh2 file I/O. `SFTPClient` is only the connect/disconnect facade around its primary channel. This division lets standalone SFTP, browser transfers, terminal-drop transfers, and edits share atomic write, resume, and copy mechanics without sharing a pane lifetime. [^client-channel]
 
 The important safety boundary is **no durable staging and no silent replay**. Checkpoints—temporary path, source identity, acknowledged offset, and SHA-256 state—live only in `SFTPResumeState` in the running process. A recoverable connection failure pauses instead of retrying; a user must explicitly resume, at which point the source and already-written prefix are verified. A restart therefore cannot recover or replay work. [^resume-state] [^coordinator-outcomes] [^channel-prefix]
 
@@ -173,13 +171,12 @@ Discard is intentionally non-destructive to user work: it stops tracking and for
 ## Operational guidance and focused verification
 
 - Treat `SFTPPreferences` changes as future admission policy, not a way to tear down active transfers. Choose Channels Only for servers/routes where extra connections are undesirable, Connections Preferred for independent transfers when silent credentials are available, and Smart for the size-based default. [^preferences] [^preferences-update]
-- Never add persistence for `SFTPResumeState`, transfer contexts, borrowed channels, or edit route credentials. The intended recovery behavior is a visible paused/failed state and an explicit user decision, not launch-time replay. [^resume-state] [^architecture-sftp]
+- Never add persistence for `SFTPResumeState`, transfer contexts, borrowed channels, or edit route credentials. The intended recovery behavior is a visible paused/failed state and an explicit user decision, not launch-time replay. [^resume-state]
 - When changing planner or resolver code, preserve the sequence **preflight → user policy → directory resolution → target resolution → enqueue**. Moving deletion or directory creation into preflight would violate conflict validation before mutation. [^upload-preflight] [^upload-enqueue]
 - When changing connection lifetimes, test both owner release and terminal transport fallback: a pane close must not interrupt retained work, but a last unused context primary must disconnect. [^context-close] [^pause-ownership]
 
 Focused tests cover the materially risky cases: scheduler fairness across hosts/sources, cross-host capacity accounting, and the Smart threshold; topology fallback, cancellation of a silent probe, pane-close continuity, and resume after release; conflict mapping, cancellation points, and safe recursive delete; and edit confirmation, immutable snapshots, loss-to-pause, invalidation, observation of atomic saves, discard, and cleanup. [^scheduler-tests] [^context-tests] [^resolver-tests] [^edit-tests]
 
-[^architecture-sftp]: `Memory/ARCHITECTURE.md` § “SFTP and external edits”, lines 248–296.
 [^client-channel]: `Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L293-L387`; `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L120-L160`.
 [^resume-state]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPResumeState.swift#L5-L75`.
 [^channel-prefix]: `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L985-L1031`.

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:3d3f33ddbd0ae25c9b844013736d720c7b810ee44834462e85d00a617864556a",
+  "claims": [
+    {
+      "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
+      "statement": "Both app targets declare the private CloudKit container `iCloud.com.akinokaede.termind`, and the Vault, Settings, and Metrics coordinators use that same container identifier.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift#L13-L13",
+          "version": "repo-lines-v1:sha256:2ed4ac79923fdc8888fce6dde4763da2108599b42b76132e7f7dc0c550ce4c0e:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWNlZTVkM2NlZTgyN2Q4ZTM0YzcwNGQ5NDJjMjlmM2MzYzk0MTNhOTJhNjA0YmI2MzUwZTRkNTI5ZjU3OWYxOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWE4NDI0YWE4MGI1ZDFlOTIwOTYwYWVmYmJhZGI4NGI2ODc5ODk4Y2UxY2IwZGJhOWEwMzEzZGFjMjAxMDNkMSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L12-L12",
+          "version": "repo-lines-v1:sha256:2ed4ac79923fdc8888fce6dde4763da2108599b42b76132e7f7dc0c550ce4c0e:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDczMGYzMjI3ZDNmYTUzZTU2YTc0YzVjYmQxZmQ3NTJmMmVjZGUyOTI2NTVlZWI1ZjNjYjQ1NTNjMWE1NWIxYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWU0YzJlZWY2NzU2MmNkNDM1YjBkM2Q1Y2MyZjY3YmEyY2MwOGY4Mzg3NThiMDVlNTBiOGJjOGQ0MDVjZTIyYSJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L11-L11",
+          "version": "repo-lines-v1:sha256:2ed4ac79923fdc8888fce6dde4763da2108599b42b76132e7f7dc0c550ce4c0e:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzgyZjYxYmU2ZDZiOTIxNDU2MGUwYzBhNjU2OGQ3YzJmZDc2ZWNmMDFjODNiYWZlNmE4M2Y4MDRlMDlhZTM1OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjI2YTY0YTY2MTNiYTE1MDFlMjdjMTg2ODQxYWQxOWIxNTcwZjc3Mjc1MGZhYTY4YjExODM0YmEyN2VkZTE5MiJ9"
+        },
+        {
+          "resource": "repo://TFI/TFI.entitlements#L8-L13",
+          "version": "repo-lines-v1:sha256:a72c2e9fc75b50ba9e38cef05acc8f6e950f68c133a2b75a72ba352935e3e2b1:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWQ3ZWExZTE4OGZhYzRkYmU2MGVkYzk3MjhmZTQ4ZTZjYjUwZDhmMjI1NWYyZGRkMmYxZGI1NjAxZjNkZmE3ZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDQzZDQ0NjgyMDg5ZDZkMDM0MjkyMTkyNTJlZDZhMGQxNzJjYmMwYTI1YTc0N2U4ZjM2MWZiYjNlMzMwOWQ0ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDQzNzNkZjVjYWM4MmRlMWQyNTNkMzU4ZWEwMDRjMmU5MWZkODkxOTQwOThmM2ExZTkwZGYzMjBhMWE3YmY4NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzlhYTE0NjBiZmY0ZTdhODk3NWQ1MmQyN2ZmYjI3OWE3MWQyNTNjNGMxNzQ4NDg3YzBiZWE3MGNiODRiMjcyYSJ9"
+        },
+        {
+          "resource": "repo://TFM/TFM.entitlements#L20-L25",
+          "version": "repo-lines-v1:sha256:6efec9ffd4c3c8b15428a1cbebf9083731a3311ddeb6410b1fdfbb651826fb33:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmUzYzA1ODQzY2M0ZTQ2MjEzNTlhNDIwYzcyZGIzMDExZGNmZDliNmY4MTNmMGRmMjBmZGVhOGM4MmI0OTcyMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDQzZDQ0NjgyMDg5ZDZkMDM0MjkyMTkyNTJlZDZhMGQxNzJjYmMwYTI1YTc0N2U4ZjM2MWZiYjNlMzMwOWQ0ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2QwNGM4ZDUwYjhlMGFkZjA3MTY5NzJmMTNlYmEwNGI0MjczNWY3ODYxOTA4ZWRiNGRmOGYzMzE2ZjIzYjM3YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYzlhYTE0NjBiZmY0ZTdhODk3NWQ1MmQyN2ZmYjI3OWE3MWQyNTNjNGMxNzQ4NDg3YzBiZWE3MGNiODRiMjcyYSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_89ac65df647f447c8a7f43a8ef686191",
+      "statement": "Settings synchronization uses zone `TermindAIConfigurationV1`, subscription `termind-ai-configuration-v1-changes`, record type `AIConfigurationItem`, and a distinct `SFTPPreferencesItem` record type; Metrics uses zone `TermindMetricsV1`, record type `MetricsItem`, and subscription `termind-metrics-v1-changes`.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift#L13-L16",
+          "version": "repo-lines-v1:sha256:a6aff75ab44a494de0a5fb0d1c94139c06a9e6432fe1a3a6071e758d130597b3:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzdkODFmM2ZmYWFiNGEwZTUwNDYwYWVlYTUwMmMxZjI1Yzg5YjQ1ZTc2ODJmN2U5MWE3ODQ2ZDc4NmY3N2YzZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWNlZTVkM2NlZTgyN2Q4ZTM0YzcwNGQ5NDJjMjlmM2MzYzk0MTNhOTJhNjA0YmI2MzUwZTRkNTI5ZjU3OWYxOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmJkYzg2M2IwOWEwN2RlOWE4ZGM3ZjBmNTdhMDFkY2Y3MGQ1MDNiMzBkZWEzODRiNzE3MzA1OTlmMGFiYmYyZiJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L12-L19",
+          "version": "repo-lines-v1:sha256:4ed5720bb25292fcd425cb02a2a8ea0ccc81de824e598fc089506ac6106afe74:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGE0MmM2ZjQ3ZTA4YTgyNmIwZjgzNTM2YzViYmEyY2QyMjc2YTM1YzJmMWMzYWMzYTM2MDBkMDVmOTlmNzE2MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDczMGYzMjI3ZDNmYTUzZTU2YTc0YzVjYmQxZmQ3NTJmMmVjZGUyOTI2NTVlZWI1ZjNjYjQ1NTNjMWE1NWIxYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmJkYzg2M2IwOWEwN2RlOWE4ZGM3ZjBmNTdhMDFkY2Y3MGQ1MDNiMzBkZWEzODRiNzE3MzA1OTlmMGFiYmYyZiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_e49594e902a74118a30bf23031a2e062",
+      "statement": "Cloud sync record coding stores payloads inline through 700,000 bytes and uses a CKAsset above that threshold.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncRecordCodingTests.swift#L8-L24",
+          "version": "repo-lines-v1:sha256:7050df64996e96aaa2d2552cbc5401de167fa93cbf6de73ddbcd2e978416964f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxNzUwN2E2ZmU3ZjY0MTA3YjBkNzA2MGNlYzRjODNhMDM4ZmFlYjlhMjJhZGNkNGJkNTAwMzYyMjdhMzBmZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlYWZjYTJhOTgxOTU1MGE5NDA0N2ZiYzNhMjhkZjljMmFjMTQ3NjAzNjY1Yjk5ODBlMDM5OTMyOTg0NDczZTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJjYWFkMjI0MjA0NTJkZjQxZGNjYTkzZTg3NDVmOTI2ZGY2ODI2YWNiMmRkODFjMzA3NTU1YTJiMDM5NmU5ZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyYjYwMTM4NThiNTYyYjQyOWFiMzRmZjliODQ4ZDA4MzhlNDJlOTU3MmUzMDA3NDczNjQ4YTMwY2ExNjJiNTcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordCoding.swift#L7-L30",
+          "version": "repo-lines-v1:sha256:1ad562e282c368065f322084699edb38172789a52463ff013671c118ff2bb5a6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiZWM0OTkxOTc2N2JmNTk4NmRmZDE4MjI5YjRmYjg0ZDU5YzRjNzQwZGY4ZDQ4YzBhMDk0MGIyZWVhODc0Y2QiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0ZDVjYTU5NjJjOGIzNTAxNGFkNDJhZDM0YmU0ZGE4NzQzMmQxOThhOWQzZTBmNjcwYWQ3OGUwZTAzN2MyMWYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiZTAwNzNjZWNjN2M5OTJiY2I4ZmFmYjA2NDFhN2NiOTJjMGNjNGQxOTc1NzIwNmQwYTBiMGViOTI0NmExY2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7584170c4f1e4bedb04c81e0fcd3424a",
+      "statement": "SFTP preferences default to 30 global and 10 per-Host transfers with Smart topology; global values are bounded to 1–100, per-Host values to 1–50, and per-Host is clamped to the global value.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SFTPSettingsTests.swift#L8-L30",
+          "version": "repo-lines-v1:sha256:6085469df5e2336612327c77699e00fa7b868b41acbde1fc2c0de1bd30d62b97:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjZTY5NmQxNmRhZmM1NjBmODMwYmI4YzNlN2EwOGFiMGQ3YjI5ODU4Y2ExOTUxMzFjNzBiYzc0MDc0MGEzMTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA5YmZkNDlkN2U5ZDI3MDIxZTA5OTM1OGRjNjlmYzIxZTQzNzVlMDZmZWNkYmQxMDM2ZmY2MmJjZGFmNDI4ODkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNhOWM0YzViZDNiNWU3N2MzY2I5ZmI0YjU4YjM0OGEwNWMwNGE2MzAzY2NjZGY5ODYwMjJiOGViNzhiZDkwOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZDZlNjVlOGUzMDliOThiODdmYmI1OGMxMTU2NDk0Y2U0ODkwMmI5NTQ4NGY2ODQwM2Y4MzNjMjBmYmNkMzgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift#L3-L45",
+          "version": "repo-lines-v1:sha256:da2410d7062c5cf9e8ad8fd628fd06dd99ced021fe8e7ca4432d579c563c8d54:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZkYmFjZDY2ZTAwMmIyMjBjZmJmODIwNjAyMGI4YmY3NDhiMjU2MTM3Mjk1YTQxYjY0NDg1ZmM4N2Q1NjhkZDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjZDQyNDg5OTEyOGVhODNmZWI1MjQ2MmY4ODBkMzdmNDhlMmEyMWUxODRmZDE4MDNmYmYwMTQxOTY0YWE4ZTQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzNzgyZmY1OGQ4ODU1NWIzMDI4OTJjYjE0MTBkMTdlNjMwMDZhNjNhNjc5ZGEyZThkYTUyYmQ5MmZlOGU4MDMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_ba44af2dbb034a6e809a91bf41e74285",
+      "statement": "The SFTP settings sync store uses a distinct synchronized SFTP preference value and preserves legacy saved limits while defaulting missing values to the current 30/10 configuration.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SFTPSettingsSyncTests.swift#L174-L190",
+          "version": "repo-lines-v1:sha256:571a7dd5b7cc3b5fc27dc878ff680bbc60e3bf8051eece0e7b6e490c2f1e3b7e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5ZmJhODcxNGU1NTBlZGYzYmEwNDA4ZjM2OTk0MjI2M2Q2ODg4Nzk2NmYwM2QzOGUxNGZhZGFhYjk4N2UwNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcxYjI1ZDM2ZmFhMDY4M2FmZmQxYTA0MmVkNjQwMTQxY2Y4MTE2NDdlZmMwNTFhZTc4ZGJmMDZiZjRiZjVhODMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiZjAwNGM3MDhiZGRkOTYyNzA5ZTVmMjM1MGE2NWVlNDdlYjgwNjI1ZmY4N2YyYzdkNDg2MGQwMjI1ZjAyNTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzYjNiYzYwZjg5YTg0YzE5NDBjYjg1M2EwMmI2MTIzYTU2NDYyNTVmY2RhMTlkNDA2N2VkNjcyZTBlNjBhMGIifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/SFTPSettingsSyncTests.swift#L35-L61",
+          "version": "repo-lines-v1:sha256:26a782538a379f7328073f74c62d27065e7f0fb8f56136b507fba908605d40b1:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM5ZmJhMGFjZmZiNDY5ZGMyZmYzNWNjZjg1YmY1NzdkYzIxMWZlNjZiMGU1NjJiNmRkMGU4NDEyYjJkMTg0YzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVhNzhkZDliY2ExMzQxNGM2NzI0YjVkODVhMWE5MjAyNTRjY2RmODNiOTI4YTc1MmE4ZDliZTBhMzUwOTVmODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUxYzJjNWJmNjdlMjJiOGY2MjliODg3NzhlODYwYTU0NWU5YzJkOGI5NmJhNDdkMGYwOWE2ZWMxMmE0MjFjODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ2NDJkM2E5OGE2ZWQ5ZjYzYjE3NTVkZDhmZDY4ZTQ5ZmVlMGJjZTdmY2E0ZDU3MDljZDBlOGM4ZTFkMTc2MzAifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/SFTPSettingsSyncTests.swift#L8-L18",
+          "version": "repo-lines-v1:sha256:39b9d04a8c57a8e111f42600b1a143a7b4e0c0389d889b513b1f3f9fc9206ecf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiYWY5YmFlYjFlZTk1YTkyYjNkM2IxMWMwNzgxZjcwMDQ0YWY1NjA5MGRlOTI5NzIzZmMxYmU0N2ExZGJlN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyY2NkNjljZDY5NDU5YzY1NzAyMWEwYjU5MjE0MzNiYWIwNmY3NTM1OWY1N2MzYjhlOTJhZGI0M2E0NzkxOGMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViN2UyZjcwMjk4NGM5OTNlNzcwOGRlZmJlYmE3N2VkNDUwOTJiNGE1M2UwZmQzYjRjNDMyOTE3ZDc5ZTcwYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1ZTVkYTVhMGRjMTdmZDJjZGZlNzk0ZTU2OTM1NTY4NzUwMjdhZDVhNjlhMDkzY2YyNWZkZTNhOTBiMTM2MmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_69812e376ef344e482e0235cfe5e2573",
+      "statement": "The master iCloud switch and the Vault, Metrics, and Settings category switches have independent default and persisted values, and sync lifecycle activation is conditioned on the master switch plus the category-specific key.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SettingsPortTests.swift#L100-L122",
+          "version": "repo-lines-v1:sha256:28089df9ca2b4c30a25f92c5ef8393f48d67dad443029c730417e096882c8b6a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMDcyODYxMTdkYjViOTAzNGU3YjA4ZWQwZjVhOTc0NTE2ZGVkODlkZDRkMTNmYzAyMDFlNjY2YjY1NThjOGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMGRhM2JjMzJiOTBjNWZhN2Y1MGRlNjQ4ZjA3YWM5MzE0N2IwYTA4Zjc1Y2M4MzIxYTRlNzE3YzBjNmY1N2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY3OTdjOTcwZjcyNGVjZDc5ZmU2NmFlOTRlOTA5NDE4YjUxMDk1ODc1MzAzYTVjNDk3MWQ5N2FiZGI1NDk3ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjMGNjNTMzMDVjYzMwNmVjNWFkYTgzZTk0ZTJlMzNlODc1OWMyZWMwYzNjMzExM2RjYjZiZDE5ZDQ4OWE2NTAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L20-L70",
+          "version": "repo-lines-v1:sha256:f141e4e454bfd7604de2aa2d768ab37224ca69531d32dd161f7051d78a12a63f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5YjY4NWRmZDc3ZTNhYWJhNjIxN2ZhMzhiYzZiYzVlZWJkYjNkZjc2NWE4YzYxNDg2MWE1MDE1N2RmMWVmZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhMjU1ZDViZWM0YTAxMDEyOGZmYmZmZDhlYTA5MWM1NjE2NmY3ODc3MjFkNTVmYjhkZmJiZmFhMTU0NTcyZTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE1YTg1NWIwNmYwOGU3NzA4MTJiMDVkMzBhNGU4YmE4NDI5MzEwMTIxZTAxNjE4MDM5Njg4NTkxNDM3Y2VkODgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L118-L130",
+          "version": "repo-lines-v1:sha256:343f3556e7b9ab218a2245e7d7fd4eaca6de5007255bfb679e6d474d85d8160f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhYzU2YzA1MTRjN2E5NmRjMTIwNmE1ODc3NDViN2RhZDIzYWUzODNiZjYyYmM5ODc0ODE0ZDQzZTFiZmY5ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRkN2FiYjY2ODA5N2EzMGY4ODk4MGMwZWQ0YWNlZDk2NTVjYTJiNDNmODJkZGIzYmU3OTMwOWRiNmQ3ZjM1MGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkNjc3NTExNzE0MTFlNTI4Y2Y0ZWRjOTZkZGNiNDI1NTc1ZWE0YjU3ZWMyYzM1NzA3ZWY0YTgwZDFhZjJhNzkifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T01:13:21.371Z"
+  }
+}

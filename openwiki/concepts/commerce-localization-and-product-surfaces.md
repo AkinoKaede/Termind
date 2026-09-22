@@ -5,7 +5,7 @@ description: Explains StoreKit-derived Pro access, native paywall and review own
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:28:26.942Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -21,8 +21,8 @@ sources:
     resource: repo://LandingPage/package.json
   - id: openwiki-source-554fe71f1ba6efebee0d020c
     resource: repo://LandingPage/src/lib/marketingImages.ts
-  - id: openwiki-source-35f05e7077ecf965940a0dd7
-    resource: repo://Memory/MARKETING.md
+  - id: openwiki-source-446ef49ac8edac86b5511fe5
+    resource: repo://Marketing/README.md
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-60d4159ef162d09de4f4b469

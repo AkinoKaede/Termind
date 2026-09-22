@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:6d64333d6440655b2663ee2802480187835c8ef6b24a2b99299bcf6521636723",
+  "claims": [
+    {
+      "id": "claim_9f166728e8ab4376a5da23e8b49d166d",
+      "statement": "The port-forwarding benchmark is a standalone command-line product that imports shared Termind modules and runs its own benchmark main rather than being hosted by Termind.app or a test bundle.",
+      "evidence": [
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift",
+          "version": "repo-file-v1:sha256:f8d986cabf03ac75347b60a2a86fc28f374cfcde1c9f7cb219bdfadd7c79bb45"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:2a2bcccf7f6514fee0573fdd868c54bd98fa151a69e0eb4ae45f9b09fa2f956b"
+        }
+      ]
+    },
+    {
+      "id": "claim_8945f629e5b94e5bb446f10720870ec6",
+      "statement": "The Termind benchmark script accepts ordered connection-count candidates from 1 through 64, builds the Release benchmark once, launches a fresh process for each configuration/repetition, and emits sample plus median JSON.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-port-forwarding.py",
+          "version": "repo-file-v1:sha256:f5dbf44c72bf0f0c8476e1c86673dc906612b8c32bd6a5647215f3fd70a4b480"
+        }
+      ]
+    },
+    {
+      "id": "claim_82cdf832e6604e49b1ce124c0c87a85c",
+      "statement": "The external comparison script supports owned `system-ssh` Local, Dynamic, and Remote measurements and a manual `external` listener mode using the same output family.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/benchmark-external-port-forwarding.py",
+          "version": "repo-file-v1:sha256:450032eadc5831780f7290b6ea0a72abab016e6c1479f30dd6d182f3b3214881"
+        }
+      ]
+    },
+    {
+      "id": "claim_31ee7fd9c4e64cd58855c19ba0f4560f",
+      "statement": "The OpenSSH fixture creates an isolated loopback server with temporary keys and metadata for benchmark/test clients rather than modifying the user's system SSH configuration.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/ssh-forwarding-openssh-fixture.py",
+          "version": "repo-file-v1:sha256:b3bbbf53d219612835609cb1f3f54de371411d266c7dd9d7913e592aef91bf4e"
+        }
+      ]
+    },
+    {
+      "id": "claim_bea3fbc5095e4637ab1f06a5a195012d",
+      "statement": "Current forwarding pooling distributes local and dynamic flows across eligible connections while remote forwarding remains on the primary connection.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L300-L320",
+          "version": "repo-lines-v1:sha256:c5ff7b25ed0e5478c01268b524ae756a24681c88b2ece9323fbdfe0e6afa8d47:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MjM5YTMxMTJiZWYyNjMzYTY4Yjg4Nzk1OWViYWZmNmY1ZjY3ODI3NzJlYTA1YTdmNjU0MzBjNGFjZTllOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzMTUwOTViMTU2YWFiYjc0YmI0Y2YwYWU5OWE3MzJmNDc1YWMyNjNlOTViNmIwZDNlNWZiOTJhZGQ0MmJiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjMzU3MTRiNzUwYzc5ODRkNWM5ZWMyYzZiMGI5NDU0OTE5ZTRmZTU1YmJjZjNhN2RiNzgwODMwMjQzODgzNGUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L7-L8",
+          "version": "repo-lines-v1:sha256:8e4f205ed9c09fe1250cb2a138270fc71860926197c51765d91fc6137abb0ab4:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzJkNjAxNzA1MTJmZjA3MjQxYmUyN2FmMGY5N2VmMmY3OTA4YzIzMDE2ZjQ5NWE3MGZhODM5ZTg3Yzg5ZDFmZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzAyMmM5NzY1MTU2ODVkZGNiNjgwNDQyZmJmNDNmYTIzZmM1ZmQxZTQ4MGE2OWZhMTIxMGUxZmZiN2MzN2MxZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWRkYjg1NzgwMGE1ZDcyNDdmZjIzYzVjZDVlNTJjNTQ3YmJmNGJjMzY1YjlhNzQyNjk5ZWUzM2RiYjI4OTJjMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTdjOWI2NDE0NzkwY2IxMTZmODBhMGI1N2RhZTJkOGEwNjk4NGVlOTAxZDA3YzkwZGU1ZGE1MmViYjgxNzFlMyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L94-L128",
+          "version": "repo-lines-v1:sha256:fda260ceb3874c81c24929acce6d886bbb96d87494cbe9e4865195bd2def34c4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYzFmODg1ZTdlYjQ0ZjM2NjMyYmE4OTE1MmVlODcxYzVkMmQ5Y2NjNTIzYzVjYzk1N2ZiNjQ5Y2E4NmEwYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjOWY5MzQ2MmRjNzQzMjdiOWMwZTQ5MDcxODlhYWE3NzdkOWUwOWM3NTRlM2NlNGRiZTIwM2VhZWQ1YzJlMWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMGUwNTVkMTUzZjhhNjU3MjM5ZjE0ODU5MGExMGMzNmI4MzQwZjhiZTBlZDI3MjdmOWVmMGZhNzU5YWYxYzUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T01:13:21.371Z"
+  }
+}

@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:31386cf38a0d16ee1dd92c94cf5aa7c8d8ca1d97425ea06d79ca64e53609daab",
+  "pageVersion": "sha256:1defa34289e2e145e7004bb2e383c3dcb89282051eeae2674e3a8914943d96e5",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
       "statement": "The macOS MCP listener is off by default, Pro-gated, and binds only to 127.0.0.1 and ::1 with local-only network parameters; the mobile app does not start a local MCP listener.",
       "evidence": [
         {
-          "resource": "repo://Memory/ARCHITECTURE.md#L499-L506",
-          "version": "repo-lines-v1:sha256:9cc38e58fcb2e4f8ec7a9ff1de20bc915bed5644bba1ce7048f63737ce9f517f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWEwMTc2NmMxZjg0MWIxZDU1YTk2NGNmZTRjNDM4ZTJkMmY4NjhmZjRiNzlkY2E3MGUwYTdhZTE2MjBjMzk2ZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYmU4M2ZiMDJlYjkyZjRhZTBkZjcyYjQzMmZjNzkyNDdkN2EyZjViMWE4MmRlOTMyZDc5NWZmZjMwZDJmY2Y2MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDVmYzVkYTRmZTNiY2ExODIxMWVhMDYwMzdmNDI3NWNkODVjNTlkNDI2MGUyODE5NDMyZjVmZmQxMWRmZDJmMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmNmYzFkMzViZjVhNGJhOTJmZjFjNzYwYTg5OGNlYTk4ZTA3YmRjN2M0ZTdiMjUzMGE0MmJiZTM3ZjJiZGNkYSJ9"
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:f84584e85c49f80b312450980f1a741b62d7816892c3a0574edf5312e8fa4adc"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift#L68-L89",
@@ -201,10 +201,6 @@
       "statement": "Uploads and downloads use separate ten-minute, session-bound capability tokens in Authorization headers rather than the long-lived MCP token; they share a four-active-transfer budget and are revoked by session/host/stop/token-rotation/direction-disable events.",
       "evidence": [
         {
-          "resource": "repo://Memory/ARCHITECTURE.md#L311-L326",
-          "version": "repo-lines-v1:sha256:eb9cda7e1398b7fa0b8a8ff215711bf4bc391fb6f96540c58b8f7344276b5923:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4NzdlMzllNDYyZWE2MDM5YWE1ZGM3OWU3M2YxZjU5YjEyMTIzYWJhZjk3MWMyZDRhOTRmZjFiNjFlNDMyMzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmNTk1ZDE1Yjg4YzFiYWY5ODE3OWJjMjlmMzI5ZTcxN2M1ZmFhMDBlOWQwNTI1MmU2NWIyNDhmYTM5MGUyZjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0ZTFiNDI2NzhjZDRiMTViZWQ0NzI4YjQ4M2NiM2NhNmRjMzRiMjE1ODljNzE2MDE1ZDZhZTM3N2QzYmYyZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxNzhmNjIxM2Q1ZjA5ZDExZjczMWU2MzEyZDFjYTMxNTcxNjIyYTZjYTE4Zjk4YjVlNmQwMjkwMTdhOWY4MTkifQ"
-        },
-        {
           "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift#L217-L277",
           "version": "repo-lines-v1:sha256:d932d52dc4c2673b397e64c53fb9d013fcdd8f5cc135869bf63dad2fb393c972:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiNDMzNDI0MjE2YWM3OWRlMjVmMTZiNjFmODIxYTM1OGM0ODliNDJlYzBhY2Y2OWRkMzI5ODk1NzM1NmZmYzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyYWI1NmFjMGE4NjliZjgwOWVlZTFiZGRjZTM4OGFmMDc3YzlmYjM2NzI1MjFkYzdmYzk1ZTIwOWExMTc3Y2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcyOTgxOGE2Mzk0NGMzYjc3YmZhMGU0MGEwN2ZiNTc5YTkyMjcyNWNlMzJiNjUwNWU4ZGQ0MGY0M2ZkNzE5NzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlYzNlZTBmMDUyZjE0NzNjYTM3NWYyZmY1ZTY4YzFkZDAyODU0YmEzYTRkZDYyYzNlNjg0ZDQ5Mjg5Mjg1NjMifQ"
         },
@@ -227,10 +223,6 @@
       "statement": "The upload capability is atomically claimed before its body is read, streams with backpressure, verifies exact length and SHA-256 before commit, and only resumes at a verified acknowledged offset.",
       "evidence": [
         {
-          "resource": "repo://Memory/ARCHITECTURE.md#L313-L316",
-          "version": "repo-lines-v1:sha256:c75606a9803f7fecddb06690c9c755ea85aeda572211f872c297bc3498ef4229:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDMyYzhkMTFkZWUxM2Q1OGVhZTU2ZDgwNTM1NGEyZTI3OTA2YjYyMTM4MTVjZDM4YWQwZDkwYjk0ZTAyZjZlNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTJmYTE1ZjE3NzllYzdhOTVjMzVlMWY5Zjk2ZjdhNTk4NzhiODIwMjMwY2EzOWI0ZDgyNmIxYWUxYWM0ZmU3MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmMxZWYzMTZjNjQwOWU1MmRmNjllYzdjZDk0ZDljYTk5ODYwMjFmOGZiNDczZmY5MjJkMzdmNGNiY2U1ZmVlYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWFjZjc0MGQ4ZTAxY2Y1ZDFmYTkwNzcwYjRhOTk3YWJiNWZkYTVmZTBhNzM5OGEyOGZmZGI2NDc2NzFiZmRkYiJ9"
-        },
-        {
           "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift#L238-L277",
           "version": "repo-lines-v1:sha256:1e6a4938731ea4995bc2158010fa44a577ffc2875ac5422b910d72b7b4f2f83e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3NWNkMThmZTdmZmY5NGZmOWZjYzM0YzZiZjRkN2E3ODBiOTNkNDQzNzQ3MGEzOWUxNzY0OWJiZDc5ZTA3NzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyYWI1NmFjMGE4NjliZjgwOWVlZTFiZGRjZTM4OGFmMDc3YzlmYjM2NzI1MjFkYzdmYzk1ZTIwOWExMTc3Y2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1NzBkNWJiYmQ1ODFjNGE4N2Y0MzQ1M2UyNzBkYmYyNTI3ZTUyZjRmZWRiYTJhZDBlNjFjNzc3NmMyZjRjNmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlYzNlZTBmMDUyZjE0NzNjYTM3NWYyZmY1ZTY4YzFkZDAyODU0YmEzYTRkZDYyYzNlNjg0ZDQ5Mjg5Mjg1NjMifQ"
         },
@@ -252,10 +244,6 @@
       "id": "claim_5cc40f4e3cea406a9769e7cfbd77c66c",
       "statement": "A download ticket does no remote I/O until GET; downloads stream regular files without staging, support only a validated continuation Range, and do not mark success until source validation, send completion, checked close, and lease release succeed.",
       "evidence": [
-        {
-          "resource": "repo://Memory/ARCHITECTURE.md#L316-L321",
-          "version": "repo-lines-v1:sha256:c521d862fd133f0f313354b53d4a1c9c9610d0fab7f94ab2199eda846fc05183:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTJmYTE1ZjE3NzllYzdhOTVjMzVlMWY5Zjk2ZjdhNTk4NzhiODIwMjMwY2EzOWI0ZDgyNmIxYWUxYWM0ZmU3MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2I0YWRlMTU1Y2RkMGY4OTE2M2EyMzliYTVkYTFhNDRjZWIwNDNiNzFjZjMwNDBkOTBlODVlYzFlMmFmYmU3OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiY2RlOWYzNjBmMzZhNTc5NzhmYWVkNDJjNTAxZTJkZTVlMWQ1NjYzMmIzZTNiNjlkMGZiOWNlMTc5NGZlMzVlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTQ2NTk4NzczM2I5NWE0ZTBkYmRlMTY2MTVjNzA5MTdjMmRiNWIxMjYwMDU3OGIyZGNjYmRkNmY2MGExMGZiZiJ9"
-        },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L63-L79",
           "version": "repo-lines-v1:sha256:6d2d2c94a832b6099ceebc2e310be31584972e05e53521424e0a83989596d335:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlMGY1MDQzYWYwMmFlOTFhMmVkYzNmYWNmNjk4ZThmZGFiMDljMWI0YTk0ZmIxODE4YTUyNzY4MzAzZDM3MzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkwZjc0YTk2NWQ3YjBjOGMyZWJhYWE2ZDliOGRjYzc2OGQ2NjM3MzU3MmUyYWMwODY3ODgwMDZmZjcyZjIzMTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkMTFiYTMwZGM1OGFkNDczY2Y4M2E1ODcyZDU0YjZkZjk3YjE2YWQ3NDVlYmVlOWVhOWY0NTg5ZTZiNzVlYmMifQ"
@@ -305,6 +293,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T00:31:10.149Z"
+    "at": "2026-09-22T01:13:21.371Z"
   }
 }

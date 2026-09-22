@@ -5,30 +5,36 @@ description: A task-oriented guide to finding the right Termind owner, lifecycle
 tags: [engineering, architecture, routing, testing, macos, ios]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:31:00.738Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
-  - id: openwiki-source-1970087a236604bd6a1f375d
-    resource: repo://Memory/ARCHITECTURE.md
+  - id: openwiki-source-d2d4c06f734241db3badc1f5
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-c8d832474c03f5ebad7b0578
+    resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-22b9fca540c3029c5ace451e
+    resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "codex", at: "2026-09-22T01:31:00.738Z" }
 ---
 
 # Termind Engineering Quickstart
 
-Termind is one Xcode project with two native products: `TFM` for macOS and `TFI` for iPhone/iPad. They compose shared static frameworks, but platform UI and lifecycle remain app-owned. Start from the task you intend to change, identify the state and dependency owner, then use the focused tests that protect that boundary. Source and tests are authoritative; `Memory/ARCHITECTURE.md` records the current ownership and safety contracts to read before changing dependencies, lifetimes, persistence, execution, permissions, or secrets.
+Termind is one Xcode project with two native products: `TFM` for macOS and `TFI` for iPhone/iPad. They compose shared static frameworks, but platform UI and lifecycle remain app-owned. Start from the task you intend to change, identify the state and dependency owner, then use the focused tests that protect that boundary. Source and tests are authoritative. Read [Cross-Cutting Engineering Invariants](/openwiki/architecture/engineering-invariants.md) for the exhaustive safety contract, then use the routed specialist page for mechanisms, release operations, and historical benchmark constraints.
 
 ## Before editing
 
-1. **Read the narrowest routing page below**, then follow its cited code and tests. Do not use this page as a substitute for the detailed workflow.
+1. **Read the cross-cutting invariants and the narrowest routing page below**, then follow their cited code and tests. Do not use this page as a substitute for the detailed workflow.
 2. **Locate the owner before adding an import.** `TermindDomain` holds portable values and rules; `TermindApplication` holds ports, use cases, and cross-feature policy; Persistence owns all SwiftData models and container construction; infrastructure implements concrete services; `TFM` and `TFI` own native UI, composition, and lifecycle. Shared frameworks must not depend on either app target.
 3. **Classify the lifetime.** App-wide services and durable stores are shared; desktop navigation and workspaces are window-local; mobile navigation is scene-local; an SSH/SFTP transport belongs to the workspace/session that opened it. Do not turn transient connections or credentials into restored state.
 4. **Keep secrets and remote behavior at their existing boundaries.** Metadata can be persisted, while secrets are referenced through Keychain-backed storage. SSH/SFTP, host-key trust, and transport ownership belong on the Termind side of the host-neutral AgentKit boundary.
@@ -39,15 +45,15 @@ Termind is one Xcode project with two native products: `TFM` for macOS and `TFI`
 | If you are changing… | Start here | Also inspect | Focused validation |
 | --- | --- | --- | --- |
 | App startup, dependency assembly, window/scene behavior, backgrounding, or shutdown | [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md) | `TFM/App/TermindApp.swift`, `TFI/App/TermindIOSApp.swift` | Relevant `TFMTests` or `TFITests` lifecycle/window suite |
-| A module import, framework placement, SwiftData model, shared resource, or AgentKit-facing API | [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md) | `Memory/ARCHITECTURE.md`, `TFMTests/ArchitectureBoundaryTests.swift` | `ArchitectureBoundaryTests` plus the affected feature tests |
+| A module import, framework placement, SwiftData model, shared resource, or AgentKit-facing API | [System Boundaries and Dependency Ownership](/openwiki/architecture/system-boundaries.md) | `TFMTests/ArchitectureBoundaryTests.swift` and the owning composition root | `ArchitectureBoundaryTests` plus the affected feature tests |
 | SSH, Telnet, proxy/jump routing, trust prompts, credentials, or workspace reconnect | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) | Remote Infrastructure callers and the owning session feature | SSH preparation, host-key, authentication, journey, and session tests |
-| Terminal services, metrics, port forwarding, channel limits, or shared remote transport policy | [Remote Services: Terminal, Metrics, and Port Forwarding](/openwiki/concepts/remote-services-and-forwarding.md) | `Memory/ARCHITECTURE.md` remote-session contracts | The relevant terminal, metrics, or forwarding suite |
+| Terminal services, metrics, port forwarding, channel limits, or shared remote transport policy | [Remote Services: Terminal, Metrics, and Port Forwarding](/openwiki/concepts/remote-services-and-forwarding.md) | [Port Forwarding Benchmarks](/openwiki/operations/port-forwarding-benchmarks.md) for measurement semantics | The relevant terminal, metrics, or forwarding suite |
 | SFTP browsing, transfer scheduling/topology, conflict behavior, resume, external editing, or cleanup | [SFTP Transfer, Scheduling, and External Edit Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md) | The feature owner plus `SFTPTransferContext`/scheduler callers | Matching SFTP transfer, edit, conflict, or mobile SFTP tests |
 | Assistant turns, approval, host tools, skills, scratch space, agent persistence, or Hermes memory | [Assistant, Agent Runtime, Skills, and Memory](/openwiki/concepts/agent-runtime-and-assistant.md) | AgentKit boundary in [System Boundaries](/openwiki/architecture/system-boundaries.md) | Agent, approval, scratch, skill, or memory suites in `TFMTests`/`FrameworkTests` |
-| Hosts, Vault records, migrations, Keychain references, repositories, or data compatibility | [Persistent Data, Migrations, and Secret Boundaries](/openwiki/concepts/persistence-and-secrets.md) | `Memory/ARCHITECTURE.md` and persistence compatibility tests | Persistence, repository, secret, and migration tests |
-| CloudKit selection, sync lifecycle, journals, account transitions, settings, or secret-upload authorization | [Settings, Vault, Metrics, and Cloud Sync Workflow](/openwiki/workflows/settings-and-cloud-sync.md) | `Memory/ARCHITECTURE.md` sync contracts | Sync lifecycle/coordinator and affected feature tests |
+| Hosts, Vault records, migrations, Keychain references, repositories, or data compatibility | [Persistent Data, Migrations, and Secret Boundaries](/openwiki/concepts/persistence-and-secrets.md) | Persistence compatibility tests and schema owners | Persistence, repository, secret, and migration tests |
+| CloudKit selection, sync lifecycle, journals, account transitions, settings, or secret-upload authorization | [Settings, Vault, Metrics, and Cloud Sync Workflow](/openwiki/workflows/settings-and-cloud-sync.md) | [CloudKit Release Readiness](/openwiki/operations/cloudkit-release-readiness.md) for deployment/device checks | Sync lifecycle/coordinator and affected feature tests |
 | macOS MCP server, external authentication, transfers, bearer tokens, or `termind-mcp` | [MCP Server, Transfer APIs, and Stdio Bridge](/openwiki/integrations/mcp-server-and-bridge.md) | `TermindMCPBridge/` and MCP server/transfer tests | MCP token, server-session, upload, download, and bridge tests |
-| Entitlements, StoreKit, localization, widgets, screenshots, or marketing/landing-page work | [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) | `Frameworks/Resources/Localizable.xcstrings`, `LandingPage/`, relevant app target | Localization check, relevant app tests, screenshots, or `npm run build` |
+| Entitlements, StoreKit, localization, widgets, screenshots, or marketing/landing-page work | [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) | [Storefront Commerce Release](/openwiki/operations/storefront-commerce-release.md), [Marketing Assets and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md), and [Build, Test, and Release](/openwiki/operations/build-test-and-release.md) | Localization check, relevant app tests, screenshots, Sandbox checks, or `npm run build` |
 | Choosing a regression seam or a representative test across framework and platform targets | [Testing Strategy and Behavioral Boundaries](/openwiki/testing/behavioral-boundaries-and-fixtures.md) | Existing tests nearest the feature | Narrow behavioral test first, then affected target suite |
 
 ## The ownership decisions that prevent most regressions
@@ -82,9 +88,9 @@ Use an installed iPhone or iPad simulator destination for `TFI` tests. Keep visi
 
 - Identify the domain and owner in the routing map; read the detailed page before implementing.
 - Trace callers and callees across the integration boundary; include lifecycle, retry/cancellation, persistence, and cleanup paths—not only the happy path.
-- Preserve architecture contracts in `Memory/ARCHITECTURE.md`; update the record and boundary tests if an intentional ownership rule changes.
+- Preserve the contracts in the routed OpenWiki page and update `ArchitectureBoundaryTests` when an intentional ownership rule changes; generated pages are refreshed through the OpenWiki lifecycle rather than hand-maintained as a parallel architecture log.
 - Add a targeted regression test at the layer where the behavior is observable, and run the relevant focused check.
 - Run resolved-package product validation, strict formatting, and the localization gate appropriate to the changed surface.
 - Inspect the diff for secret material, accidental generated artifacts, unintended `Package.resolved` churn, and cross-layer imports.
 
-For operational detail, commands, localization, screenshots, and the AgentKit release procedure, continue with [Build, Test, and Release](/openwiki/operations/build-test-and-release.md).
+For general commands, localization, and the AgentKit release procedure, continue with [Build, Test, and Release](/openwiki/operations/build-test-and-release.md). Use the dedicated operations pages for CloudKit deployment, App Store commerce, marketing/assets/icons, and historical forwarding benchmarks.

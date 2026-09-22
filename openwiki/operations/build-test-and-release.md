@@ -5,7 +5,7 @@ description: Safe, targeted validation and release procedures for Termind’s Xc
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T00:31:10.149Z
+    at: 2026-09-22T01:13:21.371Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -31,7 +31,7 @@ sources:
     resource: repo://TFMTests/AppLanguageTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
 ---
 
 # Build, Validation, Localization, and Dependency Release Operations
@@ -187,4 +187,4 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 7. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files.
 8. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing.
 
-CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. For the sync-specific deployment matrix and operational prerequisites, consult `Memory/SETTINGS_SYNC_RELEASE.md`.
+CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](/openwiki/operations/cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](/openwiki/operations/port-forwarding-benchmarks.md).
