@@ -115,6 +115,14 @@ private struct SingleLineHostTestForm: View {
     @Bindable var draft: SingleLineHostTestDraft
 
     var body: some View {
-        Form { HostConnectionFields(host: $draft.host) }.formStyle(.grouped)
+        Form {
+            HostOrganizationSection(host: $draft.host) {
+                EmptyView()
+            } tagsField: {
+                EmptyView()
+            }
+            HostConnectionFields(host: $draft.host)
+        }
+        .formStyle(.grouped)
     }
 }

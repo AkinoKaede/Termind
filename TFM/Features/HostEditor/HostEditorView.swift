@@ -52,7 +52,14 @@ struct HostEditorView: View {
                     title: hostID == nil ? "New Host" : "Edit Host",
                     symbol: "server.rack", close: cancel
                 ) {
-                    form
+                    VStack(spacing: 0) {
+                        HostProtocolProfileControls(host: $draft, protocol: $selectedProtocol)
+                            .padding(.horizontal, Metrics.Space.l)
+                            .padding(.vertical, Metrics.Space.m)
+                            .termindGlassBar()
+                        Divider().opacity(0.25)
+                        form
+                    }
                 } footer: {
                     footer
                 }

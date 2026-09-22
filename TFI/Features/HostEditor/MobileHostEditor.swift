@@ -56,6 +56,7 @@ struct MobileHostEditor: View {
                 && customIdentity.isTelnetValid(for: draft)
                 && customIdentity.isTelnetProxyValid(for: draft)
                 && (!draft.sshEnabled || draft.environmentVariablesAreValid),
+            topBar: AnyView(HostProtocolProfileControls(host: $draft, protocol: $selectedProtocol)),
             save: {
                 try customIdentity.save(into: &draft, using: library)
             },

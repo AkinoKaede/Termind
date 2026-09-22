@@ -62,5 +62,14 @@ private final class MobileSingleLineHostTestDraft {
 private struct MobileSingleLineHostTestForm: View {
     @Bindable var draft: MobileSingleLineHostTestDraft
 
-    var body: some View { Form { HostConnectionFields(host: $draft.host) } }
+    var body: some View {
+        Form {
+            HostOrganizationSection(host: $draft.host) {
+                EmptyView()
+            } tagsField: {
+                EmptyView()
+            }
+            HostConnectionFields(host: $draft.host)
+        }
+    }
 }

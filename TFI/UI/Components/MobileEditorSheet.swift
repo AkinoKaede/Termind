@@ -18,6 +18,7 @@ struct MobileEditorSheet<Content: View>: View {
     var compact = false
     var actions: [MobileEditorToolbarAction] = []
     var onCancel: () -> Void = {}
+    var topBar: AnyView? = nil
     let save: () async throws -> Void
     @ViewBuilder let content: () -> Content
     @Environment(\.dismiss) private var dismiss
@@ -28,9 +29,20 @@ struct MobileEditorSheet<Content: View>: View {
 
     var body: some View {
         NavigationStack {
-            Form {
-                content().disabled(isSaving)
-                if isSaving { ProgressView().frame(maxWidth: .infinity) }
+            VStack(spacing: 0) {
+                if let topBar {
+                    topBar
+                        .disabled(isSaving)
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .background(.bar)
+                    Divider()
+                }
+                Form {
+                    content().disabled(isSaving)
+                    if isSaving { ProgressView().frame(maxWidth: .infinity) }
+                }
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)

@@ -19217,6 +19217,22 @@
         }
       }
     },
+    "Protocol Profile" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "协议配置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通訊協定設定"
+          }
+        }
+      }
+    },
     "Provider default" : {
       "localizations" : {
         "zh-Hans" : {
