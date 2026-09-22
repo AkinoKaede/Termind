@@ -1,7 +1,7 @@
 {
-  "updatedAt": "2026-09-22T00:31:10.151Z",
+  "updatedAt": "2026-09-22T01:10:02.666Z",
   "command": "init",
-  "model": "host-agent/omp",
+  "model": "gpt-5.6-terra",
   "status": "interrupted",
   "language": "en"
 }

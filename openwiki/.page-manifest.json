@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "pages": {
+    "/openwiki/architecture/platform-runtime.md": {
+      "pageVersion": "sha256:7d2268951977dcbe8bf9e3bfa6b79ec69cb3d55c72a1c242cc8b944a0fb88ec5",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/architecture/system-boundaries.md": {
+      "pageVersion": "sha256:95ae2f50f3a459aa6c5502c11c301d3783446a4c86117684b7d4092e7e88a15f",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/concepts/agent-runtime-and-assistant.md": {
+      "pageVersion": "sha256:4737dc09eb90c0420b880bf2fab094f9135192ed24ce438943b5251eea09c18b",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/concepts/commerce-localization-and-product-surfaces.md": {
+      "pageVersion": "sha256:13ee440b075102e79b27dd13511c49632f448d22bca95bd6a15fe2a7573ee4d8",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/concepts/persistence-and-secrets.md": {
+      "pageVersion": "sha256:f80158b701ee0dc77c084e3efa79baac40aee8b745e4db59ad684daf439dc8d4",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/concepts/remote-services-and-forwarding.md": {
+      "pageVersion": "sha256:1ba92bb80b68bc0bcc82b721f3e819856f8ea736469dabc908eca371f6250395",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/integrations/mcp-server-and-bridge.md": {
+      "pageVersion": "sha256:31386cf38a0d16ee1dd92c94cf5aa7c8d8ca1d97425ea06d79ca64e53609daab",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/operations/build-test-and-release.md": {
+      "pageVersion": "sha256:65a192526c7077d01d0e5a58245de0d19f7c103accfcb0d8ed32d612ea0bb477",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/quickstart.md": {
+      "pageVersion": "sha256:cade63e93115426143be255179f6a32b2c867cf7a7b539dab9b264dcdca0cff3",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/testing/behavioral-boundaries-and-fixtures.md": {
+      "pageVersion": "sha256:85333b33c78f0f8066210d2b0b93e64fd7818b59990150b887a5d2d089d893f8",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/workflows/settings-and-cloud-sync.md": {
+      "pageVersion": "sha256:0ba005777749189c842f01e920cd1360444545e29e6b4fbbef9076c287cd0b9c",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/workflows/sftp-transfer-and-external-edit.md": {
+      "pageVersion": "sha256:1d92d75b2ce5b6df028b5364c4bf11bf06f448af163019a2c9cca92cc6e7ebe3",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    },
+    "/openwiki/workflows/ssh-session-lifecycle.md": {
+      "pageVersion": "sha256:a66e72891fdef94d2c7a41807ade26ed1ac61b901548af5b7c4fd82d60480f47",
+      "completedBy": "openwiki/0.5.2",
+      "completedRunId": "a38b6393-91cd-4070-8273-be41641508b6",
+      "gitHead": "c5e86d52bd6fc24857962d4cf31c7c84c8e80671",
+      "sourceFingerprint": "sha256:baaf5b7a122eb12537d25d975900c89cbe5e8b754729fab4f905415d6a4a633d"
+    }
+  }
+}

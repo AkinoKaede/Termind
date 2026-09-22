@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:1ba92bb80b68bc0bcc82b721f3e819856f8ea736469dabc908eca371f6250395",
+  "claims": [
+    {
+      "id": "claim_7c677489fd8b4a4fadd006a4da4e9937",
+      "statement": "SSH is a shared transport substrate with separate feature-owned lifetimes and interaction policies: forwarding, metrics, terminal, and Agent/SFTP services do not merge their authentication or recovery state, and connection/authentication/forwarding state is memory-only rather than persisted with domain records.",
+      "evidence": [
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L300-L308",
+          "version": "repo-lines-v1:sha256:2ea51fe32eccff3a2b866c406e3d3c565e426d537ecc41146bf1cc0c7f3552cf:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODFlODAyMDJiN2Y2YjgxYTUzMDk1NTcwNDM4Yzk1ZDYzM2Y1NjM3MTg0MGI0NWVlZjUwZjQzMjE5YzUzYThhNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjViMmU0YzAyOWIxNzM4NzhkYTFmNWQyMjUxYWIxMTU0NTc5ZDgyYTczNWZiMWQwYmY3NWViOWRiOGU0YWVmYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWJiYmRjMmRmOTJhMzliYzY3NjliNWU3NGU0OTk1OTUwYTVkYjQwNjhlODY1Y2QwZjJhYWI5OTk4OWI2ZDllNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDRkMDcwYzdhODU5MWY0ODUwMDU1NTY2NWY2ZWY5ZTMyZjcxOTczYzI5MTlmMzdhNDQyNTAyNmE3NWNmMzNhYyJ9"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L69-L70",
+          "version": "repo-lines-v1:sha256:c8e421288cd320600e16fee3f45dd36477de3d83663f7790c1046027b6680a2c:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDQ3YjgzZmI2MjYxZmFhMWZhNDk3NDlmYTRkNDc5OGUxM2I2YjI3M2E2ZDEzODc3ZjljNzZkNDA4NGFiOGE5YSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWUzMTA5YjlhODE1N2Y3ODgwODZhYzFlOTMwMjk2MDUyZjNhMDdlNTk0NzdkNTg4NDc2OTQxNjA4YzY5NTI0MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDdjYzIyMWQxMWZkMDkzYTljMDdjNDY5Mzc5ZWQ5MzE5YTY5YTYzOTdhMDNkOTYxYzMwOGE1NDhkMmNjMjFjMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGFmYjQ3OGEyN2E0MDQ0NjlmOWNhOGIxODNmZDhjY2VkYjc4NWU1MjU3NTgxMTk0NzhiZjQ5NjJjMTlmZmNlNSJ9"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L97-L109",
+          "version": "repo-lines-v1:sha256:4f6f8dcd9249804009e885e9b820e706a10c848cd4212927cf468b855beca09d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkNzMyN2M3MDQwMmJhZDI0OTJlZjk5NDI2OGM5OTdhZGYzZThmNGM2NmRkNjU1MDBmYjgwMjIyYzEyMWY4MTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3NGQ3NWEyYWI2MWYyNDgyN2E4NDc5ZWI1MmRiOGE0ZmZiY2ZhZmRjMWU2YTFmMzhlMDkwYWQwYzM2Yjc1ZDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3ZmZmZjgzM2E4ZjlmZjYxY2ZjNmYzODRlZTcyMDhlYTJmNTkyMzQ5OTQ5YTQwZmM1ODFhZmJiNzBjMzNiYmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU2YjRkZmNmMGJkOGIwZTEyOTY5YTdhZmIxMzI4MTY4MTE0NzNlMzU1ZmM2ZDYzMTY3YmUyOWU4NzQxYTdlY2QifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8335d311a32c46a5b39fc3d7dc0df067",
+      "statement": "Port forwarding rules are saved descriptions rather than live listeners: they support local, remote, and dynamic kinds; dynamic rules clear target fields; validity requires a nonblank bind host and port 1 through 65535, plus a target host and port for non-dynamic rules.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Connections/PortForwardingRule.swift#L3-L34",
+          "version": "repo-lines-v1:sha256:d514b252038bd538cfde08e0dd642a3aad92f75abb2ff2fe4975d95796d002e6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwYTFlNDM2ZTgyZTY3ZWJmYTk5Njk3NjAzYzYxMmIzODdlNzBhZGI1OTBiZjU5YWNiOGY1ZjVhMzRhODljMmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExOGJmY2MwNWRhNWVkOWI1NWRjNTcyNWE0ZmNkYWVjNWMyNTc1ZmRmNGNlMjJhMTk5MDliMWIzZjRkZTgxZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3ZjVhMmFlNTgxZTUxYzlhZTM1MjZkNDZkMWM1NTAyMGQxNTY3YjU0NzhkNTdkYjA0NmFkMmVlNjNiMmNlNGUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Connections/PortForwardingRule.swift#L54-L60",
+          "version": "repo-lines-v1:sha256:c359e2f664e2c96e55afe3f714839e32831992fb172acd3db7057c63b3497218:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmM2OTJkMDViZThiNjFlM2E3MTM4MjFmZTBiN2FlMTc1NzM3MzFhNmYyZGVhYjkyN2NjNzJhYWM4YjBhYTEwOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiN2RjYzM3ZWNiOWQyYjQxODE4YWViMDE5YTliNTViYzA5OTc2NTcyZDFjNTdhNjFkMzg2NjE1NmI1OTY3MmEzYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWI0NGY4Y2QyZmQ3ODlhYjgzMWIyYjRjYmVhMDczY2M3YzY5ZGJlMmNiZjA0NGM3NDYwMTI4NzI5MWY4MmE1NCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTBmZDIzMDI4NDRiMmJlZmI1MTQ5YzY3NTBjODM2ODYyZmZlOWVjNGM4ZjNmYjUzMjZkYzNjN2VmMjUzODBhYyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_73da97fed5404776a7642b71176cd60f",
+      "statement": "Per physical SSH connection, SSHMaxSessionsPolicy supplies a FIFO channel budget shared by PTY, exec, and SFTP subsystem channels; updates apply to live budgets without closing active channels, while forwarded TCP channels, remote listeners, and jump bridges do not consume this budget.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L4-L37",
+          "version": "repo-lines-v1:sha256:15cc14360ba2ad70b5fe46d62378dc22d787dbe5eee9eea962b61a2574666c3c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyYjFkN2FjN2EwY2UyMjRjZTFlMTRiYTc3MGM4MGY1NjVhNDc5NjQ2OTg2YjgwNGVkOWM4NmMzMjFiZWE5N2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmOWI4MWMwNzllNzQ5Y2RhNWIxODE2MmViMjFjNmQyYmJmYjMzMGQyODcxZWVhZDhhM2IxNTcwNjY0Mjc3ZjYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift#L57-L193",
+          "version": "repo-lines-v1:sha256:796fd0bc152591e748f4399a584fb6c76177e20b1010298b6056cbc269ba7436:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzNWJmOTQ1NmIxMjM4NTQyOTg2YzQyNGRiMjBhYTUxZDk5ZjgxYWM1ODUyNTdhNGNmODk4ODczOGJjMjZkMjlhIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkNDMzNTYwY2U4NjRhOGY5NTMxNjExZjJmZjQ5MTEwZDRjMzI4MGY2NGRlMTYxNjIzN2Q1ZTM2ZWE4ZDI5ZTg4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI1ZjU0YWY3NWQ0ODAxY2E2M2YxNWE0Nzk5YzE2YTBjNDc0M2Q0NmNmYTVjYTg5YWZkNWFmOTE2N2QwY2MwNzQyIn0"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L190-L199",
+          "version": "repo-lines-v1:sha256:73b8da79389cc8c548546ea6a25734903def9298bae2a8ecc8e99172f5af6f5d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmMWQ1YmIzZDQ4YzkzYTZhOTRiODhjZmRhMTAwN2ZiNjdiNDNmMjk2MjM5ZjMyZjQyZDg4YTk4OTRkZmYwODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5ZWNhYjI4NjRlNDZhMjlhMDlkOGM1ZGIyZjNlYzg1ODlkODNmZjdjMWE5ZGU3YThmYjYzYmI0MjllMmJlN2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhODk2NzQ0NjkxMzhiZDJmYjcwNTNlZDhkNzEzMDQ3OWU3YzYwM2I4YzVhYTU4YTBiOGUyZjUxMGY3ZDkzMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ZmNiYTA3NDljM2Q3MDBjN2MyZGQ3YmM0OTQ5YzIyODE0ZWM1NzM3ZDk2YzdiMGY1NDk5OGExNzEzNDQ3NzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_085bfb76938f4f408a9d00116ce1c49f",
+      "statement": "Interactive SSH PTY setup sends configured environment variables after the PTY request and before shell startup; individual server rejections are nonfatal and reported by variable name, while non-PTY services do not inherit these variables.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1067-L1153",
+          "version": "repo-lines-v1:sha256:cf6dadcd49a0a06a996653ba34d2651add8904ab9039c545cd9ea162dcba16f6:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyNGZjYWZiZmNlNWM4ZjRkZDhjMTI0YWMzYTViZTBlODhkMmZlMGQ3NjUzMjZkMjdjYWI1ZjM1ODQ4MGU3ZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyY2Y4MDIwYTk3MWQ4YzliZjFkNTY2Njg4YTZjNTcxMGQ5YTNlYWI0ZGYwZTgzNmYwNzkxZmZlZGVlM2NiMjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA1ZWMyMjIxNGI5M2JhY2MwNmJhNjhlOWY3NTc0MjU4YmJlMjNiOTIwNzYzMjk2MTU4OTBmZjQ1N2QxNDlkNDEifQ"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L216-L219",
+          "version": "repo-lines-v1:sha256:51c58ec8396dfc2cc1721bcef836bdc329cce37f90304fb0d623de0abd40690a:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTZjZjFkZTBmNzAxNjcwNTExMGRlZjNmMDZkYmZhNDZhMTExY2Y2MWNiNDZkMWEyYzI2OTJlNDI1NmE3Yjc3MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGU3YjcwZTgwOWVmNjBmOGI0OGEwNzExMDcwYzU3MzQ0NzUxNzMwMzU2NjFiYWM2OWUyZGEzZDdmZGE2ZTIzMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTQ3NmE2NzNiMzMxM2RmMzI1ZGY4MDVhODdmNjM3Yjc2MTg1MGU0NDZiZTYyYTczZWNmYzU5YzcyNjViYjQwMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDkyMTMzNTQ0MjJlY2I3ZjEzOTkxODQ3YzZlZjk4NTI0YzljY2RkZDRmYTIzMWFmZDE4MWZmNDNkZWE3OTY5YSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_a5f2f85af09a4c62b086c246d4b2ace5",
+      "statement": "ServerMetricsModel runs one serial worker per selected host. It connects a sampler with its own challenge-capable trust and keyboard-interactive handlers, publishes base samples before optional detail probes, and retries failed cycles with exponential delay capped at 60 seconds.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift#L48-L86",
+          "version": "repo-lines-v1:sha256:7dcde3c81d9bc14cf1587f8db730874513ba5b428341b04e93296f38f7323219:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2OWM3MTk3OTEyOTVjNjNkMGM3N2MzY2JmMTE5M2JhNjYzZGY5YjY3ZTE3NzI2Mjc3YmIzYzZmM2QxMTU5OTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3Y2RjNGEzMWUyZmM5ZWQ5YzlkNDFjNjA5YjJiMTBjZjUyNDhjZmEzYzljZjg5MGFlNmNmMDYwZjMwYjU5MGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI3YjcwNGRkOTYyNTc2NTQ5N2FhNzhjYzcxOTNkNTdkYWEyNDRlZWIwOTZkNzk5MTI2ODZlNDZiOTZmMWEyZjQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift#L526-L561",
+          "version": "repo-lines-v1:sha256:a69317daa00d1548b8e8bb4767738e1f4c7fd2e68359a094991398bc733dc441:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2MDA5YzU0MjE2NTg2NzdjMzYyZTM0MzNmZWJhMzAzMzkzYTM3MTQ5Y2NiOTI1ZjUyYmUxNTVkOGQ5OTE2Y2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3YmJhN2MzNzIxMjExMjY5NmFmOWEwYWQ2M2U1N2Q1Y2RmODZjNDY2ODBlOTFhMDNkNGQ4MWYyZGJhNWU5OTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift#L574-L693",
+          "version": "repo-lines-v1:sha256:983bf7747d418fcfa2359c9f8ed1292530674ec02e30daccd736aa1798a4a955:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzNTk2MjMwMGQxODM4NzlkZGIwYjliMTgyMGQ2NjFiMzM2YzVhNzExZDA1YTk3MTg4MjgxYjc1ZDJlOTQ5ZTc4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIwZDc4MDg0YTY5OGJmZGUxMjM0NWM3MDgwNmU2OWYyMGQxZmUzZjUwZWQ5YWY0MDY3M2IwODcyZWE2N2M1MDNjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2YzVjNDEzNmNiMTZmNWZiYjgyMjUyY2NmMzE4MWQ3ZDI5NzdhNzRhNGZkNjg3MDI3YzNhYTcyYWJiZWYwNTRkIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_80a437a3625941859c6a306d6f09af37",
+      "statement": "SSHMetricsSampler uses exclusive bounded SSH exec calls and marker framing to isolate structured metrics from remote shell preamble/trailer; malformed, truncated, or oversized output fails, while exit code 42 means unsupported primary metrics and GPU exit codes 42 or 6 mean no GPU.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SSHMetricsSamplerTests.swift#L10-L84",
+          "version": "repo-lines-v1:sha256:8a8a947e1736c86afd145255c47d8b532071a1def168179b3f64c55bc455d490:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJlZjBhMGJhMGQyZGY1N2FiNWFiMDUwOGM4YjA3YjdlYTVkYjQ5NmI1NjI5ZGY1MGI0MWFmMTVkMjYzODEwZDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4YWI3Y2U0Zjk4MGU2N2QzNmE5NmVhYWJlMzA0NzZkMzcyYmViODc1ZWJjMmY5MGVjMjk0OGQ2NmI1MTU1ZjMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMetricsSampler.swift#L150-L182",
+          "version": "repo-lines-v1:sha256:eb552642c1ee42ce1defecee83d3fc251b05783155f1297231071333761ade5b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlYjUxZGI3MDhjYTQ3ODJiZGI1MzYzNGYxMGEwNTU1ZTYyYTI4MGNmNmYzZGUwOTFmNDU1NzliNTE2NDBlYTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyODcxNjcyMjExMTkwMzRkNDJkOTI5MTNjMGYxMTEyNmExYzdhZWU0NWNjMjFjNzI2OGJmN2FhNTJlY2U4Y2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4Mjc2NzI4OGQzNmVjYmY4YzRkODU5OTUzMWIwZjhmNDM4MzQ5MmYzNzUwMWNmZjg0ZTU2YjVjMjE2MmUxZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVkMGYxZDcyMGQwMzFmODJkYTc0NmFmNDA2ZDRiM2E3NTM1NTc0OTg4OGYzNDg4OTE1NjgxYTNhOGEyMjY5ZDEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMetricsSampler.swift#L43-L117",
+          "version": "repo-lines-v1:sha256:44e5f2c9be6cbf8b9464f1fdca77fbce414fdd8daf741e759aa9dc4e628c9761:eyJzZWxlY3RlZExpbmVDb3VudCI6NzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhMWFlMTc5YzhkOTk4MmI3MjgwZjE1ZjYxZmYyYjNiNmY0M2NmZDI1NzQ4ZGMyOTVkZjA1YWNhYWEyYjdhNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3NjVlNGI5OTlmYmYwYzIxODYxMDY3N2E5ZGQ3Y2RhOWIyOTNjZDFjZjMwYmI0ZWM2YTI1ZDJkNmIyMzE0NTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI1YTVmMGQ3MDFkMGM0Y2UyNzczMzQ3MDM3Mjk2NjZiZDVjZGE2YmVkYmQ3Nzc1ZWEzN2E0Y2M2Y2RjN2I5NGUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_bb61bd5937424b5a88db0c3b856becb3",
+      "statement": "PortForwardingController starts only valid SSH-enabled rules, shares a host-scoped forwarding context among active rules, snapshots its maximum connection count at context creation, and uses per-rule generations to reject stale callbacks; stopping the final active rule retires the context.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L169-L219",
+          "version": "repo-lines-v1:sha256:ae88011f51e4d2f2fd7e6db1050ddc7e8f96b54ff29b94def1ba2e89dc7e088c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4OGRmYzU3MDExMzI3YjE3ZjA0YmM2MjlmNWU0Mzc5N2RmMWY3YTFiZGQ2NWFiMDg2MWRiN2VmMWRmMzY0NjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAwMTNjZTg5MzRjZDdjZGQyY2M1MTVlZDllM2YwNmMwMjYxODdjYWRjMjc4YmY1N2NkOWY2NmM4Zjg2NmY3ZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyOThhNjQyZjM4NmE3YWE1ZTg3YTIyNGVhZWZhN2YyNjkwOWM1NzRmMWYyNTk0NDZjYzNlMDU0MmQxOGJmNWQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L330-L354",
+          "version": "repo-lines-v1:sha256:02a6d1bbbd2a413d9d0b7f6e79d5a92015333ca0f007c93e1c117d9e48ca3397:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI2MDg2ZjI0YjIyMDFkY2FmMmEwYWE1ZGMyOTE0NDNiNmQyYTk2YWE0NzdhM2E3NGQwZTEzNGJkZDVmZjhmNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4NjI5MTcyNDZiZTY1MzE2ZjE4MmYxNjBmNWU0M2ZiM2M1MDNkNGYzMTBmMmUwYzg5MDBjN2IyNzU4YjA4NDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5MjRjMTc1NjE4YjViOGVjNzZhNzEyZGQzNThiYzJlNWZhNzAxYzVkODZlYzNiMTAwYWIyNTBhN2M0N2NjOTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdkZmQ1Njk2MDY2Mjk2YzNjZmJjMmU4MzZjYzQ4MzQwOTRiMjQ0ZmQzN2QxZjU3ZGNiMzY1Y2QxMDViZmFkNTcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift#L63-L95",
+          "version": "repo-lines-v1:sha256:e71969161770b282030fb13020d96b6251889b42a00087f304a44902ab4bcf28:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4MmRhNjJmYTA3MDhhZDNlNjIyZWQ5NjM5NzA0OThmOWU5MjIwZTM5MDM4OGI2ZmJhYzNjYWRkODY4NjAyYmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlNmQ1NTk0NTFjZjRlMjBiZTBmNWRhNTg3YjIxOTg1ZDNkMTk3MTU1NGJkY2RhNDQ1ZDQwYTM2OGFhMjE3MWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_1659f76f8fe245c3bc795b5abc838484",
+      "statement": "A forwarding pool fans out only local and dynamic rules: it has one pool-level local listener per rule, registers those rules on healthy slots, assigns accepted flows to a least-loaded eligible slot with round-robin tie breaking, and keeps remote rules on the primary connection.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L300-L320",
+          "version": "repo-lines-v1:sha256:c5ff7b25ed0e5478c01268b524ae756a24681c88b2ece9323fbdfe0e6afa8d47:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MjM5YTMxMTJiZWYyNjMzYTY4Yjg4Nzk1OWViYWZmNmY1ZjY3ODI3NzJlYTA1YTdmNjU0MzBjNGFjZTllOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzMTUwOTViMTU2YWFiYjc0YmI0Y2YwYWU5OWE3MzJmNDc1YWMyNjNlOTViNmIwZDNlNWZiOTJhZGQ0MmJiNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVjMzU3MTRiNzUwYzc5ODRkNWM5ZWMyYzZiMGI5NDU0OTE5ZTRmZTU1YmJjZjNhN2RiNzgwODMwMjQzODgzNGUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L7-L8",
+          "version": "repo-lines-v1:sha256:8e4f205ed9c09fe1250cb2a138270fc71860926197c51765d91fc6137abb0ab4:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNzJkNjAxNzA1MTJmZjA3MjQxYmUyN2FmMGY5N2VmMmY3OTA4YzIzMDE2ZjQ5NWE3MGZhODM5ZTg3Yzg5ZDFmZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzAyMmM5NzY1MTU2ODVkZGNiNjgwNDQyZmJmNDNmYTIzZmM1ZmQxZTQ4MGE2OWZhMTIxMGUxZmZiN2MzN2MxZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWRkYjg1NzgwMGE1ZDcyNDdmZjIzYzVjZDVlNTJjNTQ3YmJmNGJjMzY1YjlhNzQyNjk5ZWUzM2RiYjI4OTJjMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTdjOWI2NDE0NzkwY2IxMTZmODBhMGI1N2RhZTJkOGEwNjk4NGVlOTAxZDA3YzkwZGU1ZGE1MmViYjgxNzFlMyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L94-L128",
+          "version": "repo-lines-v1:sha256:fda260ceb3874c81c24929acce6d886bbb96d87494cbe9e4865195bd2def34c4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhYzFmODg1ZTdlYjQ0ZjM2NjMyYmE4OTE1MmVlODcxYzVkMmQ5Y2NjNTIzYzVjYzk1N2ZiNjQ5Y2E4NmEwYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJjOWY5MzQ2MmRjNzQzMjdiOWMwZTQ5MDcxODlhYWE3NzdkOWUwOWM3NTRlM2NlNGRiZTIwM2VhZWQ1YzJlMWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMGUwNTVkMTUzZjhhNjU3MjM5ZjE0ODU5MGExMGMzNmI4MzQwZjhiZTBlZDI3MjdmOWVmMGZhNzU5YWYxYzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_950d5baadbb74c6da2060fde4a10539f",
+      "statement": "Forwarding auxiliary connections are filled with no more than four concurrent opens, install existing shared rules before publication, retry transient loss at 1/2/5/10/30-second delays, and do not automatically retry failures requiring interaction, trust, credentials, or cancellation.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L167-L249",
+          "version": "repo-lines-v1:sha256:c5dd7326f52fabc5c5932978402f481a8f4e495d6677058072cdc77b7d0c89ac:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NTE3MzFlYzZhYWEyMmQwNDk1MjczYjdlOWIyMmVlNjY4YjFhODgyZjAwZDRmNmY3MDQzZTkxNzNkZDcwM2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0ZGMzNTE2YjZmYjY4ODUxOGIyZmRiZDVmYWFhODJiNzk2NjE1MDNhYjI5NDAzNjU2NTViMDU0NzUzZTM0NzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjNjAzMzU2NjQ0NjJlNzliNWZmY2M3NWViMDJlM2YzYjIxMDk0MDlkZTU4YzU3MmQ1MmQ3ZDZlM2QyMjQ4OGMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L340-L350",
+          "version": "repo-lines-v1:sha256:f5d72fe1ee78b73df5b04fe4227feb201146437df69aca1e2f89cf41e21664bd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkOGUzZThjMzA0YTFkNWQwZWRkYjljODc5OTM1NjYzZDk2YTA1YmU0ZDFiZDI1OGJlM2NhMTNkMzU4MDcwNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2ODQwZTVjNGYzYzQ0ZmEzMmFkYTFiNmUzOGViYjZhNjE1Y2Y1MzYyYWZjZmFkZjQ0YzQ2NWZkMzM3ZTE5M2YifQ"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L178-L188",
+          "version": "repo-lines-v1:sha256:56713e56f469357822b196efb9b6de804322add53c1ad89069e014eb6613a312:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlkNjE0NDllMDA1N2QyYjkwOGNiZjYzMjdkZTU5OGFkY2I2MjQ2MGViMDE0ZjVkMTk5Y2E2YzhmY2IzYTEzYjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2NDRkNWMxNjQzOTAyNzFjMTU5MjM2OTEzMjNhNDUwMjA5YjZjYzFkNWJkZjE0NjE5Zjg2NzZiMzdmZmExZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyMGEyZjQzMjBiYTI3ZWZmOGZmYWJmZDlmYjBiYTE5MzA2ZDYwNDcyMzdhNWZhM2M5MzQ2MWIyOGI5NDAyYTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzOTI4NTI0NDkzZWE4Y2NjODg1OGE5OTA4ZjExYmUyMTVmYzgyZDJiNDYyNzJhY2Y1MDg4MmRhOTUwNDZhMDkifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2c0cb4fc712b4684a10e547171c98f0d",
+      "statement": "Forwarding recovery and auxiliary opens forbid interaction and retain only reusable identity/route references rather than temporary passwords, passphrases, or once-only trust; existing TCP streams are not migrated or replayed after worker loss.",
+      "evidence": [
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L142-L148",
+          "version": "repo-lines-v1:sha256:5d2590b43a7fd351b59ab40fb6dc194997d5c0b21667ba9c910db997c1264aba:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMzU5MWZlYzQzZWVmMjAwMjMyMDc0NzliODBkYzVjOGQyMGRjMWQ3MDlhN2MzNTkxOGU2ZDllNWRmYzEwNTJhNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODc2YzA0ZmIwYTE5OTE3ZTdiNGZkYmVhZDk1MGI0MzI4MmFhYzg3N2RlZGRkZWI0ZjBiZTRlNmU4MzkwZjNmZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDM2Mzk5NTYxODlkNDkxNjFjZGIwNWFiZTYwYWY3MjllMDhjYTFhNjc1NGU3NTBiMWNhZThiMzFjZTA0ZDQ0MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzAwZjM5OWNmMDRjYTQxMjg5N2QzMTNiMGNiMWYzZDFkZjUyMzEwNDgzOGY0ZWIwNjkyZDNhYWY3NGFiNThiMiJ9"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L181-L184",
+          "version": "repo-lines-v1:sha256:45c5c23aa7cbf4ef2495db69c312510d42bb74461e50a7fbf58f71adcb83be6b:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTVmZWIyZmE5MWI0YzEyNDJlYmI5ZGUxYzYzM2QwOWNkN2M1NGFmYWUyZWFkOGQ2MWNlYWIxZmIzODI0MDU4YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTU4MjkxNWQ4MTA2NDE2NzA3MGZkMmY2MTQ3NzAzNjA1NzgxZTdhYTFlMDc4NzlhYjAxYTM5YzY5MzRmZDcwYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNWJhMzM1ODQ2ZWEwMmYwNmRlZDcwZmM4NjVhNTI2N2JlNDdiYmY2MmRkM2ZmYTAxYmVhMDJkNzA3YmQ0MWIxMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjAzODMxZWI0MDQzZTg2Njk5MTQ3NzYyZTQ4Y2M1Njg3NDcwNzQxZmVlNWFjYjA2M2NiMjIzODBlOGFmOWU0MiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/PortForwardingReconnectTests.swift#L172-L202",
+          "version": "repo-lines-v1:sha256:d8649195a20f827780ac06abf7b9c8ea678f8473920d292f4bffe81e7b8d90ba:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNjYzUyYmEyMWEwNzkyNjBmOTAxZWE1MzdjYTEyYWEwMWJmMTNlZjc4ZjdmOWQyZGUxNWE3NWJlMjkzZDNmMWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgxZTljNDEzYzNkNDQ0ZGI2ZWI5Mzc4NjZmYjZmMjZlYjkzZTA0ZWQxZDI0YzgwMGIxMjhjYmVmZTc4OWQ4N2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiMTJjMTE3NGJjYmVkNDQ1OGNiNDE5NmQyZDJkMmUyZWVkNjI5ZjFlMTE5NjgwMWM2Mjg1NjNmZTI5YzAyOWEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/PortForwardingReconnectTests.swift#L98-L126",
+          "version": "repo-lines-v1:sha256:126ca2648f3109930cbb465d7a74bfc5658d320d430810327b912dc24d3cfa67:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjZGFlMzAyOTk2ZDRmOTVmMmEyNjM1MjE1NDI0Njc5YjIyMDgwNGJlOWFlNDI0N2YxOTJhOWY2OTQ2MjY0YjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU0NGJkNjE1ZDNhNTc5OTNkMTE2NWY1MWRhMmQxMjA4YzY2YzI2YTVjZDU1NzI5MjJjOWFkMTE5YTdlYTIxZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFkZDcyYTdjYjEzOTAyMmM5MWUxNjFkZjlmMmFjMjMwNTRmZWQ5OWU4MTRmMGZkOTcxYWQ2NjkwYzdhYjhkNzUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T00:31:10.149Z"
+  }
+}

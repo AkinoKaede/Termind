@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:4737dc09eb90c0420b880bf2fab094f9135192ed24ce438943b5251eea09c18b",
+  "claims": [
+    {
+      "id": "claim_981f16f030e9469588af705aa377161e",
+      "statement": "AgentKit owns the host-neutral agent loop, provider-facing runtime, approval handling, MCP and generic tool catalog, while Termind assembles host-specific SSH/SFTP tools, policy, persistence, and UI around it.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L201-L328",
+          "version": "repo-lines-v1:sha256:02c4383ae6885f3dea6168d146dfc1dfc12cfe9af93cd56bead4023f25f8bf25:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI2NTVlMmVkYTc3Yzc3ODBiNjg2ODJiMmZiYTExNGQ4YWE5YmIwOTBkMDYzN2ZmY2RmMzgwNWViODkzNjZlYWZkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1OTA5YTUzYTYxOGQwMjhlMWQzMDAwYzBhN2FiY2VlY2JlNWZiMzdmNGU1MTFlZmU0NjY0M2ZhZDZlNjY4NzJmIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI0YmE4NGEwNzc5OGYyNzk4NjliNDM1ZTdiZGU2MmZkYzg2ZDRhZjkzNzJkYTcyMmY5NWM2MjY5YTJhYjkwM2U3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyNGJkNzA2YzdkNTlkMjVmM2MxNTUzNDM5MDAxZmYyOWQ2ZGEzZjVlNjQ1YWIyZTE5ZjM2N2MwZmM3MDQ0MGU0In0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L42-L68",
+          "version": "repo-lines-v1:sha256:f00dc05b6b14f14e9071bb2c3725c64e133622f8e78ffc3e87a20fba2c5752af:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4YjBhZGQ3NDg1ZGY0OTA5MTkwNzI5ZGEzYTVkZWY5MjVkZmFkMTQ2YTJkMTA1MDk5YmFjZTJiYmJhM2ViMDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiZTBhODk2YTNjYjAzNmM0NDZiNDgyMTA3MDA4ZDZkOTZmNTdkNzA2MGRiNDk4ZjQ5YTVhNjhkNDI1ZWI4NGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlYzQ4ZTU4YzVlMTBhZWJkMDdkOGQ5OTljOWJhYjg0MDBlNWRlMDA3NzE4YWQwNzA5OTkxOGRjOGMxMDg3ZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L352-L359",
+          "version": "repo-lines-v1:sha256:e7282ed7e9f63e4e8f7e4283cdda6022103d7cf4ff661be316ecfc9adf285128:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTIzZDQxNmU1NjU1M2FiOWFiZjg0MjVkNjExMTI4MTQ4NjMxNDFlZmYzZTVhM2NhNDVlNDQzYzk1ZTAwNzA4MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmI4MjYxNjM5MWFlOGJhMWRkOTJmMzVmNTRjZmZiMDUzMDU0OWUzZjAwYjI5OTQwY2FiMTBlZGFmZmQ1ZWM5ZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDA0NjZmNDJmZTgxYzZkOGQ0ZGI3YTVjNGUzNmI2OGMyYmQ4MTIwYTgxNTU1NGQ0ZTNlOGVlYTQwNDg1Yjg2YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTI2ZWQ1ZDJhNDlmZDc4YzgwOGUxMmQ0ZGJmMzQzNzE3NDk5YWRhM2VkNTA1NWY5MmM0MGQ1OTc3NzNkODM0MCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_28c4b1e064e94a798fe0220965a3951e",
+      "statement": "A submitted Termind turn records the user prompt, freezes run context and tool availability, constructs a new AgentRuntime, and starts it through ConversationModel; the runtime persists a running snapshot before requesting the model and persists transcript snapshots around each tool-result round.",
+      "evidence": [
+        {
+          "resource": "repo://.build/verify-zh-hans/ios/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift#L161-L241",
+          "version": "repo-lines-v1:sha256:ca6910405404893e5f20a65facc669d891dab442eb019ea645c30141cb27798a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkNWE5M2M2ZjljMzg2NWRjZjkwOTliYWE0YWNiZTI3MjI4MmY2ZTFhZDE5OGU3MWQ5NGU5MzRlMjIzNzNiMTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkNGFlYTM3NDhjNzUxOGU3Zjk1MWMzNGM0MTQ5M2FlYjY4OTgxYTg1YzBiY2UwYTk5ZTZmOWY1MTQ2OGQ1NWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBhZWFjOGZkNTg4ZjE5OWZlNzFmOWJiMGY3Mjk1NDI5NGNiMmVlOWRkNzgyYzQzMDJlYTg4NWE3MTAzMDNjMTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI3ZTA4ZDYzNDU5ZjAxMzEzODQ4MDgxMGIwZmI3ZjBiYTJhYWY3MmM5MzhkZGViZDEyYzRhZWZiNTEyZDQxMzYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L285-L346",
+          "version": "repo-lines-v1:sha256:00d555bfa02408a1b7619b54dfce3ea70403a2f114b8332941de455674e9c86c:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4YjA1OGQwZDE5MTQ0NzUxZmFhNDYzZmM5OTk3NjQyYjQ0OGNjMDVhZmFjZmMxYzY3YTg5NjhhZTA4MTgzMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkNWYxMjI0YzZkNDJlNjVhZWMzNmY2ZGNiMGIxNzZjYWQwYmNiNTQzZTVmMzcwMzM4ZDhmNjNmOTRkYTBlYzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlYThlMTdlZjdhMzg5MDQ1NjczYTQyYWZkOGFlYWFiMjk5OTg3NGIwYjdmNmEyMGY1YzEyNDc2OTU2ZGI1NzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlYzAyYjAwYTc2Mjk0MTQ4MDZkMTIyMjc2OWI4MGUwZjZiMWM1MWZmYTQwYzU5YzExMjliMmY0MThjYTNlYzYifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L46-L95",
+          "version": "repo-lines-v1:sha256:2a4b30082e0de792ca959a899e5cdbe5073c3fed89b37a6767845f2231d7a6b8:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzNTMzM2MzZTA4M2NlNjk4MjRiZTAyZTMyZWFlMzcxNjc0ZDhmOGZhZDMyYzNlOGU1MDViMmJmNTE0M2VmMTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgzYWVlMmNjZDYwMjA1YzRmNTY0NWM0NjE3MzZlZTZmYjkyZTU1ZGQzZjE2MmQ2NGQ0Y2UzOGIwY2I1NjExZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiNWI5MWZmNzRmYmZjZWY0OGZjOTZhMzNmMGFlNzk2NzkzODE3N2U1YTJlN2Q1OWE1YTg0MWJiZDU5OTY0NWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_27e003cf2fdc46a69d1b04b9b366fd67",
+      "statement": "ConversationModel keeps a display projection separate from the authoritative transcript because replaying display messages would lose tool calls and results; it owns the active runtime and consumes its ordered event stream.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L1855-L1887",
+          "version": "repo-lines-v1:sha256:fe3484016f99762359b65be4ea1f12a76f0bcd358bb9df3739219263b7201002:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk4MzU3NDc3MTIzNGY2N2ExYzRjOWU1MDEyZjcwMzUxYTUxNWI4ZmVmMTcwYTRkYjQyM2M1YmFhNDQxOTJkNzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjAxMWE4MTg2YjMyNGI2MmY1NzZkYjA1MDc5YWJlYzNlYjU3YjU0YmVmYjgxMzc4NTgyZmY1ODg1NGUwZGFiM2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjYjFmYTljNzA3NDFlNzgzNWY2ZGY3YWY1NmQzYWUyNjUyYmNiMjYzZTFlOTFkZjE5MjYyNmM2ZWU2MWE0ODAifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L785-L803",
+          "version": "repo-lines-v1:sha256:fbfbc47722c6c98fb8ef1707713ef10376782045b660ce93864fef69a4b22c85:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljZjIxYjFiNzJjNDQxMzg5ZmYyMzE1NjcxOTNiOTgyNWY3ZjQ0YWY1MTI4YmVjNjlkNjVjNmUzOGI5NWQ0YTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlZDJhZGU3YmY0OGRkZWUwNGVjOWIxNTIxMjZhODBkNDBlYmRjYjAyNTc3MTE1ZDg1OTY2NDAwMjI1YzBkNWMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdhZjhmZjY1NDM5MTMxODVjM2UyNWNhNWQ5M2U3NjhlY2NjZTI4ZmRmNzZmN2Q1NTA2ZjRkMmViNzJiMzYwMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAyNTczNGI5ZTA2ZjkwMGU3ZWY0NTY2ZWYzMjQzZmM2OWYyYTc1MTY4ZDE4OWFjNDJkNjJlM2Y5NDg4OTM5NmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_2faba60540ed41f4bfdf9a0f8db0292a",
+      "statement": "Tool calls are schema-validated before approval and execution; Deny always refuses, Approve needs no further approval, and Ask follows permission mode, while full access does not bypass trust, secret, schema, sandbox, or capability boundaries.",
+      "evidence": [
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L357-L367",
+          "version": "repo-lines-v1:sha256:9a3c145d5b25224961ed7684ee17930293e0e6e7ac184ebdebc279a8fea0cbde:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjNTVmY2M1ODczYTllYzRiYTM0OTZkNjMwNTljYWFjY2ZhZjk5YmI5Mzc3NDRhYzQ0ZmI4M2ZlZTkzZjg1ZjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4N2IyM2Q3NDhmNjVkZWM5OWUwNzMzMTYyMjRkNzI3MzZhN2NjZDBlMzA0YTlhYzU2ZjVjY2E4MmMxMWE5ZTAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyODIyNzk5ZmMxZmNmNjM1ZjA1YzE0ODQxYjdlMGM3MTkwMDA4Y2IyMDMxMmE5OGJiMDFiZmMyOWRmYTI5YTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmN2Q4ZDE0YjliNTg5ZTFjZGY3MWExNDE2M2YwODc4MDViZDY4ZWE4YTBhZGFkMzAwNWY5ZTYxNzdmNDFjM2IifQ"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L382-L386",
+          "version": "repo-lines-v1:sha256:4d2524750797dacd175df785a959408d1ee9933e09b75656742cd40194a5fbfd:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTI2M2YyNTQ0MTI2YmJhYjhmNGM2MTkyZTRiNzBmOTQwYWNkYWVkYWE4MWIwNzI1OGI4MjkzMmE1NmU2YTA4MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDUzMDcxOWQzYWNjMmIxMTY3NGRjZjM0NWE0ZDJhYjhiNDIzNzNiNDQ4MThmMGE1ZDFjNGNmYTIzYjE1MTNkNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNkNzk0NjE2ZDViMWEzM2JhNTkyNjZhYTgyZjFlMDFmMzY1YzEwNWI2Mzg4NDc5YjM2NjE2Yjk3ZWEzMmJlOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDA0MjJjOWRhMTZmZTM3NjVhYWM4YWVkYzcyODEwZDY5YTdmNGQwNThiYWU4ZWZkOGYwMjQ2NGU2MzJjMDFjOCJ9"
+        },
+        {
+          "resource": "repo://TFMTests/AgentRuntimeTests.swift#L484-L526",
+          "version": "repo-lines-v1:sha256:f6aad3e399f570d7b20c1aa11514a6e10605d81146d31bc693b93629cea68458:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjNTliMmQ4ZTQzNGRmMzg1OWNlNDViOWYxMmE1Mzc0MTEzYmViNTUxYmU2MzE5YTE1YTBkN2FjMDI5MzY4ODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjMWI1MTA4ZGIxMmVhZmJiZWVmNjBmYTc5MTZhYzFlMTcwM2I2M2Y2MWFiZGYwOThjZWQ2NjYxNGEwZTRkZTIifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentRuntimeTests.swift#L603-L635",
+          "version": "repo-lines-v1:sha256:0b1ffc4ad64ac8e02ce7ee47e31ca3bfb322270c9e2e179ae8418ec46c77d6a3:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE4NDkxZjYxODRmOTViNzMwNWQxOTY0YTMwOWFkNGRjYjM1NzM3Y2JlODAzMmUwN2UwMmRhMDg1MGZmMTFlODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0ZWYyNTM5MGU5MTkzNmE0NzM0MTQ4MjY0ZjMzODI1MDY3NDEzNWZlNDM0OWFhNmM2Mjc4ZDg1ODI2ZGU0YzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_0a5108380b2e4c28854a87655a6662ee",
+      "statement": "Guardian review is used only for approve-for-me runs when a configured reviewer credential is available; unavailable, timed-out, malformed, or otherwise failed review denies execution rather than allowing it.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L241-L281",
+          "version": "repo-lines-v1:sha256:7898f2adaa92869c8bd82511e787865dac90da5721cc4fc9ab2721c4f3b0044b:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0ZDFmYTZhZWEyMmE1YzExY2JkODNlN2Q5NmZlZTQxZmRiYWFhNGZkMDZkODNhYTMyYTk4N2JmNDFhZmY4NTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRjNGM2YzQwNjcxOGIzOWFjYzE3Zjk5ZGE2NDhjZWJkNmRmODZiZWUwMmFkZjAzNDUxZTQ5YTRkZDExYmIwZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVlYThlMTdlZjdhMzg5MDQ1NjczYTQyYWZkOGFlYWFiMjk5OTg3NGIwYjdmNmEyMGY1YzEyNDc2OTU2ZGI1NzUifQ"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L364-L367",
+          "version": "repo-lines-v1:sha256:234c31b4c01f1ea8b45e214c7254b23061d9b1d859a27692a4ac7ed3c7bec5d2:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODlhOTA2ZmNhNmY3ODU0ODExYzVjOGUxNzM0ZTU0OTU2ZDYzZTU1YWU5MTExMTk1MjA0MmNjM2MzODg4YzJiZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTg3YjIzZDc0OGY2NWRlYzk5ZTA3MzMxNjIyNGQ3MjczNmE3Y2NkMGUzMDRhOWFjNTZmNWNjYTgyYzExYTllMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDU2ODBkZTZlNjMwNWVmYzY5ODYxYTM1YjA3MmM4ZGQzMGU0MjUwNzRjZWE1ZThlMTY4MjNjZjNlMmM5MTRjMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWY3ZDhkMTRiOWI1ODllMWNkZjcxYTE0MTYzZjA4NzgwNWJkNjhlYThhMGFkYWQzMDA1ZjllNjE3N2Y0MWMzYiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/AgentRuntimeTests.swift#L709-L774",
+          "version": "repo-lines-v1:sha256:68040a200b403f6850a95c3bf6764761a6ff094e17a221d56c845af637107b43:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3MjRlYjJkMjAxZjZiYTlhMzY5ZmU0NWZkZDhjMWNhOWU3NTU5MTE5M2QwYmNlMzIwOWQ5YTI1NmUyMWFlZmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE2YTAwMzI5YzNiMzJiOWYyZTJhZjIwYjM2NzBhNzUxZTY4NDVmZTE4MTdlMzI3MTljMjM5NDM2YWQ4ODQyMzEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_41df25079f6c45a7b41a4183d03d0814",
+      "statement": "Secret handles are single-use and bound to run, tool, host, and purpose; secret values and handles are removed from replay and durable history rather than exposed to the model, review, events, logs, SwiftData, or Hermes memory.",
+      "evidence": [
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L377-L380",
+          "version": "repo-lines-v1:sha256:06a1989f108ec2eedbc903780412293b02779e094cce12db2dcf594923c9d46e:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDMzYmM0MTRhNDQwOWRkMjg0ZDZlNmQ3NmQzNzE1ZTRmOTNmYTcwNTg3ZDAzOGIyZGQwYmU3NDIxNDM2ZDVlOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTM0ZmE0MmE0YWYxMTFlNmFlMGMzOGY0MTdlMGVkYjRkMGUwNTliZjg0NzcxMmY3M2U5MTczMjRlY2I5OGU5NCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjk0MDQzNmExMzhiZTg0NTg4OTRhNzk3MTM4ZDEwOWE5NjZlOTE2YzRmZDI4ZTYwZDUwMzdhZmFmYmI2MzkyNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTljOTNmMWNlYzBlNzg4YWE2OGNlZDQ1OTY0ZTEwZDM0ZDIzMDgzNDczZmJiNzY2NmNlNWU4NWE3YmJlMmFjYSJ9"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L404-L407",
+          "version": "repo-lines-v1:sha256:c7f882f44127f116fb303fa85756715ea626fcb71c4efa063946d06f9d488515:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMjI2M2FiMGQ4YjBkZWE3MWM5MGY2NGFkZjRlNTc4NjhjOTAyZTQ0ZjVmNDcwOGNlNjQzNmYzZGVhOTFmYzQ0ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiY2ZiNjUzNWIzZGFkZTViMTJiY2VkOTE0MzkwNzZiNTczOWMyMDFmODJjYTAwNjA3OTM2Y2JhMzU1MjZkZTcyNSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzM2ZGVhOTlkNGQ4ODEzZWY4MGY1NzQ1YWU2ODYxNWQ4NDI5ZDU2NTAwMmNiMzI3NGYzZGM5MTAxYzlkNDhkZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWRhYWUxN2IwZjYyNmQ0OTFmNWVmNmRjYmUwM2ZkMjFkM2FkNjFlNDRjNjZiNDA1ZmI4Mzk3MjEyZjRjMzY5OCJ9"
+        },
+        {
+          "resource": "repo://TFMTests/AgentPersistenceTests.swift#L481-L529",
+          "version": "repo-lines-v1:sha256:2bd4b0bb8256abe8c53fd2c7fe378dd0fbf43ca06069811eb2d5e823a224c3bf:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM1M2RhOTQ5ZTJkYmNhNTRmZDI0ZGRlYWU3MTc2ZGUwMjUwNDFkZjk2MWY3NjUwOGU3ZjhkZjViZDJiN2ViOTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlZDU1OTE5YmQ3NmJhOGUzNzVjNjkzYmUxYTAxZWJkZjE4YTE0NGI4MGE4ZTMxMmYxMmM1ZmVlZDQ4N2FkNDgifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentRuntimeTests.swift#L940-L961",
+          "version": "repo-lines-v1:sha256:61466ccfec9e1aa28bc3a4d34374e90f1d3c48f918d371d24ad1b7b45c566718:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZiY2EwYWI5MjU1ZjVlNDA5MGYzNmMzODg1NzJjNDhiNzhkM2JkODFhYTdjMTNkMTc4ODE3Y2Y4MTM4MDA3OWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_10f2f03c85434fd3b22cbe8e51895b0c",
+      "statement": "Steering messages are queued while a run is active and only become transcript history at the next model boundary; cancellation stops the runtime, cancels its task, discards run secrets, and returns undeliverable steering to the composer.",
+      "evidence": [
+        {
+          "resource": "repo://.build/verify-zh-hans/ios/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift#L135-L159",
+          "version": "repo-lines-v1:sha256:1e7ee3251e0671722c1fa5ceddf8acaf9c387c1214e7d87e25b3061dc64e2dbd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4N2Q1NGYyZWZiNDBlN2ZjNDdkYmUzNjJmOTgzNzNmYzJkZmI3NDM3Yzc1NTlkMzEzYWFmNzAyMWZjMDkyNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFhYmQ3YjdjN2RkYTI0MTcyNTJhMDY3ZmY2YjU5NWQyMDllNGI5OTc1ZGRhYmJkODc2M2ZkYzFkOWQyMDQ0ZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEyZmQ2NTFmYjQ2OWY4YjVmMTQ0NjRiY2M2ZGMwZDZhYjJkZTM1Njg4MDhhZDcyNzYxYjhiMGNlNTFlNDZjNjgifQ"
+        },
+        {
+          "resource": "repo://.build/verify-zh-hans/ios/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift#L217-L252",
+          "version": "repo-lines-v1:sha256:33f1041e47578bf10577d59d8e680d52acc08b9618c31112ee86070cda232bb9:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0OTgzZGE0OWNjMWViMzBkM2MzODMzNjMzM2I4NmM0ODc0ZmEwNDA2YWE3OTIxNDI3ZTU5YzgwN2Y3OWI2NDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyNmU0MzY4ZjIxZjg4OTFjZWQyNGNmYWY3Y2EzYmY5OTg1YjNmNDY5ZDRhNjgyNTZlMTYwOWQ2NTZmMWE3OWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRlOWQ2MDRlNmM4MjFhMGNkZDdjNjhjMGQ5MjM2ZGYzNGQzYWY1NjM5ZDI2YzAxNDRiMDQ5MDQzZTgxMjBmZWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3YzhmMzI1N2Q0YmMwNGQ2ZjViYjFjYmRiY2FiN2QwNmQyMTA1MzJjMDhkZTExM2MyNzJmZDdjZjkzYmZlNzQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/ConversationModel.swift#L1909-L1987",
+          "version": "repo-lines-v1:sha256:09a1dfd058b41e37f5cc8489c4536b2c966c4c0d75a6d766e18567e4b0934c92:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmZmM0MzNjZDM1OTM3MTAxZjgyZTM2MzI0MGZiMDkzMWJlMjZkYTcwYjg1MjRlMDEwYjVjMzlkNzdkNWYyNjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkYjZjMmYzYTBiZWM4ZmU1ZTRlYjY3M2NlODAwMmMwODM0YWJiYTU1ZDM2MjhkOTMzNzUxYzA3MmUwYTc4NGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmMThmMGI1OGIyNjAwNzUwYzBkMjdlZDlmMDA2ZGRhNjZiMjBmYWM4NDg1NzFlYTVlODUwOWFlZDQ3NWJmNjkifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentRuntimeTests.swift#L428-L457",
+          "version": "repo-lines-v1:sha256:5d7811288d8d6d02c029b2d582688bcaf07e08796cd196f6f69823d757672b3c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjYTZkN2QzNTY5ZTQwMDNkM2VkZTM4M2Y1NGZiMzM4ZTM3OTU1NmZmNGFlYTQ5NDNlNDIwMGFmZWJhMjM5MWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlZTI3YzAxZDY3NDFjMWI2Y2YzNmJhMTM4YTk1NWU1YTA1MjhhZGRhMzQwOTNjNDEwNGRjNDE5MDUxNDFhMmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxM2RlZDMwMDA2NTNlYzc5ZDMxNGQwOTIwZmE2NTFiY2M3OWY1ZmFiYjcwMTkyN2ZiODBjYjAxZTcyMWVjYzQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b70a11449d9f407fbc27c8f1e86538ef",
+      "statement": "Each tool-capable conversation receives a persistent, per-conversation scratch workspace that is isolated from other conversations; scratch paths reject escape and symlink routes, and scratch push rechecks the approved file digest before writing remotely.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L110-L146",
+          "version": "repo-lines-v1:sha256:723c9a39e14adf5b96aa808a16247ea51402035210e27a93f9c060dfaacb30b2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4OTY1YThjNWYyYTUzODM0MjNkMzFiZTg2MmNjNzQzZDQyMzUyOTFjZjJjNzg1ZGIxM2E1OTUzZGIwNzk3YWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxYjdiM2E4OGQ2M2EzODFiMTI4Y2ZlMGRiZTVlOTI1YTdlMjc2ZDM5MjViMDQxYzAxMmRmYzA0NjUxNzA4M2UifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L21-L30",
+          "version": "repo-lines-v1:sha256:04842a05cffa9e911592d2e2250c8bf75056f1e25dac5521c3cfeff2896a717e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4ZTYxNjZjMjIxYzk4YzlkMzQzYjNmZGY5MzMyMTJmYjVmNjI0M2MxYjQyNmY0ZWVkNmE4YmUzMjkyODE1NzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU3YTU1ZTg4MmYyNWExMjllYmFkNDM0MzRmZTUyZmI3ZmE0ZjVlZTkzMmIxMmM4NjM4OTY2ZGE2Y2JkMzBmN2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ1NjFlZGZiNWRiZjRkOGYwOWM1MDFiMjBmOWZkNmI0MjU4NTZlZWYxMzNlNjg5MzMzMWMyMTNmNDAxNmVhOWUifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentScratchTests.swift#L19-L83",
+          "version": "repo-lines-v1:sha256:5ee273606eba6db5b7fdcd82998ef11f7bb14260fd6abcb71940819f12913847:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiOGJmM2I0NTg2NGRlZjJjMzU3N2VkY2QxODlkMTBkMzYzODUzYjFiZjkyMjU3ZmIxZTk4NzQ3ZDdmZDFlZDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiZmVjYjVlYzlmZWIyNmEyOWE2MWRlODk0YTk3ODZkOTZiMzBiNzQzMDMzZTQ5MTBlMGRmNjBhMDkyYzY2MGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_08d587b15e9c4cab863934a64d8a1575",
+      "statement": "SwiftData persistence stores conversation/run history and durable tool lifecycle records, deduplicates replayed messages by message ID, marks nonterminal runs interrupted on repository initialization, and restores recorded tool results to repair otherwise unanswered historical calls.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift#L11-L14",
+          "version": "repo-lines-v1:sha256:d63fa5240e197b14ca235275b415affcb5df50fd36b04407f3853864de0eec2f:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2JlNzJmMzczMTQyYTJhMDE4M2U5YjUyYzE4OTMxZDkwNTI5ZWFjOGQwZmJhY2FlMmU3Njc1MTZjMTVlZmIzYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjZlYzhlMjVhMTk4MGQ0YmVmNDRmYzk1Y2JlYTAzNmRiZjM2ODQ2MWU1YTU3NmRhNjA2MTNhYzFhYmFjODk1MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGYzMzJlODFkY2ZiZjQyZmQyMjU3NDk1OWM2YjdjMTAxNzJjOWMwOWUwOTY3MjczMmUxNDM5Mzg1ZmNkZDNmZiJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift#L47-L75",
+          "version": "repo-lines-v1:sha256:3e3cf6dd4cb38f70d589568031e9bdf159967aaa4a80c86fe225a88a4414f107:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJlOGZlM2YzMDFmYjI4M2EzNDNmNWNhZWVkYWZkMTAzMGY0OTQ5YWE4NDQ5MjFiNzUxZDI0NWU0MDViOWMwMWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3ZmIwOGJmYjIyNTk4ZmJiOWM0NTgyNjRmM2MxYzZiMDA2MTY4YjY5MTY2MmJjNTBhZTVjYzVlMjg2ZDU2ZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc4OTZhNDc4MzIxYTFmMGQwOTUyMDliMjkyMTBmNmFkZmMyMmQ3YjQ2ZjMxYzMzODhlNGQzMjk5OWRhMTFjNzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkwODY1Mjc5OWI1MWU3OWUxYTg3OTZlZDMzNDM5ZDVmNTEwNTYzYjA5ODY1ZDgyOGJjYTFiZDMwYTY3MThmYmEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift#L550-L605",
+          "version": "repo-lines-v1:sha256:6aa3a9f8b2bd8335e17c386f68b91564551f30ee25e239ae960ae032ef4f90fd:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzNzE0ODNiZmQ5OGM1MGM5NDg5ODlmOWEwNTJjMzI1MGUzNzMyYTczYTc2MGY1ZDJhN2I2MjFhNTJhNmUzYjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiYjUzMTU2YTNkYjA5MDdmY2I4NDEwNjJjNjc5NjdiMzMwY2I5NTk1ZjViNWEzM2I4ZWVmNTZjZTVlMzczZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMyZTEzMDIxNmFiMTA4MGE5ZWZiY2Q1NGIzMDdiNDk0ODU2YTUzMTYxNDc2Y2Y4ZWNjZGM0YTYxYzk3NWVlMTIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift#L671-L683",
+          "version": "repo-lines-v1:sha256:f142043bb1b01de9a0458b3995239712303b9ee5f7cd1bc4531d3ee6da2913f1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ5NGQ4ZDkyN2FkMTU0ZTM2ZmFhZjZiMmI2MjMxZDllN2Q2MzRiY2IzZTliMjI2MzA4ZmJhMGVkOWQ3MDY0NjYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dc0fa388e5284bcabd1c6e9ba00d23aa",
+      "statement": "Compaction persists a record before the live conversation applies it and replaces only the model-facing projection with a synthetic summary; the original display history remains available after restore.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L473-L482",
+          "version": "repo-lines-v1:sha256:7c9756ce11f5a802355fdf037aff24ef90f81e71df715249370eef766c0a4ab0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2MTZmMWZiZWQwMTYzZTEyMTU4OGUxOTZkMjA3Zjk1ZWYwNTFmMGZiMDEwN2YyNDI4OTA1MzAyOTEyYTVhNmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVhZjdjMDM3Nzg0ZTJjNDQ1NmE3Y2MwZWUwNTFiZGU2ZjA0YjZjNmU0OGJiYzA1Y2Y1OWQ0Y2Q5NGE0OGI0NjEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentPersistenceTests.swift#L961-L1010",
+          "version": "repo-lines-v1:sha256:309eb4d5282b146727667728b061d8a1bf59db4633971690ac54823192c7dd34:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MzRkODNjMTFmMDlhYWJjODY3YTUxODMyZTI4MmE0ZGVlMjEzMmZhOGY5Mjc4MWMxNWU5ZGM4MzkxMTcyMTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJhZjRjZmQyZjMzYTRkZmMwMDJmZmE2MWVkMDg2ZWU0YWIzNWU3NjA1YTZhNGFlZmM5YTc5YTFkZTMyYzIwYzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5adad6caaaf1482baf6e5d4afcebc008",
+      "statement": "Skills are app-managed packages whose catalog is fixed per run; only SKILL.md is procedural instruction, and a skill does not authorize commands, writes, or transfers outside the normal approval policy.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L218-L234",
+          "version": "repo-lines-v1:sha256:5c7b2d3892cdad34fcb9cb2996fde4ff824188998dc264d7b3600bf156a37ad9:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdmMDg3ZmZlODE0NTk2NGYwZWIwOTlhM2FiMzQxOTRjMzlkM2E5YTY2YTM2NWJhYTQ3OWQ0OGIyOWJhY2ZiNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyZGFjYzM0NjMzZGIxZjRlY2ZjYjYzOGI5OTNjYWY1ZWE1MGU3ZThmZTk5MTFjNjBmODBhZjIxNWM4ODk5ZjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhkZjJlZWYyYmU0YTM1MGU3ZjI3MmVmZjExNDc2MWJlM2I1Y2MyYzMyYmI1NzllZTc3NjIyY2JkN2MxOWIxNDYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEwNjZiMzQxNmZhZmQ5NWY2NjY2OTQ5MzJmMjc5ZmVjNWM4ZTliODY4N2I0NDk2NGM4MTU4Y2UzZDJmYWYxZjcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/TermindAgentPolicy.swift#L46-L49",
+          "version": "repo-lines-v1:sha256:81359ab87f7ba9a790818b6e8d31c3a5fbc50e1fb4e4b2cead9f1a7ca42567cb:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTZiY2U2NDRlZDg2MDdlNTRjMWExZjU1Njk3M2VkZGFkY2ZiNWE4NGIxYWE4MTRhNDMyYmYyNGU2ZWZjMGMxMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTNjODMxYmFjNTNlN2E1NDdiNjZlYTk0YzNlMjJkYjY4ODMwMWYzYjc1NTkzYTBjZDA5ZTNjNmEyNzBhMDg0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZjM0MzUyNGVhMWRhYjc3YzE0YjM5MGJmM2I3OTE2MmMwOGZjNTg3Yjc2OGRkMDQ1ZTQxYmY0MjI1NTdjMmEyYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZDQ2MzU1NzZhMjE4ODFiOGFiZjIyYmY2ODJhOGEyNDUyY2NjMmJjZGE5YWFmYTY5ZmFlMDNmZGI4Y2YzY2JmMSJ9"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L390-L396",
+          "version": "repo-lines-v1:sha256:a6ed42b816901606dd7a4cd12a5257d7337a093df69a89b023c11e7f79409d20:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2EwNzY4YTZhZjk3ZjliZDg2NzQ1MDBlZDdiMTBhNDZiODZiODc2MjQ2NTZhMTU0Y2VkYTU1NmE2YzQ5Njc5OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNzk2Mzk0NWMyZjA3NzdiMjM5ODY4MjgzYjFhOGE4NDM2NWFiZGViMTFhN2U2NjQ5MTE2YjMzZTYxMzU1Yjk4MyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDA0MjJjOWRhMTZmZTM3NjVhYWM4YWVkYzcyODEwZDY5YTdmNGQwNThiYWU4ZWZkOGYwMjQ2NGU2MzJjMDFjOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjk3ZDI1MDA4MmUyZTE4NTQ0Njk1NGVkODFlNGQ1YmRlOGU0MWNmZWZhNGQzYmQ0MWNlMmUzY2RmMDhhNzg4OCJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3296a53f3da64fa9bfda12f9f8ae35eb",
+      "statement": "Hermes memory is device-local and disabled by default; the GRDB store opens lazily and separately stores memory state, per-conversation snapshots, review checkpoints, and an FTS5-backed redacted history index, while SwiftData remains the conversation source.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift#L123-L224",
+          "version": "repo-lines-v1:sha256:4db4ea2d811f10d0fb1345147f521e5a493179ad7661195ed552ca2d61cc58f0:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiNGNhOWU1NTU5YmY4NzhmYTExNTgzNzMwNDE0Nzg0YzFmMDk1NTY0ZmRmNzA2MDI2MzY3MjliYWQ2YjMwMDA2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyYjI5OThkODI0ZTVjZDc3MjNiZWY5MWI5MWE2MDE0YzEwMzMzMWNjMTY5M2Q0NDQyYThmMzFlOGZjOTEzNTYwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiZTQ4YWE5NDM3ZTU2OWExZGIwMWFiOGY5ODQ0YjM5MGE0MDQwOTkyMTdiMmQyMThhNTRhNDM0NmRiOTk1NjQwIn0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift#L6-L45",
+          "version": "repo-lines-v1:sha256:8365553c7428472ce048f7d8c2fe2b1bed26640a0e82a3b015acbeb3d131ee0a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2ZTgzNWJiMzkzNjdhODBkMDdiMDkxZDJmZGIwODFhZGM0YThkYTg0NmQ4MjhjYjM1YzUzY2IwYzUyMjc4MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiNTk0OGZjNGE2MTllOTBjZDM5Yzk1YzdmNjdlZGJhOWU2OTdhZGJlN2YxNmFmMjY5NmM1ZGRlNDMzMTgyODciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZWFjYTU1MGI4N2Y4MTM4MGM0NDM2MDc1YTA3MDQ0NGJkMTRhYWQ4MzMwNTZmNjE0MmYyMDdiNzlhNjdkMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5ODg4MmQ2NWE4M2YwNjEyNzFiMTQ0MmNjMWRhOTIzNzZlM2E5MDg5NzczZjMyNzg5ODQ2NTFmNGZmZjQzNDQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift#L94-L105",
+          "version": "repo-lines-v1:sha256:7062dea6d750d5f5844cdd575659ace68dc528cbe06fd4c3500d4c6a4bd7db2d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyNDE1ZGFjYWRjY2RiMTk4ZDJkYmQ4OTI0NDA2Zjc2ZjE5NTFmNDBkNTYzNGVmNDRjNDYyMTdhNTQ5MmMwNTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExNGJhMjZkMGQ0OWIyMzAyZjU5YmRhY2U4Y2IzNDE5N2YxZTI1YmZiYTZiMzdkOTVmYjAxMjNjNjU1NDg4NmEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlYmUzM2VkMWNmMmIyN2FiY2ViMTU1MjJiMGE2ZThhM2M1NTZmZTA5NTYxOTY1NWIwNmU2NjJmZDYxOGRlYWEifQ"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L397-L403",
+          "version": "repo-lines-v1:sha256:57177032693dd6d4998dd53cd596ca2628830d3efd218083d4ff263ba52aff21:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTMxZDZiMDlmZmMzNjA2NWYyZjc3ZTA3MTk2MjdmNjU4MDhkZDYwZDgwOGQxZGMzMTdkMmZhY2UwNDZjNTExNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGQ1YzNjNjdlMDQxNTIyZTFjMGM0ZWE2MzU4YThlOWU4ZmMwYjljY2QwNDBhYzA3M2E3NGYxMjVmZTc0NzQzOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDAwNTYzZTNmZjk2NTdlNzgxMjBlZDBmZjZlYzA5NGQ0ZGQ5MTkzNjgxMDI2NGZiMDllODkzN2NkZDZkZmEwNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmU2ZDNmZjI3MWU2YzZjZTZmNzRhNjViNmI0YTJjYzgzMTFiNTlhZWZmNTA5NDIzMDA5NTIxZGExNzRiMTU1YiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_a3ad24a30cc74874af7e95eba686afbc",
+      "statement": "Disabling Hermes memory invalidates contexts and cancels indexing/reviews while retaining storage, whereas destroy persists disabled state, joins work, and removes the owned database directory; stale accesses are rejected by generation checks.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift#L232-L255",
+          "version": "repo-lines-v1:sha256:1f1936e4e3cbc44909d06cc25a5f18b6c26588b7ff8596107fe54c2e1c9e1a5c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlNzEwNmQ4YmYxZmZiMTA5ZGJhZjNlNzU3ZDYyMzA0NGEyYTE4YTZhODg4ZmU1YzllZGFiNjFjMWQ1NjBkMjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjhjYThiNmYwOTgwNzYzZjgwY2I3Mjk4ODliYzM3MTdlMTQ1MjBiOTkxZGVkODdhZDNhNWZmOGUxY2FmYTJjMzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2MjgxMjhkMDk1ODYwMmUyNTRkNmFlNmVhOTBjZjM0NzA0OWYzNjdhMDE3MDEwMjJmNTI4ZGRhNDkzMDU5OTgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift#L52-L76",
+          "version": "repo-lines-v1:sha256:63ceffb701cb214698f1c57e2105b4dc02d7d20d26ec8b71c4eb50058a6e8aed:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwYzVkNTIyNmFhZThmY2Y0MzhjMzM0OTQ3MWY0M2JlYWU3ZjkzYjAwMTlmOWY3MTIxOWQyMzhhNTY3MWU0YWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmMjE1Y2QxMWU4MjNlM2M0M2IxYWY0OGI2MDBmNDQ1ZTY5MDA4OTZmNmU1MmFlN2U1ZGI3M2FmYjFkNjMwMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU5NzJkNjIzZGZjOTFjMGU2YzQ4MDU1YzY3NzhlYThmNWUxZGQxOTYyZGNlYmY3YjY1NDQ4M2NlZGUzZGY0OGEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift#L98-L140",
+          "version": "repo-lines-v1:sha256:63a4e0832eb58af19f1014b010116530bd83aa6cfe5c62c9e3643d154d77383e:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk5MmZkOWM4MzE1NGM3OTBiNGI3MDUyY2ViZTk3ZWI5ZjVjZjYyNjZhOGFkNGY2ZWMyOGY4NjY5MjU4NWNhMmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MmY5Njk1Yzc0NjdjNzQ3NzNjOWNlN2ZjNDI5YzVkMGQwZTQ4N2YzYzUxZDE1ZDY2NjhhM2QyNDA3MmJiOTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFiYzgyYTk3NzE1YzQ3N2I3MzM1MWJkN2M4NGVkYWRjNTdmMTlhM2QzOTIyYjE2NjRjZTlmOGZlNTdkNzU3ODIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQyNWZmZTlhNjZiY2Q1Y2QwNWE0NDhhYjFlYmQ1NmVjMTJkNTg1ZjYyN2RhOGM5YmI2ZjYxYTVhNWUzOWU2YzcifQ"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L401-L403",
+          "version": "repo-lines-v1:sha256:736dea99d4d8813ef80f5745ae68615d8429d565002cb3274f3dc9101c9d48df:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjZhOGE3ZDg2Y2EyYzljN2VlZDUxZGNhNjY0MTQ4Njg0OTlkZDkzYzVjYTVmMTkyOTgxNmFkNWU0NDk2YWI0NCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGQ1YzNjNjdlMDQxNTIyZTFjMGM0ZWE2MzU4YThlOWU4ZmMwYjljY2QwNDBhYzA3M2E3NGYxMjVmZTc0NzQzOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzFiZTc4NWM0YTVhM2UzODcwZmFjODNiMjFkMjNiNTEyZDVmZDA5MWU2Zjk0YzgxNGM5OWUyOTM0YTMyYzM0ZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYmU2ZDNmZjI3MWU2YzZjZTZmNzRhNjViNmI0YTJjYzgzMTFiNTlhZWZmNTA5NDIzMDA5NTIxZGExNzRiMTU1YiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T00:31:10.149Z"
+  }
+}

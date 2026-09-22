@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:85333b33c78f0f8066210d2b0b93e64fd7818b59990150b887a5d2d089d893f8",
+  "claims": [
+    {
+      "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
+      "statement": "Termind separates Swift Testing by ownership: FrameworkTests protects portable shared-framework contracts, TFMTests covers macOS composition/native interaction/remote-session behavior, and TFITests covers mobile composition, scene behavior, and mobile presentation.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L40-L44",
+          "version": "repo-lines-v1:sha256:e338764617da1424b56fb4b3d8eeb6b688285fa246721671afbd893a11c72e92:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L5-L14",
+          "version": "repo-lines-v1:sha256:4d2ece4bd3cc980ac07ceebbe3c6f012cf2a17d5e087150df1ad69e91ea5b976:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYzOGJkODA4OGNkOThjMmEyYmY3Y2VlMDI4NjY1NDk0ZTkwNDBiNGJiMzUwYWIzMGNlYzk4ZjJmZjQ5ZDI1MjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmNGQ3NzU3NjdlNzBiMGI3ZDE3YjNhNTkzNmM2ZDY2NDc3YmE3NzZlMTNmYzM5NmEyOGMxODY5MzQyMjQwODIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkNWQ5OGQzMjUyMTczOThhMmMwODM4OWMxZTI4NTA0MjEwNjA0NjhlM2MyOTg3YTg0YjAxYzQzNGVlNmQ3MmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkMzUwNTE2MzRmYzcyMzY3ZGVlYTFhZTI4NzFkMjk0MTY2ZDNlNDM5MTgwOTdiOGUzMTVlZmE3OTU1ZDM5YjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_46317f2e2a1c469cb75d414d61222c34",
+      "statement": "ArchitectureBoundaryTests protects layer ownership by rejecting forbidden imports and concrete infrastructure construction, requiring SwiftData models to remain in TermindPersistence, preventing shared frameworks from importing app targets, and forbidding local redefinitions of AgentKit-owned types.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L206",
+          "version": "repo-lines-v1:sha256:d897c1acd03389dd4d7cf8d20bd9e1f7697c28f4e0736f406ce4f07a6b13f1cc:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOWJmNjE2ZGNmNTM5YTBkNTRhMTM2YzY2NGM1M2EyNTllZmFkOWNmNWFmYTY5MDY5ZmEzOGI1MzE5OTQ0YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0N2NhYjY3NzUxMmRjZWQ0YTIyMGVkZGQ4NjNlZDFlNDM1OTM0NmRiYTk4ZDljYjkwZDBmZjk2MjhjM2IzNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMzk2YTZjMGFlNGEyMDI0YjE2OWE0NWY3MjdmZjYwNWE4NDI4NjdkODJlYjJjOTNkYmNkNmVlNDg4YmExYWEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L64-L106",
+          "version": "repo-lines-v1:sha256:08c476cc632f29ebd0f9b7221558d60dc77bb9ac8d88d819e4d8841a8372d835:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4NWJlNTRjNmM2MGZmZjQ5ZTllOTU1Mzg1YjMzZTc4ZTRkNGQ4ZDJkNmUwMWQzMzJkNjhiNjg3MTA0OTkxYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiZDllMTYwYTMyNWIzNzgxZTQ5M2JlYjYxM2EzZjhjZWMyZTNkZDQ1OTVjODgzMDg2MTQzMTVkODZhYjdjYTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b7909d224fe141669ceba8e0e7df3fda",
+      "statement": "MobileWorkspaceStore is a device-local workspace-intent store: it persists a versioned workspace-descriptor snapshot, migrates legacy arrays with deterministic duplicate-index allocation, and preserves unreadable bytes by disabling saves until a successful load.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift#L31-L84",
+          "version": "repo-lines-v1:sha256:4f35fc7eed35df1e05ad4bf4ac39ad8de492fd4362a6d501d9026fc401484a23:eyJzZWxlY3RlZExpbmVDb3VudCI6NTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJjYzJhMGUxNmJmYTJmOTQ0NGRjYWExOTQ2NjgyMGVkZmViYjRlOGIxZjM2ZjA2NDI0OGUxNmMzM2ZmNGM5OTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY1Njk5ZjYzN2FkMjM5YWIxNjY1ODdiZTI0ZTAyZGVmM2ZjOTA4YTMwNjFiNmZmMmM1ODE3NzNkY2FjOGZlOTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift#L4-L12",
+          "version": "repo-lines-v1:sha256:84eaf6fe9f99a32f4dd09544034ab1280431f7726607f6c01ba8255bd4034c74:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDE0OTE4NmQ3MjRjYjkzMzkyMmE3ZTQxNDBlNWQzOGI0YjkwZDljNDJmNDFmZjQ0MjMzNmM2NWQ1Y2EwZGVkOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTU4ZDRhOTEwNzQwNTlmMGM4ZDIxMzZmOWJmODA4MzQ2MTQ4ZmM4Y2ZiMzU0M2RkY2JjNzUwZTc1NzZlNzI2MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQyYTQyNjRhMTAwMzFhM2QyZGE2MDUzOWE4ODMyMzhlZjcyZDA5ZjE3NmMxYTMwOTQ3ZDdkNjdkZWJjYTBhMyJ9"
+        },
+        {
+          "resource": "repo://TFITests/MobileWorkspaceStoreTests.swift#L8-L106",
+          "version": "repo-lines-v1:sha256:f89327bd5e875c95ecbbc1ceea1775b637daaa5d1539444c0091541e0de689ab:eyJzZWxlY3RlZExpbmVDb3VudCI6OTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0NDQ4MDMyZmY0NWRhMDgxNzExZDlkZDhiNzVkMzc5N2UyZTkyYjhlODIxYTNkNWZmZjhlNzkyNmNjYjY5M2IiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRiYzJiZWEwNjNiMmYzMTM0Yzc1NjY0ZDIwMzI5ODQxN2ZlMmRjZjI3MTE5NTE2MjIwMmRkNGI2MDY2MzFmNjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmMDhmOWE1NGExNjNiYTI3ZTAxYmI2ZGI3OTRmODQ1ZmM2Y2IyMTIyMjg2YWZhZTBlZWU2NTAzMTM5OTAyODUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8de4a65c68ce4eea86eb1cc8590b29a1",
+      "statement": "Mobile workspace restoration does not persist credentials, commands, or live session state.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift#L4-L5",
+          "version": "repo-lines-v1:sha256:325bc9ab05fb7f1287a49144c0589886a0a44b31066e20c20943c12319f7a3d6:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDE0OTE4NmQ3MjRjYjkzMzkyMmE3ZTQxNDBlNWQzOGI0YjkwZDljNDJmNDFmZjQ0MjMzNmM2NWQ1Y2EwZGVkOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDQ3NTE0MGUyNmU5YzVhMTcxMWQ2NDQ1YTE4YjdmNGFlMjAyMmY5OTNlZjYyODQwNzU1NDMwMWI5NmUwZGMyMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTU4ZDRhOTEwNzQwNTlmMGM4ZDIxMzZmOWJmODA4MzQ2MTQ4ZmM4Y2ZiMzU0M2RkY2JjNzUwZTc1NzZlNzI2MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNmI1NzZlZDZlMDFkNzVhN2I3NWJkNzRjOTVmZDRlYzg3YzAxZmEzYzg2OGU4ZTc1Mzk1Y2M2ODY3Y2M5YmJjMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_fe3a96862cd14c95bd1eab463745974c",
+      "statement": "Mobile app tests establish that conversations are shared across scenes while assistant navigation, selection, and drafts are scene-local, and that external connection workspaces are ephemeral rather than Vault or saved-workspace records.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileAppTests.swift#L40-L60",
+          "version": "repo-lines-v1:sha256:a30a6f3699e18c0c0418a6ba94f80dffc91924f42433be7cfef7e32339eca3d4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA2MTY1NjI5NDdiMzAyYWQ2MTZhYWIyNGIyOTA3MGU2YmIxM2IzMWI1MGM2YTFlODVlNTM4NzIxMjExOGViYmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVmYWM0MGJmNGMzNjFmYjBkZjk2OTEwYTY4NjUyOTQ3OWNjYzlhZTYxZDhiYTc4MTgwZTRlNGQzMDFjZTJmYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU0MzIxMTJhYWQ2YzRmNGY1NzI2MGFlYTc0N2NkMTkxZjJmYzY1MmFlZmFhNGI0MTE2ODc1YzM3ZGY2OWY2OGEifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileAppTests.swift#L82-L97",
+          "version": "repo-lines-v1:sha256:5df6428ec900727f44626d2c096d50e92042158a81388fadcc35d921682677fc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJiYTBlYWExNjRiMWFkNGRlZDY3YTA5MTJiOTczNzgyYjVlODFiMTk5MzljYWVkOTk4NGQ1YjhiZDkyZjVmMWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk0N2NmYWJkMWNhNjMyYzI3ZGI2NzhkMTk1ZmJiN2MxMzQ2MmE1YjNkYjA1N2FhZDMxODY3OWI5ZDk4NmQwNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmZWMxZTJiYjEyZmY5NzEyY2M4MThiZWI1MDY3MTdjZjU0OWE2MDgzYWFjZTUzZDczNTBmZWRhODVkODhmMDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4cb4b76de2564105b980c29b639d1802",
+      "statement": "SFTPTransferContext lets queued transfers retain an authenticated primary connection after the UI owner releases it, closes that connection only when no owner or transfers remain, and opens additional connections from a snapshot through a noninteractive request.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L13-L31",
+          "version": "repo-lines-v1:sha256:7f016822f5e62b0349e69b24f267f7f4f992f45ab293e3f290c475d5da738acf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY0ZjZmYjA4N2ExOTdmYmFlOTQzMjc3NjYxZDk3YTUyMjBiZTY2MDUyNmEyOGMxZjVlZmYzODA1ZmNjOGNlNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIxYjkzZjYwZDI5N2E4M2YxYmNjZmU4MDI5ZjBiYjM5YjIwNDVjN2U1NGZhNGM5MDY5MWE4MGZkZTY5NjhlNzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjZjMzMmFhZmExODg1YWU1NDM2ODA5ZDg5Yjg3ZjU5ZDdlZjg4YTRjNDFiYzMzZjE0Yjg1ZjQwODhjNjk1ZmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFhNThjZjY1MGFmY2E3ODBmNzAyM2ZlYjBmZGRiMDA0MmY3YTEzNWU0YzViNjZmZWYzNTMyNTgxZGQ1NzY1MDQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L212-L232",
+          "version": "repo-lines-v1:sha256:3e0dc4016575cf7f7b2909bf8dc370d8f005c92abb52516fcb3795052b00ec69:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0MGY2MjA1OGZiNTRiY2Q2NzkyYWZhMWJhMWQyNDYyOTI4NTA3ZmQ1NzczZjljYzQzOTM4MzBmOTY4NzNjNWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI3MTU4MTA0OTQxYjQ3MzkwM2I3NWZjZTc3Y2VlOWVkODc5MDlmYmY5NTk1NDE1YzhlN2M3YzhhZGU1NTA1ZTkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift#L83-L97",
+          "version": "repo-lines-v1:sha256:318731d5f32cd2a82e924bddf0bfc5ea16c3e61aaf3657a42417d02f5661c5ab:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNhYjI5MjhiNzliNWJkMjU0ZDc3YmI3OTY1NTg5MGZiN2NlNmUzOTRiMTM1Mjc3ZDNhOTE5NjJjZmIyMDY4ZWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkMzU1ODM2YmQ4ZGM0YzhkOWViNzg1NTFhNjMyNzAzMmE4YTNkOGE4ODYyYWY2MDNkNzMxYzBlMTY0ODM0ZjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5NTc0YzEyODZmY2ZjNDZlODQ0NTdiNWUxNTc2NzliNDQyNDhiZGYyNWIzYTg5ODNjMjhhM2QyNzY4NGRmZTIifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SFTPTransferContextTests.swift#L63-L108",
+          "version": "repo-lines-v1:sha256:eb48acd860adeeb8cb2e97326c168e6da60022567353533f5e35b8b7187639e2:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJkOWEyYzI1OTVkYzA1NzU3YWVkMjg4YjdmYmJjZjQzMzY1YjY5YTlkNzUxYjUzOWU2NmM4MDlkMTc3MWQ3NjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdiNGI3MTk3ZGYzZTE5NWZlNmIxOGI2YzhkM2Q4ZGNiZGExMDY2ZDUzZDZkY2NmZDFjMGFlM2I2MjIwODM4M2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAwMTA2MWZhOWJlNDg0MjcyZDg1NTRkMzUzZTExMmUwODZkYmNhZDA1Y2UxMjMzMTFkNGQ1YzkyMGY3MjEwYTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3053d0f489c3414b9a0db101eb006854",
+      "statement": "Transfer-context tests verify bounded per-host scheduling across multiple contexts, silent connection fallback behavior, and that cancellation or a retired generation does not trigger the PTY fallback.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/SFTPTransferContextTests.swift#L129-L247",
+          "version": "repo-lines-v1:sha256:0c25c1e3e19475f49152efc9aba444dffcd103aa400b53c6ada1db5703b9998e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5NGJlMWE4M2Y2Yjk1YjllMGU4MmU1MDc0MTQ3ZDM2OTg4NzBlZjY1MDVmMzAzMjBkYWM1ZmY4NzEzNWZmZmU4IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJiZDEyNGJkOTkwZGJmYWIwZWM3NTNhOGY4NGIyY2U5MTEyMzc1MjBhMTYzNDQ4ZGIwZWU5ZDg5YjczY2MxYWJjIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3Nzg4MWE2YmFiYzkzMDhjNzVhZDRjYjU3OWVlODhhNjY2NGFjNWMzMGI5ZjEzMmE3ZWVmM2JmZjAzZWY2NjQ3IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3Y2UyZmFiMzc5NGU3NDNlZDhlMTlmMGU2OGM5Yzk4N2IwNTVjM2UxY2NiNGZjNWExZTI2MWVkZWFjNTU2OTQyIn0"
+        },
+        {
+          "resource": "repo://TFMTests/SFTPTransferContextTests.swift#L23-L61",
+          "version": "repo-lines-v1:sha256:36233b0246228b44f2b7a0e7fea9d6a72ba6cbe7d1a1c7aa190cedc5b9fc96d4:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFkNzZlMDQxNGIzOTY0OWFhZmNlOThkZTYxYTFjYWI2ODFiNDMwMzQ2NGMyNTljNjdjZjgwYzdjOTJiYmE2ZTQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5NWYxM2FlMjQ0MmVhMGZjOTUyNzkzMDJiZGVlYzg5YThjNTgwYzM1NmMwNjExNzQ3NThjZDJmNmFjZDY1N2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxMThhN2Q3NjM4NDU5Mzg3N2E0ZGEwODM2N2FjYzIwZWI1OThkNmQ5ZDAzYTVkMzc4ZDY0NGNiMzNkNTYyY2YifQ"
+        },
+        {
+          "resource": "repo://TFMTests/SFTPTransferContextTests.swift#L300-L364",
+          "version": "repo-lines-v1:sha256:d06e5469cc9891a6ce3427c2368ad915aae3aa487309cdae2a503425cdb98944:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4NWRkNjE3Y2RmMjA3NmM2YTUxZjk3YjgxMjQ3ODA5NTI0MmQxYzVlYzU4ODVhNzkyYzQ4ZjllMGZmYzcwZTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxM2ZjN2MzYzY3MWM3NmIxNWQ3NjdmNzU4NmY2NzA1ZDVmYmY3N2E4YTNjNWJmMTYzNDJmMjU1ZTIwMDdmOTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBiNGM0MzMwZGI0NGQzZDVlNmIxYTBkZjE2Y2E5NzZjYzMxMTI4OGIxOGM5YjEyY2U2Yzg1YzI4YjMyMWNmNjQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_dba1a016f55e488aa4e02551ff66af97",
+      "statement": "Security regression fixtures verify that agent authentication can use one-use credentials without mutating Vault state unless saving is requested, collect jump-host and destination authentication in route order, and coalesce concurrent authentication while preventing SFTP opening after cancellation.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift#L129-L187",
+          "version": "repo-lines-v1:sha256:f7b1efd0534aeb856339e49a6605dc404d4383f12a440efb3f3b781f10ef0eaa:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViMjQxOGE5ZjZmNjg4ZTJiN2YwODgzMmRlYzkzZWU1OGM2MDI4N2M0YzY2ZmEwYzVkYTNlYjY3NWZkMDVkMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlMjBmZWY4NGZiM2E0MTNkMDRiMjg2MjZhNjNmY2E4MWFiZmRhNjM2NDY1OGUzNzA3ZmY3MzdlMDFkM2VkOWMifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift#L325-L373",
+          "version": "repo-lines-v1:sha256:ba42ca78a504462bbb4050865f055958b795c61d62b5c956bc45f548a1065803:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiZGY5ODllNjcyMmRjZTFkNmZlZDhhOTI4MzFhMTU5YzYwMjA3MTUwNTIzMGZkNjc0ZWU0OTFkZTA2MWMzYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEzNGVmOTQ0NDZlNTA5MWI5NjUxMDU3MzczNGVmZjZmNjdiNTRiZDIyZWQyOWExMzdhMWU2Y2FlZDYxMzU5Y2QifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift#L431-L510",
+          "version": "repo-lines-v1:sha256:9399f5a52fe0d6e709bcee334564b850395c493c7b583ae6095497f78c3a217d:eyJzZWxlY3RlZExpbmVDb3VudCI6ODAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiNDY0MGY5ZTJmY2JiODc4ZWU0NTg0M2RmMTRhZTYxNDgyZDRlNWU3MmE2YjcxZWNhYmI5OTQ5YzA3ZjdmZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNhYjhlOTFhZmNiOGNhYzRiNWE3M2UxNDhkZDczOWY4NDk4MjVmMjQ1OTlhYmZmOTUzZmJkZmUyYzEyZDNjNTQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_963e67af43b241f1aa2a7613820c344d",
+      "statement": "SSH interaction-policy tests require forbidden requests to fail rather than show host-key or keyboard-interactive UI; additional connection snapshots retain references instead of credential material, and clearing a connection configuration consumes secret values shared by copies.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L189-L245",
+          "version": "repo-lines-v1:sha256:7560898a835debb386dd98996192ebafa3389f3d48f2cd0b5a267cc86462601d:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiNTQ3M2I0ZTBlYmEyN2Q2ZjAwMzFjMDIzMmFlOTZlNzcyNTkwMTA1MmY1ZGE2MGY3NmNjOWIwYzY4NjMzOGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVmNjA3ODI4ZDQxZDU5YjhjM2Y0YmZmOWQ0ZWQyZDRkODYyMzRlOGZmOGE4M2U5OTQ4OGYyMjhjNWQzMzMzZWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRjZWViYzViMDE1M2Q4MGZiNGU0MjFhN2EzMWE4MzQ3OWQ0Yjg0NzVlZTYyOWI2NmZlZGIzNzc2MjY3NDVlNTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L38-L71",
+          "version": "repo-lines-v1:sha256:05cb17904112816b584ad40075ff219adebb2bf83efc9e83a8d0fde061ad8413:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNlZTFiYmIzYjViOTY4OTgxM2EwYzMwOGQxZjcxZjQ0NTU3YzI4MjM5NjdhMzVkYzcwNzAzYjNmOGEyNWE0YmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyMDZlODhkZWJhNDhkYjBjNDA1YWQyZWZmODEzZGE4N2MzOTY4N2QwZjczNzQxY2U0NGQyODBhNGQyNmYyNDAifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/SSHInteractionPolicyTests.swift#L8-L36",
+          "version": "repo-lines-v1:sha256:1adf4e9a2b0623e9514f4c2d05cdf676c9b57fa07e5442e4c85324de3346383b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkNjFkNmE5MGI4ZTQzMWQyODM5MjFhZWY5ZTk5ODdlZjI5ZThmNWFkZmMwM2I0YjkzZjI5YWUzMjBiM2JmZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk3M2I2N2JlNzFjZGFhMTVmNGY2MDZlOWIzNjAzZmNjMTkzZGU3ZWIzNzhmNWY1OWJhNjQ5ZDY0NGEyYWY4NjEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFlMDVlZjQ5Yjg1NTY2ZGIwM2JjNTNlMTM2MDljZTM2MDYyOTk0NTc5OTAyYWUwNTUwYzJhZTEwNGEzNDY4MGEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
+      "statement": "Persistence compatibility tests open historical SwiftData fixtures through the shared container factory, assert retained records and migration outcomes, and verify independent in-memory containers expose the full schema.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L22-L89",
+          "version": "repo-lines-v1:sha256:86e0ea6e63d5624d21afc6b082e4d62104188200b4b484e2ef92513b8a3fcf68:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwY2NlMjYyMzJlNGRmZGY0MzdkMDRjNDAxN2I1MWQ5ZGY0ZGYyODVjYmFkNTI4YzcxMDY5ZTA5NGRkNjNhMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljZDY0Y2U3MWNmNThiZmMxOGRjOGNlOTc3N2RlNjVhMGU4MjcyNDc2ZDUzMDUzNDdiZDYyNmI3YjFiZTJjMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmNjM3YTI0NzMyOGUzMTA0MWU4Y2I4MjE3NzhiYTVkNjE3ZjNlYzIyNzE2ZTgzMTdjMTU2NTU4YTk0Mjg4ZTIifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L92-L175",
+          "version": "repo-lines-v1:sha256:350be9cb654f9d715e6fbcb7c7542f0ac949ed2b97a8573811e5a3219a3ca810:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0MTI4ZTcwN2VhNWRkMTgxNDgzNzY5MTdiMzFiODgxZjcwYjdmYTlmN2VmM2U3NWI3Y2U1ZmU1MTRmNWRlNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3YzZkZjQxNTJiNzdkYWM0ODJmZmQ5M2Y3NWUyYTA0MTJkZTk5NDVhNWFiMmI3ZDY5ZDc2YjAyZGQzNTRiMmYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a706a7dc8da049e8b69b01df1dfef698",
+      "statement": "Agent replay persistence tests verify frozen context/tool-result restoration, prevent replay-row duplication across later snapshots, remove replay backing on conversation deletion, and preserve a durable result recorded before the next snapshot.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift#L12-L64",
+          "version": "repo-lines-v1:sha256:1d91c37540c7dea05756c281709cc014a95b0723c78284b8a979570f6e9ea3d6:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBiNTFmNjI3NGQ5NDk5MTAwOGM3NzI0OTMwMmZhOGQ5NjcxZDE5NmExOTk5MzdmOWM1ZDhmZDk1M2UzYmY0YjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkYmFkZWE5NTg5OGQxNzlkNmY2NjRlMmZhYWU2ZjkxY2YxYmZlNDc3ZTRkNjAxMjBiOWU3NTFiZDNiOGIyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3MzE2YzY1YWJjMWM2NmY5MWYzZjM4NWM3OTNkMjEzMjNlYjk3ZTkxZjNiNGVmYWI0OTNjMGE4YmY1YzUzZGIifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift#L66-L93",
+          "version": "repo-lines-v1:sha256:a7a6a69692b66acfabab87d67d6cdce42517ed039c7a5aca47c32a120bac565c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5YzY1ZTM1MTNlYmM3YzUxNTU2ZTY5N2M1ZmM1OWQ4NzQ0M2Q0MTEwOWEzYzcxNWE1N2Q5ODQ5YzEyZWI3ODciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_90524ff4680948cd92bf801ba5d0ae93",
+      "statement": "MacOS tests that show windows or take focus must use the requiresVisibleWindow trait, which is enabled only by TERMIND_WINDOW_TESTS=1; normal test runs therefore skip them.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L44-L44",
+          "version": "repo-lines-v1:sha256:825a259b0fc873bd80b8a95ec1455eb28acf00cd15c03dd17d94e8bee428513c:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTczYTI2N2E2ZGNmZTczN2MyODUyYjY2OTkyNTViNWZlMWViYjYzMzVlZmZiYzgwZjA3ZWE0ZWExZTBhNzdlOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/VisibleWindowTestTrait.swift#L4-L11",
+          "version": "repo-lines-v1:sha256:b8b2903d1009b119d2daa9cc5915fe34eab19cf61490b33adc02693393f4c95f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDZkYzRhNmI2NzJiZTRkMGI5ZjA5ODI5ZGNkMzgyYzEwMWJhMWMwMGQxZjYzNTY3MDI4OWFiNWE1NzBiNTYzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzNkOTM2OTExYzY5MzE5OTAxOGFmMTI5ZTA3Njg2YjY5NjgyMDZmMjk0MmY2ZGViNzdkNWJjMmQ0MGI1ZTJhMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T00:31:10.149Z"
+  }
+}

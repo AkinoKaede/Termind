@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:cade63e93115426143be255179f6a32b2c867cf7a7b539dab9b264dcdca0cff3",
+  "claims": [
+    {
+      "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
+      "statement": "Termind is one Xcode project with native `TFM` macOS and `TFI` iPhone/iPad targets; shared frameworks are layered beneath the apps, while platform UI and lifecycle remain app-owned.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L3-L14",
+          "version": "repo-lines-v1:sha256:ebfbb4e4dd7e3beb5093f7d76de4ba789e0b467bdd86cf37e4cc42c6f70d7f22:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY3NmYxY2NlMDU0ZTZlYjE0YTIzZTg4MDI2Mjc0ZmI0YzA0ODM5YTcxYjY2ZmZjY2VhYzkzOWUyZGM0ZjRhYTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJmNGQ3NzU3NjdlNzBiMGI3ZDE3YjNhNTkzNmM2ZDY2NDc3YmE3NzZlMTNmYzM5NmEyOGMxODY5MzQyMjQwODIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhZGU5Y2M2MTdlODVmZTg2MzFjMWQ2ZjhiZTAzZTViZDE4NmQwYzhjOTI1ZjY0ZGIzMmU0ZGI4YTBlYTY1NGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRkMzUwNTE2MzRmYzcyMzY3ZGVlYTFhZTI4NzFkMjk0MTY2ZDNlNDM5MTgwOTdiOGUzMTVlZmE3OTU1ZDM5YjcifQ"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L6-L21",
+          "version": "repo-lines-v1:sha256:b687a0b8e3c97a67e3bed2cbdb289acbe8239cfd271818b526c130ef16d8031a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdkYTliZjc4MWZiZWRhMjE5NTEyZmJmMmU2NTRmNWI2OGViNjJkYTFkMTE3NmNmZjJiMWViZDkxZGMwMzhhNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkZTI2OTNjNDgwYTVkOWI2NGJlZDk2Y2UwOGQ2NDNhMDgxNDNjMWI1MjZjNzA0MDg2NTk5MDc1M2I2ZTQ0OTciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUwZTViYTA2NzEwM2E4ZWU5NDBiZTFkZTIzYTRiOTczNzU4ZmYyMGZjZTFmMmIyM2JkNzA4YmQ5OGY5N2Y0NDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4YzFlYjFkZGU1NDQzMjdmMzNiYzcwNTdhMDZiYWEwZDU5N2NiZGExNzIwOWE3Y2QwMjVmMzQwMDg2ODk4ODkifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L188",
+          "version": "repo-lines-v1:sha256:363e2bafaf7e2967b4b7b04ce0bad053d5b9ed639768c3c4b98c8f9ac339ee0e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMDYxYjk2MWM1YjA4MWJiZTM0NDlhZDQ5MjM0NTE3NjVkNjU0YTg0NzM5NGNhYzZmY2QyYjdmYTkyMTllMDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f82e18c98f0b4638a0f5284b0a2bee24",
+      "statement": "A safe change must preserve the lifetime split: durable app services are app-wide, desktop navigation/workspaces are window-local, mobile navigation is scene-local, and live transports belong to the workspace or session that opened them.",
+      "evidence": [
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L45-L70",
+          "version": "repo-lines-v1:sha256:3a7990666a403f4d2997ffea80a867cf3afde14ec23da5d6552ae7062c9d7a64:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhMmVmYTE0MmJjM2QwNjU0NWIyZmI1OWViYTY4NzBkODE5NjYzMmFkY2Y3NjEyM2U4Yjk1ZDVkYzNjNzUxYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVlMzEwOWI5YTgxNTdmNzg4MDg2YWMxZTkzMDI5NjA1MmYzYTA3ZTU5NDc3ZDU4ODQ3Njk0MTYwOGM2OTUyNDEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFiYmE4MjFiOGQxYTY2MWIyNDRiZGI4YThiMDhhZTE3NzJhNjNhNGI5YjI1ZGFiOGRmMDZjYjEzYTMzNmRmYTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBhZmI0NzhhMjdhNDA0NDY5ZjljYThiMTgzZmQ4Y2NlZGI3ODVlNTI1NzU4MTE5NDc4YmY0OTYyYzE5ZmZjZTUifQ"
+        },
+        {
+          "resource": "repo://TFI/App/TermindIOSApp.swift#L19-L33",
+          "version": "repo-lines-v1:sha256:78cdd316a915930837af24416a90eddddd5619a5c74f1c6ea36d13500cec5f90:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNmODI0YzlmYjRjY2M1MWYzMjAwNzJiNmNjNzQ2YWVkZWU2MmQ3YmNhZGY5NDI4MmJjMjdjZjNkMjc5ZWQ4YTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwOWRlZDA1YTMwZTBiMDk1ZjI3NWRkNTcwMzRmNzU2NTgzNjBjOWQ4ZWIyNTg3NjNjNGI0MDMwYmM5ZGRjYjEifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L155-L190",
+          "version": "repo-lines-v1:sha256:1f72d15f0dcd1608fbb34ebbfc5845f177dafab50c5667294536a17e3cd7f0f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwNTgzMDJjZDFmMDQ4ZTE3MzU1MTUxODA0NzRjYmI4M2YwZjhkZDNmN2I3ZjUyODI4ZDU1ZmUxYjg1MmIxOWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ0MTA0N2ZkYjNiOWIzMTYwZTU0NWEwOThlOGJhY2E1ODA1YTJlZmFjNGI3YWRkNmYxM2IyNDg4NWJjNmY4ZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdjZGEyMmE4ZWYyODNjOGFmOTJjZDlmMmY2ZTA4MzdkODg4MjdjYjBkZGM2OWNlNDFkMTAwZDFiOTdjYWM5MmMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_883b0f81c5004c90949c5300c242dce2",
+      "statement": "`TermindApp` is the macOS composition root: it creates the SwiftData container and app-wide services, uses in-memory storage for tests or screenshot demos, and fails startup rather than silently replacing an unavailable local database.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L21-L139",
+          "version": "repo-lines-v1:sha256:d7c034ab508974511acbdcd459b5cb2869b11ad59663723ae8f36b41cf39cdd7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE5LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI4YmNjNjExYWYyM2E5MWMzYjcyN2QwYWNlNGRlMjIyNDJmYzQ5MDZjNzE5NGE2MzQ5MTliNjVkNzAzZGQwMGIwIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJlNmIwNDQ5MTQ2OTcyMmU4MzYzYTk0ZTQwNDQ1MzhlMDEzYTJhMjE3ZTM2YjFlNTY4YmE2MGFjYjdiNGM4ZjJlIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OGVhYmQ5MmNkYjZlMGVhMmViNTIxZDAzNGY0MjllZmZiOTlkYWMxMjM4NzI3MzJlZjhlODU1MTMzN2Q5ZTdmIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlYThjMTliZTVkODNlNWE4Njc3NjVlN2JmYmZkODdhMDY0MGJiNGM5OThiODYxMjFjZTc3ZTVkYjE3NTA0MDExIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_d8fbea4ef15c4224a4cd3e9cb2155c85",
+      "statement": "`TermindIOSApp` performs language migration and creates a single live or testing `MobileAppModel`; its window injects the model container on success and presents an unavailable-data view when startup composition fails.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/TermindIOSApp.swift#L5-L33",
+          "version": "repo-lines-v1:sha256:1574c44f26f386fca5834af375adbea23b9471aaca384b9aa647006e94caec2e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MDI1ZTA5ZDBlYTM3ZDMyNTYyMDVjODkwYTg5YjU0NmE0MDcwNTg4MDJmZWUyZDY1N2Q2ZjJmODg5MzllMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwOWRlZDA1YTMwZTBiMDk1ZjI3NWRkNTcwMzRmNzU2NTgzNjBjOWQ4ZWIyNTg3NjNjNGI0MDMwYmM5ZGRjYjEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_da188fce4fea4fc496b3f09eed8f55b8",
+      "statement": "Architecture boundary tests enforce that shared layers do not import app targets or forbidden platform/storage/transport dependencies, Application does not depend on concrete implementation layers, and SwiftData models are owned by Persistence.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L206",
+          "version": "repo-lines-v1:sha256:8fa9db32089b6d351da07281bb6f34969d6feb24c764b507df907c0b40db8182:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMzk2YTZjMGFlNGEyMDI0YjE2OWE0NWY3MjdmZjYwNWE4NDI4NjdkODJlYjJjOTNkYmNkNmVlNDg4YmExYWEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L64-L106",
+          "version": "repo-lines-v1:sha256:08c476cc632f29ebd0f9b7221558d60dc77bb9ac8d88d819e4d8841a8372d835:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4NWJlNTRjNmM2MGZmZjQ5ZTllOTU1Mzg1YjMzZTc4ZTRkNGQ4ZDJkNmUwMWQzMzJkNjhiNjg3MTA0OTkxYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiZDllMTYwYTMyNWIzNzgxZTQ5M2JlYjYxM2EzZjhjZWMyZTNkZDQ1OTVjODgzMDg2MTQzMTVkODZhYjdjYTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_8489acfc41234c788210e9464a75fcb0",
+      "statement": "AgentKit is a separately versioned remote package: it owns host-neutral agent runtime behavior, while Termind owns SSH/SFTP tools; cross-repository work requires an AgentKit release followed by a project minimum-version bump and resolved dependency update.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L16-L18",
+          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWYxZjNmMTg5YTBiZTIyMGIzYjA0YmIwYzc0MTI2OGE5MzE4OGU1YzY0OTMzZGUyNzU0YzI3ZTZkYzRmZTE0NSJ9"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L352-L356",
+          "version": "repo-lines-v1:sha256:425557967a3c8daba2a7af324081dff7809f5fdfdee4f2ce780c46819e9ba6d0:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTIzZDQxNmU1NjU1M2FiOWFiZjg0MjVkNjExMTI4MTQ4NjMxNDFlZmYzZTVhM2NhNDVlNDQzYzk1ZTAwNzA4MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzY1NjVkMWUyNTAzN2VjMzdhZWQ1Y2ViMzYxNDVkM2RhNzJlNzZjZmVmMDI0NDQzNzIyNzM5Mjg2NDYyMThjMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDA0NjZmNDJmZTgxYzZkOGQ0ZGI3YTVjNGUzNmI2OGMyYmQ4MTIwYTgxNTU1NGQ0ZTNlOGVlYTQwNDg1Yjg2YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmUyOWFiMjBkMjIzZGE3ZjFhODcyYzIxZWY1MmFjNTVhODMxN2RjOWI5OTQyZDc5NzUwYmU1OWQ0YjJmY2E2ZiJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj",
+          "version": "repo-file-v1:sha256:2a2bcccf7f6514fee0573fdd868c54bd98fa151a69e0eb4ae45f9b09fa2f956b"
+        }
+      ]
+    },
+    {
+      "id": "claim_49b7e46dc58948ad8a9cfb47be7bd41d",
+      "statement": "Routine Xcode validation must use `-onlyUsePackageVersionsFromResolvedFile`; the repository defines TFM/TFI build entrypoints, strict Swift formatting, and a localization validation script.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L26-L34",
+          "version": "repo-lines-v1:sha256:a91f88bee69fc799fe765bb122f6b5106642c565be05fb945780ea3d3248ebf3:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczYmEyNjc2YzMzZGE1MjMyNTFkNWNjZjUzNjViODFhMGEwMjMyZWU3MGI3OTFlNmJjMTNmYTIyNTFhMGQ4MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjNkZGYwYjM4NzRlMWFmZmJlMzgwYTg1YWUxM2E2MDNhMzNjZmNmMDQ4YzBmNDM0NTNmYThkOTY4OTcyOTk2OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzE4ODJlOTJlMDU3MTI0MDRlN2M4MWQ2Mjc2NTIzMWQ5Y2VkZjg5MGNlNmUwZTVlMDBhZDk2NzIzOTA5YzA3OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L40-L48",
+          "version": "repo-lines-v1:sha256:e0e8c9958812182ec2d7001a28a31979a8ef4bba9255fe9f04867d56046faca6:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_03ad2c4c5a2442578285a13d8bbfc4c3",
+      "statement": "macOS tests that show windows or take focus are intentionally opt-in through `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` or `TERMIND_WINDOW_TESTS=1`, so routine validation remains headless.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L42-L44",
+          "version": "repo-lines-v1:sha256:a556c3aea2c14cdaa85d89a15243c4606e48562f600fe675a3e4f75594c7a07e:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T00:31:10.149Z"
+  }
+}

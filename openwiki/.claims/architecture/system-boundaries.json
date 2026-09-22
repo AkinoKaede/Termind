@@ -1,0 +1,154 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:95ae2f50f3a459aa6c5502c11c301d3783446a4c86117684b7d4092e7e88a15f",
+  "claims": [
+    {
+      "id": "claim_085ce722f39f48eea75366ec3b3f7554",
+      "statement": "Termind is organized around shared Domain, Application, Infrastructure, Remote Infrastructure, Persistence, and Presentation frameworks, while TFM and TFI own native UI, platform adapters, and lifecycle; shared modules must not depend on an app target.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L5-L13",
+          "version": "repo-lines-v1:sha256:5bf8f722418eac38057a37c2f664f7f78762650fe7e8d0d55318d6aa97bcaba3:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZjM4YmQ4MDg4Y2Q5OGMyYTJiZjdjZWUwMjg2NjU0OTRlOTA0MGI0YmIzNTBhYjMwY2VjOThmMmZmNDlkMjUyMyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmQxNDRhYTY2MzdkYjRiY2Q3MWYxZmE2NDc0MGI1YTJmMDk1YzZiYWYyM2JlOWU1NzJhMGE4Y2VkODJkNzIyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmQ1ZDk4ZDMyNTIxNzM5OGEyYzA4Mzg5YzFlMjg1MDQyMTA2MDQ2OGUzYzI5ODdhODRiMDFjNDM0ZWU2ZDcyZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWQwMTdmYTAzMWI3MzUzMDUxZTQ5YWQxNjI0YTFhNjBlMjAzYzhmYTljN2QxYjE0YjY2ZjU3YjlkMTU5Mzg5NSJ9"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L13-L23",
+          "version": "repo-lines-v1:sha256:a2f25cec3b82d39c9769736e5b4cf3bf18725df93febafa7c4b98611bf00c26e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0Mzg4ZDgwNDRkMmQ0NzQwNmY2YmZkMjkxZDY0NGM0NTllMzNjYmE2YmFmMjhkZTY2YTY2MzNhM2ZjOTM3ZDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1ODI5NDE4N2JlY2IzNDk0ZDY5NDIyYjc1ZjBjY2NjMzlhNjI2NjQ3MjNlNjZiMzk3NDNiYmNhZWY3YTg3NDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhZDk1YTk4OGI1ODk1MmE3M2I0YmJiMmZiZTEwMjRiZjYzMTI5NjdkMTg4MDhkN2ExYTViMTEzNjExNTA3MDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE4YmUzYmQ3MjdjOWYxMTNjNWMyODU1ODIyMGUwN2EyZDE0NzEwZWJhZTM3MjE3ZjUzYmQ4MjAwOTQwODcyZjIifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L189",
+          "version": "repo-lines-v1:sha256:0d3b3a4cd81181b5228a2cfa0b6a89f30ffcaa8a77112e9c8ed819cc29a59663:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3NDI5ODQ5YmU0MTZhMzMzMmY5NTcyYmY1NTM5ZDkzOTZjNDEzMjY1MWE4MzhiZGRhZGIzN2IwNzg1OWViMmUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_07d6c15b703242fa94b68c4f347d23a1",
+      "statement": "ArchitectureBoundaryTests enforce dependency direction: Domain cannot import platform, UI, storage, security, network, commerce, SSH, or terminal frameworks; Application cannot import UI, persistence, or implementation frameworks or construct selected concrete infrastructure symbols; Presentation cannot import platform UI, persistence, or Remote Infrastructure.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L189",
+          "version": "repo-lines-v1:sha256:0d3b3a4cd81181b5228a2cfa0b6a89f30ffcaa8a77112e9c8ed819cc29a59663:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3NDI5ODQ5YmU0MTZhMzMzMmY5NTcyYmY1NTM5ZDkzOTZjNDEzMjY1MWE4MzhiZGRhZGIzN2IwNzg1OWViMmUifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L75-L106",
+          "version": "repo-lines-v1:sha256:11f74fcd104993cd2feab9af4770f39538b63efcdefeeb85a9faf48e46c50f74:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2ZThiMDFjOTI0YTg1OTFkMDY1YTNiZWE5M2Y5Yjg3MTA1N2MzZmE2NzRiYzk5N2JmMWU1ZGExYjRlNzU2MWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiZDllMTYwYTMyNWIzNzgxZTQ5M2JlYjYxM2EzZjhjZWMyZTNkZDQ1OTVjODgzMDg2MTQzMTVkODZhYjdjYTgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_04df7977ba1a43bfba0b2585bc5f185a",
+      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; the test suite rejects @Model declarations outside TermindPersistence.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L7-L11",
+          "version": "repo-lines-v1:sha256:eb1d08366705afdc99b54adcffa378299221d4d7be416d22cc011f6a15dbcfd2:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWM0OTlkYTUxNTAxNzdiYTFlNzljZjc5YTM0ODFiMzM4NmViYmJlYTU4MGI3Zjc2ZTBjZjUxOTNmYWE5OTFjYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjEzMjhkOGFmMzQ1YjI3MzczOTBkZjBlMWYwN2I1ZmZlYmE3Y2IyZWIyNzZmZDBiMDk1NTg5ZmVkZjgwOGE2NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODRkOWIzNTZmZmVmMmJmZWFiZmM5MmQwM2EwMDkyMWY3YTk0OTUwMzk5Nzc3YTY1MmFhZTZkNmZhMTcyZTQ0OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmM0MzRhZjQzYmUwYTA3MjE2NzE5ZjBkMjg5MjdhNjkzMzNhYmJlZDhiY2U0MWZmOTA4ODM2ZDIxNDk3NmFjNyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L4-L21",
+          "version": "repo-lines-v1:sha256:75bc34d3cd5e480f2d8ea11fb1e38f4cfdde54db5adfccbc5def8238f426b623:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzA4NTlkNjgzODAyNWFiM2Y2NjIxNTU5NWM4N2JiZWI1ZDVlMDlmNTIxMjk3YmY2MzI3NTUwYzgxYzBjYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L191-L206",
+          "version": "repo-lines-v1:sha256:f8c236519e8486d9e23370a1125780885a560563104317d8b0667fde12b5c048:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMzk2YTZjMGFlNGEyMDI0YjE2OWE0NWY3MjdmZjYwNWE4NDI4NjdkODJlYjJjOTNkYmNkNmVlNDg4YmExYWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_549399d4a1fe49c9a74f0a574a669d2c",
+      "statement": "Platform composition roots choose persistent versus in-memory storage and retain the ModelContainer, but use TermindPersistence.makeContainer rather than owning the schema; desktop fails startup when the local database cannot open while iOS surfaces an unavailable-data screen.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L4-L21",
+          "version": "repo-lines-v1:sha256:75bc34d3cd5e480f2d8ea11fb1e38f4cfdde54db5adfccbc5def8238f426b623:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzA4NTlkNjgzODAyNWFiM2Y2NjIxNTU5NWM4N2JiZWI1ZDVlMDlmNTIxMjk3YmY2MzI3NTUwYzgxYzBjYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift#L126-L126",
+          "version": "repo-lines-v1:sha256:fb0eb95a9489d07f13bfc5dd8a79a4ea9a3c8e5ecb77e91490982cb9490b92ce:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmIwZWI5NWE5NDg5ZDA3ZjEzYmZjNWRkOGE3OWE0ZWE5YTNjOGU1ZWNiNzdlOTE0OTA5ODJjYjk0OTBiOTJjZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmIwZWI5NWE5NDg5ZDA3ZjEzYmZjNWRkOGE3OWE0ZWE5YTNjOGU1ZWNiNzdlOTE0OTA5ODJjYjk0OTBiOTJjZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmFiM2M4YmNlOTM0ZTMzMTZjMDVjMGI4YWFhYjJhZTg4ZTI3NDM1Y2NkODU1Mjg0MjVjODBkYzViOGUzMDdhOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDNhOTkxMGRkNDRlMTA2OWExY2VkMDFhZTMzOTk3YzNlMTU0YjcyN2U3YzczMDg0MjMzODdlYTQ1NzlmYmY2ZSJ9"
+        },
+        {
+          "resource": "repo://TFI/App/TermindIOSApp.swift#L11-L30",
+          "version": "repo-lines-v1:sha256:da8be22039112fa704351fb896f9a2ced4d1600f566c8cd5afde7aeac3066350:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmYTc4NDM4ZDRhOWM4YzI5OWQ1NmJlNDRmNDNhN2Y1YWQ5M2FjYjRlMzllNzI1Y2YwMjYwYjY0OWQ4NjA5YWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllYmU5ZjVkMjdiOGY2ZjAyMTc1ZTAyYWFhYTJlMzI0YjM0NjVkODMxMmM4ZWVjM2I4ZWQyOWRmNTkyY2ExZDgifQ"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L137-L139",
+          "version": "repo-lines-v1:sha256:7e521f0009c7097b3075811418a0f0975f3a229ce9bb3012a58b7cd360f45681:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTc0MzYyN2VkOThlMDJiNTc4ZjUyNjljNzYwZWU1ODRlZTU0MmMzZTNjOWE0NDA4OTFjZDE1MTYyNWE1OWRmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjk1Mzg1OGIwNGQ2ZDU2ZTRkNWMxMzQxNThmNDA4NDRkNWRlZDMzMzliMWYyYWZmZjFkMzcwYzVlODUyN2Y1MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWE4YzE5YmU1ZDgzZTVhODY3NzY1ZTdiZmJmZDg3YTA2NDBiYjRjOTk4Yjg2MTIxY2U3N2U1ZGIxNzUwNDAxMSJ9"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift#L30-L39",
+          "version": "repo-lines-v1:sha256:8adecd981086eaed1cad0903e82917b4d86a8e9d6e35d0314bcbb752f450f95d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMjU4YjdiNGY1YjRhZjg4NjE4ZDI4NGJkODg1Y2VmYzNiMmQxOWRhMTk5OTlmN2ExNDI0YmQxMDliMjNjZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhZTg1YmI2MTQ1ZGM4ZDE4OWJhMzEyOTRhNDk4Njc0ZjU4M2RlZjE4ODIwM2JiZDJlZWVhYWQyN2Q3OTNjYmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhMzY1Mzg4MWY4OTIzZGEyYWJmM2JhZDNmMmJhYjNiZGI4YTM2Njk1YjY5MmY5YjlmNmExMWI3NWQ4MjkwZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxMmJjZjU5NmJmOTk3NWM2Y2ZhOTU1NWJhZjAwMjBiZmM4OWFkMjA1N2U2YWNmNzQ3NzJjZTJlNWIxMDQxMTAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e8a8ed759cf8492e9a8ffd0182466419",
+      "statement": "AgentKit is a separately versioned remote Swift Package pinned by Package.resolved; Xcode uses that resolved package rather than a sibling working tree, so cross-repository work requires an AgentKit release followed by a Termind dependency and resolution update.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L16-L18",
+          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWYxZjNmMTg5YTBiZTIyMGIzYjA0YmIwYzc0MTI2OGE5MzE4OGU1YzY0OTMzZGUyNzU0YzI3ZTZkYzRmZTE0NSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2837-L2844",
+          "version": "repo-lines-v1:sha256:444f908545e708b1d395265e4292e5529193fc19d4f609c8b5e06f6d68e13abe:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L5-L11",
+          "version": "repo-lines-v1:sha256:2893ec786d107632932b507dfecf16a8152af8508dc9ddc629aaf66178d75316:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMTFmYmFmZTBlNGFjY2NmMjk3ODM3MWMwNTU1NWVkYTQxNjMwYjgyYzE4OTA2ZjliMDhjZjY3OGUwN2MyZTc5OSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOWI2MmY2MGQ4NTkwYTU3OWNmNDZmOGQ2NzM3OGM0YzU3MmI5NjJjZWNjZGI5MGM3YTVmN2I0MmI5NjA3ODJhNCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmE5ZjU0Y2Q3ZTc2NjY2YzhmZjE1NGQ4ZDRhODZmNGMxNGNiYmQyNTM5YmU4OGQ5NWE2YzU0NDZiY2Q2OWFkMCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjdlNmMwMmJkYjc5NzI3MjI1ZDU2Y2UwOThlNjgyNWQ4MTFiZWFkOGRlMDcyYTEyOTA4NTllNWE5NmNmODQ0NiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_566be4320136458ca3ca16da0773c5c0",
+      "statement": "AgentKit owns the host-neutral agent loop, approval gate, provider adapters, MCP client, and built-in tools; Termind must not add Termind-specific SSH, SFTP, UI, or host behavior to it.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L16-L18",
+          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWYxZjNmMTg5YTBiZTIyMGIzYjA0YmIwYzc0MTI2OGE5MzE4OGU1YzY0OTMzZGUyNzU0YzI3ZTZkYzRmZTE0NSJ9"
+        },
+        {
+          "resource": "repo://Memory/ARCHITECTURE.md#L352-L356",
+          "version": "repo-lines-v1:sha256:425557967a3c8daba2a7af324081dff7809f5fdfdee4f2ce780c46819e9ba6d0:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZTIzZDQxNmU1NjU1M2FiOWFiZjg0MjVkNjExMTI4MTQ4NjMxNDFlZmYzZTVhM2NhNDVlNDQzYzk1ZTAwNzA4MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYzY1NjVkMWUyNTAzN2VjMzdhZWQ1Y2ViMzYxNDVkM2RhNzJlNzZjZmVmMDI0NDQzNzIyNzM5Mjg2NDYyMThjMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDA0NjZmNDJmZTgxYzZkOGQ0ZGI3YTVjNGUzNmI2OGMyYmQ4MTIwYTgxNTU1NGQ0ZTNlOGVlYTQwNDg1Yjg2YiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmUyOWFiMjBkMjIzZGE3ZjFhODcyYzIxZWY1MmFjNTVhODMxN2RjOWI5OTQyZDc5NzUwYmU1OWQ0YjJmY2E2ZiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L160",
+          "version": "repo-lines-v1:sha256:df1426afee6cba4b9c4a3b901694c27f4855687f2d8a386e8b3264d45b49ef22:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOWJmNjE2ZGNmNTM5YTBkNTRhMTM2YzY2NGM1M2EyNTllZmFkOWNmNWFmYTY5MDY5ZmEzOGI1MzE5OTQ0YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0N2NhYjY3NzUxMmRjZWQ0YTIyMGVkZGQ4NjNlZDFlNDM1OTM0NmRiYTk4ZDljYjkwZDBmZjk2MjhjM2IzNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_368fa7e429f84aa1aa9e34b296de06d7",
+      "statement": "Termind registers host-aware agent functionality additively through TermindAgentTools, whose injected environment supplies host, connection, authentication, metrics, background-command, and scratch services; AssistantToolRegistry supplies AgentKit built-ins and then these additional tools.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift#L42-L68",
+          "version": "repo-lines-v1:sha256:f00dc05b6b14f14e9071bb2c3725c64e133622f8e78ffc3e87a20fba2c5752af:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM4YjBhZGQ3NDg1ZGY0OTA5MTkwNzI5ZGEzYTVkZWY5MjVkZmFkMTQ2YTJkMTA1MDk5YmFjZTJiYmJhM2ViMDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiZTBhODk2YTNjYjAzNmM0NDZiNDgyMTA3MDA4ZDZkOTZmNTdkNzA2MGRiNDk4ZjQ5YTVhNjhkNDI1ZWI4NGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRlYzQ4ZTU4YzVlMTBhZWJkMDdkOGQ5OTljOWJhYjg0MDBlNWRlMDA3NzE4YWQwNzA5OTkxOGRjOGMxMDg3ZjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L45-L62",
+          "version": "repo-lines-v1:sha256:74627a2745ff783912181210d9283bca8f0d39f2f9d0611a90b97371d2429d30:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3N2EwYzQwOTMzNDI2NWIxN2I5N2E2OGM1MmYwNWQwNmNmMGU0ZTAwOTNlZWIzNTE0MmQzYWFiMWJkOTkyOTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwYzFmMTg4ZjE0MmVkN2E4MjQ2ODBiMjA3MTcyYzU1MTliYzYxNGE0OGZkYTdjZjE2N2VkYjhkZGY3OTk1NmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQyYWE5ZTVmMGI2N2UwYjRlYTEyOWI5NDQ2NjhhMjNlNDdlZWJhOThmM2I0Nzk3MGU3NmM5ZWQzNzAzMjZlNTMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift#L5-L23",
+          "version": "repo-lines-v1:sha256:a6707f4eac40956e70af3b606852201b6d17b54d295c771bb743f37fbad2797f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2NTgzYWUxYWM2NTU4YTlmNGQ0MTYyYzcxZDJjMTk4OTE3OWI2MDljYWE0MDg0OTMzYjZlY2E5YWEzYWU1ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk1OTRjZTkxMWRiMTE2YWVlNzAyNWMyYzAzNzE5NzZmZTVjN2M3Yzc1ZmY2MGQ3MTA4NDgyYzY0NjNmNDM4YTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0NmY4Y2RkMDA0NDk4MWZkNzI0N2EwYzg5MzE2ODM0ZDNlZGFjOWU1MTAwNThkNGMwNGNhM2RkODczYzFhYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkzNjg4OWY0NDhlNDhjMWE0MjM5NjQ5ZDdkZTEyNzBlNDU1NDk0NDgyODY3NjQ4M2ZkYWY1YjhmYjkwZWUzN2EifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_29eb9d1db73e4802ad397fa5de81f173",
+      "statement": "ArchitectureBoundaryTests also guard against local redefinition of AgentKit runtime types, confine ListViewKit to an allowlist, and check forwarding/mobile authentication ownership plus benchmark independence.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L108-L160",
+          "version": "repo-lines-v1:sha256:84b510fa05a9833e8a137fd3439676c51ffcb2dd45c0dfccc4082850625a0968:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0MzhiMmNjZWI4NWM2ODdkODk0OTcxYmY3ZmZiNDUzNTI0OWYzNDRjZjExNmFlMzg3ZTAwZGM3MjJjNGNlYzYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L6-L44",
+          "version": "repo-lines-v1:sha256:04c57608a4f36e066a86d45b1927320ec3f1b3912960cf3ead95574b6a0deab2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5ZjdjNGNiNzk4NDRmM2QyMTg3YjU1MGRiNjhlZmVlMjU5MDQ4NDZiNTgwZWRmNjIxNTc3MGE4NTAyYTIwMzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5Zjg3ODhhMDEwYWMyNjY0MDQxYThhYzZjNjU3MTdiOGU0Y2RiZTYzMmMyY2JjNTMyMzZhMWMwNWI5MzhjNmUifQ"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T00:31:10.149Z"
+  }
+}

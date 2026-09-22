@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "pageVersion": "sha256:65a192526c7077d01d0e5a58245de0d19f7c103accfcb0d8ed32d612ea0bb477",
+  "claims": [
+    {
+      "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
+      "statement": "Ordinary Xcode builds, tests, and screenshot builds must retain `-onlyUsePackageVersionsFromResolvedFile`, because the repository directs builds to the pinned resolved dependency versions rather than allowing a fresh dependency resolution.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L26-L34",
+          "version": "repo-lines-v1:sha256:a91f88bee69fc799fe765bb122f6b5106642c565be05fb945780ea3d3248ebf3:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczYmEyNjc2YzMzZGE1MjMyNTFkNWNjZjUzNjViODFhMGEwMjMyZWU3MGI3OTFlNmJjMTNmYTIyNTFhMGQ4MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjNkZGYwYjM4NzRlMWFmZmJlMzgwYTg1YWUxM2E2MDNhMzNjZmNmMDQ4YzBmNDM0NTNmYThkOTY4OTcyOTk2OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzE4ODJlOTJlMDU3MTI0MDRlN2M4MWQ2Mjc2NTIzMWQ5Y2VkZjg5MGNlNmUwZTVlMDBhZDk2NzIzOTA5YzA3OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
+        },
+        {
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L43-L51",
+          "version": "repo-lines-v1:sha256:9474f3899cd27c703003d0bd9b0541dac067c03e0babf5d69c8c4018e4966ba5:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWNhOTQyYzcyNGNmZmM3NzY4ZWYzZmM5MmZmYTJmM2QwMDg4OGM4ZWFhYThiYWI5MWVmM2M1NDczYWQ5ZDNmNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWJkMWIzODk5MDdjMTI3Mzc5NzM2NWEzZjhiNDVlYWFiNjJhNDQzODllYTg4YzdlYzJkYTA0ZDY2OGJkYmRlYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmY4NTJmMGUyNmY4YTJjZTYyNDQxNjcyMTJhOTc5MzYxYjljMWVkNTQ0NDU3MWRmYjZmMTJlYmMyNTQzZWRhOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjhmOGYwNGFmMDdmMGVmY2RiNTdkMWJiMjlkMjQwZjhkM2FlOGRiMDhkYzEwMmUxY2IyMjhkYmIxMDhmOGI3NyJ9"
+        },
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L161-L167",
+          "version": "repo-lines-v1:sha256:714b87dbb33b249ff4afd6b97b11bd3242291ef48f7922ca6754f6762cbfc1f2:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjg1Y2YyZWExYzhiZDM2MTk5ZGUyYTlkM2M0MzFmMWM1MDQ5ZmNkZTdlMGIzNWZhNjQxZTBkNzQwYWZjZTQwMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZjM2ZWJiNDZhZTk4ZTQzYTkxNjAzNDczYzY5YzdkNWE0ODcwODNmZjgyZWMyODA2MThiYmE1NmUzMGVhZjMxMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2U0MDU5Y2Q2YTY3ZTE0MTUyYjg4Njg0OTM0NTgwNDljNzY0NTNiYTlhOTkyMzYyMTI3YWJhNTkwOWUyNDExMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjcxMzllODgyYmE1Yzc2YWU0YzcwM2I0YTMyZWFlNGI5YmY2OWNiOTYyNzAyN2RhMmVhZjQ1N2JkOThhMDJkMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_65fcfe9af8eb41a3967800a39eb84530",
+      "statement": "The project’s primary native build entrypoints are the `TFM` macOS scheme and the `TFI` generic iOS Simulator scheme; the TFM build also builds the MCP bridge and AgentKit, while TFI builds the mobile app and shared frameworks.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L26-L31",
+          "version": "repo-lines-v1:sha256:388a61ace4d6d2e8a6a9fe6a9a2b0ee6a67122ab831f7d0a49eba6d9e9cd10e5:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNTczYmEyNjc2YzMzZGE1MjMyNTFkNWNjZjUzNjViODFhMGEwMjMyZWU3MGI3OTFlNmJjMTNmYTIyNTFhMGQ4MiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDgxNGI5ZThhM2Q1ZWE2YjA0MmVlOWE3OWU0NGM0Y2IzZmM5NDRkNjdlOWI2ZjNlYmEzOGNkYTFhOWZiZjM1OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMzE4ODJlOTJlMDU3MTI0MDRlN2M4MWQ2Mjc2NTIzMWQ5Y2VkZjg5MGNlNmUwZTVlMDBhZDk2NzIzOTA5YzA3OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjBhMGVhOWU0ZTc5NDI3YWMyNzUwOTk4ZTg2M2ZiOGE2ZDEzNDI5YjRhZmM0ZmEwOTdiOThhZTQzNTc1MGU3NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_1a9166d8adfa413f8574be310dec6512",
+      "statement": "The default resolved-package `TFM` test command runs macOS and shared Swift tests, while an available iPhone or iPad simulator destination is required for TFI tests.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L29-L31",
+          "version": "repo-lines-v1:sha256:b01fe78aa30f13a1b9b6592963253ce9311901af610a5e20419e2e04a1e8b6ff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNDVhM2YxNTdmNDc0Zjc4OTI2NzY0MjhmMTE0NWE5YjBlZDU5OTg4NDNmNTU0YTAzNzNiMmIxMjFhN2E2Mjg0MCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDgxNGI5ZThhM2Q1ZWE2YjA0MmVlOWE3OWU0NGM0Y2IzZmM5NDRkNjdlOWI2ZjNlYmEzOGNkYTFhOWZiZjM1OSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMWY0MzVkMzdiNmYzMWNjNmFhZjdjOTFmZGY3Zjg0Nzc5Nzg2NDgyZWE0MGI4N2I4ZTIzMWFlOGQ3OWY4ZmUwYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMjBhMGVhOWU0ZTc5NDI3YWMyNzUwOTk4ZTg2M2ZiOGE2ZDEzNDI5YjRhZmM0ZmEwOTdiOThhZTQzNTc1MGU3NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_5f8616d759174a4c8ab58ccf50cf9ee0",
+      "statement": "Swift formatting is configured for four-space indentation and 120-column lines, and the repository’s strict formatter lint covers production/test Swift roots plus `TermindMCPBridge`.",
+      "evidence": [
+        {
+          "resource": "repo://.swift-format#L1-L7",
+          "version": "repo-lines-v1:sha256:c46d5fca7dea21cd01539ab52f6b003ceb930d0c40ee74115bff80802d41ac38:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTZmYjA4ZmRhMWFjYjk1N2I2MTE2YmQzNzgxMWExZmU0MWEwMTYxMWMwNjMxZWRiZjc4NmQ2ODg5YTI3YTU1YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://AGENTS.md#L32-L38",
+          "version": "repo-lines-v1:sha256:71f75264f5d3b24ae9a173eae068137790f39cf7e2e2b1c4ff1ba75cf9c4d3e2:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRiZGQxZGM1ODQ0ZmFhNTZhNGM4NmQ5ZjkyNzA2OGJmM2E4ODM3MzBiNDRjYzFiNzkxOWE5MjFmNmM5Nzc3YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYTNhZjBhNjM0NDY4YzEwZjBkYzVlODJmZDJlNjI4MTcyZmU0NjA1NTFlNzY3NWFlNGQzOWNhMzFlNDE5Y2M2OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjAxZmU3OGFhMzBmMTNhMWI5YjY1OTI5NjMyNTNjZTkzMTE5MDFhZjYxMGE1ZTIwNDE5ZTJlMDRhMWU4YjZmZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_db3ecae69f064431b6a671d976bf846b",
+      "statement": "Mac tests marked `.requiresVisibleWindow` run only when the test host has `TERMIND_WINDOW_TESTS=1`; command-line opt-in uses `TEST_RUNNER_TERMIND_WINDOW_TESTS=1`, and routine validation leaves window/focus tests disabled.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L40-L44",
+          "version": "repo-lines-v1:sha256:e338764617da1424b56fb4b3d8eeb6b688285fa246721671afbd893a11c72e92:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/VisibleWindowTestTrait.swift#L4-L11",
+          "version": "repo-lines-v1:sha256:b8b2903d1009b119d2daa9cc5915fe34eab19cf61490b33adc02693393f4c95f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDZkYzRhNmI2NzJiZTRkMGI5ZjA5ODI5ZGNkMzgyYzEwMWJhMWMwMGQxZjYzNTY3MDI4OWFiNWE1NzBiNTYzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzNkOTM2OTExYzY5MzE5OTAxOGFmMTI5ZTA3Njg2YjY5NjgyMDZmMjk0MmY2ZGViNzdkNWJjMmQ0MGI1ZTJhMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_ec9d22a2932b42bd80eae69e73f89de5",
+      "statement": "`Scripts/check-zh-localization.sh` validates the target catalog JSON and, for both `zh-Hans` and `zh-Hant`, rejects missing locale entries, unfinished or empty translated string units, and specified Chinese/Latin or punctuation spacing violations.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/check-zh-localization.sh#L3-L63",
+          "version": "repo-lines-v1:sha256:b37758f253f9959a2d7753b617b2cbeabf5d669ea6e0a24b89b4deaa44fb6e82:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4ZmM2MzM2NjdkMDMwMDczMWJkZDg0NDcyZGM0MjRlMWY5YzY0MTc1ZWEyYmFkYjY2NjQ3MmQ5MWFlYjRlZmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxMTdmYTAwNmJhOTIwODUwMGIyOTMwY2U2OWNiZGU0MzZjNjQ3YWZhOTE3Y2I3Mzk2YTliYzkxMTFhNDZkZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5NjIyZmFlMmFiMDJmZTM1OWVkMTUwOTY0YTkyNjUzNjk3YmZiMjM1ZTIwOTQ3YWEzYzNmMzg1NDg0ZTk3YmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4OTQ2ODJhNmM3OGFiNDA4MTM1NDJjNWNhZjRhYTFiYTAzNTc4YzUxY2Y3YTI4ZTU0MDVlZDJhMDUyMzBhNWEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_289bc88ffb654cb89575cee5856f3436",
+      "statement": "App-facing text belongs in `Frameworks/Resources/Localizable.xcstrings` and metadata in `InfoPlist.xcstrings`; changed English strings require finished Simplified and Traditional Chinese translations in the same commit, while AgentKit’s catalog must be built with `../AgentKit/Scripts/build-localizations.sh`.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L46-L48",
+          "version": "repo-lines-v1:sha256:5e69d5ddf8b0181f834edfe8f463b1ddc71ce0c0c26beaa6f4dc0cb63b7f1c67:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNmVkNjM3YmU2ODNjNzYxMmY2NzdlYTllMWE1NmI5NjU5OWU3NzJmNmQ3NjkwYjQyMzc0MGNkMTRhZmZmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjZhNzFhZDgxY2FlOGI3MGJiZDYwMzkxNzllYTExZmU0OGExODY0YzdmMDcwNzU2MDQwYWJlOTYxNmVhNmMyYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_5cb32e4cb4ad43229d505772452cf610",
+      "statement": "`AppLanguageTests` verifies canonical explicit English, Simplified Chinese, and Traditional Chinese language tags and verifies that the Simplified and Traditional catalogs resolve independently.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/AppLanguageTests.swift#L12-L40",
+          "version": "repo-lines-v1:sha256:6d29d5e56f1e9628570f1ccc9b04a767ebf7a8770405f1e520df679cad0ba7a2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzMTIzODBkOGU0ZTNiYjlhNzg4OWEwZGMxNmVhMDNkODJkYjU1Zjk1NDg5ZmFhMWI3NTNlMzMwODllZjRlZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2NGI0NjIzNmYwZmExMjhlY2QwNDhmMGUyZDMzNDFiNjYyYzQ2NjA3N2I3MmZiYTg5OGY0MTZlZWYxNjljMjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1NTJjOTcxMTBhMDM1ZjNkYjQ2MWIzM2VjZmQ1MzAwNzk5ODMxZWJlYjdlMmEzOThkMzJiY2ZmNTJlYjFlNWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMwZjhmZWVmOTQyZDljODcwMDUzOGE0MGM4Nzk5YTZhNDdkNzM0N2ExNGMxZmMwYmI1NWQ0Mzk2NTA5Y2QyZDgifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AppLanguageTests.swift#L80-L89",
+          "version": "repo-lines-v1:sha256:620bdd8a67249fd08f6ea1e3b77a03c9da65deeb43ab84295c0f62fe31899f63:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUzZGM3YjkyZTE3YmQ1OWUyMjQ4M2RjMDdlZWM5NWUxMTIxYmU5Y2ZjYmJkNzU5ZWRmOGVhYzc2NGEwYTlkMjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY0MTJmYmM2NGI2MzE3YTMwMmRiODZiZTI1ZjFhYjU1M2Q5NTk2ZjM5M2FhODM2OWJlYzFkZTU4NmRjMTE1OTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk0ZTdkMmVlYzM0ZjNiMzZmMmI1NDhjNTJiNzhiYzBhZjJlNmNhMThlNjc5NmY5NTMyODc1MjgzYTcwM2Q5NjcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_9001476115de4dc3a10921fa323b9f08",
+      "statement": "The LandingPage production build is `astro check && astro build`, and build output is emitted to `dist/`; the project recommends `npm ci` followed by `npm run build` for locked production validation.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L33-L34",
+          "version": "repo-lines-v1:sha256:759c2b50a118c461d626f39e61caaf6e3e769f097a419a3e47f981dad24ceb88:eyJzZWxlY3RlZExpbmVDb3VudCI6MiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGFjZDgyMzljNjkzZmFmMmJhMmY5NDIxMzJiMzY3MDA3ZDBlOThhNzhlODIyNGJjZWNkZjljYzc4N2QwNWZjOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjNkZGYwYjM4NzRlMWFmZmJlMzgwYTg1YWUxM2E2MDNhMzNjZmNmMDQ4YzBmNDM0NTNmYThkOTY4OTcyOTk2OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTk2MWFhYjc5NWU4NjA0MDU0ZWJmMjdlNTVkZmM0NWU2NzljMzMyNTBmYzdjYzRhZDQwMGMwNzk2ZWY5YTEzNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNTMwM2VlYzhlNjU1MjZiMzI1MWUyNDRmNjljMGIwOTMwY2ZmNTFiZDhiODRkMzZhMzk1NzJlZDg3YjIyOWZkOSJ9"
+        },
+        {
+          "resource": "repo://LandingPage/README.md#L10-L17",
+          "version": "repo-lines-v1:sha256:7ccde33af3c6d70715018d38c434cac90c3ce7f9ab94942bddf007ea9a72aa8c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWQ2NGE4MDg5YzkxOWY2ODk2OWZkM2FkMTgzMDJhNDEyM2RhZjQxM2Y0OTYzMTA5YzEzNGYzNzkwMzFlNGU2NiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjY0ZDkxYzMxNGRjYTllNzBhYTNkMTAzZGViMzUwNmM0ZmRiODQ1MzU3M2VjNDQxZDdjNmYyNzcwZDNhMGY5MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzFmNTQyNDdlNzIxMzMyMzc3YTJmNWIwOTAxYjAwMjhmMWUxZTllMDA3NzYxODdhNzFjZDI4YjRjYTI0MWQ3MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjkzYmVlZTU4ZTNkODI1ODdhZWNjMDgwZTZjMjYwZDg2ODNkM2YyMmJkNGRiYmUyNjU4M2M1YmFhMmI3YTI1NCJ9"
+        },
+        {
+          "resource": "repo://LandingPage/package.json#L1-L21",
+          "version": "repo-lines-v1:sha256:832181dd1c57382ec69ce1f74d60047f776261ae8136c2185e51f09ebf1dccd3:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ZmIwOGZkYTFhY2I5NTdiNjExNmJkMzc4MTFhMWZlNDFhMDE2MTFjMDYzMWVkYmY3ODZkNjg4OWEyN2E1NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3ZTU3ODhkNWQ5ZDczZDI0YTgxZGJjMGE1YTc0YmZhODJjOWMzYjNhZjk5ZTUyYWY3OTZlOTBiNDY4YThhM2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_45a54a6ec2084c94aa32989e12bd8f00",
+      "statement": "The macOS marketing screenshot script requires macOS 27.x, builds TFM for testing with resolved packages, waits for a focused ready window, verifies image dimensions, and writes captures while backing up previous assets.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L43-L51",
+          "version": "repo-lines-v1:sha256:9474f3899cd27c703003d0bd9b0541dac067c03e0babf5d69c8c4018e4966ba5:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWNhOTQyYzcyNGNmZmM3NzY4ZWYzZmM5MmZmYTJmM2QwMDg4OGM4ZWFhYThiYWI5MWVmM2M1NDczYWQ5ZDNmNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMWJkMWIzODk5MDdjMTI3Mzc5NzM2NWEzZjhiNDVlYWFiNjJhNDQzODllYTg4YzdlYzJkYTA0ZDY2OGJkYmRlYiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmY4NTJmMGUyNmY4YTJjZTYyNDQxNjcyMTJhOTc5MzYxYjljMWVkNTQ0NDU3MWRmYjZmMTJlYmMyNTQzZWRhOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNjhmOGYwNGFmMDdmMGVmY2RiNTdkMWJiMjlkMjQwZjhkM2FlOGRiMDhkYzEwMmUxY2IyMjhkYmIxMDhmOGI3NyJ9"
+        },
+        {
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L8-L19",
+          "version": "repo-lines-v1:sha256:093fa5e9175516af40e0a58ceff0ff23d0181e7d7df7d24c6a2dd5b672300d2d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY0ZWRlZjRlMTNjYzFkMTZkMzc2MDIyYzVmZDlkOTU0MWRiZjkzZDQyMGJkYzZkYmEyOTM2MmIwNGE0ZTRlYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZlZTVkOTQ1YjQ0YWRkZDEwYzc4ZTMwMDk4MTQyZjBkM2ExMWYzODZkZjdlNWU3ODNkZDk4MDIwOGZkMGI1MjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1NTc3ZDc2N2NlOWY0NmRiMDlmZjJiOWExMjUwNDJlNzg2NGNlZDIyZWYxNjIxYjIwNzIxYjNmZjcyM2Y1ZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUxZTUxOWUwZDBiNDg3NGIzMDA4ZGYyYzI1YTczYjEyNzE5NGY0OTk2NjI3NzA3YTk1YzMzYTNkN2Q1NDg1NjcifQ"
+        },
+        {
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L94-L150",
+          "version": "repo-lines-v1:sha256:3ec63f24140f2fe5ab30697272a56e495bbd29d5426845eead08c2ddd155d85f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc3MzYyZDc1ZWNlN2I1YTM0MjQwMTU3ZmNkYzUzMjgwMDIwZDFhNDNjNzIzOTE3OGFhMDFjZjBlMTM1ZmRlYzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcwN2E2YTMyZDQ4MjQ4MzhiZjM4YzNjNDA4OTFjNjUxYzYwZmQzYmFjYTdjMWI3Yjk2MDA5ZjQzOTZmMWVjYjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUwMmI3ODZlYjEwMGEwZTZlNGZmMDIzYTk3YjFmN2EyYjMxMjVhMTMxNjIzNGI5NzMzMjgyYjRjYjI4M2FjNmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjZDRhMWI5Mzk2NTkwY2MzN2FhNGQyZDU4ODAwYTBmMWRhZDVlYWFjYWYzYzY5YmM5ZTgzNTZjOTM0YWVkNzUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b6d98fab165c427faea71a8b3730739f",
+      "statement": "The mobile marketing screenshot script requires an iOS/iPadOS 27 runtime, uses resolved packages for its TFI build-for-testing, runs `MobileMarketingScreenshotTests` for `en`, `zh-Hans`, and `zh-Hant`, and fails if the expected number of captures is not received.",
+      "evidence": [
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L135-L195",
+          "version": "repo-lines-v1:sha256:40e63bba3dc7a114d25b544b4df8eda84296202213a92584f7aba9f246617e17:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkzNjIzZWFmN2NjYjljMTBjMDNkZWY2OTgxZDAwZGZhNmUxYTFiMjhhMmFkYzFlMzg0MGQ5NDNiMTc0ZDkyY2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ3YzA3ZDViNjk2NWFiNWNlOTMxMjI5ZGVjNDA0ZmExMmMwZDljMDQxN2Y3NmNmZmEzZmIxOTc0MDVlOTc5MjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5N2RjZmE0MWZhN2E1Nzk4OWE4M2NhZjdkYzNkMTVlNTNhYjljNjVlMjE5MDIwM2Y0NWRkOWI5NjYzY2YyZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkNmUwNDI1NmVlNTQzNmUwYWRkNzEzNDE4ODk2ZDY4YzEzOGZkYmNhZmIzMmJjMDMzZjczOTA2YTNlYmZhYjEifQ"
+        },
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L79-L83",
+          "version": "repo-lines-v1:sha256:b17e386bad4556c1e3c2130d48fe8728e40c96a43f75301025f0a9a37fb80010:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYjAwOWYxZGQzMjMwYzcxMTYxZDg1MDI1YjRjODQ5YWEwZWM3ZDc1NmIzMjMwMDhiZmZlMTA1MzM3ZjVlN2U3YyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNWZkNzdjZmI1NzAxNGRmYzkxYjc1YmQ4ZmM4ZTY0ZDg0MTQ3YWEwYjlmNjIyOTZkZTRjYTI2ZjYwODg3ZDFiNyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDE1YWMzNDhlMmM0YzVhMWMxNmNkNjQzZTViNzg0ZTc1ZTdlMDkwYmNjODQ4NTgwMjRkYTcxYWEwOGMzZWVhZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWVhM2M3Y2Y3MzMzMjRkNzI5MTZlM2EwODEwMGIxMDJmMmJiZWNhMTdkOTE4YTM4NTcyMzU5NmY0MGNiMWY2NyJ9"
+        },
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L9-L21",
+          "version": "repo-lines-v1:sha256:de0db02c0474119da87611422e7481b9df01e05d6b8c6444f78b1256f1dd7b33:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE3YzMxM2NhMDZjMmM3M2Q4NjQzZjM4NmE4YjVhYTdiMDA5NjE2MDEzYjQ3ZjAzODcyODM4MWYxNTVlYzY3ODUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0YTJiZWNmZjhhZmIzNGRiMjYwZGFiYzk2OTE1ZmZlY2ZkZTg0ODkyOTU0MWM2MTkzZGU2ZDE2NGMyMWU4ZGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRmY2NmNGY4MWJkOWI1ZWY3MGY2NTczNTU4OTZjNGY3NTcxMWE2YmU5MTIwYTM2MmIwOWMzZTEyMjEzYWNhZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA4NmFiNmRiMjVlOGQ3ZDQ2MTIxM2NkODcyN2U4NjU0NDc3NTBiMTUyMmE4YzQxMTI5OTM0Y2UyMmEzZjIyNWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_787a0b8744354bdc9eed7aa16a6a6594",
+      "statement": "AgentKit is declared as an up-to-next-major remote package with minimum version `0.14.0`, while `Package.resolved` pins it to release `0.14.0` at revision `ffc4aa41c8854142aa47c35231e57f56f961ba9f`.",
+      "evidence": [
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2837-L2844",
+          "version": "repo-lines-v1:sha256:444f908545e708b1d395265e4292e5529193fc19d4f609c8b5e06f6d68e13abe:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved#L3-L12",
+          "version": "repo-lines-v1:sha256:020558cd6c690f48bb07a00cf6e6c34889c9e5c497fbbab4f1a9466cbc996851:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZmQ1MzQ0YWM2NzYwMjNjOGZkM2FhMmZjNWQxMThiZWYyNzNlZWNkMTYzMWY1MWEyZThlNThlNGUwYWJmMGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMGNkYjk3MmE3YmZiN2VkMjQ2ZjlmZjY3MjM4NWU1NWY0OTY4ZmMxMTA0M2RjNWI2ODRkNTFkZmEzMWRiY2IiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijg2MGUwYTQwMzczZmI1MWNkNWM5NjhlYjkwYmM4MDA5YzkxZjYwZDBhMzgyZGUwOTEzOTFjOGUzYjZiMDJmNDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY2OTQ3NDIzZWZiNmI1NTAwYTRjZDg5NDM2NWUzOGUyZGIwYmQ2NDA0MjJiZWFlMjQxMDljY2NkOWI4ZjAxNTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_4210116e410941d98e7d962dcd708ce2",
+      "statement": "A Termind change that depends on AgentKit must follow the release/bump/re-resolve sequence: test and release the sibling package, bump `minimumVersion` in `project.pbxproj`, then re-resolve so `Package.resolved` records the new revision; both files belong with the app-side change.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L16-L18",
+          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWYxZjNmMTg5YTBiZTIyMGIzYjA0YmIwYzc0MTI2OGE5MzE4OGU1YzY0OTMzZGUyNzU0YzI3ZTZkYzRmZTE0NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_c0b02f23d4044dc89a147355e5058757",
+      "statement": "Repository policy prohibits committing secrets, `.env` files, build products, and user-specific Xcode data; `.gitignore` excludes derived Swift/Xcode outputs, Node/Astro outputs, and local environment files.",
+      "evidence": [
+        {
+          "resource": "repo://.gitignore#L45-L49",
+          "version": "repo-lines-v1:sha256:9985bda83dc4a7b4978e55362a6269836341f7c3dd122eaedfbbadfc4ace5900:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWMzZmRhYzZkNTZmOWIwYzEyZjUwZWMwZGVhMjFhOGZkNGZiYmQ0YWM3MTM0NzUzYmRiMzllNDllMThjNDQyNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTAxNmUxYjk2YmJiYjEwNTY5NWE0NjU1NGI0NzMyNjc5NTA5NTJiZTg0NGIwN2ZmZGI0N2EyMDc3OGNhZWE4YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiN2VmNWFlNDgxYWFkOTU4YmZhYmE3NDVkMmYzZjg5YjJhMDE1MDg4ZTdiNTE5MmQ2NThjMDg0MjZhMWYyMTgyYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWUzYjY0ZmJkMGE1YjlkZDk0NWMxYzk5Yjk0MWE1ZjJkZWM3Mjg4NWM2NmRlM2RjOTA5ODRiOWQxNzRkNjI1OCJ9"
+        },
+        {
+          "resource": "repo://.gitignore#L7-L29",
+          "version": "repo-lines-v1:sha256:28513ea594acc7764aca28eced9c12cc5d6c0a019b43fbb8e3392860b99eef69:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4MDI3NzQyZTc4ZDM0ZWE1MjNiMjllOTdjYjRmNzk5NWJjMmEzZWI4OGY5NmIyOTBjNTdmOGI5MTUwZjE5NWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlOWEyODY4YjUwOTBiOWU4MTk1M2I3Y2Q4MzE2YjMwMDJlN2NkNjg5NzMyMGMyYWE2OWVlNzFmYzI3YmUzYWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3YjIxNDZmZTAwMjRlZjA1NGIzMTAxNzk4ZDRkYmViOGM2MGMwZGI4NTk4ODAwMGFhY2UzNWVmZDgwZjk4Y2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ5NDZkMjVhM2MyYjNlMTk1MjZiNWJiODVmODdmYTE0ZDQ5ZTk2OTgwMTJmNWQxZWEzNzI4NzFiNTM0MDk3NjQifQ"
+        },
+        {
+          "resource": "repo://AGENTS.md#L50-L52",
+          "version": "repo-lines-v1:sha256:c11f26108030abfcf1f2cdd98655ff0116e1d44180c4d5eec36e9b6bb15895e9:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjRjMjMzMjczNTc4NTMyYWE3NWIxM2ZiMzRjYzkwYjdkMDIwYWVkNDhmNjY1YTE4MjYxNjdiOTAwMjljN2MzYSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTAzYWFlMjllMDYzMTZkNmRhNmY4YzJhOTFmNmU0NGE2MTJmYWJkNzkzYWQxZjVhMWZjYTUyMDZiY2VkYTQ3YyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMjE3MWVmNzc1NWEyMTNkNzkwZTA1OTU2ZGNhOTRiZjE5Nzk4YmYwNGZhOTNhOGE3MjE0OTgyNTczMDdiM2UwYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWIxYmM1YmM0YTIzN2Y1NzhlNmFmNGE0MTVkMDY0N2Y5OTEwYjAzYjM2NGUxZTI3YzFmMWRiYWE3NDNkMDNiYSJ9"
+        }
+      ]
+    }
+  ],
+  "verification": {
+    "by": "openwiki/0.5.2",
+    "at": "2026-09-22T00:31:10.149Z"
+  }
+}
