@@ -76,10 +76,17 @@ struct ManagedChooserTests {
     @Test
     func connectAndBatchStartupChooseProtocolsWithExpectedSelectionModes() {
         #expect(HostChooserPurpose.connect.choosesConnectionProtocol)
+        #expect(HostChooserPurpose.connect.availableConnectionProtocols == [.terminal, .sftp, .serial])
+        #expect(!HostChooserPurpose.connect.connectionChooserShowsConfirmation(for: .terminal))
+        #expect(!HostChooserPurpose.connect.connectionChooserShowsConfirmation(for: .sftp))
+        #expect(HostChooserPurpose.connect.connectionChooserShowsConfirmation(for: .serial))
         #expect(!HostChooserPurpose.connect.allowsMultiple)
         #expect(HostChooserPurpose.connect.activatesHostImmediately)
 
         #expect(HostChooserPurpose.batchStartup.choosesConnectionProtocol)
+        #expect(HostChooserPurpose.batchStartup.availableConnectionProtocols == [.terminal, .sftp])
+        #expect(HostChooserPurpose.batchStartup.connectionChooserShowsConfirmation(for: .terminal))
+        #expect(HostChooserPurpose.batchStartup.connectionChooserShowsConfirmation(for: .sftp))
         #expect(HostChooserPurpose.batchStartup.allowsMultiple)
         #expect(!HostChooserPurpose.batchStartup.activatesHostImmediately)
 
@@ -91,6 +98,7 @@ struct ManagedChooserTests {
         )
         #expect(snippet.allowsMultiple)
         #expect(!snippet.activatesHostImmediately)
+        #expect(snippet.availableConnectionProtocols.isEmpty)
     }
 
 }

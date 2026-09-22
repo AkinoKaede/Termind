@@ -129,40 +129,64 @@ struct ChooserInteractionTests {
         #expect(!second.model.isQuickOpenPresented)
     }
 
+    @Test
+    func connectUsesImmediateRowsWhileSerialAddsAnExplicitTopAction() async throws {
+        let connect = ChooserFixture()
+        defer { connect.close() }
+        connect.mount(HostChooserView(purpose: .connect))
+        try await connect.settle()
+
+        let connectActions = connect.elements.filter {
+            $0.accessibilityIdentifier?() == "host-chooser.confirm"
+        }
+        #expect(connectActions.isEmpty)
+        let picker = try #require(connect.views.compactMap { $0 as? NSSegmentedControl }.first)
+        #expect(picker.segmentCount == 3)
+
+        _ = try await connect.quickOpenField()
+        try connect.key(String(UnicodeScalar(NSDownArrowFunctionKey)!), code: 125)
+        try connect.key("\r", code: 36)
+        try await connect.settle()
+        #expect(connect.model.workspaces.count == 1)
+
+        let serial = ChooserFixture()
+        defer { serial.close() }
+        serial.mount(HostChooserView(purpose: .connect))
+        try await serial.settle()
+        let serialPicker = try #require(serial.views.compactMap { $0 as? NSSegmentedControl }.first)
+        serialPicker.selectedSegment = 2
+        #expect(serialPicker.sendAction(serialPicker.action, to: serialPicker.target))
+        try await serial.settle()
+        #expect(serial.model.workspaces.isEmpty)
+    }
+
     @Test(arguments: [HostOpenTarget.sshSession, .sftpChannel], [1, 3])
     func batchConnectAndReturnCreateExactlyOneWorkspace(target: HostOpenTarget, count: Int) async throws {
-        for useReturn in [false, true] {
-            let fixture = ChooserFixture()
-            defer { fixture.close() }
-            fixture.mount(HostChooserView(purpose: .batchStartup))
-            try await fixture.settle()
-            let confirm = try fixture.element("host-chooser.confirm")
-            #expect(confirm.isAccessibilityEnabled?() == false)
-            #expect(fixture.model.workspaces.isEmpty)
-            if target == .sftpChannel {
-                let picker = try #require(fixture.views.compactMap { $0 as? NSSegmentedControl }.first)
-                picker.selectedSegment = 1
-                #expect(picker.sendAction(picker.action, to: picker.target))
-            }
-            // Select in reverse order; workspace panes still use the library's order.
-            for host in fixture.hosts.prefix(count).reversed() {
-                #expect(try fixture.element("host-chooser.host.\(host.id)").accessibilityPerformPress?() == true)
-                try await fixture.settle()
-            }
-            #expect(fixture.model.workspaces.isEmpty)
-            #expect(try fixture.element("host-chooser.confirm").isAccessibilityEnabled?() == true)
-            if useReturn {
-                try fixture.key("\r", code: 36)
-            } else {
-                #expect(try fixture.element("host-chooser.confirm").accessibilityPerformPress?() == true)
-            }
-            try await fixture.settle()
-            #expect(fixture.model.workspaces.count == 1)
-            let workspace = try #require(fixture.model.selectedWorkspace)
-            #expect(workspace.panes.map(\.hostID) == fixture.hosts.prefix(count).map(\.id))
-            #expect(workspace.focusedPaneID == workspace.panes.first?.id)
-            #expect(workspace.panes.allSatisfy { $0.kind == (target == .sshSession ? .sshSession : .sftpChannel) })
+        let fixture = ChooserFixture()
+        defer { fixture.close() }
+        fixture.mount(HostChooserView(purpose: .batchStartup))
+        try await fixture.settle()
+        #expect(fixture.model.workspaces.isEmpty)
+        let protocolPicker = try #require(fixture.views.compactMap { $0 as? NSSegmentedControl }.first)
+        #expect(protocolPicker.segmentCount == 2)
+        if target == .sftpChannel {
+            protocolPicker.selectedSegment = 1
+            #expect(protocolPicker.sendAction(protocolPicker.action, to: protocolPicker.target))
         }
+
+        _ = try await fixture.quickOpenField()
+        for _ in 0..<count {
+            try fixture.key(String(UnicodeScalar(NSDownArrowFunctionKey)!), code: 125)
+            try fixture.key(" ", code: 49)
+        }
+        #expect(fixture.model.workspaces.isEmpty)
+        try fixture.key("\r", code: 36)
+        try await fixture.settle()
+        #expect(fixture.model.workspaces.count == 1)
+        let workspace = try #require(fixture.model.selectedWorkspace)
+        #expect(workspace.panes.map(\.hostID) == fixture.hosts.prefix(count).map(\.id))
+        #expect(workspace.focusedPaneID == workspace.panes.first?.id)
+        #expect(workspace.panes.allSatisfy { $0.kind == (target == .sshSession ? .sshSession : .sftpChannel) })
     }
 
     @Test(arguments: ["en", "zh-Hans", "zh-Hant"])
@@ -171,8 +195,9 @@ struct ChooserInteractionTests {
         defer { fixture.close() }
         fixture.mount(HostChooserView(purpose: .batchStartup).environment(\.locale, Locale(identifier: language)))
         try await fixture.settle()
-        #expect(fixture.elements.filter { $0.accessibilityIdentifier?() == "host-chooser.confirm" }.count == 1)
-        #expect(try fixture.element("host-chooser.host.\(fixture.hosts[0].id)").accessibilityPerformPress?() == true)
+        _ = try await fixture.quickOpenField()
+        try fixture.key(String(UnicodeScalar(NSDownArrowFunctionKey)!), code: 125)
+        try fixture.key(" ", code: 49)
         try await fixture.settle()
         let view = try #require(fixture.window.contentView)
         view.layoutSubtreeIfNeeded()
@@ -182,7 +207,7 @@ struct ChooserInteractionTests {
         Attachment.record(image, named: "batch-startup-\(language).png")
         try image.write(
             to: FileManager.default.temporaryDirectory.appending(path: "termind-batch-startup-\(language).png"))
-        #expect(try fixture.element("host-chooser.cancel").accessibilityPerformPress?() == true)
+        try fixture.key("\u{1B}", code: 53)
         try await fixture.settle()
         #expect(fixture.model.workspaces.isEmpty)
     }

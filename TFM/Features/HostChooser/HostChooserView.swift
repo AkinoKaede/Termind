@@ -66,8 +66,8 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         }
     }
 
-    /// Named for what it does, not "OK". The footer keeps this explicit action
-    /// in every mode, while clicking a host also performs the single-selection case.
+    /// Named for what it does, not "OK". Multi-selection and Serial use this
+    /// explicit action, while clicking a host performs the ordinary Connect case.
     var confirmLabel: LocalizedStringKey {
         switch self {
         case .connect, .batchStartup: "Connect"
@@ -98,6 +98,22 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         switch self {
         case .connect, .batchStartup: true
         case .snippet, .metrics: false
+        }
+    }
+
+    var availableConnectionProtocols: [HostConnectionProtocol] {
+        switch self {
+        case .connect: HostConnectionProtocol.allCases
+        case .batchStartup: [.terminal, .sftp]
+        case .metrics, .snippet: []
+        }
+    }
+
+    func connectionChooserShowsConfirmation(for connectionProtocol: HostConnectionProtocol) -> Bool {
+        switch self {
+        case .connect: connectionProtocol == .serial
+        case .batchStartup: true
+        case .metrics, .snippet: false
         }
     }
 }
@@ -191,12 +207,13 @@ struct HostChooserView: View {
     }
 
     var body: some View {
-        SheetScaffold {
-            header
-        } content: {
-            content
-        } footer: {
-            footer
+        Group {
+            switch purpose {
+            case .connect, .batchStartup:
+                connectionChooser
+            case .metrics, .snippet:
+                managedChooser
+            }
         }
         // A sheet has to name its own size. The host list has no intrinsic
         // height, so without one the panel collapses to its header and footer
@@ -239,7 +256,108 @@ struct HostChooserView: View {
 
     // MARK: - Pieces
 
-    private var header: some View {
+    private var managedChooser: some View {
+        SheetScaffold {
+            managedHeader
+        } content: {
+            managedContent
+        } footer: {
+            managedFooter
+        }
+    }
+
+    private var connectionChooser: some View {
+        VStack(spacing: 0) {
+            connectionTopBar
+
+            if connectionProtocol == .serial {
+                serialForm
+            } else {
+                VStack(spacing: Metrics.Space.m) {
+                    ConnectionChooserSearchField(
+                        prompt: "Search hosts",
+                        query: queryBinding,
+                        onSubmit: openSelected,
+                        moveCursor: move,
+                        toggleCursor: toggleCursor
+                    )
+                    .padding(.horizontal, Metrics.Space.xl)
+
+                    connectionHostList
+                }
+                .padding(.top, Metrics.Space.xs)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(TermindColor.windowSurface)
+    }
+
+    private var connectionTopBar: some View {
+        HStack {
+            glassActionButton(
+                "Cancel",
+                symbol: "xmark",
+                identifier: "host-chooser.cancel",
+                action: close
+            )
+            .keyboardShortcut(.cancelAction)
+
+            Spacer()
+
+            if showsTopConfirmation {
+                glassActionButton(
+                    purpose.confirmLabel,
+                    symbol: "checkmark",
+                    identifier: "host-chooser.confirm",
+                    action: openSelected
+                )
+                .keyboardShortcut(.defaultAction)
+                .disabled(connectIsDisabled)
+            } else {
+                Color.clear.frame(width: 30, height: 30)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .overlay {
+            connectionProtocolPicker
+                .frame(width: protocolPickerWidth, height: 30)
+                .termindGlassCapsule(isInteractive: true)
+        }
+        .padding(.horizontal, Metrics.Space.xl)
+        .padding(.top, Metrics.Space.l)
+        .padding(.bottom, Metrics.Space.s)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var protocolPickerWidth: CGFloat {
+        purpose.availableConnectionProtocols.count == 3 ? 240 : 180
+    }
+
+    private func glassActionButton(
+        _ label: LocalizedStringKey,
+        symbol: String,
+        identifier: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(label, systemImage: symbol)
+                .labelStyle(.iconOnly)
+                .frame(width: 30, height: 30)
+                .contentShape(.circle)
+                .accessibilityIdentifier(identifier)
+        }
+        .accessibilityIdentifier(identifier)
+        .buttonStyle(.plain)
+        .termindGlassCircle(isInteractive: true)
+        .help(label)
+        .accessibilityLabel(Text(label))
+    }
+
+    private var showsTopConfirmation: Bool {
+        purpose.connectionChooserShowsConfirmation(for: connectionProtocol)
+    }
+
+    private var managedHeader: some View {
         ManagedChooserHeader(
             title: purpose.title,
             symbol: purpose.symbol,
@@ -254,7 +372,6 @@ struct HostChooserView: View {
     }
 
     private var chooserOptions: AnyView? {
-        if purpose.choosesConnectionProtocol { return AnyView(connectionProtocolPicker) }
         if purpose == .metrics, app.serverMetrics.remainingCardSlots != nil {
             return AnyView(
                 Text("Free includes up to 3 monitoring cards. Upgrade to Pro for more.")
@@ -265,7 +382,7 @@ struct HostChooserView: View {
 
     private var connectionProtocolPicker: some View {
         Picker("Connection Protocol", selection: $connectionProtocol) {
-            ForEach(availableConnectionProtocols) { connectionProtocol in
+            ForEach(purpose.availableConnectionProtocols) { connectionProtocol in
                 Text(connectionProtocol.displayName(locale: locale)).tag(connectionProtocol)
             }
         }
@@ -275,15 +392,9 @@ struct HostChooserView: View {
         .accessibilityLabel("Connection protocol")
     }
 
-    private var availableConnectionProtocols: [HostConnectionProtocol] {
-        purpose == .connect ? HostConnectionProtocol.allCases : [.terminal, .sftp]
-    }
-
     @ViewBuilder
-    private var content: some View {
-        if connectionProtocol == .serial {
-            serialForm
-        } else if app.hostLibrary.hosts.isEmpty {
+    private var managedContent: some View {
+        if app.hostLibrary.hosts.isEmpty {
             ContentUnavailableView {
                 Label("No Hosts", systemImage: "server.rack")
             } description: {
@@ -326,6 +437,81 @@ struct HostChooserView: View {
                 .onChange(of: results.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
             }
         }
+    }
+
+    private var connectionHostList: some View {
+        VStack(spacing: 0) {
+            if purpose.allowsMultiple {
+                Button(selectAllLabel) {
+                    toggleAllResults()
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, Metrics.Space.xl)
+                .padding(.vertical, Metrics.Space.m)
+                .contentShape(.rect)
+                .disabled(results.isEmpty)
+                .accessibilityIdentifier("host-chooser.select-all")
+
+                Divider()
+            }
+
+            connectionHosts
+        }
+    }
+
+    @ViewBuilder
+    private var connectionHosts: some View {
+        if app.hostLibrary.hosts.isEmpty {
+            ContentUnavailableView {
+                Label("No Hosts", systemImage: "server.rack")
+            } description: {
+                Text("Add a host to connect to it.")
+            } actions: {
+                Button("New Host") {
+                    close()
+                    window.openHostEditor(host: nil)
+                }
+            }
+            .frame(maxHeight: .infinity)
+        } else if results.isEmpty {
+            ContentUnavailableView.search(text: query)
+                .frame(maxHeight: .infinity)
+        } else {
+            ScrollViewReader { proxy in
+                List {
+                    ForEach(results) { host in
+                        hostButton(host)
+                    }
+                }
+                .listStyle(.inset)
+                .onAppear { scrollCursorIntoView(using: proxy) }
+                .onChange(of: chooser.cursor) { _, _ in scrollCursorIntoView(using: proxy) }
+                .onChange(of: results.map(\.id)) { _, _ in scrollCursorIntoView(using: proxy) }
+            }
+        }
+    }
+
+    private func hostButton(_ host: Host) -> some View {
+        Button {
+            activate(host)
+        } label: {
+            HostChooserRow(
+                host: host,
+                isCursor: chooser.cursor == host.id,
+                isChecked: purpose.allowsMultiple
+                    ? chooser.selected.contains(host.id) : nil,
+                connectionProtocol: connectionProtocol
+            )
+            .accessibilityIdentifier("host-chooser.host.\(host.id)")
+        }
+        .accessibilityIdentifier("host-chooser.host.\(host.id)")
+        .buttonStyle(.plain)
+        .id(host.id)
+        .listRowBackground(
+            chooser.cursor == host.id
+                ? Color.accentColor.opacity(0.11) : Color.clear
+        )
     }
 
     private func scrollCursorIntoView(using proxy: ScrollViewProxy) {
@@ -404,7 +590,7 @@ struct HostChooserView: View {
         }
     }
 
-    private var footer: some View {
+    private var managedFooter: some View {
         HStack {
             if purpose.allowsMultiple, connectionProtocol != .serial {
                 Text(
@@ -597,14 +783,61 @@ struct HostChooserView: View {
     }
 }
 
+private struct ConnectionChooserSearchField: View {
+    let prompt: LocalizedStringKey
+    @Binding var query: String
+    var onSubmit: () -> Void = {}
+    var moveCursor: (Int) -> KeyPress.Result = { _ in .ignored }
+    var toggleCursor: () -> KeyPress.Result = { .ignored }
+
+    @FocusState private var searchFocused: Bool
+
+    var body: some View {
+        HStack(spacing: Metrics.Space.s) {
+            Image(systemName: "magnifyingglass")
+                .foregroundStyle(.secondary)
+            TextField(prompt, text: $query.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                .textFieldStyle(.plain)
+                .focused($searchFocused)
+                .onSubmit(onSubmit)
+                .onKeyPress(.upArrow) { moveCursor(-1) }
+                .onKeyPress(.downArrow) { moveCursor(1) }
+                .onKeyPress(.space, action: toggleCursor)
+
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                    searchFocused = true
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Clear search"))
+            }
+        }
+        .padding(Metrics.Space.s)
+        .background(
+            .quaternary.opacity(0.5),
+            in: .rect(cornerRadius: Metrics.Radius.medium)
+        )
+        .onAppear {
+            Task { @MainActor in
+                await Task.yield()
+                searchFocused = true
+            }
+        }
+    }
+}
+
 // MARK: - Row
 
 /// One host, as the chooser lists it. The shared piece between the verbs: what
 /// you need to recognise a machine is the same whether you are about to type on
 /// it or copy files to it.
 ///
-/// `isChecked` is nil outside batch mode. Multi-selection reserves a trailing
-/// slot and only reveals the native checkmark for rows that will be acted on.
+/// `isChecked` is nil outside batch mode. Multi-selection reveals the native
+/// trailing checkmark only for rows that will be acted on.
 struct HostChooserRow: View {
     let host: Host
     let isCursor: Bool
@@ -616,7 +849,7 @@ struct HostChooserRow: View {
 
     var body: some View {
         HStack(spacing: Metrics.Space.m) {
-            HostSystemIcon(asset: distributionEntry?.asset, size: 32)
+            HostSystemIcon(asset: distributionEntry?.asset, size: 36)
                 .tint(iconTint)
 
             VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
@@ -637,11 +870,10 @@ struct HostChooserRow: View {
 
             Spacer(minLength: Metrics.Space.s)
 
-            if let isChecked {
+            if isChecked == true {
                 Image(systemName: "checkmark")
+                    .font(.body.weight(.semibold))
                     .foregroundStyle(.tint)
-                    .opacity(isChecked ? 1 : 0)
-                    .frame(width: 16)
                     .accessibilityHidden(true)
             }
         }
@@ -672,8 +904,8 @@ struct HostChooserRow: View {
         .environment(WindowModel())
 }
 
-/// The batch footer carries two more controls than the single one, and this is
-/// the sheet's fixed width — worth its own preview to see them fit.
+/// Batch Startup uses the same continuous picker, with a confirmation action
+/// opposite Cancel and a Select All row above the hosts.
 #Preview("Batch Startup") {
     HostChooserView(purpose: .batchStartup)
         .environment(AppModel(hosts: .demo()))
