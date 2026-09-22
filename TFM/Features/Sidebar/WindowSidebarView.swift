@@ -1310,11 +1310,13 @@ private struct ConnectionHistorySidebar: View {
                 Text(app.devices.name(for: entry.sourceDeviceID) ?? "—")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
+                    .lineLimit(1)
                 Text(entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                     .lineLimit(1)
             }
+            .layoutPriority(1)
         }
         .onTapGesture(count: 2) {
             let target: HostOpenTarget =
