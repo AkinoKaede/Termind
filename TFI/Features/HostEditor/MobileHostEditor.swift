@@ -56,7 +56,7 @@ struct MobileHostEditor: View {
                 && customIdentity.isTelnetValid(for: draft)
                 && customIdentity.isTelnetProxyValid(for: draft)
                 && (!draft.sshEnabled || draft.environmentVariablesAreValid),
-            topBar: AnyView(HostProtocolProfileControls(host: $draft, protocol: $selectedProtocol)),
+            topBar: AnyView(HostProtocolProfileControls(protocol: $selectedProtocol)),
             save: {
                 try customIdentity.save(into: &draft, using: library)
             },
@@ -77,7 +77,7 @@ struct MobileHostEditor: View {
                     }
                 }
                 HostConnectionFields(host: $draft, protocol: $selectedProtocol)
-                if selectedProtocol == .ssh {
+                if selectedProtocol == .ssh && draft.sshEnabled {
                     Section("Authentication") {
                         Picker("Identity", selection: identityChoice) {
                             Text("Custom").tag(Choice<Identity.ID>.unset)
@@ -185,7 +185,7 @@ struct MobileHostEditor: View {
                         editEnvironmentVariable: { editorRoute = .environmentVariable($0) }
                     )
                     HostIntegrationSection(mode: $draft.shellIntegrationMode)
-                } else {
+                } else if selectedProtocol == .telnet && draft.telnetEnabled {
                     telnetAuthenticationSection
                     telnetRoutingSection
                     Section("Session") {

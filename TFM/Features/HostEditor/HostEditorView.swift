@@ -53,7 +53,7 @@ struct HostEditorView: View {
                     symbol: "server.rack", close: cancel
                 ) {
                     VStack(spacing: 0) {
-                        HostProtocolProfileControls(host: $draft, protocol: $selectedProtocol)
+                        HostProtocolProfileControls(protocol: $selectedProtocol)
                             .padding(.horizontal, Metrics.Space.l)
                             .padding(.vertical, Metrics.Space.m)
                             .termindGlassBar()
@@ -97,7 +97,7 @@ struct HostEditorView: View {
 
             HostConnectionFields(host: $draft, protocol: $selectedProtocol)
 
-            if selectedProtocol == .ssh {
+            if selectedProtocol == .ssh && draft.sshEnabled {
                 Section("Authentication") {
                     // One control, because a host says *where* and an identity says
                     // *who*. The login name and the secret travel together — a
@@ -268,7 +268,7 @@ struct HostEditorView: View {
                         }
                     }
                 }
-            } else {
+            } else if selectedProtocol == .telnet && draft.telnetEnabled {
                 telnetAuthenticationSection
                 telnetRoutingSection
                 Section("Session") {

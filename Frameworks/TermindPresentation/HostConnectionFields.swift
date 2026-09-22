@@ -29,21 +29,16 @@ public struct HostOrganizationSection<GroupField: View, TagsField: View>: View {
     }
 }
 
-/// Selects the protocol profile being edited and controls whether that profile is available.
+/// Selects the protocol profile being edited.
 public struct HostProtocolProfileControls: View {
-    @Binding private var host: Host
     @Binding private var connectionProtocol: HostTerminalProtocol
 
-    public init(host: Binding<Host>, protocol connectionProtocol: Binding<HostTerminalProtocol>) {
-        _host = host
+    public init(protocol connectionProtocol: Binding<HostTerminalProtocol>) {
         _connectionProtocol = connectionProtocol
     }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Protocol Profile")
-                .font(.caption)
-                .foregroundStyle(.secondary)
             Picker("Protocol Profile", selection: $connectionProtocol) {
                 ForEach(HostTerminalProtocol.allCases) { connectionProtocol in
                     Text(connectionProtocol.displayName).tag(connectionProtocol)
@@ -52,16 +47,7 @@ public struct HostProtocolProfileControls: View {
             .labelsHidden()
             .pickerStyle(.segmented)
             .frame(maxWidth: .infinity)
-            Toggle("Enabled", isOn: enabled)
         }
-    }
-
-    private var enabled: Binding<Bool> {
-        Binding(
-            get: { connectionProtocol == .ssh ? host.sshEnabled : host.telnetEnabled },
-            set: {
-                if connectionProtocol == .ssh { host.sshEnabled = $0 } else { host.telnetEnabled = $0 }
-            })
     }
 }
 
@@ -93,14 +79,26 @@ public struct HostConnectionFields: View {
                         .keyboardType(.URL)
                     #endif
             }
-            LabeledContent("Port") {
-                TextField("Port", value: port, format: .number.grouping(.never)).lineLimit(1)
-                    .labelsHidden().multilineTextAlignment(.trailing)
-                    #if os(iOS)
-                        .keyboardType(.numberPad)
-                    #endif
+            Toggle("Enabled", isOn: enabled)
+                .toggleStyle(.switch)
+            if host.isEnabled(connectionProtocol) {
+                LabeledContent("Port") {
+                    TextField("Port", value: port, format: .number.grouping(.never)).lineLimit(1)
+                        .labelsHidden().multilineTextAlignment(.trailing)
+                        #if os(iOS)
+                            .keyboardType(.numberPad)
+                        #endif
+                }
             }
         }
+    }
+
+    private var enabled: Binding<Bool> {
+        Binding(
+            get: { connectionProtocol == .ssh ? host.sshEnabled : host.telnetEnabled },
+            set: {
+                if connectionProtocol == .ssh { host.sshEnabled = $0 } else { host.telnetEnabled = $0 }
+            })
     }
 
     private var port: Binding<Int> {
