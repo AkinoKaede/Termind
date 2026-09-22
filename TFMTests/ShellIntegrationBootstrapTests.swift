@@ -275,9 +275,95 @@ struct ShellIntegrationBootstrapTests {
 
         #expect(result.status == 0, Comment(rawValue: result.errors))
         #expect(result.output.contains("DEBUG_PRESERVED"))
-        #expect(result.output.contains("HOOKS=__termind_report_prompt; __user_prompt=1;"))
+        #expect(
+            result.output.contains(
+                "HOOKS=__termind_prompt_begin\n__user_prompt=1\n__termind_prompt_end;"
+            ))
         #expect(result.output.contains("TermindCommand=RUNTIME;false\u{7}"))
         #expect(result.output.contains("TermindCommandFinished=RUNTIME;1;0\u{7}"))
+    }
+
+    @Test
+    func bashWrapsIndexedPromptCommandWithoutReorderingExistingHooks() throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "ARRAY")
+        let update = bootstrap.receive(
+            Data("__TRMD_ARRAY_SHELL__/bin/bash__\r\n".utf8)
+        )
+        var script = Data(
+            "PROMPT_COMMAND=('__user_prompt_one' '__user_prompt_two')\n".utf8
+        )
+        script.append(try #require(update.command))
+        script.append(
+            Data(
+                "builtin trap - DEBUG\n"
+                    .appending("builtin printf 'ARRAY=%s|%s|%s|%s\\n' ")
+                    .appending(
+                        "\"${PROMPT_COMMAND[0]}\" \"${PROMPT_COMMAND[1]}\" "
+                    )
+                    .appending(
+                        "\"${PROMPT_COMMAND[2]}\" \"${PROMPT_COMMAND[3]}\"\n"
+                    )
+                    .utf8
+            ))
+
+        let result = try runShell(executable: "/bin/bash", arguments: [], input: script)
+
+        #expect(result.status == 0, Comment(rawValue: result.errors))
+        #expect(
+            result.output.contains(
+                "ARRAY=__termind_prompt_begin|__user_prompt_one|__user_prompt_two|__termind_prompt_end\n"
+            ))
+    }
+
+    @Test
+    func bashDoesNotRecordAlmaLinuxTitlePromptCommand() throws {
+        var bootstrap = RemoteShellIntegrationBootstrap(token: "ALMA")
+        let update = bootstrap.receive(
+            Data("__TRMD_ALMA_SHELL__/bin/bash__\r\n".utf8)
+        )
+        var script = Data(
+            #"""
+            PS1=; PS2=
+            PROMPT_COMMAND='printf "\033]0;%s@%s:%s\007" "${USER}" "${HOSTNAME%%.*}" "${PWD/#$HOME/\~}"'
+
+            """#.utf8
+        )
+        script.append(try #require(update.command))
+        script.append(Data("false\necho USER_VISIBLE\nexit 0\n".utf8))
+
+        let result = try runShell(
+            executable: "/bin/bash", arguments: ["--noprofile", "--norc", "-i"], input: script
+        )
+        #expect(result.status == 0, Comment(rawValue: result.errors))
+
+        var filter = RemoteCommandEventFilter(token: "ALMA")
+        var visible = Data()
+        var events: [RemoteCommandEventFilter.Event] = []
+        for byte in result.output.utf8 {
+            let filtered = filter.receive(Data([byte]))
+            visible.append(filtered.visibleOutput)
+            events.append(contentsOf: filtered.events)
+        }
+
+        let visibleText = String(decoding: visible, as: UTF8.self)
+        let commands = events.compactMap { event -> String? in
+            guard case .commandStarted(let command) = event else { return nil }
+            return command
+        }
+        let statuses = events.compactMap { event -> Int32? in
+            guard case .commandFinished(let status, _) = event else { return nil }
+            return status
+        }
+        let promptCount = events.count(where: { $0 == .promptReady })
+
+        #expect(visibleText.contains("\u{1B}]0;"))
+        #expect(visibleText.contains("USER_VISIBLE"))
+        #expect(commands.contains("false"))
+        #expect(commands.contains("echo USER_VISIBLE"))
+        #expect(!commands.contains(where: { $0.contains("]0;%s@%s:%s") }))
+        #expect(statuses.contains(1))
+        #expect(statuses.contains(0))
+        #expect(promptCount >= 3)
     }
 
     @Test
