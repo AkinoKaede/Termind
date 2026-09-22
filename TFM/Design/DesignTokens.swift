@@ -130,12 +130,13 @@ nonisolated enum Metrics {
     enum QuickOpen {
         static let width: CGFloat = 640
         static let height: CGFloat = 480
-        static let cornerRadius: CGFloat = 18
-        static let searchHeight: CGFloat = 60
-        static let sectionHeight: CGFloat = 28
-        static let rowHeight: CGFloat = 48
-        static let footerHeight: CGFloat = 36
-        static let iconSize: CGFloat = 28
+        static let cornerRadius: CGFloat = 24
+        static let searchHeight: CGFloat = 58
+        static let sectionHeight: CGFloat = 30
+        static let rowHeight: CGFloat = 52
+        static let footerHeight: CGFloat = 34
+        static let iconSize: CGFloat = 30
+        static let selectionCornerRadius: CGFloat = 12
     }
 
     enum Welcome {

@@ -16,23 +16,16 @@ struct QuickOpenOverlay: View {
 
     var body: some View {
         ZStack {
-            TermindColor.shadow.opacity(colorScheme == .dark ? 0.18 : 0.10)
+            TermindColor.shadow.opacity(colorScheme == .dark ? 0.14 : 0.07)
                 .ignoresSafeArea()
                 .contentShape(.rect)
                 .onTapGesture(perform: close)
 
             QuickOpenView(dismiss: close)
-                .clipShape(.rect(cornerRadius: Metrics.QuickOpen.cornerRadius))
-                .termindGlassSurface(cornerRadius: Metrics.QuickOpen.cornerRadius)
-                .overlay {
-                    RoundedRectangle(cornerRadius: Metrics.QuickOpen.cornerRadius)
-                        .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
-                        .allowsHitTesting(false)
-                }
                 .shadow(
-                    color: TermindColor.shadow.opacity(colorScheme == .dark ? 0.34 : 0.20),
-                    radius: 28,
-                    y: 12
+                    color: TermindColor.shadow.opacity(colorScheme == .dark ? 0.30 : 0.18),
+                    radius: 32,
+                    y: 14
                 )
                 .contentShape(.rect)
                 .padding(Metrics.Space.xl)
@@ -56,10 +49,12 @@ struct QuickOpenView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var query = ""
     @State private var selectedID: AppCommandDescriptor.ID?
     @FocusState private var searchFocused: Bool
+    @Namespace private var glassNamespace
 
     private var results: QuickOpenResults {
         QuickOpenResults(
@@ -69,18 +64,15 @@ struct QuickOpenView: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            searchHeader
-
-            Divider().opacity(0.72)
-
-            resultContent
-
-            Divider().opacity(0.72)
-
-            shortcutFooter
-        }
-        .frame(maxWidth: Metrics.QuickOpen.width, maxHeight: Metrics.QuickOpen.height)
+        glassIdentity(
+            integratedContent
+                .clipShape(.rect(cornerRadius: Metrics.QuickOpen.cornerRadius))
+                .termindGlassSurface(
+                    cornerRadius: Metrics.QuickOpen.cornerRadius,
+                    isInteractive: true
+                )
+        )
+        .frame(width: Metrics.QuickOpen.width, height: Metrics.QuickOpen.height)
         .onAppear {
             selectedID = results.commands.first?.id
         }
@@ -89,6 +81,35 @@ struct QuickOpenView: View {
         }
         .onChange(of: query) {
             selectedID = results.commands.first?.id
+        }
+    }
+
+    private var integratedContent: some View {
+        VStack(spacing: 0) {
+            searchHeader
+
+            Divider()
+                .opacity(0.48)
+                .padding(.horizontal, Metrics.Space.xl)
+
+            resultContent
+
+            Divider()
+                .opacity(0.36)
+                .padding(.horizontal, Metrics.Space.xl)
+
+            shortcutFooter
+        }
+    }
+
+    @ViewBuilder
+    private func glassIdentity<Content: View>(_ content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .glassEffectID(QuickOpenGlassSurface.palette, in: glassNamespace)
+                .glassEffectTransition(reduceMotion ? .identity : .materialize)
+        } else {
+            content
         }
     }
 
@@ -242,9 +263,17 @@ struct QuickOpenView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
             .background(
                 Highlight.fill(isSelected: isSelected),
-                in: .rect(cornerRadius: Metrics.Space.m)
+                in: .rect(cornerRadius: Metrics.QuickOpen.selectionCornerRadius)
             )
-            .contentShape(.rect)
+            .overlay {
+                RoundedRectangle(cornerRadius: Metrics.QuickOpen.selectionCornerRadius)
+                    .strokeBorder(
+                        isSelected ? Color.accentColor.opacity(0.24) : .clear,
+                        lineWidth: 1
+                    )
+                    .allowsHitTesting(false)
+            }
+            .contentShape(.rect(cornerRadius: Metrics.QuickOpen.selectionCornerRadius))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, Metrics.Space.s)
@@ -254,6 +283,7 @@ struct QuickOpenView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(commandAccessibilityLabel(command))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .animation(reduceMotion ? nil : Motion.workspaceSwitch, value: isSelected)
     }
 
     private var shortcutFooter: some View {
@@ -297,6 +327,10 @@ struct QuickOpenView: View {
     }
 }
 
+private nonisolated enum QuickOpenGlassSurface: Hashable, Sendable {
+    case palette
+}
+
 /// SwiftUI can run `onAppear` before the search field joins its window. Request
 /// focus after AppKit mounts it, and retire that request even during a closing transition.
 private struct QuickOpenFocusMount: NSViewRepresentable {
@@ -336,14 +370,28 @@ private struct QuickOpenFocusMount: NSViewRepresentable {
 
         private func scheduleFocus() {
             generation &+= 1
-            guard isPresented, let window else { return }
+            guard isPresented else { return }
             let request = generation
-            DispatchQueue.main.async { [weak self, weak window] in
-                guard let self, let window, self.window === window,
-                    isPresented, generation == request, window.isKeyWindow
-                else { return }
-                focus?()
+            DispatchQueue.main.async { [weak self] in
+                self?.deliverFocus(request: request, remainingAttempts: 20)
             }
+        }
+
+        private func deliverFocus(request: UInt64, remainingAttempts: Int) {
+            guard isPresented, generation == request, let window, self.window === window else {
+                return
+            }
+            guard window.isKeyWindow else {
+                guard remainingAttempts > 0 else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+                    self?.deliverFocus(
+                        request: request,
+                        remainingAttempts: remainingAttempts - 1
+                    )
+                }
+                return
+            }
+            focus?()
         }
     }
 }

@@ -11,6 +11,37 @@ import struct TermindDomain.Host
 
 @Suite(.requiresVisibleWindow, .serialized) @MainActor
 struct ChooserInteractionTests {
+    @Test(arguments: ["light", "dark", "empty", "reduced-transparency"])
+    func quickOpenIntegratedGlassRendersAcrossAppearances(_ variant: String) async throws {
+        let fixture = ChooserFixture()
+        defer { fixture.close() }
+        fixture.model.openPage(.hosts)
+        fixture.mount(
+            QuickOpenHarness(
+                workspace: nil,
+                reduceTransparency: variant == "reduced-transparency"
+            )
+        )
+        try await fixture.settle()
+        fixture.window.appearance = NSAppearance(
+            named: variant == "dark" ? .darkAqua : .aqua
+        )
+        fixture.window.makeKey()
+        fixture.model.isQuickOpenPresented = true
+        let field = try await fixture.quickOpenEditableField()
+        if variant == "empty" {
+            field.stringValue = "no matching command exists"
+            field.delegate?.controlTextDidChange?(
+                Notification(name: NSControl.textDidChangeNotification, object: field)
+            )
+            try await fixture.settle()
+        }
+
+        let image = try fixture.capture()
+        Attachment.record(image, named: "quick-open-integrated-glass-\(variant).png")
+        #expect(image.count > 20_000)
+    }
+
     @Test(arguments: ["toolbar", "ssh", "serial"])
     func quickOpenTakesFocusAndHandlesTypingNavigationAndReopening(_ source: String) async throws {
         let fixture = ChooserFixture()
@@ -159,6 +190,7 @@ struct ChooserInteractionTests {
 
 private struct QuickOpenHarness: View {
     let workspace: Workspace?
+    var reduceTransparency = false
     @Environment(WindowModel.self) private var model
 
     var body: some View {
@@ -178,6 +210,7 @@ private struct QuickOpenHarness: View {
                 QuickOpenOverlay { model.isQuickOpenPresented = false }
             }
         }
+        .environment(\._accessibilityReduceTransparency, reduceTransparency)
     }
 }
 
@@ -263,9 +296,29 @@ private final class ChooserFixture {
         throw ChooserTestError.searchDidNotTakeFocus
     }
 
+    func quickOpenEditableField() async throws -> NSTextField {
+        for _ in 0..<100 {
+            if let field = views.compactMap({ $0 as? NSTextField }).first(where: {
+                $0.isEditable && !($0 is NSSearchField)
+            }) {
+                return field
+            }
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        throw ChooserTestError.searchDidNotMount
+    }
+
     func type(_ text: String, into field: NSTextField) throws {
         let editor = try #require(field.currentEditor() as? NSTextView)
         editor.insertText(text, replacementRange: NSRange(location: 0, length: editor.string.utf16.count))
+    }
+
+    func capture() throws -> Data {
+        let view = try #require(window.contentView)
+        view.layoutSubtreeIfNeeded()
+        let bitmap = try #require(view.bitmapImageRepForCachingDisplay(in: view.bounds))
+        view.cacheDisplay(in: view.bounds, to: bitmap)
+        return try #require(bitmap.representation(using: .png, properties: [:]))
     }
 
     func key(_ characters: String, code: UInt16) throws {
@@ -292,5 +345,6 @@ private final class ChooserFixture {
 
 private enum ChooserTestError: Error {
     case searchDidNotTakeFocus
+    case searchDidNotMount
     case searchDidNotClose
 }
