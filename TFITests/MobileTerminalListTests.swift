@@ -30,7 +30,7 @@ struct MobileTerminalListTests {
         }
     }
 
-    @Test func thousandRowHistoryKeepsOnlyTheNativeViewportMounted() async throws {
+    @Test func retainedHistoryKeepsOnlyTheNativeViewportMounted() async throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Test", host: "example.invalid")
         app.library.upsert(host)

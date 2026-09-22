@@ -11,7 +11,7 @@ import struct TermindDomain.Host
 @MainActor
 @Observable
 public final class CommandHistoryModel {
-    public static let perHostLimit = 1_000
+    public static let perHostLimit = HistoryLimits.retainedEntries
 
     private let repository: any CommandHistoryRepository
     public private(set) var revision: UInt64 = 0
@@ -22,6 +22,11 @@ public final class CommandHistoryModel {
         repository: (any CommandHistoryRepository)? = nil
     ) {
         self.repository = repository ?? InMemoryCommandHistoryRepository(entries: entries)
+        do {
+            try self.repository.trim(to: Self.perHostLimit)
+        } catch {
+            storageError = error.localizedDescription
+        }
     }
 
     public func entries(for hostID: Host.ID, matching query: String = "") -> [CommandHistoryEntry] {

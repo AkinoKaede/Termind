@@ -5,6 +5,14 @@ import TermindPresentation
 
 import struct TermindDomain.Host
 
+enum MobileHistoryPresentation {
+    static let limit = 50
+
+    static func limited<Entry>(_ entries: [Entry]) -> [Entry] {
+        Array(entries.prefix(limit))
+    }
+}
+
 enum MobileHostMenuAction: Hashable, Sendable {
     case ssh
     case telnet
@@ -42,7 +50,7 @@ struct MobileConnectionHistoryView: View {
         _ = app.connectionHistory.revision
         return MobileConnectionHistory.eventRows(
             history: app.connectionHistory, devices: app.devices, library: app.library,
-            query: query, limit: ConnectionHistoryModel.presentationLimit)
+            query: query, limit: MobileHistoryPresentation.limit)
     }
 
     var body: some View {
@@ -383,7 +391,7 @@ struct MobileVaultView: View {
         }
         result += MobileConnectionHistory.eventRows(
             history: app.connectionHistory, devices: app.devices, library: app.library,
-            query: query, limit: ConnectionHistoryModel.presentationLimit
+            query: query, limit: MobileHistoryPresentation.limit
         ).map { row in
             SearchLink(
                 id: "history-\(row.entry.id)", title: row.host.name,

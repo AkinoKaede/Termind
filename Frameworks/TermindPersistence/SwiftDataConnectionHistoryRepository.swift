@@ -74,6 +74,16 @@ public final class SwiftDataConnectionHistoryRepository: ConnectionHistoryReposi
             .sorted(by: ConnectionHistoryEntry.isNewer)
     }
 
+    public func trim(to limit: Int) throws {
+        let rows = try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>())
+            .sorted { ConnectionHistoryEntry.isNewer($0.value, $1.value) }
+        let overflow = rows.dropFirst(limit)
+        guard !overflow.isEmpty else { return }
+        try commitMutation {
+            for row in overflow { context.delete(row) }
+        }
+    }
+
     public func insert(_ entry: ConnectionHistoryEntry, limit: Int) throws {
         try commitMutation {
             context.insert(PersistentConnectionHistoryEntry(entry))

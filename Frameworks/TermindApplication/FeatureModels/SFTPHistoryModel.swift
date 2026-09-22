@@ -11,7 +11,7 @@ import struct TermindDomain.Host
 @MainActor
 @Observable
 public final class SFTPHistoryModel {
-    public static let perHostLimit = 1_000
+    public static let perHostLimit = HistoryLimits.retainedEntries
 
     private let repository: any SFTPHistoryRepository
     public private(set) var revision: UInt64 = 0
@@ -22,6 +22,11 @@ public final class SFTPHistoryModel {
         repository: (any SFTPHistoryRepository)? = nil
     ) {
         self.repository = repository ?? InMemorySFTPHistoryRepository(entries: entries)
+        do {
+            try self.repository.trim(to: Self.perHostLimit)
+        } catch {
+            storageError = error.localizedDescription
+        }
     }
 
     public func entries(for hostID: Host.ID, matching query: String = "") -> [SFTPHistoryEntry] {

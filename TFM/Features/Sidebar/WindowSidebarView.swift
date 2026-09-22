@@ -781,6 +781,14 @@ private struct SidebarCard<Trailing: View>: View {
     }
 }
 
+enum DesktopHistoryPresentation {
+    static let limit = 100
+
+    static func limited<Entry>(_ entries: [Entry]) -> [Entry] {
+        Array(entries.prefix(limit))
+    }
+}
+
 private struct HistorySidebarView: View {
     @Environment(WindowModel.self) private var window
 
@@ -820,11 +828,16 @@ private struct SSHCommandHistorySidebar: View {
         guard let sshSession else { return [] }
         _ = app.commandHistory.revision
         if isSavedHost {
-            return app.commandHistory.entries(for: sshSession.hostID, matching: query)
+            return DesktopHistoryPresentation.limited(
+                app.commandHistory.entries(for: sshSession.hostID, matching: query)
+            )
         }
         let entries = sshSession.transientCommandHistory
-        guard !query.isEmpty else { return entries }
-        return entries.filter { $0.command.localizedCaseInsensitiveContains(query) }
+        let matches =
+            query.isEmpty
+            ? entries
+            : entries.filter { $0.command.localizedCaseInsensitiveContains(query) }
+        return DesktopHistoryPresentation.limited(matches)
     }
 
     var body: some View {
@@ -1074,11 +1087,14 @@ private struct SFTPBrowseHistorySidebar: View {
         guard let session else { return [] }
         _ = app.sftpHistory.revision
         let values = app.sftpHistory.entries(for: session.hostID)
-        guard !query.isEmpty else { return values }
-        return values.filter {
-            $0.path.localizedCaseInsensitiveContains(query)
-                || session.displayPath($0.path).localizedCaseInsensitiveContains(query)
-        }
+        let matches =
+            query.isEmpty
+            ? values
+            : values.filter {
+                $0.path.localizedCaseInsensitiveContains(query)
+                    || session.displayPath($0.path).localizedCaseInsensitiveContains(query)
+            }
+        return DesktopHistoryPresentation.limited(matches)
     }
 
     var body: some View {
@@ -1218,7 +1234,7 @@ private struct ConnectionHistorySidebar: View {
                     || app.devices.name(for: entry.sourceDeviceID)?
                         .localizedCaseInsensitiveContains(query) == true
             }
-        return Array(matches.prefix(ConnectionHistoryModel.presentationLimit))
+        return DesktopHistoryPresentation.limited(matches)
     }
 
     var body: some View {

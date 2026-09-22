@@ -17,8 +17,12 @@ import struct TermindDomain.Host
 struct ConnectionHistoryTests {
     @Test
     func connectionProtocolSymbolsAreDistinct() {
-        #expect(ConnectionHistoryModel.limit == 250)
-        #expect(ConnectionHistoryModel.presentationLimit == 100)
+        #expect(HistoryLimits.retainedEntries == 250)
+        #expect(ConnectionHistoryModel.limit == HistoryLimits.retainedEntries)
+        #expect(CommandHistoryModel.perHostLimit == HistoryLimits.retainedEntries)
+        #expect(SFTPHistoryModel.perHostLimit == HistoryLimits.retainedEntries)
+        #expect(DesktopHistoryPresentation.limit == 100)
+        #expect(DesktopHistoryPresentation.limited(Array(0...100)) == Array(0..<100))
         #expect(ConnectionHistoryEntry.Kind.ssh.symbol == "terminal")
         #expect(ConnectionHistoryEntry.Kind.telnet.symbol == "text.rectangle")
         #expect(ConnectionHistoryEntry.Kind.sftp.symbol == "folder")
@@ -165,6 +169,24 @@ struct ConnectionHistoryTests {
                 == Date(
                     timeIntervalSince1970: TimeInterval(ConnectionHistoryModel.limit)
                 ))
+        #expect(entries.last?.connectedAt == Date(timeIntervalSince1970: 1))
+    }
+
+    @Test
+    func loadedConnectionHistoryImmediatelyTrimsToTheSharedLimit() {
+        let model = ConnectionHistoryModel(
+            entries: (0...HistoryLimits.retainedEntries).map { index in
+                ConnectionHistoryEntry(
+                    hostID: UUID(), kind: .ssh,
+                    connectedAt: Date(timeIntervalSince1970: TimeInterval(index))
+                )
+            })
+
+        let entries = model.entries()
+        #expect(entries.count == HistoryLimits.retainedEntries)
+        #expect(
+            entries.first?.connectedAt
+                == Date(timeIntervalSince1970: TimeInterval(HistoryLimits.retainedEntries)))
         #expect(entries.last?.connectedAt == Date(timeIntervalSince1970: 1))
     }
 

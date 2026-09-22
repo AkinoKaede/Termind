@@ -6,6 +6,7 @@ import struct TermindDomain.Host
 @MainActor
 public protocol CommandHistoryRepository: AnyObject {
     func entries(for hostID: Host.ID) throws -> [CommandHistoryEntry]
+    func trim(to limit: Int) throws
     func insert(_ entry: CommandHistoryEntry, limit: Int) throws
     func update(_ entry: CommandHistoryEntry) throws
     func delete(_ id: CommandHistoryEntry.ID) throws
@@ -22,10 +23,18 @@ public final class InMemoryCommandHistoryRepository: CommandHistoryRepository {
         values.filter { $0.hostID == hostID }.sorted { $0.executedAt > $1.executedAt }
     }
 
+    public func trim(to limit: Int) throws {
+        let entriesByHost = Dictionary(grouping: values, by: \.hostID)
+        let retained = Set(
+            entriesByHost.values.flatMap { entries in
+                entries.sorted { $0.executedAt > $1.executedAt }.prefix(limit).map(\.id)
+            })
+        values.removeAll { !retained.contains($0.id) }
+    }
+
     public func insert(_ entry: CommandHistoryEntry, limit: Int) throws {
         values.append(entry)
-        let retained = Set(try entries(for: entry.hostID).prefix(limit).map(\.id))
-        values.removeAll { $0.hostID == entry.hostID && !retained.contains($0.id) }
+        try trim(to: limit)
     }
 
     public func update(_ entry: CommandHistoryEntry) throws {

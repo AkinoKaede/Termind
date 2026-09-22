@@ -51,7 +51,7 @@ struct SFTPHistoryTests {
 
         let entries = model.entries(for: hostID)
         #expect(entries.count == SFTPHistoryModel.perHostLimit)
-        #expect(entries.first?.path == "/directory-1000")
+        #expect(entries.first?.path == "/directory-\(HistoryLimits.retainedEntries)")
         #expect(entries.last?.path == "/directory-1")
 
         let removed = try #require(entries.first)
@@ -60,6 +60,27 @@ struct SFTPHistoryTests {
         model.clear(for: hostID)
         #expect(model.entries(for: hostID).isEmpty)
         #expect(model.entries(for: otherHostID).map(\.path) == ["/keep.txt"])
+    }
+
+    @Test func loadedSFTPHistoryImmediatelyTrimsEveryHostToTheSharedLimit() {
+        let hosts = [UUID(), UUID()]
+        let entries = hosts.flatMap { hostID in
+            (0...HistoryLimits.retainedEntries).map { index in
+                SFTPHistoryEntry(
+                    hostID: hostID, kind: .directory, path: "/directory-\(index)",
+                    visitedAt: Date(timeIntervalSince1970: TimeInterval(index))
+                )
+            }
+        }
+
+        let model = SFTPHistoryModel(entries: entries)
+
+        for hostID in hosts {
+            let retained = model.entries(for: hostID)
+            #expect(retained.count == HistoryLimits.retainedEntries)
+            #expect(retained.first?.path == "/directory-\(HistoryLimits.retainedEntries)")
+            #expect(retained.last?.path == "/directory-1")
+        }
     }
 
     @Test func swiftDataRepositoryPersistsAndClearsPerHost() throws {

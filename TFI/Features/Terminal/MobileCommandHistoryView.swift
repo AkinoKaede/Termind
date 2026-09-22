@@ -24,7 +24,9 @@ struct MobileCommandHistoryView: View {
 
     private var entries: [CommandHistoryEntry] {
         _ = workspace.commandHistory.revision
-        return workspace.commandHistory.entries(for: workspace.descriptor.hostID, matching: query)
+        return MobileHistoryPresentation.limited(
+            workspace.commandHistory.entries(for: workspace.descriptor.hostID, matching: query)
+        )
     }
 
     var body: some View {

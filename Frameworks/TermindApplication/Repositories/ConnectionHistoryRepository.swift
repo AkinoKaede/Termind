@@ -6,6 +6,7 @@ import struct TermindDomain.Host
 @MainActor
 public protocol ConnectionHistoryRepository: AnyObject {
     func entries() throws -> [ConnectionHistoryEntry]
+    func trim(to limit: Int) throws
     func insert(_ entry: ConnectionHistoryEntry, limit: Int) throws
     func end(_ id: ConnectionHistoryEntry.ID, at date: Date) throws
     func delete(_ id: ConnectionHistoryEntry.ID) throws
@@ -23,10 +24,14 @@ public final class InMemoryConnectionHistoryRepository: ConnectionHistoryReposit
         values.sorted(by: ConnectionHistoryEntry.isNewer)
     }
 
-    public func insert(_ entry: ConnectionHistoryEntry, limit: Int) throws {
-        values.append(entry)
+    public func trim(to limit: Int) throws {
         let retained = Set(try entries().prefix(limit).map(\.id))
         values.removeAll { !retained.contains($0.id) }
+    }
+
+    public func insert(_ entry: ConnectionHistoryEntry, limit: Int) throws {
+        values.append(entry)
+        try trim(to: limit)
     }
 
     public func end(_ id: ConnectionHistoryEntry.ID, at date: Date) throws {

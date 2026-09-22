@@ -7,8 +7,7 @@ import struct TermindDomain.Host
 @MainActor
 @Observable
 public final class ConnectionHistoryModel {
-    public static let limit = 250
-    public static let presentationLimit = 100
+    public static let limit = HistoryLimits.retainedEntries
 
     private let repository: any ConnectionHistoryRepository
     public let sourceDeviceID: UUID
@@ -23,6 +22,11 @@ public final class ConnectionHistoryModel {
     ) {
         self.repository = repository ?? InMemoryConnectionHistoryRepository(entries: entries)
         self.sourceDeviceID = sourceDeviceID
+        do {
+            try self.repository.trim(to: Self.limit)
+        } catch {
+            storageError = error.localizedDescription
+        }
     }
 
     public func entries() -> [ConnectionHistoryEntry] {

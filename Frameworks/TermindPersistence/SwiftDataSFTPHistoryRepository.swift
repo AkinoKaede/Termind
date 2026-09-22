@@ -45,6 +45,23 @@ public final class SwiftDataSFTPHistoryRepository: SFTPHistoryRepository {
         ).map(\.value)
     }
 
+    public func trim(to limit: Int) throws {
+        let rows = try context.fetch(
+            FetchDescriptor<PersistentSFTPHistoryEntry>(
+                sortBy: [SortDescriptor(\.visitedAt, order: .reverse)]
+            ))
+        var counts: [Host.ID: Int] = [:]
+        let overflow = rows.filter { row in
+            let count = counts[row.hostID, default: 0]
+            counts[row.hostID] = count + 1
+            return count >= limit
+        }
+        guard !overflow.isEmpty else { return }
+        try context.commit {
+            for row in overflow { context.delete(row) }
+        }
+    }
+
     public func upsert(_ entry: SFTPHistoryEntry, limit: Int) throws {
         let hostID = entry.hostID
         try context.commit {

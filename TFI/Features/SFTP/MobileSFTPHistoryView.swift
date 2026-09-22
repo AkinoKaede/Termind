@@ -13,7 +13,9 @@ struct MobileSFTPHistoryView: View {
 
     private var entries: [SFTPHistoryEntry] {
         _ = workspace.sftpHistory.revision
-        return workspace.sftpHistory.entries(for: workspace.descriptor.hostID, matching: query)
+        return MobileHistoryPresentation.limited(
+            workspace.sftpHistory.entries(for: workspace.descriptor.hostID, matching: query)
+        )
     }
 
     var body: some View {

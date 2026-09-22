@@ -135,13 +135,13 @@ struct MobileConnectionPickerTests {
         #expect(!row.canOpen)
     }
 
-    @Test func historyPageKeepsEveryEventSearchesDeviceNameAndCapsAtOneHundred() throws {
+    @Test func historyPageKeepsEveryEventSearchesDeviceNameAndCapsAtFifty() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "History", host: "history.example.invalid")
         app.library.upsert(host)
         let historyRepository = InMemoryConnectionHistoryRepository()
         let deviceRepository = InMemoryDeviceDirectoryRepository()
-        for index in (0...ConnectionHistoryModel.presentationLimit).reversed() {
+        for index in (0...MobileHistoryPresentation.limit).reversed() {
             let deviceID = UUID()
             try deviceRepository.upsert(
                 DeviceRecord(id: deviceID, displayName: "device-\(index)"))
@@ -157,14 +157,15 @@ struct MobileConnectionPickerTests {
 
         let rows = MobileConnectionHistory.eventRows(
             history: history, devices: devices, library: app.library,
-            limit: ConnectionHistoryModel.presentationLimit)
-        #expect(rows.count == ConnectionHistoryModel.presentationLimit)
-        #expect(rows.first?.sourceDeviceName == "device-100")
-        #expect(rows.filter { $0.host.id == host.id }.count == ConnectionHistoryModel.presentationLimit)
+            limit: MobileHistoryPresentation.limit)
+        #expect(rows.count == MobileHistoryPresentation.limit)
+        #expect(rows.first?.sourceDeviceName == "device-50")
+        #expect(rows.filter { $0.host.id == host.id }.count == MobileHistoryPresentation.limit)
+        #expect(MobileHistoryPresentation.limited(Array(0...50)) == Array(0..<50))
 
         let searched = MobileConnectionHistory.eventRows(
             history: history, devices: devices, library: app.library,
-            query: "device-17", limit: ConnectionHistoryModel.presentationLimit)
+            query: "device-17", limit: MobileHistoryPresentation.limit)
         #expect(searched.map(\.sourceDeviceName) == ["device-17"])
     }
 
