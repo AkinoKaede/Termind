@@ -1,0 +1,13 @@
+{
+  "name": "termind-repository-tools",
+  "private": true,
+  "engines": {
+    "node": ">=22.22.0"
+  },
+  "scripts": {
+    "openwiki": "openwiki"
+  },
+  "devDependencies": {
+    "openwiki": "0.5.2"
+  }
+}

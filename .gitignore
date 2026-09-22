@@ -1,11 +1,15 @@
 # macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+._*
 
 # Xcode user-specific files
 xcuserdata/
 *.xcuserstate
 *.xccheckout
 *.xcscmblueprint
+*.moved-aside
 
 # Xcode and Swift build output
 DerivedData/
@@ -13,6 +17,9 @@ build/
 .build/
 .swiftpm/
 *.xcresult
+*.dSYM
+*.dSYM.zip
+*.ipa
 
 # Node and Astro build output
 node_modules/
@@ -20,15 +27,34 @@ dist/
 .astro/
 *.tsbuildinfo
 *.tgz
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
-# Python bytecode caches
+# Python caches and test output
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # Local environment files
 .env
 .env.*
 !.env.example
+!.env.*.example
+
+# Editor temporary files
+*.swp
+*.swo
+*~
 
 # Local tool settings
 .claude/settings.local.json
+
+# OpenWiki transient run state
+openwiki/.run.json
