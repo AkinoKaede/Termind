@@ -1,5 +1,4 @@
 import AgentKitScrubber
-import DeviceKit
 import SwiftData
 import SwiftUI
 import TermindApplication
@@ -159,7 +158,7 @@ struct TermindApp: App {
     }
 
     fileprivate static var computerName: String {
-        Device.current.safeDescription
+        MacDeviceName.current
     }
 
     #if canImport(AppKit)
