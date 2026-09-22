@@ -126,6 +126,8 @@ protocol ManagedCardPage: View {
     @ViewBuilder func managedHeader(
         for section: ManagedCardSection<SectionID, Item>, isDropTarget: Bool
     ) -> HeaderContent
+    /// The card-shaped drag preview, reused as the destination slot while the
+    /// surrounding grid reflows around the dragged items.
     @ViewBuilder func managedGhost(for item: Item) -> GhostContent
     /// What right-clicking the canvas offers, given the section the pointer is
     /// over — nil when it is past the last one.
@@ -349,6 +351,10 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
             card.onDrag {
                 beginDrag(from: item, in: section)
                 return NSItemProvider(object: String(describing: item.id) as NSString)
+            } preview: {
+                // Supplying the preview avoids macOS 27's oversized prohibited
+                // operation badge in the default snapshot of the glass card.
+                ghost(item)
             }
         } else {
             card
