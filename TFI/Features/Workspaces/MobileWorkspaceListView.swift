@@ -143,16 +143,16 @@ struct MobileWorkspaceListView: View {
                         }
                     }
                     VStack(alignment: .leading, spacing: 2) {
+                        Text(item.descriptor.title).foregroundStyle(.primary).lineLimit(1)
                         HStack(alignment: .center, spacing: 12) {
-                            Text(item.descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                            Text(item.loginAddress)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
                             Spacer(minLength: 12)
                             protocolLabel(item.descriptor.kind)
                         }
-                        Text(item.loginAddress)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
@@ -204,7 +204,9 @@ struct MobileWorkspaceListView: View {
                     Button("Delete", systemImage: "trash", role: .destructive) {
                         app.connectionHistory.clear(for: row.host.id)
                     }
-                    ForEach(MobileConnectionHistoryActionPolicy.swipeKinds, id: \.self) { kind in
+                    ForEach(
+                        MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: row.host), id: \.self
+                    ) { kind in
                         historyConnectionButton(kind, host: row.host)
                             .tint(swipeTint(for: kind))
                     }
@@ -266,7 +268,7 @@ struct MobileWorkspaceListView: View {
 
     private func protocolLabel(_ kind: ConnectionHistoryEntry.Kind) -> some View {
         Text(kind.label)
-            .font(.caption.weight(.medium))
+            .font(.caption2)
             .foregroundStyle(.secondary)
             .lineLimit(1)
             .accessibilityHidden(true)

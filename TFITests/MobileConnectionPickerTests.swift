@@ -94,17 +94,21 @@ struct MobileConnectionPickerTests {
 
         var host = Host(name: "Remote", host: "remote.example.invalid")
         assertAvailability(host, ssh: true, telnet: false, sftp: true)
+        #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host) == [.sftp, .ssh])
 
         host.sshEnabled = false
         host.telnetEnabled = true
         assertAvailability(host, ssh: false, telnet: true, sftp: false)
+        #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host) == [.telnet])
 
         host.sshEnabled = true
         assertAvailability(host, ssh: true, telnet: true, sftp: true)
+        #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host) == [.sftp, .telnet, .ssh])
 
         host.sshEnabled = false
         host.telnetEnabled = false
         assertAvailability(host, ssh: false, telnet: false, sftp: false)
+        #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host).isEmpty)
         #expect(MobileConnectionHistory.preferredKind(for: host) == nil)
 
         host.telnetEnabled = true
