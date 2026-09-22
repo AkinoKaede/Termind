@@ -3777,22 +3777,6 @@
         }
       }
     },
-    "Automatically Rename Workspaces" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自动重命名工作区"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "自動重新命名工作區"
-          }
-        }
-      }
-    },
     "Automatic from model catalog" : {
       "localizations" : {
         "zh-Hans" : {
@@ -3839,6 +3823,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自動學習會使用已設定的模型，可能產生API費用。"
+          }
+        }
+      }
+    },
+    "Automatically Rename Workspaces" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动重命名工作区"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動重新命名工作區"
           }
         }
       }
@@ -4944,6 +4944,7 @@
       }
     },
     "Clear All History" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -20032,6 +20033,7 @@
       }
     },
     "Recent Workspaces" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
