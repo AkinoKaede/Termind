@@ -3077,6 +3077,38 @@
         }
       }
     },
+    "Any active forwarding session for this rule will be stopped." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此规则的活动转发会话将会停止。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此規則的使用中轉送工作階段將會停止。"
+          }
+        }
+      }
+    },
+    "Any active forwarding sessions for the selected rules will be stopped." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所选规则的活动转发会话将会停止。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "所選規則的使用中轉送工作階段將會停止。"
+          }
+        }
+      }
+    },
     "Answer" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7716,6 +7748,38 @@
         }
       }
     },
+    "Delete %lld Forwarding Rules?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除%lld条转发规则？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除%lld條轉送規則？"
+          }
+        }
+      }
+    },
+    "Delete %lld Identities?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除%lld个身份？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除%lld個身分？"
+          }
+        }
+      }
+    },
     "Delete %lld Items" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7728,6 +7792,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除%lld項"
+          }
+        }
+      }
+    },
+    "Delete %lld Items?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除%lld项？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除%lld項？"
           }
         }
       }
@@ -7748,6 +7828,22 @@
         }
       }
     },
+    "Delete %lld Keys?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除%lld密钥？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除%lld金鑰？"
+          }
+        }
+      }
+    },
     "Delete %lld Snippets" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7760,6 +7856,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除%lld個片段"
+          }
+        }
+      }
+    },
+    "Delete %lld Snippets?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除%lld个片段？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除%lld個片段？"
           }
         }
       }
@@ -7845,6 +7957,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除檔案？"
+          }
+        }
+      }
+    },
+    "Delete Forwarding Rule?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除转发规则？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除轉送規則？"
           }
         }
       }
@@ -12523,7 +12651,24 @@
         }
       }
     },
+    "Hosts and identities using these items may need to be configured again." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用这些项目的主机和身份可能需要重新配置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用這些項目的主機和身分可能需要重新設定。"
+          }
+        }
+      }
+    },
     "Hosts and identities using these Keychain items may need to be configured again." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -12535,6 +12680,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用這些鑰匙圈項目的主機和身分可能需要重新設定。"
+          }
+        }
+      }
+    },
+    "Hosts using these identities will ask for credentials again." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用这些身份的主机将再次询问凭据。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用這些身分的主機將再次詢問認證資訊。"
           }
         }
       }
@@ -12802,6 +12963,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "身分"
+          }
+        }
+      }
+    },
+    "Identities using these keys will no longer have access to them." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用这些密钥的身份将无法再访问这些密钥。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用這些金鑰的身分將無法再存取這些金鑰。"
           }
         }
       }

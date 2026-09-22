@@ -385,8 +385,7 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
                 isPresented: Binding(
                     get: { state.confirmation != nil },
                     set: { if !$0 { state.confirmation = nil } }
-                ),
-                titleVisibility: .visible
+                )
             ) {
                 confirmationActions
                 Button("Cancel", role: .cancel) { state.confirmation = nil }
@@ -404,11 +403,7 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
             }
             Button("Keep Snippets") { actions.deletePackage(package, true) }
         case .deleteSnippets(let batch):
-            Button(
-                batch.snippets.count == 1
-                    ? "Delete Snippet" : "Delete \(batch.snippets.count) Snippets",
-                role: .destructive
-            ) {
+            Button("Delete", role: .destructive) {
                 actions.deleteSnippets(batch.snippets)
             }
         case .executeDestructive(let batch):
@@ -420,13 +415,15 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
         }
     }
 
-    private var confirmationTitle: LocalizedStringKey {
+    private var confirmationTitle: Text {
         switch state.confirmation {
-        case .deletePackage(let package): "Delete “\(package.name)”?"
+        case .deletePackage(let package): Text("Delete “\(package.name)”?")
         case .deleteSnippets(let batch):
-            batch.snippets.count == 1 ? "Delete Snippet?" : "Delete Snippets?"
-        case .executeDestructive: "Execute destructive scripts?"
-        case nil: ""
+            batch.snippets.count == 1
+                ? Text("Delete Snippet?")
+                : Text("Delete \(batch.snippets.count) Snippets?")
+        case .executeDestructive: Text("Execute destructive scripts?")
+        case nil: Text("")
         }
     }
 

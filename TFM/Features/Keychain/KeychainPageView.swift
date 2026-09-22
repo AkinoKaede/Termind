@@ -395,8 +395,10 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
         let keys = state.deleting.compactMap(\.key)
         let identities = state.deleting.compactMap(\.identity)
         if keys.count == 1, identities.isEmpty { return Text("Delete Key?") }
+        if keys.count > 1, identities.isEmpty { return Text("Delete \(keys.count) Keys?") }
         if identities.count == 1, keys.isEmpty { return Text("Delete Identity?") }
-        return Text("Delete Keychain Items?")
+        if identities.count > 1, keys.isEmpty { return Text("Delete \(identities.count) Identities?") }
+        return Text("Delete \(keys.count + identities.count) Items?")
     }
 
     private var confirmationMessage: Text {
@@ -405,10 +407,16 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
         if keys.count == 1, identities.isEmpty {
             return Text("Identities using this key will no longer have access to it.")
         }
+        if keys.count > 1, identities.isEmpty {
+            return Text("Identities using these keys will no longer have access to them.")
+        }
         if identities.count == 1, keys.isEmpty {
             return Text("Hosts using this identity will ask for credentials again.")
         }
-        return Text("Hosts and identities using these Keychain items may need to be configured again.")
+        if identities.count > 1, keys.isEmpty {
+            return Text("Hosts using these identities will ask for credentials again.")
+        }
+        return Text("Hosts and identities using these items may need to be configured again.")
     }
 }
 

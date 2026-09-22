@@ -98,12 +98,25 @@ struct PortForwardingPageView: ManagedCardPage {
     var managedPresentation: ManagedCardDeletionPresentation<UUID> {
         ManagedCardDeletionPresentation(
             deleting: $state.deleting, error: $state.error, ids: app.forwardings.rules.map(\.id),
-            confirmationTitle: "Delete Forwarding Rules?", errorTitle: "Operation Failed",
+            confirmationTitle: deletionTitle, errorTitle: "Operation Failed",
+            explanation: deletionExplanation,
             prune: { window.pruneVaultSelections(in: app.hostLibrary) },
             delete: {
                 do { try app.forwardings.delete(state.deleting) } catch { state.error = error.localizedDescription }
                 state.deleting = []
             })
+    }
+
+    private var deletionTitle: LocalizedStringKey {
+        state.deleting.count == 1
+            ? "Delete Forwarding Rule?"
+            : "Delete \(state.deleting.count) Forwarding Rules?"
+    }
+
+    private var deletionExplanation: Text {
+        state.deleting.count == 1
+            ? Text("Any active forwarding session for this rule will be stopped.")
+            : Text("Any active forwarding sessions for the selected rules will be stopped.")
     }
 
     private func card(_ rule: Item, selected: Bool, select: @escaping () -> Void, extend: @escaping () -> Void)
@@ -271,10 +284,12 @@ struct PortForwardingDetailView: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            "Delete Forwarding Rules?", isPresented: $confirmsDeletion, titleVisibility: .visible
+            "Delete Forwarding Rule?", isPresented: $confirmsDeletion, titleVisibility: .visible
         ) {
             Button("Delete", role: .destructive, action: delete)
             Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Any active forwarding session for this rule will be stopped.")
         }
         .alert(
             "Operation Failed",
