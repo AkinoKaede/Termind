@@ -124,7 +124,7 @@ public final class SettingsSyncPersistence {
         didRecordChanges?(mutations)
     }
 
-    public func applyRemote(_ envelopes: [SettingsEnvelope]) throws
+    public func applyRemote(_ envelopes: [SettingsEnvelope], beforeSave: () throws -> Void = {}) throws
         -> (
             snapshot: SettingsSyncSnapshot, acceptedKeys: Set<SettingsRecordKey>,
             needsUpload: Set<SettingsRecordKey>
@@ -133,7 +133,7 @@ public final class SettingsSyncPersistence {
         var merge = SettingsRemoteMerge()
         var snapshot = try load()
         let activeEnvelopes = envelopes.filter { $0.key.kind.participatesInSync }
-        try context.commit {
+        try context.commit(beforeSave: beforeSave) {
             merge = try journal.mergeDecision(for: activeEnvelopes)
             guard !merge.accepted.isEmpty else {
                 try journal.markNeedsUpload(merge.needsUpload)

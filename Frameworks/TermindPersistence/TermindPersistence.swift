@@ -5,7 +5,8 @@ import SwiftData
 /// choose storage and own the container lifetime, never the model set.
 @MainActor
 public enum TermindPersistence {
-    public static let schema = Schema(versionedSchema: TermindSchemaV30.self)
+    // Local schema migrations do not change the independently versioned CloudKit envelopes.
+    public static let schema = Schema(versionedSchema: TermindSchemaV31.self)
 
     public static func makeContainer(inMemory: Bool = false, url: URL? = nil) throws -> ModelContainer {
         precondition(!inMemory || url == nil, "An in-memory store cannot also have a file URL")

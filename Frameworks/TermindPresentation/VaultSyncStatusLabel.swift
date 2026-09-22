@@ -24,6 +24,28 @@ public struct VaultSyncStatusLabel: View {
                 pendingCount == 1 ? "Syncing 1 change…" : "Syncing \(pendingCount) changes…",
                 systemImage: "arrow.triangle.2.circlepath.icloud"
             )
+        case .partiallyBlocked(let pendingCount, let blockedCount, let requiresUpdate):
+            VStack(alignment: .leading, spacing: 4) {
+                Label("Paused uploads: \(blockedCount)", systemImage: "exclamationmark.icloud")
+                    .foregroundStyle(.orange)
+                Text(
+                    "This version cannot safely process some iCloud records. Their local changes are kept on this device."
+                )
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                if requiresUpdate {
+                    Text("A newer version of Termind is required to edit some of these records.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if pendingCount > 0 {
+                    Text("Pending uploads: \(pendingCount)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
         case .upToDate(let lastSync):
             if let lastSync {
                 let formatted = lastSync.formatted(

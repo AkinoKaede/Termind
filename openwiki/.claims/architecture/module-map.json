@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c740751a98fe7565940e6e626722edf984d736c49aba612260c8d8fb2ef94c56",
+  "pageVersion": "sha256:e707ee9af65f4140151b9354f42ab37041d2c10b718d0f4bc934c7a158ff0281",
   "claims": [
     {
       "id": "claim_34230e88036241baad093fb8de5bac8e",
@@ -17,8 +17,8 @@
       "statement": "Shared frameworks cannot import either app target, while Domain, Application and Presentation have additional implementation and platform restrictions enforced by ArchitectureBoundaryTests.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L205",
-          "version": "repo-lines-v1:sha256:6f9d39ddb763be1beb60a35b34cd7d75ce295813b69e1c913dabfa886fb87672:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMDlmOWExMjczZjgzNDQ3YzRiNzFiYmEyN2YwODAzMzcyMTkyZWZlODBiNmMwMmM1MzA4Y2U1YThkOTI4N2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0MzM5NTc5NTQ5OTAyMTEzNTE2MTA2Mzc0OGM4NTM0ODkyODlkOWExYzlmNDIzMGJkMmM5NzliYjU0NjZlNzYifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L164-L187",
+          "version": "repo-lines-v1:sha256:45ac2d747c736c3bb9821104587d21ef897e4ec32ff8b25b11479a6ca7608f89:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3OTk5ZWY4ZDk0Y2NkYzU3ZmJhZDE1NzllYmJkZTM4YjIwYTUyNDk0ZGMyYWYxNGFiZGU2MjY5NmJiMTMwOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzNzgzMjY0N2Y5NWFkMDc0NDExNjM1OThlMWU5MDhiZDM0YmUxMTBkNjNkZGE1N2FjMTc5NjIwM2VjZmNmYjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYifQ"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L70-L122",
@@ -121,6 +121,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T05:22:55.650Z"
   }
 }

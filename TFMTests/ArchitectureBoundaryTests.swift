@@ -189,6 +189,22 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func cloudSyncCoordinatorsUseSharedUploadAndQuarantineGates() throws {
+        let root = sourceRoot.appending(path: "../Frameworks/TermindInfrastructure/Cloud")
+        for name in ["VaultSyncCoordinator", "SettingsSyncCoordinator", "MetricsSyncCoordinator"] {
+            let source = try String(contentsOf: root.appending(path: "\(name).swift"), encoding: .utf8)
+            #expect(source.contains("lifecycle.makeChangeBatch("))
+            #expect(source.contains("lifecycle.canUpload("))
+            #expect(source.contains("CloudSyncRecordCoding.quarantine("))
+            #expect(source.contains("isConflict: true"))
+            #expect(!source.contains("try? journal.outgoingEntry"))
+        }
+        let lifecycle = try String(contentsOf: root.appending(path: "CloudSyncLifecycle.swift"), encoding: .utf8)
+        #expect(!lifecycle.split(separator: "\n").contains("import SwiftData"))
+        #expect(!lifecycle.split(separator: "\n").contains("import TermindPersistence"))
+    }
+
+    @Test
     func swiftDataModelsHaveOneSharedOwner() throws {
         for directory in [
             "", "../TFI", "../Frameworks/TermindDomain", "../Frameworks/TermindApplication",

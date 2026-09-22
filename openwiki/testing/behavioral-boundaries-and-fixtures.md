@@ -3,9 +3,6 @@ type: testing strategy
 title: Testing Strategy and Behavioral Boundaries
 description: Focused regression strategy for Termind's shared frameworks and macOS and mobile targets, with fixtures that protect persistence, security, lifecycle, architecture, and UI contracts.
 tags: [testing, regression, fixtures, architecture, persistence, security, lifecycle, ui]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -13,6 +10,14 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
   - id: openwiki-source-017f5e2abe9b13df755a5322
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
+  - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
+    resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
+  - id: openwiki-source-195e2cb735dfac7fb6dbda27
+    resource: repo://FrameworkTests/CloudSyncSafetyFixture.swift
+  - id: openwiki-source-40cfadc2320da9a292c64d26
+    resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
+  - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
+    resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
@@ -31,7 +36,10 @@ sources:
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T05:22:55.650Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -66,9 +74,23 @@ Persistence tests are compatibility tests, not just encode/decode checks. `Persi
 
 Agent replay persistence demonstrates the same principle for durable runtime state: an in-memory `SwiftDataAgentRunRepository` must restore frozen context and tool result projection without duplicating replay backing across subsequent snapshots, and deletion must remove that backing. A fixture should deliberately model the timing boundary it protects—for example, recording a tool result before the following run snapshot—rather than requiring a live provider.
 
+### CloudKit compatibility: test prohibited uploads, not just decoding
+
+The safety fixture substitutes only the CloudKit transport. It uses the production Vault, Settings and Metrics coordinators, journals, record coding, synchronous batches and final record providers. The same cases run for all three categories:
+
+- Receive a future-format record with a pending local edit and verify its original bytes and pending intent survive, while a compatible peer still reaches the outgoing batch.
+- Feed an already-queued save and physical delete through the batch seam; neither may bypass the record restriction. Tombstones and physical-delete recreation remain pending but blocked.
+- Return an unsupported `serverRecordChanged` record, then retry and pause/restart without removing the restriction.
+- Deliver supported data and verify successful reconciliation unblocks the record; inject a pre-save failure to prove that data/journal mutation and quarantine removal roll back together.
+- Distinguish malformed payloads from recognized newer formats in status hints. Ignore unknown record types on ordinary fetch, but validate a conflict returned for an attempted known record ID.
+
+Disk-backed tests separately migrate a V30 store to V31, import legacy quarantine, reopen interrupted state and verify that journal intent and recovery flags survive. Scope tests vary container, environment, account, zone and owner independently. Lifecycle tests hold fetches and inject persistence/lookup failures, exercise overlapping explicit operations and automatic callbacks, and prove that an old or failed engine cannot reopen upload authorization.
+
+These tests do not prove unknown-field round trips through an actual historical binary, Production schema deployment, or signed-device delivery. Keep those checks in [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md); a fake transport passing is not evidence that iCloud has delivered a record.
+
 ### macOS: composition, security, and resource lifetime
 
-`TFMTests` owns desktop composition and native interaction seams. `ArchitectureBoundaryTests` is a source-level regression suite: it rejects forbidden imports and concrete infrastructure construction in layers that must stay abstract, confines SwiftData models to `TermindPersistence`, prevents shared frameworks from importing application targets, and prevents local declarations from shadowing types owned by AgentKit. Run it whenever moving code, changing framework dependencies, adding persistence types, or crossing the AgentKit boundary.
+`TFMTests` owns desktop composition and native interaction seams. `ArchitectureBoundaryTests` is a source-level regression suite: it rejects forbidden imports and concrete infrastructure construction in layers that must stay abstract, confines SwiftData models to `TermindPersistence`, prevents shared frameworks from importing application targets, and prevents local declarations from shadowing types owned by AgentKit. It also checks that all three CloudKit coordinators retain the shared batch/provider/quarantine gates and that the lifecycle itself does not acquire a SwiftData or Persistence import. These source checks complement, rather than replace, the runtime safety fixtures. Run it whenever moving code, changing framework dependencies, adding persistence types, or crossing the AgentKit boundary.
 
 Security-sensitive tests should make the boundary explicit with a memory secret store and an authentication responder, never production secrets. `AgentHostAuthenticationTests` verifies that one-use credentials can configure an SSH/SFTP attempt without mutating the Vault unless saving was requested; it also covers route-order prompting for a jump host and destination, prompt/connection coalescing for concurrent work, cancellation before SFTP opens, rejected-credential retry, and stale authentication generations. These are safety contracts: a future refactor must not persist an ephemeral secret, merge unrelated challenges, or let an old callback erase newer authentication state.
 
@@ -117,6 +139,7 @@ In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing 
 | --- | --- | --- |
 | Framework dependency or data-owner change | `ArchitectureBoundaryTests` plus affected framework suite | No reverse import, concrete implementation leak, duplicate AgentKit type, or SwiftData model outside Persistence. |
 | SwiftData schema, migration, or durable agent record | Persistence compatibility/replay fixtures | Old stores open, records retain intended values, interrupted timing remains recoverable, and deletes clean backing rows. |
+| CloudKit format, upload scheduling, conflict or recovery behavior | Shared lifecycle, coordinator-safety and on-disk safety fixtures | Unsupported IDs never upload, compatible peers progress, restrictions survive retry/reopen, and failed reconciliation cannot unblock data. |
 | SSH credentials, prompts, host trust, or agent authentication | Authentication and interaction-policy fixtures | Ephemeral secrets stay ephemeral, prompt scope/order/coalescing is correct, forbidden work stays noninteractive, and secrets are invalidated after use. |
 | SSH/SFTP transfer scheduling or pane/session teardown | `SFTPTransferContextTests` with a controlled channel harness | Concurrency bounds hold, background transfer ownership survives UI teardown, cancellation cleans up, and fallback does not invite interaction. |
 | Mobile workspace, scene, restoration, or background lifecycle | `MobileAppTests` and `MobileWorkspaceStoreTests` | State is shared or local at the intended scope, external sessions remain ephemeral, restoration is safe, and callbacks cannot revive retired state. |

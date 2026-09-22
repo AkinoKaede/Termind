@@ -89,7 +89,27 @@ public final class MetricsSyncJournal {
         ).compactMap(\.envelope)
     }
 
-    public func outgoingEntry(for key: MetricsRecordKey) throws -> MetricsOutgoingEntry? {
+    public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
+        let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
+        return try pendingEnvelopes().map(\.key.recordName).filter { !blocked.contains($0) }
+    }
+
+    public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
+        let safety = CloudSyncSafetyStore(context: context, scope: scope)
+        for row in try context.fetch(FetchDescriptor<PersistentMetricsSyncQuarantine>()) {
+            if try !safety.isUploadBlocked(recordName: row.recordName) {
+                try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
+            }
+            context.delete(row)
+        }
+    }
+
+    public func outgoingEntry(for key: MetricsRecordKey, scope: CloudSyncScope? = nil) throws -> MetricsOutgoingEntry? {
+        if let scope,
+            try CloudSyncSafetyStore(context: context, scope: scope).isUploadBlocked(recordName: key.recordName)
+        {
+            return nil
+        }
         guard let row = try entry(recordName: key.recordName), let envelope = row.envelope else { return nil }
         return MetricsOutgoingEntry(envelope: envelope, systemFieldsData: row.systemFieldsData)
     }
@@ -296,12 +316,12 @@ public final class MetricsSyncPersistence: MetricsConfigurationStoring {
         didRecordChanges?(mutations)
     }
 
-    public func applyRemote(_ envelopes: [MetricsEnvelope]) throws
+    public func applyRemote(_ envelopes: [MetricsEnvelope], beforeSave: () throws -> Void = {}) throws
         -> (snapshot: MetricsSyncSnapshot, acceptedKeys: Set<MetricsRecordKey>, needsUpload: Set<MetricsRecordKey>)
     {
         var merge = MetricsRemoteMerge()
         var snapshot = try materialize()
-        try context.commit {
+        try context.commit(beforeSave: beforeSave) {
             merge = try journal.mergeDecision(for: envelopes)
             guard !merge.accepted.isEmpty else {
                 try journal.markNeedsUpload(merge.needsUpload)

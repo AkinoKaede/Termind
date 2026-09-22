@@ -62,7 +62,8 @@ struct MobileSyncSettingsView: View {
             switch value {
             case .accountChangeConfirmationRequired:
                 Button("Merge with This iCloud Account", systemImage: "icloud", action: merge)
-            case .failed:
+            case .failed, .partiallyBlocked:
+                // Retry fetches again; it never dismisses a persisted upload restriction.
                 Button("Retry", systemImage: "arrow.clockwise", action: retry)
             default:
                 EmptyView()

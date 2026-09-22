@@ -142,6 +142,8 @@ public nonisolated enum VaultSyncStatus: Equatable, Sendable {
     case unavailable(String)
     case accountChangeConfirmationRequired
     case syncing(pendingCount: Int)
+    /// Other records may still sync; blocked records retain their local pending changes.
+    case partiallyBlocked(pendingCount: Int, blockedCount: Int, requiresUpdate: Bool = false)
     case upToDate(lastSuccessfulSync: Date?)
     case failed(String)
 }

@@ -5,7 +5,7 @@ description: Exhaustive architecture, ownership, lifecycle, security, persistenc
 tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-22T05:22:55.650Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -15,14 +15,22 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
+  - id: openwiki-source-4957f13c836c497e7ebe4656
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift
   - id: openwiki-source-3effdff7f6b04e2a66d8f651
     resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
   - id: openwiki-source-04ef2b2f02773f8833db9a8b
     resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
+  - id: openwiki-source-1366e71322413c98e0ac1534
+    resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
+  - id: openwiki-source-fe1dc993163bb9ff61397be7
+    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-87b90af0bd504e35083a8414
+    resource: repo://Frameworks/TermindPresentation/VaultSyncStatusLabel.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
@@ -37,6 +45,10 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
+  - id: openwiki-source-40cfadc2320da9a292c64d26
+    resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
+  - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
+    resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -61,7 +73,7 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-22T01:33:04.232Z" }
+generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -84,7 +96,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. |
-| TermindPersistence | All SwiftData models, frozen V1–V22 schemas, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, frozen V1–V30 history, additive V31 sync-safety models, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -520,6 +532,16 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
   generations, consent, fetch-before-send, retry/reset/status. Zones/subscriptions/accounts/journals/engines/merge remain independent. Persistence
   alone owns journal models. Authorize secret upload only after successful current-engine fetch; pause/retirement revokes. Stale work cannot publish
   or clear replacements; injected transport enables deterministic tests.
+- Unreadable supported record types are durable per-record upload restrictions, scoped by container, environment, account,
+  zone and owner. Preserve the raw payload and local pending intent. Filter the journal, prune restored engine queues and
+  recheck synchronous batches and final record providers; tombstones and physical-delete recreation cannot bypass the restriction.
+  Fetch and save-conflict replies share validation. Only successful supported-data reconciliation clears the restriction in
+  the same persistence commit; retry, pause and relaunch do not. Other records keep syncing, with separate pending/blocked
+  counts and an update hint only for a recognized newer format.
+- Persist recovery intent before engines or network operations can advance cursors. Interrupted work leaves the recovery marker;
+  delegate persistence failure also retires the engine. Restart requires a fresh fetch without dropping pending local edits. Overlapping explicit
+  operations and automatic callbacks keep recovery active until all complete. This is not generic unknown-field preservation,
+  a retrofit for historical clients, or automatic replay after every future capability upgrade.
 - Frozen V13 Settings; V14 terminal, V15 Metrics journal/account/quarantine, V21 SFTP. Commit data+intent atomically, then mirror defaults; remote
   apply refreshes without echo. Separate records cover providers/models/MCP/skills/roles/search/terminal/custom text/SFTP limits. First SFTP row
   imports prior local values once, missing 15/5; future preparation uses persisted truth. `v1/sftp/default` uses `SFTPPreferencesItem` in same zone/

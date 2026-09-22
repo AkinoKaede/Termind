@@ -152,7 +152,28 @@ public final class SettingsSyncJournal {
         ).compactMap(\.envelope).filter { $0.key.kind.participatesInSync }
     }
 
-    public func outgoingEntry(for key: SettingsRecordKey) throws -> SettingsOutgoingEntry? {
+    public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
+        let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
+        return try pendingEnvelopes().map(\.key.recordName).filter { !blocked.contains($0) }
+    }
+
+    public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
+        let safety = CloudSyncSafetyStore(context: context, scope: scope)
+        for row in try context.fetch(FetchDescriptor<PersistentAIConfigurationSyncQuarantine>()) {
+            if try !safety.isUploadBlocked(recordName: row.recordName) {
+                try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
+            }
+            context.delete(row)
+        }
+    }
+
+    public func outgoingEntry(for key: SettingsRecordKey, scope: CloudSyncScope? = nil) throws -> SettingsOutgoingEntry?
+    {
+        if let scope,
+            try CloudSyncSafetyStore(context: context, scope: scope).isUploadBlocked(recordName: key.recordName)
+        {
+            return nil
+        }
         guard key.kind.participatesInSync else { return nil }
         guard let row = try entry(recordName: key.recordName), let envelope = row.envelope else {
             return nil

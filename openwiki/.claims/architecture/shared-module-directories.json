@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d1599e833448b20031493f69c8c932476f7baf92aa01314913874144abcbae24",
+  "pageVersion": "sha256:46da12757deeb46a90ef6fb1b732fb70c55f422f008a7a43e317c7f5f31e1681",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -74,45 +74,61 @@
     },
     {
       "id": "claim_4ed733207e8b495f9fb9f0db86f1ad04",
-      "statement": "Persistence owns the versioned SwiftData schema/container and persistence adapters, while GRDBMemoryStore separately owns a lazily opened SQLite memory database and full-text message index.",
+      "statement": "Persistence owns the versioned SwiftData schema/container and persistence adapters, including V31 scoped sync restrictions and recovery checkpoints; GRDBMemoryStore separately owns a lazily opened SQLite memory database and full-text message index.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/AISecretStore.swift",
           "version": "repo-file-v1:sha256:39f0b10f3adf7bf4bf751f9e370e221c8613b8924c40063e8865bc75b6bbdafd"
         },
         {
+          "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
+          "version": "repo-file-v1:sha256:c028e57ece449c591c32f8ac849fda2f6a82cda00974acc87f832295bb3acc3d"
+        },
+        {
           "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift#L6-L47",
           "version": "repo-lines-v1:sha256:367ad381b7e20356b66e497b9e380ad6c8d11ce26150386d054664175c7b2dda:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2ZTgzNWJiMzkzNjdhODBkMDdiMDkxZDJmZGIwODFhZGM0YThkYTg0NmQ4MjhjYjM1YzUzY2IwYzUyMjc4MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZWFjYTU1MGI4N2Y4MTM4MGM0NDM2MDc1YTA3MDQ0NGJkMTRhYWQ4MzMwNTZmNjE0MmYyMDdiNzlhNjdkMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3NTFkYmVhZWI2MDk3MWM4NGIwNWEzYjVjNWZlMmIyN2E2NmY0MjQxZTM5NTkwOTQ1NzU4NzljZGVkMjg1YTEifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:3f83df3e24721a73fd95f95172c13eeddbf3cfe6c815d51601f6e856068c27b8"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L784-L791",
+          "version": "repo-lines-v1:sha256:8d79c417b0144fe8ea720dac157a20fb35b68045b6d5611819f811488698647c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2FjYmQ4ZDg5YjViZTJkYWYyZDQ0ZWYwNDhkY2UxYmZmNjlmYzFlZGEyZjE3NmIzY2RjYzQzMjIwMDJmM2Q4MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmE2YWQyYmNlYjdkNWJhNzgyYjJmZWM4YjFlZTM3ZjUzOGE3MDNkOGVlZTMxMDc2ZjZiYTU1ZWI5ODQ4ZjIzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTllNzYzNTVjZjExOTk0ODBjM2Y5OTgzNmIxNDg2Yzg0MWQ4OTFmYWFkOTA0YzYwOGUwOTMwMjJkMzc1N2FlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2VmNDZiNWVlZDczMWY4OWQ1MDA5MmE1NzYwMGRiOTQxMzQ5OGZjMTBlMDZlOWQ3ZDIxZmUxOWIyNTZlZTM0MyJ9"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L191-L205",
-          "version": "repo-lines-v1:sha256:c4ec94e716e4cb8b2c13ee93ce7d370e5a3800eae469b89cf13c6870f5fcc45a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMDlmOWExMjczZjgzNDQ3YzRiNzFiYmEyN2YwODAzMzcyMTkyZWZlODBiNmMwMmM1MzA4Y2U1YThkOTI4N2QiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ0MzM5NTc5NTQ5OTAyMTEzNTE2MTA2Mzc0OGM4NTM0ODkyODlkOWExYzlmNDIzMGJkMmM5NzliYjU0NjZlNzYifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
+          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L207-L223",
+          "version": "repo-lines-v1:sha256:bb65a8050531c288646a62d024e2c5ce82632ce10e8f598b6d9de35f3de1606f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlNDNhMjAwNmYyNDA5MjZmMDAwYzdlNGI5MzIxNjY5M2MyNGRkZjU3MWQ3YTM3MDRjNGU1MmM4MWI1ZjBkZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzOWVhMmE5NzQ2MjU5N2MwNmU3ODEyZDZmYWRkNzJkMTNmMTYxMDliYTBkZTgwOWQ3MjRlM2E3NTQ1ZjZhNzkifQ"
         }
       ]
     },
     {
       "id": "claim_15c2069e54654cb49ac2a21c36d8dae6",
-      "statement": "Explicit Infrastructure CloudKit coordinators use Persistence journals and stores; the shared SwiftData container disables automatic CloudKit storage, so sync is not an automatic model-container transport.",
+      "statement": "Explicit Infrastructure CloudKit coordinators use Persistence journals, scoped safety storage and a shared lifecycle adapter while retaining independent category engines; received and conflicted records share validation, and the SwiftData container still disables automatic CloudKit storage.",
       "evidence": [
         {
+          "resource": "repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift",
+          "version": "repo-file-v1:sha256:a66b5df76f386d4370e6b7df14cf7b00942b48c03bccebbed010343a30667f7f"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift",
+          "version": "repo-file-v1:sha256:e6fbb3f62e917da272cb0ea54790a212b235c044ed6e414883f0904a14b2ef0b"
+        },
+        {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift",
-          "version": "repo-file-v1:sha256:0231838249d91135b86f0d348eff2d704d3f48820530225f4fb7b3ca71bae69b"
+          "version": "repo-file-v1:sha256:0736f9e5da36475861461a4b13e67c9b66035216f1a2d2160ab529a81f429615"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift",
-          "version": "repo-file-v1:sha256:e3743dd6e71f7d3f182c325c1006c3a88aaaa5cd0f96e5cc043e9a6538128c58"
+          "version": "repo-file-v1:sha256:5fe2842bd5872604eb9fc6954c9bd77ab04638cf13b8ad79d77f0452d8030d10"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L7-L110",
-          "version": "repo-lines-v1:sha256:7c39d427cfa35171fc07fba08e4211e6ad13bab2d90ae186502c9db6c6bb3776:eyJzZWxlY3RlZExpbmVDb3VudCI6MTA0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIzZGRhYzFmMWExMTQ1ZGI0NzdlMzA3NGY2N2FiYjk2ZTk3NDc0M2RhYTYxYzZiZGQ3Mjg0MTAxMWJlYWE2OTU0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1YjdlMmY3MDI5ODRjOTkzZTc3MDhkZWZiZWJhNzdlZDQ1MDkyYjRhNTNlMGZkM2I0YzQzMjkxN2Q3OWU3MGFiIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJhMzBjNzI1ZjE3YjkzYjRkNTA1YmExMjA5Nzk0MTdmM2U1NzM1MzYxZGY5NjFiY2JkMGM0ZjhlOGRlNmYxNjJmIn0"
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift",
+          "version": "repo-file-v1:sha256:c8a0385467103bef43d7a2d3bbf334701870656e54e06a960eb49ddbafbdb667"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:3f83df3e24721a73fd95f95172c13eeddbf3cfe6c815d51601f6e856068c27b8"
+          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
         }
       ]
     },
@@ -253,6 +269,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:45:03.442Z"
+    "at": "2026-09-22T05:22:55.650Z"
   }
 }

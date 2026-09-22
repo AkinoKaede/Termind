@@ -17,8 +17,8 @@ struct CloudSyncLifecycleStore {
     var updateState: (CloudSyncState) throws -> Void
     var save: () throws -> Void
     var rollback: () -> Void
-    var pendingRecordNames: () throws -> [String]
-    var quarantineReason: () throws -> String?
+    var pendingRecordNames: (CloudSyncScope) throws -> [String]
+    var safety: CloudSyncLifecycleSafety
     var resetForNewAccount: () throws -> Void
     var resetForZone: () throws -> Void
     var resetForEnvironment: () throws -> Void
@@ -30,6 +30,7 @@ protocol CloudSyncEngineSession: AnyObject {
     func send() async throws
     func cancel() async
     func enqueue(_ recordNames: [String], in zoneID: CKRecordZone.ID)
+    func removePending(_ recordNames: Set<String>, in zoneID: CKRecordZone.ID)
     func recreateZone(_ zoneID: CKRecordZone.ID)
 }
 
@@ -41,6 +42,19 @@ extension CKSyncEngine: CloudSyncEngineSession {
     func cancel() async { await cancelOperations() }
     func enqueue(_ recordNames: [String], in zoneID: CKRecordZone.ID) {
         state.add(pendingRecordZoneChanges: recordNames.map { .saveRecord(.init(recordName: $0, zoneID: zoneID)) })
+    }
+    func removePending(_ recordNames: Set<String>, in zoneID: CKRecordZone.ID) {
+        state.remove(
+            pendingRecordZoneChanges: state.pendingRecordZoneChanges.filter { change in
+                switch change {
+                case .saveRecord(let id):
+                    id.zoneID == zoneID && recordNames.contains(id.recordName)
+                case .deleteRecord(let id):
+                    // No physical deletes belong to this protocol, including restored legacy queue entries.
+                    id.zoneID == zoneID
+                @unknown default: false
+                }
+            })
     }
     func recreateZone(_ zoneID: CKRecordZone.ID) {
         state.add(pendingDatabaseChanges: [.saveZone(CKRecordZone(zoneID: zoneID))])
@@ -84,6 +98,7 @@ final class CloudSyncLifecycle {
     let store: CloudSyncLifecycleStore
     let transport: CloudSyncTransport
     let zoneID: CKRecordZone.ID
+    private let containerIdentifier: String
     private let defaults: UserDefaults
     private let enabledKey: String
     private let defaultEnabled: Bool
@@ -93,22 +108,29 @@ final class CloudSyncLifecycle {
     private let authorizeUploads: (Bool) -> Void
     private let beforeSend: () throws -> Void
     private(set) var engine: (any CloudSyncEngineSession)?
+    private(set) var scope: CloudSyncScope?
     private(set) var operation: Task<Void, Never>?
     private var operationID = UUID()
     private var isStarted = false
+    private var zonePrepared = false
+    // Explicit fetch/send calls and automatic engine events can overlap.
+    private var fetching = 0
+    private var sending = 0
+    private var fetchFailed = false
     private(set) var isReadyToSend = false
     var terminalError: String?
     var status: VaultSyncStatus = .checkingAccount
 
     init(
         store: CloudSyncLifecycleStore, transport: CloudSyncTransport, zoneID: CKRecordZone.ID,
-        defaults: UserDefaults, enabledKey: String, defaultEnabled: Bool,
+        containerIdentifier: String, defaults: UserDefaults, enabledKey: String, defaultEnabled: Bool,
         environmentKey: String, environmentIdentifier: String, signInMessage: @escaping () -> String,
         authorizeUploads: @escaping (Bool) -> Void = { _ in }, beforeSend: @escaping () throws -> Void = {}
     ) {
         self.store = store
         self.transport = transport
         self.zoneID = zoneID
+        self.containerIdentifier = containerIdentifier
         self.defaults = defaults
         self.enabledKey = enabledKey
         self.defaultEnabled = defaultEnabled
@@ -157,9 +179,26 @@ final class CloudSyncLifecycle {
 
     func noteLocalChanges(_ recordNames: [String]) {
         guard !recordNames.isEmpty else { return }
-        enqueue(recordNames)
-        guard isEnabled, engine != nil else { return }
-        run { [weak self] in try await self?.sendPendingChanges() }
+        do {
+            try enqueue(recordNames)
+            guard isEnabled, engine != nil else { return }
+            run { [weak self] in
+                try await self?.sendPendingChanges()
+                try self?.updateUpToDateStatus()
+            }
+        } catch { failClosed(error) }
+    }
+
+    private func makeScope(account: String, environment: String) -> CloudSyncScope {
+        CloudSyncScope(
+            container: containerIdentifier, environment: environment, account: account,
+            zone: zoneID.zoneName, owner: zoneID.ownerName)
+    }
+
+    private func legacyScope(for state: CloudSyncState) -> CloudSyncScope {
+        makeScope(
+            account: state.boundUserRecordName ?? "legacy-unbound",
+            environment: defaults.string(forKey: environmentKey) ?? "Unknown")
     }
 
     func confirmAccountSwitchMerge() {
@@ -167,6 +206,8 @@ final class CloudSyncLifecycle {
         do {
             var state = try store.state()
             guard let pendingUser = state.pendingUserRecordName else { return }
+            let oldScope = legacyScope(for: state)
+            _ = try store.safety.prepare(oldScope, oldScope)
             try store.resetForNewAccount()
             state = try store.state()
             state.boundUserRecordName = pendingUser
@@ -175,10 +216,7 @@ final class CloudSyncLifecycle {
             try store.save()
             retireEngine()
             start()
-        } catch {
-            store.rollback()
-            status = .failed(error.localizedDescription)
-        }
+        } catch { failClosed(error) }
     }
 
     private func run(_ body: @escaping @MainActor () async throws -> Void) {
@@ -189,7 +227,11 @@ final class CloudSyncLifecycle {
             defer { if self?.operationID == id { self?.operation = nil } }
             do { try await body() } catch is CancellationError {} catch {
                 guard let self, self.operationID == id else { return }
-                self.status = self.status(for: error)
+                if let cloudError = error as? CKError, Self.isRetryable(cloudError) {
+                    self.status = self.status(for: error)
+                } else {
+                    self.failClosed(error)
+                }
             }
         }
     }
@@ -215,8 +257,12 @@ final class CloudSyncLifecycle {
             isStarted = false
             return
         }
+        let scope = makeScope(account: currentUser, environment: environmentIdentifier)
+        let requiresRefetch = try store.safety.prepare(scope, legacyScope(for: state))
+        self.scope = scope
         state.boundUserRecordName = currentUser
         state.pendingUserRecordName = nil
+        if requiresRefetch { state.engineStateData = nil }
         try store.updateState(state)
         if defaults.string(forKey: environmentKey) != environmentIdentifier {
             try store.resetForEnvironment()
@@ -224,56 +270,158 @@ final class CloudSyncLifecycle {
             defaults.set(environmentIdentifier, forKey: environmentKey)
             terminalError = nil
         }
+        // Commit the recovery fence before constructing an automatically syncing engine.
+        try setRecoveryRequired(true)
         let engine = try transport.makeEngine(store.state().engineStateData)
         self.engine = engine
-        enqueue(try store.pendingRecordNames())
+        try reconcilePendingChanges()
         try store.save()
-        // A zone must exist and its records must be fetched before enabling sends.
         try await transport.createZone()
         guard accepts(engine), !Task.isCancelled else { return }
+        zonePrepared = true
         try await fetchAndSend(engine)
     }
 
     private func synchronizeNow() async throws {
-        guard let engine else { return }
-        status = .syncing(pendingCount: try store.pendingRecordNames().count)
+        guard let engine, let scope else { return }
+        status = .syncing(pendingCount: try store.pendingRecordNames(scope).count)
         try await fetchAndSend(engine)
     }
 
     private func fetchAndSend(_ engine: any CloudSyncEngineSession) async throws {
-        try await engine.fetch(in: zoneID)
+        try beginFetch()
+        do {
+            try await engine.fetch(in: zoneID)
+        } catch {
+            if accepts(engine) { try finishFetch(succeeded: false) }
+            throw error
+        }
         guard accepts(engine), !Task.isCancelled else { return }
-        authorizeUploads(true)
-        isReadyToSend = true
+        try finishFetch()
         try await sendPendingChanges()
         guard accepts(engine), !Task.isCancelled else { return }
         try updateUpToDateStatus()
     }
 
     private func sendPendingChanges() async throws {
-        guard let engine, isEnabled, isReadyToSend else { return }
+        guard let engine, let scope, isEnabled, isReadyToSend else { return }
         try beforeSend()
-        let pending = try store.pendingRecordNames()
+        try reconcilePendingChanges()
+        let pending = try store.pendingRecordNames(scope)
         guard !pending.isEmpty else { return }
-        enqueue(pending)
         status = .syncing(pendingCount: pending.count)
-        try await engine.send()
+        try beginSend()
+        do {
+            try await engine.send()
+        } catch {
+            if accepts(engine) { try finishSend(succeeded: false) }
+            throw error
+        }
+        guard accepts(engine), !Task.isCancelled else { return }
+        try finishSend()
     }
 
-    func enqueue(_ recordNames: [String]) { engine?.enqueue(recordNames, in: zoneID) }
+    private func setRecoveryRequired(_ required: Bool) throws {
+        guard let scope else { throw CancellationError() }
+        try store.safety.setRecoveryRequired(scope, required)
+        try store.save()
+    }
+
+}
+
+extension CloudSyncLifecycle {
+    func beginFetch() throws {
+        isReadyToSend = false
+        authorizeUploads(false)
+        if fetching == 0 { fetchFailed = false }
+        fetching += 1
+        try setRecoveryRequired(true)
+    }
+
+    func noteFetchFailure(_ error: CKError) {
+        fetchFailed = true
+        isReadyToSend = false
+        authorizeUploads(false)
+        status = self.status(for: error)
+    }
+
+    func finishFetch(succeeded: Bool = true) throws {
+        fetching = max(0, fetching - 1)
+        fetchFailed = fetchFailed || !succeeded
+        try setRecoveryRequired(fetching > 0 || sending > 0 || fetchFailed)
+        isReadyToSend = zonePrepared && fetching == 0 && !fetchFailed
+        authorizeUploads(isReadyToSend)
+    }
+
+    func beginSend() throws {
+        sending += 1
+        try setRecoveryRequired(true)
+    }
+
+    func finishSend(succeeded: Bool = true) throws {
+        sending = max(0, sending - 1)
+        try setRecoveryRequired(!succeeded || fetching > 0 || sending > 0 || fetchFailed)
+    }
+
+    func enqueue(_ recordNames: [String]) throws {
+        guard let engine, let scope else { return }
+        let blocked = try store.safety.blockedRecordNames(scope)
+        engine.removePending(blocked, in: zoneID)
+        engine.enqueue(recordNames.filter { !blocked.contains($0) }, in: zoneID)
+    }
+
+    func reconcilePendingChanges() throws {
+        guard let scope else { return }
+        try enqueue(store.pendingRecordNames(scope))
+    }
+
     func accepts(_ engine: any CloudSyncEngineSession) -> Bool { self.engine === engine && isEnabled }
 
-    func updateUpToDateStatus() throws {
-        if let reason = try store.quarantineReason() {
-            status = .failed(reason)
-            return
+    func canUpload(_ recordID: CKRecord.ID, engine: any CloudSyncEngineSession) throws -> Bool {
+        guard accepts(engine), isReadyToSend, let scope, recordID.zoneID == zoneID else { return false }
+        if try store.safety.isUploadBlocked(scope, recordID.recordName) {
+            engine.removePending([recordID.recordName], in: zoneID)
+            return false
         }
+        return true
+    }
+
+    /// Synchronous materialization avoids yielding between the final fence check and batch handoff.
+    func makeChangeBatch(
+        _ pending: [CKSyncEngine.PendingRecordZoneChange], engine: any CloudSyncEngineSession,
+        recordProvider: (CKRecord.ID) -> CKRecord?
+    ) -> CKSyncEngine.RecordZoneChangeBatch? {
+        guard accepts(engine), isReadyToSend else { return nil }
+        do {
+            try setRecoveryRequired(true)
+            try reconcilePendingChanges()
+            var records: [CKRecord] = []
+            for change in pending {
+                // The protocol uses tombstones. Never emit a physical deletion from a restored queue.
+                guard case .saveRecord(let id) = change, try canUpload(id, engine: engine) else { continue }
+                if let record = recordProvider(id) { records.append(record) }
+            }
+            guard accepts(engine), isReadyToSend, !records.isEmpty else { return nil }
+            return CKSyncEngine.RecordZoneChangeBatch(recordsToSave: records)
+        } catch {
+            failClosed(error)
+            return nil
+        }
+    }
+
+    func updateUpToDateStatus() throws {
         if let terminalError {
             status = .failed(terminalError)
             return
         }
-        let pendingCount = try store.pendingRecordNames().count
-        if pendingCount == 0 {
+        guard isReadyToSend, let scope else { return }
+        let pendingCount = try store.pendingRecordNames(scope).count
+        let blockedCount = try store.safety.blockedRecordNames(scope).count
+        if blockedCount > 0 {
+            status = .partiallyBlocked(
+                pendingCount: pendingCount, blockedCount: blockedCount,
+                requiresUpdate: try store.safety.requiresNewerClient(scope))
+        } else if pendingCount == 0 {
             var state = try store.state()
             state.lastSuccessfulSync = .now
             try store.updateState(state)
@@ -308,6 +456,14 @@ final class CloudSyncLifecycle {
         try store.save()
     }
 
+    /// A delegate persistence failure must invalidate this engine, not just change a label.
+    /// The already-committed recovery fence causes the next engine to fetch from the beginning.
+    func failClosed(_ error: any Error) {
+        store.rollback()
+        retireEngine()
+        status = self.status(for: error)
+    }
+
     private func retireEngine() {
         operationID = UUID()
         operation?.cancel()
@@ -315,6 +471,11 @@ final class CloudSyncLifecycle {
         isReadyToSend = false
         authorizeUploads(false)
         isStarted = false
+        zonePrepared = false
+        fetching = 0
+        sending = 0
+        fetchFailed = false
+        scope = nil
         let activeEngine = engine
         engine = nil
         if let activeEngine { Task { await activeEngine.cancel() } }
@@ -323,7 +484,7 @@ final class CloudSyncLifecycle {
     func handleZoneDeletion() throws {
         try store.resetForZone()
         engine?.recreateZone(zoneID)
-        enqueue(try store.pendingRecordNames())
+        try reconcilePendingChanges()
         try store.save()
     }
 
@@ -351,6 +512,9 @@ final class CloudSyncLifecycle {
         return .failed(error.localizedDescription)
     }
 
+}
+
+extension CloudSyncLifecycle {
     private func accountStatusDescription(_ status: CKAccountStatus) -> String {
         switch status {
         case .noAccount: signInMessage()

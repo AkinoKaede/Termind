@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Shared Framework Directory Responsibilities
 description: Functional directory responsibilities across Termind's six shared frameworks and shared resources, including flat-root concerns and how policy, persistence, transport, and presentation collaborate.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:45:03.442Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -33,10 +30,14 @@ sources:
     resource: repo://Frameworks/TermindDomain/Shell/CommandRiskEngine.swift
   - id: openwiki-source-342a31db9c80b2ac86cc1442
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPTransfer.swift
+  - id: openwiki-source-1429ec01ac68a7770ce41977
+    resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
   - id: openwiki-source-96fe5b8bf5e51592ac0ec550
     resource: repo://Frameworks/TermindDomain/Workspaces/WorkspaceTemplate.swift
   - id: openwiki-source-4b9f58eec58128055ac58b6f
     resource: repo://Frameworks/TermindInfrastructure/Agent/ContextAttachmentImporter.swift
+  - id: openwiki-source-4957f13c836c497e7ebe4656
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift
   - id: openwiki-source-3effdff7f6b04e2a66d8f651
     resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
   - id: openwiki-source-04ef2b2f02773f8833db9a8b
@@ -53,8 +54,12 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Speech/AppleSpeechTranscriptionService.swift
   - id: openwiki-source-ec0a64adad50721ec500ebc2
     resource: repo://Frameworks/TermindPersistence/AISecretStore.swift
+  - id: openwiki-source-1366e71322413c98e0ac1534
+    resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-e14697ea11a99078be3adee9
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
+  - id: openwiki-source-fe1dc993163bb9ff61397be7
+    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-2c20dfd15c3c8143bab58304
@@ -93,7 +98,10 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "omp", at: "2026-09-22T03:45:03.442Z" }
+generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T05:22:55.650Z
 ---
 
 # Shared Framework Directory Responsibilities
@@ -123,7 +131,7 @@ Domain describes what the system means, not how a database, socket, or native vi
 | `Shell` | Command history, shell syntax/quoting, remote command construction, and command-risk classification/rules. |
 | `Snippets` | Snippet/package values and editing rules. |
 | `Transfers` | Remote file/path values, permission drafts, SFTP preferences/history, and transfer state records. |
-| `Vault` | Vault snapshots, record keys, mutations, and synchronization values. |
+| `Vault` | Vault snapshots, record keys, mutations, synchronization values, replica-scope identities and compatibility status/reason values. |
 | `Workspaces` | Saved workspace-template structure, including pane/split configuration rather than running sessions. |
 
 **Boundary:** a secret reference is not the secret, a transfer record is not its worker, and a workspace template is not an authenticated runtime. Domain imports are constrained by architecture tests so these values do not acquire UI, storage, or transport implementation dependencies.
@@ -157,7 +165,7 @@ This module currently has **no functional subdirectories**. Its root spans sever
 | Schema and migration | Current SwiftData schema, frozen historical representations, migration plan, and the sole shared container factory. |
 | Vault and histories | Persistent Host/credential metadata and related Vault records; command, connection, and SFTP history repositories. |
 | AI, Agent, skills, and audit | Provider/configuration records, agent-run/message replay, tool-audit storage, skill packages, and persistence redaction. |
-| Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault local stores, mutation journals, and sync-facing persistence adapters. |
+| Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault local stores, mutation journals, scoped upload restrictions, recovery checkpoints, and sync-facing persistence adapters. |
 | Secret metadata/adapters | AI secret references and storage policy bridged to the injected Keychain service; not a plaintext secret database. |
 | Memory | Actor-owned GRDB/SQLite memory state, conversation snapshots, session/message indexing, and full-text search. This is distinct from SwiftData's model container. |
 
@@ -171,12 +179,12 @@ Details: [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-
 | --- | --- |
 | Root files | In-memory host repository; Linux filesystem/process/server and NVIDIA metrics parsing; provider service-account file handling; skill-package import. Parsers do not own an SSH session. |
 | `Agent` | Read/import context attachments and provide the live attachment-loading adapter. Host-executing tools belong to Remote Infrastructure instead. |
-| `Cloud` | Shared CloudKit lifecycle/record coding and separate Vault, Settings, and Metrics sync coordinators using Persistence stores/journals. |
+| `Cloud` | Shared CloudKit lifecycle, record coding and upload-safety gates; separate Vault, Settings, and Metrics coordinators using Persistence stores/journals. |
 | `Commerce` | StoreKit products, entitlement refresh, purchase/restore flows, transaction observation, and Pro access state. |
 | `Logging` | Launch-scoped file logging and log-file lifecycle. |
 | `Speech` | Apple speech-recognition implementation plus an audio-input abstraction; each app supplies its native audio capture. |
 
-This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model.
+This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. The shared safety adapter projects scoped persistent restrictions and recovery state into the lifecycle; it does not merge the categories' engines, accounts, subscriptions or journals. V31 adds the safety storage locally, without changing the existing CloudKit record formats. Both received records and save-conflict replies use the same validation path before allowing a blocked record to become uploadable again.
 
 ## TermindRemoteInfrastructure — protocol and remote-operation machinery
 

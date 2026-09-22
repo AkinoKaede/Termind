@@ -6,9 +6,10 @@ extension ModelContext {
         try commit {}
     }
 
-    public func commit(_ operation: () throws -> Void) throws {
+    public func commit(beforeSave: () throws -> Void = {}, _ operation: () throws -> Void) throws {
         do {
             try operation()
+            try beforeSave()
             try save()
         } catch {
             rollback()

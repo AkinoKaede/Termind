@@ -1729,6 +1729,23 @@
         }
       }
     },
+    "A newer version of Termind is required to edit some of these records." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分记录需要较新版本的Termind才能编辑。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "部分記錄需要較新版本的Termind才能編輯。"
+          }
+        }
+      }
+    },
     "A path cannot be copied into itself." : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18371,6 +18388,40 @@
         }
       }
     },
+    "Paused uploads: %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暂停上传：%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暫停上傳：%lld"
+          }
+        }
+      }
+    },
+    "Pending uploads: %lld" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待上传：%lld"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "待上傳：%lld"
+          }
+        }
+      }
+    },
     "per %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -27922,6 +27973,23 @@
         }
       }
     },
+    "This iCloud record requires sync format %lld. Update Termind to edit it." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此iCloud记录需要同步格式%lld。请更新Termind后再编辑。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此iCloud記錄需要同步格式%lld。請更新Termind後再編輯。"
+          }
+        }
+      }
+    },
     "This key is not among the %lld trusted keys saved for %@. Verify it carefully before adding it." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -28271,6 +28339,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此保管庫記錄需要同步格式%lld。"
+          }
+        }
+      }
+    },
+    "This version cannot safely process some iCloud records. Their local changes are kept on this device." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "当前版本无法安全处理部分iCloud记录。这些记录的本地更改仍保留在此设备上。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "目前版本無法安全處理部分iCloud記錄。這些記錄的本機更改仍保留在此裝置上。"
           }
         }
       }

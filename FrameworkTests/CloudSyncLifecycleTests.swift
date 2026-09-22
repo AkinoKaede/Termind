@@ -173,21 +173,123 @@ struct CloudSyncLifecycleTests {
     }
 
     @Test
-    func quarantineAndTerminalErrorsTakePrecedenceOverSuccessfulStatus() throws {
+    func quarantineAndTerminalErrorsPreventSuccessfulStatusWithoutBlockingOtherRecords() async throws {
         let fixture = LifecycleFixture()
-        fixture.journal.pending = []
-        fixture.journal.quarantine = "quarantined"
+        fixture.journal.blocked = ["first", "unsupported"]
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        #expect(fixture.driver.status == .partiallyBlocked(pendingCount: 0, blockedCount: 2))
+        #expect(fixture.network.nextEngine.sendCount == 0)
         fixture.driver.terminalError = "terminal"
-        try fixture.driver.updateUpToDateStatus()
-        #expect(fixture.driver.status == .failed("quarantined"))
-        fixture.journal.quarantine = nil
         try fixture.driver.updateUpToDateStatus()
         #expect(fixture.driver.status == .failed("terminal"))
         #expect(fixture.journal.value.lastSuccessfulSync == nil)
         fixture.driver.terminalError = nil
+        fixture.journal.pending = []
+        fixture.journal.blocked = []
         try fixture.driver.updateUpToDateStatus()
         #expect(fixture.journal.value.lastSuccessfulSync != nil)
         #expect(fixture.driver.status == .upToDate(lastSuccessfulSync: fixture.journal.value.lastSuccessfulSync))
+    }
+
+    @Test
+    func persistedRecoveryFenceDiscardsTheCursorButPreservesPendingChanges() async throws {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        fixture.driver.pause()
+        fixture.journal.value.engineStateData = Data([7, 8])
+        fixture.journal.recoveryRequired = true
+        fixture.network.nextEngine = LifecycleEngine()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        #expect(fixture.network.serializations.last! == nil)
+        #expect(fixture.network.nextEngine.queued.contains("first"))
+        #expect(!fixture.journal.recoveryRequired)
+    }
+
+    @Test
+    func delegateFailureDuringFetchCannotBeOverwrittenBySuccessfulFetchCompletion() async {
+        let fixture = LifecycleFixture()
+        fixture.network.nextEngine.fetchBody = {
+            fixture.driver.failClosed(CocoaError(.fileWriteUnknown))
+        }
+        fixture.driver.start()
+        let operation = fixture.driver.operation
+        await operation?.value
+        #expect(fixture.driver.engine == nil)
+        #expect(!fixture.driver.isReadyToSend)
+        #expect(!fixture.journal.uploadsAuthorized)
+        #expect(fixture.journal.recoveryRequired)
+        #expect(fixture.network.nextEngine.sendCount == 0)
+        guard case .failed = fixture.driver.status else {
+            Issue.record("A successful fetch callback must not erase a persistence failure")
+            return
+        }
+        fixture.network.nextEngine = LifecycleEngine()
+        fixture.driver.retry()
+        await fixture.driver.operation?.value
+        #expect(fixture.network.serializations.last! == nil)
+        #expect(fixture.driver.isReadyToSend)
+    }
+
+    @Test
+    func failedFenceSavePreventsNetworkAndLookupFailureInvalidatesAReadyEngine() async {
+        let fixture = LifecycleFixture()
+        fixture.journal.saveError = CocoaError(.fileWriteUnknown)
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        #expect(fixture.network.engineCount == 0)
+        #expect(!fixture.driver.isReadyToSend)
+        fixture.journal.saveError = nil
+        fixture.driver.retry()
+        await fixture.driver.operation?.value
+        let engine = fixture.network.nextEngine
+        fixture.journal.lookupError = CocoaError(.fileReadUnknown)
+        fixture.driver.noteLocalChanges(["first"])
+        #expect(!fixture.driver.accepts(engine))
+        #expect(!fixture.journal.uploadsAuthorized)
+    }
+
+    @Test
+    func overlappingExplicitCallsAndAutomaticEventsKeepRecoveryUntilBothComplete() async throws {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        try fixture.driver.beginFetch()
+        try fixture.driver.beginFetch()
+        try fixture.driver.finishFetch()
+        #expect(!fixture.driver.isReadyToSend)
+        #expect(!fixture.journal.uploadsAuthorized)
+        #expect(fixture.journal.recoveryRequired)
+        try fixture.driver.beginSend()
+        try fixture.driver.finishFetch()
+        #expect(fixture.driver.isReadyToSend)
+        #expect(fixture.journal.recoveryRequired)
+        try fixture.driver.finishSend()
+        #expect(!fixture.journal.recoveryRequired)
+    }
+
+    @Test
+    func retryableZoneFailureKeepsAutomaticEngineButClosesUploadsUntilNextSuccessfulFetch() async throws {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let engine = fixture.network.nextEngine
+        try fixture.driver.beginFetch()
+        fixture.driver.noteFetchFailure(CKError(.networkFailure))
+        try fixture.driver.finishFetch()
+        try fixture.driver.updateUpToDateStatus()
+        #expect(fixture.driver.accepts(engine))
+        #expect(!fixture.driver.isReadyToSend)
+        #expect(!fixture.journal.uploadsAuthorized)
+        #expect(fixture.journal.recoveryRequired)
+        #expect(fixture.driver.status == .syncing(pendingCount: 0))
+        try fixture.driver.beginFetch()
+        try fixture.driver.finishFetch()
+        #expect(fixture.driver.isReadyToSend)
+        #expect(fixture.journal.uploadsAuthorized)
+        #expect(!fixture.journal.recoveryRequired)
     }
 
     @Test
@@ -217,12 +319,25 @@ private struct LifecycleFixture {
         driver = CloudSyncLifecycle(
             store: CloudSyncLifecycleStore(
                 state: { journal.value }, updateState: { journal.value = $0 },
-                save: {}, rollback: {}, pendingRecordNames: { journal.pending },
-                quarantineReason: { journal.quarantine },
+                save: { if let error = journal.saveError { throw error } }, rollback: {},
+                pendingRecordNames: { _ in journal.pending.filter { !journal.blocked.contains($0) } },
+                safety: CloudSyncLifecycleSafety(
+                    prepare: { _, _ in journal.recoveryRequired },
+                    setRecoveryRequired: { _, value in journal.recoveryRequired = value },
+                    blockedRecordNames: { _ in
+                        if let error = journal.lookupError { throw error }
+                        return journal.blocked
+                    },
+                    isUploadBlocked: { _, recordName in
+                        if let error = journal.lookupError { throw error }
+                        return journal.blocked.contains(recordName)
+                    },
+                    requiresNewerClient: { _ in false }),
                 resetForNewAccount: { journal.reset("account") },
                 resetForZone: { journal.reset("zone") },
                 resetForEnvironment: { journal.reset("environment") }),
             transport: network.transport, zoneID: .init(zoneName: "LifecycleTests"),
+            containerIdentifier: "LifecycleTests",
             defaults: UserDefaults(suiteName: "CloudSyncLifecycleTests.\(UUID())")!,
             enabledKey: "enabled", defaultEnabled: true, environmentKey: "environment",
             environmentIdentifier: "Development", signInMessage: { "Sign in" },
@@ -235,7 +350,10 @@ private struct LifecycleFixture {
 private final class LifecycleJournal {
     var value = CloudSyncState()
     var pending = ["first"]
-    var quarantine: String?
+    var blocked = Set<String>()
+    var recoveryRequired = false
+    var saveError: (any Error)?
+    var lookupError: (any Error)?
     var resets: [String] = []
     var uploadsAuthorized = false
     var migrationCount = 0
@@ -291,6 +409,9 @@ final class LifecycleEngine: CloudSyncEngineSession {
     }
     func cancel() async { cancelCount += 1 }
     func enqueue(_ recordNames: [String], in zoneID: CKRecordZone.ID) { queued.append(contentsOf: recordNames) }
+    func removePending(_ recordNames: Set<String>, in zoneID: CKRecordZone.ID) {
+        queued.removeAll { recordNames.contains($0) }
+    }
     func recreateZone(_ zoneID: CKRecordZone.ID) { recreatedZones.append(zoneID) }
 }
 

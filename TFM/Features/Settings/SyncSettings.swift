@@ -100,7 +100,8 @@ private struct SyncSelectionRow: View {
                 switch status {
                 case .accountChangeConfirmationRequired:
                     Button("Merge with This iCloud Account", action: merge)
-                case .failed:
+                case .failed, .partiallyBlocked:
+                    // Retry fetches again; it never dismisses a persisted upload restriction.
                     Button("Retry", action: retry)
                 default: EmptyView()
                 }

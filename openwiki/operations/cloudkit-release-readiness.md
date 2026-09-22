@@ -5,12 +5,18 @@ description: Production CloudKit schema, compatibility, and signed-device checks
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-22T05:22:55.650Z
 sources:
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
+  - id: openwiki-source-9489f42c5779904e0b51c8fc
+    resource: repo://Frameworks/TermindDomain/Metrics/MetricsSyncTypes.swift
+  - id: openwiki-source-36d16adefef02f0ed0cdc428
+    resource: repo://Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
+  - id: openwiki-source-a9afccb62e1c69e5a0fbf46c
+    resource: repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8329454aa460204bc28abedd
@@ -21,8 +27,26 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
+  - id: openwiki-source-1366e71322413c98e0ac1534
+    resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
+  - id: openwiki-source-fe1dc993163bb9ff61397be7
+    resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-07774a741f517493204edd63
+    resource: repo://Frameworks/TermindPersistence/MetricsSyncJournal.swift
+  - id: openwiki-source-2dc6b29f02b74b32c0eb786e
+    resource: repo://Frameworks/TermindPersistence/SettingsSyncJournal.swift
+  - id: openwiki-source-3cfc52217a7a6835b4bffac1
+    resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
+  - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
+    resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-8bf351c430c8e2a297e79c06
     resource: repo://FrameworkTests/CloudSyncRecordCodingTests.swift
+  - id: openwiki-source-195e2cb735dfac7fb6dbda27
+    resource: repo://FrameworkTests/CloudSyncSafetyFixture.swift
+  - id: openwiki-source-40cfadc2320da9a292c64d26
+    resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
+  - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
+    resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-25a5163498969aef5057c698
     resource: repo://FrameworkTests/SettingsPortTests.swift
   - id: openwiki-source-fce837c614f18611765f3804
@@ -33,7 +57,7 @@ sources:
     resource: repo://TFI/TFI.entitlements
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
 ---
 
 # CloudKit Schema Deployment and Signed-Device Release Readiness
@@ -78,6 +102,29 @@ Current defaults are 30 global transfers, 10 per Host, and Smart topology. The a
 
 For a release check, change 30/10 to 100/50, close Settings, and verify that another device adopts the new pair without interrupting active transfers. Repeat while offline and while the Settings category or master switch is paused, then resume. Include a device retaining 3/2 and, where compatibility testing is available, an older client that continues syncing the pre-existing record types while ignoring `SFTPPreferencesItem`.
 
+## First-stage mixed-version safety
+
+Local schema V31 adds replica-scoped quarantine and recovery checkpoints. It does **not** add a CloudKit record type, change the existing zones, or raise the V1 envelope formats. Treat local database migration and cloud schema deployment as separate decisions.
+
+The compatibility contract is now fail-closed for records a client detects it cannot safely understand: keep the received bytes and local pending edits, remove that record from upload scheduling, and recheck the final batch/provider. Other compatible records remain eligible. Unsupported fetches and `serverRecordChanged` replies share this path. Only successful supported-data reconciliation clears the restriction; pressing Retry, pausing a category or restarting does not discard it.
+
+Include the following matrix in release validation:
+
+| Scenario | Required result |
+| --- | --- |
+| New-format record with the same ID as a local pending edit | Block that ID without replacing it with defaults or clearing the local edit. |
+| Another record in the same category remains compatible | Upload it; show pending and blocked counts separately. |
+| Restored save queue, local tombstone, or physical-delete recreation | No path bypasses the restriction; never emit physical deletes from a restored queue. |
+| Upload conflict returns an unsupported record | Preserve it in quarantine rather than retrying a stale local payload. |
+| Persistence failure during fetch/conflict handling | Retire that engine; a later callback cannot reauthorize it, and restart fetches afresh. |
+| Pause/retry/relaunch or account/environment change | Preserve restrictions in their original scope without leaking them into another replica. |
+| Supported replacement arrives but its merge fails | Roll back data, metadata and unblock together. |
+| Corrupt data rather than a recognized newer format | Explain the restriction without promising that an app update will repair corruption. |
+
+Portable tests exercise real journals, coordinators, record coding and batch providers behind a fake CloudKit transport, plus on-disk migration and reopening. They do not establish signed-device delivery or Production behavior.
+
+This first layer does **not** preserve arbitrary unknown JSON fields that a decoder silently ignores, retrofit already-shipped clients, or implement general capability-upgrade replay. A new V31 safety scope forces an initial fresh fetch; that is not a promise to replay every previously ignored record after every future app update. Roll out the safety-capable clients before relying on the new gate, and isolate incompatible additions from historical clients with distinct record types or an explicitly designed migration protocol. Keep a genuine new→old→edit→new binary test in the release matrix.
+
 ## Evidence boundaries and release sign-off
 
 The historical 2026-09-19 implementation record covered full TFI, focused iPad, focused TFM, multilingual visual, formatting, and localization checks. It did not establish a fully green macOS suite, Production schema deployment, or real signed-device delivery; failures outside the implementation scope remained. Treat those counts as historical context only and rerun current release checks.
@@ -88,7 +135,7 @@ Release sign-off should record, separately:
 2. successful Development validation and explicit Production deployment for every required zone and record type;
 3. the signed multi-device/account-switch matrix, including offline and pause/resume behavior;
 4. Keychain-delivery and migrated-token checks;
-5. the SFTP preference compatibility matrix; and
+5. the SFTP preference and mixed-version safety matrices; and
 6. the published privacy-policy version and effective date.
 
 See [Settings, Vault, Metrics, and Cloud Sync Workflow](/openwiki/workflows/settings-and-cloud-sync.md) for runtime lifecycle and journals, [Persistent Data, Migrations, and Secret Boundaries](/openwiki/concepts/persistence-and-secrets.md) for local stores and secret references, and [Build, Validation, Localization, and Dependency Release Operations](/openwiki/operations/build-test-and-release.md) for ordinary build gates.

@@ -24,10 +24,10 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "omp", at: "2026-09-22T03:23:14.035Z" }
+generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-22T05:22:55.650Z
 ---
 
 # System Boundaries and Dependency Ownership
@@ -87,7 +87,7 @@ The checks also prohibit all shared frameworks from importing `Termind` or `Term
 
 ## Persistence is a single-owner boundary
 
-`TermindPersistence` exports the complete current schema (`TermindSchemaV30`) and builds a `ModelContainer` using its migration plan. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
+`TermindPersistence` exports the complete current schema (`TermindSchemaV31`) and builds a `ModelContainer` using its migration plan. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
 
 This separation matters for migrations: all SwiftData models, frozen historical schemas, migration plans, and container construction stay together in Persistence. The boundary test rejects `@Model` declarations everywhere else and requires Persistence to contain Swift files. A new persisted SwiftData entity therefore requires a Persistence schema/migration decision—not a model embedded in a feature, app, or general infrastructure module.
 

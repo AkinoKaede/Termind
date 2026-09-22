@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:ec8e8d5b8e8eb8a6a6c62c8622e990c93c4d4916dafdd0383ab1cf9b0afd832d",
+  "pageVersion": "sha256:214b58c099e361b83e4b7b8554a076e76bfe335f8fb73225bd6bb33c8c6bca26",
   "claims": [
     {
       "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
@@ -67,8 +67,12 @@
       "statement": "Architecture boundary tests enforce that shared layers do not import app targets or forbidden platform/storage/transport dependencies, Application does not depend on concrete implementation layers, and SwiftData models are owned by Persistence.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L163-L206",
-          "version": "repo-lines-v1:sha256:8fa9db32089b6d351da07281bb6f34969d6feb24c764b507df907c0b40db8182:eyJzZWxlY3RlZExpbmVDb3VudCI6NDQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMzk2YTZjMGFlNGEyMDI0YjE2OWE0NWY3MjdmZjYwNWE4NDI4NjdkODJlYjJjOTNkYmNkNmVlNDg4YmExYWEifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L164-L187",
+          "version": "repo-lines-v1:sha256:45ac2d747c736c3bb9821104587d21ef897e4ec32ff8b25b11479a6ca7608f89:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3OTk5ZWY4ZDk0Y2NkYzU3ZmJhZDE1NzllYmJkZTM4YjIwYTUyNDk0ZGMyYWYxNGFiZGU2MjY5NmJiMTMwOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzNzgzMjY0N2Y5NWFkMDc0NDExNjM1OThlMWU5MDhiZDM0YmUxMTBkNjNkZGE1N2FjMTc5NjIwM2VjZmNmYjYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L207-L223",
+          "version": "repo-lines-v1:sha256:bb65a8050531c288646a62d024e2c5ce82632ce10e8f598b6d9de35f3de1606f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlNDNhMjAwNmYyNDA5MjZmMDAwYzdlNGI5MzIxNjY5M2MyNGRkZjU3MWQ3YTM3MDRjNGU1MmM4MWI1ZjBkZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzOWVhMmE5NzQ2MjU5N2MwNmU3ODEyZDZmYWRkNzJkMTNmMTYxMDliYTBkZTgwOWQ3MjRlM2E3NTQ1ZjZhNzkifQ"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L64-L106",
@@ -125,6 +129,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T05:22:55.650Z"
   }
 }

@@ -70,6 +70,12 @@ public final class HostPersistence {
     }
 
     public func applyRemote(_ envelopes: [VaultEnvelope]) throws -> VaultRemoteApplyResult {
+        try applyRemote(envelopes, beforeSave: {})
+    }
+
+    public func applyRemote(
+        _ envelopes: [VaultEnvelope], beforeSave: () throws -> Void
+    ) throws -> VaultRemoteApplyResult {
         do {
             let journal = VaultSyncJournal(context: context)
             let decision = try journal.mergeDecision(for: envelopes)
@@ -78,6 +84,7 @@ public final class HostPersistence {
             try persist(snapshot)
             try journal.acceptRemote(decision.accepted)
             try journal.markNeedsUpload(decision.needsUpload)
+            try beforeSave()
             try context.save()
             return VaultRemoteApplyResult(
                 snapshot: snapshot,

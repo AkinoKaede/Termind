@@ -3,9 +3,6 @@ type: persistence and security concept
 title: Persistent Data, Migrations, and Secret Boundaries
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-4ddcdd630c9bc1c622a037df
     resource: repo://Frameworks/TermindApplication/SecretStoring.swift
@@ -13,26 +10,48 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-1429ec01ac68a7770ce41977
+    resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
+  - id: openwiki-source-1d1f503a260f304a969fcee4
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
+  - id: openwiki-source-4957f13c836c497e7ebe4656
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift
   - id: openwiki-source-8a2e7d4db4b334995f8eaf61
     resource: repo://Frameworks/TermindPersistence/AgentPersistence.swift
   - id: openwiki-source-1d9bb30e44318b5d16259035
     resource: repo://Frameworks/TermindPersistence/AIPersistence.swift
   - id: openwiki-source-ec0a64adad50721ec500ebc2
     resource: repo://Frameworks/TermindPersistence/AISecretStore.swift
+  - id: openwiki-source-1366e71322413c98e0ac1534
+    resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-e14697ea11a99078be3adee9
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-65a2da12a42f42fb0850078e
+    resource: repo://Frameworks/TermindPersistence/MetricsSyncStore.swift
+  - id: openwiki-source-8a05ed491f0965e8444981d6
+    resource: repo://Frameworks/TermindPersistence/ModelContext%2BCommit.swift
+  - id: openwiki-source-6df73854db20ee83905a634c
+    resource: repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-9eb2234b02897ade8e405374
     resource: repo://Frameworks/TermindPersistence/SwiftDataAISecretStore.swift
   - id: openwiki-source-63e25c47c9c7d38b354f4123
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
+  - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
+    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-e918380c206900db181ca1d8
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV30KnownHostModels.swift
+  - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
+    resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
+  - id: openwiki-source-40cfadc2320da9a292c64d26
+    resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
+  - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
+    resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
   - id: openwiki-source-8180b26ed2e301082e5e7b15
     resource: repo://FrameworkTests/IdentityCredentialUsageTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
@@ -43,7 +62,10 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T05:49:38.238Z
 ---
 
 # Persistent Data, Migrations, and Secret Boundaries
@@ -70,7 +92,7 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 ## Store ownership and startup
 
-`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV30` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and construct separate `ModelContext` instances where independent repository contexts are needed; they do not assemble a partial schema per feature or scene.
+`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV31` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and construct separate `ModelContext` instances where independent repository contexts are needed; they do not assemble a partial schema per feature or scene.
 
 The desktop root makes container opening part of initialization and uses a `KeychainSecretStore` for live composition. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Store-open errors propagate out of these composition paths rather than being silently replaced with a new empty database: data availability is an explicit startup failure condition.
 
@@ -84,15 +106,33 @@ Agent conversations use a separate SwiftData repository with similarly deliberat
 
 ## Schema evolution: preserve the past exactly
 
-Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan therefore retains every schema from V1 through V30 and stages each adjacent migration. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
+Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan therefore retains every schema from V1 through V31 and stages each adjacent migration. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
 
 Examples show why this matters:
 
 - V1–V6 identity and SSH-key shapes remain represented by frozen types so their fields and defaults retain the historical schema checksum.
 - V11’s provider model remains frozen while V12 changes address representation; legacy columns in the live provider model are folded on read to preserve the former endpoint behavior.
 - V30 removes the obsolete persisted Known Host mismatch flag by replacing the V29 known-host model, while retaining hostname, port, algorithm, fingerprint, and date.
+- V31 additively introduces scoped CloudKit quarantine and recovery models with a lightweight V30→V31 migration. The existing V1–V30 model shapes remain unchanged; the local schema increment does not change the V1 CloudKit envelope formats.
 
 `PersistenceCompatibilityTests` opens original V1 and V14 fixture stores and verifies their data survives; it also checks a file store can reopen, that in-memory containers use the full schema but remain independent, and that representative version upgrades retain data while giving new fields their intended defaults. Treat these compatibility fixtures as a release contract when changing entities, defaults, migration stages, or storage enum raw values.
+
+## Cloud sync restrictions are durable local state
+
+The current safety store has two responsibilities:
+
+| Local record | Durable meaning |
+| --- | --- |
+| Scoped quarantine | Original payload bytes, encoded CloudKit system fields, structured failure reason and record identity; its presence prevents that record from being uploaded. |
+| Recovery checkpoint | Whether the replica must fetch afresh rather than restore a possibly advanced CloudKit cursor after interrupted processing. |
+
+A replica scope includes container, environment, account, zone and owner. The record name is scoped within that boundary, so a restriction in one account or environment neither blocks nor clears the same name in another. Category journals import their legacy quarantine rows under the prior binding/environment before deleting those legacy rows in the same successful save. Unknown historical ownership remains in a legacy scope rather than being silently attributed to a new account.
+
+A new scope begins with recovery required. The coordinator clears its serialized engine state when recovery is required, but retains local journal envelopes and pending edits. It commits recovery intent before creating an automatically syncing engine and before network work; only safe completion clears it. A delegate persistence failure rolls back and retires that engine, so a later successful callback cannot reopen its upload gate.
+
+Receiving a supported replacement reconciles the domain data, journal metadata and quarantine removal in one persistence commit. A failure rolls all of them back. Retry, pause, account/environment resets and relaunch are not generic quarantine-clearing operations. Physical deletion and tombstone handling preserve the same upload restriction. These are local control records, not new cloud record types or a replacement secret store.
+
+The on-disk safety tests cover V30→V31 migration, legacy import, independent replica scopes, reopening an interrupted store with blocked and pending records intact, and rollback of a failed unblock. See [Settings and Cloud Sync](../workflows/settings-and-cloud-sync.md) for network gates and the limits of this first compatibility layer.
 
 ## Secret references, not secret persistence
 

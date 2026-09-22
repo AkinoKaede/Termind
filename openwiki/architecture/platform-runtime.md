@@ -35,7 +35,7 @@ sources:
 generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-22T05:22:55.650Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes

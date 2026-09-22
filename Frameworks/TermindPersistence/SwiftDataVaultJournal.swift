@@ -222,7 +222,27 @@ public final class VaultSyncJournal {
         ).compactMap(\.envelope).map(\.withoutDeviceLocalMetadata)
     }
 
-    public func outgoingEntry(for key: VaultRecordKey) throws -> VaultOutgoingEntry? {
+    public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
+        let blocked = try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames()
+        return try pendingEnvelopes().map(\.key.recordName).filter { !blocked.contains($0) }
+    }
+
+    public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
+        let safety = CloudSyncSafetyStore(context: context, scope: scope)
+        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncQuarantine>()) {
+            if try !safety.isUploadBlocked(recordName: row.recordName) {
+                try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
+            }
+            context.delete(row)
+        }
+    }
+
+    public func outgoingEntry(for key: VaultRecordKey, scope: CloudSyncScope? = nil) throws -> VaultOutgoingEntry? {
+        if let scope,
+            try CloudSyncSafetyStore(context: context, scope: scope).isUploadBlocked(recordName: key.recordName)
+        {
+            return nil
+        }
         guard let row = try entry(recordName: key.recordName), let envelope = row.envelope else {
             return nil
         }

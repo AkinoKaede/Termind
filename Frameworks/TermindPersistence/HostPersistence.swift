@@ -781,6 +781,13 @@ public enum TermindSchemaV30: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV31: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(31, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV30.models + [PersistentCloudSyncQuarantine.self, PersistentCloudSyncRecovery.self]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -792,7 +799,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV18.self, TermindSchemaV19.self, TermindSchemaV20.self, TermindSchemaV21.self,
             TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV28.self, TermindSchemaV29.self,
-            TermindSchemaV30.self,
+            TermindSchemaV30.self, TermindSchemaV31.self,
         ]
     }
 
@@ -864,6 +871,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV27.self, toVersion: TermindSchemaV28.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV28.self, toVersion: TermindSchemaV29.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV29.self, toVersion: TermindSchemaV30.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV30.self, toVersion: TermindSchemaV31.self),
         ]
     }
 }

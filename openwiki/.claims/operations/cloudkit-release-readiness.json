@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:8fa646bfd9f2cd1c2640f78e4b35d4534f2e5ddaa4fe47ae59021930d50c50a5",
+  "pageVersion": "sha256:bce6dd2e986f7546e50a3b4acdc5b4a482f438c4763e19ffdb999ba9b26d3b5e",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -105,10 +105,92 @@
           "version": "repo-lines-v1:sha256:343f3556e7b9ab218a2245e7d7fd4eaca6de5007255bfb679e6d474d85d8160f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhYzU2YzA1MTRjN2E5NmRjMTIwNmE1ODc3NDViN2RhZDIzYWUzODNiZjYyYmM5ODc0ODE0ZDQzZTFiZmY5ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRkN2FiYjY2ODA5N2EzMGY4ODk4MGMwZWQ0YWNlZDk2NTVjYTJiNDNmODJkZGIzYmU3OTMwOWRiNmQ3ZjM1MGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkNjc3NTExNzE0MTFlNTI4Y2Y0ZWRjOTZkZGNiNDI1NTc1ZWE0YjU3ZWMyYzM1NzA3ZWY0YTgwZDFhZjJhNzkifQ"
         }
       ]
+    },
+    {
+      "id": "claim_e195235702f84b7188836027fefa15f1",
+      "statement": "The first compatibility safety layer adds local V31 quarantine/recovery entities without changing the existing category zones or V1 CloudKit envelope formats.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Metrics/MetricsSyncTypes.swift",
+          "version": "repo-file-v1:sha256:f6da8659fad8979740ca0fea736a7ca6be9a4ecee8fb07946018949693eefb22"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift",
+          "version": "repo-file-v1:sha256:58849f2ece4cc28631048cd41cd1107edb4715d3c52283b29cee706ddccb3818"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift",
+          "version": "repo-file-v1:sha256:3521d0abdf1ad1819522a371f30850dd5c392e958bfd6efb9dfa8bb98425f036"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift#L8-L35",
+          "version": "repo-lines-v1:sha256:2cff6d5af9152b94d09ea9d49b379118ddc8faaea976498f6ced9dfce85c8e33:eyJzZWxlY3RlZExpbmVDb3VudCI6MjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYxZGI5YzNkNzg0ZGI1YWRjNDAzNzM5NzJkNGFhZDQ2NzVhYTVmOGYxYmNlNzc2NDgyM2NjZjU2ZTNkZGE5ZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE5YTBlZDY1YzFiNDA2MDdlZjlkNjlkZTZhM2UyMmU4MDkyY2Y5ZWVlNDhjODQwZGY3YWQ4N2JjZDczOGNmZWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhNDEzOTNjODU0MWVjYzQwZTdjMzZiM2Y2MmQ0YTFmMDY5MWRmOTI3NzZkM2E1YzRhYWU2OWQ4OWFhYTZhOWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkMjA3ZTk0N2E5MzBlOTQxMjYxODkwNGIzNzBhOGYyYzM5Yzk3ZDY2ZjJjYTVmZGJhMWE4Njg2MTZmNDYxZjUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L8-L47",
+          "version": "repo-lines-v1:sha256:6a5d73baefcfb01c124535605a32b754d8384c96d82b74e41868a4a48796be6f:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlNDhhMTRlZDczN2IwNzhiZDNkZWM5ODJlYzE2NmIxZWM2ODMyZmM2MGMyYmIzZjA1M2IzMWYxMjdlZDUxNzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExYTNjYmZjYmE3ZGRiYjZkMDNlY2EwNmU0ZGM1NTYzZmUwMDFiZDJiYTFiM2UxYzY4YzNiYmM3YjRiYWI0MGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhNDEzOTNjODU0MWVjYzQwZTdjMzZiM2Y2MmQ0YTFmMDY5MWRmOTI3NzZkM2E1YzRhYWU2OWQ4OWFhYTZhOWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJlYjQyODNjMzZhOWQ2NWRkMzMzN2NkZmIwMTE3M2M0ZjhiNGUzNDZlNGY5ZTMwY2U4ZDlkMDk4OTg3YWFhN2EifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift#L7-L38",
+          "version": "repo-lines-v1:sha256:9b6580d507dd73723bcc4d7d617dbada5f461e81ceaf4c5f36d50b1f24d1deab:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzOGUyMDA0NWU0OTlmMDI0ODI1NDE4OWIwZGZjYjdmYmFiNzNlMzhmZDdmY2RiYzNiZDllYTYzZTczZmQ1MzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjViN2UyZjcwMjk4NGM5OTNlNzcwOGRlZmJlYmE3N2VkNDUwOTJiNGE1M2UwZmQzYjRjNDMyOTE3ZDc5ZTcwYWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiNzkwNzdlNmI3NGY4NWQwN2U2ZjdkN2I4ZDhmOWQ0NGRmNDMzNDQ5MmE4OTk1MzRkMzc2YWNiYWNlYWI5MDUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L769-L791",
+          "version": "repo-lines-v1:sha256:12dfe89390d935ca5262da4398080e1ad2a93bf92386883f3212c281aee22008:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlZDM0NzdlZDA1NjVjZTMyMjU4MzI5MmFlZDlhYzljYWI3MGM1NWQ5ZTQwYjQxM2MyM2NlYTE0ZTFmZmY4MzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhNmFkMmJjZWI3ZDViYTc4MmIyZmVjOGIxZWUzN2Y1MzhhNzAzZDhlZWUzMTA3NmY2YmE1NWViOTg0OGYyM2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyZjBlYTc4MzM2NDUzNzYxZWYwMzk2ODA0NjBjOGU0YWQ4MGU3MDI0YmY4YWEzNGRjZWUxYTI1ZTY2NTlhZDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNlZjQ2YjVlZWQ3MzFmODlkNTAwOTJhNTc2MDBkYjk0MTM0OThmYzEwZTA2ZTlkN2QyMWZlMTliMjU2ZWUzNDMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_3da0f4f0561e463f81cb7c14e4d697e6",
+      "statement": "Mixed-version safety tests cover scoped record restrictions, compatible-record progress, restored batch/provider filtering, save-conflict quarantine, tombstones/recreation, retry/relaunch, atomic failed-unblock rollback, and on-disk migration/recovery using fake CloudKit transport rather than live signed-device delivery.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
+          "version": "repo-file-v1:sha256:c319f68b716338d47084e88bb37751052cff7d5d0f04989cb7841c15b65bdb48"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyFixture.swift",
+          "version": "repo-file-v1:sha256:310e96395fb84c3cd93eed7778ef055e33499a2cc7b9de07750df427201a5db4"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:fe8c66a47936a9120eb3b71def8c148801e215d53fda47a326349388b30f9c1d"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
+          "version": "repo-file-v1:sha256:aee7f41dbc34ca19214dde4c5a8408464fdd96b3efc490df52e23419ced39b30"
+        }
+      ]
+    },
+    {
+      "id": "claim_a05253bb4b614ea5b5e6dd853a7de0b8",
+      "statement": "A new or interrupted safety scope triggers fresh fetching, but the typed envelope codecs and lifecycle do not provide generic unknown-field preservation or a general replay mechanism keyed to every future app capability upgrade.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
+          "version": "repo-file-v1:sha256:2c8baddd408651cfaaec231be95b0af95c4b93b8e264d1733cbffbba7bad48f7"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
+          "version": "repo-file-v1:sha256:c028e57ece449c591c32f8ac849fda2f6a82cda00974acc87f832295bb3acc3d"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/MetricsSyncJournal.swift",
+          "version": "repo-file-v1:sha256:db4fd94c5d90275b3d0fe1d5d30753206e3a20b60cb3b72f2aa13b29ce72238b"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SettingsSyncJournal.swift",
+          "version": "repo-file-v1:sha256:9f822a66ae39a96fefe99448db6a0b7ab7003247efd779ab1a38b725c171ddf2"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift",
+          "version": "repo-file-v1:sha256:39095bc585820f77c2b1893c684c2a81cfed675ae5f406fbe996bdbde4cdf2fe"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T05:22:55.650Z"
   }
 }

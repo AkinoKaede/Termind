@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:70a98befc109c68435ca90197485bbf234a8abb2fe0f39b53b8b1894a085f6df",
+  "pageVersion": "sha256:52ee85c8226f34cc3e7f73201ee744ae289dce13814ec7f5f2035f3e66f38f84",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -36,19 +36,19 @@
     },
     {
       "id": "claim_04df7977ba1a43bfba0b2585bc5f185a",
-      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; the test suite rejects @Model declarations outside TermindPersistence.",
+      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; its current container uses TermindSchemaV31 and the test suite rejects @Model declarations outside TermindPersistence.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md#L7-L11",
           "version": "repo-lines-v1:sha256:eb1d08366705afdc99b54adcffa378299221d4d7be416d22cc011f6a15dbcfd2:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWM0OTlkYTUxNTAxNzdiYTFlNzljZjc5YTM0ODFiMzM4NmViYmJlYTU4MGI3Zjc2ZTBjZjUxOTNmYWE5OTFjYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjEzMjhkOGFmMzQ1YjI3MzczOTBkZjBlMWYwN2I1ZmZlYmE3Y2IyZWIyNzZmZDBiMDk1NTg5ZmVkZjgwOGE2NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODRkOWIzNTZmZmVmMmJmZWFiZmM5MmQwM2EwMDkyMWY3YTk0OTUwMzk5Nzc3YTY1MmFhZTZkNmZhMTcyZTQ0OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmM0MzRhZjQzYmUwYTA3MjE2NzE5ZjBkMjg5MjdhNjkzMzNhYmJlZDhiY2U0MWZmOTA4ODM2ZDIxNDk3NmFjNyJ9"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L4-L21",
-          "version": "repo-lines-v1:sha256:75bc34d3cd5e480f2d8ea11fb1e38f4cfdde54db5adfccbc5def8238f426b623:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzA4NTlkNjgzODAyNWFiM2Y2NjIxNTU5NWM4N2JiZWI1ZDVlMDlmNTIxMjk3YmY2MzI3NTUwYzgxYzBjYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
+          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L191-L206",
-          "version": "repo-lines-v1:sha256:f8c236519e8486d9e23370a1125780885a560563104317d8b0667fde12b5c048:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5YjJkYjM3YThjY2FiMDIzMTkyOGUwZGY0MzcxOTc3ZWQzYzQwNzBkYTlkMDUwMjEzMzQyYmMwMmQyOGE0YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMzk2YTZjMGFlNGEyMDI0YjE2OWE0NWY3MjdmZjYwNWE4NDI4NjdkODJlYjJjOTNkYmNkNmVlNDg4YmExYWEifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L207-L223",
+          "version": "repo-lines-v1:sha256:bb65a8050531c288646a62d024e2c5ce82632ce10e8f598b6d9de35f3de1606f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlNDNhMjAwNmYyNDA5MjZmMDAwYzdlNGI5MzIxNjY5M2MyNGRkZjU3MWQ3YTM3MDRjNGU1MmM4MWI1ZjBkZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzOWVhMmE5NzQ2MjU5N2MwNmU3ODEyZDZmYWRkNzJkMTNmMTYxMDliYTBkZTgwOWQ3MjRlM2E3NTQ1ZjZhNzkifQ"
         }
       ]
     },
@@ -57,8 +57,8 @@
       "statement": "Platform composition roots choose persistent versus in-memory storage and retain the ModelContainer, but use TermindPersistence.makeContainer rather than owning the schema; desktop fails startup when the local database cannot open while iOS surfaces an unavailable-data screen.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L4-L21",
-          "version": "repo-lines-v1:sha256:75bc34d3cd5e480f2d8ea11fb1e38f4cfdde54db5adfccbc5def8238f426b623:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzA4NTlkNjgzODAyNWFiM2Y2NjIxNTU5NWM4N2JiZWI1ZDVlMDlmNTIxMjk3YmY2MzI3NTUwYzgxYzBjYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
+          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift#L126-L126",
@@ -149,6 +149,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T05:22:55.650Z"
   }
 }

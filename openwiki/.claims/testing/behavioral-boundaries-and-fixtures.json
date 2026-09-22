@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:bd7994885ddcd011510eb224fbed0bdf195da9969a1fe0deabb54712a605aa8b",
+  "pageVersion": "sha256:7af6d060ce1acf8f2c7a21e69ae27cfccf8932ab35f6f892944db9a5ffe45f69",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -18,11 +18,11 @@
     },
     {
       "id": "claim_46317f2e2a1c469cb75d414d61222c34",
-      "statement": "ArchitectureBoundaryTests protects layer ownership by rejecting forbidden imports and concrete infrastructure construction, requiring SwiftData models to remain in TermindPersistence, preventing shared frameworks from importing app targets, and forbidding local redefinitions of AgentKit-owned types.",
+      "statement": "ArchitectureBoundaryTests protects import and model ownership, rejects local AgentKit type redefinitions, and checks that all three CloudKit coordinators retain the shared safety gates while the lifecycle stays independent of SwiftData and Persistence imports.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L206",
-          "version": "repo-lines-v1:sha256:d897c1acd03389dd4d7cf8d20bd9e1f7697c28f4e0736f406ce4f07a6b13f1cc:eyJzZWxlY3RlZExpbmVDb3VudCI6NzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOWJmNjE2ZGNmNTM5YTBkNTRhMTM2YzY2NGM1M2EyNTllZmFkOWNmNWFmYTY5MDY5ZmEzOGI1MzE5OTQ0YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0N2NhYjY3NzUxMmRjZWQ0YTIyMGVkZGQ4NjNlZDFlNDM1OTM0NmRiYTk4ZDljYjkwZDBmZjk2MjhjM2IzNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMzk2YTZjMGFlNGEyMDI0YjE2OWE0NWY3MjdmZjYwNWE4NDI4NjdkODJlYjJjOTNkYmNkNmVlNDg4YmExYWEifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L223",
+          "version": "repo-lines-v1:sha256:2eca7fb32f0263b431e4dcd591abebf96836b26801aa4b584a47e39f6aba0c41:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOWJmNjE2ZGNmNTM5YTBkNTRhMTM2YzY2NGM1M2EyNTllZmFkOWNmNWFmYTY5MDY5ZmEzOGI1MzE5OTQ0YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0N2NhYjY3NzUxMmRjZWQ0YTIyMGVkZGQ4NjNlZDFlNDM1OTM0NmRiYTk4ZDljYjkwZDBmZjk2MjhjM2IzNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzOWVhMmE5NzQ2MjU5N2MwNmU3ODEyZDZmYWRkNzJkMTNmMTYxMDliYTBkZTgwOWQ3MjRlM2E3NTQ1ZjZhNzkifQ"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L64-L106",
@@ -189,10 +189,38 @@
           "version": "repo-lines-v1:sha256:b8b2903d1009b119d2daa9cc5915fe34eab19cf61490b33adc02693393f4c95f:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDZkYzRhNmI2NzJiZTRkMGI5ZjA5ODI5ZGNkMzgyYzEwMWJhMWMwMGQxZjYzNTY3MDI4OWFiNWE1NzBiNTYzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzNkOTM2OTExYzY5MzE5OTAxOGFmMTI5ZTA3Njg2YjY5NjgyMDZmMjk0MmY2ZGViNzdkNWJjMmQ0MGI1ZTJhMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjEsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSJ9"
         }
       ]
+    },
+    {
+      "id": "claim_0ae7c75245c74c74af2851679234c6da",
+      "statement": "CloudKit safety fixtures use fake transport with real category coordinators, journals, record coding, batches and providers to verify incompatible-record blocking, compatible progress, conflict parity, retry/restart, tombstones/recreation, rollback and status-reason distinctions.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyFixture.swift",
+          "version": "repo-file-v1:sha256:310e96395fb84c3cd93eed7778ef055e33499a2cc7b9de07750df427201a5db4"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
+          "version": "repo-file-v1:sha256:aee7f41dbc34ca19214dde4c5a8408464fdd96b3efc490df52e23419ced39b30"
+        }
+      ]
+    },
+    {
+      "id": "claim_eb35f30233ca461cb7de961bbe793326",
+      "statement": "Disk-backed safety tests cover V30-to-V31 migration, legacy quarantine import and reopening interrupted pending state; lifecycle tests cover persistence/lookup failures, retired engines, overlapping callbacks and recovery gating, without claiming live CloudKit delivery.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
+          "version": "repo-file-v1:sha256:c319f68b716338d47084e88bb37751052cff7d5d0f04989cb7841c15b65bdb48"
+        },
+        {
+          "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
+          "version": "repo-file-v1:sha256:fe8c66a47936a9120eb3b71def8c148801e215d53fda47a326349388b30f9c1d"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T05:22:55.650Z"
   }
 }

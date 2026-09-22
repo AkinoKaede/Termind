@@ -85,10 +85,6 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         lifecycle.noteLocalChanges(mutations.keys.filter { $0.kind.participatesInSync }.map(\.recordName))
     }
 
-    private func addPendingChanges(_ keys: Set<SettingsRecordKey>) {
-        lifecycle.enqueue(keys.filter { $0.kind.participatesInSync }.map(\.recordName))
-    }
-
     private func makeLifecycle() -> CloudSyncLifecycle {
         let journal = journal
         let context = context
@@ -109,13 +105,13 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                     state.lastSuccessfulSync = value.lastSuccessfulSync
                 },
                 save: { try context.save() }, rollback: { context.rollback() },
-                pendingRecordNames: { try journal.pendingEnvelopes().map(\.key.recordName) },
-                quarantineReason: { try journal.firstQuarantineReason() },
+                pendingRecordNames: { try journal.uploadablePendingRecordNames(in: $0) },
+                safety: .persistent(context: context, importLegacyQuarantine: journal.importLegacyQuarantine),
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() }),
             transport: makeTransport(zoneID, self),
-            zoneID: zoneID, defaults: defaults,
+            zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
             enabledKey: SettingsKey.settingsSyncEnabled, defaultEnabled: SettingsKey.defaultSettingsSyncEnabled,
             environmentKey: SettingsKey.settingsSyncEnvironment, environmentIdentifier: environmentIdentifier,
             signInMessage: { String(localized: "Sign in to iCloud to sync settings.") },
@@ -131,13 +127,13 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                     + config.mcpServers.map(\.credentialRef)))
     }
 
-    private func applyRemote(_ envelopes: [SettingsEnvelope]) throws
+    private func applyRemote(_ envelopes: [SettingsEnvelope], beforeSave: () throws -> Void) throws
         -> (
             snapshot: SettingsSyncSnapshot, acceptedKeys: Set<SettingsRecordKey>,
             needsUpload: Set<SettingsRecordKey>
         )
     {
-        let result = try persistence.applyRemote(envelopes)
+        let result = try persistence.applyRemote(envelopes, beforeSave: beforeSave)
         let references = envelopes.filter { result.acceptedKeys.contains($0.key) }.flatMap { envelope -> [String] in
             switch envelope.payload {
             case .provider(let value): [value.credentialRef, value.vertex?.credentialRef ?? ""]
@@ -171,29 +167,30 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     private func makeChangeBatch(
         _ context: CKSyncEngine.SendChangesContext, engine: CKSyncEngine
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
-        guard lifecycle.accepts(engine), lifecycle.isReadyToSend else { return nil }
-        do { try migrateSecrets() } catch {
-            status = .failed(error.localizedDescription)
-            return nil
-        }
-        let pending = engine.state.pendingRecordZoneChanges.filter {
-            context.options.scope.contains($0)
-        }
-        return await CKSyncEngine.RecordZoneChangeBatch(pendingChanges: pending) {
-            [weak self] recordID in
-            guard let self else { return nil }
-            return await self.recordToSave(recordID)
-        }
+        makeChangeBatch(
+            engine.state.pendingRecordZoneChanges.filter { context.options.scope.contains($0) }, engine: engine)
     }
 
-    @MainActor
-    private func recordToSave(_ recordID: CKRecord.ID) -> CKRecord? {
-        guard recordID.zoneID == zoneID, let key = SettingsRecordKey(recordName: recordID.recordName),
-            let outgoing = try? journal.outgoingEntry(for: key)
-        else { return nil }
-        do { return try Self.makeRecord(outgoing, recordID: recordID) } catch {
-            lifecycle.terminalError = error.localizedDescription
-            status = .failed(error.localizedDescription)
+    func makeChangeBatch(
+        _ pending: [CKSyncEngine.PendingRecordZoneChange], engine: any CloudSyncEngineSession
+    ) -> CKSyncEngine.RecordZoneChangeBatch? {
+        guard lifecycle.accepts(engine), lifecycle.isReadyToSend else { return nil }
+        do { try migrateSecrets() } catch {
+            lifecycle.failClosed(error)
+            return nil
+        }
+        return lifecycle.makeChangeBatch(pending, engine: engine) { recordToSave($0, engine: engine) }
+    }
+
+    func recordToSave(_ recordID: CKRecord.ID, engine: any CloudSyncEngineSession) -> CKRecord? {
+        do {
+            guard try lifecycle.canUpload(recordID, engine: engine), let scope = lifecycle.scope,
+                let key = SettingsRecordKey(recordName: recordID.recordName),
+                let outgoing = try journal.outgoingEntry(for: key, scope: scope)
+            else { return nil }
+            return try Self.makeRecord(outgoing, recordID: recordID)
+        } catch {
+            lifecycle.failClosed(error)
             return nil
         }
     }
@@ -210,7 +207,8 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
                 try lifecycle.handleAccountChange(change.changeType)
 
             case .fetchedRecordZoneChanges(let changes):
-                try handleFetchedChanges(changes)
+                try receiveRemoteRecords(
+                    changes.modifications.map(\.record), deletions: changes.deletions.map(\.recordID))
 
             case .fetchedDatabaseChanges(let changes):
                 if changes.deletions.contains(where: { $0.zoneID == zoneID }) {
@@ -220,117 +218,109 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             case .sentRecordZoneChanges(let changes):
                 try handleSentChanges(changes)
 
-            case .didFetchChanges, .didSendChanges:
+            case .willFetchChanges:
+                try lifecycle.beginFetch()
+            case .willSendChanges:
+                try lifecycle.beginSend()
+            case .didFetchRecordZoneChanges(let changes):
+                if let error = changes.error {
+                    guard CloudSyncLifecycle.isRetryable(error) else { throw error }
+                    lifecycle.noteFetchFailure(error)
+                }
+            case .didFetchChanges:
+                try lifecycle.finishFetch()
+                try lifecycle.updateUpToDateStatus()
+            case .didSendChanges:
+                try lifecycle.finishSend()
                 try lifecycle.updateUpToDateStatus()
 
             default:
                 break
             }
-        } catch {
-            context.rollback()
-            status = lifecycle.status(for: error)
-        }
+        } catch { lifecycle.failClosed(error) }
     }
 
-    private func handleFetchedChanges(_ changes: CKSyncEngine.Event.FetchedRecordZoneChanges) throws {
-        var recordsByKey: [SettingsRecordKey: CKRecord] = [:]
-        var legacyGuardianKeys = Set<SettingsRecordKey>()
-        var envelopes: [SettingsEnvelope] = []
-        var quarantinedError: String?
-        for modification in changes.modifications {
-            let record = modification.record
-            guard Self.acceptsRecordType(record.recordType), record.recordID.zoneID == zoneID else {
-                continue
-            }
-            if let key = SettingsRecordKey(recordName: record.recordID.recordName),
-                !key.kind.participatesInSync
-            {
-                try journal.clearQuarantine(recordName: record.recordID.recordName)
+    func receiveRemoteRecords(
+        _ records: [CKRecord], deletions: [CKRecord.ID] = [], isConflict: Bool = false
+    ) throws {
+        guard let scope = lifecycle.scope else { throw CancellationError() }
+        let safety = CloudSyncSafetyStore(context: context, scope: scope)
+        var decoded: [(CKRecord, SettingsEnvelope)] = []
+        var rejected = Set<String>()
+        for record in records
+        where record.recordID.zoneID == zoneID && (isConflict || Self.acceptsRecordType(record.recordType)) {
+            if let key = SettingsRecordKey(recordName: record.recordID.recordName), !key.kind.participatesInSync {
                 continue
             }
             do {
-                let envelope = try Self.envelope(from: record)
-                try journal.clearQuarantine(recordName: record.recordID.recordName)
-                let sourceKey = SettingsRecordKey(recordName: record.recordID.recordName)
-                if sourceKey == envelope.key {
-                    recordsByKey[envelope.key] = record
-                } else {
-                    legacyGuardianKeys.insert(envelope.key)
-                }
-                envelopes.append(envelope)
+                decoded.append((record, try Self.envelope(from: record)))
             } catch {
-                try journal.quarantine(
-                    recordName: record.recordID.recordName,
-                    payloadData: (try? Self.payloadData(from: record)) ?? Data(),
-                    reason: error.localizedDescription
-                )
-                quarantinedError = error.localizedDescription
+                try CloudSyncRecordCoding.quarantine(record, error: error, in: safety)
+                rejected.insert(record.recordID.recordName)
             }
         }
-
-        let result = try applyRemote(envelopes)
-        for (key, record) in recordsByKey {
-            try journal.updateSystemFields(Self.systemFields(of: record), for: key)
-        }
-        // An accepted legacy value has no canonical CloudKit record behind it.
-        // Publish the normalized Guardian record so current clients converge.
-        let bridgeKeys = legacyGuardianKeys.intersection(result.acceptedKeys)
-        let needsUpload = result.needsUpload.union(bridgeKeys)
-        try journal.markNeedsUpload(needsUpload)
-
-        // Physical deletes are not part of the protocol; recreate the local
-        let physicallyDeleted = Set(
-            changes.deletions.compactMap {
-                $0.recordID.zoneID == zoneID ? SettingsRecordKey(recordName: $0.recordID.recordName) : nil
-            }
-        ).filter { (try? journal.envelope(for: $0)) != nil }
-        try journal.markNeedsUpload(physicallyDeleted)
-        addPendingChanges(needsUpload.union(physicallyDeleted))
-        try context.save()
-        if !result.acceptedKeys.isEmpty {
-            didApplyRemote?(result.snapshot, result.acceptedKeys)
-        }
-        if let quarantinedError { status = .failed(quarantinedError) }
+        decoded.removeAll { rejected.contains($0.0.recordID.recordName) }
+        let identical = try Set(
+            decoded.compactMap { _, envelope -> SettingsRecordKey? in
+                guard isConflict else { return nil }
+                return try journal.envelope(for: envelope.key) == envelope ? envelope.key : nil
+            })
+        let result = try applyRemote(
+            decoded.map { $0.1 },
+            beforeSave: {
+                for (record, envelope) in decoded {
+                    if record.recordID.recordName == envelope.key.recordName {
+                        try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
+                        if identical.contains(envelope.key) {
+                            try journal.markUploaded(envelope.key, version: envelope.version)
+                        }
+                    } else {
+                        // Legacy Guardian data has no canonical CloudKit record; never reuse its system fields.
+                        try journal.markNeedsUpload([envelope.key])
+                    }
+                    try safety.clearQuarantine(recordName: record.recordID.recordName)
+                }
+                for id in deletions where id.zoneID == zoneID {
+                    guard let key = SettingsRecordKey(recordName: id.recordName), try journal.envelope(for: key) != nil
+                    else {
+                        continue
+                    }
+                    try journal.markNeedsUpload([key])
+                    if try !safety.isUploadBlocked(recordName: id.recordName) {
+                        try journal.updateSystemFields(nil, for: key)
+                    }
+                }
+            })
+        try lifecycle.reconcilePendingChanges()
+        if !result.acceptedKeys.isEmpty { didApplyRemote?(result.snapshot, result.acceptedKeys) }
     }
 
     private func handleSentChanges(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) throws {
+        guard let scope = lifecycle.scope else { throw CancellationError() }
+        let safety = CloudSyncSafetyStore(context: context, scope: scope)
         for record in changes.savedRecords where record.recordID.zoneID == zoneID {
-            guard let envelope = try? Self.envelope(from: record) else { continue }
+            guard try !safety.isUploadBlocked(recordName: record.recordID.recordName) else { continue }
+            let envelope = try Self.envelope(from: record)
             try journal.markUploaded(envelope.key, version: envelope.version)
             try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
             try? FileManager.default.removeItem(at: Self.assetURL(for: envelope.key))
         }
-
         for failure in changes.failedRecordSaves where failure.record.recordID.zoneID == zoneID {
-            let error = failure.error
-            if error.code == .serverRecordChanged, let serverRecord = error.serverRecord,
-                let serverEnvelope = try? Self.envelope(from: serverRecord)
-            {
-                let localEnvelope = try journal.envelope(for: serverEnvelope.key)
-                let result = try applyRemote([serverEnvelope])
-                try journal.updateSystemFields(
-                    Self.systemFields(of: serverRecord), for: serverEnvelope.key
-                )
-                if localEnvelope == serverEnvelope {
-                    try journal.markUploaded(
-                        serverEnvelope.key, version: serverEnvelope.version
-                    )
-                } else {
-                    try journal.markNeedsUpload(result.needsUpload)
-                    addPendingChanges(result.needsUpload)
-                }
-                try context.save()
-                if !result.acceptedKeys.isEmpty {
-                    didApplyRemote?(result.snapshot, result.acceptedKeys)
-                }
-            } else if error.code == .zoneNotFound {
-                try lifecycle.handleZoneDeletion()
-            } else if !CloudSyncLifecycle.isRetryable(error) {
-                lifecycle.terminalError = error.localizedDescription
-                status = .failed(error.localizedDescription)
-            }
+            try handleFailedSave(failure.error)
         }
         try context.save()
+    }
+
+    func handleFailedSave(_ error: CKError) throws {
+        if error.code == .serverRecordChanged {
+            guard let serverRecord = error.serverRecord else { throw error }
+            try receiveRemoteRecords([serverRecord], isConflict: true)
+        } else if error.code == .zoneNotFound {
+            try lifecycle.handleZoneDeletion()
+        } else if !CloudSyncLifecycle.isRetryable(error) {
+            lifecycle.terminalError = error.localizedDescription
+            status = .failed(error.localizedDescription)
+        }
     }
 
     nonisolated static func acceptsRecordType(_ type: String) -> Bool {
@@ -369,6 +359,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     public nonisolated static func envelope(from record: CKRecord) throws -> SettingsEnvelope {
         let data = try CloudSyncRecordCoding.validatedPayloadData(
             from: record, invalidEnvelope: SettingsSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
+        try CloudSyncRecordCoding.validateFormat(in: data, supported: SettingsEnvelope.currentFormatVersion)
         let envelope = try SettingsSyncCodec.decode(data)
         guard record.recordType == recordType(for: envelope.key.kind),
             envelope.key.recordName == record.recordID.recordName,
