@@ -755,7 +755,7 @@ struct MobileWorkspaceLifecycleMenuActions: View {
         Button("Close", systemImage: "xmark", role: .destructive, action: close)
         if canCloseMultipleWorkspaces {
             Divider()
-            Button("Close Other Workspaces", systemImage: "xmark", role: .destructive, action: closeOthers)
+            Button("Close Other", systemImage: "xmark", role: .destructive, action: closeOthers)
         }
     }
 }

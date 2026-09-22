@@ -1342,8 +1342,6 @@ private struct WelcomeWorkspaceTemplateRow: View {
 /// A host offered on the Welcome page. Click connects — the page exists to get
 /// you onto a machine, and anything else is a right-click away.
 private struct WelcomeHostRow: View {
-    @State private var clearHistoryHostIDs: [Host.ID]?
-
     let host: Host
 
     @Environment(AppModel.self) private var app
@@ -1386,15 +1384,13 @@ private struct WelcomeHostRow: View {
         .contextMenu {
             HostContextMenu(
                 host: host,
-                showsDelete: false,
-                requestClearAllHistory: { clearHistoryHostIDs = $0 }
+                showsDelete: false
             )
             Divider()
             DestructiveMenuButton("Delete") {
-                app.connectionHistory.clear(for: host.id)
+                app.clearAllHistory(for: [host.id])
             }
         }
-        .clearAllHostHistoryConfirmation(hostIDs: $clearHistoryHostIDs)
     }
 
     @ViewBuilder

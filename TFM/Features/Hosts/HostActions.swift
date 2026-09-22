@@ -16,7 +16,6 @@ struct HostContextMenu: View {
     let hosts: [Host]
     let showsDuplicate: Bool
     let showsDelete: Bool
-    let requestClearAllHistory: ([Host.ID]) -> Void
     var selectionDeleted: (() -> Void)?
 
     @Environment(AppModel.self) private var app
@@ -25,13 +24,11 @@ struct HostContextMenu: View {
     init(
         host: Host,
         showsDuplicate: Bool = true,
-        showsDelete: Bool = true,
-        requestClearAllHistory: @escaping ([Host.ID]) -> Void
+        showsDelete: Bool = true
     ) {
         hosts = [host]
         self.showsDuplicate = showsDuplicate
         self.showsDelete = showsDelete
-        self.requestClearAllHistory = requestClearAllHistory
         selectionDeleted = nil
     }
 
@@ -39,37 +36,31 @@ struct HostContextMenu: View {
         hosts: [Host],
         showsDuplicate: Bool = true,
         showsDelete: Bool = true,
-        selectionDeleted: (() -> Void)? = nil,
-        requestClearAllHistory: @escaping ([Host.ID]) -> Void
+        selectionDeleted: (() -> Void)? = nil
     ) {
         self.hosts = hosts
         self.showsDuplicate = showsDuplicate
         self.showsDelete = showsDelete
         self.selectionDeleted = selectionDeleted
-        self.requestClearAllHistory = requestClearAllHistory
     }
 
     var body: some View {
         // No "Connect in Split": a Workspace is built by combining workspaces that are
         // already open, so connecting never decides a layout for you. Connect,
         // then drag the new workspace onto the one you want it beside.
-        if hosts.count == 1 {
-            Button("Quick Connect", systemImage: MenuSymbol.quickConnect) {
-                app.open(hosts, as: .preferredTerminal, in: window)
-            }
-        } else {
-            // The two children pick a layout rather than name a different verb,
-            // so the glyph stays on the parent.
-            Menu("Quick Connect", systemImage: MenuSymbol.quickConnect) {
-                Button("Separate Workspaces") {
-                    app.open(hosts, as: .preferredTerminal, in: window)
-                }
-                Button("One Workspace") {
-                    app.open(hosts, as: .preferredTerminal, layout: .oneWorkspace, in: window)
-                }
-            }
+        Button("Quick Connect", systemImage: MenuSymbol.quickConnect) {
+            app.open(
+                hosts,
+                as: .preferredTerminal,
+                layout: HostMenuPolicy.quickConnectLayout(for: hosts),
+                in: window
+            )
         }
         HostConnectMenu(hosts: hosts)
+
+        if hosts.count == 1, let host = hosts.first {
+            copySSHCommandButton(host)
+        }
 
         Divider()
 
@@ -97,24 +88,9 @@ struct HostContextMenu: View {
                     app.hostLibrary.upsert(copy)
                 }
             }
-            Button("Copy SSH Command", systemImage: MenuSymbol.copy) {
-                guard let command = app.hostLibrary.sshCommand(for: host) else { return }
-                copyToPasteboard(command)
-            }
-            .disabled(app.hostLibrary.sshCommand(for: host) == nil)
-            .help(
-                app.hostLibrary.sshCommand(for: host) == nil
-                    ? "SSH commands are unavailable for routes that use a Proxy."
-                    : "Copy an OpenSSH command for this route."
-            )
-
             Divider()
         }
 
-        DestructiveMenuButton("Clear History", systemImage: MenuSymbol.clearHistory) {
-            requestClearAllHistory(hosts.map(\.id))
-        }
-        .disabled(!hasHistory)
         if showsDelete {
             DestructiveMenuButton("Delete") {
                 for host in hosts { app.requestHostDeletion(host.id) }
@@ -124,46 +100,69 @@ struct HostContextMenu: View {
         }
     }
 
-    private var hasHistory: Bool {
-        hosts.contains { host in
-            !app.connectionHistory.entries(for: host.id).isEmpty
-                || !app.commandHistory.entries(for: host.id).isEmpty
-                || !app.sftpHistory.entries(for: host.id).isEmpty
+    @ViewBuilder
+    private func copySSHCommandButton(_ host: Host) -> some View {
+        Button("Copy SSH Command", systemImage: MenuSymbol.copy) {
+            guard let command = app.hostLibrary.sshCommand(for: host) else { return }
+            copyToPasteboard(command)
         }
+        .disabled(app.hostLibrary.sshCommand(for: host) == nil)
+        .help(
+            app.hostLibrary.sshCommand(for: host) == nil
+                ? "SSH commands are unavailable for routes that use a Proxy."
+                : "Copy an OpenSSH command for this route."
+        )
     }
 }
 
-private struct ClearAllHostHistoryConfirmation: ViewModifier {
-    @Binding var hostIDs: [Host.ID]?
-
-    @Environment(AppModel.self) private var app
-
-    func body(content: Content) -> some View {
-        content.confirmationDialog(
-            "Clear all history for the selected Hosts?",
-            isPresented: Binding(
-                get: { hostIDs != nil },
-                set: { if !$0 { hostIDs = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Clear History", role: .destructive) {
-                guard let hostIDs else { return }
-                app.clearAllHistory(for: hostIDs)
-                self.hostIDs = nil
-            }
-            Button("Cancel", role: .cancel) { hostIDs = nil }
-        } message: {
-            Text(
-                "This permanently removes connection, command, and File History without deleting the Hosts."
-            )
-        }
+enum HostMenuPolicy {
+    static func quickConnectLayout(for hosts: [Host]) -> BatchLayout {
+        hosts.count > 1 ? .oneWorkspace : .separateWorkspaces
     }
 }
 
-extension View {
-    func clearAllHostHistoryConfirmation(hostIDs: Binding<[Host.ID]?>) -> some View {
-        modifier(ClearAllHostHistoryConfirmation(hostIDs: hostIDs))
+enum HostConnectAction: CaseIterable, Hashable {
+    case ssh
+    case telnet
+    case sftp
+
+    static func available(for hosts: [Host]) -> [Self] {
+        allCases.filter { action in hosts.contains(where: action.supports) }
+    }
+
+    func matchingHosts(in hosts: [Host]) -> [Host] {
+        hosts.filter(supports)
+    }
+
+    var target: HostOpenTarget {
+        switch self {
+        case .ssh: .sshSession
+        case .telnet: .telnetSession
+        case .sftp: .sftpChannel
+        }
+    }
+
+    var title: LocalizedStringResource {
+        switch self {
+        case .ssh: "with SSH"
+        case .telnet: "with Telnet"
+        case .sftp: "with SFTP"
+        }
+    }
+
+    var symbol: String {
+        switch self {
+        case .ssh: MenuSymbol.ssh
+        case .telnet: MenuSymbol.telnet
+        case .sftp: MenuSymbol.sftp
+        }
+    }
+
+    private func supports(_ host: Host) -> Bool {
+        switch self {
+        case .ssh, .sftp: host.sshEnabled
+        case .telnet: host.telnetEnabled
+        }
     }
 }
 
@@ -178,51 +177,48 @@ enum HostMenuEntries {
     static func entries(
         for host: Host,
         app: AppModel,
-        window: WindowModel
+        window: WindowModel,
+        includesCopySSHCommand: Bool = true
     ) -> [NativeMenuEntry] {
-        [
+        let connectActions = HostConnectAction.available(for: [host])
+        var entries = [
             NativeMenuEntry(
                 title: String(localized: "Quick Connect"), symbol: MenuSymbol.quickConnect
             ) {
                 app.open([host], as: .preferredTerminal, in: window)
-            },
-            NativeMenuEntry(
-                title: String(localized: "Connect"),
-                symbol: MenuSymbol.connect,
-                children: [
-                    NativeMenuEntry(
-                        title: String(localized: "with SSH"), symbol: MenuSymbol.ssh,
-                        isEnabled: host.sshEnabled
-                    ) {
-                        app.open([host], as: .sshSession, in: window)
-                    },
-                    NativeMenuEntry(
-                        title: String(localized: "with Telnet"), symbol: MenuSymbol.telnet,
-                        isEnabled: host.telnetEnabled
-                    ) {
-                        app.open([host], as: .telnetSession, in: window)
-                    },
-                    NativeMenuEntry(
-                        title: String(localized: "with SFTP"), symbol: MenuSymbol.sftp,
-                        isEnabled: host.sshEnabled
-                    ) {
-                        app.open([host], as: .sftpChannel, in: window)
-                    },
-                ]
-            ),
-            .separator,
+            }
+        ]
+        if !connectActions.isEmpty {
+            entries.append(
+                NativeMenuEntry(
+                    title: String(localized: "Connect"),
+                    symbol: MenuSymbol.connect,
+                    children: connectActions.map { action in
+                        NativeMenuEntry(
+                            title: String(localized: action.title), symbol: action.symbol
+                        ) {
+                            app.open(action.matchingHosts(in: [host]), as: action.target, in: window)
+                        }
+                    }
+                ))
+        }
+        if includesCopySSHCommand {
+            entries.append(
+                NativeMenuEntry(
+                    title: String(localized: "Copy SSH Command"),
+                    symbol: MenuSymbol.copy,
+                    isEnabled: app.hostLibrary.sshCommand(for: host) != nil
+                ) {
+                    guard let command = app.hostLibrary.sshCommand(for: host) else { return }
+                    copyToPasteboard(command)
+                })
+        }
+        entries.append(.separator)
+        entries.append(
             NativeMenuEntry(title: String(localized: "Edit"), symbol: MenuSymbol.edit) {
                 window.openHostEditor(host: host)
-            },
-            NativeMenuEntry(
-                title: String(localized: "Copy SSH Command"),
-                symbol: MenuSymbol.copy,
-                isEnabled: app.hostLibrary.sshCommand(for: host) != nil
-            ) {
-                guard let command = app.hostLibrary.sshCommand(for: host) else { return }
-                copyToPasteboard(command)
-            },
-        ]
+            })
+        return entries
     }
 }
 
@@ -233,19 +229,21 @@ struct HostConnectMenu: View {
     @Environment(WindowModel.self) private var window
 
     var body: some View {
-        Menu("Connect", systemImage: MenuSymbol.connect) {
-            Button("with SSH", systemImage: MenuSymbol.ssh) {
-                app.open(hosts, as: .sshSession, in: window)
+        let actions = HostConnectAction.available(for: hosts)
+        if !actions.isEmpty {
+            Menu("Connect", systemImage: MenuSymbol.connect) {
+                ForEach(actions, id: \.self) { action in
+                    Button {
+                        app.open(action.matchingHosts(in: hosts), as: action.target, in: window)
+                    } label: {
+                        Label {
+                            Text(action.title)
+                        } icon: {
+                            Image(systemName: action.symbol)
+                        }
+                    }
+                }
             }
-            .disabled(!hosts.allSatisfy(\.sshEnabled))
-            Button("with Telnet", systemImage: MenuSymbol.telnet) {
-                app.open(hosts, as: .telnetSession, in: window)
-            }
-            .disabled(!hosts.allSatisfy(\.telnetEnabled))
-            Button("with SFTP", systemImage: MenuSymbol.sftp) {
-                app.open(hosts, as: .sftpChannel, in: window)
-            }
-            .disabled(!hosts.allSatisfy(\.sshEnabled))
         }
     }
 }

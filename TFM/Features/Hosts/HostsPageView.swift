@@ -407,7 +407,6 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
 
 private struct HostCard: View {
     @Environment(\.locale) private var locale
-    @State private var clearHistoryHostIDs: [Host.ID]?
 
     let host: Host
     let isSelected: Bool
@@ -421,9 +420,7 @@ private struct HostCard: View {
 
     private var status: ConnectionStatus { app.hostLibrary.status(of: host.id) }
 
-    var body: some View {
-        card.clearAllHostHistoryConfirmation(hostIDs: $clearHistoryHostIDs)
-    }
+    var body: some View { card }
 
     private var card: some View {
         CardTile(
@@ -442,8 +439,7 @@ private struct HostCard: View {
         .contextMenu {
             HostContextMenu(
                 hosts: actionHosts,
-                selectionDeleted: selectionDeleted,
-                requestClearAllHistory: { clearHistoryHostIDs = $0 }
+                selectionDeleted: selectionDeleted
             )
         }
         .help(Text("\(app.hostLibrary.preferredTerminalLoginAddress(for: host)) — \(status.label)"))

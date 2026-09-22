@@ -509,18 +509,18 @@ enum TerminalSidebarMenuBuilder {
             ) {
                 if let entry { saveAsSnippet(entry) }
             },
-            .separator,
         ]
         if let entry {
             entries.append(
                 NativeMenuEntry(
-                    title: localized("Delete this History", locale: locale),
+                    title: localized("Delete", locale: locale),
                     symbol: MenuSymbol.delete,
                     imageVisibility: .visible
                 ) {
                     remove(entry)
                 })
         }
+        entries.append(.separator)
         entries.append(
             NativeMenuEntry(
                 title: localized("Clear All", locale: locale),
@@ -1149,7 +1149,7 @@ private struct SFTPBrowseHistorySidebar: View {
                 title: String(localized: "Open"), symbol: MenuSymbol.open, isEnabled: false
             ),
             NativeMenuEntry(
-                title: String(localized: "Delete this History"),
+                title: String(localized: "Delete"),
                 symbol: MenuSymbol.delete,
                 imageVisibility: .visible,
                 isEnabled: false
@@ -1183,12 +1183,12 @@ private struct SFTPBrowseHistorySidebar: View {
                 NativeMenuEntry(title: String(localized: "Open"), symbol: MenuSymbol.open) {
                     reopen(entry)
                 },
-                .separator,
                 NativeMenuEntry(
-                    title: String(localized: "Delete this History"),
+                    title: String(localized: "Delete"),
                     symbol: MenuSymbol.delete,
                     imageVisibility: .visible,
                 ) { app.sftpHistory.delete(entry.id) },
+                .separator,
                 NativeMenuEntry(
                     title: String(localized: "Clear All"),
                     symbol: MenuSymbol.clearHistory,
@@ -1306,7 +1306,7 @@ private struct ConnectionHistorySidebar: View {
                 isEnabled: false
             ),
             NativeMenuEntry(
-                title: String(localized: "Delete this History"),
+                title: String(localized: "Delete"),
                 symbol: MenuSymbol.delete,
                 imageVisibility: .visible,
                 isEnabled: false
@@ -1357,13 +1357,15 @@ private struct ConnectionHistorySidebar: View {
         }
         .onTapGesture { selectedID = entry.id }
         .termindSidebarRow(isSelected: selectedID == entry.id) {
-            HostMenuEntries.entries(for: host, app: app, window: window) + [
-                .separator,
+            HostMenuEntries.entries(
+                for: host, app: app, window: window, includesCopySSHCommand: false
+            ) + [
                 NativeMenuEntry(
-                    title: String(localized: "Delete this History"),
+                    title: String(localized: "Delete"),
                     symbol: MenuSymbol.delete,
                     imageVisibility: .visible,
                 ) { app.connectionHistory.delete(entry.id) },
+                .separator,
                 NativeMenuEntry(
                     title: String(localized: "Clear All"),
                     symbol: MenuSymbol.clearHistory,
@@ -1421,8 +1423,8 @@ private struct CommandHistoryCard: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .help("Delete this History")
-                    .accessibilityLabel("Delete this History")
+                    .help("Delete")
+                    .accessibilityLabel("Delete")
                 } else {
                     RiskBadge(
                         assessment: CommandRiskClassifier.assess(entry.command),

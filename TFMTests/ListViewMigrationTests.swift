@@ -332,11 +332,10 @@ struct ListViewMigrationTests {
         #expect(
             historyEntries.map(\.title)
                 == [
-                    "Copy", "Insert", "Save as Snippet", "", "Delete this History",
-                    "Clear All",
+                    "Copy", "Insert", "Save as Snippet", "Delete", "", "Clear All",
                 ]
         )
-        #expect(historyEntries[3].isSeparator)
+        #expect(historyEntries[4].isSeparator)
 
         let blankHistoryEntries = TerminalSidebarMenuBuilder.history(
             entry: nil, canInsert: false, canClear: true, locale: locale,

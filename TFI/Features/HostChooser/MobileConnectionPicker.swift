@@ -7,9 +7,7 @@ import struct TermindDomain.Host
 
 struct MobileWorkspaceToolbar: ToolbarContent {
     let hasWorkspaces: Bool
-    let hasHistory: Bool
     let closeAll: () -> Void
-    let clearHistory: () -> Void
     let connect: () -> Void
 
     var body: some ToolbarContent {
@@ -19,13 +17,10 @@ struct MobileWorkspaceToolbar: ToolbarContent {
         }
         .mobileProminentAction()
         MobileToolbarOverflow {
-            Button("Close All Workspaces", systemImage: "xmark") {
+            Button("Close All", systemImage: "xmark", role: .destructive) {
                 closeAll()
             }
             .disabled(!hasWorkspaces)
-            Divider()
-            Button("Clear History", systemImage: "trash", role: .destructive, action: clearHistory)
-                .disabled(!hasHistory)
         }
     }
 }

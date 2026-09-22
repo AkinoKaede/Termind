@@ -28,6 +28,19 @@ nonisolated enum MobileHostMenuPolicy {
         [.edit, .duplicate],
         [.delete],
     ]
+
+    static func sections(for host: Host) -> [[MobileHostMenuAction]] {
+        sections.compactMap { section in
+            let available = section.filter { action in
+                switch action {
+                case .ssh, .sftp: host.sshEnabled
+                case .telnet: host.telnetEnabled
+                case .edit, .duplicate, .delete: true
+                }
+            }
+            return available.isEmpty ? nil : available
+        }
+    }
 }
 
 struct MobileConnectionHistoryView: View {
@@ -69,10 +82,11 @@ struct MobileConnectionHistoryView: View {
                 ForEach(rows) { row in
                     historyButton(row)
                         .contextMenu {
-                            ForEach(MobileConnectionHistoryActionPolicy.menuKinds, id: \.self) { kind in
+                            let kinds = MobileConnectionHistoryActionPolicy.availableMenuKinds(for: row.host)
+                            ForEach(kinds, id: \.self) { kind in
                                 connectionButton(kind, host: row.host)
                             }
-                            Divider()
+                            if !kinds.isEmpty { Divider() }
                             Button("Delete", systemImage: "trash", role: .destructive) {
                                 app.connectionHistory.delete(row.entry.id)
                             }
@@ -789,11 +803,12 @@ struct MobileVaultView: View {
             .accessibilityElement(children: .combine)
             .accessibilityHint("Open Workspace")
         } actions: {
-            ForEach(MobileHostMenuPolicy.sections.indices, id: \.self) { section in
-                ForEach(MobileHostMenuPolicy.sections[section], id: \.self) { action in
+            let sections = MobileHostMenuPolicy.sections(for: host)
+            ForEach(sections.indices, id: \.self) { section in
+                ForEach(sections[section], id: \.self) { action in
                     hostMenuButton(action, host: host)
                 }
-                if section < MobileHostMenuPolicy.sections.count - 1 {
+                if section < sections.count - 1 {
                     Divider()
                 }
             }
@@ -805,13 +820,10 @@ struct MobileVaultView: View {
         switch action {
         case .ssh:
             Button("SSH", systemImage: ConnectionHistoryEntry.Kind.ssh.symbol) { open(host.id, .ssh) }
-                .disabled(!host.sshEnabled)
         case .telnet:
             Button("Telnet", systemImage: ConnectionHistoryEntry.Kind.telnet.symbol) { open(host.id, .telnet) }
-                .disabled(!host.telnetEnabled)
         case .sftp:
             Button("SFTP", systemImage: ConnectionHistoryEntry.Kind.sftp.symbol) { open(host.id, .sftp) }
-                .disabled(!host.sshEnabled)
         case .edit:
             Button("Edit", systemImage: "pencil") { editingHost = host }
         case .duplicate:

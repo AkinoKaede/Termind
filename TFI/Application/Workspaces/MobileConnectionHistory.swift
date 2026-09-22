@@ -30,6 +30,10 @@ enum MobileConnectionHistoryActionPolicy {
     // the menu order keeps the revealed protocol order consistent.
     static let swipeKinds: [ConnectionHistoryEntry.Kind] = [.sftp, .telnet, .ssh]
 
+    static func availableMenuKinds(for host: Host) -> [ConnectionHistoryEntry.Kind] {
+        menuKinds.filter { isAvailable($0, for: host) }
+    }
+
     static func availableSwipeKinds(for host: Host) -> [ConnectionHistoryEntry.Kind] {
         swipeKinds.filter { isAvailable($0, for: host) }
     }

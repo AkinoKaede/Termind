@@ -41,12 +41,12 @@ struct MobileWorkspaceMenuTests {
             let actions = menuActions(menu)
             let expected =
                 canCloseMultipleWorkspaces
-                ? ["Rename", "Close", "Close Other Workspaces"]
+                ? ["Rename", "Close", "Close Other"]
                 : ["Rename", "Close"]
             #expect(actions.map(\.title) == expected)
             #expect(!actions[0].attributes.contains(.destructive))
             #expect(actions.dropFirst().allSatisfy { $0.attributes.contains(.destructive) })
-            #expect(actions.contains { $0.title == "Close All Workspaces" } == false)
+            #expect(actions.contains { $0.title == "Close All" } == false)
             if canCloseMultipleWorkspaces {
                 let closeOthers = try #require(actions.last)
                 #expect(closeOthers.image == UIImage(systemName: "xmark"))
@@ -54,7 +54,7 @@ struct MobileWorkspaceMenuTests {
             let separatedActions = menu.children.compactMap { $0 as? UIMenu }
                 .filter { $0.options.contains(.displayInline) }
                 .map { menuActions($0).map(\.title) }
-            #expect(separatedActions == (canCloseMultipleWorkspaces ? [["Close Other Workspaces"]] : []))
+            #expect(separatedActions == (canCloseMultipleWorkspaces ? [["Close Other"]] : []))
         }
     }
 

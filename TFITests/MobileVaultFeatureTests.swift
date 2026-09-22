@@ -37,6 +37,34 @@ struct MobileVaultFeatureTests {
                 [.edit, .duplicate],
                 [.delete],
             ])
+
+        var host = TermindDomain.Host(name: "Remote", host: "remote.example.invalid")
+        #expect(
+            MobileHostMenuPolicy.sections(for: host) == [
+                [.ssh, .sftp],
+                [.edit, .duplicate],
+                [.delete],
+            ])
+
+        host.sshEnabled = false
+        host.telnetEnabled = true
+        #expect(
+            MobileHostMenuPolicy.sections(for: host) == [
+                [.telnet],
+                [.edit, .duplicate],
+                [.delete],
+            ])
+
+        host.sshEnabled = true
+        #expect(MobileHostMenuPolicy.sections(for: host) == MobileHostMenuPolicy.sections)
+
+        host.sshEnabled = false
+        host.telnetEnabled = false
+        #expect(
+            MobileHostMenuPolicy.sections(for: host) == [
+                [.edit, .duplicate],
+                [.delete],
+            ])
     }
 
     @Test func duplicatingAHostPersistsAnIndependentCopyWithTheSameConfiguration() throws {

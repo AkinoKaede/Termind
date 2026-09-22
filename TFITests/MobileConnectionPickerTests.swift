@@ -94,20 +94,24 @@ struct MobileConnectionPickerTests {
 
         var host = Host(name: "Remote", host: "remote.example.invalid")
         assertAvailability(host, ssh: true, telnet: false, sftp: true)
+        #expect(MobileConnectionHistoryActionPolicy.availableMenuKinds(for: host) == [.ssh, .sftp])
         #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host) == [.sftp, .ssh])
 
         host.sshEnabled = false
         host.telnetEnabled = true
         assertAvailability(host, ssh: false, telnet: true, sftp: false)
+        #expect(MobileConnectionHistoryActionPolicy.availableMenuKinds(for: host) == [.telnet])
         #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host) == [.telnet])
 
         host.sshEnabled = true
         assertAvailability(host, ssh: true, telnet: true, sftp: true)
+        #expect(MobileConnectionHistoryActionPolicy.availableMenuKinds(for: host) == [.ssh, .telnet, .sftp])
         #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host) == [.sftp, .telnet, .ssh])
 
         host.sshEnabled = false
         host.telnetEnabled = false
         assertAvailability(host, ssh: false, telnet: false, sftp: false)
+        #expect(MobileConnectionHistoryActionPolicy.availableMenuKinds(for: host).isEmpty)
         #expect(MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: host).isEmpty)
         #expect(MobileConnectionHistory.preferredKind(for: host) == nil)
 
@@ -214,12 +218,13 @@ struct MobileConnectionPickerTests {
 
     @Test(
         arguments: [
-            ("en", "Connect", "More"),
-            ("zh-Hans", "连接", "更多"),
-            ("zh-Hant", "連線", "更多"),
+            ("en", "Connect", "More", "Close All"),
+            ("zh-Hans", "连接", "更多", "全部关闭"),
+            ("zh-Hant", "連線", "更多", "全部關閉"),
         ])
     func workspaceToolbarExposesLocalizedActions(
-        language: String, expectedConnectName: String, expectedMoreName: String
+        language: String, expectedConnectName: String, expectedMoreName: String,
+        expectedCloseAllName: String
     ) async throws {
         var connectActivations = 0
         try await withNavigation(
@@ -234,19 +239,46 @@ struct MobileConnectionPickerTests {
             #expect(UIApplication.shared.sendAction(connectAction, to: connect.target, from: connect, for: nil))
             #expect(connectActivations == 1)
 
+            let page = try #require(navigation.topViewController)
+            let menu: UIMenu
             if #available(iOS 27.0, *) {
-                #expect(navigation.topViewController?.navigationItem.additionalOverflowItems != nil)
+                menu = UIMenu(children: [try #require(page.navigationItem.additionalOverflowItems)])
             } else {
                 let more = try #require(toolbarButton(named: expectedMoreName, in: navigation))
                 #expect(more.isEnabled)
+                menu = try #require(more.menu)
             }
+            let actions = try await resolvedMenuActions(menu, in: page.view)
+            let closeAll = try #require(actions.first { $0.title == expectedCloseAllName })
+            #expect(closeAll.attributes.contains(.destructive))
+            #expect(!closeAll.attributes.contains(.disabled))
+            #expect(actions.count == 1)
+        }
+    }
+
+    @Test func workspaceToolbarDisablesCloseAllWithoutWorkspaces() async throws {
+        try await withNavigation(
+            ToolbarHost(hasWorkspaces: false, closeAll: {}, connect: {}),
+            language: "en"
+        ) { navigation in
+            let page = try #require(navigation.topViewController)
+            let menu: UIMenu
+            if #available(iOS 27.0, *) {
+                menu = UIMenu(children: [try #require(page.navigationItem.additionalOverflowItems)])
+            } else {
+                menu = try #require(toolbarButton(named: "More", in: navigation)?.menu)
+            }
+            let actions = try await resolvedMenuActions(menu, in: page.view)
+            let closeAll = try #require(actions.first { $0.title == "Close All" })
+            #expect(closeAll.attributes.contains(.disabled))
+            #expect(actions.contains { $0.title == "Clear History" } == false)
         }
     }
 
     private func withNavigation<Content: View>(
         _ content: Content,
         language: String,
-        check: (UINavigationController) throws -> Void
+        check: (UINavigationController) async throws -> Void
     ) async throws {
         let scene = try #require(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
         let previousWindow = scene.keyWindow
@@ -263,7 +295,7 @@ struct MobileConnectionPickerTests {
         }
         try await Task.sleep(for: .milliseconds(700))
         let navigation = try #require(descendant(of: UINavigationController.self, in: controller))
-        try check(navigation)
+        try await check(navigation)
     }
 
     private func withStandaloneNavigation<Content: View>(
@@ -298,6 +330,33 @@ struct MobileConnectionPickerTests {
             + (item.rightBarButtonItems ?? [])
         return buttons.first { button in
             button.accessibilityLabel == name || button.title == name || button.customView?.accessibilityLabel == name
+        }
+    }
+
+    private func resolvedMenuActions(_ menu: UIMenu, in view: UIView) async throws -> [UIAction] {
+        let button = UIButton(frame: CGRect(x: 20, y: 100, width: 44, height: 44))
+        button.menu = menu
+        button.showsMenuAsPrimaryAction = true
+        view.addSubview(button)
+        defer { button.removeFromSuperview() }
+        button.performPrimaryAction()
+        try await Task.sleep(for: .milliseconds(500))
+        let interaction = try #require(button.contextMenuInteraction)
+        var actions: [UIAction] = []
+        interaction.updateVisibleMenu { resolved in
+            actions = menuActions(resolved)
+            return resolved
+        }
+        interaction.dismissMenu()
+        try await Task.sleep(for: .milliseconds(300))
+        return actions
+    }
+
+    private func menuActions(_ menu: UIMenu) -> [UIAction] {
+        menu.children.flatMap { element -> [UIAction] in
+            if let action = element as? UIAction { return [action] }
+            if let submenu = element as? UIMenu { return menuActions(submenu) }
+            return []
         }
     }
 
@@ -340,9 +399,7 @@ private struct ToolbarHost: View {
             .toolbar {
                 MobileWorkspaceToolbar(
                     hasWorkspaces: hasWorkspaces,
-                    hasHistory: false,
                     closeAll: closeAll,
-                    clearHistory: {},
                     connect: connect
                 )
             }

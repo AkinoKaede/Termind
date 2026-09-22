@@ -32,7 +32,6 @@ struct MobileWorkspaceListView: View {
     @Bindable var scene: MobileSceneModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
-    @State private var clearingHistory = false
 
     static let historyLimit = 5
 
@@ -56,23 +55,9 @@ struct MobileWorkspaceListView: View {
         .toolbar {
             MobileWorkspaceToolbar(
                 hasWorkspaces: scene.canCloseAllWorkspaces,
-                hasHistory: !app.connectionHistory.entries().isEmpty,
                 closeAll: scene.closeAllWorkspaces,
-                clearHistory: { clearingHistory = true },
                 connect: scene.openConnectionPicker
             )
-        }
-        .confirmationDialog(
-            "Clear connection history?",
-            isPresented: $clearingHistory,
-            titleVisibility: .visible
-        ) {
-            Button("Clear History", role: .destructive) {
-                app.connectionHistory.clearAll()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This permanently removes all connection history without deleting any Hosts.")
         }
         .navigationDestination(item: $scene.workspaceID) { id in
             if let workspace = app.workspaces.first(where: { $0.id == id }) {
@@ -190,10 +175,11 @@ struct MobileWorkspaceListView: View {
         ForEach(historyRows) { row in
             historyButton(row)
                 .contextMenu {
-                    ForEach(MobileConnectionHistoryActionPolicy.menuKinds, id: \.self) { kind in
+                    let kinds = MobileConnectionHistoryActionPolicy.availableMenuKinds(for: row.host)
+                    ForEach(kinds, id: \.self) { kind in
                         historyConnectionButton(kind, host: row.host)
                     }
-                    Divider()
+                    if !kinds.isEmpty { Divider() }
                     Button("Delete", systemImage: "trash", role: .destructive) {
                         app.connectionHistory.clear(for: row.host.id)
                     }

@@ -4943,6 +4943,22 @@
         }
       }
     },
+    "Clear All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部清除"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部清除"
+          }
+        }
+      }
+    },
     "Clear All History" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -4961,6 +4977,7 @@
       }
     },
     "Clear all history for the selected Hosts?" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -5038,22 +5055,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除篩選"
-          }
-        }
-      }
-    },
-    "Clear All" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部清除"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "全部清除"
           }
         }
       }
@@ -5245,6 +5246,22 @@
         }
       }
     },
+    "Close All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部关闭"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部關閉"
+          }
+        }
+      }
+    },
     "Close All Workspaces" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5289,6 +5306,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "關閉模型詳細資訊"
+          }
+        }
+      }
+    },
+    "Close Other" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭其他"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉其他"
           }
         }
       }
@@ -8045,22 +8078,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除片段？"
-          }
-        }
-      }
-    },
-    "Delete this History" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除此条历史"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刪除此條歷史"
           }
         }
       }
@@ -17192,6 +17209,7 @@
       }
     },
     "One Workspace" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -22561,6 +22579,7 @@
       }
     },
     "Separate Workspaces" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -28180,6 +28199,7 @@
       }
     },
     "This permanently removes connection, command, and File History without deleting the Hosts." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
