@@ -24,8 +24,6 @@ struct MobileSyncSettingsView: View {
                         app.vaultSync?.status, retry: { app.vaultSync?.retry() },
                         merge: { app.vaultSync?.confirmAccountSwitchMerge() })
                 }
-                Text("Hosts, identities, snippets, known hosts, and port forwards.").font(.caption).foregroundStyle(
-                    .secondary)
             }.disabled(!enabled || !app.pro.canUse(.vaultSync))
             Section {
                 Toggle("Metrics", isOn: selection(metrics, SettingsKey.metricsSyncEnabled))
@@ -34,8 +32,6 @@ struct MobileSyncSettingsView: View {
                         app.metricsSync?.status, retry: { app.metricsSync?.retry() },
                         merge: { app.metricsSync?.confirmAccountSwitchMerge() })
                 }
-                Text("Monitored servers, pause state, device selections, and card order.")
-                    .font(.caption).foregroundStyle(.secondary)
             }.disabled(!enabled || !app.pro.canUse(.vaultSync))
             Section {
                 Toggle("Settings", isOn: selection(settings, SettingsKey.settingsSyncEnabled))
@@ -44,7 +40,6 @@ struct MobileSyncSettingsView: View {
                         app.settingsSync?.status, retry: { app.settingsSync?.retry() },
                         merge: { app.settingsSync?.confirmAccountSwitchMerge() })
                 }
-                Text("Terminal, Connections, and AI preferences.").font(.caption).foregroundStyle(.secondary)
             }.disabled(!enabled || !app.pro.canUse(.vaultSync))
         }.navigationTitle("Sync")
     }

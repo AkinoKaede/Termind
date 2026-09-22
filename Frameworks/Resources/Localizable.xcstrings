@@ -12359,22 +12359,6 @@
         }
       }
     },
-    "Hosts, identities, snippets, known hosts, and port forwards." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "主机、身份、命令片段、已知主机和端口转发。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "主機、身分、指令片段、已知主機和連接埠轉送。"
-          }
-        }
-      }
-    },
     "How hard the model thinks" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -15140,22 +15124,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "監控超過3台伺服器"
-          }
-        }
-      }
-    },
-    "Monitored servers, pause state, device selections, and card order." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "监控的服务器、暂停状态、设备选择和卡片顺序。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "監控的伺服器、暫停狀態、裝置選擇和卡片順序。"
           }
         }
       }
@@ -25310,22 +25278,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "終端就緒"
-          }
-        }
-      }
-    },
-    "Terminal, Connections, and AI preferences." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "终端、连接和AI偏好设置。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "終端、連線和AI偏好設定。"
           }
         }
       }

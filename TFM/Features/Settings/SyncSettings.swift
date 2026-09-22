@@ -32,7 +32,7 @@ struct SyncSettings: View {
 
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 SyncSelectionRow(
-                    title: "Vault", detail: "Hosts, identities, snippets, known hosts, and port forwards.",
+                    title: "Vault",
                     isSelected: Binding(
                         get: { includesVault },
                         set: { value in
@@ -47,7 +47,7 @@ struct SyncSettings: View {
                     retry: { app.vaultSync?.retry() },
                     merge: { app.vaultSync?.confirmAccountSwitchMerge() })
                 SyncSelectionRow(
-                    title: "Metrics", detail: "Monitored servers, pause state, device selections, and card order.",
+                    title: "Metrics",
                     isSelected: Binding(
                         get: { includesMetrics },
                         set: { value in
@@ -57,7 +57,7 @@ struct SyncSettings: View {
                     retry: { app.metricsSync?.retry() },
                     merge: { app.metricsSync?.confirmAccountSwitchMerge() })
                 SyncSelectionRow(
-                    title: "Settings", detail: "Terminal, Connections, and AI preferences.",
+                    title: "Settings",
                     isSelected: Binding(
                         get: { includesSettings },
                         set: { value in
@@ -74,7 +74,6 @@ struct SyncSettings: View {
 
 private struct SyncSelectionRow: View {
     let title: LocalizedStringKey
-    let detail: LocalizedStringKey
     @Binding var isSelected: Bool
     let status: VaultSyncStatus?
     let retry: () -> Void
@@ -84,10 +83,7 @@ private struct SyncSelectionRow: View {
         VStack(alignment: .leading, spacing: Metrics.Space.xs) {
             HStack {
                 Toggle(isOn: $isSelected) {
-                    VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                        Text(title)
-                        Text(detail).font(.caption).foregroundStyle(.secondary)
-                    }
+                    Text(title)
                 }
                 .toggleStyle(.checkbox)
                 Spacer()
