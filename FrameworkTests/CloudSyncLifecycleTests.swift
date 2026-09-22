@@ -9,6 +9,64 @@ import Testing
 @Suite @MainActor
 struct CloudSyncLifecycleTests {
     @Test
+    func uploadBatchesNeverExceedCloudKitRequestLimit() async throws {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let ids = (0..<505).map {
+            CKRecord.ID(recordName: "record-\($0)", zoneID: fixture.driver.zoneID)
+        }
+        let pending = ids.map(CKSyncEngine.PendingRecordZoneChange.saveRecord)
+
+        let first = try #require(
+            fixture.driver.makeChangeBatch(pending, engine: fixture.network.nextEngine) {
+                CKRecord(recordType: "Test", recordID: $0)
+            })
+        let second = try #require(
+            fixture.driver.makeChangeBatch(Array(pending.dropFirst(250)), engine: fixture.network.nextEngine) {
+                CKRecord(recordType: "Test", recordID: $0)
+            })
+        let third = try #require(
+            fixture.driver.makeChangeBatch(Array(pending.dropFirst(500)), engine: fixture.network.nextEngine) {
+                CKRecord(recordType: "Test", recordID: $0)
+            })
+
+        #expect(CloudSyncLifecycle.maximumRecordsPerRequest == 250)
+        #expect(first.recordsToSave.map(\.recordID) == Array(ids.prefix(250)))
+        #expect(second.recordsToSave.map(\.recordID) == Array(ids.dropFirst(250).prefix(250)))
+        #expect(third.recordsToSave.map(\.recordID) == Array(ids.suffix(5)))
+        #expect(first.recordIDsToDelete.isEmpty)
+    }
+
+    @Test
+    func invalidPendingChangesDoNotConsumeTheRequestLimit() async throws {
+        let fixture = LifecycleFixture()
+        fixture.driver.start()
+        await fixture.driver.operation?.value
+        let ids = (0..<280).map {
+            CKRecord.ID(recordName: "record-\($0)", zoneID: fixture.driver.zoneID)
+        }
+        fixture.journal.blocked = Set(ids.prefix(10).map(\.recordName))
+        let missing = Set(ids.dropFirst(10).prefix(10).map(\.recordName))
+        let pending = ids.flatMap {
+            [
+                CKSyncEngine.PendingRecordZoneChange.deleteRecord($0),
+                CKSyncEngine.PendingRecordZoneChange.saveRecord($0),
+            ]
+        }
+
+        let batch = try #require(
+            fixture.driver.makeChangeBatch(pending, engine: fixture.network.nextEngine) { id in
+                missing.contains(id.recordName) ? nil : CKRecord(recordType: "Test", recordID: id)
+            })
+
+        #expect(batch.recordsToSave.count == 250)
+        #expect(batch.recordsToSave.first?.recordID == ids[20])
+        #expect(batch.recordsToSave.last?.recordID == ids[269])
+        #expect(batch.recordIDsToDelete.isEmpty)
+    }
+
+    @Test
     func firstFetchGatesSendsAndAuthorizationWhileLocalChangesAccumulate() async throws {
         let fixture = LifecycleFixture()
         let gate = LifecycleGate()

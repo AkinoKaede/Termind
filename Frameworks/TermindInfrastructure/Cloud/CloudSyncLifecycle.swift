@@ -95,6 +95,10 @@ struct CloudSyncTransport {
 /// One instance per category: only implementation is shared, never account or engine state.
 @MainActor @Observable
 final class CloudSyncLifecycle {
+    /// CloudKit accepts at most 250 record changes in one network request.
+    /// Every CKSyncEngine delegate in the app builds its batches through this lifecycle.
+    nonisolated static let maximumRecordsPerRequest = 250
+
     let store: CloudSyncLifecycleStore
     let transport: CloudSyncTransport
     let zoneID: CKRecordZone.ID
@@ -399,7 +403,10 @@ extension CloudSyncLifecycle {
             for change in pending {
                 // The protocol uses tombstones. Never emit a physical deletion from a restored queue.
                 guard case .saveRecord(let id) = change, try canUpload(id, engine: engine) else { continue }
-                if let record = recordProvider(id) { records.append(record) }
+                if let record = recordProvider(id) {
+                    records.append(record)
+                    if records.count == Self.maximumRecordsPerRequest { break }
+                }
             }
             guard accepts(engine), isReadyToSend, !records.isEmpty else { return nil }
             return CKSyncEngine.RecordZoneChangeBatch(recordsToSave: records)

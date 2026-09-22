@@ -7,7 +7,7 @@ import struct TermindDomain.Host
 @MainActor
 @Observable
 public final class ConnectionHistoryModel {
-    public static let limit = 300
+    public static let limit = 250
     public static let presentationLimit = 100
 
     private let repository: any ConnectionHistoryRepository

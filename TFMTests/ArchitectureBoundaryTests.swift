@@ -191,17 +191,31 @@ struct ArchitectureBoundaryTests {
     @Test
     func cloudSyncCoordinatorsUseSharedUploadAndQuarantineGates() throws {
         let root = sourceRoot.appending(path: "../Frameworks/TermindInfrastructure/Cloud")
-        for name in ["VaultSyncCoordinator", "SettingsSyncCoordinator", "MetricsSyncCoordinator"] {
-            let source = try String(contentsOf: root.appending(path: "\(name).swift"), encoding: .utf8)
+        let files = try FileManager.default.contentsOfDirectory(
+            at: root, includingPropertiesForKeys: nil
+        ).filter { $0.pathExtension == "swift" }
+        let delegates = try files.filter {
+            try String(contentsOf: $0, encoding: .utf8).contains(": NSObject, CKSyncEngineDelegate")
+        }
+        #expect(!delegates.isEmpty)
+        for file in delegates {
+            let source = try String(contentsOf: file, encoding: .utf8)
             #expect(source.contains("lifecycle.makeChangeBatch("))
             #expect(source.contains("lifecycle.canUpload("))
             #expect(source.contains("CloudSyncRecordCoding.quarantine("))
             #expect(source.contains("isConflict: true"))
             #expect(!source.contains("try? journal.outgoingEntry"))
+            #expect(!source.contains("CKSyncEngine.RecordZoneChangeBatch("))
         }
         let lifecycle = try String(contentsOf: root.appending(path: "CloudSyncLifecycle.swift"), encoding: .utf8)
+        #expect(lifecycle.contains("maximumRecordsPerRequest = 250"))
+        #expect(lifecycle.contains("records.count == Self.maximumRecordsPerRequest"))
         #expect(!lifecycle.split(separator: "\n").contains("import SwiftData"))
         #expect(!lifecycle.split(separator: "\n").contains("import TermindPersistence"))
+        for file in files where file.lastPathComponent != "CloudSyncLifecycle.swift" {
+            let source = try String(contentsOf: file, encoding: .utf8)
+            #expect(!source.contains("CKSyncEngine.RecordZoneChangeBatch("))
+        }
     }
 
     @Test

@@ -172,6 +172,75 @@ struct VaultSyncTests {
     }
 
     @Test
+    func launchPrunesLegacyConnectionHistoryBeforeSyncBootstrap() throws {
+        let container = try makeContainer("ConnectionHistoryLaunchPruning")
+        let context = container.mainContext
+        let values = (0..<505).map { index in
+            ConnectionHistoryEntry(
+                hostID: UUID(), kind: .ssh,
+                connectedAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                sourceDeviceID: UUID()
+            )
+        }
+        for value in values { context.insert(PersistentConnectionHistoryEntry(value)) }
+        try context.save()
+
+        _ = try HostPersistence(context: context).load()
+
+        let retained = try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>())
+            .map(\.value)
+            .sorted(by: ConnectionHistoryEntry.isNewer)
+        let historyEnvelopes = try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>())
+            .compactMap(\.envelope)
+            .filter { $0.key.kind == .connectionHistory }
+        #expect(retained.count == ConnectionHistoryModel.limit)
+        #expect(retained.map(\.id) == Array(values.suffix(ConnectionHistoryModel.limit).reversed()).map(\.id))
+        #expect(historyEnvelopes.count == ConnectionHistoryModel.limit)
+        #expect(Set(historyEnvelopes.map(\.key.id)) == Set(retained.map(\.id)))
+    }
+
+    @Test
+    func launchDiscardsUnsentOverflowAndTombstonesUploadedOverflow() throws {
+        let container = try makeContainer("ConnectionHistoryOverflowJournal")
+        let context = container.mainContext
+        let values = (0...(ConnectionHistoryModel.limit + 1)).map { index in
+            ConnectionHistoryEntry(
+                hostID: UUID(), kind: .ssh,
+                connectedAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                sourceDeviceID: UUID()
+            )
+        }
+        for value in values { context.insert(PersistentConnectionHistoryEntry(value)) }
+        let unsent = values[0]
+        let uploaded = values[1]
+        let unsentKey = VaultRecordKey(kind: .connectionHistory, id: unsent.id)
+        let uploadedKey = VaultRecordKey(kind: .connectionHistory, id: uploaded.id)
+        let journal = VaultSyncJournal(context: context)
+        for value in [unsent, uploaded] {
+            let envelope = VaultEnvelope(
+                key: VaultRecordKey(kind: .connectionHistory, id: value.id),
+                version: .baseline(writerID: UUID()), payload: .connectionHistory(value)
+            )
+            context.insert(
+                try PersistentVaultSyncEntry(envelope: envelope, needsUpload: value == unsent)
+            )
+        }
+        try journal.updateSystemFields(Data("cloud-fields".utf8), for: uploadedKey)
+        let state = try journal.state()
+        state.engineStateData = Data("stale-pending-history".utf8)
+        try context.save()
+
+        _ = try HostPersistence(context: context).load()
+
+        #expect(try journal.envelope(for: unsentKey) == nil)
+        #expect(try journal.envelope(for: uploadedKey)?.isDeleted == true)
+        #expect(try journal.state().engineStateData == nil)
+        #expect(
+            try context.fetchCount(FetchDescriptor<PersistentConnectionHistoryEntry>())
+                == ConnectionHistoryModel.limit)
+    }
+
+    @Test
     func importedKnownHostsSyncWithoutHostsAndPropagateEditsAndDeletion() throws {
         let source = try makeContainer("KnownHostsSource")
         let destination = try makeContainer("KnownHostsDestination")

@@ -438,6 +438,45 @@ public final class VaultSyncJournal {
         return VaultMutationSet(keys: changed)
     }
 
+    /// Removes connection events that exceed local retention before launch-time
+    /// history bootstrap. Records that have never reached CloudKit can disappear
+    /// from the journal; records with CloudKit identity require ordinary logical
+    /// deletion so other devices converge on the same retained timeline.
+    public func discardOverflowConnectionHistory(
+        _ values: [ConnectionHistoryEntry],
+        now: Date = .now
+    ) throws -> VaultMutationSet {
+        guard !values.isEmpty else { return .empty }
+        let state = try state()
+        var entries = try entriesByName()
+        var changed = Set<VaultRecordKey>()
+        var discardedPendingChanges = false
+
+        for value in values {
+            let key = VaultRecordKey(kind: .connectionHistory, id: value.id)
+            guard let row = entries[key.recordName], let envelope = row.envelope else { continue }
+            if row.systemFieldsData == nil {
+                context.delete(row)
+                entries[key.recordName] = nil
+                discardedPendingChanges = true
+                continue
+            }
+            guard !envelope.isDeleted else { continue }
+            let tombstone = VaultEnvelope(
+                key: key,
+                version: .next(after: envelope.version, writerID: state.installationID, now: now),
+                isDeleted: true
+            )
+            row.apply(tombstone, needsUpload: true)
+            changed.insert(key)
+        }
+
+        // A serialized engine may still contain names removed above. A fresh
+        // engine restores only the journal's surviving pending changes.
+        if discardedPendingChanges { state.engineStateData = nil }
+        return VaultMutationSet(keys: changed)
+    }
+
     /// Reconciles the shared installation directory without deleting records
     /// for devices that are merely absent from one client's local store.
     public func recordCurrentDevices(

@@ -10,6 +10,23 @@ import Testing
 @Suite @MainActor
 struct CloudSyncSafetyTests {
     @Test(arguments: SyncSafetyCategory.allCases)
+    func everyCoordinatorUsesTheSharedCloudKitRequestLimit(category: SyncSafetyCategory) async throws {
+        let fixture = try CloudSyncSafetyFixture(category: category)
+        defer { fixture.stop() }
+        try await fixture.start()
+        let pending = (0...CloudSyncLifecycle.maximumRecordsPerRequest).map { index in
+            CKSyncEngine.PendingRecordZoneChange.saveRecord(
+                fixture.recordIDs[index % fixture.recordIDs.count]
+            )
+        }
+
+        let batch = try #require(fixture.batch(pending))
+
+        #expect(batch.recordsToSave.count == CloudSyncLifecycle.maximumRecordsPerRequest)
+        #expect(batch.recordIDsToDelete.isEmpty)
+    }
+
+    @Test(arguments: SyncSafetyCategory.allCases)
     func unsupportedRecordIsFencedAtJournalBatchAndProviderWithoutBlockingOtherRecords(
         category: SyncSafetyCategory
     ) async throws {

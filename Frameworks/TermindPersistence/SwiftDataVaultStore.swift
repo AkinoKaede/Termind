@@ -16,6 +16,8 @@ public final class HostPersistence {
     public func load() throws -> VaultSnapshot {
         let snapshot = try fetchSnapshot()
         let journal = VaultSyncJournal(context: context)
+        let overflow = try pruneConnectionHistory()
+        _ = try journal.discardOverflowConnectionHistory(overflow)
         _ = try journal.bootstrapIfNeeded(snapshot)
         _ = try journal.recordCurrentConnectionHistory(fetchConnectionHistory())
         _ = try journal.recordCurrentDevices(fetchDevices())
@@ -85,7 +87,7 @@ public final class HostPersistence {
                     try snapshot.apply(envelope)
                 }
             }
-            try pruneConnectionHistory()
+            _ = try pruneConnectionHistory()
             try persist(snapshot)
             try journal.acceptRemote(decision.accepted)
             let retentionMutations = try journal.recordCurrentConnectionHistory(
@@ -221,10 +223,14 @@ public final class HostPersistence {
         }
     }
 
-    private func pruneConnectionHistory() throws {
+    @discardableResult
+    private func pruneConnectionHistory() throws -> [ConnectionHistoryEntry] {
         let rows = try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>())
             .sorted { ConnectionHistoryEntry.isNewer($0.value, $1.value) }
-        for row in rows.dropFirst(ConnectionHistoryModel.limit) { context.delete(row) }
+        let overflow = rows.dropFirst(ConnectionHistoryModel.limit)
+        let values = overflow.map(\.value)
+        for row in overflow { context.delete(row) }
+        return values
     }
 
     private func reconcile<Model: PersistentModel, Value>(

@@ -17,7 +17,7 @@ import struct TermindDomain.Host
 struct ConnectionHistoryTests {
     @Test
     func connectionProtocolSymbolsAreDistinct() {
-        #expect(ConnectionHistoryModel.limit == 300)
+        #expect(ConnectionHistoryModel.limit == 250)
         #expect(ConnectionHistoryModel.presentationLimit == 100)
         #expect(ConnectionHistoryEntry.Kind.ssh.symbol == "terminal")
         #expect(ConnectionHistoryEntry.Kind.telnet.symbol == "text.rectangle")
