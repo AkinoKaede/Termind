@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:46da12757deeb46a90ef6fb1b732fb70c55f422f008a7a43e317c7f5f31e1681",
+  "pageVersion": "sha256:8f4fafaa7a5c62b52e73921856983f69fcafed01d18b9f2903aa53d8b883eec5",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -74,7 +74,7 @@
     },
     {
       "id": "claim_4ed733207e8b495f9fb9f0db86f1ad04",
-      "statement": "Persistence owns the versioned SwiftData schema/container and persistence adapters, including V31 scoped sync restrictions and recovery checkpoints; GRDBMemoryStore separately owns a lazily opened SQLite memory database and full-text message index.",
+      "statement": "Persistence owns the versioned SwiftData schema/container and persistence adapters, including scoped sync restrictions, recovery checkpoints, V32 connection-history storage, and the independent generic device-directory store; GRDBMemoryStore separately owns a lazily opened SQLite memory database and full-text message index.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/AISecretStore.swift",
@@ -85,26 +85,26 @@
           "version": "repo-file-v1:sha256:c028e57ece449c591c32f8ac849fda2f6a82cda00974acc87f832295bb3acc3d"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift#L6-L47",
-          "version": "repo-lines-v1:sha256:367ad381b7e20356b66e497b9e380ad6c8d11ce26150386d054664175c7b2dda:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2ZTgzNWJiMzkzNjdhODBkMDdiMDkxZDJmZGIwODFhZGM0YThkYTg0NmQ4MjhjYjM1YzUzY2IwYzUyMjc4MDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNiZWFjYTU1MGI4N2Y4MTM4MGM0NDM2MDc1YTA3MDQ0NGJkMTRhYWQ4MzMwNTZmNjE0MmYyMDdiNzlhNjdkMDUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3NTFkYmVhZWI2MDk3MWM4NGIwNWEzYjVjNWZlMmIyN2E2NmY0MjQxZTM5NTkwOTQ1NzU4NzljZGVkMjg1YTEifQ"
+          "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift",
+          "version": "repo-file-v1:sha256:5d148d9b678c6512cdf58a6803d31d360869a54ecf3c7cd1176abd1126ed2bb6"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L784-L791",
-          "version": "repo-lines-v1:sha256:8d79c417b0144fe8ea720dac157a20fb35b68045b6d5611819f811488698647c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2FjYmQ4ZDg5YjViZTJkYWYyZDQ0ZWYwNDhkY2UxYmZmNjlmYzFlZGEyZjE3NmIzY2RjYzQzMjIwMDJmM2Q4MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmE2YWQyYmNlYjdkNWJhNzgyYjJmZWM4YjFlZTM3ZjUzOGE3MDNkOGVlZTMxMDc2ZjZiYTU1ZWI5ODQ4ZjIzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTllNzYzNTVjZjExOTk0ODBjM2Y5OTgzNmIxNDg2Yzg0MWQ4OTFmYWFkOTA0YzYwOGUwOTMwMjJkMzc1N2FlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2VmNDZiNWVlZDczMWY4OWQ1MDA5MmE1NzYwMGRiOTQxMzQ5OGZjMTBlMDZlOWQ3ZDIxZmUxOWIyNTZlZTM0MyJ9"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
+          "version": "repo-file-v1:sha256:4e71ea8935acb91019318067495b9123e1540ea7c74c407f49ed804648ecb77d"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
+          "version": "repo-file-v1:sha256:9a3e7296fd09c4b397c90c7b15c20775a0950a145ec1c506ac431c04fc5ea020"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
-        },
-        {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L207-L223",
-          "version": "repo-lines-v1:sha256:bb65a8050531c288646a62d024e2c5ce82632ce10e8f598b6d9de35f3de1606f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlNDNhMjAwNmYyNDA5MjZmMDAwYzdlNGI5MzIxNjY5M2MyNGRkZjU3MWQ3YTM3MDRjNGU1MmM4MWI1ZjBkZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzOWVhMmE5NzQ2MjU5N2MwNmU3ODEyZDZmYWRkNzJkMTNmMTYxMDliYTBkZTgwOWQ3MjRlM2E3NTQ1ZjZhNzkifQ"
+          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
         }
       ]
     },
     {
       "id": "claim_15c2069e54654cb49ac2a21c36d8dae6",
-      "statement": "Explicit Infrastructure CloudKit coordinators use Persistence journals, scoped safety storage and a shared lifecycle adapter while retaining independent category engines; received and conflicted records share validation, and the SwiftData container still disables automatic CloudKit storage.",
+      "statement": "Explicit Infrastructure CloudKit coordinators use Persistence journals, scoped safety storage and a shared lifecycle adapter while retaining independent category engines; received and conflicted records share validation, and the SwiftData container disables automatic CloudKit storage.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift",
@@ -128,7 +128,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
+          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
         }
       ]
     },
@@ -215,12 +215,12 @@
       "statement": "Presentation contains shared forms, formatting, transcript state, SFTP presentation and terminal appearance, while architecture tests prohibit native UI, persistence and remote-infrastructure dependencies in this framework.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPresentation/AssistantTranscriptPresentationState.swift#L6-L44",
-          "version": "repo-lines-v1:sha256:f9ecbc961f95aecdc449c42921074a82d24baeb3a14a49d0eb6e53f3d6b2dcad:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5YmYzM2M3N2QyMzg5MzY2ODA4Y2RlZmNhNTNjNzUzMjMzNzMxYzI0ZWYyOWM2ZjIzNTE1NWM5NDliYTZjYTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEzOGNiZTU0MDNhODcyNDlmNWE4MjY3ZGEwOTg1MDk2ZmVkMDQ3ZTZjOTJkOGMyZmE2YTUxYmMwMWVjZDdiOTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE4Zjg1M2VhNGM5ZDhhMmRkNDk3M2M5MDRjMmJlM2FjZTZkNjE1NDdiYTQxYWYxZDBjZTM0ZDJiZjAzNGJhNGEifQ"
+          "resource": "repo://Frameworks/TermindPresentation/AssistantTranscriptPresentationState.swift",
+          "version": "repo-file-v1:sha256:94bd45c53dafabe0c801233776f67fead7b8e1ddcc6d2f9624dc046d93ddcf90"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/IdentityFormSections.swift",
-          "version": "repo-file-v1:sha256:7c3c7dd1ba4148f10f1ce45aa97b648555ff481c59d69097d544dce24e66aac0"
+          "version": "repo-file-v1:sha256:93de372e215799eb224092fa676a7e7716a646f5545127504c3dfe7d94a2516e"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/SFTP/RemoteFile%2BPresentation.swift",
@@ -231,8 +231,8 @@
           "version": "repo-file-v1:sha256:a8ac25cdd81d3d6205d9a1645a307d05b17e4f7690cdb2d8d25cd536d9ca449b"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L179-L189",
-          "version": "repo-lines-v1:sha256:9ae795cb580db70eb440a08fa626cf8b370a155c52c4f587825aa8585d631216:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkNDI5OTVlMWFiMGZhNTYyM2ViZDQ4NzRmMDliZDFhYjBmMjY2OWVkOGQ0Y2E3ZmIyMjU4NjMzYmE0MTVkNjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3NDI5ODQ5YmU0MTZhMzMzMmY5NTcyYmY1NTM5ZDkzOTZjNDEzMjY1MWE4MzhiZGRhZGIzN2IwNzg1OWViMmUifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:93f91b564371034f72c76c52581281fea35eebe77efa124b0f9668b4ed5b4034"
         }
       ]
     },
@@ -262,13 +262,35 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
+        }
+      ]
+    },
+    {
+      "id": "claim_dd6ae4fba22f4214851997a12baa41db",
+      "statement": "Device metadata is reusable across features: Domain owns DeviceRecord, Application owns DeviceDirectoryModel and its repository port, and Persistence owns the SwiftData repository and Vault journaling adapter independently of connection-history storage.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift",
+          "version": "repo-file-v1:sha256:368841be82a49dc8d6660dca31216bd0f319fdc76276a9bd1e22b6a8ea4a2cf8"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift",
+          "version": "repo-file-v1:sha256:0a1a1ff68cedf0d380d197304d6088d35aafbe510723b8508c94b33583eadde3"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/DeviceRecord.swift",
+          "version": "repo-file-v1:sha256:7bd4537277fda9c7e6e70318290ee3f17ce0271433ebff5c3ac0a28394f1d1d0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
+          "version": "repo-file-v1:sha256:9a3e7296fd09c4b397c90c7b15c20775a0950a145ec1c506ac431c04fc5ea020"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T05:22:55.650Z"
+    "at": "2026-09-22T10:02:02.985Z"
   }
 }

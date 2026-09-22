@@ -17,6 +17,8 @@
 		10DD764492A94453449B3484 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		1D479CE3B3FF74B0C23BA3F2 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		20ADB83C9DB7F78EDF8BCBDF /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
+		DEVK00000000000000000003 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
+		DEVK00000000000000000004 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
 		23E272F32F769A979F3ABF42 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		25C0658E2DD9B2FE28023DA7 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		26C689ECB8B41A357765CCF1 /* TermindRemoteInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21951230A1FF30987ADC3B6B /* TermindRemoteInfrastructure.framework */; };
@@ -636,6 +638,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEVK00000000000000000003 /* DeviceKit in Frameworks */,
 				LOGG00000000000000000105 /* Logging in Frameworks */,
 				BAAD00000000000000000011 /* GRDB in Frameworks */,
 				AA1300000000000000000001 /* ListViewKit in Frameworks */,
@@ -732,6 +735,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DEVK00000000000000000004 /* DeviceKit in Frameworks */,
 				LOGG00000000000000000104 /* Logging in Frameworks */,
 				BAAD00000000000000000010 /* GRDB in Frameworks */,
 				26C689ECB8B41A357765CCF1 /* TermindRemoteInfrastructure.framework in Frameworks */,
@@ -879,6 +883,7 @@
 			);
 			name = TFI;
 			packageProductDependencies = (
+				DEVK00000000000000000002 /* DeviceKit */,
 				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
 				TRMD00000000000000100018 /* ListViewKit */,
@@ -1189,6 +1194,7 @@
 			);
 			name = TFM;
 			packageProductDependencies = (
+				DEVK00000000000000000002 /* DeviceKit */,
 				LOGG00000000000000000002 /* Logging */,
 				BAAD00000000000000000002 /* GRDB */,
 				TRMD0000000000000010001B /* AgentKit */,
@@ -1320,6 +1326,7 @@
 			mainGroup = TRMD00000000000000000030;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */,
 				BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */,
 				LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */,
 				TRMD00000000000000100029 /* XCRemoteSwiftPackageReference "AgentKit" */,
@@ -2762,6 +2769,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/devicekit/DeviceKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.8.0;
+			};
+		};
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
@@ -2845,6 +2860,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		DEVK00000000000000000002 /* DeviceKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */;
+			productName = DeviceKit;
+		};
 		BAAD00000000000000000002 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;

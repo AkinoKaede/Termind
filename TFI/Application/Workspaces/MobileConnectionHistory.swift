@@ -5,11 +5,22 @@ struct MobileConnectionHistoryRow: Identifiable {
     let entry: ConnectionHistoryEntry
     let host: Host
     let loginAddress: String
+    let sourceDeviceName: String?
 
     var id: ConnectionHistoryEntry.ID { entry.id }
     var canOpen: Bool {
         MobileConnectionHistoryActionPolicy.isAvailable(entry.kind, for: host)
     }
+}
+
+struct MobileRecentHostRow: Identifiable {
+    let entry: ConnectionHistoryEntry
+    let host: Host
+    let loginAddress: String
+    let preferredKind: ConnectionHistoryEntry.Kind?
+
+    var id: Host.ID { host.id }
+    var canOpen: Bool { preferredKind != nil }
 }
 
 enum MobileConnectionHistoryActionPolicy {
@@ -29,32 +40,77 @@ enum MobileConnectionHistoryActionPolicy {
 
 @MainActor
 enum MobileConnectionHistory {
-    private struct Key: Hashable {
-        let hostID: Host.ID
-        let kind: ConnectionHistoryEntry.Kind
-    }
-
-    static func rows(
+    static func recentHostRows(
         entries: [ConnectionHistoryEntry],
         library: HostLibraryModel,
         limit: Int
-    ) -> [MobileConnectionHistoryRow] {
+    ) -> [MobileRecentHostRow] {
         guard limit > 0 else { return [] }
 
-        var seen: Set<Key> = []
-        var rows: [MobileConnectionHistoryRow] = []
+        var seen = Set<Host.ID>()
+        var rows: [MobileRecentHostRow] = []
         for entry in entries {
             guard let host = library.host(entry.hostID) else { continue }
-            guard seen.insert(Key(hostID: entry.hostID, kind: entry.kind)).inserted else { continue }
+            guard seen.insert(host.id).inserted else { continue }
+            let preferredKind = preferredKind(for: host)
             rows.append(
-                MobileConnectionHistoryRow(
+                MobileRecentHostRow(
                     entry: entry,
                     host: host,
-                    loginAddress: library.loginAddress(
-                        for: host, protocol: entry.kind == .telnet ? .telnet : .ssh)
+                    loginAddress: library.preferredTerminalLoginAddress(for: host),
+                    preferredKind: preferredKind
                 ))
             if rows.count == limit { break }
         }
         return rows
+    }
+
+    static func eventRows(
+        history: ConnectionHistoryModel,
+        devices: DeviceDirectoryModel,
+        library: HostLibraryModel,
+        query: String = "",
+        limit: Int
+    ) -> [MobileConnectionHistoryRow] {
+        guard limit > 0 else { return [] }
+        var rows: [MobileConnectionHistoryRow] = []
+        for entry in history.entries() {
+            guard let host = library.host(entry.hostID) else { continue }
+            let loginAddress = library.loginAddress(
+                for: host, protocol: entry.kind == .telnet ? .telnet : .ssh)
+            let sourceDeviceName = devices.name(for: entry.sourceDeviceID)
+            guard
+                query.isEmpty
+                    || matches(
+                        entry, host: host, loginAddress: loginAddress,
+                        sourceDeviceName: sourceDeviceName, query: query)
+            else {
+                continue
+            }
+            rows.append(
+                MobileConnectionHistoryRow(
+                    entry: entry, host: host, loginAddress: loginAddress,
+                    sourceDeviceName: sourceDeviceName))
+            if rows.count == limit { break }
+        }
+        return rows
+    }
+
+    static func preferredKind(for host: Host) -> ConnectionHistoryEntry.Kind? {
+        switch host.preferredTerminalProtocol {
+        case .ssh: .ssh
+        case .telnet: .telnet
+        case nil: nil
+        }
+    }
+
+    private static func matches(
+        _ entry: ConnectionHistoryEntry, host: Host, loginAddress: String,
+        sourceDeviceName: String?, query: String
+    ) -> Bool {
+        host.matches(query)
+            || loginAddress.localizedCaseInsensitiveContains(query)
+            || entry.kind.label.localizedCaseInsensitiveContains(query)
+            || sourceDeviceName?.localizedCaseInsensitiveContains(query) == true
     }
 }

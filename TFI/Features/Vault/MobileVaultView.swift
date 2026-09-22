@@ -22,6 +22,157 @@ nonisolated enum MobileHostMenuPolicy {
     ]
 }
 
+struct MobileConnectionHistoryView: View {
+    let app: MobileAppModel
+    let open: (Host.ID, ConnectionHistoryEntry.Kind) -> Void
+    @Environment(\.locale) private var locale
+    @State private var query: String
+    @State private var clearingHistory = false
+
+    init(
+        app: MobileAppModel, initialQuery: String = "",
+        open: @escaping (Host.ID, ConnectionHistoryEntry.Kind) -> Void
+    ) {
+        self.app = app
+        self.open = open
+        _query = State(initialValue: initialQuery)
+    }
+
+    private var rows: [MobileConnectionHistoryRow] {
+        _ = app.connectionHistory.revision
+        return MobileConnectionHistory.eventRows(
+            history: app.connectionHistory, devices: app.devices, library: app.library,
+            query: query, limit: ConnectionHistoryModel.presentationLimit)
+    }
+
+    var body: some View {
+        List {
+            if rows.isEmpty {
+                Group {
+                    if query.isEmpty {
+                        ContentUnavailableView("No History", systemImage: "clock.arrow.circlepath")
+                    } else {
+                        ContentUnavailableView.search(text: query)
+                    }
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            } else {
+                ForEach(rows) { row in
+                    historyButton(row)
+                        .contextMenu {
+                            ForEach(MobileConnectionHistoryActionPolicy.menuKinds, id: \.self) { kind in
+                                connectionButton(kind, host: row.host)
+                            }
+                            Divider()
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                app.connectionHistory.delete(row.entry.id)
+                            }
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                app.connectionHistory.delete(row.entry.id)
+                            }
+                            ForEach(MobileConnectionHistoryActionPolicy.swipeKinds, id: \.self) { kind in
+                                connectionButton(kind, host: row.host)
+                                    .tint(swipeTint(for: kind))
+                            }
+                        }
+                }
+            }
+        }
+        .searchable(text: $query.singleLineText, prompt: "Search History")
+        .navigationTitle("History")
+        .toolbar {
+            MobileToolbarOverflow {
+                Button("Clear History", systemImage: "trash", role: .destructive) {
+                    clearingHistory = true
+                }
+                .disabled(app.connectionHistory.entries().isEmpty)
+            }
+        }
+        .confirmationDialog(
+            "Clear connection history?", isPresented: $clearingHistory,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) {
+                app.connectionHistory.clearAll()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently removes all connection history without deleting any Hosts.")
+        }
+    }
+
+    @ViewBuilder
+    private func historyButton(_ row: MobileConnectionHistoryRow) -> some View {
+        if row.canOpen {
+            Button {
+                open(row.host.id, row.entry.kind)
+            } label: {
+                historyLabel(row)
+            }
+            .buttonStyle(.plain)
+        } else {
+            historyLabel(row)
+                .opacity(0.55)
+        }
+    }
+
+    private func historyLabel(_ row: MobileConnectionHistoryRow) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: row.entry.kind.symbol)
+                .foregroundStyle(.tint)
+                .frame(width: 36, height: 36)
+                .accessibilityLabel(Text(row.entry.kind.label))
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(alignment: .center, spacing: 12) {
+                    Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
+                    Spacer(minLength: 12)
+                    Text(row.sourceDeviceName ?? "—")
+                        .font(.caption.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+                HStack(alignment: .center, spacing: 12) {
+                    Text(row.loginAddress)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 12)
+                    Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func connectionButton(
+        _ kind: ConnectionHistoryEntry.Kind, host: Host
+    ) -> some View {
+        Button(kind.label, systemImage: kind.symbol) {
+            guard MobileConnectionHistoryActionPolicy.isAvailable(kind, for: host) else { return }
+            open(host.id, kind)
+        }
+        .disabled(!MobileConnectionHistoryActionPolicy.isAvailable(kind, for: host))
+    }
+
+    private func swipeTint(for kind: ConnectionHistoryEntry.Kind) -> Color {
+        switch kind {
+        case .ssh: .blue
+        case .telnet: .purple
+        case .sftp: .orange
+        }
+    }
+}
+
 private struct MobileVaultLinkGroup<Content: View>: View {
     @ViewBuilder var content: Content
 
@@ -93,6 +244,7 @@ struct MobileVaultView: View {
         case portForwarding(useQuery: Bool)
         case snippets(useQuery: Bool)
         case knownHosts(useQuery: Bool)
+        case history(useQuery: Bool)
         case metrics
     }
 
@@ -149,6 +301,7 @@ struct MobileVaultView: View {
     private var matchesKeychainPage: Bool { pageTitle("Keychain").localizedCaseInsensitiveContains(query) }
     private var matchesSnippetsPage: Bool { pageTitle("Snippets").localizedCaseInsensitiveContains(query) }
     private var matchesKnownHostsPage: Bool { pageTitle("Known Hosts").localizedCaseInsensitiveContains(query) }
+    private var matchesHistoryPage: Bool { pageTitle("History").localizedCaseInsensitiveContains(query) }
     private var hostSections: [HostLibrarySection] { HostLibrarySectionLayout.sections(library: app.library) }
 
     private var keychainSearchLinks: [SearchLink] {
@@ -220,6 +373,26 @@ struct MobileVaultView: View {
         return result
     }
 
+    private var historySearchLinks: [SearchLink] {
+        var result: [SearchLink] = []
+        if matchesHistoryPage {
+            result.append(
+                SearchLink(
+                    id: "history-page", title: pageTitle("History"), detail: nil,
+                    symbol: "clock.arrow.circlepath", destination: .history(useQuery: false)))
+        }
+        result += MobileConnectionHistory.eventRows(
+            history: app.connectionHistory, devices: app.devices, library: app.library,
+            query: query, limit: ConnectionHistoryModel.presentationLimit
+        ).map { row in
+            SearchLink(
+                id: "history-\(row.entry.id)", title: row.host.name,
+                detail: row.sourceDeviceName,
+                symbol: row.entry.kind.symbol, destination: .history(useQuery: true))
+        }
+        return result
+    }
+
     private var metricSearchLinks: [SearchLink] {
         guard openMetrics != nil else { return [] }
         var result: [SearchLink] = []
@@ -239,7 +412,8 @@ struct MobileVaultView: View {
 
     private var hasSearchResults: Bool {
         !matchingHosts.isEmpty || !keychainSearchLinks.isEmpty || !snippetSearchLinks.isEmpty
-            || !forwardingSearchLinks.isEmpty || !knownHostSearchLinks.isEmpty || !metricSearchLinks.isEmpty
+            || !forwardingSearchLinks.isEmpty || !knownHostSearchLinks.isEmpty
+            || !historySearchLinks.isEmpty || !metricSearchLinks.isEmpty
     }
 
     var body: some View {
@@ -353,6 +527,13 @@ struct MobileVaultView: View {
                 }
             }
         }
+        if !historySearchLinks.isEmpty {
+            MobileCardSection(title: "History") {
+                MobileVaultLinkGroup {
+                    searchLinkRows(historySearchLinks)
+                }
+            }
+        }
         if !metricSearchLinks.isEmpty {
             MobileCardSection(title: "Metrics") {
                 MobileVaultLinkGroup {
@@ -383,6 +564,11 @@ struct MobileVaultView: View {
             vaultLink("Known Hosts", symbol: "touchid") {
                 MobileKnownHostsView(app: app)
                     .mobileReviewPage("vault.knownHosts", scene: reviewScene)
+            }
+            MobileVaultLinkDivider()
+            vaultLink("History", symbol: "clock.arrow.circlepath") {
+                MobileConnectionHistoryView(app: app, open: open)
+                    .mobileReviewPage("vault.history", scene: reviewScene)
             }
         }
     }
@@ -442,6 +628,11 @@ struct MobileVaultView: View {
         case .knownHosts(let useQuery):
             MobileKnownHostsView(app: app, initialQuery: useQuery ? query : "")
                 .mobileReviewPage("vault.knownHosts", scene: reviewScene)
+        case .history(let useQuery):
+            MobileConnectionHistoryView(
+                app: app, initialQuery: useQuery ? query : "", open: open
+            )
+            .mobileReviewPage("vault.history", scene: reviewScene)
         case .metrics:
             EmptyView()
         }

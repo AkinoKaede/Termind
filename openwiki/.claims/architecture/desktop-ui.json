@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:bb94da4e49901db707f0db54a47d7303c3a320729b5d4ccdf12b7a2a87a38d4f",
+  "pageVersion": "sha256:e54867652d0a9b222655bb9e8dd43735a96cf9bf358c9a9f589e5c05b3b2a3b0",
   "claims": [
     {
       "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
@@ -145,10 +145,64 @@
           "version": "repo-lines-v1:sha256:5b068452fbef1aa51055084952ffe5a65659654f7005cb478088ce4aec0273cb:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwNTliNmRmNjgzMTA0ODE5MDZmMjgxZDIyMWIyMGQ3MDNmYjRkMWM2YzIwZjU0YjI4ODI4N2FhZWJhYWU5YzQ2IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI2NmI1ZjE4ODA5MTA2ZDU5MmUxMDc5OTcxODA5ZGZlMWFjMjQ5OGNhYzcwZjBiOWQ5ZTllZDUzOTQ0ZjQ3YzAzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJmNWJlYWMxN2RmMTlmMTQzYmQ5MzE5MWU0MWRiZmNhZjgzY2Q3ZmUyMjQ4YWIwMTQ0ZDg2MmRlMDkxNmRlMjBlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJjNTAwNGFkN2FkNDNkZjUwNTZkNzI5ZTVlYTQyMzVmMmUyMTk1MjA5ZjM2OTQzZWY1YWMxMmIxNzE2NTI1OWMxIn0"
         }
       ]
+    },
+    {
+      "id": "claim_53d787420d824b5f8c1cddda18563953",
+      "statement": "TFM Welcome projects only this installation's recent connection events and uses their local timestamps, while the History sidebar searches the synchronized all-device timeline and caps displayed matches at 100.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L874-L891",
+          "version": "repo-lines-v1:sha256:21be749246950d4a070db63a1246e321b0b9cbde28bf1bd0c8201b0140ce26b4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEwZjViNDcwYmMzYjEwN2M5MjUwMTcyZGNjMTU3MjczNTUwZTE4YjcwMDYxNGRlYzkwNDFkYzIyZmZmNzE3OWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBkZjRkYjc1MzQ1NWNlYmI5MjcxNjUzYzY2MGMxZjNiYmJlNDFjMzE0YWY5YWVhMDE3NzY4ODY4YWYyODQ3NDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMwYjIxMmYzZGRiODMwZmUzMmM4YmJlNDE1NDRmN2Y4ODUyYTkzNGEwMzI0YmMzNDUzMGMwZDAyZGE5ZDg5NDcifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L1194-L1222",
+          "version": "repo-lines-v1:sha256:298e850411c61f527715f0d5a72d05ea4b2c3c9979e0892826c3d5ba7e4e3869:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiZDViNWVhNTM2MmI3NTMwMmVlNDlkNDU0ZDk4NGQ3OTJjNWY2MzFkZjlkZDM2NDA4Yzg0OWQ2ZTM0Zjc4NmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg2OTE2ODZlNWJmYzdiNWQ4NTZiNzcwMTNmNjkzNWUwNGEyYTdhMmI1NDRmNDQ3MTFiYjQwNGExMDZlY2I4MzIifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L1255-L1317",
+          "version": "repo-lines-v1:sha256:4cb5889da5eebb5cb29d9c34bf15afc0f1b0054b50dc2181301c80329ed715e2:eyJzZWxlY3RlZExpbmVDb3VudCI6NjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE0YmYwNzJlZGMwNDE1NTAzYTRlNTc1ODg4NGUyODE5ODQ5NzdhM2RjZGM1YTljZDk4ZWQyMzUzNGNkNDA1ZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRmM2IxYmI3MjYyOTFlNjQ0MTZhM2JlZWU4NDQ0YTA5YTlhY2Y5MzM1YmYwNjIyOTg3NjhkNDNjNTAzNDFiNWUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_b47113d52cc54f959289cf3f1c272ada",
+      "statement": "Saved-host SSH, Telnet, and SFTP panes own connection-history events; closing ends the event, moving preserves it, and Serial or unsaved targets are excluded.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift#L945-L953",
+          "version": "repo-lines-v1:sha256:fffac2073372d7b2eeb063bd1cc2e6559c6596ae31ceccc39b07d1f591d0ac73:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMDM5MmMwY2IzYWM3ZjdjNzI0ODQ1ZjI5ZjU3YzVhNzYxZDdmZjJlMDcwZWJmNDRiMTRlYThlYjE4ZDg4YzQ0YiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiM2QyZGJkZDIzYWZkZGM4ZTRmNTQ3MzVhZDlmYTMzOGMyODNiMzkyMGVlNzc1ZTJlMjc2YTFiMDRjOWMxYmFmOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNWFiNmI1M2RiNzY3ZWI0YzcwODgxZTNkZWIwMTNiNDgyZmEzMzY3Y2EzY2I2ZWIwYjgwMjUxZWFjODIwMzY2ZSJ9"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/Pane.swift#L96-L217",
+          "version": "repo-lines-v1:sha256:9d7af678ba78037ce05e5a7bc18dd9cd229bd01662d9022bd07666edd171a70f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiNGM1ZjVkYjkyYWQzNjYxNTE4YzlmNDAwZGYzNjk2NmM5OWUzN2MyYmUzMWE1NWIwY2M1Nzk2Yjk0OTg0MGUyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhMjQxODI1ZjE1N2M1NWU3ODFjYzlmZTlmMDQ5ZGNiYzRlZWNiMTVhMTM2ZjA3YzFiZWNjZWI0MDJhYmE5ZWFmIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3ZGRiYmE2ODgzZGU1MzUxNDViMGMxZDExODgwMGRjZDRiMmMwYzc5MzFjZjQ0MmE0NDAzNWI4OWQ5ZDczNDc4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2NDBlOWRjODY0MjI4YmY3NzIyOTA0NDljYTZiNzg4YzRlMDZmZTYwNDhiYzM4NDQ3ZTBiOWFlZWFhMTAxNDdmIn0"
+        },
+        {
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1019-L1029",
+          "version": "repo-lines-v1:sha256:a7a3129aa3ad4026cb332d95d6014c9767d2d915c96baa95a47bf2ccd9cc0866:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4MTk0NTE5ZWZhYzIzYzA2NWIzNTcxNGYzMTdmMTc4YmU5MTM4N2U2MTYwNjYwYTI3MmI0NzhmNWE3NTc1YzgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhNGQ3Y2MwMDM0NDgyMDI3MzY3OTY4NDA5N2Q0OGVjMGZlNDIzOWRlZWRiZjVlNzg0NDYyOTVkMWI0ZTEyZjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1ZmExNDU5MmY0NDQyODUwMzE1MjFjNWE2OGI2YThkNTE5N2VmYWIyMTUzOTY4NTcyY2Q5MzYwMmQzNmM1YTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjYzk1YzhiYTUxZjFiZDFkMDRkNzRkNmJiNGU4Yjg4NTNjMzZhYzkxYjYyYTdiNjY3OTZiOWRhYWQ0NmZlN2YifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5d2f06c8ba364d70a30fbb7c9d7fa6a3",
+      "statement": "TFM History rows resolve each event's sourceDeviceID through the reusable app-wide device directory, so the displayed device name follows directory updates rather than remaining a hostname captured inside the event.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift#L26-L58",
+          "version": "repo-lines-v1:sha256:e339de41e16ec84556ec21c593095e36a5d87b9b95f124a5e7de3eda7472100d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4ZmQ0ZmYyODEyNjE3MTNkMjgzZWY3NTE2NGQ5NjU1NmRjMWVjNGMwMzU0NTk3MjM4NGU2N2I0YmJiMzg1YTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwY2MyNjc2ZjViM2QxZWY1NjIzNzQ3MThjMzEwYzYwY2Y5MTU2OTRhMmYzYzU2NDU4ZWQzY2FhYTc5NjRiOGUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY2MjRkNDljNzU1ZWZmNTgzOTNmMmM4YmU3Nzg2MjI4ZGRiYTRkM2ViMmUzOTcxNDExYTlkMzE5NjExYmRiNmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxZTU0YWFlOWRkYjRmMmI0Yjg0OGVlZDRlNjhmY2RhZDY0Zjg5MTgxZDZiNGZlYTZhYjUxNTc1NzNkMTJiYTcifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L1202-L1221",
+          "version": "repo-lines-v1:sha256:2d4ed81e1357045077c3628f9cbdef7d67d1abaaa7f098b92577b6fb45552571:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE1MjFiZjdjNDZkMTJkOWVhZDU4YzY5ZjMzMWQ1Y2M4NmE4ZDdiOTBjMWM1NTllZThiNDBkNDk5MWRkMzUwMjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjODFhZTcyODBiYzIzZGNjMjM5M2YyZjQzNGNlNzA2MWJjNzMzZWY1OWE2NDhhODliM2I0YTdlZTc0NWRiMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk2YjQ3YTY5ZTg0Mzk2ZTg1Y2JhOGRhNTM2MjBlMjE2YzNjY2JiODA2ZDdmNjc2MDkzMGFhMjc4MjBiNzhhYjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhiOWRiYzFmMDQ5YTIwNDhlYWE2NmU3OTVjNDkzODkzYjg2ZDNjZDI5NTEzM2E5ODQwMzRmNjM5MzI2ODMwNjUifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L1300-L1316",
+          "version": "repo-lines-v1:sha256:d636624a511397bcc5ac3ec25d058259b4e3c1d8243a878b96340684fd6ab0d4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZiZjJmOTUzMTg2NDUzNDdiNjBmZWY5NDg5Y2E5MmEwNWJkNTcwYWNjYjc1ZWI4YTNkMTY2YzRhNDM3ODhmNzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlZTlmY2QxZjc0MGM5MzBmZDRmYzlkNzgyMjIyNWNiNDI0YTZhZTI3NzRhMDVmYTEyNDI2ZTcxNmMyOGIxMDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ5NTg0Njc2ZWZjMGU1YjI4MWYyNzViYTgwNjYwMzY0ZTRlMTI1MjkzOGZjMGRiMjZiMzVhNjE4MDgzMjM4ZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZGM1ODY1MTVjMTY1YWViYmJiZjRlZjgzZjA4NDM1ZTU1OTFmYjY5NjQzYmU2NTgzZTdjZWZlM2JhZjk5ZjgifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T09:17:11.491Z"
   }
 }

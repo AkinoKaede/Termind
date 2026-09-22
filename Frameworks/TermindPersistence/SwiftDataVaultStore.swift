@@ -15,7 +15,10 @@ public final class HostPersistence {
 
     public func load() throws -> VaultSnapshot {
         let snapshot = try fetchSnapshot()
-        _ = try VaultSyncJournal(context: context).bootstrapIfNeeded(snapshot)
+        let journal = VaultSyncJournal(context: context)
+        _ = try journal.bootstrapIfNeeded(snapshot)
+        _ = try journal.recordCurrentConnectionHistory(fetchConnectionHistory())
+        _ = try journal.recordCurrentDevices(fetchDevices())
         if context.hasChanges { try context.save() }
         return snapshot
     }
@@ -80,16 +83,31 @@ public final class HostPersistence {
             let journal = VaultSyncJournal(context: context)
             let decision = try journal.mergeDecision(for: envelopes)
             var snapshot = try fetchSnapshot()
-            for envelope in decision.accepted { try snapshot.apply(envelope) }
+            for envelope in decision.accepted {
+                if envelope.key.kind == .connectionHistory {
+                    try applyConnectionHistory(envelope)
+                } else if envelope.key.kind == .device {
+                    try applyDevice(envelope)
+                } else {
+                    try snapshot.apply(envelope)
+                }
+            }
+            try pruneConnectionHistory()
             try persist(snapshot)
             try journal.acceptRemote(decision.accepted)
-            try journal.markNeedsUpload(decision.needsUpload)
+            let retentionMutations = try journal.recordCurrentConnectionHistory(
+                fetchConnectionHistory())
+            let deviceMutations = try journal.recordCurrentDevices(fetchDevices())
+            let needsUpload = decision.needsUpload
+                .union(retentionMutations.keys)
+                .union(deviceMutations.keys)
+            try journal.markNeedsUpload(needsUpload)
             try beforeSave()
             try context.save()
             return VaultRemoteApplyResult(
                 snapshot: snapshot,
                 acceptedKeys: Set(decision.accepted.map(\.key)),
-                needsUpload: decision.needsUpload
+                needsUpload: needsUpload
             )
         } catch {
             context.rollback()
@@ -101,7 +119,10 @@ public final class HostPersistence {
         let snapshot = try fetchSnapshot()
         let journal = VaultSyncJournal(context: context)
         _ = try journal.bootstrapIfNeeded(snapshot)
-        return try journal.recordCurrentSnapshot(snapshot)
+        let vault = try journal.recordCurrentSnapshot(snapshot)
+        let history = try journal.recordCurrentConnectionHistory(fetchConnectionHistory())
+        let devices = try journal.recordCurrentDevices(fetchDevices())
+        return VaultMutationSet(keys: vault.keys.union(history.keys).union(devices.keys))
     }
 
     public func modificationDates() throws -> [VaultRecordKey: Date] {
@@ -154,6 +175,63 @@ public final class HostPersistence {
             with: snapshot.workspaceTemplates, rowID: \.id, valueID: \.id,
             make: PersistentWorkspaceTemplate.init, apply: { try $0.apply($1) }
         )
+    }
+
+    private func fetchConnectionHistory() throws -> [ConnectionHistoryEntry] {
+        try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>())
+            .map(\.value)
+            .sorted(by: ConnectionHistoryEntry.isNewer)
+    }
+
+    private func applyConnectionHistory(_ envelope: VaultEnvelope) throws {
+        let id = envelope.key.id
+        var descriptor = FetchDescriptor<PersistentConnectionHistoryEntry>(
+            predicate: #Predicate { $0.id == id }
+        )
+        descriptor.fetchLimit = 1
+        let existing = try context.fetch(descriptor).first
+        if envelope.isDeleted {
+            if let existing { context.delete(existing) }
+            return
+        }
+        guard case .connectionHistory(let value) = envelope.payload else {
+            throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
+        }
+        if let existing {
+            existing.apply(value)
+        } else {
+            context.insert(PersistentConnectionHistoryEntry(value))
+        }
+    }
+
+    private func fetchDevices() throws -> [DeviceRecord] {
+        try context.fetch(FetchDescriptor<PersistentDeviceRecord>()).map(\.value)
+    }
+
+    private func applyDevice(_ envelope: VaultEnvelope) throws {
+        let id = envelope.key.id
+        var descriptor = FetchDescriptor<PersistentDeviceRecord>(
+            predicate: #Predicate { $0.id == id })
+        descriptor.fetchLimit = 1
+        let existing = try context.fetch(descriptor).first
+        if envelope.isDeleted {
+            if let existing { context.delete(existing) }
+            return
+        }
+        guard case .device(let value) = envelope.payload else {
+            throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
+        }
+        if let existing {
+            existing.displayName = value.displayName
+        } else {
+            context.insert(PersistentDeviceRecord(value))
+        }
+    }
+
+    private func pruneConnectionHistory() throws {
+        let rows = try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>())
+            .sorted { ConnectionHistoryEntry.isNewer($0.value, $1.value) }
+        for row in rows.dropFirst(ConnectionHistoryModel.limit) { context.delete(row) }
     }
 
     private func reconcile<Model: PersistentModel, Value>(

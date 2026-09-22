@@ -75,6 +75,7 @@ struct PersistenceCompatibilityTests {
         #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(29, 0, 0) })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV30.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV31.versionIdentifier })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV32.versionIdentifier })
         #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
         #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
         #expect(TermindSchemaV25.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
@@ -87,9 +88,65 @@ struct PersistenceCompatibilityTests {
         #expect(
             !TermindSchemaV30.models.contains { $0 == TermindSchemaV29KnownHostModels.PersistentKnownHost.self })
         #expect(TermindSchemaV30.models.contains { $0 == TermindSchemaV30KnownHostModels.PersistentKnownHost.self })
+        #expect(
+            TermindSchemaV31.models.contains {
+                $0 == TermindSchemaV29HostModels.PersistentHost.self
+            })
+        #expect(
+            TermindSchemaV32.models.contains {
+                $0 == TermindSchemaV32HostModels.PersistentHost.self
+            })
+        #expect(
+            !TermindSchemaV32.models.contains {
+                $0 == TermindSchemaV29HostModels.PersistentHost.self
+            })
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSSHPreferences" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSFTPPreferences" })
+    }
+
+    @Test
+    func version31StoreDropsHostUsageAndAddsConnectionLifecycleMetadata() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Termind.store")
+        let oldSchema = Schema(versionedSchema: TermindSchemaV31.self)
+        let oldConfiguration = ModelConfiguration(
+            "Termind", schema: oldSchema, url: url, cloudKitDatabase: .none
+        )
+        var oldContainer: ModelContainer? = try ModelContainer(
+            for: oldSchema, configurations: [oldConfiguration]
+        )
+        let oldHost = TermindSchemaV29HostModels.PersistentHost(
+            Host(name: "Before V32", host: "server.invalid"))
+        oldHost.lastUsedAt = Date(timeIntervalSince1970: 100)
+        let oldHistory = TermindSchemaV31ConnectionHistoryModels.PersistentConnectionHistoryEntry(
+            ConnectionHistoryEntry(
+                hostID: oldHost.id, kind: .ssh,
+                connectedAt: Date(timeIntervalSince1970: 90)))
+        oldContainer?.mainContext.insert(oldHost)
+        oldContainer?.mainContext.insert(oldHistory)
+        try oldContainer?.mainContext.save()
+        oldContainer = nil
+
+        let migrated = try TermindPersistence.makeContainer(url: url)
+        let host = try #require(
+            migrated.mainContext.fetch(FetchDescriptor<PersistentHost>()).first?.value)
+        let history = try #require(
+            migrated.mainContext.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).first?.value)
+        let state = try #require(
+            migrated.mainContext.fetch(FetchDescriptor<PersistentVaultSyncState>()).first)
+        let sourceDevice = try #require(
+            migrated.mainContext.fetch(
+                FetchDescriptor<PersistentDeviceRecord>()
+            ).first?.value)
+        #expect(host.name == "Before V32")
+        #expect(history.hostID == host.id)
+        #expect(history.sourceDeviceID == state.installationID)
+        #expect(sourceDevice.id == state.installationID)
+        #expect(sourceDevice.displayName == ProcessInfo.processInfo.hostName)
+        #expect(history.endedAt == nil)
     }
 
     @Test

@@ -1,3 +1,4 @@
+import DeviceKit
 import Foundation
 import Observation
 import SwiftData
@@ -7,6 +8,7 @@ import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
 import TermindRemoteInfrastructure
+import UIKit
 
 import struct TermindDomain.Host
 
@@ -53,6 +55,7 @@ final class MobileAppModel {
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
     let connectionHistory: ConnectionHistoryModel
+    let devices: DeviceDirectoryModel
     let vaultSync: VaultSyncCoordinator?
     let settingsSync: SettingsSyncCoordinator?
     let metricsSync: MetricsSyncCoordinator?
@@ -67,6 +70,7 @@ final class MobileAppModel {
     let logging: any ApplicationLogManaging
     let liveActivities: MobileLiveActivityController
     @ObservationIgnored private var workspaceActivitySessions: [WorkspaceActivityAttributes.Session] = []
+    @ObservationIgnored private var activeConnectionHistoryIDs: [MobileWorkspace.ID: ConnectionHistoryEntry.ID] = [:]
     private let defaults: UserDefaults?
     private let settingsDefaults: UserDefaults
     private let snippetTimestampFallback: Date
@@ -159,8 +163,16 @@ final class MobileAppModel {
             repository: SwiftDataCommandHistoryRepository(context: ModelContext(container)))
         sftpHistory = SFTPHistoryModel(
             repository: SwiftDataSFTPHistoryRepository(context: ModelContext(container)))
+        let connectionHistoryRepository = SwiftDataConnectionHistoryRepository(context: vaultContext)
+        let deviceDirectoryRepository = SwiftDataDeviceDirectoryRepository(context: vaultContext)
+        let currentDeviceID = try VaultSyncJournal(context: vaultContext).state().installationID
+        devices = DeviceDirectoryModel(
+            repository: deviceDirectoryRepository,
+            currentDeviceID: currentDeviceID,
+            currentDeviceName: Device.current.safeDescription)
         connectionHistory = ConnectionHistoryModel(
-            repository: SwiftDataConnectionHistoryRepository(context: ModelContext(container)))
+            repository: connectionHistoryRepository,
+            sourceDeviceID: currentDeviceID)
         settingsSync =
             memoryOnly
             ? nil
@@ -170,6 +182,12 @@ final class MobileAppModel {
             ? nil
             : MetricsSyncCoordinator(persistence: metricsPersistence, defaults: settingsDefaults)
         vaultSync = memoryOnly ? nil : VaultSyncCoordinator(context: vaultContext, defaults: settingsDefaults)
+        connectionHistoryRepository.didRecordVaultChanges = { [weak vaultSync] in
+            vaultSync?.noteLocalChanges($0)
+        }
+        deviceDirectoryRepository.didRecordVaultChanges = { [weak vaultSync] in
+            vaultSync?.noteLocalChanges($0)
+        }
         ai = AIConfigurationModel(
             persistence: SyncedAIConfigurationPersistence(settingsPersistence), secrets: secrets,
             permissionDefaults: settingsDefaults, aiSecrets: aiSecrets,
@@ -240,6 +258,7 @@ final class MobileAppModel {
                 closeWorkspaces(for: payload.hostID)
                 commandHistory.clear(for: payload.hostID)
                 sftpHistory.clear(for: payload.hostID)
+                connectionHistory.clear(for: payload.hostID)
                 library.projectHostDeletion(payload.hostID)
             },
             cancelTransfers: { [weak self] payload in
@@ -368,6 +387,7 @@ final class MobileAppModel {
     func close(_ id: UUID) {
         let wasSaved = savedWorkspaceDescriptors.contains(where: { $0.id == id })
         guard wasSaved || workspaces.contains(where: { $0.id == id }) else { return }
+        endConnectionHistory(for: id)
         if let workspace = workspaces.first(where: { $0.id == id }) {
             workspace.didChangeState = nil
             workspace.didRequestClose = nil
@@ -394,6 +414,7 @@ final class MobileAppModel {
         saveWorkspaces()
         workspaceActivitySessions.removeAll { $0.id != id }
         for workspace in closing {
+            endConnectionHistory(for: workspace.id)
             workspace.didChangeState = nil
             workspace.didRequestClose = nil
             workspace.disconnect()
@@ -409,6 +430,7 @@ final class MobileAppModel {
         saveWorkspaces()
         workspaceActivitySessions.removeAll()
         for workspace in closing {
+            endConnectionHistory(for: workspace.id)
             workspace.didChangeState = nil
             workspace.didRequestClose = nil
             workspace.disconnect()
@@ -510,6 +532,7 @@ final class MobileAppModel {
             }
             liveActivities.update(workspaceActivitySessions)
         } else if phase == .active {
+            devices.updateCurrentDeviceName(Device.current.safeDescription)
             sftpEdits.setMonitoring(true)
             Task { await sftpEdits.recheck() }
             Task { [weak self] in await self?.pro.refresh() }
@@ -563,11 +586,16 @@ final class MobileAppModel {
                 closeWorkspaces(for: change.id)
                 commandHistory.clear(for: change.id)
                 sftpHistory.clear(for: change.id)
+                connectionHistory.clear(for: change.id)
                 metrics.remove(change.id)
             }
         }
         forwardings.stop(plan.forwardingRuleIDs)
         library.replacePersistedSnapshot(snapshot)
+        if keys.contains(where: { $0.kind == .connectionHistory }) {
+            connectionHistory.reload()
+        }
+        if keys.contains(where: { $0.kind == .device }) { devices.reload() }
         forwardings.reconcileConfiguration()
         liveActivities.update(workspaceActivitySessions)
     }
@@ -594,7 +622,6 @@ final class MobileAppModel {
             descriptor: descriptor, hosts: library, transfers: transfers, sftpEdits: sftpEdits,
             terminalSettings: terminalSettings, commandHistory: commandHistory, sftpHistory: sftpHistory,
             connectionServices: workspaceConnectionServices)
-        connectionHistory.record(kind: descriptor.kind, for: descriptor.hostID)
         addWorkspaces([workspace])
         return workspace
     }
@@ -622,7 +649,6 @@ final class MobileAppModel {
     private func makeWorkspace(
         host: Host, kind: ConnectionHistoryEntry.Kind, startup: MobileWorkspaceStartup = .none
     ) -> MobileWorkspace {
-        connectionHistory.record(kind: kind, for: host.id)
         let initialCommand: String?
         let recordsInitialCommandInHistory: Bool
         let initialSFTPPath: String?
@@ -676,7 +702,10 @@ final class MobileAppModel {
 
     private func addWorkspaces(_ added: [MobileWorkspace], persists: Bool = true) {
         guard !added.isEmpty else { return }
-        for workspace in added { observeActivityState(of: workspace) }
+        for workspace in added {
+            observeActivityState(of: workspace)
+            startConnectionHistory(for: workspace)
+        }
         workspaces.append(contentsOf: added)
         if persists {
             let savedIDs = Set(savedWorkspaceDescriptors.map(\.id))
@@ -686,6 +715,20 @@ final class MobileAppModel {
         workspaceActivitySessions.append(contentsOf: added.map(\.activitySession))
         liveActivities.start(workspaceActivitySessions)
         for workspace in added { workspace.connect() }
+    }
+
+    private func startConnectionHistory(for workspace: MobileWorkspace) {
+        guard activeConnectionHistoryIDs[workspace.id] == nil,
+            library.host(workspace.descriptor.hostID) != nil,
+            let entry = connectionHistory.record(
+                kind: workspace.descriptor.kind, for: workspace.descriptor.hostID)
+        else { return }
+        activeConnectionHistoryIDs[workspace.id] = entry.id
+    }
+
+    private func endConnectionHistory(for workspaceID: MobileWorkspace.ID) {
+        guard let entryID = activeConnectionHistoryIDs.removeValue(forKey: workspaceID) else { return }
+        connectionHistory.end(entryID)
     }
 
     private func observeActivityState(of workspace: MobileWorkspace) {

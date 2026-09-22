@@ -5,8 +5,12 @@ description: "How the macOS app composes its native window shell, persistent wor
 tags: [macos, tfm, ui, navigation, workspaces, swiftui, appkit, design]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-22T09:17:11.491Z
 sources:
+  - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
+    resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -19,6 +23,8 @@ sources:
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-9cfd8531aa60dcfb31f04e04
     resource: repo://TFM/Features/Vault/VaultWorkspaceView.swift
+  - id: openwiki-source-ee09ece1fddff7d72a2b5cf4
+    resource: repo://TFM/Features/Workspaces/Pane.swift
   - id: openwiki-source-ba160208435f3410138a3539
     resource: repo://TFM/Features/Workspaces/PersistentWorkspaceDeckLayout.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -31,7 +37,7 @@ sources:
     resource: repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
-generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
+generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
 ---
 
 # TFM Desktop UI Architecture
@@ -171,6 +177,12 @@ Do not merge this cache with the persistent workspace deck. Both preserve contin
 
 Escape handling is also scoped. In the compact Assistant, an approval or user-interaction form can own Escape; resolving it must not let the same key event fall through and close the conversation. The view captures the blocking-interaction state for that render before applying its back policy.
 
+## Connection history projections and pane lifetime
+
+Desktop connection history is shared app data with two deliberately different projections. Welcome shows recent Hosts derived only from events whose stable `sourceDeviceID` matches this installation, so synchronized activity from another Mac does not reorder the local launch surface. Its row timestamp is likewise the newest local event. Deleting a Welcome recent clears every connection-history event for that Host, across protocols and synchronized devices, without deleting the Host. The contextual History sidebar instead shows the newest 100 matching events from the complete synchronized timeline. Each row keeps the protocol in its leading symbol and resolves the source device's current display name through the app-wide `DeviceDirectoryModel`; the event does not capture a hostname. Removing a row deletes only that event, while **Clear History** clears the complete timeline.
+
+An event follows the pane's usage lifetime rather than every physical reconnect. `WindowModel` assigns history tracking only to saved-host SSH, Telnet and SFTP panes; local Serial panes and unsaved external targets never enter this timeline. Closing a pane or workspace records `endedAt` before disconnecting its transport. Moving a live pane between workspaces preserves the same event, and reopening a closed workspace creates a new event. A process crash can leave `endedAt` absent rather than inventing an inaccurate end time.
+
 ## Desktop design principles and change checklist
 
 The implemented patterns suggest these rules for extending TFM:
@@ -194,5 +206,6 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Managed selection/reordering | `ManagedCardDropResolver`, selection and marquee tests; resource-specific move tests. |
 | Transcript persistence, incremental updates or mounting | `TranscriptListViewTests`, rendering and performance suites. |
 | Focused toolbar and terminal commands | `WindowToolbarFindTests`, `TerminalFindTests`, `UserInputModalityTests`. |
+| Welcome Recents, connection-history limits or pane close tracking | `ConnectionHistoryTests`, `VaultSyncTests`, and workspace close/reopen tests. |
 
 Some rendering tests explicitly require a visible window; routine checks should not enable those globally. The narrow-editor rendering cases cover English, Simplified Chinese and Traditional Chinese. This guide was derived from implementation and tests; it does not report a new test run or visual approval. Use [Build, Test, and Release Operations](/openwiki/operations/build-test-and-release.md) for the appropriate verification commands.

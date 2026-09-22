@@ -26,20 +26,28 @@ sources:
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-7a29627adf93e3da4a56dd5d
+    resource: repo://TFITests/MobileCardRenderingTests.swift
+  - id: openwiki-source-16ec96bd78162e7e62effd0e
+    resource: repo://TFITests/MobileConnectionPickerTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
     resource: repo://TFMTests/AgentHostAuthenticationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-c15cd5bef4646aaf64df407e
+    resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
+  - id: openwiki-source-960109cd5bc0de7a879c1e16
+    resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
+generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T05:22:55.650Z
+    at: 2026-09-22T09:51:39.958Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -85,6 +93,8 @@ The safety fixture substitutes only the CloudKit transport. It uses the producti
 - Distinguish malformed payloads from recognized newer formats in status hints. Ignore unknown record types on ordinary fetch, but validate a conflict returned for an attempted known record ID.
 
 Disk-backed tests separately migrate a V30 store to V31, import legacy quarantine, reopen interrupted state and verify that journal intent and recovery flags survive. Scope tests vary container, environment, account, zone and owner independently. Lifecycle tests hold fetches and inject persistence/lookup failures, exercise overlapping explicit operations and automatic callbacks, and prove that an old or failed engine cannot reopen upload authorization.
+
+Connection-history coverage adds a V31-to-V32 disk migration, Vault codec/merge/tombstone tests, event start/end lifetime checks, stable local-device filtering and deterministic retention of 300 stored events. Migration and sync tests also verify the independent generic device directory: old events receive the installation ID, a separate `DeviceRecord` is created, and changing that record's name updates resolution without rewriting events. Desktop tests distinguish local Welcome Recents from the 100-row all-device sidebar projection. Mobile tests distinguish local per-Host Recents and host-only quick actions from the 100-event Vault History page, including preferred SSH/Telnet activation, disabled protocol actions, device-name search and multilingual light/dark screenshots. Serial remains outside the connection-history enum and mobile workspace routes.
 
 These tests do not prove unknown-field round trips through an actual historical binary, Production schema deployment, or signed-device delivery. Keep those checks in [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md); a fake transport passing is not evidence that iCloud has delivered a record.
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2650185619c739fcdeb85d549047e17a13b75073a4e6d6ec380afaa8e6f986c8",
+  "pageVersion": "sha256:abc66b27a943dab3394bc6d58bd9353a336a69a9e76afa6a3df35739c803e564",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -22,7 +22,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
+          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift#L19-L33",
@@ -44,19 +44,19 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f84584e85c49f80b312450980f1a741b62d7816892c3a0574edf5312e8fa4adc"
+          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
-          "version": "repo-file-v1:sha256:a0b746118649353c30e5030e6d1d85d4137ad91a45d245162beaa36c96166a18"
+          "version": "repo-file-v1:sha256:e795822b9fdd0257bfa13088cec2d09b38e8b6d3757bc4f322f7ab999560a229"
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:2e763faebc42af2c9f4f7647f399b5ea9bdfb9489f160e9d7380380f5118162c"
+          "version": "repo-file-v1:sha256:32faf4e7aced6a7dcb64ac04369a8c95838ed6cdcb896da42bec8ca7ad562dea"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:99ad7526d51924fd3797629c0d56417704fcd49b6bc416e924c13d6283cf80d1"
+          "version": "repo-file-v1:sha256:005db3b60e96b760cf9e6ebed4cfdd0477f4c15db69205924901e47103c9949a"
         }
       ]
     },
@@ -154,7 +154,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f84584e85c49f80b312450980f1a741b62d7816892c3a0574edf5312e8fa4adc"
+          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
@@ -176,19 +176,15 @@
     },
     {
       "id": "claim_af851820a38b45619b056c87c69e7131",
-      "statement": "Local schema V31 additively introduces scoped quarantine and recovery models while preserving V1–V30 history and the existing CloudKit envelopes.",
+      "statement": "Local schema V31 additively introduced scoped quarantine and recovery models, while V32 replaces only the live Host and connection-history models, adds the generic device-directory model, removes obsolete Host usage storage, and backfills existing history with the stable installation ID plus a separate initial DeviceRecord without changing the V1 CloudKit envelope format.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:fe8c66a47936a9120eb3b71def8c148801e215d53fda47a326349388b30f9c1d"
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
+          "version": "repo-file-v1:sha256:0bc3fd0f5052bbc3ae57a157adf11e614d7a228aca3b7517b2996cdd52e3b7a0"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
-          "version": "repo-file-v1:sha256:c028e57ece449c591c32f8ac849fda2f6a82cda00974acc87f832295bb3acc3d"
-        },
-        {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L784-L791",
-          "version": "repo-lines-v1:sha256:8d79c417b0144fe8ea720dac157a20fb35b68045b6d5611819f811488698647c:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2FjYmQ4ZDg5YjViZTJkYWYyZDQ0ZWYwNDhkY2UxYmZmNjlmYzFlZGEyZjE3NmIzY2RjYzQzMjIwMDJmM2Q4MSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMmE2YWQyYmNlYjdkNWJhNzgyYjJmZWM4YjFlZTM3ZjUzOGE3MDNkOGVlZTMxMDc2ZjZiYTU1ZWI5ODQ4ZjIzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMTllNzYzNTVjZjExOTk0ODBjM2Y5OTgzNmIxNDg2Yzg0MWQ4OTFmYWFkOTA0YzYwOGUwOTMwMjJkMzc1N2FlZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2VmNDZiNWVlZDczMWY4OWQ1MDA5MmE1NzYwMGRiOTQxMzQ5OGZjMTBlMDZlOWQ3ZDIxZmUxOWIyNTZlZTM0MyJ9"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L770-L895",
+          "version": "repo-lines-v1:sha256:73dc81eb20101571d798c214cdd216be804ae8e8db29b7e8f191dc6eca8377df:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJmN2QzZTNlY2JlYzc4Y2U2NmVjMjQ5YWRmYzU1NWY4NzVlNGNlODMwYmIyMTg0MWJhZWQwYzA0NWY4ZGE1ODMyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJkMWIwNTQ4OTc3Njg1MTE4N2EyMTEwODI0ODZkOGUyYjc1NWQxMTJkMjYxOGNjNjQ0NjE4NDk4ZjdhOTFkNzdjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwY2YzMTVkYmQ1MWNiMGU3NGUzZWYwNTQxMzk5NzZlNjAxNjJlZTVhZmMzYTlkZGE0MzI5NTdlMjgyMWRhMDQ5In0"
         }
       ]
     },
@@ -198,7 +194,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:fe8c66a47936a9120eb3b71def8c148801e215d53fda47a326349388b30f9c1d"
+          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
@@ -221,10 +217,36 @@
           "version": "repo-file-v1:sha256:f51520fa35e2250ee2b1d5bf50961c02549b02d4e9a6ee28a0cfc428f2722be4"
         }
       ]
+    },
+    {
+      "id": "claim_e0132529187b45d393b5590f72043afe",
+      "statement": "Connection history synchronizes complete saved-host SSH/Telnet/SFTP events with stable source-device ID, start time and optional end time, while a separate reusable synchronized device directory maps installation IDs to mutable display names; stores deterministically retain 300 events and desktop/mobile all-device History surfaces present at most 100.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift",
+          "version": "repo-file-v1:sha256:d9b5104bf66f06c45f5b038b7e24a14ce0f2bc09bcc5fa0bdc668d12dc7dc7a8"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift",
+          "version": "repo-file-v1:sha256:368841be82a49dc8d6660dca31216bd0f319fdc76276a9bd1e22b6a8ea4a2cf8"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift",
+          "version": "repo-file-v1:sha256:edcf5020f1965dcc1bad5d1b9dc1523cced21a62d1a93f3a1fd079dde25fb37f"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/DeviceRecord.swift",
+          "version": "repo-file-v1:sha256:7bd4537277fda9c7e6e70318290ee3f17ce0271433ebff5c3ac0a28394f1d1d0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
+          "version": "repo-file-v1:sha256:c727e97334d7ac3d7e5a820afe328a8c1809c08d73abd9c03e91287599d66fb0"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T05:22:55.650Z"
+    "at": "2026-09-22T09:51:39.958Z"
   }
 }

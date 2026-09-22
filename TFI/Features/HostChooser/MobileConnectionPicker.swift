@@ -81,7 +81,7 @@ struct MobileHostPickerRow<Accessory: View>: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            HostSystemIcon(asset: distributionEntry?.asset, size: 32)
+            HostSystemIcon(asset: distributionEntry?.asset, size: 36)
                 .tint(tint)
             VStack(alignment: .leading, spacing: 2) {
                 Text(host.name).foregroundStyle(.primary).lineLimit(1)

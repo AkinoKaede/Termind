@@ -15,6 +15,7 @@ import struct TermindDomain.Host
 struct HostContextMenu: View {
     let hosts: [Host]
     let showsDuplicate: Bool
+    let showsDelete: Bool
     let requestClearAllHistory: ([Host.ID]) -> Void
     var selectionDeleted: (() -> Void)?
 
@@ -24,10 +25,12 @@ struct HostContextMenu: View {
     init(
         host: Host,
         showsDuplicate: Bool = true,
+        showsDelete: Bool = true,
         requestClearAllHistory: @escaping ([Host.ID]) -> Void
     ) {
         hosts = [host]
         self.showsDuplicate = showsDuplicate
+        self.showsDelete = showsDelete
         self.requestClearAllHistory = requestClearAllHistory
         selectionDeleted = nil
     }
@@ -35,11 +38,13 @@ struct HostContextMenu: View {
     init(
         hosts: [Host],
         showsDuplicate: Bool = true,
+        showsDelete: Bool = true,
         selectionDeleted: (() -> Void)? = nil,
         requestClearAllHistory: @escaping ([Host.ID]) -> Void
     ) {
         self.hosts = hosts
         self.showsDuplicate = showsDuplicate
+        self.showsDelete = showsDelete
         self.selectionDeleted = selectionDeleted
         self.requestClearAllHistory = requestClearAllHistory
     }
@@ -106,15 +111,17 @@ struct HostContextMenu: View {
             Divider()
         }
 
-        DestructiveMenuButton("Clear All History", systemImage: MenuSymbol.clearHistory) {
+        DestructiveMenuButton("Clear History", systemImage: MenuSymbol.clearHistory) {
             requestClearAllHistory(hosts.map(\.id))
         }
         .disabled(!hasHistory)
-        DestructiveMenuButton("Delete") {
-            for host in hosts { app.requestHostDeletion(host.id) }
-            selectionDeleted?()
+        if showsDelete {
+            DestructiveMenuButton("Delete") {
+                for host in hosts { app.requestHostDeletion(host.id) }
+                selectionDeleted?()
+            }
+            .disabled(hosts.isEmpty)
         }
-        .disabled(hosts.isEmpty)
     }
 
     private var hasHistory: Bool {
@@ -140,7 +147,7 @@ private struct ClearAllHostHistoryConfirmation: ViewModifier {
             ),
             titleVisibility: .visible
         ) {
-            Button("Clear All History", role: .destructive) {
+            Button("Clear History", role: .destructive) {
                 guard let hostIDs else { return }
                 app.clearAllHistory(for: hostIDs)
                 self.hostIDs = nil

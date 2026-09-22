@@ -1,4 +1,5 @@
 import Foundation
+import TermindApplication
 import TermindDomain
 import Testing
 import UIKit
@@ -9,7 +10,7 @@ import struct TermindDomain.Host
 
 @Suite @MainActor
 struct MobileHomeScreenQuickActionTests {
-    @Test func descriptorsUseTheNewestThreeUniqueValidHistoryRows() throws {
+    @Test func descriptorsUseTheNewestThreeUniqueLocalHosts() throws {
         let app = try MobileAppModel(inMemory: true)
         let repeated = Host(
             name: "Production", host: "production.example.invalid",
@@ -35,10 +36,10 @@ struct MobileHomeScreenQuickActionTests {
         _ = app.connectionHistory.record(
             kind: .ssh, for: UUID(), at: Date(timeIntervalSince1970: 70))
 
-        let rows = MobileConnectionHistory.rows(
-            entries: app.connectionHistory.entries(),
+        let rows = MobileConnectionHistory.recentHostRows(
+            entries: app.connectionHistory.localEntries(),
             library: app.library,
-            limit: MobileHomeScreenQuickActions.historyLimit
+            limit: ConnectionHistoryModel.limit
         )
         let descriptors = MobileHomeScreenQuickActions.descriptors(rows: rows)
 
@@ -46,22 +47,24 @@ struct MobileHomeScreenQuickActionTests {
         #expect(
             descriptors.map(\.action)
                 == [
-                    .history(hostID: repeated.id, kind: .ssh),
-                    .history(hostID: repeated.id, kind: .telnet),
-                    .history(hostID: repeated.id, kind: .sftp),
+                    .history(hostID: repeated.id),
+                    .history(hostID: others[0].id),
+                    .history(hostID: others[1].id),
                 ])
-        #expect(descriptors.map(\.title) == ["Production", "Production", "Production"])
-        #expect(descriptors.map(\.symbol) == ["terminal", "text.rectangle", "folder"])
+        #expect(descriptors.map(\.title) == ["Production", "Host 0", "Host 1"])
+        #expect(descriptors.allSatisfy { $0.symbol == "server.rack" })
         #expect(UIImage(systemName: descriptors[1].symbol) != nil)
         #expect(descriptors[1].shortcutItem.icon != nil)
     }
 
     @Test func historyShortcutPayloadRoundTripsAndMalformedItemsAreRejected() throws {
         let hostID = UUID()
-        let row = MobileConnectionHistoryRow(
+        let host = Host(id: hostID, name: "Files", host: "files.example.invalid")
+        let row = MobileRecentHostRow(
             entry: ConnectionHistoryEntry(hostID: hostID, kind: .sftp),
-            host: Host(id: hostID, name: "Files", host: "files.example.invalid"),
-            loginAddress: "deploy@files.example.invalid"
+            host: host,
+            loginAddress: "files.example.invalid",
+            preferredKind: .ssh
         )
         let descriptor = try #require(
             MobileHomeScreenQuickActions.descriptors(rows: [row]).first)
@@ -73,7 +76,18 @@ struct MobileHomeScreenQuickActionTests {
         #expect(shortcutItem.icon != nil)
         #expect(
             MobileHomeScreenQuickActions.action(from: shortcutItem)
-                == .history(hostID: hostID, kind: .sftp))
+                == .history(hostID: hostID))
+
+        let legacy = UIApplicationShortcutItem(
+            type: MobileHomeScreenQuickActions.historyType,
+            localizedTitle: "Legacy",
+            localizedSubtitle: nil,
+            icon: nil,
+            userInfo: [
+                MobileHomeScreenQuickActions.hostIDKey: hostID.uuidString as NSString,
+                MobileHomeScreenQuickActions.kindKey: ConnectionHistoryEntry.Kind.sftp.rawValue as NSString,
+            ])
+        #expect(MobileHomeScreenQuickActions.action(from: legacy) == .history(hostID: hostID))
 
         let malformed = UIApplicationShortcutItem(
             type: MobileHomeScreenQuickActions.historyType,

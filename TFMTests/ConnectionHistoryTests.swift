@@ -17,6 +17,8 @@ import struct TermindDomain.Host
 struct ConnectionHistoryTests {
     @Test
     func connectionProtocolSymbolsAreDistinct() {
+        #expect(ConnectionHistoryModel.limit == 300)
+        #expect(ConnectionHistoryModel.presentationLimit == 100)
         #expect(ConnectionHistoryEntry.Kind.ssh.symbol == "terminal")
         #expect(ConnectionHistoryEntry.Kind.telnet.symbol == "text.rectangle")
         #expect(ConnectionHistoryEntry.Kind.sftp.symbol == "folder")
@@ -63,7 +65,6 @@ struct ConnectionHistoryTests {
 
         let migratedHosts = try migrated.mainContext.fetch(FetchDescriptor<PersistentHost>())
         #expect(migratedHosts.count == 1)
-        #expect(migratedHosts.first?.lastUsedAt == nil)
         #expect(
             try migrated.mainContext.fetch(
                 FetchDescriptor<PersistentConnectionHistoryEntry>()
@@ -89,6 +90,62 @@ struct ConnectionHistoryTests {
                 Date(timeIntervalSince1970: 1),
             ])
         #expect(Set(entries.map(\.id)).count == 3)
+    }
+
+    @Test
+    func recordsTheLocalDeviceAndEndsWhenItsPaneCloses() throws {
+        let host = Host(name: "Server", host: "server.example")
+        let deviceID = UUID()
+        let devices = DeviceDirectoryModel(
+            currentDeviceID: deviceID, currentDeviceName: "Test Mac")
+        let history = ConnectionHistoryModel(sourceDeviceID: deviceID)
+        let app = AppModel(
+            hosts: HostLibraryModel(hosts: [host]), connectionHistory: history,
+            devices: devices)
+        let window = WindowModel()
+
+        let workspace = app.open(host, as: .sshSession, in: window)
+        let opened = try #require(history.entries().first)
+        #expect(opened.sourceDeviceID == deviceID)
+        #expect(devices.name(for: opened.sourceDeviceID) == "Test Mac")
+        #expect(opened.endedAt == nil)
+
+        window.close(workspace.id)
+
+        let ended = try #require(history.entries().first)
+        #expect(ended.endedAt != nil)
+        #expect(ended.endedAt.map { $0 >= ended.connectedAt } == true)
+    }
+
+    @Test
+    func localProjectionUsesStableDeviceIDAndDeviceRenameUpdatesExistingEvents() throws {
+        let localID = UUID()
+        let remoteID = UUID()
+        let hostID = UUID()
+        let stableAfterRename = ConnectionHistoryEntry(
+            hostID: hostID, kind: .ssh, connectedAt: Date(timeIntervalSince1970: 3),
+            sourceDeviceID: localID)
+        let missingDeviceID = ConnectionHistoryEntry(
+            hostID: hostID, kind: .telnet, connectedAt: Date(timeIntervalSince1970: 2),
+            sourceDeviceID: nil)
+        let remote = ConnectionHistoryEntry(
+            hostID: hostID, kind: .sftp, connectedAt: Date(timeIntervalSince1970: 1),
+            sourceDeviceID: remoteID)
+        let historyRepository = InMemoryConnectionHistoryRepository(
+            entries: [stableAfterRename, missingDeviceID, remote])
+        let model = ConnectionHistoryModel(
+            repository: historyRepository, sourceDeviceID: localID)
+        let devices = DeviceDirectoryModel(
+            currentDeviceID: localID, currentDeviceName: "old-name")
+
+        #expect(model.localEntries().map(\.id) == [stableAfterRename.id])
+        #expect(model.isLocal(stableAfterRename))
+        #expect(!model.isLocal(missingDeviceID))
+        #expect(!model.isLocal(remote))
+        #expect(devices.name(for: stableAfterRename.sourceDeviceID) == "old-name")
+
+        devices.updateCurrentDeviceName("Renamed Test Mac")
+        #expect(devices.name(for: stableAfterRename.sourceDeviceID) == "Renamed Test Mac")
     }
 
     @Test
@@ -161,6 +218,32 @@ struct ConnectionHistoryTests {
         #expect(history.entries().map(\.kind) == [.sftp, .sftp, .ssh])
         #expect(app.recentHosts().map(\.id) == [first.id, second.id])
         #expect(app.lastConnectedAt(for: first.id) != nil)
+    }
+
+    @Test
+    func welcomeRecentsUseOnlyThisDevicesLatestEvents() {
+        let localID = UUID()
+        let local = Host(name: "Local", host: "local.example")
+        let remote = Host(name: "Remote", host: "remote.example")
+        let history = ConnectionHistoryModel(
+            entries: [
+                ConnectionHistoryEntry(
+                    hostID: remote.id, kind: .ssh,
+                    connectedAt: Date(timeIntervalSince1970: 20),
+                    sourceDeviceID: UUID()),
+                ConnectionHistoryEntry(
+                    hostID: local.id, kind: .ssh,
+                    connectedAt: Date(timeIntervalSince1970: 10),
+                    sourceDeviceID: localID),
+            ],
+            sourceDeviceID: localID)
+        let app = AppModel(
+            hosts: HostLibraryModel(hosts: [local, remote]), connectionHistory: history)
+
+        #expect(app.recentHosts(localOnly: true).map(\.id) == [local.id])
+        #expect(app.recentHosts(localOnly: false).map(\.id) == [remote.id, local.id])
+        #expect(app.lastConnectedLocallyAt(for: local.id) == Date(timeIntervalSince1970: 10))
+        #expect(app.lastConnectedLocallyAt(for: remote.id) == nil)
     }
 
     @Test

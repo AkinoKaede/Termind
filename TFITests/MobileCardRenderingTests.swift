@@ -101,6 +101,16 @@ struct MobileCardRenderingTests {
                             open: { _, _ in })
                     }
                 }
+                try await capture("history", language: language, scheme: scheme) {
+                    NavigationStack {
+                        MobileConnectionHistoryView(app: app, open: { _, _ in })
+                    }
+                }
+                try await capture("workspaces-recents", language: language, scheme: scheme) {
+                    NavigationStack {
+                        MobileWorkspaceListView(app: app, scene: MobileSceneModel(app: app))
+                    }
+                }
                 try await capture("snippets", language: language, scheme: scheme) {
                     NavigationStack { MobileSnippetsView(app: app) }
                 }

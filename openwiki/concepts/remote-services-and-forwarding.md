@@ -4,9 +4,6 @@ title: "Remote services and forwarding"
 description: "Cross-service ownership of SSH terminal, metrics, SFTP, Agent, and forwarding runtimes, with routing to detailed channel scheduling, shell integration, and multi-connection dispatch mechanisms."
 tags: [ssh, terminal, metrics, sftp, port-forwarding, scheduling]
 openwiki_generated: true
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-ca49232858afa421bf33a03b
     resource: repo://Frameworks/TermindApplication/Metrics/ServerMetricsModel.swift
@@ -37,6 +34,9 @@ sources:
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
 generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T05:59:31.338Z
 ---
 
 

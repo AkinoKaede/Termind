@@ -1,5 +1,6 @@
 import Foundation
 import SwiftUI
+import TermindApplication
 import TermindDomain
 import Testing
 import UIKit
@@ -42,7 +43,7 @@ struct MobileConnectionPickerTests {
         #expect(selections.last?.1 == .sftp)
     }
 
-    @Test func emptyWorkspaceHistoryKeepsTheLatestFiveUniqueHostAndProtocolPairs() throws {
+    @Test func emptyWorkspaceHistoryKeepsTheLatestFiveUniqueLocalHosts() throws {
         let app = try MobileAppModel(inMemory: true)
         let scene = MobileSceneModel(app: app)
         let repeatedHost = Host(
@@ -58,23 +59,23 @@ struct MobileConnectionPickerTests {
             app.connectionHistory.record(kind: .ssh, for: repeatedHost.id, at: Date(timeIntervalSince1970: 70)))
         _ = app.connectionHistory.record(
             kind: .ssh, for: repeatedHost.id, at: Date(timeIntervalSince1970: 60))
-        let newestTelnet = try #require(
-            app.connectionHistory.record(kind: .telnet, for: repeatedHost.id, at: Date(timeIntervalSince1970: 58)))
-        let newestSFTP = try #require(
-            app.connectionHistory.record(kind: .sftp, for: repeatedHost.id, at: Date(timeIntervalSince1970: 55)))
-        let expectedEntries = try [
-            newestSSH,
-            newestTelnet,
-            newestSFTP,
-            #require(
-                app.connectionHistory.record(kind: .sftp, for: otherHosts[0].id, at: Date(timeIntervalSince1970: 50))),
-            #require(
-                app.connectionHistory.record(kind: .ssh, for: otherHosts[1].id, at: Date(timeIntervalSince1970: 40))),
-        ]
         _ = app.connectionHistory.record(
-            kind: .sftp, for: otherHosts[2].id, at: Date(timeIntervalSince1970: 30))
+            kind: .telnet, for: repeatedHost.id, at: Date(timeIntervalSince1970: 58))
         _ = app.connectionHistory.record(
-            kind: .ssh, for: otherHosts[3].id, at: Date(timeIntervalSince1970: 20))
+            kind: .sftp, for: repeatedHost.id, at: Date(timeIntervalSince1970: 55))
+        let other0 = try #require(
+            app.connectionHistory.record(
+                kind: .sftp, for: otherHosts[0].id, at: Date(timeIntervalSince1970: 50)))
+        let other1 = try #require(
+            app.connectionHistory.record(
+                kind: .ssh, for: otherHosts[1].id, at: Date(timeIntervalSince1970: 40)))
+        let other2 = try #require(
+            app.connectionHistory.record(
+                kind: .sftp, for: otherHosts[2].id, at: Date(timeIntervalSince1970: 30)))
+        let other3 = try #require(
+            app.connectionHistory.record(
+                kind: .ssh, for: otherHosts[3].id, at: Date(timeIntervalSince1970: 20)))
+        let expectedEntries = [newestSSH, other0, other1, other2, other3]
         _ = app.connectionHistory.record(
             kind: .ssh, for: UUID(), at: Date(timeIntervalSince1970: 80))
 
@@ -82,10 +83,9 @@ struct MobileConnectionPickerTests {
 
         #expect(rows.count == MobileWorkspaceListView.historyLimit)
         #expect(rows.map(\.entry.id) == expectedEntries.map(\.id))
-        #expect(rows.prefix(3).allSatisfy { $0.entry.hostID == repeatedHost.id })
-        #expect(rows[1].entry.kind == .telnet)
-        #expect(rows[1].loginAddress == app.library.loginAddress(for: repeatedHost, protocol: .telnet))
-        #expect(Set(rows.map { "\($0.entry.hostID.uuidString):\($0.entry.kind.rawValue)" }).count == rows.count)
+        #expect(rows.first?.preferredKind == .ssh)
+        #expect(rows.first?.loginAddress == app.library.loginAddress(for: repeatedHost, protocol: .ssh))
+        #expect(Set(rows.map(\.host.id)).count == rows.count)
     }
 
     @Test func recentConnectionActionsFollowEveryHostProtocolCombination() {
@@ -105,21 +105,63 @@ struct MobileConnectionPickerTests {
         host.sshEnabled = false
         host.telnetEnabled = false
         assertAvailability(host, ssh: false, telnet: false, sftp: false)
+        #expect(MobileConnectionHistory.preferredKind(for: host) == nil)
+
+        host.telnetEnabled = true
+        #expect(MobileConnectionHistory.preferredKind(for: host) == .telnet)
+        host.sshEnabled = true
+        #expect(MobileConnectionHistory.preferredKind(for: host) == .ssh)
     }
 
-    @Test func unavailableRecentEntryStaysVisibleButCannotOpen() throws {
+    @Test func unavailableHistoryEventStaysVisibleButCannotOpen() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(
             name: "Legacy Telnet", host: "legacy.example.invalid",
             sshEnabled: true, telnetEnabled: false)
         app.library.upsert(host)
-        let entry = try #require(app.connectionHistory.record(kind: .telnet, for: host.id))
+        _ = try #require(app.connectionHistory.record(kind: .telnet, for: host.id))
 
         let row = try #require(
-            MobileConnectionHistory.rows(entries: [entry], library: app.library, limit: 1).first)
+            MobileConnectionHistory.eventRows(
+                history: app.connectionHistory, devices: app.devices,
+                library: app.library, limit: 1
+            ).first)
 
         #expect(row.entry.kind == .telnet)
         #expect(!row.canOpen)
+    }
+
+    @Test func historyPageKeepsEveryEventSearchesDeviceNameAndCapsAtOneHundred() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let host = Host(name: "History", host: "history.example.invalid")
+        app.library.upsert(host)
+        let historyRepository = InMemoryConnectionHistoryRepository()
+        let deviceRepository = InMemoryDeviceDirectoryRepository()
+        for index in (0...ConnectionHistoryModel.presentationLimit).reversed() {
+            let deviceID = UUID()
+            try deviceRepository.upsert(
+                DeviceRecord(id: deviceID, displayName: "device-\(index)"))
+            try historyRepository.insert(
+                ConnectionHistoryEntry(
+                    hostID: host.id, kind: index.isMultiple(of: 2) ? .ssh : .sftp,
+                    connectedAt: Date(timeIntervalSince1970: TimeInterval(index)),
+                    sourceDeviceID: deviceID),
+                limit: ConnectionHistoryModel.limit)
+        }
+        let history = ConnectionHistoryModel(repository: historyRepository)
+        let devices = DeviceDirectoryModel(repository: deviceRepository)
+
+        let rows = MobileConnectionHistory.eventRows(
+            history: history, devices: devices, library: app.library,
+            limit: ConnectionHistoryModel.presentationLimit)
+        #expect(rows.count == ConnectionHistoryModel.presentationLimit)
+        #expect(rows.first?.sourceDeviceName == "device-100")
+        #expect(rows.filter { $0.host.id == host.id }.count == ConnectionHistoryModel.presentationLimit)
+
+        let searched = MobileConnectionHistory.eventRows(
+            history: history, devices: devices, library: app.library,
+            query: "device-17", limit: ConnectionHistoryModel.presentationLimit)
+        #expect(searched.map(\.sourceDeviceName) == ["device-17"])
     }
 
     @Test func availableRecentTelnetActionOpensATelnetWorkspace() throws {

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e27880aa34f40deedddffbc3737c872c8b3018d93003f868cd5fa14e7ddf78e0",
+  "pageVersion": "sha256:7969689131767daee6522896f5d6a8237a9f4931eea0e640c17a5fa1d1c58bba",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -68,11 +68,15 @@
     },
     {
       "id": "claim_c3541976db5f4e84a583c4486ddd24e2",
-      "statement": "Bash, Zsh and Fish installers define session-local hooks and compose bindings, report cwd through OSC 7 and command lifecycle through token-scoped OSC 777, preserving the shell-specific hook mechanisms rather than editing startup files.",
+      "statement": "Bash, Zsh and Fish installers define session-local hooks and compose bindings, report cwd through OSC 7 and command lifecycle through token-scoped OSC 777, preserving shell-specific hook mechanisms rather than editing startup files; Bash fallback DEBUG handling excludes Termind helpers and brackets existing PROMPT_COMMAND work.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L443-L463",
-          "version": "repo-lines-v1:sha256:fe419183706a45905e697a9a26e6b1fc4abd95021c8a4df32e1bd9d05dcdf4af:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhNDI5MzllMTZkMTk0YTI5ZmFkOGE0NWMwZjBhNDQ1MGIyNDk5NDk3MzQwYzlhZWFjOWM3MmUzNDFhODI5MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzNGQwODExMTYyODk0ZDlkMDBkOGVjODBiZWUxMjA1ODFmMjVhNzUxN2E3MTIwMTk1MzViMjdhNjFmNDAyYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNkMTdhYjYyYWVkZjI3MjI0ZGJjYmY4NTBiZjkwZGY3ZDAwMjUxODM5MzA0YzUzMzVhNWNmNTVlMzNmMGYxYmUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L443-L490",
+          "version": "repo-lines-v1:sha256:6f05c52e722daf8c76820d4adb5bbbc3f2f9ad87c7105766583a85b2336fd433:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRhNDI5MzllMTZkMTk0YTI5ZmFkOGE0NWMwZjBhNDQ1MGIyNDk5NDk3MzQwYzlhZWFjOWM3MmUzNDFhODI5MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmZDJjZjM1MjBhMjcyNDUwMmE3ZDhiNWMzYmNkZjUwNTYyMGZlODE4MjY5M2Q4ZGU4NjYxMzZkNjg1ZDJiODQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUzNGQwODExMTYyODk0ZDlkMDBkOGVjODBiZWUxMjA1ODFmMjVhNzUxN2E3MTIwMTk1MzViMjdhNjFmNDAyYzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUyMTljMWEyZWIwYmRlYjkwMmE4MTczZjkwYjA4MjEyYTk4YTMyMTNkOWFkYWI3ZTY0ZGE2YzY4NjY4YjI3YzMifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ShellIntegrationBootstrapTests.swift",
+          "version": "repo-file-v1:sha256:1251f7f9e903f0a58cc819516506a38a542a3516478e58afc37f072a6cd85a76"
         }
       ]
     },
@@ -153,6 +157,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T05:59:31.338Z"
   }
 }

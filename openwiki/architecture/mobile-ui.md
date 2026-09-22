@@ -3,9 +3,6 @@ type: architecture guide
 title: TFI Mobile UI Architecture
 description: "How the iPhone/iPad app composes registered feature stacks, scene-local navigation, shared runtimes, adaptive content regions, native terminal/transcript surfaces and mobile interaction policies."
 tags: [ios, ipados, tfi, ui, navigation, adaptive-layout, swiftui, uikit]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
@@ -29,17 +26,26 @@ sources:
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-d43ef236ba4bbb23d8dab797
     resource: repo://TFI/Features/Assistant/MobileAssistantView.swift
+  - id: openwiki-source-20a5e70f2b015b63e86a0c0d
+    resource: repo://TFI/Features/HostChooser/MobileConnectionPicker.swift
+  - id: openwiki-source-3f37062f55fb57a9f2e97f35
+    resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-a337b6f93e72977e59faaf14
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift
   - id: openwiki-source-4c2de67bfdb2238d765a642a
     resource: repo://TFI/Features/Workspaces/MobileWorkspaceView.swift
+  - id: openwiki-source-d34ac3e852773901d0566033
+    resource: repo://TFI/Platform/MobileHomeScreenQuickActions.swift
   - id: openwiki-source-ca0b3e6e839587396cdeaf54
     resource: repo://TFI/Platform/MobileTerminalSurface.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
-generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
+generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T09:51:39.958Z
 ---
 
 # TFI Mobile UI Architecture
@@ -116,6 +122,18 @@ Host activation and explicit connection actions are different:
 - The workspace title switcher replaces the pushed detail by workspace identity. This resets detail-specific state such as SFTP search without treating the owned terminal/session as a newly created runtime.
 
 Unavailable saved workspace IDs produce an explicit unavailable state; a stale route does not silently open some other Host. Root-level deep links, quick actions and focused scene commands dispatch through that scene's model.
+
+### Local Recents versus synchronized History
+
+The Workspaces destination and the Vault expose different projections over the shared synchronized event stream:
+
+- Workspaces Recents uses only events from this installation, aggregates every protocol and attempt into one row per Host, and keeps the newest five Hosts. A primary tap uses current Host capability preference (SSH before Telnet); protocol context and swipe actions keep SSH, Telnet and SFTP visible while disabling unavailable choices. Deleting the aggregate clears that Host's events across devices.
+- Home Screen quick actions use the same local per-Host projection, publish at most three host-only `server.rack` items, and resolve the current preferred terminal protocol at activation. Older payloads that carried a protocol still decode, but that stale protocol is ignored.
+- Vault's History page follows Known Hosts and displays up to 100 individual events from every synchronized device. The leading symbol remains protocol-specific, while the right column and search resolve the event's `sourceDeviceID` through the reusable synchronized device directory. Row deletion removes one event; **Clear History** clears the complete timeline.
+
+Workspaces, Recent Workspaces and local Recents align their text from the same 36-point Host distribution icon slot and 12-point gap. Live Workspaces overlay an eight-point status dot inside that slot; recent/restored rows have no live status dot. Workspaces and Recent Workspaces show protocol at the common right edge, while aggregated Recents deliberately omits it. TFI exposes no Serial workspace or connection-history kind.
+
+The Workspace title switcher uses a separate compact icon treatment: an unselected item shows its Host distribution icon with a connection-state dot, while the selected item replaces that composite with the ordinary checkmark and therefore carries no status dot.
 
 ## Adaptation has three inputs, not one device check
 

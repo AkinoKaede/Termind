@@ -10,6 +10,8 @@ public nonisolated enum VaultRecordKind: String, Codable, CaseIterable, Sendable
     case snippetPackage
     case portForwarding
     case workspaceTemplate
+    case connectionHistory
+    case device
 }
 
 public nonisolated struct VaultRecordKey: Codable, Hashable, Sendable {
@@ -81,6 +83,8 @@ public nonisolated enum VaultRecordPayload: Codable, Hashable, Sendable {
     case snippetPackage(SnippetPackage)
     case portForwarding(PortForwardingRule)
     case workspaceTemplate(WorkspaceTemplate)
+    case connectionHistory(ConnectionHistoryEntry)
+    case device(DeviceRecord)
 
     public var key: VaultRecordKey {
         switch self {
@@ -93,6 +97,8 @@ public nonisolated enum VaultRecordPayload: Codable, Hashable, Sendable {
         case .snippetPackage(let value): VaultRecordKey(kind: .snippetPackage, id: value.id)
         case .portForwarding(let value): VaultRecordKey(kind: .portForwarding, id: value.id)
         case .workspaceTemplate(let value): VaultRecordKey(kind: .workspaceTemplate, id: value.id)
+        case .connectionHistory(let value): VaultRecordKey(kind: .connectionHistory, id: value.id)
+        case .device(let value): VaultRecordKey(kind: .device, id: value.id)
         }
     }
 }

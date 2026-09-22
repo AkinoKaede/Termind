@@ -91,8 +91,10 @@ final class MobileSceneModel {
         case .connect:
             openConnectionPicker()
             return true
-        case .history(let hostID, let kind):
-            guard app.library.host(hostID) != nil else {
+        case .history(let hostID):
+            guard let host = app.library.host(hostID),
+                let kind = MobileConnectionHistory.preferredKind(for: host)
+            else {
                 selectedDestination = .workspaces
                 workspaceID = nil
                 isWorkspaceUnavailable = true

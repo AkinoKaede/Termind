@@ -299,6 +299,9 @@ final class WindowModel {
         set { workspaceDeck.reopenStack = newValue }
     }
 
+    var recordConnectionHistory: ((Host.ID, ConnectionHistoryEntry.Kind) -> ConnectionHistoryEntry.ID?)?
+    var endConnectionHistory: ((ConnectionHistoryEntry.ID) -> Void)?
+
     init(
         workspaces: [Workspace] = [],
         vaultDestination: VaultDestination = .welcome,
@@ -815,6 +818,7 @@ final class WindowModel {
         _ workspace: Workspace,
         select shouldSelect: Bool = true
     ) -> Workspace {
+        workspace.panes.forEach(configureConnectionHistory)
         workspace.lifecycleRouter = self
         if let connectionCoordinator {
             workspace.configureConnections(using: connectionCoordinator)
@@ -863,6 +867,7 @@ final class WindowModel {
         )
         pane.sshSession?.connectionRoute = connectionRoute
         numberPane(pane)
+        configureConnectionHistory(pane)
 
         if placement == .currentWorkspace,
             let workspace = selectedWorkspace,
@@ -879,6 +884,7 @@ final class WindowModel {
     func openTelnetSession(host: Host) -> Workspace {
         let pane = Pane.telnetSession(host: host)
         numberPane(pane)
+        configureConnectionHistory(pane)
         return open(Workspace(pane: pane))
     }
 
@@ -987,6 +993,7 @@ final class WindowModel {
     ) -> Workspace {
         let pane = Pane.sftpChannel(host: host, initialPath: initialPath)
         numberPane(pane)
+        configureConnectionHistory(pane)
         if let connectionCoordinator { pane.configureConnections(using: connectionCoordinator) }
         if let sftpHistoryStore { pane.configureSFTPHistory(using: sftpHistoryStore) }
 
@@ -1007,6 +1014,19 @@ final class WindowModel {
         service: any SerialPortServing
     ) -> Workspace {
         open(Workspace(pane: .serialSession(configuration: configuration, service: service)))
+    }
+
+    private func configureConnectionHistory(_ pane: Pane) {
+        guard !pane.hasActiveConnectionHistory, let hostID = pane.hostID else { return }
+        let kind: ConnectionHistoryEntry.Kind
+        switch pane.kind {
+        case .sshSession: kind = .ssh
+        case .telnetSession: kind = .telnet
+        case .sftpChannel: kind = .sftp
+        case .serialSession, .empty: return
+        }
+        guard let entryID = recordConnectionHistory?(hostID, kind), let endConnectionHistory else { return }
+        pane.configureConnectionHistory(entryID: entryID, end: endConnectionHistory)
     }
 
     /// Opens the host editor, reusing the workspace that already holds one for the

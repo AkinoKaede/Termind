@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:52ee85c8226f34cc3e7f73201ee744ae289dce13814ec7f5f2035f3e66f38f84",
+  "pageVersion": "sha256:17dc0f2b25ec8c65104d2cb491b9afc63b341e639478ff0bcfdfcf583e74a55f",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -16,7 +16,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
         }
       ]
     },
@@ -36,19 +36,19 @@
     },
     {
       "id": "claim_04df7977ba1a43bfba0b2585bc5f185a",
-      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; its current container uses TermindSchemaV31 and the test suite rejects @Model declarations outside TermindPersistence.",
+      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; its current container uses TermindSchemaV32 and architecture tests reject @Model declarations outside TermindPersistence.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L7-L11",
-          "version": "repo-lines-v1:sha256:eb1d08366705afdc99b54adcffa378299221d4d7be416d22cc011f6a15dbcfd2:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOWM0OTlkYTUxNTAxNzdiYTFlNzljZjc5YTM0ODFiMzM4NmViYmJlYTU4MGI3Zjc2ZTBjZjUxOTNmYWE5OTFjYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjEzMjhkOGFmMzQ1YjI3MzczOTBkZjBlMWYwN2I1ZmZlYmE3Y2IyZWIyNzZmZDBiMDk1NTg5ZmVkZjgwOGE2NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiODRkOWIzNTZmZmVmMmJmZWFiZmM5MmQwM2EwMDkyMWY3YTk0OTUwMzk5Nzc3YTY1MmFhZTZkNmZhMTcyZTQ0OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMmM0MzRhZjQzYmUwYTA3MjE2NzE5ZjBkMjg5MjdhNjkzMzNhYmJlZDhiY2U0MWZmOTA4ODM2ZDIxNDk3NmFjNyJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:7cd9b9e940106ce07b1fc987586fc9c6ca1c4f9489cabb02791b627a05a1eedb"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
+          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L207-L223",
-          "version": "repo-lines-v1:sha256:bb65a8050531c288646a62d024e2c5ce82632ce10e8f598b6d9de35f3de1606f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNlNDNhMjAwNmYyNDA5MjZmMDAwYzdlNGI5MzIxNjY5M2MyNGRkZjU3MWQ3YTM3MDRjNGU1MmM4MWI1ZjBkZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzOWVhMmE5NzQ2MjU5N2MwNmU3ODEyZDZmYWRkNzJkMTNmMTYxMDliYTBkZTgwOWQ3MjRlM2E3NTQ1ZjZhNzkifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:93f91b564371034f72c76c52581281fea35eebe77efa124b0f9668b4ed5b4034"
         }
       ]
     },
@@ -58,23 +58,19 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:f756ca3c13349717a9bc863d4520e74336321a245eb1f74471d43b8e9c7dd782"
+          "version": "repo-file-v1:sha256:9613dfe8aac0035ffcaca53b94efe4ae8d5d0fd2d86690608d2aaf4f7e553ca4"
         },
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L126-L126",
-          "version": "repo-lines-v1:sha256:fb0eb95a9489d07f13bfc5dd8a79a4ea9a3c8e5ecb77e91490982cb9490b92ce:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmIwZWI5NWE5NDg5ZDA3ZjEzYmZjNWRkOGE3OWE0ZWE5YTNjOGU1ZWNiNzdlOTE0OTA5ODJjYjk0OTBiOTJjZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZmIwZWI5NWE5NDg5ZDA3ZjEzYmZjNWRkOGE3OWE0ZWE5YTNjOGU1ZWNiNzdlOTE0OTA5ODJjYjk0OTBiOTJjZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmFiM2M4YmNlOTM0ZTMzMTZjMDVjMGI4YWFhYjJhZTg4ZTI3NDM1Y2NkODU1Mjg0MjVjODBkYzViOGUzMDdhOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMDNhOTkxMGRkNDRlMTA2OWExY2VkMDFhZTMzOTk3YzNlMTU0YjcyN2U3YzczMDg0MjMzODdlYTQ1NzlmYmY2ZSJ9"
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
         },
         {
-          "resource": "repo://TFI/App/TermindIOSApp.swift#L11-L30",
-          "version": "repo-lines-v1:sha256:da8be22039112fa704351fb896f9a2ced4d1600f566c8cd5afde7aeac3066350:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhiY2M2MTFhZjIzYTkxYzNiNzI3ZDBhY2U0ZGUyMjI0MmZjNDkwNmM3MTk0YTYzNDkxOWI2NWQ3MDNkZDAwYjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmYTc4NDM4ZDRhOWM4YzI5OWQ1NmJlNDRmNDNhN2Y1YWQ5M2FjYjRlMzllNzI1Y2YwMjYwYjY0OWQ4NjA5YWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllYmU5ZjVkMjdiOGY2ZjAyMTc1ZTAyYWFhYTJlMzI0YjM0NjVkODMxMmM4ZWVjM2I4ZWQyOWRmNTkyY2ExZDgifQ"
+          "resource": "repo://TFI/App/TermindIOSApp.swift",
+          "version": "repo-file-v1:sha256:9daf1c0933fdbcff826165a8edc171876c54faa343a184348284e63f736e86bf"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L137-L139",
-          "version": "repo-lines-v1:sha256:7e521f0009c7097b3075811418a0f0975f3a229ce9bb3012a58b7cd360f45681:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTc0MzYyN2VkOThlMDJiNTc4ZjUyNjljNzYwZWU1ODRlZTU0MmMzZTNjOWE0NDA4OTFjZDE1MTYyNWE1OWRmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZTZiMDQ0OTE0Njk3MjJlODM2M2E5NGU0MDQ0NTM4ZTAxM2EyYTIxN2UzNmIxZTU2OGJhNjBhY2I3YjRjOGYyZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjk1Mzg1OGIwNGQ2ZDU2ZTRkNWMxMzQxNThmNDA4NDRkNWRlZDMzMzliMWYyYWZmZjFkMzcwYzVlODUyN2Y1MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZWE4YzE5YmU1ZDgzZTVhODY3NzY1ZTdiZmJmZDg3YTA2NDBiYjRjOTk4Yjg2MTIxY2U3N2U1ZGIxNzUwNDAxMSJ9"
-        },
-        {
-          "resource": "repo://TFM/App/TermindApp.swift#L30-L39",
-          "version": "repo-lines-v1:sha256:8adecd981086eaed1cad0903e82917b4d86a8e9d6e35d0314bcbb752f450f95d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFjMjU4YjdiNGY1YjRhZjg4NjE4ZDI4NGJkODg1Y2VmYzNiMmQxOWRhMTk5OTlmN2ExNDI0YmQxMDliMjNjZjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhZTg1YmI2MTQ1ZGM4ZDE4OWJhMzEyOTRhNDk4Njc0ZjU4M2RlZjE4ODIwM2JiZDJlZWVhYWQyN2Q3OTNjYmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhMzY1Mzg4MWY4OTIzZGEyYWJmM2JhZDNmMmJhYjNiZGI4YTM2Njk1YjY5MmY5YjlmNmExMWI3NWQ4MjkwZjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQxMmJjZjU5NmJmOTk3NWM2Y2ZhOTU1NWJhZjAwMjBiZmM4OWFkMjA1N2U2YWNmNzQ3NzJjZTJlNWIxMDQxMTAifQ"
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:38cd92e23d3ede988a474a1bc7ce819702e822216227cc5cb253ce7c1790b3d8"
         }
       ]
     },
@@ -145,10 +141,48 @@
           "version": "repo-lines-v1:sha256:04c57608a4f36e066a86d45b1927320ec3f1b3912960cf3ead95574b6a0deab2:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5ZjdjNGNiNzk4NDRmM2QyMTg3YjU1MGRiNjhlZmVlMjU5MDQ4NDZiNTgwZWRmNjIxNTc3MGE4NTAyYTIwMzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5Zjg3ODhhMDEwYWMyNjY0MDQxYThhYzZjNjU3MTdiOGU0Y2RiZTYzMmMyY2JjNTMyMzZhMWMwNWI5MzhjNmUifQ"
         }
       ]
+    },
+    {
+      "id": "claim_af53e904e34a4a029b78a9356cc9b56e",
+      "statement": "Connection-history ownership is layered and independent from device naming: Domain defines events that reference sourceDeviceID, Application defines the history model/repository port, and Persistence owns event storage/journal transactions; the reusable DeviceRecord-to-name directory has its own Domain value, Application model/port, and Persistence repository, while both TFM and TFI supply DeviceKit's Device.current.safeDescription as their app-owned naming adapter.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Repositories/ConnectionHistoryRepository.swift",
+          "version": "repo-file-v1:sha256:52a0371f6d25d3eaa7692a88d55cb6fe40487800882b96f592f1f1cc8f211059"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift",
+          "version": "repo-file-v1:sha256:0a1a1ff68cedf0d380d197304d6088d35aafbe510723b8508c94b33583eadde3"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift",
+          "version": "repo-file-v1:sha256:edcf5020f1965dcc1bad5d1b9dc1523cced21a62d1a93f3a1fd079dde25fb37f"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/DeviceRecord.swift",
+          "version": "repo-file-v1:sha256:7bd4537277fda9c7e6e70318290ee3f17ce0271433ebff5c3ac0a28394f1d1d0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataConnectionHistoryRepository.swift",
+          "version": "repo-file-v1:sha256:e0468dec12004d9d8552b2f0d7745008a17b0271f20b65c1b425d9b917e0319a"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
+          "version": "repo-file-v1:sha256:9a3e7296fd09c4b397c90c7b15c20775a0950a145ec1c506ac431c04fc5ea020"
+        },
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:38cd92e23d3ede988a474a1bc7ce819702e822216227cc5cb253ce7c1790b3d8"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T05:22:55.650Z"
+    "at": "2026-09-22T10:02:02.985Z"
   }
 }

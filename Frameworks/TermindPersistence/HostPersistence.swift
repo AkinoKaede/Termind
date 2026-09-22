@@ -555,7 +555,7 @@ public enum TermindSchemaV6: VersionedSchema {
     public static let versionIdentifier = Schema.Version(6, 0, 0)
 
     public static var models: [any PersistentModel.Type] {
-        TermindSchemaV5.models + [PersistentConnectionHistoryEntry.self]
+        TermindSchemaV5.models + [TermindSchemaV31ConnectionHistoryModels.PersistentConnectionHistoryEntry.self]
     }
 }
 
@@ -773,6 +773,20 @@ public enum TermindSchemaV31: VersionedSchema {
     }
 }
 
+public enum TermindSchemaV32: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(32, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV31.models.filter {
+            $0 != TermindSchemaV29HostModels.PersistentHost.self
+                && $0 != TermindSchemaV31ConnectionHistoryModels.PersistentConnectionHistoryEntry.self
+        } + [
+            TermindSchemaV32HostModels.PersistentHost.self,
+            TermindSchemaV32ConnectionHistoryModels.PersistentConnectionHistoryEntry.self,
+            TermindSchemaV32DeviceModels.PersistentDeviceRecord.self,
+        ]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -784,6 +798,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV18.self, TermindSchemaV19.self, TermindSchemaV20.self, TermindSchemaV21.self,
             TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV30.self, TermindSchemaV31.self,
+            TermindSchemaV32.self,
         ]
     }
 
@@ -854,11 +869,33 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV26.self, toVersion: TermindSchemaV27.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV27.self, toVersion: TermindSchemaV30.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV30.self, toVersion: TermindSchemaV31.self),
+            MigrationStage.custom(
+                fromVersion: TermindSchemaV31.self, toVersion: TermindSchemaV32.self,
+                willMigrate: nil,
+                didMigrate: { context in
+                    let state: PersistentVaultSyncState
+                    if let existing = try context.fetch(FetchDescriptor<PersistentVaultSyncState>()).first {
+                        state = existing
+                    } else {
+                        state = PersistentVaultSyncState()
+                        context.insert(state)
+                    }
+                    for entry in try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()) {
+                        entry.sourceDeviceID = state.installationID
+                    }
+                    context.insert(
+                        PersistentDeviceRecord(
+                            DeviceRecord(
+                                id: state.installationID,
+                                displayName: ProcessInfo.processInfo.hostName)))
+                    try context.save()
+                }
+            ),
         ]
     }
 }
 
-public typealias PersistentHost = TermindSchemaV29HostModels.PersistentHost
+public typealias PersistentHost = TermindSchemaV32HostModels.PersistentHost
 public typealias PersistentIdentity = TermindSchemaV25IdentityModels.PersistentIdentity
 public typealias PersistentSSHKey = TermindSchemaV7Models.PersistentSSHKey
 public typealias PersistentKnownHost = TermindSchemaV30KnownHostModels.PersistentKnownHost

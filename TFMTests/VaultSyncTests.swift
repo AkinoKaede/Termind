@@ -50,6 +50,12 @@ struct VaultSyncTests {
         let package = SnippetPackage(name: "Operations")
         let snippet = Snippet(title: "Uptime", body: "uptime", packageID: package.id)
         let forwarding = PortForwardingRule(hostID: host.id)
+        let connection = ConnectionHistoryEntry(
+            hostID: host.id, kind: .ssh,
+            sourceDeviceID: UUID(), endedAt: Date(timeIntervalSince1970: 30)
+        )
+        let sourceDevice = DeviceRecord(
+            id: try #require(connection.sourceDeviceID), displayName: "Source Mac")
         let workspaceTemplate = WorkspaceTemplate(
             name: "Production",
             layout: .split(
@@ -63,6 +69,7 @@ struct VaultSyncTests {
             .host(host), .hostGroup(group), .identity(identity), .sshKey(key),
             .knownHost(knownHost), .snippet(snippet), .snippetPackage(package),
             .portForwarding(forwarding), .workspaceTemplate(workspaceTemplate),
+            .connectionHistory(connection), .device(sourceDevice),
         ]
         let writer = UUID()
 
@@ -74,6 +81,94 @@ struct VaultSyncTests {
             #expect(decoded == envelope)
             #expect(VaultRecordKey(recordName: payload.key.recordName) == payload.key)
         }
+    }
+
+    @Test
+    func connectionHistorySyncsDeviceMappingRenameEndTimeAndDeletion() throws {
+        let source = try makeContainer("ConnectionHistorySource")
+        let destination = try makeContainer("ConnectionHistoryDestination")
+        let sourceHistoryRepository = SwiftDataConnectionHistoryRepository(context: source.mainContext)
+        let sourceDeviceRepository = SwiftDataDeviceDirectoryRepository(context: source.mainContext)
+        let sourceDeviceID = try VaultSyncJournal(context: source.mainContext).state().installationID
+        let sourceDevices = DeviceDirectoryModel(
+            repository: sourceDeviceRepository, currentDeviceID: sourceDeviceID,
+            currentDeviceName: "Source Mac")
+        let sourceModel = ConnectionHistoryModel(
+            repository: sourceHistoryRepository, sourceDeviceID: sourceDeviceID)
+        let hostID = UUID()
+        let connectedAt = Date(timeIntervalSince1970: 10)
+        let endedAt = Date(timeIntervalSince1970: 40)
+        let entry = try #require(sourceModel.record(kind: .ssh, for: hostID, at: connectedAt))
+        sourceModel.end(entry.id, at: endedAt)
+
+        let key = VaultRecordKey(kind: .connectionHistory, id: entry.id)
+        let deviceKey = VaultRecordKey(kind: .device, id: sourceModel.sourceDeviceID)
+        let sourceJournal = VaultSyncJournal(context: source.mainContext)
+        let envelope = try #require(try sourceJournal.envelope(for: key))
+        let deviceEnvelope = try #require(try sourceJournal.envelope(for: deviceKey))
+        _ = try HostPersistence(context: destination.mainContext).applyRemote(
+            [envelope, deviceEnvelope])
+
+        let received = try destination.mainContext.fetch(
+            FetchDescriptor<PersistentConnectionHistoryEntry>()
+        ).map(\.value)
+        #expect(received.count == 1)
+        #expect(received.first?.sourceDeviceID == sourceModel.sourceDeviceID)
+        #expect(received.first?.connectedAt == connectedAt)
+        #expect(received.first?.endedAt == endedAt)
+        #expect(
+            try destination.mainContext.fetch(
+                FetchDescriptor<PersistentDeviceRecord>()
+            ).map(\.value) == [
+                DeviceRecord(
+                    id: sourceModel.sourceDeviceID, displayName: "Source Mac")
+            ])
+
+        sourceDevices.updateCurrentDeviceName("Renamed Source Mac")
+        let renamedDeviceEnvelope = try #require(try sourceJournal.envelope(for: deviceKey))
+        _ = try HostPersistence(context: destination.mainContext).applyRemote(
+            [renamedDeviceEnvelope])
+        #expect(
+            try destination.mainContext.fetch(
+                FetchDescriptor<PersistentDeviceRecord>()
+            ).map(\.displayName) == ["Renamed Source Mac"])
+
+        sourceModel.delete(entry.id)
+        let tombstone = try #require(try sourceJournal.envelope(for: key))
+        #expect(tombstone.isDeleted)
+        _ = try HostPersistence(context: destination.mainContext).applyRemote([tombstone])
+        #expect(
+            try destination.mainContext.fetchCount(
+                FetchDescriptor<PersistentConnectionHistoryEntry>()) == 0)
+    }
+
+    @Test
+    func existingConnectionHistoryBootstrapsAfterTheOriginalVaultBootstrap() throws {
+        let container = try makeContainer("ConnectionHistoryBootstrap")
+        let context = container.mainContext
+        let persistence = HostPersistence(context: context)
+        _ = try persistence.load()
+        let sourceDevice = DeviceRecord(
+            id: UUID(), displayName: "Source Phone")
+        let entry = ConnectionHistoryEntry(
+            hostID: UUID(), kind: .sftp, connectedAt: Date(timeIntervalSince1970: 5),
+            sourceDeviceID: sourceDevice.id)
+        context.insert(PersistentDeviceRecord(sourceDevice))
+        context.insert(PersistentConnectionHistoryEntry(entry))
+        try context.save()
+
+        _ = try persistence.load()
+
+        let key = VaultRecordKey(kind: .connectionHistory, id: entry.id)
+        let envelope = try #require(try VaultSyncJournal(context: context).envelope(for: key))
+        #expect(envelope.payload == .connectionHistory(entry))
+        let sourceDeviceEnvelope = try #require(
+            try VaultSyncJournal(context: context).envelope(
+                for: VaultRecordKey(kind: .device, id: sourceDevice.id)))
+        #expect(sourceDeviceEnvelope.payload == .device(sourceDevice))
+        #expect(
+            try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>())
+                .first(where: { $0.recordName == key.recordName })?.needsUpload == true)
     }
 
     @Test

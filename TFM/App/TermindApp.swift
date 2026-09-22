@@ -1,4 +1,5 @@
 import AgentKitScrubber
+import DeviceKit
 import SwiftData
 import SwiftUI
 import TermindApplication
@@ -81,6 +82,21 @@ struct TermindApp: App {
                 ? nil
                 : VaultSyncCoordinator(context: container.mainContext)
             vaultSync?.beforeSend = { [weak hosts] in try hosts?.migrateCustomPasswordsToICloud() }
+            let connectionHistoryRepository = SwiftDataConnectionHistoryRepository(
+                context: container.mainContext)
+            let deviceDirectoryRepository = SwiftDataDeviceDirectoryRepository(
+                context: container.mainContext)
+            let connectionHistoryDeviceID = try VaultSyncJournal(context: container.mainContext).state().installationID
+            connectionHistoryRepository.didRecordVaultChanges = { [weak vaultSync] in
+                vaultSync?.noteLocalChanges($0)
+            }
+            deviceDirectoryRepository.didRecordVaultChanges = { [weak vaultSync] in
+                vaultSync?.noteLocalChanges($0)
+            }
+            let devices = DeviceDirectoryModel(
+                repository: deviceDirectoryRepository,
+                currentDeviceID: connectionHistoryDeviceID,
+                currentDeviceName: Self.computerName)
             let externalToolCalls = ToolAuditModel(
                 modelContext: container.mainContext,
                 hostName: { [weak hosts] id in hosts?.host(id)?.name }
@@ -113,8 +129,10 @@ struct TermindApp: App {
                         repository: SwiftDataSFTPHistoryRepository(context: container.mainContext)
                     ),
                     connectionHistory: ConnectionHistoryModel(
-                        modelContext: container.mainContext
+                        repository: connectionHistoryRepository,
+                        sourceDeviceID: connectionHistoryDeviceID
                     ),
+                    devices: devices,
                     externalToolCalls: externalToolCalls,
                     dependencies: AppDependencies(
                         hostRepository: repository,
@@ -137,6 +155,10 @@ struct TermindApp: App {
         } catch {
             fatalError("Unable to open Termind's local database: \(error.localizedDescription)")
         }
+    }
+
+    fileprivate static var computerName: String {
+        Device.current.safeDescription
     }
 
     #if canImport(AppKit)
@@ -264,6 +286,7 @@ struct TermindApp: App {
         }
 
         func applicationDidBecomeActive(_ notification: Notification) {
+            app?.devices.updateCurrentDeviceName(TermindApp.computerName)
             Task { [weak self] in await self?.app?.proAccess.refresh() }
         }
 

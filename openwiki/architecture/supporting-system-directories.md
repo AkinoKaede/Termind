@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Supporting Products, Packages, and Tooling
 description: Directory responsibilities and integration relationships for AgentKit, the MCP bridge, Live Activities, tests, benchmarks, the Astro site, marketing assets, scripts, and repository automation.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:45:03.442Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -82,6 +79,9 @@ sources:
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
 generated: { by: "omp", at: "2026-09-22T03:45:03.442Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T10:02:02.985Z
 ---
 
 # Supporting Products, Packages, and Tooling

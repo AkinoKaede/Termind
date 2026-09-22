@@ -1,8 +1,8 @@
 {
-  "updatedAt": "2026-09-22T05:52:08.373Z",
+  "updatedAt": "2026-09-22T10:06:08.843Z",
   "command": "update",
-  "gitHead": "ba156c2827c856204ecb450c70500b3dff3e8fc9",
-  "model": "host-agent/omp",
+  "gitHead": "cca15abd7682f33404485806d15c99541ef98c5e",
+  "model": "host-agent/codex",
   "status": "complete",
   "language": "en"
 }

@@ -1074,7 +1074,7 @@ struct WelcomeView: View {
                     }
                 }
             }
-            let hosts = app.recentHosts(limit: max(0, 6 - templates.count))
+            let hosts = app.recentHosts(limit: max(0, 6 - templates.count), localOnly: true)
             if !hosts.isEmpty {
                 section("Recents") {
                     ForEach(hosts) { host in
@@ -1297,15 +1297,20 @@ private struct WelcomeHostRow: View {
         .contextMenu {
             HostContextMenu(
                 host: host,
+                showsDelete: false,
                 requestClearAllHistory: { clearHistoryHostIDs = $0 }
             )
+            Divider()
+            Button("Delete", systemImage: MenuSymbol.delete, role: .destructive) {
+                app.connectionHistory.clear(for: host.id)
+            }
         }
         .clearAllHostHistoryConfirmation(hostIDs: $clearHistoryHostIDs)
     }
 
     @ViewBuilder
     private var trailing: some View {
-        if let date = app.lastConnectedAt(for: host.id) {
+        if let date = app.lastConnectedLocallyAt(for: host.id) {
             Text(date, format: .relative(presentation: .numeric))
                 .foregroundStyle(.tertiary)
         }

@@ -82,21 +82,21 @@ struct MobileShortcutTests {
         #expect(scene.isConnectionPickerPresented)
     }
 
-    @Test func homeScreenHistoryActionOpensItsProtocolAndReportsAMissingHost() throws {
+    @Test func homeScreenHistoryActionOpensThePreferredTerminalAndReportsAMissingHost() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = Host(name: "Files", host: "files.example.invalid")
         app.library.upsert(host)
         let scene = MobileSceneModel(app: app)
         defer { app.closeAll() }
 
-        #expect(scene.perform(.history(hostID: host.id, kind: .sftp)))
+        #expect(scene.perform(.history(hostID: host.id)))
         scene.activatePendingWorkspace()
         #expect(scene.activeWorkspace?.descriptor.hostID == host.id)
-        #expect(scene.activeWorkspace?.descriptor.kind == .sftp)
-        #expect(app.connectionHistory.entries(for: host.id).map(\.kind) == [.sftp])
+        #expect(scene.activeWorkspace?.descriptor.kind == .ssh)
+        #expect(app.connectionHistory.entries(for: host.id).map(\.kind) == [.ssh])
 
         let historyCount = app.connectionHistory.entries().count
-        #expect(!scene.perform(.history(hostID: UUID(), kind: .ssh)))
+        #expect(!scene.perform(.history(hostID: UUID())))
         #expect(scene.isWorkspaceUnavailable)
         #expect(app.connectionHistory.entries().count == historyCount)
     }

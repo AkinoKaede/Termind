@@ -92,6 +92,11 @@ extension VaultSnapshot {
         case .snippetPackage(let value): upsert(value, in: &snippetPackages)
         case .portForwarding(let value): upsert(value, in: &portForwardings)
         case .workspaceTemplate(let value): upsert(value, in: &workspaceTemplates)
+        case .connectionHistory:
+            // Connection history is persisted independently by HostPersistence
+            // so HostLibrary snapshots cannot accidentally replace it.
+            break
+        case .device: break
         }
     }
 
@@ -106,6 +111,8 @@ extension VaultSnapshot {
         case .snippetPackage: snippetPackages.removeAll { $0.id == key.id }
         case .portForwarding: portForwardings.removeAll { $0.id == key.id }
         case .workspaceTemplate: workspaceTemplates.removeAll { $0.id == key.id }
+        case .connectionHistory: break
+        case .device: break
         }
     }
 
@@ -392,6 +399,71 @@ public final class VaultSyncJournal {
             )
             row.apply(tombstone, needsUpload: true)
             changed.insert(envelope.key)
+        }
+        return VaultMutationSet(keys: changed)
+    }
+
+    /// Reconciles the independently owned connection timeline with the Vault
+    /// journal. Calling this on every launch also bootstraps histories created by
+    /// clients whose original Vault bootstrap predates this record kind.
+    public func recordCurrentConnectionHistory(
+        _ values: [ConnectionHistoryEntry],
+        now: Date = .now
+    ) throws -> VaultMutationSet {
+        let state = try state()
+        let current = Dictionary(
+            uniqueKeysWithValues: values.map {
+                (VaultRecordKey(kind: .connectionHistory, id: $0.id), VaultRecordPayload.connectionHistory($0))
+            })
+        var entries = try entriesByName()
+        var changed = Set<VaultRecordKey>()
+
+        for (key, payload) in current {
+            let row = entries[key.recordName]
+            guard row?.envelope?.payload != payload || row?.envelope?.isDeleted != false else { continue }
+            let envelope = VaultEnvelope(
+                key: key,
+                version: .next(after: row?.envelope?.version, writerID: state.installationID, now: now),
+                payload: payload
+            )
+            try store(envelope, needsUpload: true, in: &entries)
+            changed.insert(key)
+        }
+
+        for row in entries.values {
+            guard let envelope = row.envelope, envelope.key.kind == .connectionHistory,
+                !envelope.isDeleted, current[envelope.key] == nil
+            else { continue }
+            let tombstone = VaultEnvelope(
+                key: envelope.key,
+                version: .next(after: envelope.version, writerID: state.installationID, now: now),
+                isDeleted: true
+            )
+            row.apply(tombstone, needsUpload: true)
+            changed.insert(envelope.key)
+        }
+        return VaultMutationSet(keys: changed)
+    }
+
+    /// Reconciles the shared installation directory without deleting records
+    /// for devices that are merely absent from one client's local store.
+    public func recordCurrentDevices(
+        _ values: [DeviceRecord], now: Date = .now
+    ) throws -> VaultMutationSet {
+        let state = try state()
+        var entries = try entriesByName()
+        var changed = Set<VaultRecordKey>()
+        for device in values {
+            let key = VaultRecordKey(kind: .device, id: device.id)
+            let payload = VaultRecordPayload.device(device)
+            let row = entries[key.recordName]
+            guard row?.envelope?.payload != payload || row?.envelope?.isDeleted != false else { continue }
+            let envelope = VaultEnvelope(
+                key: key,
+                version: .next(after: row?.envelope?.version, writerID: state.installationID, now: now),
+                payload: payload)
+            try store(envelope, needsUpload: true, in: &entries)
+            changed.insert(key)
         }
         return VaultMutationSet(keys: changed)
     }

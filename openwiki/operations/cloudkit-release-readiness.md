@@ -3,16 +3,9 @@ type: release-readiness
 title: CloudKit Schema Deployment and Signed-Device Release Readiness
 description: Production CloudKit schema, compatibility, and signed-device checks for Vault, Settings, SFTP preferences, Metrics, and Keychain-backed secrets.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T05:22:55.650Z
 sources:
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
-  - id: openwiki-source-9489f42c5779904e0b51c8fc
-    resource: repo://Frameworks/TermindDomain/Metrics/MetricsSyncTypes.swift
-  - id: openwiki-source-36d16adefef02f0ed0cdc428
-    resource: repo://Frameworks/TermindDomain/Settings/SettingsSyncTypes.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
   - id: openwiki-source-a9afccb62e1c69e5a0fbf46c
@@ -35,6 +28,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/MetricsSyncJournal.swift
   - id: openwiki-source-2dc6b29f02b74b32c0eb786e
     resource: repo://Frameworks/TermindPersistence/SettingsSyncJournal.swift
+  - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
+    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
@@ -57,7 +52,12 @@ sources:
     resource: repo://TFI/TFI.entitlements
   - id: openwiki-source-f5ab2303a67ae18cbe2f59f2
     resource: repo://TFM/TFM.entitlements
-generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
+  - id: openwiki-source-960109cd5bc0de7a879c1e16
+    resource: repo://TFMTests/VaultSyncTests.swift
+generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T09:51:39.958Z
 ---
 
 # CloudKit Schema Deployment and Signed-Device Release Readiness
@@ -77,6 +77,8 @@ Validate the Development schema first, then explicitly deploy it to Production.
 | Metrics | `TermindMetricsV1` | `MetricsItem` | `termind-metrics-v1-changes` |
 
 Vault records use the same private container through their own coordinator and compatibility contract. A Vault envelope stores integer `formatVersion` and `counter`, Boolean `isDeleted`, strings `kind`, `entityID`, `writerID`, and `payloadHash`, date `modifiedAt`, inline bytes `payload`, or `payloadAsset` for payloads above the 700,000-byte inline limit. Preserve zone names, record types, subscription identifiers, envelope fields, and format compatibility: older clients must be able to ignore the distinct `SFTPPreferencesItem` record type before attempting to decode it.
+
+Connection-history events and the reusable device directory use separate `connectionHistory` and `device` payload kinds inside the existing Vault `VaultItem` record type; neither requires a new CloudKit zone, record type, field or Production schema deployment. Release validation still needs mixed-version coverage because older clients cannot decode those payload kinds safely until the quarantine-capable build is deployed. On signed devices verify event start/end updates and tombstones, local-only Recents versus all-device History, and deterministic convergence to the newest 300 events. Independently rename a device and verify that one `device` update changes every history row resolving its stable ID, while event pruning, per-Host deletion and Clear History leave device records intact.
 
 There is no public-database access in this design. Before release, verify the app entitlements, the private-container Development schema, and the deployed Production schema with credentials that actually have CloudKit management access. An unavailable management token or a successful local test is not deployment evidence.
 

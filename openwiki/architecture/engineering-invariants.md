@@ -3,16 +3,21 @@ type: architecture-contract
 title: Cross-Cutting Engineering Invariants
 description: Exhaustive architecture, ownership, lifecycle, security, persistence, remote-session, agent, sync, and mobile safety contracts that span Termind's specialized wiki pages.
 tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T05:22:55.650Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-dc7b363138921b0923d2dc2f
+    resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
+  - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
+    resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-e4f5ea9b30063cdc7d027956
+    resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
+  - id: openwiki-source-7367aa06bc3b7ce470e78113
+    resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-4957f13c836c497e7ebe4656
@@ -27,6 +32,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
+    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-87b90af0bd504e35083a8414
@@ -49,6 +56,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-8428b9f5de49b8a561d93fa5
+    resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -73,7 +82,10 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
+generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T09:51:39.958Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -96,7 +108,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. |
-| TermindPersistence | All SwiftData models, frozen V1–V30 history, additive V31 sync-safety models, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, frozen V1–V31 history, V32 live models, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -580,6 +592,12 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
   failure needs explicit retry. Save retains unopened entries/order. Read legacy arrays/v1, assign missing lowest-free indices and write envelope;
   only successful loads permit save. Corrupt/unknown bytes remain/write-blocked. Prune missing Hosts; close/exit/delete removes live+Recent entries;
   Close All preserves connection history. Titles reserve indices without renumbering. Host-delete outbox cancels related runtime/local history.
+- Connection history is a synchronized Vault event stream for saved-host SSH/Telnet/SFTP only; Serial and temporary targets never enter it. Each
+  event carries a stable `sourceDeviceID`, start time and optional end time, but no device name. The reusable synchronized device directory maps
+  installation IDs to mutable display names, so a rename updates every feature that resolves that ID without rewriting history events. Closing a
+  pane/workspace ends its event; moving preserves it. Stores retain the newest 300 deterministically. Welcome/mobile Recents use local events and
+  aggregate by Host, while desktop/mobile History presents at most 100 all-device events. Aggregated Delete clears that Host's events across
+  devices; Clear History clears the complete timeline.
 - One serialized Live Activity for current Workspaces only. Secret/command-free validated links select ID/list without restoring unrelated sessions;
   cold launch ends leftover activities but links may open saved entries. Explicit start intent waits for foreground; last current close clears it
   even with Recent. Foreground alone never recreates dismissed activity. Snapshot/queue is separate from observed stores and cannot keep SSH/Agent

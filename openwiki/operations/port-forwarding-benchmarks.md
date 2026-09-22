@@ -19,7 +19,7 @@ sources:
 generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-22T10:02:02.985Z
 ---
 
 # Port Forwarding Benchmark Design, Results, and Reproduction

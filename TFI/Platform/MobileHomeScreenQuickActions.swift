@@ -1,11 +1,12 @@
 import Combine
 import Foundation
+import TermindApplication
 import TermindDomain
 import UIKit
 
 nonisolated enum MobileHomeScreenQuickAction: Equatable, Sendable {
     case connect
-    case history(hostID: Host.ID, kind: ConnectionHistoryEntry.Kind)
+    case history(hostID: Host.ID)
 }
 
 struct MobileHomeScreenQuickActionDescriptor: Equatable {
@@ -18,10 +19,9 @@ struct MobileHomeScreenQuickActionDescriptor: Equatable {
         switch action {
         case .connect:
             userInfo = nil
-        case .history(let hostID, let kind):
+        case .history(let hostID):
             userInfo = [
-                MobileHomeScreenQuickActions.hostIDKey: hostID.uuidString as NSString,
-                MobileHomeScreenQuickActions.kindKey: kind.rawValue as NSString,
+                MobileHomeScreenQuickActions.hostIDKey: hostID.uuidString as NSString
             ]
         }
         return UIApplicationShortcutItem(
@@ -40,6 +40,7 @@ enum MobileHomeScreenQuickActions {
     static let connectType = "com.akinokaede.termind.quickAction.connect"
     static let historyType = "com.akinokaede.termind.quickAction.history"
     static let hostIDKey = "hostID"
+    /// Retained only so shortcuts emitted by an earlier build still decode.
     static let kindKey = "kind"
 
     static func type(for action: MobileHomeScreenQuickAction) -> String {
@@ -56,31 +57,29 @@ enum MobileHomeScreenQuickActions {
         case historyType:
             guard
                 let hostIDValue = shortcutItem.userInfo?[hostIDKey] as? NSString,
-                let hostID = UUID(uuidString: hostIDValue as String),
-                let kindValue = shortcutItem.userInfo?[kindKey] as? NSString,
-                let kind = ConnectionHistoryEntry.Kind(rawValue: kindValue as String)
+                let hostID = UUID(uuidString: hostIDValue as String)
             else { return nil }
-            return .history(hostID: hostID, kind: kind)
+            return .history(hostID: hostID)
         default:
             return nil
         }
     }
 
-    static func descriptors(rows: [MobileConnectionHistoryRow]) -> [MobileHomeScreenQuickActionDescriptor] {
-        rows.prefix(historyLimit).map { row in
+    static func descriptors(rows: [MobileRecentHostRow]) -> [MobileHomeScreenQuickActionDescriptor] {
+        rows.lazy.filter(\.canOpen).prefix(historyLimit).map { row in
             return MobileHomeScreenQuickActionDescriptor(
-                action: .history(hostID: row.host.id, kind: row.entry.kind),
+                action: .history(hostID: row.host.id),
                 title: row.host.name,
-                symbol: row.entry.kind.symbol
+                symbol: "server.rack"
             )
         }
     }
 
     static func refresh(app: MobileAppModel) {
-        let rows = MobileConnectionHistory.rows(
-            entries: app.connectionHistory.entries(),
+        let rows = MobileConnectionHistory.recentHostRows(
+            entries: app.connectionHistory.localEntries(),
             library: app.library,
-            limit: historyLimit
+            limit: ConnectionHistoryModel.limit
         )
         UIApplication.shared.shortcutItems = descriptors(rows: rows).map(\.shortcutItem)
     }

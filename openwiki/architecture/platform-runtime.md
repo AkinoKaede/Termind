@@ -26,16 +26,20 @@ sources:
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-ee09ece1fddff7d72a2b5cf4
+    resource: repo://TFM/Features/Workspaces/Pane.swift
+  - id: openwiki-source-22b9fca540c3029c5ace451e
+    resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
-generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
+generated: { by: "codex", at: "2026-09-22T10:02:02.985Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T05:22:55.650Z
+    at: 2026-09-22T10:02:02.985Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -66,7 +70,7 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 
 ## macOS composition
 
-`TermindApp.init()` is the desktop composition root. It determines whether it is running tests or a debug screenshot demo, constructs one SwiftData `ModelContainer`, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, and the common `RemoteConnectionCoordinator`. Startup fails closed: an inability to open the local database calls `fatalError` rather than substituting an empty store.
+`TermindApp.init()` is the desktop composition root. It determines whether it is running tests or a debug screenshot demo, constructs one SwiftData `ModelContainer`, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the reusable device directory, and the common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and DeviceKit's `Device.current.safeDescription`. Startup fails closed: an inability to open the local database calls `fatalError` rather than substituting an empty store.
 
 ```mermaid
 flowchart TD
@@ -103,13 +107,13 @@ The model keeps only weak registrations for open `WindowModel`s. Registration in
 
 `WindowModel` contains the state that may legitimately differ in another desktop window: navigator destination, dynamic workspaces and panes, sidebar and search behavior, workspace selection, local presentations, and window-specific assistant surfaces. `RootView` preserves mounted workspace-native views when a different destination becomes visible so terminal grids, scrollback, and SFTP UI state survive navigation.
 
-A host-opening action is centralized in `AppModel`, which records connection history and chooses the requested protocol, but it opens into the caller's `WindowModel`. A batch can deliberately create separate window-local workspaces or one workspace with several panes. External SSH/SFTP/Telnet URLs likewise create a temporary workspace in the target window without adding a saved Host; Telnet URLs containing an advisory password require explicit confirmation first.
+A host-opening action is centralized in `AppModel`, which chooses the requested protocol, but it opens into the caller's `WindowModel`. That window assigns one connection-history event to each saved-host SSH, Telnet or SFTP pane. Closing the pane/workspace ends the event before disconnecting, while moving a live pane preserves it and reopening creates a new event. External temporary and Serial panes are not recorded; a crash may leave `endedAt` absent. A batch can deliberately create separate window-local workspaces or one workspace with several panes. External SSH/SFTP/Telnet URLs likewise create a temporary workspace in the target window without adding a saved Host; Telnet URLs containing an advisory password require explicit confirmation first.
 
 `MainWindowCoordinator` binds native `NSWindow`s to `WindowModel`s. It processes new-window and workspace-move requests, preserves system-restored frames, saves normal window size only at appropriate boundaries, and unregisters then closes a model when its native window closes. The AppKit delegate handles Dock reopen/new-window behavior and may retain the process after the last window according to menu-bar metrics configuration.
 
 ### Desktop lifecycle and termination
 
-The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. On app activation it refreshes entitlement state. On termination it first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
+The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from DeviceKit's `Device.current.safeDescription`; the synchronized directory can therefore update without rewriting connection events. TFI performs the equivalent DeviceKit refresh on active-scene transitions. On termination the desktop app first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
 
 Shutdown is deliberately idempotent and bounded by the delegate. It suspends memory and edit monitoring, stops metrics, speech, windows, SFTP work, external authentication, forwarding, and the outbox; concurrently awaits MCP and SFTP cancellation, then closes agent background commands and connection pools. The delegate replies to macOS when cleanup completes or after a three-second fallback, preventing an unbounded quit wait.
 
@@ -141,7 +145,7 @@ This diagram shows that mobile scenes have independent navigation but select fro
 
 `MobileAppDependencies` is the mobile assembly seam. Live dependencies create a launch file logger and a single `RemoteConnectionCoordinator`, which is passed to both mobile workspace connections and metrics; the same logger is passed to forwarding. Test dependencies use in-memory mode and permit replacement of the host repository, defaults, background-task manager, workspace connection services, metrics services, review controller, container, workspace store, live-activity controller, and forwarding factory.
 
-`MobileAppModel` creates or receives its `ModelContainer`, then builds the host repository, outbox, Keychain or in-memory secret store, settings/metrics persistence and sync coordinators, host and credential libraries, AI/skills/memory, assistant, metrics, transfers and SFTP edits, forwarding, histories, and live activities. Production uses `Termind.store` under Application Support; tests or supplied repositories use an in-memory container and do not enable production live activities or sync coordinators.
+`MobileAppModel` creates or receives its `ModelContainer`, then builds the host repository, outbox, Keychain or in-memory secret store, settings/metrics persistence and sync coordinators, host and credential libraries, AI/skills/memory, assistant, metrics, transfers and SFTP edits, forwarding, histories, the generic device directory, and live activities. The device directory and connection history use separate repositories on the same Vault context and share the stable installation ID; each repository journals its own payload kind transactionally. Workspace publication starts an event and explicit close records its end. Production uses `Termind.store` under Application Support; tests or supplied repositories use an in-memory container and do not enable production live activities or sync coordinators.
 
 The app model wires cross-service invalidation at construction. Host deletion and route changes invalidate edits, cancel transfers, stop/reconfigure forwarding, remove relevant metrics/history, and disconnect or close live workspaces as appropriate. Remote sync application similarly computes a change plan before replacing the local projection, so route-affecting changes retire affected runtime work rather than leaving it attached to stale configuration.
 
@@ -157,7 +161,7 @@ Mobile persistence deliberately restores **descriptors, not sessions**. On cold 
 
 Scene phases are aggregated by scene ID. The app only enters global background behavior when every tracked scene is backgrounded, so one backgrounded scene cannot suspend work still visible in another. On that transition it stops edit monitoring, suspends memory and sync, pauses metrics and outbox work, suspends recording, and starts a finite platform background task. If the task expires, it asks each live workspace to handle background expiration, stops forwarding, pauses transfers, and expires assistant work. It updates Live Activities but does not use them to retain connections.
 
-When any scene becomes active, mobile reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync according to foreground entitlement, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. Returning before expiration therefore preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
+When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync according to foreground entitlement, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. Returning before expiration therefore preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
 
 ## Ownership invariants and safe extension points
 

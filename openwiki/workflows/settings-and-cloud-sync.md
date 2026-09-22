@@ -8,6 +8,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
     resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
+  - id: openwiki-source-a9afccb62e1c69e5a0fbf46c
+    resource: repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-4957f13c836c497e7ebe4656
@@ -32,8 +34,14 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SettingsSyncJournalStore.swift
   - id: openwiki-source-9eb2234b02897ade8e405374
     resource: repo://Frameworks/TermindPersistence/SwiftDataAISecretStore.swift
+  - id: openwiki-source-4217f56e034013cb8704d525
+    resource: repo://Frameworks/TermindPersistence/SwiftDataConnectionHistoryRepository.swift
+  - id: openwiki-source-0b6ab59ec6a684de8101ff8e
+    resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
+  - id: openwiki-source-a0d614d618b11f103ec246ae
+    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-87b90af0bd504e35083a8414
@@ -52,10 +60,10 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
+generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T05:22:55.650Z
+    at: 2026-09-22T09:17:11.491Z
 ---
 
 # Settings, Vault, Metrics, and Cloud Sync Workflow
@@ -68,7 +76,7 @@ This workflow is CloudKit replication built around a SwiftData journal, not Swif
 
 | Category | Coordinator and zone | Content boundary | Default control |
 | --- | --- | --- | --- |
-| Vault | `VaultSyncCoordinator`; `TermindVaultV1`; `VaultItem` | Hosts, identities, SSH-key references, known hosts, snippets, forwarding rules, and workspace templates | `vault.sync.enabled` plus `icloud.sync.enabled` |
+| Vault | `VaultSyncCoordinator`; `TermindVaultV1`; `VaultItem` | Hosts, identities, SSH-key references, known hosts, snippets, forwarding rules, workspace templates, connection-history events, and the reusable device directory | `vault.sync.enabled` plus `icloud.sync.enabled` |
 | Settings | `SettingsSyncCoordinator`; `TermindAIConfigurationV1`; `AIConfigurationItem`, `SSHPreferencesItem`, and `SFTPPreferencesItem` | AI configuration, skills, search, terminal, SSH, and SFTP preferences—not credential material | `settings.sync.enabled` plus `icloud.sync.enabled` |
 | Metrics | `MetricsSyncCoordinator`; `TermindMetricsV1`; `MetricsItem` | Persisted metrics selections, not samples or active monitoring | `metrics.sync.enabled` plus `icloud.sync.enabled` |
 
@@ -130,6 +138,10 @@ On fetch, coordinators process only their zone and accepted record types. They d
 Merge is deterministic: newer versions win; an older remote value causes the local value to be requeued. For equal versions whose payloads differ, encoded bytes provide a deterministic tie-breaker. Settings and Metrics additionally collapse multiple fetched versions of one key before deciding, so batch delivery order does not affect the result. A `serverRecordChanged` save failure runs the server record through the same validation path as a fetch. A supported envelope either establishes an identical local version as uploaded or requeues the winning local result; an unsupported envelope is quarantined instead of silently retrying a stale local payload. Successful sends clear `needsUpload` only if the journal still holds the sent version, so a newer local edit cannot be incorrectly acknowledged.
 
 Vault projections deliberately remove device-local presentation/usage metadata from envelopes: group/package expansion is normalized and identity `lastUsedAt` is omitted, while applying a remote identity preserves the local usage timestamp. Settings likewise excludes explicitly device-local defaults such as debug/logging, review history, and terminal font family/size/follow-theme-size. Settings record-type compatibility is intentional: SSH and SFTP preferences use distinct types in the Settings zone so older clients can ignore newer records before decoding.
+
+Connection history is an exception to “configuration-only Vault” by design: each event is an independent `connectionHistory` Vault key using the same `VaultItem` record type and V1 envelope. Existing local events bootstrap even after the original Vault bootstrap completed. Insert, end-time update, deletion and clear reconcile history rows with the journal in one transaction; logical deletions use ordinary envelope tombstones. Remote events may arrive before their referenced Host and remain stored but hidden until that Host exists. After local or remote merge, deterministic start-time/UUID ordering retains the newest 300 and journals tombstones for the overflow, allowing devices to converge. Platform views then choose a stable-source-device local projection or the complete synchronized event stream.
+
+The reusable device directory is a separate replication stream in the same Vault category. Each `DeviceRecord` uses a `.device` payload keyed by the stable installation ID; its repository upsert and journal envelope commit together independently of the event repository. Platform activation refreshes the current system display name, and app models invalidate the directory cache when remote `.device` keys arrive. Device reconciliation creates or updates records but does not tombstone mappings merely because they are absent locally, and connection-event retention, per-Host deletion, or Clear History never removes them.
 
 ## Per-record compatibility restrictions
 

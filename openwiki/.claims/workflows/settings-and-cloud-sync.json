@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6f79c9be2a3114480fd65a8ef8af40f5fd3076ed721281e826cd4fbbf11ddcbf",
+  "pageVersion": "sha256:4c76e612db1b0e6ac951727a79725e55ece21dac8f56cf59871859bbb2e8edb1",
   "claims": [
     {
       "id": "claim_dc6281a3ccb7415ea961d1a954248647",
@@ -102,23 +102,19 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:fe8c66a47936a9120eb3b71def8c148801e215d53fda47a326349388b30f9c1d"
+          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L195-L280",
-          "version": "repo-lines-v1:sha256:7a3f070eee08492af341ea45b1d42562df2820085721adfeb409d9bf5a1adf4a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4ZjY4OWI0YjBhZGE0NTE4MTY0NjEyZDg2OGMwMTc0MjE1NDNlNTI0MjJmNjE4NTQxMTg0NDk5MmE0YWJiNjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2NmYyODA5M2E3ZDVmNzRjNDlkYjc3ZjY0NGVjZWZiYmFkMmI4OTk4YmZjYTU1Zjg3MGRmZjliNzYwOTk4NzMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExNmEwZjUwNmQzNTQyODQxN2FiMDc3OGQ1MzBkMjdhNTk5ZjQ3NThmYzBjN2NhMTYxYWIwMjA3NjA4ZTVkOWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJhMzc3ZmQ0N2U2MzAxMWU0OWU4NzQxYjZkNmRjYTg1OGIzMzM2OTY3ZmUwYjBjNDRmYmNmNTRjOGNmYjcwOGYifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L435-L490",
-          "version": "repo-lines-v1:sha256:068788c6da350e18f9abd632d6c4c8c00136363fd04673649637a07db84c022a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzN2IzMDhlZWM0OTJlNzU2MzNlYjIyY2VlY2Y1ZGQ0MTQ3MDdhODJiYWQ2NTg1YzlmNjI1ODMxMDY3NzhiNmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlMDNlMTk2NTg3OGNiN2ExOTQ4Y2Q5MzBlYTdkNTg1NzdjMDU2OTlmY2UyODQwYTlmZDMxYmYyNGFhYmFhMDcifQ"
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
+          "version": "repo-file-v1:sha256:2c8baddd408651cfaaec231be95b0af95c4b93b8e264d1733cbffbba7bad48f7"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
           "version": "repo-file-v1:sha256:c028e57ece449c591c32f8ac849fda2f6a82cda00974acc87f832295bb3acc3d"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift#L391-L432",
-          "version": "repo-lines-v1:sha256:e8259d7744aa274446f61f09639edc61c5ff08dcf481c298f0ffab4c54fcbecc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU4ZmE1ZDNkMmQ5NDU3MDM1OTZhMmRmMGNkYWRhYzY4N2IyYmE4OWI5MDI5N2MzOThiYzY0MGI2MDdmZWRlZWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhYzc3MzU0ZjUwMWQzODI5ZjFhYmZhMDY3OTE1OWJmY2NkMzcwYzQ3ZmIzM2E0MjU4NWJlOGE4NWE5NThjN2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE3ZjQzNWMyOWUxZGI3MTM5MzBmMWNlZGU0YmRmMzNmZDM1Y2E1ZjkwZWYwM2M1NWEzMDkwMzAyNGQ1ZDJmNTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMWYxMDliNjM1MzY0M2YxMDUzYjQ0M2MxYTA4ZjRjZDdjMzMzNmQ0OTgzMjg0M2E5ZTIwODZkOGRiMzc0ZTQifQ"
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
+          "version": "repo-file-v1:sha256:c727e97334d7ac3d7e5a820afe328a8c1809c08d73abd9c03e91287599d66fb0"
         }
       ]
     },
@@ -248,7 +244,7 @@
     },
     {
       "id": "claim_c0648936d39d4e64815cde3d07152360",
-      "statement": "V31 safety storage scopes restrictions and recovery by container, environment, account, zone and owner. A new or interrupted scope requires a fresh cursor while preserving local edits; a recovery marker is saved before automatically syncing engine creation or network work and remains across overlapping operations until safe completion.",
+      "statement": "V31 safety storage scopes restrictions and recovery by container, environment, account, zone and owner. A new or interrupted scope requires a fresh cursor while preserving local edits; recovery is saved before engine/network work and remains until safe completion.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
@@ -256,19 +252,15 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:fe8c66a47936a9120eb3b71def8c148801e215d53fda47a326349388b30f9c1d"
+          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift",
           "version": "repo-file-v1:sha256:a66b5df76f386d4370e6b7df14cf7b00942b48c03bccebbed010343a30667f7f"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L239-L366",
-          "version": "repo-lines-v1:sha256:7dd72645fc1f16350eb03d24b975826bd96d4f764fdd97d949f50c5b7805105b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI3ZmY2Y2Q1NDM0ZjdhYzkwMmUxNDJiOWNmYjdmNDJkN2ZlOWM5YWE1MWU1YzZiZjM4OWQwNTdhOWZiZjQ3NzU5IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJhNzEyYzJhMTYyN2ZlZTFhMDM1YmE1ZjI2OGU5NzNiMWEzMDczOTYzYTg2Y2NhMDUxZjU3MWMzNWRkMzU0MmMxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwZTcwZWY0MGNjYTYyYmE3MTM2OWFiMmMzNWZlMTRkZmJhZDEyZDdiZTcxNDFjMjUwMjcwNzMxNDBjYTI4MmRkIn0"
-        },
-        {
-          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift",
-          "version": "repo-file-v1:sha256:e6fbb3f62e917da272cb0ea54790a212b235c044ed6e414883f0904a14b2ef0b"
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
+          "version": "repo-file-v1:sha256:2c8baddd408651cfaaec231be95b0af95c4b93b8e264d1733cbffbba7bad48f7"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
@@ -327,10 +319,36 @@
           "version": "repo-file-v1:sha256:39095bc585820f77c2b1893c684c2a81cfed675ae5f406fbe996bdbde4cdf2fe"
         }
       ]
+    },
+    {
+      "id": "claim_12e52cd084bd42fb9fc004e10abddf17",
+      "statement": "Each connection event is a VaultItem connectionHistory key whose local row and journal change commit together; remote events can precede Hosts and deterministic overflow tombstones converge devices to the newest 300. Separately, each reusable DeviceRecord is a VaultItem device key whose name upsert commits with its own journal envelope and is not deleted by event retention or History clearing; neither payload kind requires a new CloudKit schema.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift",
+          "version": "repo-file-v1:sha256:5186b2e30bb07fa6c53dd4def6a5cfba285e103690004e7767bbd40f9f3fe18c"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataConnectionHistoryRepository.swift",
+          "version": "repo-file-v1:sha256:e0468dec12004d9d8552b2f0d7745008a17b0271f20b65c1b425d9b917e0319a"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
+          "version": "repo-file-v1:sha256:9a3e7296fd09c4b397c90c7b15c20775a0950a145ec1c506ac431c04fc5ea020"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
+          "version": "repo-file-v1:sha256:c727e97334d7ac3d7e5a820afe328a8c1809c08d73abd9c03e91287599d66fb0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift",
+          "version": "repo-file-v1:sha256:19a4f6918e448a30a33daa7390989a96e4340e6c17e03534e9bd17e229439de9"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T05:22:55.650Z"
+    "at": "2026-09-22T09:17:11.491Z"
   }
 }

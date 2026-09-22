@@ -3,9 +3,6 @@ type: implementation guide
 title: "Shell Integration: Bootstrap, OSC Events, and Terminal State"
 description: "How Termind installs session-local Bash, Zsh, and Fish hooks over the PTY, hides bootstrap exchanges, decodes OSC events, and drives cwd, history, startup commands, and command composition on macOS and iOS."
 tags: [ssh, terminal, shell-integration, osc, command-history, charset, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
     resource: repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift
@@ -23,7 +20,12 @@ sources:
     resource: repo://TFMTests/CommandHistoryTests.swift
   - id: openwiki-source-d94aebde8a56adf5ef02c658
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
+  - id: openwiki-source-b1446950c4c60caef12aa43a
+    resource: repo://TFMTests/ShellIntegrationBootstrapTests.swift
 generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T05:59:31.338Z
 ---
 
 # Shell Integration: Bootstrap, OSC Events, and Terminal State

@@ -12,10 +12,18 @@ sources:
     resource: repo://Benchmarks/PortForwarding/main.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
+    resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
+  - id: openwiki-source-6f388236eaa573c3c2ba7706
+    resource: repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift
   - id: openwiki-source-d593fb9c62c3736497a39486
     resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
+  - id: openwiki-source-7367aa06bc3b7ce470e78113
+    resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
+  - id: openwiki-source-0b6ab59ec6a684de8101ff8e
+    resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
@@ -38,10 +46,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "omp", at: "2026-09-22T03:23:14.035Z" }
+generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T05:22:55.650Z
+    at: 2026-09-22T10:02:02.985Z
 ---
 
 # Module and Directory Architecture Map
@@ -124,6 +132,7 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 | Browse or transfer files | Domain remote-file values; Application remote-filesystem and edit model. | Remote Infrastructure SFTP channels, transfer scheduler, planners, and edit service. | Native browser, conflict UI, local file access, and Open With presentation. |
 | Run an Assistant turn | Application conversation/execution coordination; AgentKit generic runtime. | Termind host tools in Remote Infrastructure; persistence and memory stores. | Native composer, approval/input presentation, transcript mounting, and navigation. |
 | Edit and synchronize Vault data | Domain snapshots and mutations; Application library/use-case state. | Persistence local stores and journals; Infrastructure CloudKit coordinators; Keychain secret implementation. | Platform editors and app-level service assembly. |
+| Resolve this or another installation's display name | Domain `DeviceRecord`; Application device-directory port and observable model. | Persistence-owned SwiftData device records and Vault journal payloads. | Platform composition supplies the stable installation ID and system display name. |
 | Display remote metrics | Domain metrics; Application sampling/snapshot interfaces and model. | Remote SSH sampler plus Infrastructure output parsers. | Native dashboards and desktop menu-bar integration. |
 
 This split is also a placement rule: shared behavior belongs with its existing owner; native lifetime or platform API usage stays in the app. Similar names such as `Agent`, `Transfers`, `Terminal`, or `Metrics` in different modules do not imply duplicated responsibilities.

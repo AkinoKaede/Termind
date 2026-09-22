@@ -131,16 +131,21 @@ struct MobileCardTests {
 
         let ssh = try #require(app.open(hostID: host.id, kind: .ssh))
         let sftp = try #require(app.open(hostID: host.id, kind: .sftp))
-        defer {
-            app.close(ssh)
-            app.close(sftp)
-        }
 
         #expect(Set(app.connectionHistory.entries(for: host.id).map(\.kind)) == [.ssh, .sftp])
+        #expect(
+            app.connectionHistory.entries(for: host.id).allSatisfy {
+                app.devices.name(for: $0.sourceDeviceID)?.isEmpty == false
+            })
+        #expect(app.connectionHistory.entries(for: host.id).allSatisfy { $0.endedAt == nil })
         #expect(app.lastConnectedAt(for: host.id) != nil)
         let restored = ConnectionHistoryModel(
             repository: SwiftDataConnectionHistoryRepository(context: ModelContext(app.container)))
         #expect(Set(restored.entries(for: host.id).map(\.kind)) == [.ssh, .sftp])
+
+        app.close(ssh)
+        app.close(sftp)
+        #expect(app.connectionHistory.entries(for: host.id).allSatisfy { $0.endedAt != nil })
     }
 
     @Test func hostAndIdentityColorsRemainDraftsUntilSavedAndRoundTripThroughPersistence() throws {

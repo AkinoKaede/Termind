@@ -1207,13 +1207,18 @@ private struct ConnectionHistorySidebar: View {
     }
 
     private var rows: [(entry: ConnectionHistoryEntry, host: Host)] {
-        guard !query.isEmpty else { return allRows }
-        return allRows.filter { entry, host in
-            host.matches(query)
-                || historyAddress(entry, host: host)
-                    .localizedCaseInsensitiveContains(query)
-                || entry.kind.label.localizedCaseInsensitiveContains(query)
-        }
+        let matches =
+            query.isEmpty
+            ? allRows
+            : allRows.filter { entry, host in
+                host.matches(query)
+                    || historyAddress(entry, host: host)
+                        .localizedCaseInsensitiveContains(query)
+                    || entry.kind.label.localizedCaseInsensitiveContains(query)
+                    || app.devices.name(for: entry.sourceDeviceID)?
+                        .localizedCaseInsensitiveContains(query) == true
+            }
+        return Array(matches.prefix(ConnectionHistoryModel.presentationLimit))
     }
 
     var body: some View {
@@ -1302,7 +1307,7 @@ private struct ConnectionHistorySidebar: View {
             isSelected: selectedID == entry.id
         ) {
             VStack(alignment: .trailing, spacing: 1) {
-                Text(entry.kind.label)
+                Text(app.devices.name(for: entry.sourceDeviceID) ?? "—")
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
                 Text(entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))

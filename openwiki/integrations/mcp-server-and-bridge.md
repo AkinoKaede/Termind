@@ -3,9 +3,6 @@ type: integration guide
 title: MCP Server, Transfer APIs, and Stdio Bridge
 description: How the macOS-only Termind MCP listener authenticates local clients, executes host tools through external UI authentication, and provides scoped HTTP SFTP transfers. Covers the bundled termind-mcp stdio bridge and MCP session lifecycle.
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
@@ -44,6 +41,9 @@ sources:
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T09:51:39.958Z
 ---
 
 # MCP Server, Transfer APIs, and Stdio Bridge

@@ -16,14 +16,20 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
+  - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
+    resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
   - id: openwiki-source-4143deeb06ebc3198de62e2b
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostLibraryModel.swift
+  - id: openwiki-source-6f388236eaa573c3c2ba7706
+    resource: repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift
   - id: openwiki-source-ced5c103bc80a375eeb8bcef
     resource: repo://Frameworks/TermindApplication/Repositories/VaultStore.swift
   - id: openwiki-source-d593fb9c62c3736497a39486
     resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
   - id: openwiki-source-f402125a513db26af8c36b3e
     resource: repo://Frameworks/TermindDomain/Credentials/Identity.swift
+  - id: openwiki-source-7367aa06bc3b7ce470e78113
+    resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
   - id: openwiki-source-9bd2b93db78747d6956c2405
     resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
   - id: openwiki-source-3626532038772ef56874c17e
@@ -60,6 +66,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-0b6ab59ec6a684de8101ff8e
+    resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-2c20dfd15c3c8143bab58304
@@ -98,10 +106,10 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "omp", at: "2026-09-22T05:22:55.650Z" }
+generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T05:22:55.650Z
+    at: 2026-09-22T10:02:02.985Z
 ---
 
 # Shared Framework Directory Responsibilities
@@ -116,7 +124,7 @@ Domain describes what the system means, not how a database, socket, or native vi
 
 | Directory | Responsibility |
 | --- | --- |
-| Root files | Shared saved-name normalization/defaulting and tag-color values. |
+| Root files | Shared saved-name normalization/defaulting, tag-color values, and the portable `DeviceRecord` used by the synchronized installation directory. |
 | `AI` | Model/provider form values, API-type selection, and model-editing rules. |
 | `Agent` | External tool-call audit values; the generic agent loop remains in AgentKit. |
 | `Commerce` | Pro feature and entitlement/access value types. |
@@ -146,10 +154,10 @@ Application depends on Domain and AgentKit abstractions. It exposes the capabili
 | `Agent` | Conversation/composer/library state, Assistant execution assembly, title/command generation, attachments, slash commands, tool approval/presentation policy, and memory-indexed repository wrapping. It coordinates AgentKit rather than replacing its loop. |
 | `Connections` | Route preparation and snapshots, external connection URLs, connection journeys, trust/MFA prompts, shared retry state, session host-store boundary, and plans for applying remote Vault changes. |
 | `Events` | Outbox store contract, retry runner, and host-deletion handlers. |
-| `FeatureModels` | Observable libraries/editing policy for hosts, credentials, Known Hosts, snippets, forwarding, histories, AI, skills, memory, SSH import, settings, expansion state, and review prompting. |
+| `FeatureModels` | Observable libraries/editing policy for hosts, credentials, Known Hosts, snippets, forwarding, histories, the reusable device directory, AI, skills, memory, SSH import, settings, expansion state, and review prompting. |
 | `Logging` | Application log-management contract and disabled logging support. |
 | `Metrics` | Sampling clock, snapshots/read interface, and shared server-monitoring model. |
-| `Repositories` | History repository contracts, SSH-import batch/reader boundary, and Vault load/save/transaction coordination. |
+| `Repositories` | History repository contracts, including event end/delete semantics; the independent device-directory repository port; SSH-import batch/reader boundary; and Vault load/save/transaction coordination. |
 | `Speech` | Speech-transcription service/events and coordination contract. Native microphone capture remains injected. |
 | `Terminal` | Shared terminal Find controller; the native terminal view is not here. |
 | `Transfers` | Remote-filesystem port and basic file operations, remote-edit model, and workspace upload-notice state. Bulk scheduling belongs to Remote Infrastructure. |
@@ -163,7 +171,7 @@ This module currently has **no functional subdirectories**. Its root spans sever
 | Root-level responsibility group | What it owns |
 | --- | --- |
 | Schema and migration | Current SwiftData schema, frozen historical representations, migration plan, and the sole shared container factory. |
-| Vault and histories | Persistent Host/credential metadata and related Vault records; command, connection, and SFTP history repositories. |
+| Vault and histories | Persistent Host/credential metadata and related Vault records; command and SFTP local histories; separate synchronized connection-event and generic device-directory repositories; and Vault journal integration. |
 | AI, Agent, skills, and audit | Provider/configuration records, agent-run/message replay, tool-audit storage, skill packages, and persistence redaction. |
 | Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault local stores, mutation journals, scoped upload restrictions, recovery checkpoints, and sync-facing persistence adapters. |
 | Secret metadata/adapters | AI secret references and storage policy bridged to the injected Keychain service; not a plaintext secret database. |
@@ -184,7 +192,7 @@ Details: [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-
 | `Logging` | Launch-scoped file logging and log-file lifecycle. |
 | `Speech` | Apple speech-recognition implementation plus an audio-input abstraction; each app supplies its native audio capture. |
 
-This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. The shared safety adapter projects scoped persistent restrictions and recovery state into the lifecycle; it does not merge the categories' engines, accounts, subscriptions or journals. V31 adds the safety storage locally, without changing the existing CloudKit record formats. Both received records and save-conflict replies use the same validation path before allowing a blocked record to become uploadable again.
+This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. The shared safety adapter projects scoped persistent restrictions and recovery state into the lifecycle; it does not merge the categories' engines, accounts, subscriptions or journals. V31 added safety storage locally; V32 replaces current Host/connection-history shapes, adds the generic device-directory record, and keeps the existing CloudKit record format. Both received records and save-conflict replies use the same validation path before allowing a blocked record to become uploadable again.
 
 ## TermindRemoteInfrastructure — protocol and remote-operation machinery
 

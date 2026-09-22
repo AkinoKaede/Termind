@@ -3,14 +3,13 @@ type: architecture directory guide
 title: Native App Directory Responsibilities
 description: Second-level directory responsibilities in TFM and TFI, including every feature area, platform adapters, reusable native UI, and the different window and scene ownership models.
 tags: [architecture, directories, macos, ios, ipados, navigation, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:45:03.442Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
     resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-83cf4f34941d19114f080a3a
@@ -83,7 +82,10 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "omp", at: "2026-09-22T03:45:03.442Z" }
+generated: { by: "codex", at: "2026-09-22T10:02:02.985Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-22T10:02:02.985Z
 ---
 
 # Native App Directory Responsibilities
@@ -106,6 +108,8 @@ generated: { by: "omp", at: "2026-09-22T03:45:03.442Z" }
 | Root metadata | App bundle configuration and entitlements. | App bundle configuration and entitlements. |
 
 `App`, `Platform`, `Design`, and `DesignSystem` are currently flat source directories. Their multiple concerns are listed above rather than presented as nonexistent child folders.
+
+The app composition roots also adapt platform device naming into the shared device directory. Both TFM and TFI read DeviceKit's `Device.current.safeDescription`; TFM refreshes it when the application becomes active, and TFI refreshes it when a scene becomes active. The portable `DeviceRecord`, directory model and repositories remain in shared frameworks rather than either native app directory.
 
 ## Application subdirectories
 

@@ -58,6 +58,7 @@ final class AppModel {
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
     let connectionHistory: ConnectionHistoryModel
+    let devices: DeviceDirectoryModel
     private let externalToolCalls: ToolAuditModel
     var toolAudit: ToolAuditModel { externalToolCalls }
     let externalAuthentication: ExternalAuthCoordinator
@@ -146,6 +147,7 @@ final class AppModel {
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
+        devices: DeviceDirectoryModel? = nil,
         externalToolCalls: ToolAuditModel = ToolAuditModel(),
         dependencies: AppDependencies? = nil,
         speechTranscription: SpeechTranscriptionCoordinator? = nil,
@@ -185,6 +187,7 @@ final class AppModel {
         self.commandHistory = commandHistory
         self.sftpHistory = sftpHistory
         self.connectionHistory = connectionHistory
+        self.devices = devices ?? DeviceDirectoryModel(currentDeviceID: connectionHistory.sourceDeviceID)
         self.externalToolCalls = externalToolCalls
         connections = connectionCoordinator
         serialPorts = dependencies.serialPortService
@@ -291,6 +294,7 @@ final class AppModel {
                 repository: hostRepository,
                 closeWorkspaces: { [weak self] deletion in
                     self?.closeWorkspaces(for: deletion.hostID)
+                    self?.connectionHistory.clear(for: deletion.hostID)
                 },
                 cancelTransfers: { [weak self] deletion in
                     self?.sftpEdits.invalidate(hostID: deletion.hostID)
@@ -373,6 +377,10 @@ final class AppModel {
         }
         if !plan.forwardingRuleIDs.isEmpty { forwarding.stop(plan.forwardingRuleIDs) }
         hosts.replacePersistedSnapshot(snapshot)
+        if changedKeys.contains(where: { $0.kind == .connectionHistory }) {
+            connectionHistory.reload()
+        }
+        if changedKeys.contains(where: { $0.kind == .device }) { devices.reload() }
         forwarding.reconcileConfiguration()
     }
 
@@ -439,6 +447,7 @@ final class AppModel {
 
     func registerWindow(_ window: WindowModel) {
         guard !window.isClosed, windows[ObjectIdentifier(window)]?.value !== window else { return }
+        configureConnectionHistory(in: window)
         window.connectionCoordinator = connections
         window.hostStore = hosts
         window.metricsModel = serverMetrics
@@ -706,6 +715,7 @@ final class AppModel {
         as target: HostOpenTarget,
         in window: WindowModel
     ) -> Workspace {
+        configureConnectionHistory(in: window)
         beginOpening(host, as: target)
 
         switch target {
@@ -837,19 +847,6 @@ final class AppModel {
     /// thing that should differ between them. Inlining this was fine while there
     /// were two.
     private func beginOpening(_ host: Host, as target: HostOpenTarget) {
-        if hosts.host(host.id) != nil {
-            let kind: ConnectionHistoryEntry.Kind
-            switch target {
-            case .preferredTerminal: kind = host.preferredTerminalProtocol == .telnet ? .telnet : .ssh
-            case .sshSession: kind = .ssh
-            case .telnetSession: kind = .telnet
-            case .sftpChannel: kind = .sftp
-            }
-            connectionHistory.record(
-                kind: kind,
-                for: host.id
-            )
-        }
         switch target {
         case .preferredTerminal, .sshSession, .telnetSession:
             hosts.setStatus(.connecting, for: host.id)
@@ -876,9 +873,10 @@ final class AppModel {
 
     /// Saved Hosts ordered by their latest connection event, with each Host
     /// appearing only once.
-    func recentHosts(limit: Int = 5) -> [Host] {
+    func recentHosts(limit: Int = 5, localOnly: Bool = false) -> [Host] {
         var seen = Set<Host.ID>()
-        return connectionHistory.entries().compactMap { entry in
+        let entries = localOnly ? connectionHistory.localEntries() : connectionHistory.entries()
+        return entries.compactMap { entry in
             guard seen.insert(entry.hostID).inserted else { return nil }
             return hosts.host(entry.hostID)
         }.prefix(limit).map { $0 }
@@ -886,6 +884,10 @@ final class AppModel {
 
     func lastConnectedAt(for hostID: Host.ID) -> Date? {
         connectionHistory.mostRecentDate(for: hostID)
+    }
+
+    func lastConnectedLocallyAt(for hostID: Host.ID) -> Date? {
+        connectionHistory.mostRecentLocalDate(for: hostID)
     }
 
     /// Opens multiple Hosts, with the layout chosen by the calling surface.
@@ -905,6 +907,7 @@ final class AppModel {
         layout: BatchLayout = .separateWorkspaces,
         in window: WindowModel
     ) {
+        configureConnectionHistory(in: window)
         switch layout {
         case .separateWorkspaces:
             let opened = hosts.map { open($0, as: target, in: window) }
@@ -922,6 +925,7 @@ final class AppModel {
         _ snippets: [Snippet], overrideHostIDs: [Host.ID]? = nil,
         fallbackHostIDs: [Host.ID]? = nil, in window: WindowModel
     ) {
+        configureConnectionHistory(in: window)
         var opened: [Workspace] = []
         for snippet in snippets {
             let ids =
@@ -940,6 +944,16 @@ final class AppModel {
             }
         }
         if let first = opened.first { window.select(first.id) }
+    }
+
+    private func configureConnectionHistory(in window: WindowModel) {
+        window.recordConnectionHistory = { [weak self] hostID, kind in
+            guard let self, self.hosts.host(hostID) != nil else { return nil }
+            return self.connectionHistory.record(kind: kind, for: hostID)?.id
+        }
+        window.endConnectionHistory = { [weak self] id in
+            self?.connectionHistory.end(id)
+        }
     }
 
     /// ⌘T, the window toolbar's `+`, the workspace bar's `+`, and Welcome. Raises the

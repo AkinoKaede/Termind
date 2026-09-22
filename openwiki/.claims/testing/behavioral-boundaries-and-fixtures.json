@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7af6d060ce1acf8f2c7a21e69ae27cfccf8932ab35f6f892944db9a5ffe45f69",
+  "pageVersion": "sha256:4d35b994301024766ef57f8f9efd46cc6b838886c341a3c18e9bec652aae0af7",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -150,15 +150,11 @@
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Persistence compatibility tests open historical SwiftData fixtures through the shared container factory, assert retained records and migration outcomes, and verify independent in-memory containers expose the full schema.",
+      "statement": "Persistence compatibility tests open historical SwiftData fixtures through the shared container factory, assert retained records and migration outcomes through V32, and verify independent in-memory containers expose the full schema.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L22-L89",
-          "version": "repo-lines-v1:sha256:86e0ea6e63d5624d21afc6b082e4d62104188200b4b484e2ef92513b8a3fcf68:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwY2NlMjYyMzJlNGRmZGY0MzdkMDRjNDAxN2I1MWQ5ZGY0ZGYyODVjYmFkNTI4YzcxMDY5ZTA5NGRkNjNhMTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjljZDY0Y2U3MWNmNThiZmMxOGRjOGNlOTc3N2RlNjVhMGU4MjcyNDc2ZDUzMDUzNDdiZDYyNmI3YjFiZTJjMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJmNjM3YTI0NzMyOGUzMTA0MWU4Y2I4MjE3NzhiYTVkNjE3ZjNlYzIyNzE2ZTgzMTdjMTU2NTU4YTk0Mjg4ZTIifQ"
-        },
-        {
-          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L92-L175",
-          "version": "repo-lines-v1:sha256:350be9cb654f9d715e6fbcb7c7542f0ac949ed2b97a8573811e5a3219a3ca810:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI0MTI4ZTcwN2VhNWRkMTgxNDgzNzY5MTdiMzFiODgxZjcwYjdmYTlmN2VmM2U3NWI3Y2U1ZmU1MTRmNWRlNDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI3YzZkZjQxNTJiNzdkYWM0ODJmZmQ5M2Y3NWUyYTA0MTJkZTk5NDVhNWFiMmI3ZDY5ZDc2YjAyZGQzNTRiMmYifQ"
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
+          "version": "repo-file-v1:sha256:0bc3fd0f5052bbc3ae57a157adf11e614d7a228aca3b7517b2996cdd52e3b7a0"
         }
       ]
     },
@@ -214,13 +210,39 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:fe8c66a47936a9120eb3b71def8c148801e215d53fda47a326349388b30f9c1d"
+          "version": "repo-file-v1:sha256:46b7af81fc4ee722076d51522aca8b1c8dd5738c704da39d95034c734aaf851b"
+        }
+      ]
+    },
+    {
+      "id": "claim_fd10d6f20c88477691425ceeb1241a6c",
+      "statement": "Focused connection-history tests cover V31-to-V32 migration, the independent generic device record and rename propagation, synchronized event lifecycle/tombstones, stable local-device filtering, newest-300 storage, 100-event presentation, preferred-protocol quick actions and multilingual mobile rendering while excluding Serial.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
+          "version": "repo-file-v1:sha256:0bc3fd0f5052bbc3ae57a157adf11e614d7a228aca3b7517b2996cdd52e3b7a0"
+        },
+        {
+          "resource": "repo://TFITests/MobileCardRenderingTests.swift",
+          "version": "repo-file-v1:sha256:407d0032835320626af2fa6ba04922430189a6d82855d394c0f1bfcc02cb1147"
+        },
+        {
+          "resource": "repo://TFITests/MobileConnectionPickerTests.swift",
+          "version": "repo-file-v1:sha256:130622c416a1e6180c210594ac540fd1213991276c062a4efcba65905daa537e"
+        },
+        {
+          "resource": "repo://TFMTests/ConnectionHistoryTests.swift",
+          "version": "repo-file-v1:sha256:ad26db9ba0c341ffb62052b57f42f82fd1296db1d81a17fedf795752e247e019"
+        },
+        {
+          "resource": "repo://TFMTests/VaultSyncTests.swift",
+          "version": "repo-file-v1:sha256:5098275a86373a8299364cb1f487ac69b07a22a712da9644bd7dc86bd76b0941"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T05:22:55.650Z"
+    "at": "2026-09-22T09:51:39.958Z"
   }
 }

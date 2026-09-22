@@ -1,11 +1,18 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 import UIKit
+
+private enum MobileWorkspaceListMetrics {
+    static let leadingIconSize: CGFloat = 36
+    static let rowSpacing: CGFloat = 12
+}
 
 /// The registered Workspaces destination.
 struct MobileWorkspaceListView: View {
     let app: MobileAppModel
     @Bindable var scene: MobileSceneModel
+    @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
     @State private var clearingHistory = false
 
@@ -30,13 +37,14 @@ struct MobileWorkspaceListView: View {
                             Button {
                                 scene.selectWorkspace(descriptor.id)
                             } label: {
-                                HStack(spacing: 12) {
-                                    Image(systemName: descriptor.kind.symbol)
-                                        .foregroundStyle(.tint)
-                                        .frame(width: 28, height: 28)
-                                        .accessibilityLabel(Text(descriptor.kind.label))
+                                HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
+                                    hostIcon(host)
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                                        HStack(alignment: .center, spacing: 12) {
+                                            Text(descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                                            Spacer(minLength: 12)
+                                            protocolLabel(descriptor.kind)
+                                        }
                                         Text(
                                             app.library.loginAddress(
                                                 for: host,
@@ -47,7 +55,7 @@ struct MobileWorkspaceListView: View {
                                         .lineLimit(1)
                                         .truncationMode(.middle)
                                     }
-                                    Spacer(minLength: 0)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
                                 }
                                 .contentShape(.rect)
                                 .accessibilityElement(children: .combine)
@@ -146,21 +154,23 @@ struct MobileWorkspaceListView: View {
             Button {
                 scene.selectWorkspace(workspace.id)
             } label: {
-                HStack(spacing: 12) {
+                HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
                     ZStack(alignment: .bottomTrailing) {
-                        Image(systemName: workspace.descriptor.kind.symbol)
-                            .foregroundStyle(.tint)
-                            .frame(width: 28, height: 28)
+                        hostIcon(app.library.host(workspace.descriptor.hostID))
                         Circle()
                             .fill(statusTint(for: workspace))
                             .frame(width: 8, height: 8)
                             .overlay { Circle().stroke(Color(uiColor: .systemBackground), lineWidth: 1.5) }
                     }
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(workspace.descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                        HStack(alignment: .center, spacing: 12) {
+                            Text(workspace.descriptor.title).foregroundStyle(.primary).lineLimit(1)
+                            Spacer(minLength: 12)
+                            protocolLabel(workspace.descriptor.kind)
+                        }
                         Text(workspace.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
                     }
-                    Spacer(minLength: 0)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(.rect)
@@ -183,10 +193,10 @@ struct MobileWorkspaceListView: View {
         }
     }
 
-    var historyRows: [MobileConnectionHistoryRow] {
+    var historyRows: [MobileRecentHostRow] {
         _ = app.connectionHistory.revision
-        return MobileConnectionHistory.rows(
-            entries: app.connectionHistory.entries(),
+        return MobileConnectionHistory.recentHostRows(
+            entries: app.connectionHistory.localEntries(),
             library: app.library,
             limit: Self.historyLimit
         )
@@ -198,76 +208,93 @@ struct MobileWorkspaceListView: View {
             historyButton(row)
                 .contextMenu {
                     ForEach(MobileConnectionHistoryActionPolicy.menuKinds, id: \.self) { kind in
-                        historyConnectionButton(kind, for: row)
+                        historyConnectionButton(kind, host: row.host)
                     }
                     Divider()
                     Button("Delete", systemImage: "trash", role: .destructive) {
-                        app.connectionHistory.delete(row.entry.id)
+                        app.connectionHistory.clear(for: row.host.id)
                     }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button("Delete", systemImage: "trash", role: .destructive) {
-                        app.connectionHistory.delete(row.entry.id)
+                        app.connectionHistory.clear(for: row.host.id)
                     }
                     ForEach(MobileConnectionHistoryActionPolicy.swipeKinds, id: \.self) { kind in
-                        historyConnectionButton(kind, for: row)
+                        historyConnectionButton(kind, host: row.host)
                             .tint(swipeTint(for: kind))
                     }
                 }
         }
     }
 
-    private func historyButton(_ row: MobileConnectionHistoryRow) -> some View {
-        Button {
-            guard row.canOpen else { return }
-            scene.open(hostID: row.host.id, kind: row.entry.kind)
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: row.entry.kind.symbol)
-                    .foregroundStyle(.tint)
-                    .frame(width: 28, height: 28)
-                    .accessibilityLabel(Text(row.entry.kind.label))
-                VStack(alignment: .leading, spacing: 2) {
-                    HStack(alignment: .center, spacing: 12) {
-                        Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
-                        Spacer(minLength: 12)
-                        Text(row.entry.kind.label)
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .accessibilityHidden(true)
-                    }
-                    HStack(alignment: .center, spacing: 12) {
-                        Text(row.loginAddress)
-                            .font(.caption.monospaced())
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
-                        Spacer(minLength: 12)
-                        Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(1)
-                    }
+    @ViewBuilder
+    private func historyButton(_ row: MobileRecentHostRow) -> some View {
+        if let preferredKind = row.preferredKind {
+            Button {
+                scene.open(hostID: row.host.id, kind: preferredKind)
+            } label: {
+                historyLabel(row)
+            }
+            .buttonStyle(.plain)
+        } else {
+            historyLabel(row)
+                .opacity(0.55)
+        }
+    }
+
+    private func historyLabel(_ row: MobileRecentHostRow) -> some View {
+        HStack(spacing: MobileWorkspaceListMetrics.rowSpacing) {
+            hostIcon(row.host)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(row.host.name).foregroundStyle(.primary).lineLimit(1)
+                HStack(alignment: .center, spacing: 12) {
+                    Text(row.loginAddress)
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    Spacer(minLength: 12)
+                    Text(row.entry.connectedAt, format: .relative(presentation: .numeric).locale(locale))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(.rect)
-            .accessibilityElement(children: .combine)
         }
-        .buttonStyle(.plain)
-        .disabled(!row.canOpen)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func hostIcon(_ host: Host?) -> some View {
+        let distribution = host.flatMap { LinuxDistributionIconCatalog.entry(for: $0.detectedDistribution) }
+        let tint =
+            host?.colorTag.color
+            ?? distribution.flatMap {
+                LinuxDistributionBrandColor.color(hex: $0.hex, colorScheme: colorScheme)
+            }
+            ?? .accentColor
+        return HostSystemIcon(asset: distribution?.asset, size: MobileWorkspaceListMetrics.leadingIconSize)
+            .tint(tint)
+    }
+
+    private func protocolLabel(_ kind: ConnectionHistoryEntry.Kind) -> some View {
+        Text(kind.label)
+            .font(.caption.weight(.medium))
+            .foregroundStyle(.secondary)
+            .lineLimit(1)
+            .accessibilityHidden(true)
     }
 
     private func historyConnectionButton(
-        _ kind: ConnectionHistoryEntry.Kind, for row: MobileConnectionHistoryRow
+        _ kind: ConnectionHistoryEntry.Kind, host: Host
     ) -> some View {
         Button(kind.label, systemImage: kind.symbol) {
-            guard MobileConnectionHistoryActionPolicy.isAvailable(kind, for: row.host) else { return }
-            scene.open(hostID: row.host.id, kind: kind)
+            guard MobileConnectionHistoryActionPolicy.isAvailable(kind, for: host) else { return }
+            scene.open(hostID: host.id, kind: kind)
         }
-        .disabled(!MobileConnectionHistoryActionPolicy.isAvailable(kind, for: row.host))
+        .disabled(!MobileConnectionHistoryActionPolicy.isAvailable(kind, for: host))
     }
 
     private func swipeTint(for kind: ConnectionHistoryEntry.Kind) -> Color {

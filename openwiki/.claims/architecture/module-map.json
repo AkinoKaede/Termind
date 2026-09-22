@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e707ee9af65f4140151b9354f42ab37041d2c10b718d0f4bc934c7a158ff0281",
+  "pageVersion": "sha256:e7d976e0a8d7e48d3895759656fa2444706f867074efa93eed6d990f409992a7",
   "claims": [
     {
       "id": "claim_34230e88036241baad093fb8de5bac8e",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
         }
       ]
     },
@@ -32,19 +32,19 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f84584e85c49f80b312450980f1a741b62d7816892c3a0574edf5312e8fa4adc"
+          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
         },
         {
-          "resource": "repo://TFI/App/MobileSceneModel.swift#L9-L48",
-          "version": "repo-lines-v1:sha256:c97b3079703d5b843ec181ca74ca90ffdaba21804a82899731ee8a8e6e6fee56:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdlMzBiMWNmYzNlMDdhNWQzNDFjZTY5NjdjZDYzMTI4MWQzYzQwYmYzMWQzNTI1MTM2M2MyNzYxN2NiZmIwMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiNTQ1YzBjNDIzZTliY2M2YjQ2MmYyZDE3MjM1MzA5NzkwNzI5ZDAyNzEwYjIzYWM0MjA1YWUxYjdkYzgzN2EiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZlMzM2NGIwNzc5MDQ0MmMxZjE2NTM1MjJlZDhiMzY1ODcxNDNiZTZlNzEwNDA2ZmZjOTI5ZDZhM2U5ODcyY2IifQ"
+          "resource": "repo://TFI/App/MobileSceneModel.swift",
+          "version": "repo-file-v1:sha256:e795822b9fdd0257bfa13088cec2d09b38e8b6d3757bc4f322f7ab999560a229"
         },
         {
-          "resource": "repo://TFM/App/TermindApp.swift#L13-L159",
-          "version": "repo-lines-v1:sha256:4c3e634889e145d4c87210fbe24bbe3604039684abb44ccebb708343b5ac6cd2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1Y2ZiZGJiNTAxNmFjN2RlZWE1NmU4OTBhZTkzYWQ3NzM2NWNiNGQ4YTBkODY4YjJlNmM5YmUzY2MxMWM0NjRkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5YTE1YWJkZGFiMDU4NmY2YmMxYjFhYzVmYzdiMGIyYTk3MzM1ZWNjOTYyNTg5ZDc3YThiMGJiMTNkYThmNGQzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1YTJkYjY2ZjRhNTMyNTc1ZGM1MGZiYzkxY2Y0YmNhOGIxNWQ3ZThkMmJlOWY1Y2MxOGUwNjYyNjU5YzBhNWY4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MmMzODZhMWQ3MWExZDc1Nzk2NzM1MWJiMTdiNTU2MWVkMjNkODYwYzc0NjUxODVkZTBmNjliN2ZkZjFlYTViIn0"
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:38cd92e23d3ede988a474a1bc7ce819702e822216227cc5cb253ce7c1790b3d8"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L15-L106",
-          "version": "repo-lines-v1:sha256:6531d20ce697bdbcd8d29c4d93f1ced4851f4d6bc48e5e9f9d8f0609eaab3034:eyJzZWxlY3RlZExpbmVDb3VudCI6OTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwOTJkZGExNzNhMjQyOTg1N2E4ZTE0NjQzODVlOTU3MDFjZTM5MDU5ZDFhYzhjNGIwYjMzY2RhMmE1ZWEyMDQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyYzE3ZTc4YTkyNDNkYmFhZWY3ZDczZDdlMTZjYTc5YmFlMjNlOTlkNDE4ZjE2NTAwZTgwZjYyNmNmMzMzYzEifQ"
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
+          "version": "repo-file-v1:sha256:005db3b60e96b760cf9e6ebed4cfdd0477f4c15db69205924901e47103c9949a"
         }
       ]
     },
@@ -62,7 +62,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
         },
         {
           "resource": "repo://TermindMCPBridge/main.swift#L4-L87",
@@ -92,7 +92,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
         }
       ]
     },
@@ -117,10 +117,40 @@
           "version": "repo-lines-v1:sha256:e40e7d35b50b70b7b5c4f18fb5197a6ef3ce99dc496bcd4f962b9267320b4431:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNhNjJhYTkyN2M1ZmY1YzlmNjk0ZDJlNGJjZWFmODVmNTg3MDUyMjkxODYzNjJkNWU1MzFjZDRmY2JlZDkwNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzZjljZGY2MTc5ZWZmZjc5OThlZWJkNDhmNzRlYTJhYmU2OTA2YjM5MmFiMzljYmMyMjVhOWRhMmFkMzVkZmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZmYTUyMmViMzUwNWYwNjhiNTJkZjYxNTVmZmE5OGMzZDA0YzE1MzhjMWUxZWNiNmUyMzIzMDZhMjZiY2FiNTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZiZTdlYjA0YjEyNzE1YzZjYzlmNDFjNzk1M2ZhMzRmNjM1NjM0ZGJmZWE0OTU1ZWEwN2I5ZjM4NTVlNjRkYWYifQ"
         }
       ]
+    },
+    {
+      "id": "claim_5015b59262b040c49bab3e5fe71d8a7f",
+      "statement": "The reusable device directory follows the normal shared-module boundary: TermindDomain owns DeviceRecord, TermindApplication owns the repository port and observable model, Persistence owns the SwiftData implementation, and each app supplies platform-specific display-name acquisition.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift",
+          "version": "repo-file-v1:sha256:368841be82a49dc8d6660dca31216bd0f319fdc76276a9bd1e22b6a8ea4a2cf8"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift",
+          "version": "repo-file-v1:sha256:0a1a1ff68cedf0d380d197304d6088d35aafbe510723b8508c94b33583eadde3"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/DeviceRecord.swift",
+          "version": "repo-file-v1:sha256:7bd4537277fda9c7e6e70318290ee3f17ce0271433ebff5c3ac0a28394f1d1d0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
+          "version": "repo-file-v1:sha256:9a3e7296fd09c4b397c90c7b15c20775a0950a145ec1c506ac431c04fc5ea020"
+        },
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:38cd92e23d3ede988a474a1bc7ce819702e822216227cc5cb253ce7c1790b3d8"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T05:22:55.650Z"
+    "at": "2026-09-22T10:02:02.985Z"
   }
 }

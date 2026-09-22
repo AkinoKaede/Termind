@@ -96,6 +96,8 @@ nonisolated enum PaneKind: Hashable, Sendable {
 final class Pane: Identifiable {
     let id = UUID()
     var content: PaneContent
+    private var connectionHistoryEntryID: ConnectionHistoryEntry.ID?
+    private var endConnectionHistory: ((ConnectionHistoryEntry.ID) -> Void)?
 
     /// A name the user gave this pane. `nil` means the title tracks the content
     /// — the host it is on, the page it shows.
@@ -138,6 +140,16 @@ final class Pane: Identifiable {
         guard case .sftpChannel(let session) = content else { return }
         session.historyStore = store
     }
+
+    func configureConnectionHistory(
+        entryID: ConnectionHistoryEntry.ID,
+        end: @escaping (ConnectionHistoryEntry.ID) -> Void
+    ) {
+        connectionHistoryEntryID = entryID
+        endConnectionHistory = end
+    }
+
+    var hasActiveConnectionHistory: Bool { connectionHistoryEntryID != nil }
 
     var kind: PaneKind {
         switch content {
@@ -195,6 +207,11 @@ final class Pane: Identifiable {
     /// disappearance is not ownership: dragging a pane reparents its view and
     /// must leave the same live session connected.
     func disconnectConnection() {
+        if let connectionHistoryEntryID {
+            endConnectionHistory?(connectionHistoryEntryID)
+            self.connectionHistoryEntryID = nil
+            endConnectionHistory = nil
+        }
         switch content {
         case .sshSession(let sshSession): sshSession.disconnect()
         case .telnetSession(let telnetSession): telnetSession.disconnect()

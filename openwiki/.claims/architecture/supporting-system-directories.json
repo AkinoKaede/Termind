@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d571512d2bbb036fb97369a80a51af74729053b8d7d4164b178ba7b1e0919d80",
+  "pageVersion": "sha256:fa243e662bcccf538fa4c830c781851a26ec9aea0c86163cfc99644ac7364159",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -12,11 +12,11 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
-          "version": "repo-file-v1:sha256:02109cb8656598ce20a6c8f9a527e97630ffd1b5f00ea9536425abc0417187fd"
+          "version": "repo-file-v1:sha256:4a5a5f330b29137020004d3059eaf48e080a45eea8460e1a74fa434565200e13"
         }
       ]
     },
@@ -100,7 +100,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
         },
         {
           "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift",
@@ -226,7 +226,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:7fd62e9ff166991e2fd7fc844e3b6b2b91905af211a8fe1fb910608731440746"
+          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
         },
         {
           "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme",
@@ -237,6 +237,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:45:03.442Z"
+    "at": "2026-09-22T10:02:02.985Z"
   }
 }

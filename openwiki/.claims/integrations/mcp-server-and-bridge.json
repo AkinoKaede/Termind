@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0dd44becda4b103f8f913c5fb5293ffc1b0a87287a43708514270a266cafd70a",
+  "pageVersion": "sha256:a43999af9e328429d4b484cd413c52e5db3fd5c0ad110ae4fb0a86922769d48a",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,19 +8,19 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:f84584e85c49f80b312450980f1a741b62d7816892c3a0574edf5312e8fa4adc"
+          "version": "repo-file-v1:sha256:bd9d3a8a5ecd863ee34c85a8266effff511cce6da6a00b101e28b59501c159ce"
         },
         {
-          "resource": "repo://TFM/App/MCPServerController.swift#L68-L89",
-          "version": "repo-lines-v1:sha256:2b418ed8ee4e50e58cae8abc2517708b7cc9df75f646a77fecbc91788e23f7fe:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YTgyM2UzZTMyYjI3MjM5YjhjMmE4ZWJkYTRmYmViNWM4ZDZmN2I3MmI2MmM3NjY5MzE2MzJkM2M5OGRiMDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA5OGM5Y2I5ZmFjNDVhN2JjNTY3NGZiNGRhYjhjYWE4YjAwMmE0M2U5ZDUwMGFkNjFiYzI0ZjE3MjcwYmQ4NTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5M2EwMzlmOTVjZWNhZjJlYzIwMjc2ZTY2YThiYWUyN2UwZWZlOTQ1NzQzYjgzYjZlNjRmMjFiZjUyYWQ2NTgifQ"
+          "resource": "repo://TFM/App/MCPServerController.swift",
+          "version": "repo-file-v1:sha256:7374829e1807503b67c654c88edc8dba34bbd50a8499c6beec23170a73745c99"
         },
         {
-          "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift#L99-L141",
-          "version": "repo-lines-v1:sha256:72c450807cefd172dec598041b65c8223bb27e73804e3b786cb06fa9779acd32:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2NWVkOTY2ZmY0ZjE5YWQxMWExOWU0MDZmMzNjZDZmNzBjZmU1ZDAzZDRiNTAyZjM4NjJiOTc5OGQ4OGEwOTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3NWVkMDUwMmI1NWMxMGUwZmFiOTNlZDBjMmI2NWU4NzY0OGMxMGViMjczYWJlMTM5YzkyNThmODgwNzI3NjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRhOWMyOTVjM2JhMjIwNDNhZWM5OWE0YzUyYjYyM2YyNDkxZjY4YzFhNTc4NjUwM2VlYmJkNmU5OGI3ZDYyOTAifQ"
+          "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift",
+          "version": "repo-file-v1:sha256:5a91a4b29083f71858834b4b1adee9fb64551de704e850ebe8026926ff9a6b9b"
         },
         {
-          "resource": "repo://TFMTests/LoopbackHTTPServerTests.swift#L24-L28",
-          "version": "repo-lines-v1:sha256:d6f3744573638c3ecbc1208feaf69c76d8144774b3c19128eeb01cbc0ca9a391:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNGNmMDllYjBjNTc0NGZiOTczMzFiOThmZjNmYmYwNWE2MDJiYTNmN2Y2N2U1ZGE1YmU5MDk1MDMzZjYyNTgyNSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOWVkNjQ1MDk5YWIxNGY0OTYxNmQ2NjRlYWE1NGNhYTRiODFjM2NiNWFkZTE0Y2E4NTQxZGEwM2NmMDMwMmU0OSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2EyZjkzYWJkODYzNTI5MjBmYzFiOWNkOTJiZmU2MGJhZjllNjgzMjI4N2RjNzcxYjc1MTgwZDM3NmNjZmI2YyJ9"
+          "resource": "repo://TFMTests/LoopbackHTTPServerTests.swift",
+          "version": "repo-file-v1:sha256:6368181157868cd99acca34b80e89c5ce7590f64593a0ac9d56cc6d5949048e5"
         }
       ]
     },
@@ -293,6 +293,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-22T09:51:39.958Z"
   }
 }
