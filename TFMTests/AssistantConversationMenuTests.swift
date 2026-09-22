@@ -19,7 +19,10 @@ struct AssistantConversationMenuTests {
         row = conversationRow(conversation)
 
         #expect(row.contextMenu.contains { $0.symbol == MenuSymbol.unarchive })
-        #expect(row.contextMenu.contains { $0.symbol == MenuSymbol.delete })
+        #expect(
+            row.contextMenu.contains {
+                $0.symbol == MenuSymbol.delete && $0.imageVisibility == .visible
+            })
     }
 
     private func conversationRow(_ conversation: ConversationModel) -> AssistantConversationRow {

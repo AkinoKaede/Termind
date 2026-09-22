@@ -1,14 +1,12 @@
 import AppKit
 import SwiftUI
 
-/// A destructive action inside a SwiftUI context menu.
+/// A destructive action inside a SwiftUI menu.
 ///
-/// Carries `ButtonRole.destructive` and the trash glyph, and nothing else. The
-/// title used to be painted red by hand, on both this and the AppKit side; that
-/// made Delete the loudest thing in a menu it merely happens to end, and the red
-/// was ours rather than the system's — it did not follow appearance, selection
-/// highlight, or a disabled item. The role says what the item is and lets macOS
-/// decide how to say it.
+/// macOS 27 normally hides menu item images. Delete and permanent Clear actions
+/// are the exceptions in Termind: their named images let the native menu bridge
+/// request `.visible` without guessing from a localized title. The role still
+/// lets macOS own the destructive presentation.
 struct DestructiveMenuButton: View {
     let title: LocalizedStringKey
     let systemImage: String
@@ -25,7 +23,84 @@ struct DestructiveMenuButton: View {
     }
 
     var body: some View {
-        Button(title, systemImage: systemImage, role: .destructive, action: action)
+        Button(role: .destructive, action: action) {
+            Label {
+                Text(title)
+            } icon: {
+                Image(nsImage: MenuImageVisibilityController.markedImage(systemName: systemImage))
+            }
+        }
+    }
+}
+
+/// Whether an AppKit-built menu item should follow the system or keep its image.
+enum MenuImageVisibility: Equatable {
+    case automatic
+    case visible
+}
+
+/// Applies macOS 27's opt-in menu image visibility to SwiftUI-generated menus.
+///
+/// SwiftUI does not expose `NSMenuItem.preferredImageVisibility`. A named image
+/// survives SwiftUI's conversion to `NSMenuItem`, giving this observer a narrow,
+/// semantic marker that does not depend on English titles or SF Symbol artwork.
+@MainActor
+final class MenuImageVisibilityController: NSObject {
+    static let shared = MenuImageVisibilityController()
+
+    private static let markerPrefix = "termind.menu.always-visible."
+    private var isStarted = false
+    private var notificationCenter: NotificationCenter?
+
+    static func markedImage(systemName: String) -> NSImage {
+        let markerName = NSImage.Name(markerPrefix + systemName)
+        if let image = NSImage(named: markerName) { return image }
+        guard let image = NSImage(systemSymbolName: systemName, accessibilityDescription: nil) else {
+            return NSImage()
+        }
+        _ = image.setName(markerName)
+        return image
+    }
+
+    func start(notificationCenter: NotificationCenter = .default) {
+        guard !isStarted else { return }
+        isStarted = true
+        self.notificationCenter = notificationCenter
+        for name in [
+            NSMenu.didBeginTrackingNotification,
+            NSMenu.didAddItemNotification,
+            NSMenu.didChangeItemNotification,
+        ] {
+            notificationCenter.addObserver(
+                self,
+                selector: #selector(menuContentsChanged(_:)),
+                name: name,
+                object: nil
+            )
+        }
+    }
+
+    static func apply(to menu: NSMenu) {
+        guard #available(macOS 27.0, *) else { return }
+        for item in menu.items {
+            if item.image?.name()?.hasPrefix(markerPrefix) == true,
+                item.preferredImageVisibility != .visible
+            {
+                item.preferredImageVisibility = .visible
+            }
+            if let submenu = item.submenu {
+                apply(to: submenu)
+            }
+        }
+    }
+
+    @objc private func menuContentsChanged(_ notification: Notification) {
+        guard let menu = notification.object as? NSMenu else { return }
+        Self.apply(to: menu)
+    }
+
+    deinit {
+        notificationCenter?.removeObserver(self)
     }
 }
 
@@ -41,6 +116,7 @@ struct NativeMenuEntry {
     /// for standard actions and leaves ours empty, so every verb names its own.
     var symbol: String?
     var image: NSImage?
+    var imageVisibility = MenuImageVisibility.automatic
     var isOn = false
     var isEnabled = true
     var children: [NativeMenuEntry] = []
@@ -76,6 +152,9 @@ struct NativeMenuEntry {
             ?? symbol.flatMap {
                 NSImage(systemSymbolName: $0, accessibilityDescription: nil)
             }
+        if #available(macOS 27.0, *), imageVisibility == .visible {
+            item.preferredImageVisibility = .visible
+        }
         if children.isEmpty {
             let target = NativeMenuActionTarget(action)
             item.representedObject = target

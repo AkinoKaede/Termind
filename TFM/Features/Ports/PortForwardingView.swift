@@ -68,7 +68,7 @@ struct PortForwardingPageView: ManagedCardPage {
                     }.disabled(app.forwardings.sshCommand(for: item) == nil)
                 }
                 Divider()
-                Button("Delete", systemImage: MenuSymbol.delete, role: .destructive) {
+                DestructiveMenuButton("Delete") {
                     state.deleting = Set(context.actionItems.map(\.id))
                 }
             }

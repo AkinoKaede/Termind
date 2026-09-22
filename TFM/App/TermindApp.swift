@@ -235,6 +235,7 @@ struct TermindApp: App {
         /// The launch Apple Event is readable only while it is being handled.
         func applicationWillFinishLaunching(_ notification: Notification) {
             appearanceController.start()
+            MenuImageVisibilityController.shared.start()
             LoginLaunch.capture()
         }
 

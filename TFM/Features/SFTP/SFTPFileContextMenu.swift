@@ -65,7 +65,7 @@ struct SFTPFileContextMenu {
         result.append(
             entry(
                 single ? "Delete" : "Delete \(targets.count) Items", symbol: MenuSymbol.delete,
-                enabled: allowsRemoteMutations
+                imageVisibility: .visible, enabled: allowsRemoteMutations
             ) { perform(.delete) })
         result.append(.separator)
         result.append(entry("New Folder", symbol: MenuSymbol.newFolder, enabled: connected) { perform(.newFolder) })
@@ -80,9 +80,12 @@ struct SFTPFileContextMenu {
     }
 
     private func entry(
-        _ title: String.LocalizationValue, symbol: String? = nil, enabled: Bool = true,
+        _ title: String.LocalizationValue, symbol: String? = nil,
+        imageVisibility: MenuImageVisibility = .automatic, enabled: Bool = true,
         action: @escaping () -> Void
     ) -> NativeMenuEntry {
-        NativeMenuEntry(title: localized(title), symbol: symbol, isEnabled: enabled, action: action)
+        NativeMenuEntry(
+            title: localized(title), symbol: symbol, imageVisibility: imageVisibility,
+            isEnabled: enabled, action: action)
     }
 }

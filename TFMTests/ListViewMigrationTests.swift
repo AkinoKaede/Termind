@@ -332,8 +332,8 @@ struct ListViewMigrationTests {
         #expect(
             historyEntries.map(\.title)
                 == [
-                    "Copy", "Insert", "Save as Snippet", "", "Remove this History",
-                    "Clear History",
+                    "Copy", "Insert", "Save as Snippet", "", "Delete this History",
+                    "Clear All",
                 ]
         )
         #expect(historyEntries[3].isSeparator)
@@ -345,7 +345,7 @@ struct ListViewMigrationTests {
         )
         #expect(
             blankHistoryEntries.map(\.title)
-                == ["Copy", "Insert", "Save as Snippet", "", "Clear History"]
+                == ["Copy", "Insert", "Save as Snippet", "", "Clear All"]
         )
         #expect(blankHistoryEntries.prefix(3).allSatisfy { !$0.isEnabled })
         #expect(blankHistoryEntries.last?.isEnabled == true)

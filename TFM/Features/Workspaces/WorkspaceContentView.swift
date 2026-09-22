@@ -1231,7 +1231,7 @@ private struct WelcomeWorkspaceTemplateRow: View {
             .contextMenu {
                 Button("Rename", systemImage: MenuSymbol.rename) { beginRename() }
                 Divider()
-                Button("Delete", systemImage: MenuSymbol.delete, role: .destructive) {
+                DestructiveMenuButton("Delete") {
                     confirmsDeletion = true
                 }
             }
@@ -1390,7 +1390,7 @@ private struct WelcomeHostRow: View {
                 requestClearAllHistory: { clearHistoryHostIDs = $0 }
             )
             Divider()
-            Button("Delete", systemImage: MenuSymbol.delete, role: .destructive) {
+            DestructiveMenuButton("Delete") {
                 app.connectionHistory.clear(for: host.id)
             }
         }

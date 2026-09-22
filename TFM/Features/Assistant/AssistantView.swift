@@ -1304,7 +1304,8 @@ struct AssistantConversationRow: View {
         if conversation.isArchived {
             entries.append(
                 NativeMenuEntry(
-                    title: localized("Delete"), symbol: MenuSymbol.delete
+                    title: localized("Delete"), symbol: MenuSymbol.delete,
+                    imageVisibility: .visible
                 ) {
                     onDelete()
                 }

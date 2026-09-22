@@ -51,7 +51,7 @@ struct KnownHostsPageView: ManagedCardPage {
                 Button("Copy Fingerprint", systemImage: MenuSymbol.copy) { copyToPasteboard(item.fingerprint) }
                 Divider()
             }
-            Button("Delete", systemImage: MenuSymbol.delete, role: .destructive) {
+            DestructiveMenuButton("Delete") {
                 state.deleting = Set(context.actionItems.map(\.id))
             }
         }

@@ -5042,6 +5042,22 @@
         }
       }
     },
+    "Clear All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部清除"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部清除"
+          }
+        }
+      }
+    },
     "Clear Filter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8029,6 +8045,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除片段？"
+          }
+        }
+      }
+    },
+    "Delete this History" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除此条历史"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除此條歷史"
           }
         }
       }
@@ -20624,22 +20656,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除標籤%@"
-          }
-        }
-      }
-    },
-    "Remove this History" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "移除此条历史"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "移除此條歷史"
           }
         }
       }

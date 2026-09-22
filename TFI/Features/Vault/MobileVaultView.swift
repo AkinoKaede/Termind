@@ -93,7 +93,7 @@ struct MobileConnectionHistoryView: View {
         .navigationTitle("History")
         .toolbar {
             MobileToolbarOverflow {
-                Button("Clear History", systemImage: "trash", role: .destructive) {
+                Button("Clear All", systemImage: "trash", role: .destructive) {
                     clearingHistory = true
                 }
                 .disabled(app.connectionHistory.entries().isEmpty)

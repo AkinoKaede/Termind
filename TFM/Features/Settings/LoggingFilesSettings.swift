@@ -138,7 +138,7 @@ struct LoggingFilesSettings: View {
                 prepare(file, action: .share)
             }
             Divider()
-            Button("Delete", systemImage: "trash", role: .destructive) {
+            DestructiveMenuButton("Delete") {
                 pendingDelete = file
             }
         }

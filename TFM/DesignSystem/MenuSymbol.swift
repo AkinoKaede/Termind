@@ -114,7 +114,6 @@ nonisolated enum MenuSymbol {
 
     static let filterByTag = "tag"
     static let clearFilter = "xmark.circle"
-    static let removeHistory = "minus.circle"
     static let clearHistory = "clock.badge.xmark"
 
     /// Every glyph above, so `MenuSymbolTests` can confirm each one resolves to
@@ -132,6 +131,6 @@ nonisolated enum MenuSymbol {
         pin, unpin, archive, unarchive, delete,
         workspace, nextWorkspace, previousWorkspace, currentWorkspace, newWorkspace, newWindow, moveToNewWindow,
         separatePanes, splitRight, splitDown, closeWorkspace, reopenWorkspace,
-        filterByTag, clearFilter, removeHistory, clearHistory,
+        filterByTag, clearFilter, clearHistory,
     ]
 }
