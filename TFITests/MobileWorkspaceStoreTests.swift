@@ -19,7 +19,7 @@ struct MobileWorkspaceStoreTests {
         }
     }
 
-    @Test func legacyRecordsKeepIDsTitlesKindsAndAllocateMissingIndicesInOrder() throws {
+    @Test func legacyRecordsKeepIDsTitlesAndKindsWhileDiscardingIndices() throws {
         let host = UUID()
         let other = UUID()
         let ids = (0..<5).map { _ in UUID() }
@@ -37,8 +37,8 @@ struct MobileWorkspaceStoreTests {
             #expect(descriptors.map(\.id) == ids)
             #expect(descriptors.map(\.title) == ["Custom", "Explicit", "Third", "Files", "Other"])
             #expect(descriptors.map(\.kind) == [.ssh, .ssh, .ssh, .sftp, .ssh])
-            #expect(descriptors.map(\.duplicateIndex) == [1, 0, 2, 0, 0])
             let migrated = defaults.data(forKey: MobileWorkspaceStore.key)
+            #expect(!String(decoding: try #require(migrated), as: UTF8.self).contains("duplicateIndex"))
             #expect(try MobileWorkspaceStore(defaults: defaults).load() == descriptors)
             #expect(defaults.data(forKey: MobileWorkspaceStore.key) == migrated)
             defaults.set(Data(json.utf8), forKey: MobileWorkspaceStore.key)
@@ -46,7 +46,7 @@ struct MobileWorkspaceStoreTests {
         }
     }
 
-    @Test func allMissingIndicesUseLowestAvailableNumberForEachHostAndKind() throws {
+    @Test func legacyRecordsWithoutIndicesPreserveTheirTitles() throws {
         let host = UUID()
         let json = """
             [
@@ -57,14 +57,14 @@ struct MobileWorkspaceStoreTests {
             """
         try withStore(json) { store, _ in
             let descriptors = try store.load()
-            #expect(descriptors.map(\.duplicateIndex) == [0, 1, 0])
+            #expect(descriptors.map(\.title) == ["One", "Two", "Files"])
         }
     }
 
     @Test func currentSnapshotRoundTripsWithoutMigration() throws {
         try withStore("[]") { store, defaults in
             let descriptors = [
-                MobileWorkspaceDescriptor(hostID: UUID(), title: "Custom", kind: .sftp, duplicateIndex: 7)
+                MobileWorkspaceDescriptor(hostID: UUID(), title: "Custom", kind: .sftp)
             ]
             try store.save(descriptors)
             let data = defaults.data(forKey: MobileWorkspaceStore.key)
@@ -88,15 +88,14 @@ struct MobileWorkspaceStoreTests {
         }
     }
 
-    @Test(arguments: [false, true])
-    func invalidLegacyRecordsAreNotMigrated(duplicateID: Bool) throws {
+    @Test
+    func duplicateLegacyIDsAreNotMigrated() throws {
         let id = UUID()
         let host = UUID()
         let json = """
             [
               {"id":"\(id)","hostID":"\(host)","title":"One","kind":"ssh","duplicateIndex":0},
-              {"id":"\(duplicateID ? id : UUID())","hostID":"\(host)","title":"Two","kind":"ssh",
-               "duplicateIndex":\(duplicateID ? 1 : -1)}
+              {"id":"\(id)","hostID":"\(host)","title":"Two","kind":"ssh","duplicateIndex":1}
             ]
             """
         try withStore(json) { store, defaults in

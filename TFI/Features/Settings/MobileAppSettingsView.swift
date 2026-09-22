@@ -2,6 +2,7 @@ import SwiftUI
 import TermindApplication
 
 struct MobileAppSettingsView: View {
+    let workspaceSettings: WorkspaceSettingsModel
     var appReview: AppReviewController?
     var reviewScene: MobileSceneModel?
     @AppStorage("mobile.appearance") private var appearance = "system"
@@ -15,6 +16,22 @@ struct MobileAppSettingsView: View {
                     Text("Light").tag("light")
                     Text("Dark").tag("dark")
                 }
+            }
+            Section {
+                Toggle(
+                    "Automatically Rename Workspaces",
+                    isOn: Binding(
+                        get: { workspaceSettings.preferences.automaticallyRenamesWorkspaces },
+                        set: { _ = workspaceSettings.setAutomaticRenaming($0) }
+                    )
+                )
+                if let error = workspaceSettings.storageError {
+                    Text(error).foregroundStyle(.red)
+                }
+            } header: {
+                Text("Workspaces")
+            } footer: {
+                Text("New Workspaces with the same Host name use the next number, regardless of protocol.")
             }
             Section("Version") {
                 LabeledContent(

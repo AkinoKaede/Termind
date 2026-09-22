@@ -157,7 +157,7 @@ public nonisolated struct AIWebSearchPreferences: Codable, Hashable, Sendable {
 }
 
 public nonisolated enum SettingsRecordKind: String, Codable, CaseIterable, Sendable {
-    case provider, mcpServer, skill, role, selection, webSearch, terminal, ssh, sftp
+    case provider, mcpServer, skill, role, selection, webSearch, terminal, ssh, sftp, workspace
 
     /// `selection` remains decodable for compatibility with existing CloudKit
     /// records, but the conversation model picker is a device-local preference.
@@ -195,7 +195,7 @@ public nonisolated struct SettingsRecordKey: Codable, Hashable, Sendable {
             guard let uuid = UUID(uuidString: id), uuid.uuidString.lowercased() == id else { return nil }
         case .role:
             guard AIRole(rawValue: id) != nil || id == Self.legacySecurityReviewID else { return nil }
-        case .selection, .webSearch, .terminal, .ssh, .sftp:
+        case .selection, .webSearch, .terminal, .ssh, .sftp, .workspace:
             guard id == "default" else { return nil }
         }
         self.init(kind: kind, id: id)
@@ -212,6 +212,7 @@ public nonisolated enum SettingsRecordPayload: Codable, Hashable, Sendable {
     case terminal(TerminalPreferences)
     case ssh(SSHPreferences)
     case sftp(SFTPPreferences)
+    case workspace(WorkspacePreferences)
 
     public var key: SettingsRecordKey {
         switch self {
@@ -224,6 +225,7 @@ public nonisolated enum SettingsRecordPayload: Codable, Hashable, Sendable {
         case .terminal: .init(kind: .terminal, id: "default")
         case .ssh: .init(kind: .ssh, id: "default")
         case .sftp: .init(kind: .sftp, id: "default")
+        case .workspace: .init(kind: .workspace, id: "default")
         }
     }
 }

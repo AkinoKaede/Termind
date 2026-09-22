@@ -128,7 +128,7 @@ struct MobileWorkspaceTests {
         #expect(!workspace.rename(to: "Release Shell"))
     }
 
-    @Test func automaticTitlesUseStableLowestFreeNumbersPerHostAndKind() throws {
+    @Test func automaticTitlesUseVisibleNamesAcrossProtocolsAndAppendAfterTheMaximum() throws {
         let app = try MobileAppModel(inMemory: true)
         let host = TermindDomain.Host(name: "Server", host: "example.invalid")
         app.library.upsert(host)
@@ -146,16 +146,15 @@ struct MobileWorkspaceTests {
         let second = try #require(app.workspaces.first { $0.id == secondID })
         let third = try #require(app.workspaces.first { $0.id == thirdID })
         let sftp = try #require(app.workspaces.first { $0.id == sftpID })
-        #expect([first, second, third].map(\.descriptor.title) == ["Server", "Server (1)", "Server (2)"])
-        #expect([first, second, third].map(\.descriptor.duplicateIndex) == [0, 1, 2])
-        #expect(sftp.descriptor.title == "Server")
-        #expect(sftp.descriptor.duplicateIndex == 0)
+        #expect(
+            [first, second, third, sftp].map(\.descriptor.title)
+                == ["Server", "Server (1)", "Server (2)", "Server (3)"])
         #expect(third.activitySession.title == "Server (2)")
 
         #expect(app.renameWorkspace(secondID, to: "Logs"))
         let fourthID = try #require(app.open(hostID: host.id, kind: .ssh))
         let fourth = try #require(app.workspaces.first { $0.id == fourthID })
-        #expect(fourth.descriptor.title == "Server (3)")
+        #expect(fourth.descriptor.title == "Server (4)")
 
         app.close(firstID)
         let recycledBaseID = try #require(app.open(hostID: host.id, kind: .ssh))
@@ -163,12 +162,35 @@ struct MobileWorkspaceTests {
         #expect(recycledBase.descriptor.title == "Server")
         #expect(second.descriptor.title == "Logs")
         #expect(third.descriptor.title == "Server (2)")
-        #expect(fourth.descriptor.title == "Server (3)")
+        #expect(fourth.descriptor.title == "Server (4)")
 
         app.close(secondID)
         let recycledOneID = try #require(app.open(hostID: host.id, kind: .ssh))
         let recycledOne = try #require(app.workspaces.first { $0.id == recycledOneID })
-        #expect(recycledOne.descriptor.title == "Server (1)")
+        #expect(recycledOne.descriptor.title == "Server (5)")
+
+        #expect(app.workspaceSettings.setAutomaticRenaming(false))
+        let unnumberedID = try #require(app.open(hostID: host.id, kind: .sftp))
+        #expect(app.workspaces.first { $0.id == unnumberedID }?.descriptor.title == "Server")
+    }
+
+    @Test func hostNamesThatEndInNumbersDoNotConflictWithParenthesizedSuffixes() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let server = TermindDomain.Host(name: "Server", host: "server.example")
+        let serverOne = TermindDomain.Host(name: "Server 1", host: "server-one.example")
+        app.library.upsert(server)
+        app.library.upsert(serverOne)
+        defer { app.closeAll() }
+
+        let ids = [
+            try #require(app.open(hostID: server.id, kind: .ssh)),
+            try #require(app.open(hostID: serverOne.id, kind: .sftp)),
+            try #require(app.open(hostID: server.id, kind: .sftp)),
+            try #require(app.open(hostID: serverOne.id, kind: .ssh)),
+        ]
+        #expect(
+            ids.compactMap { id in app.workspaces.first { $0.id == id }?.descriptor.title }
+                == ["Server", "Server 1", "Server (1)", "Server 1 (1)"])
     }
 
     @Test func closeAllDisconnectsAndRemovesEveryWorkspaceAndIsRepeatable() throws {
@@ -1423,7 +1445,7 @@ struct MobileWorkspaceRestorationTests {
         let seed = try fixture.makeApp()
         let host = try fixture.installHost(in: seed)
         let descriptors = (0..<3).map {
-            MobileWorkspaceDescriptor(hostID: host.id, title: "Saved \($0)", kind: .ssh, duplicateIndex: $0)
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Saved \($0)", kind: .ssh)
         }
         try fixture.store().save(descriptors)
         let app = try fixture.makeApp()
@@ -1471,7 +1493,7 @@ struct MobileWorkspaceRestorationTests {
         #expect(restoredCommand.pendingInitialCommand == nil)
         #expect(restoredCommand.descriptor == expected[1])
         let newID = try #require(relaunched.open(hostID: host.id, kind: .ssh))
-        #expect(relaunched.workspaces.first { $0.id == newID }?.descriptor.duplicateIndex == 2)
+        #expect(relaunched.workspaces.first { $0.id == newID }?.descriptor.title == host.name)
         relaunched.closeAll()
     }
 
@@ -1482,7 +1504,7 @@ struct MobileWorkspaceRestorationTests {
         let host = try fixture.installHost(in: original)
         let descriptors = [
             MobileWorkspaceDescriptor(hostID: host.id, title: "First", kind: .sftp),
-            MobileWorkspaceDescriptor(hostID: host.id, title: "Second", kind: .sftp, duplicateIndex: 1),
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Second", kind: .sftp),
         ]
         try fixture.store().save(descriptors)
         let app = try fixture.makeApp()
@@ -1654,7 +1676,7 @@ struct MobileWorkspaceRestorationTests {
         let seed = try fixture.makeApp()
         let host = try fixture.installHost(in: seed)
         let descriptors = (0..<3).map {
-            MobileWorkspaceDescriptor(hostID: host.id, title: "Saved \($0)", kind: .ssh, duplicateIndex: $0)
+            MobileWorkspaceDescriptor(hostID: host.id, title: "Saved \($0)", kind: .ssh)
         }
         try fixture.store().save(descriptors)
         let app = try fixture.makeApp()
@@ -1662,7 +1684,7 @@ struct MobileWorkspaceRestorationTests {
         #expect(restored.descriptor == descriptors[1])
         #expect(app.renameWorkspace(restored.id, to: "Renamed"))
         let created = try #require(app.open(hostID: host.id, kind: .ssh))
-        #expect(app.workspaces.last?.descriptor.duplicateIndex == 3)
+        #expect(app.workspaces.last?.descriptor.title == host.name)
         app.close(descriptors[0].id)
         app.close(created)
         let expected = [restored.descriptor, descriptors[2]]
@@ -1671,7 +1693,7 @@ struct MobileWorkspaceRestorationTests {
         let relaunched = try fixture.makeApp()
         #expect(relaunched.recentWorkspaces == expected)
         let replacement = try #require(relaunched.open(hostID: host.id, kind: .ssh))
-        #expect(relaunched.workspaces.first?.descriptor.duplicateIndex == 0)
+        #expect(relaunched.workspaces.first?.descriptor.title == host.name)
         relaunched.close(replacement)
         app.closeAll()
     }

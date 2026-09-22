@@ -107,16 +107,6 @@ final class Pane: Identifiable {
     /// you have to click to tell apart.
     var customTitle: String?
 
-    /// Disambiguates panes that would otherwise read identically — the second
-    /// shell on web-01 shows "web-01 (1)".
-    ///
-    /// An index rather than a suffix written into `customTitle`, so the name
-    /// still tracks the host: rename the machine and every pane on it follows,
-    /// numbers intact. Stored rather than computed from position, because
-    /// closing the second of three panes must not renumber the third out from
-    /// under you. `WindowModel.nextDuplicateIndex` hands them out.
-    var duplicateIndex: Int = 0
-
     init(_ content: PaneContent) {
         self.content = content
     }
@@ -304,9 +294,8 @@ final class Pane: Identifiable {
     /// hold, which is everything Duplicate is not offered on anyway.
     ///
     /// The name deliberately does not come along. Copying "logs" would give two
-    /// panes both called "logs", which is exactly the collision
-    /// `WindowModel.numberPane` exists to prevent — the copy takes the derived
-    /// name and a number of its own.
+    /// panes both called "logs". A top-level Workspace assigns the copy a fresh
+    /// automatic name after it leaves the layout.
     ///
     /// `.empty` copies as another empty slot rather than failing, so a
     /// half-arranged Workspace can still be duplicated as the half-arranged
@@ -334,17 +323,10 @@ final class Pane: Identifiable {
     /// the user named this pane, in which case their word wins everywhere.
     func title(in store: HostLibraryModel, locale: Locale = .current) -> String {
         if let customTitle { return customTitle }
-        return numbered(derivedTitle(in: store, locale: locale))
+        return derivedTitle(in: store, locale: locale)
     }
 
-    /// The number only ever decorates a *derived* name. A name the user typed is
-    /// theirs as typed — appending "(1)" to it would be arguing with them about
-    /// a collision they already chose to accept.
-    private func numbered(_ base: String) -> String {
-        duplicateIndex > 0 ? "\(base) (\(duplicateIndex))" : base
-    }
-
-    private func derivedTitle(in store: HostLibraryModel, locale: Locale) -> String {
+    func derivedTitle(in store: HostLibraryModel, locale: Locale) -> String {
         switch content {
         case .sshSession(let sshSession):
             sshSession.title
@@ -369,9 +351,9 @@ final class Pane: Identifiable {
         if case .sftpChannel(let sftpChannel) = content,
             let host = store.host(sftpChannel.hostID)
         {
-            return numbered(host.name)
+            return host.name
         }
-        return numbered(derivedTitle(in: store, locale: locale))
+        return derivedTitle(in: store, locale: locale)
     }
 
     func subtitle(in store: HostLibraryModel) -> String? {

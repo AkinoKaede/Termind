@@ -140,7 +140,6 @@ extension WindowModel {
         setTemplateName(template.name, on: workspace)
         workspace.sourceTemplateID = template.id
         open(workspace)
-        result.node.panes.forEach(numberPane)
         if result.missingHosts > 0 {
             workspaceTemplateNotice = String(
                 localized: "\(result.missingHosts) unavailable hosts were opened as empty panes."

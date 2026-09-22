@@ -77,6 +77,7 @@ struct PersistenceCompatibilityTests {
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV31.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV32.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV33.versionIdentifier })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV34.versionIdentifier })
         #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
         #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
         #expect(TermindSchemaV25.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
@@ -112,6 +113,7 @@ struct PersistenceCompatibilityTests {
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSSHPreferences" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSFTPPreferences" })
+        #expect(first.schema.entities.contains { $0.name == "PersistentWorkspacePreferences" })
     }
 
     @Test
@@ -199,6 +201,31 @@ struct PersistenceCompatibilityTests {
         #expect(saved.credentialRef == identity.credentialRef)
         #expect(saved.colorTag == identity.colorTag)
         #expect(dates[recordKey] == modifiedAt)
+    }
+
+    @Test
+    func version33StoreAddsDefaultWorkspacePreferencesToSettingsSync() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("Termind.store")
+        let oldSchema = Schema(versionedSchema: TermindSchemaV33.self)
+        let oldConfiguration = ModelConfiguration(
+            "Termind", schema: oldSchema, url: url, cloudKitDatabase: .none)
+        var oldContainer: ModelContainer? = try ModelContainer(
+            for: oldSchema, configurations: [oldConfiguration])
+        oldContainer?.mainContext.insert(PersistentHostGroup(HostGroup(name: "Before V34")))
+        try oldContainer?.mainContext.save()
+        oldContainer = nil
+
+        let migrated = try TermindPersistence.makeContainer(url: url)
+        let defaults = try #require(UserDefaults(suiteName: "PersistenceV34.\(UUID())"))
+        let store = SettingsSyncPersistence(context: migrated.mainContext, defaults: defaults)
+        try store.prepare()
+        let key = SettingsRecordKey(kind: .workspace, id: "default")
+
+        #expect(try store.loadWorkspacePreferences() == WorkspacePreferences())
+        #expect(try store.journal.envelope(for: key)?.payload == .workspace(WorkspacePreferences()))
     }
 
     @Test

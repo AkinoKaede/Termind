@@ -92,6 +92,7 @@ final class AppModel {
     let terminalSettings: TerminalSettingsModel
     let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
+    let workspaceSettings: WorkspaceSettingsModel
     let skills: SkillLibraryModel
     let memory: MemoryModel
     let commandGenerator: CommandGeneratorController
@@ -144,6 +145,7 @@ final class AppModel {
         terminalSettings: TerminalSettingsModel = TerminalSettingsModel(),
         sshSettings: SSHSettingsModel = SSHSettingsModel(),
         sftpSettings: SFTPSettingsModel = SFTPSettingsModel(),
+        workspaceSettings: WorkspaceSettingsModel = WorkspaceSettingsModel(),
         commandHistory: CommandHistoryModel = CommandHistoryModel(),
         sftpHistory: SFTPHistoryModel = SFTPHistoryModel(),
         connectionHistory: ConnectionHistoryModel = ConnectionHistoryModel(),
@@ -224,6 +226,7 @@ final class AppModel {
         self.terminalSettings = terminalSettings
         self.sshSettings = sshSettings
         self.sftpSettings = sftpSettings
+        self.workspaceSettings = workspaceSettings
         commandGenerator = CommandGeneratorController(ai: ai)
         conversationTitles = ConversationTitleController(ai: ai)
         self.speechTranscription =
@@ -325,6 +328,7 @@ final class AppModel {
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
             self?.sshSettings.applyRemoteSnapshot(snapshot.ssh)
             self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)
+            self?.workspaceSettings.applyRemoteSnapshot(snapshot.workspace)
         }
         metricsSync?.didApplyRemote = { [weak serverMetrics] snapshot, _ in
             serverMetrics?.applyRemoteSnapshot(snapshot)
@@ -947,6 +951,10 @@ final class AppModel {
     }
 
     private func configureConnectionHistory(in window: WindowModel) {
+        window.hostStore = hosts
+        window.workspacePreferences = { [weak self] in
+            self?.workspaceSettings.preferences ?? WorkspacePreferences()
+        }
         window.recordConnectionHistory = { [weak self] hostID, kind in
             guard let self, self.hosts.host(hostID) != nil else { return nil }
             return self.connectionHistory.record(kind: kind, for: hostID)?.id

@@ -193,7 +193,7 @@ struct SnippetFeatureTests {
         #expect(window.workspaces.count == 2)
         #expect(window.workspaces[0].title(in: store) == String(localized: "Workspace"))
         #expect(window.workspaces[0].panes.map(\.hostID) == [firstHost.id, secondHost.id])
-        #expect(window.workspaces[1].title(in: store) == "\(firstHost.name) (1)")
+        #expect(window.workspaces[1].title(in: store) == firstHost.name)
         #expect(window.selectedWorkspaceID == window.workspaces[0].id)
     }
 

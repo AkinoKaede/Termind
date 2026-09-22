@@ -828,7 +828,7 @@ private struct PaneView: View {
     /// pane, so a name is what follows the cursor.
     @ViewBuilder
     private var title: some View {
-        let label = Text(pane.sidebarTitle(in: app.hostLibrary))
+        let label = Text(displayedTitle)
             .font(.system(size: 11, weight: isFocused ? .semibold : .regular))
             .foregroundStyle(isFocused ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
             .lineLimit(1)
@@ -860,7 +860,7 @@ private struct PaneView: View {
 
     private var dragChip: some View {
         Label {
-            Text(pane.sidebarTitle(in: app.hostLibrary))
+            Text(displayedTitle)
         } icon: {
             Image(systemName: pane.symbol)
         }
@@ -872,7 +872,7 @@ private struct PaneView: View {
 
     private func beginRename() {
         guard pane.kind.isRenameable else { return }
-        draftTitle = pane.sidebarTitle(in: app.hostLibrary)
+        draftTitle = displayedTitle
         isRenaming = true
         titleFieldFocused = true
     }
@@ -880,6 +880,12 @@ private struct PaneView: View {
     private func commitRename() {
         window.rename(pane: pane.id, to: draftTitle)
         isRenaming = false
+    }
+
+    private var displayedTitle: String {
+        workspace.isSplit
+            ? pane.sidebarTitle(in: app.hostLibrary)
+            : workspace.title(in: app.hostLibrary)
     }
 }
 

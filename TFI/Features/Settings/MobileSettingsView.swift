@@ -13,7 +13,10 @@ struct MobileSettingsView: View {
             }
             Section {
                 NavigationLink {
-                    MobileAppSettingsView(appReview: app.appReview, reviewScene: reviewScene)
+                    MobileAppSettingsView(
+                        workspaceSettings: app.workspaceSettings,
+                        appReview: app.appReview,
+                        reviewScene: reviewScene)
                 } label: {
                     Label("App", systemImage: "app.badge")
                 }

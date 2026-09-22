@@ -381,6 +381,7 @@ struct SettingsFormPage<Content: View>: View {
 }
 
 private struct AppSettings: View {
+    @Environment(AppModel.self) private var app
     @AppStorage(DesktopSettingsKey.showMetricsInMenuBar) private var showMetricsInMenuBar = true
     @AppStorage(DesktopSettingsKey.appAppearance) private var appearanceID = AppAppearance.system.rawValue
     @AppStorage(SettingsKey.appLanguage) private var languageID = AppLanguage.system.rawValue
@@ -433,6 +434,23 @@ private struct AppSettings: View {
                         .foregroundStyle(.secondary)
                 }
             }
+        }
+
+        Section {
+            Toggle(
+                "Automatically Rename Workspaces",
+                isOn: Binding(
+                    get: { app.workspaceSettings.preferences.automaticallyRenamesWorkspaces },
+                    set: { _ = app.workspaceSettings.setAutomaticRenaming($0) }
+                )
+            )
+            if let error = app.workspaceSettings.storageError {
+                Text(error).foregroundStyle(.orange)
+            }
+        } header: {
+            Text("Workspaces")
+        } footer: {
+            Text("New Workspaces with the same Host name use the next number, regardless of protocol.")
         }
     }
 }

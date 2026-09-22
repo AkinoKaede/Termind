@@ -16,6 +16,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     // Older clients filter by record type before decoding, so they can ignore newer preferences safely.
     public nonisolated static let sshRecordType = "SSHPreferencesItem"
     public nonisolated static let sftpRecordType = "SFTPPreferencesItem"
+    public nonisolated static let workspaceRecordType = "WorkspacePreferencesItem"
     public nonisolated static let subscriptionID = "termind-ai-configuration-v1-changes"
     public nonisolated static let inlinePayloadLimit = CloudSyncRecordCoding.inlinePayloadLimit
 
@@ -324,13 +325,14 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
     }
 
     nonisolated static func acceptsRecordType(_ type: String) -> Bool {
-        type == recordType || type == sshRecordType || type == sftpRecordType
+        type == recordType || type == sshRecordType || type == sftpRecordType || type == workspaceRecordType
     }
 
     private nonisolated static func recordType(for kind: SettingsRecordKind) -> String {
         switch kind {
         case .ssh: sshRecordType
         case .sftp: sftpRecordType
+        case .workspace: workspaceRecordType
         default: recordType
         }
     }

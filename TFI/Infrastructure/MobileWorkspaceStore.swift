@@ -16,7 +16,6 @@ final class MobileWorkspaceStore {
         var hostID: UUID
         var title: String
         var kind: ConnectionHistoryEntry.Kind
-        var duplicateIndex: Int?
     }
 
     private enum StoreError: Error { case invalidSnapshot }
@@ -43,29 +42,14 @@ final class MobileWorkspaceStore {
                 needsMigration = false
             } else {
                 let legacy = try decoder.decode([LegacyWorkspace].self, from: data)
-                var migrated: [MobileWorkspaceDescriptor] = []
-                for entry in legacy {
-                    // Reserve explicit indices too, including those later in the array.
-                    let taken = Set(
-                        legacy.filter { $0.hostID == entry.hostID && $0.kind == entry.kind }
-                            .compactMap(\.duplicateIndex)
-                            + migrated.filter { $0.hostID == entry.hostID && $0.kind == entry.kind }
-                            .map(\.duplicateIndex))
-                    var index = entry.duplicateIndex ?? 0
-                    if entry.duplicateIndex == nil {
-                        while taken.contains(index) { index += 1 }
-                    }
-                    migrated.append(
-                        MobileWorkspaceDescriptor(
-                            id: entry.id, hostID: entry.hostID, title: entry.title,
-                            kind: entry.kind, duplicateIndex: index))
-                }
-                snapshot = Snapshot(workspaces: migrated)
+                snapshot = Snapshot(
+                    workspaces: legacy.map {
+                        MobileWorkspaceDescriptor(id: $0.id, hostID: $0.hostID, title: $0.title, kind: $0.kind)
+                    })
                 needsMigration = true
             }
             guard snapshot.version == 1,
-                Set(snapshot.workspaces.map(\.id)).count == snapshot.workspaces.count,
-                snapshot.workspaces.allSatisfy({ $0.duplicateIndex >= 0 })
+                Set(snapshot.workspaces.map(\.id)).count == snapshot.workspaces.count
             else { throw StoreError.invalidSnapshot }
             canSave = true
             if needsMigration { try save(snapshot.workspaces) }

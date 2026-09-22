@@ -62,6 +62,7 @@ final class MobileAppModel {
     let terminalSettings: TerminalSettingsModel
     let sshSettings: SSHSettingsModel
     let sftpSettings: SFTPSettingsModel
+    let workspaceSettings: WorkspaceSettingsModel
     let commandHistory: CommandHistoryModel
     let sftpHistory: SFTPHistoryModel
     let connectionHistory: ConnectionHistoryModel
@@ -191,6 +192,7 @@ final class MobileAppModel {
         terminalSettings = TerminalSettingsModel(persistence: settingsPersistence)
         sshSettings = SSHSettingsModel(persistence: settingsPersistence)
         sftpSettings = SFTPSettingsModel(persistence: settingsPersistence)
+        workspaceSettings = WorkspaceSettingsModel(persistence: settingsPersistence)
         connectionCoordinator.updateSSHPreferences(sshSettings.preferences)
         commandHistory = CommandHistoryModel(
             repository: SwiftDataCommandHistoryRepository(context: ModelContext(container)))
@@ -320,6 +322,7 @@ final class MobileAppModel {
             self?.terminalSettings.applyRemoteSnapshot(snapshot.terminal)
             self?.sshSettings.applyRemoteSnapshot(snapshot.ssh)
             self?.sftpSettings.applyRemoteSnapshot(snapshot.sftp)
+            self?.workspaceSettings.applyRemoteSnapshot(snapshot.workspace)
             self?.skills.applyRemoteSnapshot(snapshot.skills)
         }
         metricsSync?.didApplyRemote = { [weak self] snapshot, _ in
@@ -378,7 +381,7 @@ final class MobileAppModel {
             hosts: [host], usernames: request.username.map { [host.id: $0] } ?? [:])
         let workspace = MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(
-                hostID: host.id, title: host.name, kind: kind, duplicateIndex: 0),
+                hostID: host.id, title: host.name, kind: kind),
             hosts: library, transfers: transfers, sftpEdits: sftpEdits,
             terminalSettings: terminalSettings, commandHistory: commandHistory,
             sftpHistory: sftpHistory, connectionServices: workspaceConnectionServices,
@@ -716,33 +719,19 @@ final class MobileAppModel {
             recordsInitialCommandInHistory = true
             initialSFTPPath = nil
         }
-        let duplicateIndex = nextWorkspaceDuplicateIndex(hostID: host.id, kind: kind)
-        let title = duplicateIndex == 0 ? host.name : "\(host.name) (\(duplicateIndex))"
+        let title = WorkspaceNameAllocator.nextName(
+            prefix: host.name,
+            occupiedNames: savedWorkspaceDescriptors.map(\.title),
+            automaticallyRenames: workspaceSettings.preferences.automaticallyRenamesWorkspaces)
         return MobileWorkspace(
             descriptor: MobileWorkspaceDescriptor(
-                hostID: host.id, title: title, kind: kind, duplicateIndex: duplicateIndex),
+                hostID: host.id, title: title, kind: kind),
             hosts: library, transfers: transfers, sftpEdits: sftpEdits, terminalSettings: terminalSettings,
             commandHistory: commandHistory, sftpHistory: sftpHistory,
             connectionServices: workspaceConnectionServices,
             initialCommand: initialCommand,
             recordsInitialCommandInHistory: recordsInitialCommandInHistory,
             initialSFTPPath: initialSFTPPath)
-    }
-
-    /// Gives a new workspace the lowest number not already held by the same
-    /// connection kind on the same Host. A manual title does not release the
-    /// allocation; only closing the workspace does.
-    private func nextWorkspaceDuplicateIndex(
-        hostID: Host.ID, kind: ConnectionHistoryEntry.Kind
-    ) -> Int {
-        let taken = Set(
-            savedWorkspaceDescriptors.lazy
-                .filter { $0.hostID == hostID && $0.kind == kind }
-                .map(\.duplicateIndex)
-        )
-        var index = 0
-        while taken.contains(index) { index += 1 }
-        return index
     }
 
     private func addWorkspaces(_ added: [MobileWorkspace], persists: Bool = true) {

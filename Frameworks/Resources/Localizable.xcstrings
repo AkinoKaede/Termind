@@ -3777,6 +3777,22 @@
         }
       }
     },
+    "Automatically Rename Workspaces" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自动重命名工作区"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自動重新命名工作區"
+          }
+        }
+      }
+    },
     "Automatic from model catalog" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15730,6 +15746,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新增視窗"
+          }
+        }
+      }
+    },
+    "New Workspaces with the same Host name use the next number, regardless of protocol." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同名主机的新工作区会使用下一个数字，不区分连接协议。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "同名主機的新工作區會使用下一個數字，不區分連線協定。"
           }
         }
       }

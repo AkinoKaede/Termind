@@ -6,7 +6,6 @@ nonisolated struct MobileWorkspaceDescriptor: Codable, Hashable, Identifiable, S
     var hostID: UUID
     var title: String
     var kind: ConnectionHistoryEntry.Kind
-    var duplicateIndex = 0
 
     var destinationURL: URL { WorkspaceActivityAttributes.destinationURL(for: id) }
 }

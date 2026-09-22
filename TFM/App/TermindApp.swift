@@ -124,6 +124,7 @@ struct TermindApp: App {
                     terminalSettings: TerminalSettingsModel(persistence: settingsPersistence),
                     sshSettings: SSHSettingsModel(persistence: settingsPersistence),
                     sftpSettings: SFTPSettingsModel(persistence: settingsPersistence),
+                    workspaceSettings: WorkspaceSettingsModel(persistence: settingsPersistence),
                     commandHistory: CommandHistoryModel(modelContext: container.mainContext),
                     sftpHistory: SFTPHistoryModel(
                         repository: SwiftDataSFTPHistoryRepository(context: container.mainContext)

@@ -126,6 +126,7 @@ final class WindowModel {
             refreshSessionContext()
         }
     }
+    @ObservationIgnored var workspacePreferences: () -> WorkspacePreferences = { WorkspacePreferences() }
 
     /// What is being dragged right now, from the workspace bar or from a pane.
     ///
@@ -866,7 +867,6 @@ final class WindowModel {
             recordsInitialCommandInHistory: initialPath == nil
         )
         pane.sshSession?.connectionRoute = connectionRoute
-        numberPane(pane)
         configureConnectionHistory(pane)
 
         if placement == .currentWorkspace,
@@ -877,15 +877,14 @@ final class WindowModel {
             return workspace
         }
 
-        return open(Workspace(pane: pane))
+        return open(automaticallyNamedWorkspace(pane: pane, prefix: host.name))
     }
 
     @discardableResult
     func openTelnetSession(host: Host) -> Workspace {
         let pane = Pane.telnetSession(host: host)
-        numberPane(pane)
         configureConnectionHistory(pane)
-        return open(Workspace(pane: pane))
+        return open(automaticallyNamedWorkspace(pane: pane, prefix: host.name))
     }
 
     @discardableResult
@@ -896,8 +895,7 @@ final class WindowModel {
             host: host, usernameHint: username,
             advisoryPassword: password,
             isExternalTemporaryConnection: true)
-        numberPane(pane)
-        return open(Workspace(pane: pane))
+        return open(automaticallyNamedWorkspace(pane: pane, prefix: host.name))
     }
 
     func disconnectSessions(
@@ -945,13 +943,6 @@ final class WindowModel {
         workspace.layout = layout
         workspace.focusedPaneID = first.id
         open(workspace)
-
-        // After the append, not before: `numberPane` reads the indices of panes
-        // already in `workspaces`, and one that is not there yet is invisible to it.
-        // Numbering the batch against itself is safe because ticked hosts are
-        // distinct, so the same-host filter excludes every sibling — what it
-        // does catch is a pane already open on one of these machines.
-        panes.forEach(numberPane)
         return workspace
     }
 
@@ -967,7 +958,6 @@ final class WindowModel {
         workspace.layout = layout
         workspace.focusedPaneID = first.id
         open(workspace)
-        panes.forEach(numberPane)
         return workspace
     }
 
@@ -992,7 +982,6 @@ final class WindowModel {
         placement: SessionOpenPlacement = .newWorkspace
     ) -> Workspace {
         let pane = Pane.sftpChannel(host: host, initialPath: initialPath)
-        numberPane(pane)
         configureConnectionHistory(pane)
         if let connectionCoordinator { pane.configureConnections(using: connectionCoordinator) }
         if let sftpHistoryStore { pane.configureSFTPHistory(using: sftpHistoryStore) }
@@ -1005,7 +994,7 @@ final class WindowModel {
             return workspace
         }
 
-        return open(Workspace(pane: pane))
+        return open(automaticallyNamedWorkspace(pane: pane, prefix: host.name))
     }
 
     @discardableResult
@@ -1163,7 +1152,7 @@ final class WindowModel {
         else { return nil }
         detach(paneID)
 
-        let workspace = Workspace(pane: pane)
+        let workspace = automaticallyNamedWorkspace(pane: pane)
         workspace.lifecycleRouter = self
         workspaces.insert(workspace, at: min(index ?? workspaces.count, workspaces.count))
         select(workspace.id)
@@ -1266,7 +1255,7 @@ final class WindowModel {
     /// when it lives in a Workspace with two others.
     func duplicatePaneInNewWorkspace() {
         guard let copy = copyOfFocusedPane() else { return }
-        open(Workspace(pane: copy))
+        open(automaticallyNamedWorkspace(pane: copy))
     }
 
     /// Workspace-level: a Workspace is copied whole — same layout, same divider
@@ -1292,36 +1281,10 @@ final class WindowModel {
         duplicate.layout = layout
         duplicate.focusedPaneID = layout.firstPane.id
         open(duplicate)
-        // After the append, for the reason `openWorkspace` gives: `numberPane`
-        // reads the panes already in `workspaces`, and one that is not there yet is
-        // invisible to it.
-        layout.panes.forEach(numberPane)
     }
 
     func toggleBroadcastInput(in workspace: Workspace) {
         workspace.broadcastsInput.toggle()
-    }
-
-    /// Gives `pane` the lowest number not currently in use by a pane of the same
-    /// kind on the same host, so a second shell on web-01 reads "web-01 (1)".
-    ///
-    /// Lowest-free rather than highest-plus-one: closing "web-01 (1)" and opening
-    /// another gives that name back instead of skipping to (3), and the panes
-    /// that stayed open never renumber.
-    ///
-    /// Scoped to same kind *and* same host. An SSH session and an SFTP channel
-    /// on web-01 already have different symbols in Sessions, so numbering across
-    /// them would answer a question nobody asked.
-    func numberPane(_ pane: Pane) {
-        guard let hostID = pane.hostID else { return }
-        let taken = Set(
-            panes(ofKind: pane.kind)
-                .filter { $0.pane.hostID == hostID && $0.pane !== pane }
-                .map(\.pane.duplicateIndex)
-        )
-        var index = 0
-        while taken.contains(index) { index += 1 }
-        pane.duplicateIndex = index
     }
 
     /// An unfilled slot is not something to make a second of, so this is
@@ -1331,8 +1294,34 @@ final class WindowModel {
         guard let source = selectedWorkspace?.focusedPane, source.isCombinable,
             let copy = source.copy()
         else { return nil }
-        numberPane(copy)
         return copy
+    }
+
+    private func automaticallyNamedWorkspace(pane: Pane, prefix: String? = nil) -> Workspace {
+        let workspace = Workspace(pane: pane)
+        guard let prefix = prefix ?? automaticNamePrefix(for: pane) else { return workspace }
+        workspace.automaticTitle = WorkspaceNameAllocator.nextName(
+            prefix: prefix,
+            occupiedNames: occupiedWorkspaceNames(),
+            automaticallyRenames: workspacePreferences().automaticallyRenamesWorkspaces)
+        return workspace
+    }
+
+    private func automaticNamePrefix(for pane: Pane) -> String? {
+        if let hostID = pane.hostID, let name = hostStore?.host(hostID)?.name { return name }
+        switch pane.content {
+        case .sshSession(let session): return session.title
+        case .telnetSession(let session): return session.title
+        case .sftpChannel: return nil
+        case .serialSession, .empty: return nil
+        }
+    }
+
+    private func occupiedWorkspaceNames(locale: Locale = .current, excluding excludedID: Workspace.ID? = nil)
+        -> [String]
+    {
+        let store = hostStore ?? HostLibraryModel()
+        return workspaces.filter { $0.id != excludedID }.map { $0.title(in: store, locale: locale) }
     }
 
     /// Moving preserves live transports and does not populate close history.
@@ -1475,9 +1464,8 @@ final class WindowModel {
         workspaces.insert(workspace, at: min(max(index, 0), workspaces.count))
     }
 
-    /// A workspace with one pane *is* that pane, so its name lives on the pane — one
-    /// store rather than two kept in step. Only a Workspace names itself,
-    /// because only a Workspace is a thing separate from what it contains.
+    /// A manual name for a single-pane Workspace lives on its pane, while its
+    /// generated name remains on the Workspace. A split Workspace names the group.
     ///
     /// Manager pages, forms and a host's tunnels refuse outright — see
     /// `Workspace.isRenameable`. The guard is here as well as in the menu so the
@@ -1485,10 +1473,26 @@ final class WindowModel {
     /// ask.
     func rename(_ id: Workspace.ID, to title: String) {
         guard let workspace = workspaces.first(where: { $0.id == id }), workspace.isRenameable else { return }
+        let cleaned = Self.cleaned(title)
         if workspace.isSplit {
-            workspace.customTitle = Self.cleaned(title)
+            if let cleaned {
+                workspace.customTitle = cleaned
+            } else {
+                let prefix = AppLocalization.string("Workspace", locale: .current)
+                let automatic = WorkspaceNameAllocator.nextName(
+                    prefix: prefix,
+                    occupiedNames: occupiedWorkspaceNames(excluding: workspace.id),
+                    automaticallyRenames: workspacePreferences().automaticallyRenamesWorkspaces)
+                workspace.customTitle = automatic == prefix ? nil : automatic
+            }
         } else {
-            workspace.focusedPane.customTitle = Self.cleaned(title)
+            workspace.focusedPane.customTitle = cleaned
+            if cleaned == nil, let prefix = automaticNamePrefix(for: workspace.focusedPane) {
+                workspace.automaticTitle = WorkspaceNameAllocator.nextName(
+                    prefix: prefix,
+                    occupiedNames: occupiedWorkspaceNames(excluding: workspace.id),
+                    automaticallyRenames: workspacePreferences().automaticallyRenamesWorkspaces)
+            }
         }
     }
 
@@ -1496,8 +1500,17 @@ final class WindowModel {
     /// than setting a blank one, so there is one way back to the derived title
     /// and it is the obvious one.
     func rename(pane id: Pane.ID, to title: String) {
-        guard let pane = workspaces.lazy.compactMap({ $0.layout.pane(id) }).first else { return }
-        pane.customTitle = Self.cleaned(title)
+        guard let workspace = workspaces.first(where: { $0.layout.pane(id) != nil }),
+            let pane = workspace.layout.pane(id)
+        else { return }
+        let cleaned = Self.cleaned(title)
+        pane.customTitle = cleaned
+        if cleaned == nil, !workspace.isSplit, let prefix = automaticNamePrefix(for: pane) {
+            workspace.automaticTitle = WorkspaceNameAllocator.nextName(
+                prefix: prefix,
+                occupiedNames: occupiedWorkspaceNames(excluding: workspace.id),
+                automaticallyRenames: workspacePreferences().automaticallyRenamesWorkspaces)
+        }
     }
 
     private static func cleaned(_ title: String) -> String? {

@@ -1278,6 +1278,77 @@ struct WindowStateTests {
             return
         }
     }
+
+    @Test
+    func workspaceNamesUseTopLevelTitlesAcrossProtocolsAndHostIDs() {
+        let first = Host(name: "Server", host: "first.example")
+        let second = Host(name: "Server", host: "second.example", telnetEnabled: true)
+        let store = HostLibraryModel(hosts: [first, second])
+        let window = WindowModel()
+        window.hostStore = store
+
+        let ssh = window.openSSHSession(host: first)
+        let sftp = window.openSFTPChannel(host: second)
+        let telnet = window.openTelnetSession(host: second)
+        #expect([ssh, sftp, telnet].map { $0.title(in: store) } == ["Server", "Server (1)", "Server (2)"])
+
+        window.rename(sftp.id, to: "Logs")
+        let next = window.openSSHSession(host: first)
+        #expect(next.title(in: store) == "Server (3)")
+
+        window.close(ssh.id)
+        let reusedBase = window.openSFTPChannel(host: first)
+        #expect(reusedBase.title(in: store) == "Server")
+    }
+
+    @Test
+    func combinedPaneNamesAndOtherWindowsDoNotOccupyWorkspaceNames() {
+        let host = Host(name: "Server 2", host: "server.example")
+        let store = HostLibraryModel(hosts: [host])
+        let combined = Workspace.sshSession(host: host)
+        combined.splitFocusedPane(axis: .horizontal, with: .sftpChannel(host: host))
+        let window = WindowModel(workspaces: [combined])
+        window.hostStore = store
+
+        let first = window.openSSHSession(host: host)
+        let second = window.openSFTPChannel(host: host)
+        #expect(first.title(in: store) == "Server 2")
+        #expect(second.title(in: store) == "Server 2 (1)")
+
+        let otherWindow = WindowModel()
+        otherWindow.hostStore = store
+        #expect(otherWindow.openSSHSession(host: host).title(in: store) == "Server 2")
+    }
+
+    @Test
+    func hostNamesThatEndInNumbersDoNotConflictWithParenthesizedSuffixes() {
+        let server = Host(name: "Server", host: "server.example")
+        let serverOne = Host(name: "Server 1", host: "server-one.example")
+        let store = HostLibraryModel(hosts: [server, serverOne])
+        let window = WindowModel()
+        window.hostStore = store
+
+        #expect(window.openSSHSession(host: server).title(in: store) == "Server")
+        #expect(window.openSSHSession(host: serverOne).title(in: store) == "Server 1")
+        #expect(window.openSSHSession(host: server).title(in: store) == "Server (1)")
+        #expect(window.openSSHSession(host: serverOne).title(in: store) == "Server 1 (1)")
+    }
+
+    @Test
+    func disablingAutomaticWorkspaceNamesLeavesExistingNamesAndStopsAddingNumbers() {
+        let host = Host(name: "Server", host: "server.example")
+        let store = HostLibraryModel(hosts: [host])
+        let window = WindowModel()
+        window.hostStore = store
+        let first = window.openSSHSession(host: host)
+        let second = window.openSSHSession(host: host)
+        window.workspacePreferences = {
+            WorkspacePreferences(automaticallyRenamesWorkspaces: false)
+        }
+        let third = window.openSFTPChannel(host: host)
+
+        #expect([first, second, third].map { $0.title(in: store) } == ["Server", "Server (1)", "Server"])
+    }
 }
 
 private actor FailingConversationOperationRepository: AgentRunPersisting {

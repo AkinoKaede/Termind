@@ -44,6 +44,10 @@ final class Workspace: Identifiable {
     }
     /// `nil` means the title tracks the focused pane.
     var customTitle: String?
+    /// The complete name assigned when this became a top-level Workspace.
+    /// Keeping the rendered string rather than a counter makes future allocation
+    /// depend only on the names the user can actually see.
+    var automaticTitle: String?
     weak var lifecycleRouter: (any WorkspaceLifecycleRouting)?
 
     /// Whether typing into one sshSession pane types into all of them.
@@ -123,16 +127,16 @@ final class Workspace: Identifiable {
     /// the panes are listed individually in the sidebar, so the workspace only has to
     /// identify the *group*.
     ///
-    /// A workspace with one pane *is* that pane, so it takes the pane's name and never
-    /// consults `customTitle`: renaming such a workspace writes through to the pane
-    /// (see `WindowModel.rename`), and one thing has one name. It also means a
-    /// renamed workspace reads "Workspace" the moment it is split, since the name it
-    /// was given went to the pane rather than to the group.
+    /// A workspace with one pane *is* that pane. A manual pane name wins, followed
+    /// by the complete automatic name assigned when the Workspace opened, then the
+    /// pane's derived Host name. Splitting hides those single-pane names and uses
+    /// the group's `customTitle` or "Workspace" instead.
     func title(in store: HostLibraryModel, locale: Locale = .current) -> String {
         if isSplit {
             return customTitle ?? AppLocalization.string("Workspace", locale: locale)
         }
-        return focusedPane.title(in: store, locale: locale)
+        if let customTitle = focusedPane.customTitle { return customTitle }
+        return automaticTitle ?? focusedPane.derivedTitle(in: store, locale: locale)
     }
 
     func subtitle(in store: HostLibraryModel) -> String? {
