@@ -61,6 +61,7 @@ struct KeychainPageView: ManagedCardPage {
     }
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
 
     let state: KeychainPageState
 
@@ -138,12 +139,12 @@ struct KeychainPageView: ManagedCardPage {
             KeyCard(
                 key: key,
                 isSelected: context.isSelected,
-                select: context.select,
+                select: { select(item, action: context.select) },
                 extendSelection: context.extendSelection,
                 actionKeys: context.actionItems.compactMap(\.key),
                 actionIdentities: context.actionItems.compactMap(\.identity),
                 edit: {
-                    window.openVaultWork(.editKey(key.id), on: .keychain)
+                    edit(item, action: context.select)
                 },
                 export: { requestExport(context.actionItems.compactMap(\.key)) },
                 delete: {
@@ -154,12 +155,12 @@ struct KeychainPageView: ManagedCardPage {
             IdentityCard(
                 identity: identity,
                 isSelected: context.isSelected,
-                select: context.select,
+                select: { select(item, action: context.select) },
                 extendSelection: context.extendSelection,
                 actionKeys: context.actionItems.compactMap(\.key),
                 actionIdentities: context.actionItems.compactMap(\.identity),
                 edit: {
-                    window.openVaultWork(.identityEditor(identity.id), on: .keychain)
+                    edit(item, action: context.select)
                 },
                 delete: {
                     requestDelete(context.actionItems)
@@ -214,6 +215,11 @@ struct KeychainPageView: ManagedCardPage {
         ]
     }
 
+    func managedBlankAreaPrimaryAction() {
+        guard let route = window.vaultWorkRoute, isEditableRoute(route) else { return }
+        editingSession.requestTransition(route: route, action: window.closeVaultWork)
+    }
+
     // MARK: - Selection
 
     private func setSelection(_ selected: Set<VaultSelectionID>) {
@@ -223,6 +229,49 @@ struct KeychainPageView: ManagedCardPage {
                 selected.contains(.identity($0.id)) ? .identity($0.id) : nil
             }
         window.setVaultSelection(ordered, for: .keychain)
+    }
+
+    private func select(_ item: Item, action: @escaping () -> Void) {
+        guard let current = window.vaultWorkRoute, isEditableRoute(current) else {
+            action()
+            return
+        }
+        let target = editorRoute(for: item)
+        guard current != target else {
+            action()
+            return
+        }
+        editingSession.requestTransition(route: current) {
+            action()
+            window.openVaultWork(target, on: .keychain)
+        }
+    }
+
+    private func edit(_ item: Item, action: @escaping () -> Void) {
+        let target = editorRoute(for: item)
+        guard let current = window.vaultWorkRoute, isEditableRoute(current), current != target else {
+            action()
+            window.openVaultWork(target, on: .keychain)
+            return
+        }
+        editingSession.requestTransition(route: current) {
+            action()
+            window.openVaultWork(target, on: .keychain)
+        }
+    }
+
+    private func editorRoute(for item: Item) -> VaultWorkRoute {
+        switch item {
+        case .key(let key): .editKey(key.id)
+        case .identity(let identity): .identityEditor(identity.id)
+        }
+    }
+
+    private func isEditableRoute(_ route: VaultWorkRoute) -> Bool {
+        switch route {
+        case .editKey, .identityEditor: true
+        default: false
+        }
     }
 
     private func requestExport(_ keys: [SSHKeyRef]) {
@@ -416,6 +465,7 @@ private struct SoftwareKeyEditor: View {
             _ passphrase: String?, _ certificate: String, _ material: SSHKeyMaterial
         ) async throws -> SSHKeyRef
     let saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)?
+    let delete: (() throws -> Void)?
 
     @State private var name: String
     @State private var colorTag: TagColor
@@ -432,8 +482,11 @@ private struct SoftwareKeyEditor: View {
     @State private var isWorking = false
     @State private var errorMessage: String?
     @State private var nativeDropKind: NativeDropKind?
+    @State private var confirmsDeletion = false
+    @State private var editingToken: UUID?
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(VaultWorkEditingSession.self) private var editingSession
 
     init(
         existing: SSHKeyRef? = nil, title: LocalizedStringKey,
@@ -441,6 +494,7 @@ private struct SoftwareKeyEditor: View {
         defaultStorage: KeyStorage = .iCloud,
         loadPrivateKey: (() throws -> String)? = nil,
         saveMetadata: ((_ name: String, _ colorTag: TagColor, _ certificate: String) throws -> SSHKeyRef)? = nil,
+        delete: (() throws -> Void)? = nil,
         save:
             @escaping (
                 String, TagColor, KeyStorage, String, String?, String, SSHKeyMaterial
@@ -452,6 +506,7 @@ private struct SoftwareKeyEditor: View {
         self.close = close
         self.loadPrivateKey = loadPrivateKey
         self.saveMetadata = saveMetadata
+        self.delete = delete
         self.save = save
         _name = State(initialValue: existing?.label ?? "")
         _colorTag = State(initialValue: existing?.colorTag ?? .none)
@@ -461,7 +516,10 @@ private struct SoftwareKeyEditor: View {
     }
 
     var body: some View {
-        VaultDetailScaffold(title: title, symbol: symbol, close: close) {
+        VaultDetailScaffold(
+            title: title, symbol: symbol, close: existing == nil ? close : cancelEditing,
+            closeLabel: existing == nil ? "Close" : "Cancel"
+        ) {
             if isLoading {
                 ProgressView("Loading private key…")
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -535,13 +593,20 @@ private struct SoftwareKeyEditor: View {
                 .formStyle(.grouped)
             }
         } footer: {
-            HStack {
+            HStack(spacing: Metrics.Space.m) {
+                if existing != nil, delete != nil {
+                    Button("Delete", role: .destructive) { confirmsDeletion = true }
+                }
                 Spacer()
                 if isWorking { ProgressView().controlSize(.small) }
-                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
+                Button(existing == nil ? "Cancel" : "Discard", action: close)
                 Button(existing == nil ? "Import" : "Save") {
-                    Task { await commit() }
+                    Task {
+                        guard await commitChanges() else { return }
+                        close()
+                    }
                 }
+                .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(isWorking || isLoading || (canEditPrivateKey && privateKey.isEmpty))
             }
@@ -568,7 +633,25 @@ private struct SoftwareKeyEditor: View {
             Motion.dropTarget(reduceMotion: reduceMotion),
             value: nativeDropKind
         )
-        .task { load() }
+        .task {
+            load()
+            guard let existing else { return }
+            editingToken = editingSession.register(
+                route: .editKey(existing.id), isDirty: { isDirty }
+            ) {
+                await commitChanges()
+            }
+        }
+        .onDisappear {
+            guard let editingToken else { return }
+            editingSession.unregister(editingToken)
+        }
+        .confirmationDialog("Delete Key?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
+            Button("Delete Key", role: .destructive, action: deleteKey)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Identities using this key will no longer have access to it.")
+        }
         .task(id: validationToken) { await derivePublicMaterial() }
     }
 
@@ -627,7 +710,22 @@ private struct SoftwareKeyEditor: View {
     }
 
     @MainActor
-    private func commit() async {
+    private var isDirty: Bool {
+        guard let existing else { return !name.isEmpty || !privateKey.isEmpty || !certificate.isEmpty }
+        return name != existing.label || colorTag != existing.colorTag || storage != existing.storage
+            || privateKey != originalPrivateKey || !passphrase.isEmpty || certificate != existing.certificate
+    }
+
+    private func cancelEditing() {
+        guard let existing else {
+            close()
+            return
+        }
+        editingSession.requestTransition(route: .editKey(existing.id), action: close)
+    }
+
+    private func commitChanges() async -> Bool {
+        guard existing == nil || isDirty else { return true }
         isWorking = true
         errorMessage = nil
         do {
@@ -639,8 +737,8 @@ private struct SoftwareKeyEditor: View {
                 _ = try saveMetadata(
                     name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, normalizedCertificate
                 )
-                close()
-                return
+                isWorking = false
+                return true
             }
             let passphrase = passphrase.isEmpty ? nil : passphrase
             let inspected: SSHKeyMaterial
@@ -668,10 +766,21 @@ private struct SoftwareKeyEditor: View {
                 name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag, storage,
                 privateKey, passphrase, normalizedCertificate, inspected
             )
-            close()
+            isWorking = false
+            return true
         } catch {
             errorMessage = error.localizedDescription
             isWorking = false
+            return false
+        }
+    }
+
+    private func deleteKey() {
+        do {
+            try delete?()
+            close()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 
@@ -1040,6 +1149,7 @@ struct KeychainEditDetail: View {
             if key.storage == .secureEnclave {
                 SecureEnclaveKeyEditor(
                     key: key, close: window.closeVaultWork,
+                    delete: { try delete(key) },
                     save: { name, colorTag in
                         try saveSecureEnclave(key, name: name, colorTag: colorTag)
                     }
@@ -1054,6 +1164,7 @@ struct KeychainEditDetail: View {
                             key, name: name, colorTag: colorTag, certificate: certificate
                         )
                     },
+                    delete: { try delete(key) },
                     save: {
                         name, colorTag, storage, privateKey, passphrase, certificate, material in
                         try await saveSoftwareKey(
@@ -1076,6 +1187,11 @@ struct KeychainEditDetail: View {
             )
         }
         return secret.privateKey
+    }
+
+    private func delete(_ key: SSHKeyRef) throws {
+        try app.credentials.delete(keyID: key.id)
+        window.pruneVaultSelections(in: app.credentials)
     }
 
     private func saveSoftwareKey(
@@ -1130,25 +1246,30 @@ struct KeychainEditDetail: View {
 private struct SecureEnclaveKeyEditor: View {
     let key: SSHKeyRef
     let close: () -> Void
+    let delete: () throws -> Void
     let save: (String, TagColor) throws -> Void
 
     @State private var name: String
     @State private var colorTag: TagColor
     @State private var errorMessage: String?
+    @State private var confirmsDeletion = false
+    @State private var editingToken: UUID?
+    @Environment(VaultWorkEditingSession.self) private var editingSession
 
     init(
-        key: SSHKeyRef, close: @escaping () -> Void,
+        key: SSHKeyRef, close: @escaping () -> Void, delete: @escaping () throws -> Void,
         save: @escaping (String, TagColor) throws -> Void
     ) {
         self.key = key
         self.close = close
+        self.delete = delete
         self.save = save
         _name = State(initialValue: key.label)
         _colorTag = State(initialValue: key.colorTag)
     }
 
     var body: some View {
-        VaultDetailScaffold(title: "Edit Key", symbol: "pencil", close: close) {
+        VaultDetailScaffold(title: "Edit Key", symbol: "pencil", close: cancelEditing, closeLabel: "Cancel") {
             Form {
                 Section {
                     VaultNameField(text: $name, prompt: Text(verbatim: key.defaultName))
@@ -1170,20 +1291,62 @@ private struct SecureEnclaveKeyEditor: View {
             }
             .formStyle(.grouped)
         } footer: {
-            HStack {
+            HStack(spacing: Metrics.Space.m) {
+                Button("Delete", role: .destructive) { confirmsDeletion = true }
                 Spacer()
-                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
-                Button("Save") {
-                    do {
-                        try save(
-                            name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag
-                        )
-                        close()
-                    } catch { errorMessage = error.localizedDescription }
-                }
-                .keyboardShortcut(.defaultAction)
+                Button("Discard", action: close)
+                Button("Save", action: saveAndClose)
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.defaultAction)
             }
             .padding()
+        }
+        .onAppear {
+            editingToken = editingSession.register(
+                route: .editKey(key.id), isDirty: { isDirty }
+            ) { commitChanges() }
+        }
+        .onDisappear {
+            guard let editingToken else { return }
+            editingSession.unregister(editingToken)
+        }
+        .confirmationDialog("Delete Key?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
+            Button("Delete Key", role: .destructive, action: deleteKey)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Identities using this key will no longer have access to it.")
+        }
+    }
+
+    private var isDirty: Bool { name != key.label || colorTag != key.colorTag }
+
+    private func cancelEditing() {
+        editingSession.requestTransition(route: .editKey(key.id), action: close)
+    }
+
+    private func commitChanges() -> Bool {
+        guard isDirty else { return true }
+        do {
+            try save(name.trimmingCharacters(in: .whitespacesAndNewlines), colorTag)
+            errorMessage = nil
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+
+    private func saveAndClose() {
+        guard commitChanges() else { return }
+        close()
+    }
+
+    private func deleteKey() {
+        do {
+            try delete()
+            close()
+        } catch {
+            errorMessage = error.localizedDescription
         }
     }
 }

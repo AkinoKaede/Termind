@@ -64,7 +64,16 @@ struct MobileKnownHostsView: View {
         }
         .searchable(text: $query.singleLineText)
         .navigationTitle("Known Hosts")
-        .sheet(item: $editing) { MobileKnownHostEditor(app: app, entry: $0) }
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button("Add Host Key", systemImage: "plus") {
+                    editing = KnownHostEntry(hostname: "")
+                }
+            }
+        }
+        .sheet(item: $editing) { entry in
+            MobileKnownHostEditor(app: app, entry: entry, isNew: app.knownHosts.entry(entry.id) == nil)
+        }
         .confirmationDialog(
             "Delete Known Host?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
             titleVisibility: .visible
@@ -80,17 +89,23 @@ struct MobileKnownHostsView: View {
 struct MobileKnownHostEditor: View {
     let app: MobileAppModel
     let original: KnownHostEntry
+    let isNew: Bool
     @State private var draft: KnownHostEntry
 
-    init(app: MobileAppModel, entry: KnownHostEntry) {
+    init(app: MobileAppModel, entry: KnownHostEntry, isNew: Bool? = nil) {
         self.app = app
         original = entry
+        self.isNew = isNew ?? (app.knownHosts.entry(entry.id) == nil)
         _draft = State(initialValue: entry)
+    }
+
+    var editorTitle: String {
+        isNew ? String(localized: "Add Host Key") : String(localized: "Edit Host Key")
     }
 
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: "Host Key"), isDirty: draft != original,
+            title: editorTitle, isDirty: draft != original,
             canSave: draft.isValid,
             save: {
                 guard app.knownHosts.save(draft) else {
@@ -99,7 +114,7 @@ struct MobileKnownHostEditor: View {
                 }
             },
             content: {
-                Section {
+                Section("Host") {
                     LabeledContent("Hostname") {
                         TextField("Hostname", text: $draft.hostname.singleLineText, axis: .horizontal).singleLinePaste()
                             .lineLimit(1)
@@ -114,6 +129,13 @@ struct MobileKnownHostEditor: View {
                                 .keyboardType(.numberPad)
                         }
                     }
+                    if draft.isHashed {
+                        Text("The original address and port cannot be recovered from this hash.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                Section("Host Key") {
                     Picker("Key Type", selection: $draft.algorithm) {
                         ForEach(SSHKeyAlgorithm.allCases) { Text($0.displayName).tag($0) }
                     }
@@ -125,13 +147,6 @@ struct MobileKnownHostEditor: View {
                         .font(.body.monospaced())
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
-                    }
-                }
-                if draft.isHashed {
-                    Section {
-                        Text("The original address and port cannot be recovered from this hash.")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
                     }
                 }
             })

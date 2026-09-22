@@ -1,5 +1,82 @@
 import SwiftUI
 
+/// Coordinates draft commits when pointer navigation leaves one of Vault's
+/// inline editors. The registration is view-owned and tokened so a disappearing
+/// editor cannot unregister the editor that replaced it in the same update.
+@Observable
+final class VaultWorkEditingSession {
+    private struct Registration {
+        let token: UUID
+        let route: VaultWorkRoute
+        let isDirty: () -> Bool
+        let commit: () async -> Bool
+    }
+
+    private struct PendingTransition {
+        let id = UUID()
+        let action: () -> Void
+    }
+
+    @ObservationIgnored private var registration: Registration?
+    @ObservationIgnored private var pendingTransition: PendingTransition?
+    @ObservationIgnored private var isCommitting = false
+    var confirmationID: UUID?
+
+    @discardableResult
+    func register(
+        route: VaultWorkRoute, isDirty: @escaping () -> Bool,
+        commit: @escaping () async -> Bool
+    ) -> UUID {
+        let token = UUID()
+        registration = Registration(token: token, route: route, isDirty: isDirty, commit: commit)
+        return token
+    }
+
+    func unregister(_ token: UUID) {
+        guard registration?.token == token else { return }
+        registration = nil
+    }
+
+    func requestTransition(route: VaultWorkRoute, action: @escaping () -> Void) {
+        guard let registration, registration.route == route, registration.isDirty() else {
+            action()
+            return
+        }
+        let pending = PendingTransition(action: action)
+        pendingTransition = pending
+        confirmationID = pending.id
+    }
+
+    func saveAndProceed() {
+        guard let registration, let pendingTransition else { return }
+        guard !isCommitting else { return }
+        isCommitting = true
+        Task {
+            let saved = await registration.commit()
+            isCommitting = false
+            guard saved else {
+                cancelTransition()
+                return
+            }
+            self.pendingTransition = nil
+            confirmationID = nil
+            pendingTransition.action()
+        }
+    }
+
+    func discardAndProceed() {
+        guard let pendingTransition else { return }
+        self.pendingTransition = nil
+        confirmationID = nil
+        pendingTransition.action()
+    }
+
+    func cancelTransition() {
+        pendingTransition = nil
+        confirmationID = nil
+    }
+}
+
 struct VaultWorkspaceView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -10,6 +87,7 @@ struct VaultWorkspaceView: View {
 
 struct VaultWorkspaceContent: View {
     @Environment(WindowModel.self) private var window
+    @State private var editingSession = VaultWorkEditingSession()
     let reduceMotion: Bool
 
     var body: some View {
@@ -42,6 +120,19 @@ struct VaultWorkspaceContent: View {
             }
             .clipped()
             .animation(Motion.panel(reduceMotion: reduceMotion), value: window.vaultWorkRoute)
+        }
+        .environment(editingSession)
+        .confirmationDialog(
+            "Save Changes?",
+            isPresented: Binding(
+                get: { editingSession.confirmationID != nil },
+                set: { if !$0 { editingSession.cancelTransition() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Save", action: editingSession.saveAndProceed)
+            Button("Discard", role: .destructive, action: editingSession.discardAndProceed)
+            Button("Cancel", role: .cancel, action: editingSession.cancelTransition)
         }
     }
 }

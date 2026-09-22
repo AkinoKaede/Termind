@@ -44,6 +44,7 @@ final class SnippetsPageState {
 struct SnippetsPageView: ManagedCardPage {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
 
     let state: SnippetsPageState
 
@@ -160,12 +161,12 @@ struct SnippetsPageView: ManagedCardPage {
         SnippetCard(
             snippet: snippet,
             isSelected: context.isSelected,
-            select: context.select,
+            select: { select(snippet, action: context.select) },
             extendSelection: context.extendSelection,
             actionSnippets: context.actionItems,
             execute: requestExecution,
             executeOnHosts: executeOnHosts,
-            edit: { openSnippetEditor(snippetID: snippet.id, packageID: snippet.packageID) },
+            edit: { edit(snippet, action: context.select) },
             duplicate: duplicate,
             delete: {
                 state.confirmation = .deleteSnippets(SnippetBatch(snippets: $0))
@@ -194,6 +195,11 @@ struct SnippetsPageView: ManagedCardPage {
                 openPackageEditor(packageID: nil, parentID: packageID)
             },
         ]
+    }
+
+    func managedBlankAreaPrimaryAction() {
+        guard let route = window.vaultWorkRoute, case .snippetEditor = route else { return }
+        editingSession.requestTransition(route: route, action: window.closeVaultWork)
     }
 
     func managedEmptyState() -> some View {
@@ -246,6 +252,36 @@ struct SnippetsPageView: ManagedCardPage {
     private func saveSnippet(_ snippet: Snippet) {
         app.snippets.upsert(snippet)
         window.selectVaultItem(.snippet(snippet.id), on: .snippets)
+    }
+
+    private func select(_ snippet: Snippet, action: @escaping () -> Void) {
+        guard let route = window.vaultWorkRoute,
+            case .snippetEditor(let editingID, _) = route,
+            editingID != snippet.id
+        else {
+            action()
+            return
+        }
+        editingSession.requestTransition(route: route) {
+            action()
+            openSnippetEditor(snippetID: snippet.id, packageID: snippet.packageID)
+        }
+    }
+
+    private func edit(_ snippet: Snippet, action: @escaping () -> Void) {
+        let target = VaultWorkRoute.snippetEditor(snippetID: snippet.id, packageID: snippet.packageID)
+        guard let route = window.vaultWorkRoute,
+            case .snippetEditor = route,
+            route != target
+        else {
+            action()
+            openSnippetEditor(snippetID: snippet.id, packageID: snippet.packageID)
+            return
+        }
+        editingSession.requestTransition(route: route) {
+            action()
+            openSnippetEditor(snippetID: snippet.id, packageID: snippet.packageID)
+        }
     }
 
     private func duplicate(_ snippet: Snippet) {
@@ -533,12 +569,17 @@ struct SnippetEditorSheet: View {
     var requestedClose: (() -> Void)?
 
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
     @Environment(\.dismiss) private var dismiss
     @State private var title: String
     @State private var bodyText: String
     @State private var packageID: SnippetPackage.ID?
     @State private var targets: Set<Host.ID>
     @State private var route: Route?
+    @State private var error: String?
+    @State private var confirmsDeletion = false
+    @State private var editingToken: UUID?
 
     init(
         snippet: Snippet? = nil, packageID: SnippetPackage.ID? = nil,
@@ -570,12 +611,27 @@ struct SnippetEditorSheet: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .animation(.snappy(duration: 0.2), value: route)
+        .onAppear {
+            editingToken = editingSession.register(
+                route: .snippetEditor(snippetID: existing?.id, packageID: packageID), isDirty: { isDirty }
+            ) {
+                commitChanges()
+            }
+        }
+        .onDisappear {
+            guard let editingToken else { return }
+            editingSession.unregister(editingToken)
+        }
+        .confirmationDialog("Delete Snippet?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
+            Button("Delete Snippet", role: .destructive, action: delete)
+            Button("Cancel", role: .cancel) {}
+        }
     }
 
     private var editor: some View {
         VaultDetailScaffold(
             title: existing == nil ? "New Snippet" : "Edit Snippet",
-            symbol: "curlybraces", close: close
+            symbol: "curlybraces", close: cancelEditing, closeLabel: "Cancel"
         ) {
             Form {
                 SnippetOrganizationSection(name: $title) {
@@ -633,13 +689,18 @@ struct SnippetEditorSheet: View {
                         .help("Add Hosts")
                     }
                 }
+                if let error { Text(error).foregroundStyle(.red) }
             }
             .formStyle(.grouped)
         } footer: {
-            HStack {
+            HStack(spacing: Metrics.Space.m) {
+                if existing != nil {
+                    Button("Delete", role: .destructive) { confirmsDeletion = true }
+                }
                 Spacer()
-                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
-                Button(existing == nil ? "Add" : "Save", action: commit)
+                Button("Discard", action: close)
+                Button("Save", action: saveAndClose)
+                    .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(trimmedTitle.isEmpty || trimmedBody.isEmpty)
                     .accessibilityIdentifier("snippet-editor.save")
@@ -650,6 +711,11 @@ struct SnippetEditorSheet: View {
 
     private var trimmedTitle: String { title.trimmingCharacters(in: .whitespacesAndNewlines) }
     private var trimmedBody: String { bodyText.trimmingCharacters(in: .whitespacesAndNewlines) }
+    private var isDirty: Bool {
+        title != (existing?.title ?? "") || bodyText != (existing?.body ?? "")
+            || packageID != existing?.packageID
+            || targets != Set(existing?.targetHostIDs ?? [])
+    }
 
     private var packageChoices: [(package: SnippetPackage, path: String)] {
         app.snippets.snippetPackages.compactMap { package in
@@ -665,7 +731,17 @@ struct SnippetEditorSheet: View {
         if let requestedClose { requestedClose() } else { dismiss() }
     }
 
-    private func commit() {
+    private func cancelEditing() {
+        editingSession.requestTransition(
+            route: .snippetEditor(snippetID: existing?.id, packageID: packageID), action: close)
+    }
+
+    private func commitChanges() -> Bool {
+        guard isDirty else { return true }
+        guard !trimmedTitle.isEmpty, !trimmedBody.isEmpty else {
+            error = String(localized: "Complete all required fields before saving.")
+            return false
+        }
         let orderedTargets = app.snippets.searchHosts("").filter { targets.contains($0.id) }.map(\.id)
         save(
             Snippet(
@@ -674,6 +750,19 @@ struct SnippetEditorSheet: View {
                 sortIndex: existing?.sortIndex ?? 0
             )
         )
+        error = nil
+        return true
+    }
+
+    private func saveAndClose() {
+        guard commitChanges() else { return }
+        close()
+    }
+
+    private func delete() {
+        guard let existing else { return }
+        app.snippets.delete(snippetIDs: [existing.id])
+        window.pruneVaultSelections(in: app.snippets)
         close()
     }
 
@@ -942,4 +1031,5 @@ struct SnippetPackageSheet: View {
     SnippetsPageView()
         .environment(AppModel(hosts: .demo()))
         .environment(WindowModel(vaultDestination: .snippets))
+        .environment(VaultWorkEditingSession())
 }

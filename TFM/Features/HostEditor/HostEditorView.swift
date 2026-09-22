@@ -10,6 +10,32 @@ import struct TermindDomain.Host
 /// A route inside Vault rather than a dynamic workspace or sheet. It edits durable
 /// connection data without entering SSH/SFTP Workspace lifecycle state.
 struct HostEditorView: View {
+    private struct CustomIdentityState: Equatable {
+        let sshUsername: String
+        let sshPassword: String
+        let sshKeyID: SSHKeyRef.ID?
+        let telnetUsername: String
+        let telnetPassword: String
+        let usesCustomTelnetSelection: Bool
+        let usesCustomProxy: Bool
+        let proxyPassword: String
+        let usesCustomTelnetProxy: Bool
+        let telnetProxyPassword: String
+
+        init(_ draft: HostCustomIdentityDraft) {
+            sshUsername = draft.sshUsername
+            sshPassword = draft.sshPassword
+            sshKeyID = draft.sshKeyID
+            telnetUsername = draft.telnetUsername
+            telnetPassword = draft.telnetPassword
+            usesCustomTelnetSelection = draft.usesCustomTelnetSelection
+            usesCustomProxy = draft.usesCustomProxy
+            proxyPassword = draft.proxyPassword
+            usesCustomTelnetProxy = draft.usesCustomTelnetProxy
+            telnetProxyPassword = draft.telnetProxyPassword
+        }
+    }
+
     private enum Route: Hashable {
         case identity
         case telnetIdentity
@@ -24,23 +50,25 @@ struct HostEditorView: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
 
     @State private var draft: Host
+    @State private var original: Host
+    @State private var originalCustomIdentity = CustomIdentityState(HostCustomIdentityDraft())
     @State private var route: Route?
     @State private var saveError: String?
     @State private var didLoad = false
     @State private var customIdentity = HostCustomIdentityDraft()
     @State private var selectedProtocol = HostTerminalProtocol.ssh
     @State private var confirmsDeletion = false
+    @State private var editingToken: UUID?
 
     init(hostID: Host.ID?, initialGroupID: HostGroup.ID? = nil) {
         self.hostID = hostID
         self.initialGroupID = initialGroupID
-        _draft = State(
-            initialValue: Host(
-                name: "", host: "",
-                groupID: hostID == nil ? initialGroupID : nil
-            ))
+        let initial = Host(name: "", host: "", groupID: hostID == nil ? initialGroupID : nil)
+        _draft = State(initialValue: initial)
+        _original = State(initialValue: initial)
     }
 
     var body: some View {
@@ -51,7 +79,7 @@ struct HostEditorView: View {
             } else {
                 VaultDetailScaffold(
                     title: hostID == nil ? "New Host" : "Edit Host",
-                    symbol: "server.rack", close: cancel
+                    symbol: "server.rack", close: cancel, closeLabel: "Cancel"
                 ) {
                     VStack(spacing: 0) {
                         HostProtocolProfileControls(protocol: $selectedProtocol)
@@ -73,6 +101,18 @@ struct HostEditorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .animation(.snappy(duration: 0.2), value: route)
+        .onAppear {
+            loadOnce()
+            original = draft
+            originalCustomIdentity = CustomIdentityState(customIdentity)
+            editingToken = editingSession.register(
+                route: .hostEditor(hostID, groupID: initialGroupID), isDirty: { isDirty }
+            ) { commitChanges() }
+        }
+        .onDisappear {
+            guard let editingToken else { return }
+            editingSession.unregister(editingToken)
+        }
         .confirmationDialog(
             "Delete Host?", isPresented: $confirmsDeletion,
             titleVisibility: .visible
@@ -298,7 +338,6 @@ struct HostEditorView: View {
             }
         }
         .formStyle(.grouped)
-        .onAppear(perform: loadOnce)
     }
 
     private var telnetAuthenticationSection: some View {
@@ -709,9 +748,9 @@ struct HostEditorView: View {
                     .lineLimit(2)
             }
             Spacer()
-            Button("Cancel", action: cancel)
-                .keyboardShortcut(.cancelAction)
-            Button("Save") { save() }
+            Button("Discard", action: closeTab)
+            Button("Save") { saveAndClose() }
+                .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!isValid)
         }
@@ -753,20 +792,39 @@ struct HostEditorView: View {
 
     /// No tag bookkeeping here: `TagField` writes chips straight into
     /// `draft.tags`, so there is never a half-typed word left to flush.
-    private func save() {
+    private var isDirty: Bool {
+        draft != original || CustomIdentityState(customIdentity) != originalCustomIdentity
+    }
+
+    private func commitChanges() -> Bool {
+        guard isDirty else { return true }
+        guard isValid else {
+            saveError = String(localized: "Complete all required fields before saving.")
+            return false
+        }
         let initialPath = draft.sftpChannelInitialPath.trimmingCharacters(in: .whitespacesAndNewlines)
         draft.sftpChannelInitialPath = initialPath.isEmpty ? "" : RemotePath.normalized(initialPath)
         do {
             try customIdentity.save(into: &draft, using: app.hostLibrary)
         } catch {
             saveError = error.localizedDescription
-            return
+            return false
         }
+        original = draft
+        originalCustomIdentity = CustomIdentityState(customIdentity)
+        saveError = nil
+        window.selectVaultItem(.host(draft.id), on: .hosts)
+        return true
+    }
+
+    private func saveAndClose() {
+        guard commitChanges() else { return }
         closeTab()
     }
 
     private func cancel() {
-        closeTab()
+        editingSession.requestTransition(
+            route: .hostEditor(hostID, groupID: initialGroupID), action: closeTab)
     }
 
     /// Return to Hosts so the saved or retained record is immediately visible.

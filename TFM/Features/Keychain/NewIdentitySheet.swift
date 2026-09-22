@@ -56,11 +56,14 @@ nonisolated struct IdentityEditorConfiguration: Hashable, Sendable {
 struct NewIdentitySheet: View {
     let existing: Identity?
     let configuration: IdentityEditorConfiguration
+    let initialPasswordStorage: PasswordStorage
     let create: (Identity, IdentityPasswordUpdate) throws -> Void
     var requestedClose: (() -> Void)?
     var requestedBack: (() -> Void)?
 
     @Environment(AppModel.self) private var app
+    @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
     @Environment(\.dismiss) private var dismiss
 
     @State private var name: String
@@ -72,6 +75,8 @@ struct NewIdentitySheet: View {
     @State private var colorTag: TagColor
     @State private var saveError: String?
     @State private var didLoadPassword = false
+    @State private var confirmsDeletion = false
+    @State private var editingToken: UUID?
 
     init(
         identity: Identity? = nil,
@@ -83,6 +88,7 @@ struct NewIdentitySheet: View {
     ) {
         existing = identity
         self.configuration = configuration
+        initialPasswordStorage = identity?.passwordStorage ?? defaultPasswordStorage
         self.create = create
         requestedClose = close
         requestedBack = back
@@ -96,13 +102,30 @@ struct NewIdentitySheet: View {
     var body: some View {
         VaultDetailScaffold(
             title: LocalizedStringKey(existing == nil ? configuration.newTitle : configuration.editTitle),
-            symbol: "person.badge.key.fill", close: close,
-            closeLabel: requestedClose == nil ? "Back" : "Close",
+            symbol: "person.badge.key.fill", close: requestedClose == nil ? close : cancelEditing,
+            closeLabel: requestedClose == nil ? "Back" : "Cancel",
             closeSymbol: requestedClose == nil ? "chevron.backward" : "xmark"
         ) {
             form
         } footer: {
             footer
+        }
+        .onAppear {
+            loadPasswordOnce()
+            guard requestedClose != nil else { return }
+            editingToken = editingSession.register(
+                route: .identityEditor(existing?.id), isDirty: { isDirty }
+            ) { commitChanges() }
+        }
+        .onDisappear {
+            guard let editingToken else { return }
+            editingSession.unregister(editingToken)
+        }
+        .confirmationDialog("Delete Identity?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
+            Button("Delete Identity", role: .destructive, action: delete)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Hosts using this identity will ask for credentials again.")
         }
     }
 
@@ -122,7 +145,6 @@ struct NewIdentitySheet: View {
             )
         }
         .formStyle(.grouped)
-        .onAppear(perform: loadPasswordOnce)
         .onDisappear {
             password = ""
             originalPassword = ""
@@ -130,13 +152,14 @@ struct NewIdentitySheet: View {
     }
 
     private var footer: some View {
-        HStack {
+        HStack(spacing: Metrics.Space.m) {
+            if existing != nil, requestedClose != nil {
+                Button("Delete", role: .destructive) { confirmsDeletion = true }
+            }
             Spacer()
-
-            Button("Cancel", action: close)
-                .keyboardShortcut(.cancelAction)
-
-            Button(existing == nil ? "Add" : "Save", action: add)
+            Button("Discard", action: close)
+            Button("Save", action: saveAndClose)
+                .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!isValid)
         }
@@ -187,6 +210,13 @@ struct NewIdentitySheet: View {
         )
     }
 
+    private var isDirty: Bool {
+        name != (existing?.name ?? "") || username != (existing?.username ?? "")
+            || password != originalPassword
+            || passwordStorage != initialPasswordStorage
+            || keyID != existing?.keyID || colorTag != (existing?.colorTag ?? .none)
+    }
+
     private func loadPasswordOnce() {
         guard !didLoadPassword else { return }
         didLoadPassword = true
@@ -200,7 +230,12 @@ struct NewIdentitySheet: View {
     /// The view describes the password change but never mints or changes a
     /// Keychain reference. `HostLibraryModel` owns that transaction so clearing an
     /// existing password cannot strand its old Keychain item.
-    private func add() {
+    private func commitChanges() -> Bool {
+        guard isDirty else { return true }
+        guard isValid else {
+            saveError = String(localized: "Complete all required fields before saving.")
+            return false
+        }
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         let identity = Identity(
             id: existing?.id ?? UUID(),
@@ -214,14 +249,37 @@ struct NewIdentitySheet: View {
         )
         do {
             try create(identity, passwordUpdate)
-            close()
+            saveError = nil
+            return true
         } catch {
             saveError = error.localizedDescription
+            return false
         }
+    }
+
+    private func cancelEditing() {
+        editingSession.requestTransition(route: .identityEditor(existing?.id), action: close)
+    }
+
+    private func saveAndClose() {
+        guard commitChanges() else { return }
+        close()
+    }
+
+    private func delete() {
+        guard let existing else { return }
+        guard app.credentials.delete(identityID: existing.id) else {
+            saveError = app.credentials.storageError ?? String(localized: "The identity could not be deleted.")
+            return
+        }
+        window.pruneVaultSelections(in: app.credentials)
+        close()
     }
 }
 
 #Preview {
     NewIdentitySheet { _, _ in }
         .environment(AppModel(hosts: .demo()))
+        .environment(WindowModel())
+        .environment(VaultWorkEditingSession())
 }

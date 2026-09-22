@@ -96,6 +96,20 @@ struct MobileCardTests {
         }
     }
 
+    @Test func knownHostEditorDistinguishesAddAndEditTitles() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let saved = KnownHostEntry(hostname: "saved.example", fingerprint: "SHA256:saved")
+        #expect(app.knownHosts.save(saved))
+
+        let add = MobileKnownHostEditor(app: app, entry: KnownHostEntry(hostname: ""))
+        let edit = MobileKnownHostEditor(app: app, entry: saved)
+
+        #expect(add.isNew)
+        #expect(add.editorTitle == String(localized: "Add Host Key"))
+        #expect(!edit.isNew)
+        #expect(edit.editorTitle == String(localized: "Edit Host Key"))
+    }
+
     @Test func hostSectionsFoldNestedGroupsKeepEmptyGroupsAndLeaveSearchAvailable() throws {
         let app = try MobileAppModel(inMemory: true)
         let root = HostGroup(name: "Production")

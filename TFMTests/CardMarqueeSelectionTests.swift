@@ -80,4 +80,47 @@ struct CardMarqueeSelectionTests {
             )
         )
     }
+
+    @Test @MainActor
+    func vaultEditingSessionOffersSaveDiscardAndCancelForDirtyRoutes() async {
+        let session = VaultWorkEditingSession()
+        let firstID = UUID()
+        let secondID = UUID()
+        var commits: [UUID] = []
+        var transitions: [UUID] = []
+        var isDirty = false
+
+        let firstToken = session.register(
+            route: .forwardingEditor(firstID), isDirty: { isDirty },
+            commit: {
+                commits.append(firstID)
+                return true
+            })
+        session.requestTransition(route: .forwardingEditor(firstID)) { transitions.append(firstID) }
+        #expect(transitions == [firstID])
+        #expect(commits.isEmpty)
+
+        isDirty = true
+        session.requestTransition(route: .forwardingEditor(firstID)) { transitions.append(firstID) }
+        #expect(session.confirmationID != nil)
+        session.cancelTransition()
+        #expect(transitions == [firstID])
+
+        session.requestTransition(route: .forwardingEditor(firstID)) { transitions.append(firstID) }
+        session.discardAndProceed()
+        #expect(transitions == [firstID, firstID])
+
+        _ = session.register(
+            route: .forwardingEditor(secondID), isDirty: { true },
+            commit: {
+                commits.append(secondID)
+                return true
+            })
+        session.unregister(firstToken)
+        session.requestTransition(route: .forwardingEditor(secondID)) { transitions.append(secondID) }
+        session.saveAndProceed()
+        for _ in 0..<20 where transitions.last != secondID { await Task.yield() }
+        #expect(commits == [secondID])
+        #expect(transitions.last == secondID)
+    }
 }

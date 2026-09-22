@@ -61,6 +61,7 @@ final class HostsPageState {
 struct HostsPageView: ManagedCardPage {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
 
     let state: HostsPageState
 
@@ -187,7 +188,7 @@ struct HostsPageView: ManagedCardPage {
         HostCard(
             host: host,
             isSelected: context.isSelected,
-            select: context.select,
+            select: { select(host, action: context.select) },
             extendSelection: context.extendSelection,
             actionHosts: context.actionItems,
             requestDelete: { state.requestDeletion(of: context.actionItems) }
@@ -218,6 +219,11 @@ struct HostsPageView: ManagedCardPage {
                 openWork(.sshImport(knownHostsOnly: false))
             },
         ]
+    }
+
+    func managedBlankAreaPrimaryAction() {
+        guard let route = window.vaultWorkRoute, case .hostEditor = route else { return }
+        editingSession.requestTransition(route: route, action: window.closeVaultWork)
     }
 
     /// Every tag in use, each one a toggle, plus a way out.
@@ -353,6 +359,21 @@ struct HostsPageView: ManagedCardPage {
 
     private func editGroup(_ group: HostGroup) {
         openWork(.hostGroupEditor(groupID: group.id, parentID: group.parentID))
+    }
+
+    private func select(_ host: Host, action: @escaping () -> Void) {
+        guard let route = window.vaultWorkRoute, case .hostEditor(let editingID, _) = route else {
+            action()
+            return
+        }
+        guard editingID != host.id else {
+            action()
+            return
+        }
+        editingSession.requestTransition(route: route) {
+            action()
+            openHostEditor(host)
+        }
     }
 
     private func openHostEditor(_ host: Host?, groupID: HostGroup.ID? = nil) {

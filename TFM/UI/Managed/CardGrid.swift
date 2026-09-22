@@ -155,6 +155,7 @@ struct CardPage<Content: View>: View {
     /// page's cards keep their own menus; this only answers for the space
     /// between them, which is where creating a new one now lives.
     var blankAreaMenu: ((CGPoint) -> [NativeMenuEntry])? = nil
+    var blankAreaPrimaryAction: (() -> Void)? = nil
     @ViewBuilder var content: Content
 
     @State private var geometryStore = CardGeometryStore()
@@ -191,7 +192,10 @@ struct CardPage<Content: View>: View {
             NativeCardMarqueeInput(
                 allowsDragging: supportsMarqueeSelection,
                 claims: geometryStore.isBlank(at:),
-                click: { marqueeSelection.update([]) },
+                click: {
+                    marqueeSelection.update([])
+                    blankAreaPrimaryAction?()
+                },
                 begin: { point, extendsSelection in
                     marqueeStart = point
                     marqueeCurrent = point

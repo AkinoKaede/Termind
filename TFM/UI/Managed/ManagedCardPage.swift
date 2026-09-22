@@ -136,6 +136,10 @@ protocol ManagedCardPage: View {
     /// page's own verbs are in the window titlebar, and the empty space beside
     /// the cards answers the same question with the section already chosen.
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry]
+    /// A primary click on true canvas space. CardPage uses the same native hit
+    /// geometry as marquee selection, so cards, headers, controls, and visible
+    /// scrollbars keep their own interactions.
+    func managedBlankAreaPrimaryAction()
     @ViewBuilder func managedEmptyState() -> EmptyContent
     @ViewBuilder func managedNoResultsState() -> NoResultsContent
 }
@@ -144,6 +148,7 @@ extension ManagedCardPage {
     var managedMinimumCardWidth: CGFloat { Metrics.Card.min }
     var managedMaximumCardWidth: CGFloat { Metrics.Card.max }
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] { [] }
+    func managedBlankAreaPrimaryAction() {}
 
     var body: some View {
         ManagedCardPageRenderer<Self>(
@@ -157,6 +162,7 @@ extension ManagedCardPage {
             header: managedHeader,
             ghost: managedGhost,
             blankAreaMenu: managedBlankAreaMenu,
+            blankAreaPrimaryAction: managedBlankAreaPrimaryAction,
             emptyState: managedEmptyState,
             noResultsState: managedNoResultsState
         )
@@ -228,6 +234,7 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
     let header: (ManagedCardSection<Page.SectionID, Page.Item>, Bool) -> Page.HeaderContent
     let ghost: (Page.Item) -> Page.GhostContent
     let blankAreaMenu: (Page.SectionID?) -> [NativeMenuEntry]
+    let blankAreaPrimaryAction: () -> Void
     let emptyState: () -> Page.EmptyContent
     let noResultsState: () -> Page.NoResultsContent
 
@@ -267,7 +274,8 @@ struct ManagedCardPageRenderer<Page: ManagedCardPage>: View {
         CardPage(
             marqueeSelection: marqueeSelection,
             supportsMarqueeSelection: capabilities.marqueeSelection,
-            blankAreaMenu: { point in blankAreaMenu(section(at: point)) }
+            blankAreaMenu: { point in blankAreaMenu(section(at: point)) },
+            blankAreaPrimaryAction: blankAreaPrimaryAction
         ) {
             ForEach(sections) { section in
                 managedSection(section)

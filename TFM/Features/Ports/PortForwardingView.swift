@@ -16,6 +16,7 @@ struct PortForwardingPageView: ManagedCardPage {
     typealias Item = PortForwardingRule
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
     @Bindable var state: PortForwardingPageState
 
     var managedSections: [ManagedCardSection<String, PortForwardingRule>] {
@@ -43,39 +44,46 @@ struct PortForwardingPageView: ManagedCardPage {
         CardSectionHeader(title: section.title, count: section.items.count)
     }
     func managedCard(for item: Item, context: ManagedCardItemContext<Item>) -> some View {
-        card(item, selected: context.isSelected, select: context.select, extend: context.extendSelection)
-            .contextMenu {
-                if context.actionItems.count > 1 {
-                    Button("Stop", systemImage: MenuSymbol.stop) {
-                        app.forwarding.stop(
-                            context.actionItems.filter { app.forwarding.state(for: $0.id).isActive }.map(\.id))
-                    }
-                    .disabled(!context.actionItems.contains { app.forwarding.state(for: $0.id).isActive })
+        card(
+            item, selected: context.isSelected,
+            select: { select(item, action: context.select) }, extend: context.extendSelection
+        )
+        .contextMenu {
+            if context.actionItems.count > 1 {
+                Button("Stop", systemImage: MenuSymbol.stop) {
+                    app.forwarding.stop(
+                        context.actionItems.filter { app.forwarding.state(for: $0.id).isActive }.map(\.id))
+                }
+                .disabled(!context.actionItems.contains { app.forwarding.state(for: $0.id).isActive })
+            } else {
+                if app.forwarding.state(for: item.id).isActive {
+                    Button("Stop", systemImage: MenuSymbol.stop) { app.forwarding.stop(item.id) }
                 } else {
-                    if app.forwarding.state(for: item.id).isActive {
-                        Button("Stop", systemImage: MenuSymbol.stop) { app.forwarding.stop(item.id) }
-                    } else {
-                        Button(
-                            app.forwarding.state(for: item.id).isFailed ? "Retry" : "Start",
-                            systemImage: MenuSymbol.start
-                        ) { start(item) }.disabled(!canStart(item))
-                    }
-                    Button("Edit", systemImage: MenuSymbol.edit) { open(item) }
-                    Button("Duplicate", systemImage: MenuSymbol.duplicate) { duplicate(item) }
-                    Button("Copy Address", systemImage: MenuSymbol.copy) { copyToPasteboard(item.bindAddress) }
-                    Button("Copy SSH Command") {
-                        if let command = app.forwardings.sshCommand(for: item) { copyToPasteboard(command) }
-                    }.disabled(app.forwardings.sshCommand(for: item) == nil)
+                    Button(
+                        app.forwarding.state(for: item.id).isFailed ? "Retry" : "Start",
+                        systemImage: MenuSymbol.start
+                    ) { start(item) }.disabled(!canStart(item))
                 }
-                Divider()
-                DestructiveMenuButton("Delete") {
-                    state.deleting = Set(context.actionItems.map(\.id))
-                }
+                Button("Edit", systemImage: MenuSymbol.edit) { open(item) }
+                Button("Duplicate", systemImage: MenuSymbol.duplicate) { duplicate(item) }
+                Button("Copy Address", systemImage: MenuSymbol.copy) { copyToPasteboard(item.bindAddress) }
+                Button("Copy SSH Command") {
+                    if let command = app.forwardings.sshCommand(for: item) { copyToPasteboard(command) }
+                }.disabled(app.forwardings.sshCommand(for: item) == nil)
             }
+            Divider()
+            DestructiveMenuButton("Delete") {
+                state.deleting = Set(context.actionItems.map(\.id))
+            }
+        }
     }
     func managedGhost(for item: Item) -> some View { card(item, selected: false, select: {}, extend: {}) }
     func managedBlankAreaMenu(for section: String?) -> [NativeMenuEntry] {
         window.creationMenu(for: .portForwarding, locale: .current)
+    }
+    func managedBlankAreaPrimaryAction() {
+        guard let route = window.vaultWorkRoute, case .forwardingEditor = route else { return }
+        editingSession.requestTransition(route: route, action: window.closeVaultWork)
     }
     func managedEmptyState() -> some View {
         ContentUnavailableView {
@@ -137,6 +145,20 @@ struct PortForwardingPageView: ManagedCardPage {
             rule.id, savedRule: rule, savedHost: app.hostLibrary.host(rule.hostID),
             isRuntimeActive: app.forwarding.state(for: rule.id).isActive)
     }
+    private func select(_ rule: Item, action: @escaping () -> Void) {
+        guard let route = window.vaultWorkRoute, case .forwardingEditor(let editingID) = route else {
+            action()
+            return
+        }
+        guard editingID != rule.id else {
+            action()
+            return
+        }
+        editingSession.requestTransition(route: route) {
+            action()
+            open(rule)
+        }
+    }
     private func open(_ rule: Item) { window.openVaultWork(.forwardingEditor(rule.id), on: .portForwarding) }
     private func start(_ rule: Item) {
         guard canStart(rule) else { return }
@@ -157,10 +179,22 @@ struct PortForwardingDetailView: View {
     let ruleID: UUID?
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @Environment(VaultWorkEditingSession.self) private var editingSession
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var draft = PortForwardingRule(hostID: UUID())
+    @State private var draft: PortForwardingRule
+    @State private var original: PortForwardingRule
     @State private var loaded = false
     @State private var error: String?
+    @State private var deletionError: String?
+    @State private var confirmsDeletion = false
+    @State private var editingToken: UUID?
+
+    init(ruleID: UUID?) {
+        self.ruleID = ruleID
+        let initial = PortForwardingRule(hostID: UUID())
+        _draft = State(initialValue: initial)
+        _original = State(initialValue: initial)
+    }
 
     private var saved: PortForwardingRule? { ruleID.flatMap(app.forwardings.portForwarding) }
     private var runtime: PortForwardingRuntimeState { app.forwarding.state(for: draft.id) }
@@ -169,12 +203,12 @@ struct PortForwardingDetailView: View {
         !runtime.isActive && normalized != nil && app.hostLibrary.host(draft.hostID) != nil
             && (ruleID == nil || saved != nil)
     }
+    private var isDirty: Bool { draft != original }
 
     var body: some View {
         VaultDetailScaffold(
-            title: ruleID == nil
-                ? "New Forwarding" : "\(draft.displayName(hostName: app.hostLibrary.host(draft.hostID)?.name))",
-            symbol: "arrow.left.arrow.right", close: window.closeVaultWork
+            title: ruleID == nil ? "New Forwarding" : "Edit Forwarding",
+            symbol: "arrow.left.arrow.right", close: cancelEditing, closeLabel: "Cancel"
         ) {
             let context = app.forwarding.connection(for: draft.id)
             ZStack {
@@ -211,18 +245,44 @@ struct PortForwardingDetailView: View {
             }
             .animation(Motion.panel(reduceMotion: reduceMotion), value: context?.journey.isPresented ?? false)
         } footer: {
-            HStack {
-                if runtime.isActive { Button("Stop") { app.forwarding.stop(draft.id) } }
+            HStack(spacing: Metrics.Space.m) {
+                if ruleID != nil {
+                    Button("Delete", role: .destructive) { confirmsDeletion = true }
+                }
                 Spacer()
-                Button("Close", action: window.closeVaultWork)
-                Button("Save", action: save).buttonStyle(.borderedProminent)
+                Button("Discard", action: window.closeVaultWork)
+                Button("Save", action: saveAndClose).buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction).disabled(!canSave)
             }.padding(Metrics.Space.l)
         }
         .onAppear {
             guard !loaded else { return }
             loaded = true
-            if let saved { draft = saved }
+            if let saved {
+                draft = saved
+                original = saved
+            }
+            editingToken = editingSession.register(
+                route: .forwardingEditor(ruleID), isDirty: { isDirty }
+            ) { commitChanges() }
+        }
+        .onDisappear {
+            guard let editingToken else { return }
+            editingSession.unregister(editingToken)
+        }
+        .confirmationDialog(
+            "Delete Forwarding Rules?", isPresented: $confirmsDeletion, titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive, action: delete)
+            Button("Cancel", role: .cancel) {}
+        }
+        .alert(
+            "Operation Failed",
+            isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })
+        ) {
+            Button("OK") { deletionError = nil }
+        } message: {
+            Text(deletionError ?? "")
         }
     }
 
@@ -256,14 +316,40 @@ struct PortForwardingDetailView: View {
         app.forwarding.stop(draft.id)
         window.closeVaultWork()
     }
-    private func save() {
-        guard canSave, let normalized else { return }
+    private func cancelEditing() {
+        editingSession.requestTransition(route: .forwardingEditor(ruleID), action: window.closeVaultWork)
+    }
+    private func commitChanges() -> Bool {
+        guard isDirty else { return true }
+        guard canSave, let normalized else {
+            error = String(localized: "Complete all required fields before saving.")
+            return false
+        }
         do {
             let saved = try app.forwardings.save(normalized)
             draft = saved
+            original = saved
             error = nil
             window.selectVaultItem(.forwarding(saved.id), on: .portForwarding)
+            return true
+        } catch {
+            self.error = error.localizedDescription
+            return false
+        }
+    }
+    private func saveAndClose() {
+        guard commitChanges() else { return }
+        window.selectVaultItem(.forwarding(draft.id), on: .portForwarding)
+        window.closeVaultWork()
+    }
+    private func delete() {
+        guard let ruleID else { return }
+        do {
+            try app.forwardings.delete(ruleID)
+            window.pruneVaultSelections(in: app.hostLibrary)
             window.closeVaultWork()
-        } catch { self.error = error.localizedDescription }
+        } catch {
+            deletionError = error.localizedDescription
+        }
     }
 }
