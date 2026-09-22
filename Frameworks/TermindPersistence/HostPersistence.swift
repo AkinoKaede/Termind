@@ -773,33 +773,22 @@ public enum TermindSchemaV31: VersionedSchema {
     }
 }
 
-public enum TermindSchemaV32: VersionedSchema {
-    public static let versionIdentifier = Schema.Version(32, 0, 0)
+public enum TermindSchemaV34: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(34, 0, 0)
     public static var models: [any PersistentModel.Type] {
+        // V32 and V33 were never distributed schema endpoints. Keep the exact V34 model types and order used by
+        // development builds while migrating released V31 stores directly to V34.
         TermindSchemaV31.models.filter {
             $0 != TermindSchemaV29HostModels.PersistentHost.self
                 && $0 != TermindSchemaV31ConnectionHistoryModels.PersistentConnectionHistoryEntry.self
+                && $0 != TermindSchemaV25IdentityModels.PersistentIdentity.self
         } + [
             TermindSchemaV32HostModels.PersistentHost.self,
             TermindSchemaV32ConnectionHistoryModels.PersistentConnectionHistoryEntry.self,
             TermindSchemaV32DeviceModels.PersistentDeviceRecord.self,
+            TermindSchemaV33IdentityModels.PersistentIdentity.self,
+            PersistentWorkspacePreferences.self,
         ]
-    }
-}
-
-public enum TermindSchemaV33: VersionedSchema {
-    public static let versionIdentifier = Schema.Version(33, 0, 0)
-    public static var models: [any PersistentModel.Type] {
-        TermindSchemaV32.models.filter {
-            $0 != TermindSchemaV25IdentityModels.PersistentIdentity.self
-        } + [TermindSchemaV33IdentityModels.PersistentIdentity.self]
-    }
-}
-
-public enum TermindSchemaV34: VersionedSchema {
-    public static let versionIdentifier = Schema.Version(34, 0, 0)
-    public static var models: [any PersistentModel.Type] {
-        TermindSchemaV33.models + [PersistentWorkspacePreferences.self]
     }
 }
 
@@ -814,8 +803,6 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV18.self, TermindSchemaV19.self, TermindSchemaV20.self, TermindSchemaV21.self,
             TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV30.self, TermindSchemaV31.self,
-            TermindSchemaV32.self,
-            TermindSchemaV33.self,
             TermindSchemaV34.self,
         ]
     }
@@ -888,7 +875,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV27.self, toVersion: TermindSchemaV30.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV30.self, toVersion: TermindSchemaV31.self),
             MigrationStage.custom(
-                fromVersion: TermindSchemaV31.self, toVersion: TermindSchemaV32.self,
+                fromVersion: TermindSchemaV31.self, toVersion: TermindSchemaV34.self,
                 willMigrate: nil,
                 didMigrate: { context in
                     let state: PersistentVaultSyncState
@@ -909,8 +896,6 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
                     try context.save()
                 }
             ),
-            MigrationStage.lightweight(fromVersion: TermindSchemaV32.self, toVersion: TermindSchemaV33.self),
-            MigrationStage.lightweight(fromVersion: TermindSchemaV33.self, toVersion: TermindSchemaV34.self),
         ]
     }
 }

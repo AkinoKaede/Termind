@@ -75,8 +75,8 @@ struct PersistenceCompatibilityTests {
         #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(29, 0, 0) })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV30.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV31.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV32.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV33.versionIdentifier })
+        #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(32, 0, 0) })
+        #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(33, 0, 0) })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV34.versionIdentifier })
         #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
         #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
@@ -95,19 +95,19 @@ struct PersistenceCompatibilityTests {
                 $0 == TermindSchemaV29HostModels.PersistentHost.self
             })
         #expect(
-            TermindSchemaV32.models.contains {
+            TermindSchemaV34.models.contains {
                 $0 == TermindSchemaV32HostModels.PersistentHost.self
             })
         #expect(
-            !TermindSchemaV32.models.contains {
+            !TermindSchemaV34.models.contains {
                 $0 == TermindSchemaV29HostModels.PersistentHost.self
             })
         #expect(
-            TermindSchemaV33.models.contains {
+            TermindSchemaV34.models.contains {
                 $0 == TermindSchemaV33IdentityModels.PersistentIdentity.self
             })
         #expect(
-            !TermindSchemaV33.models.contains {
+            !TermindSchemaV34.models.contains {
                 $0 == TermindSchemaV25IdentityModels.PersistentIdentity.self
             })
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
@@ -117,7 +117,7 @@ struct PersistenceCompatibilityTests {
     }
 
     @Test
-    func version31StoreDropsHostUsageAndAddsConnectionLifecycleMetadata() throws {
+    func version31StoreMigratesDirectlyToVersion34Shape() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -130,14 +130,30 @@ struct PersistenceCompatibilityTests {
             for: oldSchema, configurations: [oldConfiguration]
         )
         let oldHost = TermindSchemaV29HostModels.PersistentHost(
-            Host(name: "Before V32", host: "server.invalid"))
+            Host(name: "Before V34", host: "server.invalid"))
         oldHost.lastUsedAt = Date(timeIntervalSince1970: 100)
         let oldHistory = TermindSchemaV31ConnectionHistoryModels.PersistentConnectionHistoryEntry(
             ConnectionHistoryEntry(
                 hostID: oldHost.id, kind: .ssh,
                 connectedAt: Date(timeIntervalSince1970: 90)))
+        let identity = Identity(
+            name: "Before V34", username: "deploy", credentialRef: "termind.password.deploy",
+            colorTag: .purple)
+        let oldIdentity = TermindSchemaV25IdentityModels.PersistentIdentity(identity)
+        oldIdentity.lastUsedAt = Date(timeIntervalSince1970: 900)
+        let modifiedAt = Date(timeIntervalSince1970: 500)
+        let recordKey = VaultRecordKey(kind: .identity, id: identity.id)
         oldContainer?.mainContext.insert(oldHost)
         oldContainer?.mainContext.insert(oldHistory)
+        oldContainer?.mainContext.insert(oldIdentity)
+        oldContainer?.mainContext.insert(PersistentHostGroup(HostGroup(name: "Before V34")))
+        oldContainer?.mainContext.insert(
+            try PersistentVaultSyncEntry(
+                envelope: VaultEnvelope(
+                    key: recordKey,
+                    version: VaultVersion(modifiedAt: modifiedAt, counter: 0, writerID: UUID()),
+                    payload: .identity(identity)),
+                needsUpload: false))
         try oldContainer?.mainContext.save()
         oldContainer = nil
 
@@ -152,80 +168,28 @@ struct PersistenceCompatibilityTests {
             migrated.mainContext.fetch(
                 FetchDescriptor<PersistentDeviceRecord>()
             ).first?.value)
-        #expect(host.name == "Before V32")
+        let savedIdentity = try #require(
+            migrated.mainContext.fetch(FetchDescriptor<PersistentIdentity>()).first?.value)
+        let dates = try HostPersistence(context: migrated.mainContext).modificationDates()
+        let defaults = try #require(UserDefaults(suiteName: "PersistenceV34.\(UUID())"))
+        let settings = SettingsSyncPersistence(context: migrated.mainContext, defaults: defaults)
+        try settings.prepare()
+        let workspaceKey = SettingsRecordKey(kind: .workspace, id: "default")
+
+        #expect(host.name == "Before V34")
         #expect(history.hostID == host.id)
         #expect(history.sourceDeviceID == state.installationID)
         #expect(sourceDevice.id == state.installationID)
         #expect(sourceDevice.displayName == ProcessInfo.processInfo.hostName)
         #expect(history.endedAt == nil)
-    }
-
-    @Test
-    func version32StoreDropsIdentityUsageAndPreservesConfigurationAndJournalDate() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appendingPathComponent("Termind.store")
-        let oldSchema = Schema(versionedSchema: TermindSchemaV32.self)
-        let oldConfiguration = ModelConfiguration(
-            "Termind", schema: oldSchema, url: url, cloudKitDatabase: .none
-        )
-        let identity = Identity(
-            name: "Before V33", username: "deploy", credentialRef: "termind.password.deploy",
-            colorTag: .purple)
-        let modifiedAt = Date(timeIntervalSince1970: 500)
-        let recordKey = VaultRecordKey(kind: .identity, id: identity.id)
-        var oldContainer: ModelContainer? = try ModelContainer(
-            for: oldSchema, configurations: [oldConfiguration]
-        )
-        let oldIdentity = TermindSchemaV25IdentityModels.PersistentIdentity(identity)
-        oldIdentity.lastUsedAt = Date(timeIntervalSince1970: 900)
-        oldContainer?.mainContext.insert(oldIdentity)
-        oldContainer?.mainContext.insert(
-            try PersistentVaultSyncEntry(
-                envelope: VaultEnvelope(
-                    key: recordKey,
-                    version: VaultVersion(modifiedAt: modifiedAt, counter: 0, writerID: UUID()),
-                    payload: .identity(identity)),
-                needsUpload: false))
-        try oldContainer?.mainContext.save()
-        oldContainer = nil
-
-        let migrated = try TermindPersistence.makeContainer(url: url)
-        let saved = try #require(
-            migrated.mainContext.fetch(FetchDescriptor<PersistentIdentity>()).first?.value)
-        let dates = try HostPersistence(context: migrated.mainContext).modificationDates()
-
-        #expect(saved.name == identity.name)
-        #expect(saved.username == identity.username)
-        #expect(saved.credentialRef == identity.credentialRef)
-        #expect(saved.colorTag == identity.colorTag)
+        #expect(savedIdentity.name == identity.name)
+        #expect(savedIdentity.username == identity.username)
+        #expect(savedIdentity.credentialRef == identity.credentialRef)
+        #expect(savedIdentity.colorTag == identity.colorTag)
         #expect(dates[recordKey] == modifiedAt)
-    }
-
-    @Test
-    func version33StoreAddsDefaultWorkspacePreferencesToSettingsSync() throws {
-        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        defer { try? FileManager.default.removeItem(at: directory) }
-        let url = directory.appendingPathComponent("Termind.store")
-        let oldSchema = Schema(versionedSchema: TermindSchemaV33.self)
-        let oldConfiguration = ModelConfiguration(
-            "Termind", schema: oldSchema, url: url, cloudKitDatabase: .none)
-        var oldContainer: ModelContainer? = try ModelContainer(
-            for: oldSchema, configurations: [oldConfiguration])
-        oldContainer?.mainContext.insert(PersistentHostGroup(HostGroup(name: "Before V34")))
-        try oldContainer?.mainContext.save()
-        oldContainer = nil
-
-        let migrated = try TermindPersistence.makeContainer(url: url)
-        let defaults = try #require(UserDefaults(suiteName: "PersistenceV34.\(UUID())"))
-        let store = SettingsSyncPersistence(context: migrated.mainContext, defaults: defaults)
-        try store.prepare()
-        let key = SettingsRecordKey(kind: .workspace, id: "default")
-
-        #expect(try store.loadWorkspacePreferences() == WorkspacePreferences())
-        #expect(try store.journal.envelope(for: key)?.payload == .workspace(WorkspacePreferences()))
+        #expect(try settings.loadWorkspacePreferences() == WorkspacePreferences())
+        #expect(
+            try settings.journal.envelope(for: workspaceKey)?.payload == .workspace(WorkspacePreferences()))
     }
 
     @Test
