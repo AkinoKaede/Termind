@@ -1038,6 +1038,26 @@ struct WindowStateTests {
     }
 
     @Test
+    func protectedVaultDeletionRequestsRemainPendingUntilConfirmed() {
+        let host = Host(name: "Protected", host: "protected.example.invalid")
+        let hosts = HostsPageState()
+
+        hosts.requestDeletion(of: [host])
+
+        guard case .deleteHosts(let pendingHosts) = hosts.confirmation else {
+            Issue.record("Expected a pending Host deletion confirmation")
+            return
+        }
+        #expect(pendingHosts.map(\.id) == [host.id])
+
+        let identity = Identity(name: "Deploy", username: "deploy")
+        let keychain = KeychainPageState()
+        keychain.requestDeletion(of: [.identity(identity)])
+
+        #expect(keychain.deleting == [.identity(identity)])
+    }
+
+    @Test
     func sessionsMixSSHAndSFTPInWorkspaceAndPaneOrder() {
         let firstHost = Host(name: "First", host: "first.example")
         let secondHost = Host(name: "Second", host: "second.example")

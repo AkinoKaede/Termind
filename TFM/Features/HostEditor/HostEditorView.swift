@@ -31,6 +31,7 @@ struct HostEditorView: View {
     @State private var didLoad = false
     @State private var customIdentity = HostCustomIdentityDraft()
     @State private var selectedProtocol = HostTerminalProtocol.ssh
+    @State private var confirmsDeletion = false
 
     init(hostID: Host.ID?, initialGroupID: HostGroup.ID? = nil) {
         self.hostID = hostID
@@ -72,6 +73,19 @@ struct HostEditorView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .clipped()
         .animation(.snappy(duration: 0.2), value: route)
+        .confirmationDialog(
+            "Delete Host?", isPresented: $confirmsDeletion,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                guard let hostID else { return }
+                app.requestHostDeletion(hostID)
+                closeTab()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Open connections and references to this host will be removed.")
+        }
     }
 
     private var form: some View {
@@ -685,9 +699,7 @@ struct HostEditorView: View {
         HStack(spacing: Metrics.Space.m) {
             if hostID != nil {
                 Button("Delete", role: .destructive) {
-                    guard let hostID else { return }
-                    app.requestHostDeletion(hostID)
-                    closeTab()
+                    confirmsDeletion = true
                 }
             }
             if let saveError {

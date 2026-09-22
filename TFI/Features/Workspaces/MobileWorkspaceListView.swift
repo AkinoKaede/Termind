@@ -32,6 +32,7 @@ struct MobileWorkspaceListView: View {
     @Bindable var scene: MobileSceneModel
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.locale) private var locale
+    @State private var clearingRecentHost: Host?
 
     static let historyLimit = 5
 
@@ -93,6 +94,24 @@ struct MobileWorkspaceListView: View {
             guard scene.selectedDestination == .workspaces else { return }
             await Task.yield()
             scene.activatePendingWorkspace()
+        }
+        .confirmationDialog(
+            "Clear Recent Connections?",
+            isPresented: Binding(
+                get: { clearingRecentHost != nil },
+                set: { if !$0 { clearingRecentHost = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) {
+                if let host = clearingRecentHost {
+                    app.connectionHistory.clear(for: host.id)
+                }
+                clearingRecentHost = nil
+            }
+            Button("Cancel", role: .cancel) { clearingRecentHost = nil }
+        } message: {
+            Text("This removes all connection history for this Host.")
         }
     }
 
@@ -181,12 +200,12 @@ struct MobileWorkspaceListView: View {
                     }
                     if !kinds.isEmpty { Divider() }
                     Button("Delete", systemImage: "trash", role: .destructive) {
-                        app.connectionHistory.clear(for: row.host.id)
+                        requestHistoryClear(for: row.host)
                     }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                     Button("Delete", systemImage: "trash", role: .destructive) {
-                        app.connectionHistory.clear(for: row.host.id)
+                        requestHistoryClear(for: row.host)
                     }
                     ForEach(
                         MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: row.host), id: \.self
@@ -210,6 +229,14 @@ struct MobileWorkspaceListView: View {
         } else {
             historyLabel(row)
                 .opacity(0.55)
+        }
+    }
+
+    private func requestHistoryClear(for host: Host) {
+        if DeletionContentCategory.recordedContent.requiresConfirmation(for: .clearCollection) {
+            clearingRecentHost = host
+        } else {
+            app.connectionHistory.clear(for: host.id)
         }
     }
 

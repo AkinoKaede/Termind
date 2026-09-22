@@ -9,10 +9,13 @@ import struct TermindDomain.Host
 final class HostsPageState {
     enum ConfirmationRoute: Identifiable {
         case deleteGroup(HostGroup)
+        case deleteHosts([Host])
 
         var id: String {
             switch self {
             case .deleteGroup(let group): "delete-group-\(group.id)"
+            case .deleteHosts(let hosts):
+                "delete-hosts-\(hosts.map(\.id.uuidString).sorted().joined(separator: "-"))"
             }
         }
     }
@@ -22,6 +25,13 @@ final class HostsPageState {
     /// field's magnifier menu. Several at once means "carries all of these".
     var selectedTags: Set<String> = []
     var confirmation: ConfirmationRoute?
+
+    func requestDeletion(of hosts: [Host]) {
+        guard !hosts.isEmpty,
+            DeletionContentCategory.protectedData.requiresConfirmation(for: .item)
+        else { return }
+        confirmation = .deleteHosts(hosts)
+    }
 
     /// Drops filters for tags no host carries any more.
     ///
@@ -180,7 +190,7 @@ struct HostsPageView: ManagedCardPage {
             select: context.select,
             extendSelection: context.extendSelection,
             actionHosts: context.actionItems,
-            selectionDeleted: pruneHostSelection
+            requestDelete: { state.requestDeletion(of: context.actionItems) }
         )
     }
 
@@ -248,14 +258,11 @@ struct HostsPageView: ManagedCardPage {
 
     // MARK: - Deleting a group
 
-    /// Only asks when there is something to ask about. A group with no machines
-    /// anywhere beneath it takes nothing with it but empty folders, and a dialog
-    /// for that is a dialog people learn to dismiss without reading.
     private func requestDelete(_ group: HostGroup) {
-        if app.hostLibrary.hosts(inTreeOf: group.id).isEmpty {
-            delete(group, keepHosts: false)
-        } else {
+        if DeletionContentCategory.protectedData.requiresConfirmation(for: .item) {
             state.confirmation = .deleteGroup(group)
+        } else {
+            delete(group, keepHosts: false)
         }
     }
 
@@ -264,6 +271,13 @@ struct HostsPageView: ManagedCardPage {
         state.confirmation = nil
         pruneHostSelection()
 
+        window.pruneVaultSelections(in: app.hostLibrary)
+    }
+
+    private func delete(_ hosts: [Host]) {
+        for host in hosts { app.requestHostDeletion(host.id) }
+        state.confirmation = nil
+        pruneHostSelection()
         window.pruneVaultSelections(in: app.hostLibrary)
     }
 
@@ -331,6 +345,7 @@ struct HostsPageView: ManagedCardPage {
             liveTags: app.hostLibrary.hostTags,
             actions: HostsPagePresentation.Actions(
                 deleteGroup: { delete($0, keepHosts: $1) },
+                deleteHosts: delete,
                 deletionMessage: deletionMessage
             )
         )
@@ -352,6 +367,7 @@ struct HostsPageView: ManagedCardPage {
 struct HostsPagePresentation: ManagedCardPresentationModifier {
     struct Actions {
         let deleteGroup: (HostGroup, Bool) -> Void
+        let deleteHosts: ([Host]) -> Void
         let deletionMessage: (HostGroup) -> String
     }
 
@@ -379,6 +395,10 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
                         actions.deleteGroup(group, false)
                     }
                     Button("Keep Hosts") { actions.deleteGroup(group, true) }
+                case .deleteHosts(let hosts):
+                    Button("Delete", role: .destructive) {
+                        actions.deleteHosts(hosts)
+                    }
                 case nil:
                     EmptyView()
                 }
@@ -391,6 +411,8 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
     private var confirmationTitle: Text {
         switch state.confirmation {
         case .deleteGroup(let group): Text("Delete “\(group.name)”?")
+        case .deleteHosts(let hosts):
+            hosts.count == 1 ? Text("Delete Host?") : Text("Delete Hosts?")
         case nil: Text("")
         }
     }
@@ -398,6 +420,8 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
     private var confirmationMessage: Text {
         switch state.confirmation {
         case .deleteGroup(let group): Text(actions.deletionMessage(group))
+        case .deleteHosts:
+            Text("Open connections and references to the selected hosts will be removed.")
         case nil: Text("")
         }
     }
@@ -413,7 +437,7 @@ private struct HostCard: View {
     let select: () -> Void
     let extendSelection: () -> Void
     let actionHosts: [Host]
-    let selectionDeleted: () -> Void
+    let requestDelete: () -> Void
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
@@ -439,7 +463,7 @@ private struct HostCard: View {
         .contextMenu {
             HostContextMenu(
                 hosts: actionHosts,
-                selectionDeleted: selectionDeleted
+                requestDelete: requestDelete
             )
         }
         .help(Text("\(app.hostLibrary.preferredTerminalLoginAddress(for: host)) — \(status.label)"))

@@ -75,6 +75,22 @@ struct MobileAppTests {
         #expect(commands.entries(for: hostID).map(\.command) == ["echo persisted"])
         #expect(files.entries(for: hostID).map(\.path) == ["/srv/app"])
     }
+
+    @Test func clearingRecentsPreservesCommandAndFileHistory() throws {
+        let app = try MobileAppModel(inMemory: true)
+        defer { app.outbox.stop() }
+        let host = TermindDomain.Host(name: "Recent", host: "recent.example.invalid")
+        app.library.upsert(host)
+        _ = app.connectionHistory.record(kind: .ssh, for: host.id)
+        app.commandHistory.record("pwd", for: host.id)
+        app.sftpHistory.record(kind: .directory, path: "/srv", for: host.id)
+
+        app.connectionHistory.clear(for: host.id)
+
+        #expect(app.connectionHistory.entries(for: host.id).isEmpty)
+        #expect(app.commandHistory.entries(for: host.id).map(\.command) == ["pwd"])
+        #expect(app.sftpHistory.entries(for: host.id).map(\.path) == ["/srv"])
+    }
 }
 
 @Suite @MainActor

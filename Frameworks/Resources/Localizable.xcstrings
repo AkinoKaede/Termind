@@ -5059,6 +5059,22 @@
         }
       }
     },
+    "Clear Call History?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清空调用历史？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除呼叫歷史？"
+          }
+        }
+      }
+    },
     "Clear Filter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5088,6 +5104,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除已結束任務"
+          }
+        }
+      }
+    },
+    "Clear Finished Transfers?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除已结束的传输？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除已結束的傳輸？"
           }
         }
       }
@@ -5138,6 +5170,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "清除金鑰"
+          }
+        }
+      }
+    },
+    "Clear Recent Connections?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除最近连接？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "清除最近連線？"
           }
         }
       }
@@ -7868,6 +7916,22 @@
         }
       }
     },
+    "Delete Hosts?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除主机？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除主機？"
+          }
+        }
+      }
+    },
     "Delete Identity?" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7898,6 +7962,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除金鑰？"
+          }
+        }
+      }
+    },
+    "Delete Keychain Items?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除钥匙串项目？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除鑰匙圈項目？"
           }
         }
       }
@@ -12371,6 +12451,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "主機"
+          }
+        }
+      }
+    },
+    "Hosts and identities using these Keychain items may need to be configured again." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用这些钥匙串项目的主机和身份可能需要重新配置。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用這些鑰匙圈項目的主機和身分可能需要重新設定。"
           }
         }
       }
@@ -17320,6 +17416,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登入時開啟"
+          }
+        }
+      }
+    },
+    "Open connections and references to the selected hosts will be removed." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将关闭所选主机的连接并移除相关引用。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將關閉所選主機的連線並移除相關參照。"
           }
         }
       }
@@ -28166,6 +28278,22 @@
         }
       }
     },
+    "This permanently removes all saved MCP call records." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这将永久删除所有保存的MCP调用记录。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這將永久刪除所有儲存的MCP呼叫記錄。"
+          }
+        }
+      }
+    },
     "This permanently removes all connection history without deleting any Hosts." : {
       "localizations" : {
         "zh-Hans" : {
@@ -28227,6 +28355,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "這將永久刪除對話及其草稿檔案。"
+          }
+        }
+      }
+    },
+    "This removes all connection history for this Host." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这将删除此主机的所有连接历史。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這將刪除此主機的所有連線歷史。"
           }
         }
       }

@@ -9,6 +9,7 @@ struct MobileTransfersView: View {
     let transfers: SFTPTransferCoordinator
     let hosts: HostLibraryModel
     @State private var previewURL: URL?
+    @State private var confirmsClearFinished = false
 
     private var items: [SFTPTransfer] {
         transfers.sftpTransfers.sorted { $0.queuedAt > $1.queuedAt }
@@ -38,9 +39,16 @@ struct MobileTransfersView: View {
         .quickLookPreview($previewURL)
         .toolbar {
             if hasFinished {
-                Button("Clear Finished", systemImage: "trash") { transfers.clearFinished() }
+                Button("Clear Finished", systemImage: "trash") { confirmsClearFinished = true }
                     .labelStyle(.iconOnly)
             }
+        }
+        .confirmationDialog(
+            "Clear Finished Transfers?", isPresented: $confirmsClearFinished,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Finished", role: .destructive) { transfers.clearFinished() }
+            Button("Cancel", role: .cancel) {}
         }
     }
 

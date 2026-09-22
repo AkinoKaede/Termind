@@ -8,7 +8,6 @@ import UniformTypeIdentifiers
 struct MobileSkillSettings: View {
     let skills: SkillLibraryModel
     @State private var editing: AgentSkill?
-    @State private var deleting: AgentSkill?
     @State private var importing = false
     @State private var warnings: [String] = []
     @State private var error: String?
@@ -46,10 +45,14 @@ struct MobileSkillSettings: View {
                     .buttonStyle(.plain)
                     .contextMenu {
                         Button("Edit", systemImage: "pencil") { editing = skill }
-                        Button("Delete", systemImage: "trash", role: .destructive) { deleting = skill }
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            skills.delete(id: skill.id)
+                        }
                     }
                     .swipeActions(edge: .trailing) {
-                        Button("Delete", systemImage: "trash", role: .destructive) { deleting = skill }
+                        Button("Delete", systemImage: "trash", role: .destructive) {
+                            skills.delete(id: skill.id)
+                        }
                     }
                 }
             } footer: {
@@ -83,20 +86,6 @@ struct MobileSkillSettings: View {
                 editing = installed
             } catch { self.error = error.localizedDescription }
         }
-        .confirmationDialog(
-            "Delete Skill",
-            isPresented: Binding(
-                get: { deleting != nil },
-                set: { if !$0 { deleting = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Delete Skill", role: .destructive) {
-                if let deleting { skills.delete(id: deleting.id) }
-                deleting = nil
-            }
-        }
-
     }
 }
 
@@ -104,7 +93,6 @@ struct MobileSkillEditor: View {
     let library: SkillLibraryModel
     @State private var model: MobileSkillEditorModel
     @State private var exporting = false
-    @State private var deleting = false
     @State private var error: String?
     @Environment(\.dismiss) private var dismiss
 
@@ -181,12 +169,6 @@ struct MobileSkillEditor: View {
         ) { result in
             if case .failure(let error) = result { self.error = error.localizedDescription }
         }
-        .confirmationDialog("Delete Skill?", isPresented: $deleting, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
-                library.delete(id: model.original.id)
-                if let error = library.storageError { self.error = error } else { dismiss() }
-            }
-        }
     }
 
     private var toolbarActions: [MobileEditorToolbarAction] {
@@ -199,8 +181,13 @@ struct MobileSkillEditor: View {
             actions.append(
                 MobileEditorToolbarAction(
                     id: "delete", title: "Delete", systemImage: "trash", role: .destructive,
-                    startsGroup: true, perform: { deleting = true }))
+                    startsGroup: true, perform: delete))
         }
         return actions
+    }
+
+    private func delete() {
+        library.delete(id: model.original.id)
+        if let error = library.storageError { self.error = error } else { dismiss() }
     }
 }

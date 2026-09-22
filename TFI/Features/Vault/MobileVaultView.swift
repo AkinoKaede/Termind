@@ -716,10 +716,10 @@ struct MobileVaultView: View {
     }
 
     private func requestDelete(_ group: HostGroup) {
-        if app.library.hosts(inTreeOf: group.id).isEmpty {
-            app.deleteHostGroup(group.id, keepHosts: false)
-        } else {
+        if DeletionContentCategory.protectedData.requiresConfirmation(for: .item) {
             deletingGroup = group
+        } else {
+            app.deleteHostGroup(group.id, keepHosts: false)
         }
     }
 

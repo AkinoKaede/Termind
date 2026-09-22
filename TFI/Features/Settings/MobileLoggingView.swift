@@ -9,7 +9,6 @@ struct MobileLoggingView: View {
     @AppStorage(SettingsKey.loggingLevel) private var loggingLevel = ApplicationLogLevel.info.rawValue
     @State private var files: [ApplicationLogFile] = []
     @State private var selectedFile: ApplicationLogFile?
-    @State private var pendingDelete: ApplicationLogFile?
     @State private var showsDeleteAll = false
     @State private var exportDocument: MobileLoggingFileDocument?
     @State private var exportFilename = "termind.log"
@@ -55,16 +54,6 @@ struct MobileLoggingView: View {
         ) { result in
             exportDocument = nil
             if case .failure(let error) = result { errorMessage = error.localizedDescription }
-        }
-        .confirmationDialog(
-            "Delete this logging file?", isPresented: deleteFilePresented,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                guard let pendingDelete else { return }
-                perform { try logging.delete(pendingDelete.id) }
-                self.pendingDelete = nil
-            }
         }
         .confirmationDialog(
             "Delete all logging files?", isPresented: $showsDeleteAll,
@@ -136,16 +125,12 @@ struct MobileLoggingView: View {
             }
             Divider()
             Button("Delete", systemImage: "trash", role: .destructive) {
-                pendingDelete = file
+                perform { try logging.delete(file.id) }
             }
         }
         .swipeActions {
-            Button("Delete", role: .destructive) { pendingDelete = file }
+            Button("Delete", role: .destructive) { perform { try logging.delete(file.id) } }
         }
-    }
-
-    private var deleteFilePresented: Binding<Bool> {
-        Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
     }
 
     private var errorPresented: Binding<Bool> {

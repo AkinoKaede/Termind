@@ -66,7 +66,6 @@ enum MobileAISettingsDestination: String, CaseIterable, Identifiable {
 struct MobileModelsSettingsView: View {
     let ai: AIConfigurationModel
     @State private var editing: ModelProvider?
-    @State private var deleting: ModelProvider?
 
     var body: some View {
         List {
@@ -101,10 +100,14 @@ struct MobileModelsSettingsView: View {
                         .buttonStyle(.plain)
                         .contextMenu {
                             Button("Edit", systemImage: "pencil") { editing = provider }
-                            Button("Delete", systemImage: "trash", role: .destructive) { deleting = provider }
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                ai.delete(modelProviderID: provider.id)
+                            }
                         }
                         .swipeActions {
-                            Button("Delete", systemImage: "trash", role: .destructive) { deleting = provider }
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                ai.delete(modelProviderID: provider.id)
+                            }
                         }
                     }
                 }
@@ -120,21 +123,6 @@ struct MobileModelsSettingsView: View {
             }
         }
         .sheet(item: $editing) { provider in MobileProviderEditor(ai: ai, provider: provider) }
-        .confirmationDialog(
-            "Delete",
-            isPresented: Binding(
-                get: { deleting != nil }, set: { if !$0 { deleting = nil } }), titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                if let deleting { ai.delete(modelProviderID: deleting.id) }
-                deleting = nil
-            }
-        } message: {
-            Text("Permanently deletes this provider, its key, and its models.")
-            if let deleting, !ai.roles(using: deleting.id).isEmpty {
-                Text("Assigned roles will return to their defaults.")
-            }
-        }
     }
 }
 

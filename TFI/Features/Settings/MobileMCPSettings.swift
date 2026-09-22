@@ -8,7 +8,6 @@ struct MobileMCPSettings: View {
     let ai: AIConfigurationModel
     let pro: ProAccessController
     @State private var adding: MCPServer?
-    @State private var deleting: MCPServer?
 
     var body: some View {
         List {
@@ -30,10 +29,14 @@ struct MobileMCPSettings: View {
                 ForEach(ai.mcpServers) { server in
                     serverLink(server)
                         .contextMenu {
-                            Button("Delete", systemImage: "trash", role: .destructive) { deleting = server }
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                ai.delete(serverID: server.id)
+                            }
                         }
                         .swipeActions(edge: .trailing) {
-                            Button("Delete", systemImage: "trash", role: .destructive) { deleting = server }
+                            Button("Delete", systemImage: "trash", role: .destructive) {
+                                ai.delete(serverID: server.id)
+                            }
                         }
                 }
             } footer: {
@@ -50,19 +53,6 @@ struct MobileMCPSettings: View {
             }
         }
         .navigationDestination(item: $adding) { MobileMCPEditor(ai: ai, pro: pro, server: $0) }
-        .confirmationDialog(
-            "Delete Server",
-            isPresented: Binding(
-                get: { deleting != nil },
-                set: { if !$0 { deleting = nil } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("Delete Server", role: .destructive) {
-                if let deleting { ai.delete(serverID: deleting.id) }
-                deleting = nil
-            }
-        }
     }
 
     @ViewBuilder
@@ -185,7 +175,6 @@ struct MobileMCPEditor: View {
     let pro: ProAccessController
     @State private var model: MobileMCPEditorModel
     @State private var editingHeader: MCPHeader?
-    @State private var deleting = false
     @State private var alert: EditorAlert?
     @Environment(\.dismiss) private var dismiss
 
@@ -285,7 +274,7 @@ struct MobileMCPEditor: View {
                 .disabled(!model.canSave || model.running)
                 if ai.mcpServer(model.original.id) != nil {
                     Divider()
-                    Button("Delete", systemImage: "trash", role: .destructive) { deleting = true }
+                    Button("Delete", systemImage: "trash", role: .destructive, action: delete)
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
@@ -311,16 +300,6 @@ struct MobileMCPEditor: View {
         .onChange(of: ai.mcpServer(model.original.id)) { _, _ in model.cancel() }
         .onChange(of: pro.hasProAccess) { _, granted in if !granted { model.cancel() } }
         .onDisappear { model.cancel() }
-        .confirmationDialog("Delete Server?", isPresented: $deleting, titleVisibility: .visible) {
-            Button("Delete", role: .destructive) {
-                ai.delete(serverID: model.original.id)
-                if let error = ai.storageError ?? ai.secretStorageError {
-                    alert = EditorAlert(title: "Unable to Delete", message: error)
-                } else {
-                    dismiss()
-                }
-            }
-        }
         .alert(
             alert?.title ?? "Unable to Save",
             isPresented: Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })
@@ -328,6 +307,15 @@ struct MobileMCPEditor: View {
             Button("OK", role: .cancel) { alert = nil }
         } message: {
             Text(alert?.message ?? "")
+        }
+    }
+
+    private func delete() {
+        ai.delete(serverID: model.original.id)
+        if let error = ai.storageError ?? ai.secretStorageError {
+            alert = EditorAlert(title: "Unable to Delete", message: error)
+        } else {
+            dismiss()
         }
     }
 

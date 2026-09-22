@@ -1217,7 +1217,6 @@ private struct WelcomeWorkspaceTemplateRow: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
     @Environment(\.controlActiveState) private var controlActiveState
-    @State private var confirmsDeletion = false
     @State private var isRenaming = false
     @State private var renameTitle = ""
 
@@ -1232,22 +1231,10 @@ private struct WelcomeWorkspaceTemplateRow: View {
                 Button("Rename", systemImage: MenuSymbol.rename) { beginRename() }
                 Divider()
                 DestructiveMenuButton("Delete") {
-                    confirmsDeletion = true
-                }
-            }
-            .confirmationDialog(
-                "Delete Workspace Template?",
-                isPresented: $confirmsDeletion,
-                titleVisibility: .visible
-            ) {
-                Button("Delete", role: .destructive) {
                     if !app.hostLibrary.deleteWorkspaceTemplate(template.id) {
                         window.workspaceTemplateNotice = app.hostLibrary.storageError
                     }
                 }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("The template “\(template.name)” will be removed from the Vault.")
             }
     }
 
@@ -1346,6 +1333,7 @@ private struct WelcomeHostRow: View {
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
+    @State private var confirmsHistoryClear = false
 
     var body: some View {
         Button {
@@ -1383,13 +1371,27 @@ private struct WelcomeHostRow: View {
         .termindGlassSurface(cornerRadius: Metrics.Radius.medium, isInteractive: true)
         .contextMenu {
             HostContextMenu(
-                host: host,
-                showsDelete: false
+                host: host
             )
             Divider()
             DestructiveMenuButton("Delete") {
-                app.clearAllHistory(for: [host.id])
+                if DeletionContentCategory.recordedContent.requiresConfirmation(for: .clearCollection) {
+                    confirmsHistoryClear = true
+                } else {
+                    app.connectionHistory.clear(for: host.id)
+                }
             }
+        }
+        .confirmationDialog(
+            "Clear Recent Connections?", isPresented: $confirmsHistoryClear,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) {
+                app.connectionHistory.clear(for: host.id)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This removes all connection history for this Host.")
         }
     }
 

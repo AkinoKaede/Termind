@@ -528,6 +528,7 @@ private struct TransferCenterPopover: View {
     let coordinator: SFTPTransferCoordinator
     let hosts: HostLibraryModel
     let dismiss: () -> Void
+    @State private var confirmsClearFinished = false
 
     private var transfers: [SFTPTransfer] {
         coordinator.sftpTransfers.sorted { $0.queuedAt > $1.queuedAt }
@@ -548,8 +549,7 @@ private struct TransferCenterPopover: View {
                 Spacer()
                 if hasFinished {
                     Button("Clear") {
-                        coordinator.clearFinished()
-                        if coordinator.sftpTransfers.isEmpty { dismiss() }
+                        confirmsClearFinished = true
                     }
                     .buttonStyle(.plain)
                     .termindInputAwareFocusEffect()
@@ -581,6 +581,16 @@ private struct TransferCenterPopover: View {
             .frame(height: Metrics.TransferCenter.listHeight(itemCount: transferItems.count))
         }
         .frame(width: Metrics.TransferCenter.width)
+        .confirmationDialog(
+            "Clear Finished Transfers?", isPresented: $confirmsClearFinished,
+            titleVisibility: .visible
+        ) {
+            Button("Clear Finished", role: .destructive) {
+                coordinator.clearFinished()
+                if coordinator.sftpTransfers.isEmpty { dismiss() }
+            }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 
     private var transferItems: [TransferCenterListItem] {

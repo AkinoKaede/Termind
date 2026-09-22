@@ -15,8 +15,7 @@ import struct TermindDomain.Host
 struct HostContextMenu: View {
     let hosts: [Host]
     let showsDuplicate: Bool
-    let showsDelete: Bool
-    var selectionDeleted: (() -> Void)?
+    let requestDelete: (() -> Void)?
 
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
@@ -24,24 +23,21 @@ struct HostContextMenu: View {
     init(
         host: Host,
         showsDuplicate: Bool = true,
-        showsDelete: Bool = true
+        requestDelete: (() -> Void)? = nil
     ) {
         hosts = [host]
         self.showsDuplicate = showsDuplicate
-        self.showsDelete = showsDelete
-        selectionDeleted = nil
+        self.requestDelete = requestDelete
     }
 
     init(
         hosts: [Host],
         showsDuplicate: Bool = true,
-        showsDelete: Bool = true,
-        selectionDeleted: (() -> Void)? = nil
+        requestDelete: @escaping () -> Void
     ) {
         self.hosts = hosts
         self.showsDuplicate = showsDuplicate
-        self.showsDelete = showsDelete
-        self.selectionDeleted = selectionDeleted
+        self.requestDelete = requestDelete
     }
 
     var body: some View {
@@ -91,10 +87,9 @@ struct HostContextMenu: View {
             Divider()
         }
 
-        if showsDelete {
+        if let requestDelete {
             DestructiveMenuButton("Delete") {
-                for host in hosts { app.requestHostDeletion(host.id) }
-                selectionDeleted?()
+                requestDelete()
             }
             .disabled(hosts.isEmpty)
         }

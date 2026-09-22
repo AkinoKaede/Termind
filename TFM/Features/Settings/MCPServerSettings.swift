@@ -10,6 +10,7 @@ struct MCPServerSettings: View {
     @Environment(AppModel.self) private var app
     @State private var showsToken = false
     @State private var historyQuery = ""
+    @State private var confirmsHistoryClear = false
 
     private var server: MCPServerController { app.mcpServer }
 
@@ -125,12 +126,21 @@ struct MCPServerSettings: View {
                 ForEach(rows.prefix(200)) { row in ExternalToolCallRow(row: row) }
             }
             HStack {
-                Button("Clear History", role: .destructive) { app.toolAudit.clear() }
+                Button("Clear History", role: .destructive) { confirmsHistoryClear = true }
                 Spacer()
                 Text("Stores commands, paths and byte counts; never file bodies, stdin, stdout or stderr.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+        }
+        .confirmationDialog(
+            "Clear Call History?", isPresented: $confirmsHistoryClear,
+            titleVisibility: .visible
+        ) {
+            Button("Clear History", role: .destructive) { app.toolAudit.clear() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently removes all saved MCP call records.")
         }
     }
 

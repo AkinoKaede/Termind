@@ -11,6 +11,14 @@ import struct TermindDomain.Host
 final class KeychainPageState {
     var query = ""
     var errorMessage: String?
+    var deleting: [KeychainPageView.Item] = []
+
+    func requestDeletion(of items: [KeychainPageView.Item]) {
+        guard !items.isEmpty,
+            DeletionContentCategory.protectedData.requiresConfirmation(for: .item)
+        else { return }
+        deleting = items
+    }
 }
 
 /// Everything Termind knows about how you prove who you are — in two parts.
@@ -139,10 +147,7 @@ struct KeychainPageView: ManagedCardPage {
                 },
                 export: { requestExport(context.actionItems.compactMap(\.key)) },
                 delete: {
-                    delete(
-                        keys: context.actionItems.compactMap(\.key),
-                        identities: context.actionItems.compactMap(\.identity)
-                    )
+                    requestDelete(context.actionItems)
                 }
             )
         case .identity(let identity):
@@ -157,10 +162,7 @@ struct KeychainPageView: ManagedCardPage {
                     window.openVaultWork(.identityEditor(identity.id), on: .keychain)
                 },
                 delete: {
-                    delete(
-                        keys: context.actionItems.compactMap(\.key),
-                        identities: context.actionItems.compactMap(\.identity)
-                    )
+                    requestDelete(context.actionItems)
                 }
             )
         }
@@ -228,10 +230,16 @@ struct KeychainPageView: ManagedCardPage {
         window.openVaultWork(.exportKeys(keys.map(\.id)), on: .keychain)
     }
 
+    private func requestDelete(_ items: [Item]) {
+        state.requestDeletion(of: items)
+    }
+
     /// Identities go first so deleting a mixed selection never leaves a host
     /// pointing at an identity whose key was removed moments earlier. Keychain
     /// failures leave that key selected and report the first error.
-    private func delete(keys: [SSHKeyRef], identities: [Identity]) {
+    private func delete(_ items: [Item]) {
+        let keys = items.compactMap(\.key)
+        let identities = items.compactMap(\.identity)
         for identity in identities {
             if !app.credentials.delete(identityID: identity.id) {
                 state.errorMessage =
@@ -246,6 +254,7 @@ struct KeychainPageView: ManagedCardPage {
                 state.errorMessage = error.localizedDescription
             }
         }
+        state.deleting = []
         window.pruneVaultSelections(in: app.credentials)
     }
 
@@ -280,6 +289,7 @@ struct KeychainPageView: ManagedCardPage {
         KeychainPagePresentation(
             state: state,
             actions: KeychainPagePresentation.Actions(
+                delete: delete,
                 pruneSelection: { window.pruneVaultSelections(in: app.credentials) }
             )
         )
@@ -289,6 +299,7 @@ struct KeychainPageView: ManagedCardPage {
 
 struct KeychainPagePresentation: ManagedCardPresentationModifier {
     struct Actions {
+        let delete: ([KeychainPageView.Item]) -> Void
         let pruneSelection: () -> Void
     }
 
@@ -299,6 +310,21 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
         @Bindable var state = state
         content
             .onAppear(perform: actions.pruneSelection)
+            .confirmationDialog(
+                confirmationTitle,
+                isPresented: Binding(
+                    get: { !state.deleting.isEmpty },
+                    set: { if !$0 { state.deleting = [] } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button("Delete", role: .destructive) {
+                    actions.delete(state.deleting)
+                }
+                Button("Cancel", role: .cancel) { state.deleting = [] }
+            } message: {
+                confirmationMessage
+            }
             // A refused Keychain delete used to be a line of orange text in the
             // page toolbar. With the toolbar gone it needs somewhere it cannot
             // be missed: leaving a key the user asked to remove sitting there
@@ -314,6 +340,26 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
             } message: {
                 Text(state.errorMessage ?? "")
             }
+    }
+
+    private var confirmationTitle: Text {
+        let keys = state.deleting.compactMap(\.key)
+        let identities = state.deleting.compactMap(\.identity)
+        if keys.count == 1, identities.isEmpty { return Text("Delete Key?") }
+        if identities.count == 1, keys.isEmpty { return Text("Delete Identity?") }
+        return Text("Delete Keychain Items?")
+    }
+
+    private var confirmationMessage: Text {
+        let keys = state.deleting.compactMap(\.key)
+        let identities = state.deleting.compactMap(\.identity)
+        if keys.count == 1, identities.isEmpty {
+            return Text("Identities using this key will no longer have access to it.")
+        }
+        if identities.count == 1, keys.isEmpty {
+            return Text("Hosts using this identity will ask for credentials again.")
+        }
+        return Text("Hosts and identities using these Keychain items may need to be configured again.")
     }
 }
 

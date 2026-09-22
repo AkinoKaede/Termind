@@ -9,7 +9,6 @@ struct LoggingFilesSettings: View {
     @AppStorage(SettingsKey.loggingLevel) private var loggingLevel = ApplicationLogLevel.info.rawValue
     @State private var files: [ApplicationLogFile] = []
     @State private var selectedFile: ApplicationLogFile?
-    @State private var pendingDelete: ApplicationLogFile?
     @State private var showsDeleteAll = false
     @State private var exportDocument: LoggingFileDocument?
     @State private var exportFilename = "termind.log"
@@ -45,16 +44,6 @@ struct LoggingFilesSettings: View {
             if case .failure(let error) = result { errorMessage = error.localizedDescription }
         }
         .background(LoggingSharingService(url: $shareURL))
-        .confirmationDialog(
-            "Delete this logging file?", isPresented: deleteFilePresented,
-            titleVisibility: .visible
-        ) {
-            Button("Delete", role: .destructive) {
-                guard let pendingDelete else { return }
-                perform { try app.logging.delete(pendingDelete.id) }
-                self.pendingDelete = nil
-            }
-        }
         .confirmationDialog(
             "Delete all logging files?", isPresented: $showsDeleteAll,
             titleVisibility: .visible
@@ -139,13 +128,9 @@ struct LoggingFilesSettings: View {
             }
             Divider()
             DestructiveMenuButton("Delete") {
-                pendingDelete = file
+                perform { try app.logging.delete(file.id) }
             }
         }
-    }
-
-    private var deleteFilePresented: Binding<Bool> {
-        Binding(get: { pendingDelete != nil }, set: { if !$0 { pendingDelete = nil } })
     }
 
     private var errorPresented: Binding<Bool> {
