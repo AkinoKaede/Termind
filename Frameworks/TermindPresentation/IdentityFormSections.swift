@@ -72,6 +72,7 @@ public struct IdentityFormSections: View {
             .disabled(!canEditPasswordStorage)
             LabeledContent("Password") {
                 RevealableSecretField("Password", text: $password, prompt: Text("Optional"))
+                    .labelsHidden()
                     .multilineTextAlignment(.trailing)
                     .disabled(!canEditPassword)
             }
