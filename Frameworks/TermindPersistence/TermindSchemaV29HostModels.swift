@@ -4,7 +4,7 @@ import TermindDomain
 
 import struct TermindDomain.Host
 
-/// V29 adds independent SSH and Telnet profiles while preserving the Host entity and V28 SSH columns.
+/// The Host model shipped in V30. Its historical namespace is retained to preserve SwiftData model identity.
 public enum TermindSchemaV29HostModels {
     @Model
     public final class PersistentHost {

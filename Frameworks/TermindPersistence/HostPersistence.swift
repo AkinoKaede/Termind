@@ -383,7 +383,7 @@ public enum TermindSchemaV7Models {
     }
 }
 
-/// Frozen through V29. V30 removes the persisted mismatch flag from the live model.
+/// Frozen through the shipped V27 schema. V30 removes the persisted mismatch flag from the live model.
 public enum TermindSchemaV29KnownHostModels {
     @Model
     public final class PersistentKnownHost {
@@ -754,30 +754,15 @@ public enum TermindSchemaV27: VersionedSchema {
     }
 }
 
-public enum TermindSchemaV28: VersionedSchema {
-    public static let versionIdentifier = Schema.Version(28, 0, 0)
-    public static var models: [any PersistentModel.Type] {
-        TermindSchemaV27.models.filter {
-            $0 != TermindSchemaV27HostModels.PersistentHost.self
-        } + [TermindSchemaV28HostModels.PersistentHost.self]
-    }
-}
-
-public enum TermindSchemaV29: VersionedSchema {
-    public static let versionIdentifier = Schema.Version(29, 0, 0)
-    public static var models: [any PersistentModel.Type] {
-        TermindSchemaV28.models.filter {
-            $0 != TermindSchemaV28HostModels.PersistentHost.self
-        } + [TermindSchemaV29HostModels.PersistentHost.self]
-    }
-}
-
 public enum TermindSchemaV30: VersionedSchema {
     public static let versionIdentifier = Schema.Version(30, 0, 0)
     public static var models: [any PersistentModel.Type] {
-        TermindSchemaV29.models.filter {
-            $0 != TermindSchemaV29KnownHostModels.PersistentKnownHost.self
-        } + [TermindSchemaV30KnownHostModels.PersistentKnownHost.self]
+        // V28 and V29 were never distributed schema endpoints. Preserve V30's shipped model types and order while
+        // migrating directly from V27.
+        TermindSchemaV27.models.filter {
+            $0 != TermindSchemaV27HostModels.PersistentHost.self
+                && $0 != TermindSchemaV29KnownHostModels.PersistentKnownHost.self
+        } + [TermindSchemaV29HostModels.PersistentHost.self, TermindSchemaV30KnownHostModels.PersistentKnownHost.self]
     }
 }
 
@@ -798,8 +783,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV14.self, TermindSchemaV15.self, TermindSchemaV16.self, TermindSchemaV17.self,
             TermindSchemaV18.self, TermindSchemaV19.self, TermindSchemaV20.self, TermindSchemaV21.self,
             TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
-            TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV28.self, TermindSchemaV29.self,
-            TermindSchemaV30.self, TermindSchemaV31.self,
+            TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV30.self, TermindSchemaV31.self,
         ]
     }
 
@@ -868,9 +852,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             MigrationStage.lightweight(fromVersion: TermindSchemaV24.self, toVersion: TermindSchemaV25.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV25.self, toVersion: TermindSchemaV26.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV26.self, toVersion: TermindSchemaV27.self),
-            MigrationStage.lightweight(fromVersion: TermindSchemaV27.self, toVersion: TermindSchemaV28.self),
-            MigrationStage.lightweight(fromVersion: TermindSchemaV28.self, toVersion: TermindSchemaV29.self),
-            MigrationStage.lightweight(fromVersion: TermindSchemaV29.self, toVersion: TermindSchemaV30.self),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV27.self, toVersion: TermindSchemaV30.self),
             MigrationStage.lightweight(fromVersion: TermindSchemaV30.self, toVersion: TermindSchemaV31.self),
         ]
     }

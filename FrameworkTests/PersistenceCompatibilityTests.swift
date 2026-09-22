@@ -71,9 +71,10 @@ struct PersistenceCompatibilityTests {
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV25.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV26.versionIdentifier })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV27.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV28.versionIdentifier })
-        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV29.versionIdentifier })
+        #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(28, 0, 0) })
+        #expect(!TermindMigrationPlan.schemas.contains { $0.versionIdentifier == Schema.Version(29, 0, 0) })
         #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV30.versionIdentifier })
+        #expect(TermindMigrationPlan.schemas.contains { $0.versionIdentifier == TermindSchemaV31.versionIdentifier })
         #expect(TermindSchemaV22.models.contains { $0 == TermindSchemaV22HostModels.PersistentHost.self })
         #expect(!TermindSchemaV22.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
         #expect(TermindSchemaV25.models.contains { $0 == TermindSchemaV24HostModels.PersistentHost.self })
@@ -81,39 +82,45 @@ struct PersistenceCompatibilityTests {
         #expect(TermindSchemaV26.models.contains { $0 == TermindSchemaV26HostModels.PersistentHost.self })
         #expect(!TermindSchemaV27.models.contains { $0 == TermindSchemaV26HostModels.PersistentHost.self })
         #expect(TermindSchemaV27.models.contains { $0 == TermindSchemaV27HostModels.PersistentHost.self })
-        #expect(!TermindSchemaV28.models.contains { $0 == TermindSchemaV27HostModels.PersistentHost.self })
-        #expect(TermindSchemaV28.models.contains { $0 == TermindSchemaV28HostModels.PersistentHost.self })
+        #expect(!TermindSchemaV30.models.contains { $0 == TermindSchemaV27HostModels.PersistentHost.self })
+        #expect(TermindSchemaV30.models.contains { $0 == TermindSchemaV29HostModels.PersistentHost.self })
+        #expect(
+            !TermindSchemaV30.models.contains { $0 == TermindSchemaV29KnownHostModels.PersistentKnownHost.self })
+        #expect(TermindSchemaV30.models.contains { $0 == TermindSchemaV30KnownHostModels.PersistentKnownHost.self })
         #expect(first.schema.entities.contains { $0.name == "PersistentModelProviderVertexConfiguration" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSSHPreferences" })
         #expect(first.schema.entities.contains { $0.name == "PersistentSFTPPreferences" })
     }
 
     @Test
-    func version29StoreDropsMismatchStateWithoutLosingKnownHosts() throws {
+    func version30StoreMigratesToVersion31WithoutLosingData() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
         let url = directory.appendingPathComponent("Termind.store")
-        let oldSchema = Schema(versionedSchema: TermindSchemaV29.self)
+        let oldSchema = Schema(versionedSchema: TermindSchemaV30.self)
         let oldConfiguration = ModelConfiguration(
             "Termind", schema: oldSchema, url: url, cloudKitDatabase: .none
-        )
-        let knownHost = KnownHostEntry(
-            hostname: "server.invalid", algorithm: .ed25519,
-            fingerprint: "SHA256:known-host"
         )
         var oldContainer: ModelContainer? = try ModelContainer(
             for: oldSchema, configurations: [oldConfiguration]
         )
-        let oldRecord = TermindSchemaV29KnownHostModels.PersistentKnownHost(knownHost)
-        oldRecord.isMismatched = true
-        oldContainer?.mainContext.insert(oldRecord)
+        oldContainer?.mainContext.insert(
+            TermindSchemaV29HostModels.PersistentHost(
+                Host(name: "TestFlight host", host: "server.invalid", telnetEnabled: true)
+            )
+        )
         try oldContainer?.mainContext.save()
         oldContainer = nil
 
         let migrated = try TermindPersistence.makeContainer(url: url)
-        let records = try migrated.mainContext.fetch(FetchDescriptor<PersistentKnownHost>())
-        #expect(records.map(\.value) == [knownHost])
+        let host = try #require(
+            migrated.mainContext.fetch(FetchDescriptor<PersistentHost>()).first?.value
+        )
+        #expect(host.name == "TestFlight host")
+        #expect(host.telnetEnabled)
+        #expect(try migrated.mainContext.fetchCount(FetchDescriptor<PersistentCloudSyncQuarantine>()) == 0)
+        #expect(try migrated.mainContext.fetchCount(FetchDescriptor<PersistentCloudSyncRecovery>()) == 0)
     }
 
     @Test
@@ -175,7 +182,7 @@ struct PersistenceCompatibilityTests {
     }
 
     @Test
-    func version27StoreMigratesWithUTF8Charset() throws {
+    func version27StoreMigratesDirectlyToVersion30Shape() throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: directory) }
@@ -192,6 +199,13 @@ struct PersistenceCompatibilityTests {
                 Host(name: "Before charset", host: "server.invalid")
             )
         )
+        let knownHost = KnownHostEntry(
+            hostname: "server.invalid", algorithm: .ed25519,
+            fingerprint: "SHA256:known-host"
+        )
+        let knownHostRecord = TermindSchemaV29KnownHostModels.PersistentKnownHost(knownHost)
+        knownHostRecord.isMismatched = true
+        oldContainer?.mainContext.insert(knownHostRecord)
         try oldContainer?.mainContext.save()
         oldContainer = nil
 
@@ -201,6 +215,10 @@ struct PersistenceCompatibilityTests {
         )
         #expect(host.name == "Before charset")
         #expect(host.charset == .utf8)
+        #expect(host.sshEnabled)
+        #expect(!host.telnetEnabled)
+        let knownHosts = try migrated.mainContext.fetch(FetchDescriptor<PersistentKnownHost>())
+        #expect(knownHosts.map(\.value) == [knownHost])
     }
 
     @Test
