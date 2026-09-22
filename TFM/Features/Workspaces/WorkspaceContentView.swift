@@ -1144,8 +1144,8 @@ struct WelcomeView: View {
             Text(title)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
-            WelcomeGlassGroup(spacing: Metrics.Space.s) {
-                VStack(spacing: Metrics.Space.s) {
+            WelcomeGlassGroup(spacing: Metrics.Space.m) {
+                VStack(spacing: Metrics.Space.m) {
                     content()
                 }
             }
