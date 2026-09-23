@@ -705,7 +705,6 @@ private struct SnippetsSidebarView: View {
 /// the selection highlight goes.
 private struct SidebarCard<Trailing: View>: View {
     let symbol: String?
-    var symbolTint: AnyShapeStyle?
     let title: String
     var titleIsMonospaced = false
     var titleLineLimit: Int?
@@ -722,10 +721,9 @@ private struct SidebarCard<Trailing: View>: View {
             if let symbol {
                 Image(systemName: symbol)
                     .foregroundStyle(
-                        SidebarSelectionStyle.foreground(
+                        SidebarSelectionStyle.iconForeground(
                             isSelected: isSelected,
-                            controlActiveState: controlActiveState,
-                            unselected: symbolTint ?? AnyShapeStyle(.secondary)
+                            controlActiveState: controlActiveState
                         )
                     )
                     .frame(width: Metrics.Sidebar.rowIcon)
@@ -1144,8 +1142,6 @@ private struct SFTPBrowseHistorySidebar: View {
     private func row(_ entry: SFTPHistoryEntry, displayedPath: String) -> some View {
         SidebarCard(
             symbol: entry.kind.symbol,
-            symbolTint: entry.kind == .directory
-                ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary),
             title: entry.name,
             subtitle: displayedPath,
             truncatesSubtitleInMiddle: true,
