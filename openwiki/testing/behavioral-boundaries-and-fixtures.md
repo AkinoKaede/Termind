@@ -6,10 +6,16 @@ tags: [testing, regression, fixtures, architecture, persistence, security, lifec
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-5f99e8af445e073ffe9bc257
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-b347308e8c5cc6c0b0d29b7d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
   - id: openwiki-source-017f5e2abe9b13df755a5322
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
+  - id: openwiki-source-247755d873c5d94b0a364217
+    resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
+  - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
+    resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-195e2cb735dfac7fb6dbda27
@@ -26,6 +32,8 @@ sources:
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-a154b5d36ec59496392d45e4
+    resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-7a29627adf93e3da4a56dd5d
     resource: repo://TFITests/MobileCardRenderingTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
@@ -34,8 +42,12 @@ sources:
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
     resource: repo://TFMTests/AgentHostAuthenticationTests.swift
+  - id: openwiki-source-715de8d16be5a3d06ae915ad
+    resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-78797a18dd3153d23a2c42e2
+    resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
@@ -44,10 +56,10 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
+generated: { by: "codex", at: "2026-09-23T03:34:06.838Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T00:14:42.075Z
+    at: 2026-09-23T03:34:06.838Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -81,6 +93,19 @@ Use `FrameworkTests` for behavior intended to remain identical across macOS and 
 Persistence tests are compatibility tests, not just encode/decode checks. `PersistenceCompatibilityTests` opens historical fixture stores through `TermindPersistence.makeContainer`, verifies retained records, checks migration outcomes, and confirms independent in-memory containers expose the full shared schema. When changing a SwiftData model, migration, or repository behavior, cover the old-store input and the post-migration contract; do not limit coverage to a newly created store.
 
 Agent replay persistence demonstrates the same principle for durable runtime state: an in-memory `SwiftDataAgentRunRepository` must restore frozen context and tool result projection without duplicating replay backing across subsequent snapshots, and deletion must remove that backing. A fixture should deliberately model the timing boundary it protects—for example, recording a tool result before the following run snapshot—rather than requiring a live provider.
+
+### Assistant history: compare live state, backing rows and restore
+
+A message edit inside one run needs a fixture such as `opening → assistant/tool batch → steering → assistant/tool batch`, not just one user turn per run. The regression boundary spans several owners:
+
+- `AgentPersistenceTests.sameRunTruncationPreservesThePrefixAndAtomicallyAdoptsTheReplacement` uses equal timestamps and deliberately reversed UUID order. It restores a compacted conversation through the production store and operations, then checks the retained prefix, neutral completed summary, title, attachments, replay rows, invocations/results/reviews and compaction bases. A legacy prefix invocation has no stored source ID and a later timestamp; its known call ownership must still preserve it. An unknown native-tool-like invocation at the exact cutoff must be removed. Real running/completed snapshots must adopt staging once without changing historical owners, and late old snapshots/events must not regrow the suffix.
+- `editingALaterRunOpeningKeepsAnEarlierEmptyRunBeforeTheReplacement` checks an earlier retained run with no messages and a replacement clock older than the retained run. Live and restored staging order must agree. Ordinary replay fixtures give genuinely later runs a later start time instead of relying on random UUID tie order.
+- Shared `AgentReplayPersistenceTests` parameterizes the first real replacement snapshot as `.failed` or `.interrupted`. It checks the single surviving message/run/replay backing and reloads with a new `ModelContext` and repository over the same in-memory container to verify provenance, terminal state, failure and frozen context. This is fresh-context visibility, not a disk-relaunch test.
+- `ChatComposerStateTests.editingSteeringKeepsCompactedSameRunPrefixAndLegacyToolOwnership` checks full visible-prefix retention even when model history is compacted, alongside tool cards, title, plans, compaction records/marks and run-summary chronology through `runStarted`/`runFinished`. Mobile's `swiftDataRestoreAndEditPreserveASameRunPrefixOnMobile` exercises the same repository/store/operations path and compares live and restored message ownership.
+
+Application error and timing fixtures complement those real SwiftData checks. `AssistantConversationOperationsTests` proves an invalid replacement never reaches persistence and a rejecting truncation leaves both visible and model history unchanged. Controller tests hold preparation at a memory barrier, cancel after a successful edit, and assert interrupted real-run provenance replaces staging. These seams do not inject disk-full or read-only failures into the real SwiftData transaction; its rollback path must not be described as fault-injection tested.
+
+Use the boundary that the assertion needs as its wait condition. Captured missing-model/credential failure projects `.failed` before launching a separate asynchronous repository save, so `!isPreparingAgentRun` is not a save barrier. The controller fixture's `waitUntilSnapshot(state:)` checks existing snapshots or suspends an actor-owned continuation; `save` records the snapshot before resuming matching waiters. The missing-credential and navigation tests retain both live-state and repository-state assertions and wait for the latter explicitly. This does not change production failure ordering or prove durability across the separate queued-runtime immediate-stop handoff.
 
 ### CloudKit compatibility: test prohibited uploads, not just decoding
 
@@ -151,6 +176,7 @@ In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing 
 | --- | --- | --- |
 | Framework dependency or data-owner change | `ArchitectureBoundaryTests` plus affected framework suite | No reverse import, concrete implementation leak, duplicate AgentKit type, or SwiftData model outside Persistence. |
 | SwiftData schema, migration, or durable agent record | Persistence compatibility/replay fixtures | Old stores open, records retain intended values, interrupted timing remains recoverable, and deletes clean backing rows. |
+| Assistant message-boundary edits or replacement provenance | Agent persistence/replay, conversation operations/controller, composer and mobile Assistant fixtures | Same-run prefix and graph survive, suffix backing is removed, staging adopts once, chronology remains stable, live/restore agree, and late retired writes cannot resurrect history. |
 | CloudKit format, upload scheduling, conflict or recovery behavior | Shared lifecycle, coordinator-safety and on-disk safety fixtures | Unsupported IDs never upload, compatible peers progress, restrictions survive retry/reopen, and failed reconciliation cannot unblock data. |
 | SSH credentials, prompts, host trust, or agent authentication | Authentication and interaction-policy fixtures | Ephemeral secrets stay ephemeral, prompt scope/order/coalescing is correct, forbidden work stays noninteractive, and secrets are invalidated after use. |
 | SSH/SFTP transfer scheduling or pane/session teardown | `SFTPTransferContextTests` with a controlled channel harness | Concurrency bounds hold, background transfer ownership survives UI teardown, cancellation cleans up, and fallback does not invite interaction. |

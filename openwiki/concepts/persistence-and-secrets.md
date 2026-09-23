@@ -4,6 +4,12 @@ title: Persistent Data, Migrations, and Secret Boundaries
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
+  - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
+  - id: openwiki-source-5f99e8af445e073ffe9bc257
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-1c48f72c0c7a3164d7d5c715
+    resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
@@ -54,6 +60,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV29HostModels.swift
   - id: openwiki-source-15e5026028d13d2202844f68
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
+  - id: openwiki-source-017f5e2abe9b13df755a5322
+    resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-40cfadc2320da9a292c64d26
@@ -70,12 +78,14 @@ sources:
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-0854be84b166268626a3cb08
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
+  - id: openwiki-source-715de8d16be5a3d06ae915ad
+    resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
+generated: { by: "codex", at: "2026-09-23T03:40:50.823Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T00:14:42.075Z
+    at: 2026-09-23T03:40:50.823Z
 ---
 
 # Persistent Data, Migrations, and Secret Boundaries
@@ -112,7 +122,21 @@ SwiftData rows are persistence representations, not the feature API. `SwiftDataH
 
 Deletion is a durable saga, not an immediate blind removal: `requestHostDeletion` atomically writes a pending-deletion marker, outbox jobs, and the revision. The snapshot hides marked hosts. Later steps remove dependent jump/snippet/history/forwarding references and finally remove host-owned identities, the host, and the marker. This lets a crash expose either the live host or a complete, resumable deletion intent rather than a partial state.
 
-Agent conversations use a separate SwiftData repository with similarly deliberate projections. `SwiftDataAgentRunRepository` stores run snapshots, messages, context/replay backing, tool invocations/results, reviews, compactions, and ordering. It writes only new message IDs rather than duplicating replayed earlier turns, sanitizes persisted text and tool-call JSON, and marks nonterminal runs interrupted when the repository is initialized. Loading orders transcript rows by run and sequence, then restores recorded tool results that were committed before the next transcript snapshot.
+Agent conversations use a separate SwiftData repository with similarly deliberate projections. `SwiftDataAgentRunRepository` stores run snapshots, messages, context/replay backing, tool invocations/results, reviews, compactions, and ordering. It deduplicates replayed earlier turns by message ID, sanitizes persisted text and tool-call JSON, and marks nonterminal runs interrupted when the repository is initialized. Loading orders transcript rows by run and sequence, then restores recorded tool results that were committed before the next transcript snapshot.
+
+### Assistant history edits: one message boundary, one transaction
+
+Restore and truncation share a canonical ordering: runs by `startedAt` then UUID; messages by that run order, then `sequence`, `createdAt`, role rank and UUID. Timestamps alone do not identify the cutoff. `truncateConversation` checks cancellation and validates an ordinary user replacement with a fresh ID that collides with neither a stored message nor a run before mutation. It removes the selected user message and the ordered suffix, including whole later runs. When the target run still has a prefix, that run and its retained messages survive: the summary becomes neutral `.completed`, clears its previous failure and ends at the last retained non-tool message. Editing its opening removes the target run only when no prefix remains.
+
+Graph cleanup follows the same boundary. Removed messages lose their replay and context-attachment backing. Within a partially retained run, invocation source-message ownership takes priority, followed by call identity in retained/removed transcript rows; only unrecoverable ownership uses the conservative `createdAt >= target.createdAt` fallback. This covers both legacy rows and modern provider-native events persisted before their source-message snapshot. Results and reviews follow the deleted invocation IDs. Compactions are deleted only if their explicit boundary is among the removed message IDs, so retained-prefix records and nil-boundary fork bases survive. The generated title is cleared only when the opening user turn is removed. On load, raw run-local assistant calls supply missing legacy source IDs, and reconstructed deterministic tool-result messages receive run ownership before compaction projection; this lets the live model preserve the same graph through compacted history.
+
+The replacement is inserted with its replay/attachment backing into a standalone, failure-free `.completed` staging run whose ID equals the replacement message ID. Staging must sort after the latest retained run, including an empty run: when the replacement timestamp ties or precedes that run's start, its run start becomes the retained start plus one millisecond. The message's own timestamp is not rewritten.
+
+The first real snapshot whose final ordinary user turn is this staged replacement adopts it in the same `save` transaction. The staging predicate requires the same conversation, the same-ID user row, a completed run without failure, exactly one message and no invocation/result/review graph. Adoption changes only the staged row's run ID and snapshot sequence, retains its backing, deletes the staging run and retires the staging ID. Other historical rows included in replay remain attached to their original runs. The real run inherits at least the staging start time; later saves preserve that lower bound and clamp `finishedAt` when necessary. Failed and interrupted first snapshots use this same path, not a separate copy of the replacement.
+
+The repository's in-memory retired-ID set includes the edited target run even when its prefix survives, all removed later runs, and adopted staging runs. `save` and durable-event `record` ignore retired IDs, preventing late work from rebuilding the discarded suffix. This is a repository-instance guard, not a new persisted tombstone or schema migration. Both truncation and snapshot save restore the previous retired-ID set and roll back their `ModelContext` changes if the transaction fails.
+
+`AssistantConversationOperations` applies the live history edit only after the repository commits; invalid replacements and rejected writes leave history unchanged. Live running, failed and interrupted projections adopt staging provenance too, but publication ordering is not universal: a captured missing-model/credential failure still updates live state before its separate asynchronous save. See [Assistant Runtime](agent-runtime-and-assistant.md) for that boundary and the distinct immediate-stop runtime-handoff limitation. Shared replay tests restore failed/interrupted adoption through a fresh context; desktop and mobile fixtures compare same-run prefix history and provenance after edits. These fixtures do not inject a real disk-full or read-only SwiftData failure.
 
 ## Schema evolution: preserve the past exactly
 
