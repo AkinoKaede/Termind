@@ -723,12 +723,13 @@ public final class AssistantExecutionController {
         if state.recordsInterruption {
             let now = Date.now
             do {
-                try await agentRunRepository.save(
-                    AgentRunSnapshot(
-                        conversationID: conversation.id, state: .interrupted,
-                        permissionMode: capture.permissionMode,
-                        messages: conversation.transcript, startedAt: now, finishedAt: now))
+                let snapshot = AgentRunSnapshot(
+                    conversationID: conversation.id, state: .interrupted,
+                    permissionMode: capture.permissionMode,
+                    messages: conversation.transcript, startedAt: now, finishedAt: now)
+                try await agentRunRepository.save(snapshot)
                 guard preparations[conversation.id]?.id == capture.id else { return }
+                conversation.adoptStagedReplacementRun(snapshot)
                 conversation.handle(.runState(.interrupted))
             } catch {
                 guard preparations[conversation.id]?.id == capture.id else { return }
@@ -745,12 +746,13 @@ public final class AssistantExecutionController {
         if state.recordsInterruption {
             let now = Date.now
             do {
-                try await agentRunRepository.save(
-                    AgentRunSnapshot(
-                        conversationID: conversation.id, state: .interrupted,
-                        permissionMode: state.permissionMode,
-                        messages: conversation.transcript, startedAt: now, finishedAt: now))
+                let snapshot = AgentRunSnapshot(
+                    conversationID: conversation.id, state: .interrupted,
+                    permissionMode: state.permissionMode,
+                    messages: conversation.transcript, startedAt: now, finishedAt: now)
+                try await agentRunRepository.save(snapshot)
                 guard preparations[conversation.id]?.id == preparationID else { return }
+                conversation.adoptStagedReplacementRun(snapshot)
                 conversation.handle(.runState(.interrupted))
             } catch {
                 guard preparations[conversation.id]?.id == preparationID else { return }

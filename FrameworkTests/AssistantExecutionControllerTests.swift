@@ -81,6 +81,7 @@ struct AssistantExecutionControllerTests {
 
         try await waitUntil { !conversation.isPreparingAgentRun }
         #expect(conversation.runState == .failed)
+        await repository.waitUntilSnapshot(state: .failed)
         #expect(await repository.snapshots.last?.state == .failed)
     }
 
@@ -249,6 +250,7 @@ struct AssistantExecutionControllerTests {
         await memoryStore.releaseSnapshot()
         try await waitUntil { !preparing.isPreparingAgentRun }
         #expect(preparing.runState == .failed)
+        await repository.waitUntilSnapshot(state: .failed)
         #expect(await repository.snapshots.last?.state == .failed)
     }
 
@@ -492,6 +494,43 @@ struct AssistantExecutionControllerTests {
         #expect(edited.contextSnapshot?.sessionContext?.contains("captured-host") == true)
         #expect(edited.contextSnapshot?.planContract == TermindAgentPolicy.planContract)
         #expect(conversation.runState == .failed)
+        let failed = try #require(conversation.runSummaries.values.first)
+        #expect(conversation.runSummaries.count == 1)
+        #expect(failed.state == .failed)
+        #expect(failed.id != edited.id)
+        #expect(conversation.messageRunIDs[edited.id] == failed.id)
+        #expect(conversation.runSummaries[edited.id] == nil)
+    }
+
+    @Test
+    func cancellationAfterSuccessfulEditAdoptsTheInterruptedRunProvenance() async throws {
+        let memoryStore = SnapshotBarrierMemoryStore()
+        let memory = MemoryModel(storage: memoryStore)
+        await memory.setEnabled(true)
+        let repository = RecordingAgentRunRepository()
+        let controller = makeController(repository: repository, memory: memory)
+        let operations = AssistantConversationOperations(repository: repository)
+        let message = AgentTranscriptMessage(role: .user, text: "before", authoredText: "before")
+        let conversation = ConversationModel(
+            messages: [ChatMessage(id: message.id, role: .user, text: "before")], transcript: [message])
+        let prepared = try #require(
+            controller.prepareAgentEdit(conversation, messageID: message.id, text: "after"))
+
+        #expect(try await controller.performAgentEdit(prepared, in: conversation, operations: operations))
+        let edited = try #require(conversation.transcript.first)
+        #expect(conversation.messageRunIDs[edited.id] == edited.id)
+        await memoryStore.waitUntilSnapshotEntered()
+
+        let cancellation = controller.cancelPendingRuns()
+        await memoryStore.releaseSnapshot()
+        await cancellation.value
+
+        let interrupted = try #require(await repository.snapshots.last)
+        #expect(interrupted.state == .interrupted)
+        #expect(conversation.runState == .interrupted)
+        #expect(conversation.messageRunIDs[edited.id] == interrupted.id)
+        #expect(conversation.runSummaries[edited.id] == nil)
+        #expect(conversation.runSummaries[interrupted.id]?.state == .interrupted)
     }
 
     private func makeController(
@@ -604,6 +643,7 @@ private actor RecordingAgentRunRepository: AgentRunPersisting {
     private var saveReleased = false
     private var saveEntryWaiters: [CheckedContinuation<Void, Never>] = []
     private var saveReleaseWaiters: [CheckedContinuation<Void, Never>] = []
+    private var snapshotWaiters: [(state: AgentRunState, continuation: CheckedContinuation<Void, Never>)] = []
     private var truncationEntered = false
     private var truncationReleased = false
     private var truncationEntryWaiters: [CheckedContinuation<Void, Never>] = []
@@ -620,6 +660,15 @@ private actor RecordingAgentRunRepository: AgentRunPersisting {
 
     func save(_ snapshot: AgentRunSnapshot) async {
         snapshots.append(snapshot)
+        var pendingSnapshotWaiters: [(state: AgentRunState, continuation: CheckedContinuation<Void, Never>)] = []
+        for waiter in snapshotWaiters {
+            if waiter.state == snapshot.state {
+                waiter.continuation.resume()
+            } else {
+                pendingSnapshotWaiters.append(waiter)
+            }
+        }
+        snapshotWaiters = pendingSnapshotWaiters
         guard blocksFirstSave, snapshots.count == 1 else { return }
         saveEntered = true
         let entryWaiters = saveEntryWaiters
@@ -633,6 +682,11 @@ private actor RecordingAgentRunRepository: AgentRunPersisting {
     func waitUntilSaveEntered() async {
         if saveEntered { return }
         await withCheckedContinuation { saveEntryWaiters.append($0) }
+    }
+
+    func waitUntilSnapshot(state: AgentRunState) async {
+        if snapshots.contains(where: { $0.state == state }) { return }
+        await withCheckedContinuation { snapshotWaiters.append((state, $0)) }
     }
 
     func releaseSave() {

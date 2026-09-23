@@ -5,6 +5,7 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindInfrastructure
+import TermindPersistence
 import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
@@ -148,6 +149,53 @@ struct MobileAssistantTests {
         } else {
             Issue.record("Missing assistant")
         }
+    }
+
+    @Test func swiftDataRestoreAndEditPreserveASameRunPrefixOnMobile() async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let instant = Date(timeIntervalSinceReferenceDate: 100)
+        let runID = try #require(UUID(uuidString: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"))
+        let replacementID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
+        let opening = AgentTranscriptMessage(
+            role: .user, text: "Opening", authoredText: "Opening", createdAt: instant)
+        let prefix = AgentTranscriptMessage(
+            role: .assistant, text: "Prefix", createdAt: instant)
+        let steering = AgentTranscriptMessage(
+            role: .user, text: "Steer", authoredText: "Steer", createdAt: instant)
+        let suffix = AgentTranscriptMessage(
+            role: .assistant, text: "Suffix", createdAt: instant)
+        try await repository.save(
+            AgentRunSnapshot(
+                id: runID, conversationID: UUID(), state: .failed,
+                permissionMode: .askForApproval,
+                messages: [opening, prefix, steering, suffix],
+                startedAt: instant, finishedAt: instant, failure: "old failure"))
+        let store = AssistantConversationStore()
+        store.restore(try await repository.loadConversations())
+        let conversation = try #require(store.conversations.first)
+        let replacement = AgentTranscriptMessage(
+            id: replacementID, role: .user, text: "Replacement", authoredText: "Replacement",
+            createdAt: instant)
+
+        let operations = AssistantConversationOperations(repository: repository)
+        #expect(
+            try await operations.edit(
+                conversation, messageID: steering.id, replacement: replacement) != nil)
+
+        #expect(conversation.messages.map(\.text) == ["Opening", "Prefix", "Replacement"])
+        #expect(conversation.messageRunIDs[opening.id] == runID)
+        #expect(conversation.messageRunIDs[prefix.id] == runID)
+        #expect(conversation.messageRunIDs[replacement.id] == replacement.id)
+        #expect(try #require(conversation.runSummaries[replacement.id]).startedAt > instant)
+        let reopened = try #require(try await repository.loadConversations().first)
+        #expect(reopened.messages.map(\.text) == ["Opening", "Prefix", "Replacement"])
+        #expect(reopened.messageRunIDs[opening.id] == runID)
+        #expect(reopened.messageRunIDs[prefix.id] == runID)
+        #expect(reopened.messageRunIDs[replacement.id] == replacement.id)
+        #expect(reopened.runs.map(\.id) == [runID, replacement.id])
+        #expect(reopened.runs.first { $0.id == runID }?.state == .completed)
+        #expect(reopened.runs.first { $0.id == runID }?.failure == nil)
     }
 
     @Test func changingConversationsPreservesTheirDraftsAndArchiveNavigation() async throws {

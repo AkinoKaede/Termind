@@ -2257,7 +2257,97 @@ struct ChatComposerStateTests {
 
         #expect(conversation.workGroups.isEmpty)
         #expect(conversation.toolCards.isEmpty)
-        #expect(conversation.runSummaries.isEmpty)
+        #expect(conversation.runSummaries.count == 1)
+        let staging = try #require(conversation.runSummaries.values.first)
+        #expect(staging.id == conversation.transcript.last?.id)
+        #expect(staging.state == .completed)
+        #expect(staging.failure == nil)
+    }
+
+    @Test
+    func editingSteeringKeepsCompactedSameRunPrefixAndLegacyToolOwnership() throws {
+        let instant = Date(timeIntervalSinceReferenceDate: 100)
+        let runID = UUID()
+        let opening = AgentTranscriptMessage(
+            role: .user, text: "Opening", authoredText: "Opening", createdAt: instant)
+        let call = AgentToolCall(id: "prefix-call", name: "inspect", arguments: .object([:]))
+        let firstReply = AgentTranscriptMessage(
+            role: .assistant, text: "First reply", toolCalls: [call], createdAt: instant)
+        let steering = AgentTranscriptMessage(
+            role: .user, text: "Steer", authoredText: "Steer", createdAt: instant)
+        let secondReply = AgentTranscriptMessage(
+            role: .assistant, text: "Second reply", createdAt: instant)
+        let keptCompaction = AgentCompactionRecord(
+            compactedThroughMessageID: firstReply.id, sequence: 0, summary: "Earlier context",
+            summarizedTokens: 10, keptTokens: 2, displayAnchor: instant)
+        let removedCompaction = AgentCompactionRecord(
+            compactedThroughMessageID: secondReply.id, sequence: 1, summary: "Later context",
+            summarizedTokens: 12, keptTokens: 2, displayAnchor: instant)
+        let conversation = ConversationModel(
+            messages: [
+                ChatMessage(id: opening.id, role: .user, text: opening.text, createdAt: instant),
+                ChatMessage(id: firstReply.id, role: .assistant, text: firstReply.text, createdAt: instant),
+                ChatMessage(id: steering.id, role: .user, text: steering.text, createdAt: instant),
+                ChatMessage(id: secondReply.id, role: .assistant, text: secondReply.text, createdAt: instant),
+            ],
+            transcript: [steering, secondReply], runState: .failed,
+            messageRunIDs: [
+                opening.id: runID, firstReply.id: runID, steering.id: runID, secondReply.id: runID,
+            ],
+            runs: [
+                AgentRunSummary(
+                    id: runID, state: .failed, startedAt: instant,
+                    finishedAt: instant, failure: "old failure")
+            ],
+            compactionRecords: [keptCompaction, removedCompaction])
+        conversation.title = "Keep this title"
+        let invocation = AgentToolInvocation(
+            runID: runID, call: call, sourceMessageID: firstReply.id,
+            createdAt: instant.addingTimeInterval(1))
+        conversation.handle(
+            .toolProposed(
+                invocation,
+                AgentToolDescriptor(
+                    name: call.name, summary: "Inspect", inputSchema: .object([:]),
+                    target: .local, approvalPolicy: .approve)))
+        conversation.handle(
+            .planPresented(
+                AgentPlan(
+                    title: "Same-time plan", body: "Must be removed", scratchPath: "/tmp/plan.md",
+                    createdAt: instant)))
+
+        let replacement = try #require(
+            conversation.editUserMessage(steering.id, authoredText: "Replacement"))
+
+        #expect(conversation.messages.map(\.text) == ["Opening", "First reply", "Replacement"])
+        #expect(conversation.transcript.map(\.text) == ["Replacement"])
+        #expect(conversation.toolCards.map(\.id) == [invocation.id])
+        #expect(conversation.compactionRecords == [keptCompaction])
+        #expect(conversation.compactions.map(\.id) == [keptCompaction.id])
+        #expect(conversation.plans.isEmpty)
+        #expect(conversation.title == "Keep this title")
+        let prefix = try #require(conversation.runSummaries[runID])
+        #expect(prefix.state == .completed)
+        #expect(prefix.finishedAt == instant)
+        #expect(prefix.failure == nil)
+        #expect(conversation.messageRunIDs[opening.id] == runID)
+        #expect(conversation.messageRunIDs[firstReply.id] == runID)
+        #expect(conversation.messageRunIDs[replacement.id] == replacement.id)
+
+        let stagingStartedAt = try #require(conversation.runSummaries[replacement.id]).startedAt
+        let realRunID = UUID()
+        conversation.handle(
+            .runStarted(
+                AgentRunSummary(id: realRunID, state: .running, startedAt: instant)))
+        #expect(conversation.messageRunIDs[replacement.id] == realRunID)
+        #expect(conversation.runSummaries[realRunID]?.startedAt == stagingStartedAt)
+        conversation.handle(
+            .runFinished(
+                AgentRunSummary(
+                    id: realRunID, state: .completed, startedAt: instant,
+                    finishedAt: instant)))
+        #expect(conversation.runSummaries[realRunID]?.startedAt == stagingStartedAt)
+        #expect(conversation.runSummaries[realRunID]?.finishedAt == stagingStartedAt)
     }
 
     private func waitForTerminal(_ conversation: ConversationModel) async {
