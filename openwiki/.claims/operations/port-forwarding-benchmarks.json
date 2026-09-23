@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:eb2a96781d38300f76e05d6857eca063afedce152263ef8cae2d940364c64c54",
+  "pageVersion": "sha256:1fd667e120679ccb152d5bfd893352c86f299dffe69edbb567ca514b3c8c0add",
   "claims": [
     {
       "id": "claim_9f166728e8ab4376a5da23e8b49d166d",
       "statement": "The port-forwarding benchmark is a standalone command-line product that imports shared Termind modules and runs its own benchmark main rather than being hosted by Termind.app or a test bundle.",
       "evidence": [
         {
-          "resource": "repo://Benchmarks/PortForwarding/main.swift",
-          "version": "repo-file-v1:sha256:f8d986cabf03ac75347b60a2a86fc28f374cfcde1c9f7cb219bdfadd7c79bb45"
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L1-L22",
+          "version": "repo-lines-v1:sha256:e683751ebf2662bdfa0efec90cc9c9cf679bac1a5e2e06e7cf1e4ee57e2880e4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE1OGEyZDdmYzIzNTUyOWMzYWJiMjVmNmUzZDA4N2I2NGE1YmJkMGRkZTU5OTgxMTMzNGU3NDkzNTAyMmQxMzYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVkYzA1YWYyY2IxN2U1ZDgxYWNiNjkxMzE3YzNkOGFiYWM1NDBhZmE3ODQ4MzBlZTI2NjE2YTJmNTViOTYyZDIifQ"
         },
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1091-L1105",
+          "version": "repo-lines-v1:sha256:81e3f410bb7eb9cdc22c2c82d861c5efde12dcfeef5f65505fda733bcc11955e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViNGJkM2U1MzkyMzUwMzkzYmQxYmQyYjI0MjdmNjMwZGU2OTUzNjFkNjY2ODMzYzE5ZTE2NzEzYTRiMWZkNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjYwNTIwN2U2NTMzOWUxM2E1NTIzZjFlMDhkZGJiNTllMTYzMDY3NjI4NGZmOTdiNzY3NGE4YjFkNzIzMGY5NjMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiOWFlYjQyMDRmZmM1Nzc0MjY2NGY2NDQ3NjcyZWRjZmIyM2IzNDAwYzhhODkwNmFiNmMyODhkZTg5OGVjMGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZmZDUyNjJjZjUxZmQ4ODBkNjgxZWFiYTkzY2VlYzM2MTkzMzhjMzU4MmNlYzhhZWU3OTliODY4YWFhMTlhZDgifQ"
         }
       ]
     },
@@ -67,6 +67,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T10:02:02.985Z"
+    "at": "2026-09-23T10:08:51.776Z"
   }
 }

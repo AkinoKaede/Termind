@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4dbecf9ffc4a898da594e820778cd3e693619b49c45ffc6745b7684ef00c4f46",
+  "pageVersion": "sha256:d3cd20c0a6365a0e940e562495075e28f5f59946fe18b68e5c8b459e02b4571f",
   "claims": [
     {
       "id": "claim_bd9f5ddda6b6466eb79c622b02fd73f2",
@@ -20,7 +20,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
+          "version": "repo-file-v1:sha256:a6aef8eda8e5dc79dd30cec5bd6695dfc39d8c06958c49b6d29ec60c3ef1398b"
         }
       ]
     },
@@ -48,7 +48,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:2080b3e5bc75c0c08ee6414fb1034aa30ab3a4d24a58469293025ec420b202f4"
+          "version": "repo-file-v1:sha256:6156e0821962b295b33e546540b8894537b1e053c788ff50b30e276d5ab3b092"
         }
       ]
     },
@@ -224,7 +224,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:2080b3e5bc75c0c08ee6414fb1034aa30ab3a4d24a58469293025ec420b202f4"
+          "version": "repo-file-v1:sha256:6156e0821962b295b33e546540b8894537b1e053c788ff50b30e276d5ab3b092"
         }
       ]
     },
@@ -257,6 +257,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T05:17:08.701Z"
+    "at": "2026-09-23T10:08:51.776Z"
   }
 }

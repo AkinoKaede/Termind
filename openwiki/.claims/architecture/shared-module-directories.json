@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:afb1bab3e4c91081f597fea301a3472ef878abc9493b4e6bcc9014ba1aabe4e9",
+  "pageVersion": "sha256:e8da1978ed97e3c4dc6008ad373801967126a936955746a9426ecf5cea2fcae9",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -206,7 +206,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift",
-          "version": "repo-file-v1:sha256:3d74287bd690b560f5feacf29180580fb4552f6d56be4247d00a7011642376d0"
+          "version": "repo-file-v1:sha256:cf79dd9ebcaa4d4ce76e340aa5b6585322619c5e04ed35aa8fe5208a895106f9"
         }
       ]
     },
@@ -262,7 +262,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
+          "version": "repo-file-v1:sha256:a6aef8eda8e5dc79dd30cec5bd6695dfc39d8c06958c49b6d29ec60c3ef1398b"
         }
       ]
     },
@@ -291,6 +291,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T02:40:53.789Z"
+    "at": "2026-09-23T10:08:51.776Z"
   }
 }

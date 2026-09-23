@@ -25,7 +25,7 @@ sources:
 generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T05:59:31.338Z
+    at: 2026-09-23T10:08:51.776Z
 ---
 
 # Shell Integration: Bootstrap, OSC Events, and Terminal State

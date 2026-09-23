@@ -3,9 +3,6 @@ type: implementation guide
 title: SSH Multiplexing, Channel Admission, and I/O Scheduling
 description: "The concrete ownership and scheduling layers behind Termind SSH: per-connection session leases, serial libssh2 workers, exec state machines, multiplexed SFTP retries, readiness, backpressure, and feature-specific connection reuse."
 tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-8e06414c0a0a26e45de192bd
     resource: repo://Frameworks/TermindDomain/Connections/SSHPreferences.swift
@@ -34,6 +31,9 @@ sources:
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
 generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:08:51.776Z
 ---
 
 # SSH Multiplexing, Channel Admission, and I/O Scheduling

@@ -5,7 +5,7 @@ description: "Trace forwarding rules through Host-scoped intent, primary and aux
 tags: [ssh, port-forwarding, connection-pool, scheduling, socks5, backpressure, recovery]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-23T10:08:51.776Z
 sources:
   - id: openwiki-source-9bd2b93db78747d6956c2405
     resource: repo://Frameworks/TermindDomain/Hosts/Host.swift

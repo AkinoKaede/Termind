@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6b1311e49539498e542011db47be6e7f45947438b9f3f71d33c129340e76050a",
+  "pageVersion": "sha256:40b2afc40830a574689fa94f4912436c70b25c0f10741b865ad55d6364fe7f1d",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -131,8 +131,20 @@
       "statement": "The Xcode project selects `AppIcon` as the compiled asset-catalog icon name for the application targets.",
       "evidence": [
         {
-          "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1909-L1909",
+          "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2220-L2220",
+          "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZjQ1MGI5NWFmZjExZTljYzkzMjQ4ZmU1MjI2YjFjZTAyNzFhYzJiZGRlZDM2YmQwOWI3MGJkYTAxNmY4Y2M1NSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2469-L2469",
+          "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmMxYjFjNzAzZTAyNWJjM2VkMTEzYmVlMjYwZjQzNDJjNTVjYmI4ZmI5ZGY0Y2Q5YmM1Mzk4NDJhYTMxZGE0YyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2506-L2506",
+          "version": "repo-lines-v1:sha256:ec0d482fac6798bb60f1694427de89c458774858ef31b7bbd5892096aeed4c9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZWMwZDQ4MmZhYzY3OThiYjYwZjE2OTQ0MjdkZTg5YzQ1ODc3NDg1OGVmMzFiN2JiZDU4OTIwOTZhZWVkNGM5ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTYxYmI3ODIyMmNhNzllZWE5Yjg2OTIzNGZiMDM2YjZjNGNlYWUyMjQxYWI5OTc3MjY2NGNiMmFhNjViNDMyNyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWE0MDA4YTNmMjQzN2ZjMDJjODI3NGNmMDkzMmYzNmFlNDcxZTZlZmQ3YTRkMzUyY2E1NTU2NzRlNzlkZTIwYSJ9"
         }
       ]
     },
@@ -153,6 +165,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T10:02:02.985Z"
+    "at": "2026-09-23T10:08:51.776Z"
   }
 }

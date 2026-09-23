@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1011bb9602def6c6ca1bb7bf0cde718b8479b58ac8af9526e85bae3771596073",
+  "pageVersion": "sha256:576b2a04372cf81fcde6d2915f6e8b918efb29ed6cb739e33ee70fb76991d17e",
   "claims": [
     {
       "id": "claim_8e9cf2adb50847f98fcd4516cb0ed521",
@@ -20,7 +20,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:2080b3e5bc75c0c08ee6414fb1034aa30ab3a4d24a58469293025ec420b202f4"
+          "version": "repo-file-v1:sha256:6156e0821962b295b33e546540b8894537b1e053c788ff50b30e276d5ab3b092"
         }
       ]
     },
@@ -112,7 +112,7 @@
         },
         {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift",
-          "version": "repo-file-v1:sha256:f6845c8916416f497e3238b7da870623c2ea9636791d577ee1f0074c75be4ed5"
+          "version": "repo-file-v1:sha256:7ce70114f4784fe940c151bb3cc5f376e6fcadb814f466cc93a41b24e6ec760c"
         },
         {
           "resource": "repo://TFM/Features/Shell/WindowRoute.swift",
@@ -206,7 +206,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a4bc24344483a6c4041dcb6a6379abd33f1af97231f811c92422e13e956153fa"
+          "version": "repo-file-v1:sha256:a6aef8eda8e5dc79dd30cec5bd6695dfc39d8c06958c49b6d29ec60c3ef1398b"
         }
       ]
     },
@@ -231,6 +231,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T05:17:08.701Z"
+    "at": "2026-09-23T10:08:51.776Z"
   }
 }

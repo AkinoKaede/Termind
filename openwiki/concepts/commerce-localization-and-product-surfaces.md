@@ -5,7 +5,7 @@ description: Explains StoreKit-derived Pro access, native paywall and review own
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-23T10:08:51.776Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
