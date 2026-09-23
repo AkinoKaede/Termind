@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2ea45885f28729e3e1c545ea046ac5d552d5ad17465af3efc9beccb6755bc299",
+  "pageVersion": "sha256:92110e4a68f9373b2a5339feea69ea1a11bb1fe73727dd0e4709661aa7cb595a",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -40,29 +40,37 @@
     },
     {
       "id": "claim_3f5b9e81f75049609142a3429f5255cb",
-      "statement": "TFM uses semantic AppKit-backed color roles and appearance-resolved native colors; actual sidebar selection distinguishes key and inactive windows while generic Highlight uses a quiet accent wash.",
+      "statement": "TFM uses semantic AppKit-backed colors and appearance-resolved native colors. Generic Highlight retains its accent wash, while Sidebar selection uses neutral primary fills at 10% key/6% inactive opacity, primary selected key-window text and accent leading icons, secondary inactive foregrounds and readable inline rename colors; the native menu outline remains accent-colored.",
       "evidence": [
         {
-          "resource": "repo://TFM/Design/DesignTokens.swift#L320-L395",
-          "version": "repo-lines-v1:sha256:97cf99d4e0f76ce0d1ca96dd7e8ad269e9879b9b2f7bb1374c797bae6cddd789:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzN2U0NzhkZjRjYTk2YmU0NWVlNTIzZDBkODg2MjhjOGU5MzE4ZmJmMWMyMzNhNzQyNjhhY2E4MGJhZTJhMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIzYjg0MTY2NGUxYTA4MTE5MTQyZTcxNTVjMGFjOGIyZmQ1MDA0NTdjYzcyMjExYjM4YTM5ODE5MDRkMzBjOGMifQ"
+          "resource": "repo://TFM/Design/DesignTokens.swift#L324-L397",
+          "version": "repo-lines-v1:sha256:4c3d078038e73a48f800936986620235262ea90de4604d87fe5cb0ed57322b9c:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIzN2U0NzhkZjRjYTk2YmU0NWVlNTIzZDBkODg2MjhjOGU5MzE4ZmJmMWMyMzNhNzQyNjhhY2E4MGJhZTJhMDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
         },
         {
-          "resource": "repo://TFM/Design/DesignTokens.swift#L482-L574",
-          "version": "repo-lines-v1:sha256:4432b9753f4552d16c407fcecdefa6ef80687c033011ae52cb7707be6f67e2ce:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3N2FiMjhiODUxODE0MmY1ZTI1YWU3ZWFlOWJlZDVmZDg3ZGU3MmM3OTZmNGI2ZjYxYzA5YTI2NDNhYWUxNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjMTMzMmE0YmFmNjc1NzQ3YTM1NjcxOGZiZmQ2ZTRlNGQyY2Y0ZDQ0ZmQ4NDliMDEwODBlZTcxYjg1ZDMzZjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE4OTI1ZThiNTI3MmJiMGZmNTQ2YzhmNGMyZjgzNjM5MTRjNjZiOGU3ZTM1NTJhMzRjMzk1YjVkMWJmNDgzZjEifQ"
+          "resource": "repo://TFM/Design/DesignTokens.swift#L475-L570",
+          "version": "repo-lines-v1:sha256:c6317d8ac14b7f06ce6c12db8083120664d673c68de5a550e040cc8a5b7fa5bf:eyJzZWxlY3RlZExpbmVDb3VudCI6OTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzZTViZjFmN2YxNjgxMjNlMzA5N2U2Nzc1YzdiOWFhNmZhNzA5M2QwNDc0YmMwNWQwNTcwZmU0YzBjOTE2NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZiY2MwY2FhODg1YjI3NDliMmQ1YWIxNGUxYWRlMmJhN2JjMTRkM2QxYTVmZjc5YTdhMDliYzNmZmRlY2QwZTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjIxMjRlYzdmYTFjOWJkYWFiMmZkOTI0ZGY2YzFjNTU2MTliYjFhZjU0YzM0MGJhMzU5YTJlOWNmYjEyYjExMDAifQ"
+        },
+        {
+          "resource": "repo://TFM/UI/Components/SidebarRow.swift#L64-L70",
+          "version": "repo-lines-v1:sha256:758a88d389a6172fe772f8b564dc6afb063952aa403fe429e6f10405157cc915:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYTQ0NGNlYWFhOTNiY2IxNGFjZjA0ODRmZTAwN2I0OGEwNDUxMThiYzhiOTc5YThiMTQyYTg1Y2Y2ODdiNDlmMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjYyYzZlMWY4NjBiMDQzN2JkNzNhYjRiNWFhZTY3ZjY4YzhjOTgyNmM4OTNjMGNmYWJmZjk1YzYyZDMzZjQwOCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTkzMTc3OGZjMWVkMGUyN2JlYmY2MWUxZDY4ZTliYzA1MzRiNWZkNTY4YzhiYzkyYTE5Njc3ODZkYjkyM2Q2ZSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOTA4NjUyNzk5YjUxZTc5ZTFhODc5NmVkMzM0MzlkNWY1MTA1NjNiMDk4NjVkODI4YmNhMWJkMzBhNjcxOGZiYSJ9"
         }
       ]
     },
     {
       "id": "claim_9b8f98f539cc4266bb6731b13b191bab",
-      "statement": "TFM uses system glass on macOS 26 with native material fallbacks, while mobile cards use glass conditionally with dense-text backing and opaque/stronger-border fallbacks for transparency or contrast accessibility settings.",
+      "statement": "TFM explicit glass controls use system glass on macOS 26 with native material fallbacks, but the Sidebar column relies on NavigationSplitView's own background on macOS 26+ and adds only a pre-26 AppKit visual-effect fallback. Mobile cards retain conditional glass, dense-text backing and opaque/stronger-border accessibility fallbacks.",
       "evidence": [
         {
           "resource": "repo://TFI/UI/Managed/MobileCards.swift#L59-L109",
           "version": "repo-lines-v1:sha256:2e0914d2ce2a68e255ad11b2db9afb74cedb5cfad807d3a4122d138bad3b62e9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI0NTkwNDRkNjNmYzg4MGVlMDRhM2RhNTJlMjRkM2UyODM2Mjg3NzkwMzI4MzUzYjQ4NDJmNTcxODI4MGNjOTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhlNjAyMGUyNjc2OWE3MjVhMjg4YmY2MmI1YzY5Nzc3ZTUzM2M3N2Q4NDg4ZTE1ODZlNzY1NzY1YTNjMTBmZGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUyY2IyY2M5MzZlNjA0ZGM4NDFhN2I5M2MwMWE5YTRiYWY3ZjMwNzg0M2FmYzIzMDMxMDEzOTkyNDc5ODk2MTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhmNjNhOWYxYzdmMmY1MWRhZjQ2Y2RhYWIxOWVlZGEyODI0ZGQxMzlkZjc2ZDZkZWY3MWQ3ZTlkNjg0OTc2NWUifQ"
         },
         {
-          "resource": "repo://TFM/Design/DesignTokens.swift#L397-L480",
-          "version": "repo-lines-v1:sha256:111f22df63028d345b5a301a2b9f8f0a97b4dd313819bd76a9f079c25758133f:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMwNjk0ZTI5NzY5ZTg0YTk4ZjI3OWNjMmMzNmRlYjBkZDA5YzQyNDQxMzJlNzMyYzNkYTE1MWU0YzhlMDJlZWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5NThhZWMxMGMyMDdjMmZmOTQ5ZDI0MmE5OTllMTQ0YzIyYTQzNGFkYjAzM2U1NTdiNGFkOTAyZTllMTBlNGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIxZjFhYmY3MWE5NDBkOTM4YjJlOGUxZTRkMzJkMmI4MTU1M2I1OWFiOTk5YjBmZmM0Nzc0MWNmNjNmZTgyNDYifQ"
+          "resource": "repo://TFM/App/RootView.swift#L33-L47",
+          "version": "repo-lines-v1:sha256:7477fccf1fdb5be27730274cc5816b615e7cf9555a753112c0c99bd77fda4bc7:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFmMDhhOGI4NmMyMTkzOTMzMWNlMmRlNzQ4Y2MwMjQyODI5NmExNWUyOWUwMTJmOWI1YjI5YmE3NTQ5MDViOGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUxMDM0ODFjNTdkMGYwZGMwZjc2Y2QyY2M4YjM2MDRjNGU4Mjk2ZGE0MTIyYWRkMTllODE3NDVkYzdlMzMxYTYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5OGYxYTA0YmVlNzFjM2NmYzJiNDcxOWU2ZmQ5MGM5NmY0N2E5MWU0ZDJmZGU3ODgzNTNjMDM3MDQ2NmY5ZGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxMmQ1NmZkOTU2YzBiNzRhYjBlMDdlZDU5ZjJlM2QwY2NkNTUwNDhkNmQyMGIwZTU5ZGQ4ODVkMGU4NjA4MzQifQ"
+        },
+        {
+          "resource": "repo://TFM/Design/DesignTokens.swift#L412-L464",
+          "version": "repo-lines-v1:sha256:7edc22ac946a5bf05301fcf03b6d19cf763796b4b1c1e5ede679c271cb269b79:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3MGM4MjUxYzMxNWRlYTdjOTBmZTc0YjQ4MTNhMjUxYjM4YzhlOGRmNTkzNGI4NzcwODkxOTc1NTljNGMxZjUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUzN2VmMGJjMjIyOWU0MmRiOGQ3MGYxYzUyOWRmNzI2YWNiZTZjYTk4NDlhZjRmZGE4MDIyNGJlYzZkNGE3ODcifQ"
         }
       ]
     },
@@ -285,10 +293,60 @@
           "version": "repo-file-v1:sha256:486afc2bf3721fee357282fdd83470fcd029c99f029f17b66f3c4f634305e662"
         }
       ]
+    },
+    {
+      "id": "claim_b0f590a197334590b67c9404a0dd06c6",
+      "statement": "The Sidebar mode rail shares one glass capsule with neutral animated selection, explicit selected accessibility traits, Reduce Motion handling and key-window focus outline; the Assistant footer groups interactive New Chat/Archive glass controls on macOS 26+, using neutral Archive selection and a semibold primary glyph.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L81-L130",
+          "version": "repo-lines-v1:sha256:851c5a4704e41df47e9500fba2300c125f45b4e02dfb2939f29148a6e857e26f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMjA0MzJkYzQ3NGFmN2VmY2NlYmMwZTQ1ZDAzYzIxYmM3OTY0ZWMzZWY5NDE2Zjg5NmRlMDVlNmM0ODAzMzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhZjI4MmYyMDg2ZWI4ZTZmYTJiMDdmMGY3NzBmYmE2M2UzZWFmOTY2YzE0Mjk1NDg0NWFhYmQzODMxYTRiMDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0YTM2NWE5MGVjMTFlOTA0MzI3NTJjZjkzNzZlYzVlZDM2YjgwYmE1ZThlNjg1NGZjZjk4OTcwZDMwNDQ0NjkifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift#L38-L94",
+          "version": "repo-lines-v1:sha256:cfbd8237ba2ca4f4797b4bba5216aced08897e568ba2875816a470bcd4ae3da3:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjNzM1YTQ1NTZjMmZkNjgzMmVlZTgyY2Q4Y2MyYzM5MzA0YTAxNjdmNWZkMTVlNTgwYWI1MzRiNzQxMmUyZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlNThhYjBjNDdiN2Y5OWVkOGM1OGM1Yjg2Njc2NWU3MDQ4YTZlZWI2YmJhODExYzRmNzcxMDk1ODZlMzQ2MWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEwYmUyNzE1MDFmNzVhZWZlNjgxNzFmMTU5MjZlMGUzOWFkYjM4NmQyZjMxNjU2YzM0N2UzOGJlNDhiMDY4YTMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJiODlkNTljMjE3MGEwZWFmOWY0NDc2YmVjMjRjOThlYjdlYTRiMWNlYTY4ZDQ5MmQ2OGNkNzAzOGZkNDE0YmQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_42f7f8d608a249d6b24b1312c2719d20",
+      "statement": "Desktop single-rule forwarding menus group Address and SSH Command in a Copy submenu, while mobile exposes flat copy actions before Edit/Duplicate; both use native pasteboards, disable unavailable SSH-command copying and leave forwarding execution to separate actions.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Ports/MobileForwardingView.swift#L80-L96",
+          "version": "repo-lines-v1:sha256:eb7629f74c17d9c10936b2914f483e553754a07ac0ca69a9bcd6e00ef110c801:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2NjgzMDMxZjE3ODk4NTBhNmU4M2UwNmEyMGM5YzFhZDNmNzM5ZjcwYWRjYTZlODQxM2M3YzBmMTgzYmJmNmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNDRlMGU1NmVjNzE0ZmQzMmY3M2M0MTYyMjg4ZjY5YmMzYzc4MGIzZGM5Yzk4MGExMTUxZDBlN2M5YzEyYjQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI5ODI0MWFjMGE4M2I1NDZmM2Y0Y2M0YjdmZTE5NDJlMjM4MzdlNDIwNjM1MGEyMDAzNDM5YWUzNzg2YWM2YWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE1YzhkZmE3ZjFlMGI4MTkyZGRlNmVlODc4NDc3NmFhZjYyNzk2YWI5MjM5OTU5YTE3ODE2YzQwOGE3NmM4MTgifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Ports/PortForwardingView.swift#L59-L80",
+          "version": "repo-lines-v1:sha256:0bf89175a0a781274cada4a8fa227ae456a38774c7d7ee3701e1e9513e081cf6:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIwMDIyNWJmYTIwMTYwY2UyNDE2ZDJjNzU0NmZiZTFkOTNmYzJmZTM2YjUyYmNhMWIxYTBhMDg0YzhkY2VhOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyNmE1N2EzYzNkOGJiYmJmYWJlMzkzMjJkOWM2ZWM2OTkyMmU2MTNlMWM1YThiMTY3NTFmYWZkYWZhNmU4MDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA0ZmNmNDBlNzlkNDZkMTFjYjJkYmJkNjVjMzczZGQzYTFlODFkYTI1NjI4NTJhNDAxYmZiZDNlODNkN2ZkNWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFjMTgxMmU5ZmQwYWY4ZTMwMWVlMTYwYTNjOTJiOTUwYzQxMDE4YjVlYjA0ZDkyMTdjYWI2MzU1OTQ2Y2I3MGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_179ba724e7c9488d839b0c475124be00",
+      "statement": "Desktop and mobile Snippet cards expose one Run action instead of a separate Execute on Hosts override affordance; target selection and destructive-script confirmation remain owner-controlled, with desktop filling missing targets and mobile choosing hosts when no valid targets remain.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift#L290-L303",
+          "version": "repo-lines-v1:sha256:82d7c71fd2cd54e76ebcee778a9240568dfb90e96a4e2a3af555591257aefe56:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY2NjgzMDMxZjE3ODk4NTBhNmU4M2UwNmEyMGM5YzFhZDNmNzM5ZjcwYWRjYTZlODQxM2M3YzBmMTgzYmJmNmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZGJmOWM0NWEwODdiYTA3ZDkwODE5OTFlNGY5ZTNmYWU3ZWZlMjM5Yjk0NGViYWQwYWNlODc1MGE2NmEyYzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        },
+        {
+          "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift#L356-L380",
+          "version": "repo-lines-v1:sha256:a275fa91f09b523b4aafa93db152698586c8b779785492b6f16cabf5626e666a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3ZTg5NDNmOTczODlhYjlhNjEwODVlYjRmNTEyNmFkMWFmNjQ0YTcxM2M0YzQ2MWU3ZDEyNDZiYmFjNjEwMGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiOGUzOTMxYjNlNWEyZjhmNGU2NWM4NTk2YWQzMzYxNDc3NjY0YjAyYzM1MzFiYzg5NjQ3NGE3YWYxYjdjZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE4Zjg1NDZlNDMzZDc4NjQzODA2NmJjNjllMDg1MGZlNWIyNjU3MDBmYzBlNDM4ZGU4MWRiM2ZjMTJiOWM0ZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4MmVhMGU5N2Q0OTc1NzRlNWI1ZmQ5ODQ1NDU1YWRjNTVhYWE0MWQxMGI4MzMzNGNmNGJmMjk5YjdhYTY1NzgifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Snippets/SnippetsPageView.swift#L302-L326",
+          "version": "repo-lines-v1:sha256:6a4e35d060bf8c3af98a6bcafa7f2c3af3d2919dc77bbf40cddfec56f83474eb:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwMDE2OGQ4OTkwNWRjZWRlZDQ4OGFjOWE3OTg3ODA5NjMyYTMzZWZmYzE3MmZmM2UzMDQ2OTkwNmJmNDRlZTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhMDZhM2U3N2M4MzgzZTk4YmE3YTVkZDUzN2I1Mzg4MTdhMDFkNDZlOTAxMGUyNzEyNTgxZGFmZmFlZjYwOGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5M2IzNWRiMDFmMTgyYjgzY2VkZWQ0MzM1ZTY4OGZhZmVhMzAxZjBhNzJlNGIxZGYyNmMwZDU0YjU5MThkMjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNkODg0YTQxZDNiYmZhN2E0MzAxZjdjMzExZGE3OWE4YThjNmU1YmI3ZTljYWFlNjc3M2RiOTM4OTMxMjg4NWIifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Snippets/SnippetsPageView.swift#L458-L466",
+          "version": "repo-lines-v1:sha256:9601001fe4af32f37a89a620b06175d054106430cb8d592abab3542ee6f56bc8:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiY2IzZWIyODgwNTgxMGU0OTgwMjE3ZGJmMmJkMjNhOWM5M2Y4ZTFiZjAyMDdkZGVlOThmZDlhNTQ1ZTYxMGRjOCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMTkxMmRjZmY4ZDViM2RiNmEyNjY0NGE1ZTVlMTA0MzBmNDhkNTBmYmM0Y2U2MDYyZjEwNDY2MjQyMDEyOWMyMSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZWUwY2ViM2FjNjViZDYzZTdiNTI4NjE1YzM5YzMxMTNlMTUyNWY2MzY0YjliMjg2ZGNiYjI3YjI4MWZjMzdkMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNzE1MWE5ZGJhY2E5NmQxYjg4NjU2ZTM0YTgzMjVkNDRhNjAzZjhkYThlNjE3ZjNiZjdmNDMxMTY2YjZhMzIwNSJ9"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T00:14:42.075Z"
+    "at": "2026-09-23T05:17:08.701Z"
   }
 }

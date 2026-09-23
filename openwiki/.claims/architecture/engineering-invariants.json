@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:902f023527c34c7a6aacb2a481737931b5f30946486a41b279723af0321cc821",
+  "pageVersion": "sha256:f62db2005beea84e609b860cb6d2e52e7a742faf98e3d9f088179b031465fbbe",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -52,11 +52,11 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:8efd1aa2da741e633993416bf4f88eff4df978ee3768a13788a1ac0419bdf837"
+          "version": "repo-file-v1:sha256:5284fc38208bb02af017031469b91288fedd0383d59f391622aa4c32a8450f42"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:42182779b1c8b55a350b4f77b4237e05c87338d040f72530f919cbd13a474823"
+          "version": "repo-file-v1:sha256:2080b3e5bc75c0c08ee6414fb1034aa30ab3a4d24a58469293025ec420b202f4"
         }
       ]
     },
@@ -413,6 +413,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T03:34:06.838Z"
+    "at": "2026-09-23T05:17:08.701Z"
   }
 }

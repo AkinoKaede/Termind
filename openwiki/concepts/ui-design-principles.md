@@ -36,8 +36,12 @@ sources:
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-fc448263e4e5ce330b8cbda1
     resource: repo://TFI/Features/HostEditor/MobileHostEditor.swift
+  - id: openwiki-source-5503f969776cb509a7d69160
+    resource: repo://TFI/Features/Ports/MobileForwardingView.swift
   - id: openwiki-source-02810e1f8eac4d0983f8cd44
     resource: repo://TFI/Features/Settings/MobileTerminalSettingsView.swift
+  - id: openwiki-source-db402cad9d68dd8e66bdd7ee
+    resource: repo://TFI/Features/Snippets/MobileSnippetsView.swift
   - id: openwiki-source-e396438eb6a8a7ca888da5f4
     resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-a4f3a690a8395e2ac9b065b9
@@ -54,16 +58,26 @@ sources:
     resource: repo://TFM/Design/DesignTokens.swift
   - id: openwiki-source-95f72232fb896aa95dd5f6c7
     resource: repo://TFM/Features/AI/TranscriptListView.swift
+  - id: openwiki-source-d35453512ef488d0cacdc06e
+    resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-1e0cf223ab8448c8eee3f345
     resource: repo://TFM/Features/HostEditor/HostEditorView.swift
+  - id: openwiki-source-f1d91230931f6a1921af6d03
+    resource: repo://TFM/Features/Ports/PortForwardingView.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-af7fbbca079c2cb6201a5151
     resource: repo://TFM/Features/Settings/TerminalCustomConfigurationEditorSheet.swift
+  - id: openwiki-source-0854be84b166268626a3cb08
+    resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
+  - id: openwiki-source-23281ca04cda9d7abc31173f
+    resource: repo://TFM/Features/Snippets/SnippetsPageView.swift
   - id: openwiki-source-ba160208435f3410138a3539
     resource: repo://TFM/Features/Workspaces/PersistentWorkspaceDeckLayout.swift
   - id: openwiki-source-385c953ef1c6bf095d1c1244
     resource: repo://TFM/Platform/TerminalFontCatalog.swift
+  - id: openwiki-source-4a6780d3dff41f37f56a094f
+    resource: repo://TFM/UI/Components/SidebarRow.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
@@ -74,10 +88,10 @@ sources:
     resource: repo://TFMTests/TerminalFontRenderingTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
+generated: { by: "codex", at: "2026-09-23T05:17:08.701Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T00:14:42.075Z
+    at: 2026-09-23T05:17:08.701Z
 ---
 
 # UI Design Principles and Shared Presentation Boundaries
@@ -138,7 +152,7 @@ Examples of deliberate geometry:
 
 `TermindColor` uses semantic AppKit colors for neutral surfaces, foregrounds, separators, accent and success/warning/danger roles. User-authored Host colors and terminal ANSI palettes are deliberate exceptions. When a native layer needs a concrete color, `resolvedNative` resolves it against the owning appearance rather than assuming a dynamic `NSColor` will remain correct after conversion to `CGColor`.
 
-Selection is contextual, not one universal tint formula. Generic `Highlight` uses a quiet accent wash for selection and a neutral hover wash. Sidebar rows use a stronger accent fill and reversed foreground in the key window, then an accent wash/tinted foreground when inactive. Do not infer actual behavior from an older nearby comment claiming all selections ignore active-window state.
+Selection is contextual, not one universal tint formula. Generic `Highlight` uses a quiet accent wash for selection and a neutral hover wash. Sidebar rows instead use a neutral `Color.primary` fill at 10% opacity in the key window and 6% otherwise. Selected key-window text stays primary rather than reversed, leading row icons remain accent-colored, and inactive row text/icons become secondary. Inline rename fields follow the same active/inactive readability rule. The native context-menu outline is still accent-colored; it is not the selection fill. Read the implementation rather than assuming an older `Highlight` comment describes every surface.
 
 ### Mobile vocabulary
 
@@ -148,7 +162,9 @@ For example, desktop card density and mobile card density deliberately differ. T
 
 ## 3. Prefer real system materials and explicit fallbacks
 
-TFM's glass modifiers use system Liquid Glass on macOS 26 and native material backgrounds on older systems. The shared sidebar background covers the whole column, including empty space, so custom native rows do not look pasted over a separate background. Native material is the fallback rather than a hand-painted imitation highlight.
+TFM's explicit glass controls use system Liquid Glass on macOS 26 and native material backgrounds on older systems. The Sidebar column itself is different: on macOS 26 and later, `NavigationSplitView` supplies its background and `RootView` adds no second glass surface. Before macOS 26, `LegacySidebarMaterialBackground` supplies an `NSVisualEffectView` using `.windowBackground`, `.withinWindow` blending and window-active-state following. Do not restore an extra full-column glass layer merely because custom native rows sit inside the split view.
+
+The mode rail shares one glass capsule; selection is a neutral moving capsule behind primary symbols, with a separate keyboard-focus outline only in the key window. Its selection animation respects Reduce Motion, and selected accessibility traits remain explicit. Assistant's footer keeps New Chat as an interactive glass capsule and Archive as an interactive glass circle, grouped in `GlassEffectContainer` on macOS 26+. Archive selection uses a neutral fill and semibold primary symbol rather than accent fill with reversed content. These controls and row selections serve different roles even though both avoid an emphasized accent background.
 
 TFI's card surface similarly uses system glass where available, but keeps a nearly opaque grouped background behind dense text. Reduce Transparency or increased contrast selects an opaque fallback. Increased contrast also strengthens the border. The clipping, interaction shape and context-menu-preview shape are coordinated, so the visible card and the tappable/previewed object agree.
 
@@ -173,6 +189,10 @@ flowchart LR
 ```
 
 Use capabilities to say what a renderer may offer; keep the operation's actual validity check with its owner. Disabled UI is useful feedback, not a replacement for business validation.
+
+Native menu structure can differ without changing the operation. A single desktop Port Forwarding card groups **Address** and **SSH Command** under **Copy**, before the Edit/Duplicate group. Mobile keeps flat **Copy Address** and **Copy SSH Command** actions in the equivalent position. Both write through their native pasteboard adapter and disable SSH-command copying when the library cannot generate a command; copying never starts forwarding.
+
+Snippet library cards expose one **Run** action instead of separate Execute and Execute on Hosts actions; the mobile detail and host-selection surfaces use the same Run vocabulary. Target selection and destructive confirmation remain in the existing feature flow: desktop fills missing saved targets through its chooser, while mobile asks when no valid targets remain. Renaming the action and removing the duplicate override affordance does not remove the host validation or destructive-script confirmation boundary.
 
 ## 5. Share form fields; keep draft and route lifetimes explicit
 
