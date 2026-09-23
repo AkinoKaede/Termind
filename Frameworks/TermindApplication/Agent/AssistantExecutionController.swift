@@ -498,7 +498,9 @@ public final class AssistantExecutionController {
                 priorMessages: conversation.pendingPriorMessages,
                 authorizationEvidence: GuardianEvidence.collect(from: conversation.transcript),
                 sessionContext: frozenContext.sessionContext, contextSnapshot: frozenContext
-            ))
+            ),
+            repository: agentRunRepository
+        )
         logger.info(
             "agent.run.started",
             metadata: [

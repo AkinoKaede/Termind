@@ -797,9 +797,48 @@ public final class ConversationModel: Identifiable {
     private var contextEstimateNeedsPublish = false
     private let contextEstimatePublishInterval: Duration
     public private(set) var contextEstimatePublishCount = 0
-    private var runtime: AgentRuntime?
-    private var eventTask: Task<Void, Never>?
-    private var runtimeGeneration: UInt64 = 0
+    private final class AgentRunOwner {
+        enum Phase {
+            case queued
+            case starting
+            case started
+            case cancelledBeforeStart(AgentRunSnapshot)
+            case finished
+        }
+
+        let generation: UInt64
+        let runID: UUID
+        let startedAt: Date
+        let runtime: AgentRuntime
+        let request: AgentRunRequest
+        let repository: any AgentRunPersisting
+        var phase: Phase = .queued
+        var cancellationRequested = false
+        var prestartPersistence: Task<Void, Never>?
+        var consumer: Task<Void, Never>?
+
+        init(
+            generation: UInt64, runtime: AgentRuntime, request: AgentRunRequest,
+            repository: any AgentRunPersisting
+        ) {
+            self.generation = generation
+            runID = UUID()
+            startedAt = .now
+            self.runtime = runtime
+            self.request = request
+            self.repository = repository
+        }
+
+        deinit {
+            consumer?.cancel()
+            let runtime = runtime
+            Task { await runtime.cancel() }
+        }
+    }
+
+    private var nextRunGeneration: UInt64 = 0
+    private var activeRunOwner: AgentRunOwner?
+    private var runOwners: [UInt64: AgentRunOwner] = [:]
     private var agentPreparationID: UUID?
     private var cancelAgentPreparation: (() -> Task<Void, Never>)?
     private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
@@ -2004,34 +2043,126 @@ public final class ConversationModel: Identifiable {
         await cancelPendingAgentPreparation()?.value
     }
 
-    public func start(runtime: AgentRuntime, request: AgentRunRequest) {
+    public func start(
+        runtime: AgentRuntime, request: AgentRunRequest,
+        repository: any AgentRunPersisting
+    ) {
+        if let displaced = activeRunOwner {
+            requestCancellation(of: displaced)
+            stopPresentation(owner: displaced)
+        }
         activeContextSnapshot = request.contextSnapshot
         if let index = transcript.firstIndex(where: { $0.id == request.promptID }) {
             transcript[index].contextSnapshot = request.contextSnapshot
             contextEstimateTracker.upsert(transcript[index])
         }
-        self.runtime = runtime
         reportedRunState = .running
-        runtimeGeneration &+= 1
-        let generation = runtimeGeneration
-        eventTask?.cancel()
-        eventTask = Task { [weak self] in
-            guard !Task.isCancelled, self?.runtimeGeneration == generation else { return }
-            let events = await runtime.start(request)
-            guard !Task.isCancelled, self?.runtimeGeneration == generation else {
-                await runtime.cancel()
+        nextRunGeneration &+= 1
+        let owner = AgentRunOwner(
+            generation: nextRunGeneration, runtime: runtime, request: request,
+            repository: repository
+        )
+        activeRunOwner = owner
+        runOwners[owner.generation] = owner
+        let generation = owner.generation
+        owner.consumer = Task { [weak self, weak owner] in
+            guard let phase = owner?.phase else { return }
+            switch phase {
+            case .cancelledBeforeStart:
+                await owner?.prestartPersistence?.value
+                self?.finishRunOwner(generation: generation)
+                return
+            case .queued:
+                owner?.phase = .starting
+            case .starting, .started, .finished:
                 return
             }
-            for await event in events {
-                guard !Task.isCancelled, let self,
-                    self.runtimeGeneration == generation
-                else {
-                    await runtime.cancel()
-                    return
-                }
-                handle(event)
+
+            let events = await runtime.start(request)
+            owner?.phase = .started
+            if Task.isCancelled || owner == nil || owner?.cancellationRequested == true {
+                await runtime.cancel()
             }
+            for await event in events {
+                guard let self, let owner, self.activeRunOwner === owner else { continue }
+                self.handle(event)
+            }
+            self?.finishRunOwner(generation: generation)
         }
+    }
+
+    private func finishRunOwner(generation: UInt64) {
+        guard let owner = runOwners[generation] else { return }
+        owner.phase = .finished
+        owner.prestartPersistence = nil
+        owner.consumer = nil
+        runOwners[generation] = nil
+        if activeRunOwner === owner { activeRunOwner = nil }
+    }
+
+    private func cancelledSnapshot(for owner: AgentRunOwner, finishedAt: Date) -> AgentRunSnapshot {
+        let request = owner.request
+        var messages = AgentOrphanedToolResultRepair.apply(
+            AgentUnansweredToolCallRepair.apply(
+                AgentSecretLifecycle.sanitizeHistoricalMessages(request.priorMessages)
+            ))
+        let prompt = AgentTranscriptMessage(
+            id: request.promptID, role: .user, text: request.prompt,
+            authoredText: request.authoredPrompt, images: request.promptImages,
+            contextAttachments: request.promptContextAttachments,
+            contextSnapshot: request.contextSnapshot,
+            createdAt: transcript.first(where: { $0.id == request.promptID })?.createdAt
+                ?? owner.startedAt
+        )
+        if let index = messages.firstIndex(where: { $0.id == prompt.id }) {
+            if messages[index].contextSnapshot == nil {
+                messages[index].contextSnapshot = prompt.contextSnapshot
+            }
+        } else {
+            messages.append(prompt)
+        }
+        return AgentRunSnapshot(
+            id: owner.runID, conversationID: request.conversationID,
+            state: .cancelled, permissionMode: request.permissionMode,
+            messages: messages, startedAt: owner.startedAt, finishedAt: finishedAt
+        )
+    }
+
+    private func requestCancellation(of owner: AgentRunOwner) {
+        guard !owner.cancellationRequested else { return }
+        owner.cancellationRequested = true
+        switch owner.phase {
+        case .queued:
+            let snapshot = cancelledSnapshot(for: owner, finishedAt: .now)
+            owner.phase = .cancelledBeforeStart(snapshot)
+            let repository = owner.repository
+            owner.prestartPersistence = Task {
+                try? await repository.save(snapshot)
+            }
+            if activeRunOwner === owner { projectCancelledRun(snapshot) }
+        case .starting, .started:
+            Task { await owner.runtime.cancel() }
+        case .cancelledBeforeStart, .finished:
+            break
+        }
+    }
+
+    private func projectCancelledRun(_ snapshot: AgentRunSnapshot) {
+        guard snapshot.conversationID == id,
+            let prompt = snapshot.messages.last(where: { $0.role == .user })
+        else { return }
+        var summary = AgentRunSummary(
+            id: snapshot.id, state: .cancelled, startedAt: snapshot.startedAt,
+            finishedAt: snapshot.finishedAt
+        )
+        if messageRunIDs[prompt.id] == nil
+            || adoptStagedReplacementRun(promptID: prompt.id, summary: &summary)
+        {
+            messageRunIDs[prompt.id] = snapshot.id
+        }
+        runSummaries[snapshot.id] = summary
+        reportedRunState = .cancelled
+        updatedAt = snapshot.finishedAt ?? .now
     }
 
     /// Records a request that could not construct a runtime, such as a missing
@@ -2094,40 +2225,39 @@ public final class ConversationModel: Identifiable {
 
     /// Retains the ordered event consumer until the cancellation snapshot is durable.
     public func stopAndWait() async {
-        await cancelPendingAgentPreparationAndWait()
-        guard let runtime else {
-            stop()
-            return
-        }
-        let consumer = eventTask
-        let generation = runtimeGeneration
-        await runtime.cancel()
-        await consumer?.value
-        guard runtimeGeneration == generation else { return }
-        stop()
+        let preparation = cancelPendingAgentPreparation()
+        let owners = Array(runOwners.values)
+        let activeOwner = activeRunOwner
+        if let activeOwner { requestCancellation(of: activeOwner) }
+        stopPresentation(owner: activeOwner)
+        await preparation?.value
+        for owner in owners { await owner.consumer?.value }
     }
 
     public func stop() {
         cancelPendingAgentPreparation()
-        runtimeGeneration &+= 1
+        let owner = activeRunOwner
+        if let owner { requestCancellation(of: owner) }
+        stopPresentation(owner: owner)
+    }
+
+    private func stopPresentation(owner: AgentRunOwner?) {
+        let stoppedRunID = activeRunID
+        if let owner, activeRunOwner === owner { activeRunOwner = nil }
         settleStreamingPresentation(for: activeRunID)
         publishAllStagedTools()
-        for index in toolCards.indices where toolCards[index].state == .running {
+        if let stoppedRunID { retireStoppedRunInteractions(runID: stoppedRunID) }
+        for index in toolCards.indices
+        where toolCards[index].invocation.runID == stoppedRunID
+            && !toolCards[index].state.isTerminal
+        {
             toolCards[index].state = .interrupted
         }
-        eventTask?.cancel()
-        eventTask = nil
-        // Read the runtime *before* releasing it. `Task { await runtime?… }`
-        // resolves the property when the task runs, which is after this method
-        // has already set it to nil — so the run kept executing tools with
-        // nobody listening.
-        if let runtime { Task { await runtime.cancel() } }
-        runtime = nil
         if !reportedRunState.isTerminal {
             reportedRunState = .cancelled
-            // The event consumer was just cancelled, so it cannot receive the
-            // runtime's eventual finish event. Freeze the visible elapsed time
-            // here instead of letting a stopped run keep counting forever.
+            // Runtime terminal persistence can finish after the presentation
+            // stops. Freeze the visible elapsed time without cancelling its
+            // event drain, which is the durable join boundary.
             if let activeRunID, var summary = runSummaries[activeRunID] {
                 summary.state = .cancelled
                 summary.finishedAt = .now
@@ -2136,6 +2266,32 @@ public final class ConversationModel: Identifiable {
             }
         }
         returnAllSteeringToDraft()
+    }
+
+    private func retireStoppedRunInteractions(runID: UUID) {
+        let approvalIDs = pendingApprovals.compactMap { request in
+            request.invocation.runID == runID ? request.id : nil
+        }
+        for requestID in approvalIDs {
+            guard let index = pendingApprovals.firstIndex(where: { $0.id == requestID }) else {
+                continue
+            }
+            let request = pendingApprovals.remove(at: index)
+            updateToolCard(request.invocation.id) { card in
+                if !card.state.isTerminal { card.state = .interrupted }
+            }
+        }
+
+        let reviewIDs = reviewing.filter { invocationID in
+            toolCards.first(where: { $0.id == invocationID })?.invocation.runID == runID
+                || stagedToolCards[invocationID]?.invocation.runID == runID
+        }
+        reviewing.subtract(reviewIDs)
+        for invocationID in reviewIDs {
+            updateToolCard(invocationID) { card in
+                if !card.state.isTerminal { card.state = .interrupted }
+            }
+        }
     }
 
     /// Queues the draft for the running agent instead of starting a second run.
@@ -2148,7 +2304,8 @@ public final class ConversationModel: Identifiable {
     /// really saw it.
     public func submitSteeringDraft(context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false) {
         let text = composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard canSendDraft, let runtime else { return }
+        guard canSendDraft, let owner = activeRunOwner else { return }
+        let runtime = owner.runtime
         let composed = composeUserTurn(text)
         var snapshot = activeContextSnapshot?.withSessionContext(context.modelContext)
         if snapshot != nil {
@@ -2170,6 +2327,7 @@ public final class ConversationModel: Identifiable {
         composer.draft = ""
         Task { [weak self] in
             guard await runtime.steer(pending.message) == false else { return }
+            guard self?.activeRunOwner === owner else { return }
             // The run ended between the keystroke and this hop. Everything
             // still queued is undeliverable, not just this one — and returning
             // the whole queue at once is also what keeps the words in the order
@@ -2206,22 +2364,49 @@ public final class ConversationModel: Identifiable {
     /// moves the card's state, and enqueueing happens here — on the path that
     /// holds the continuation and can therefore actually answer.
     public func requestApproval(_ request: AgentApprovalRequest) async -> AgentApprovalDecision {
-        // The approval callback can arrive before the channel drains toolProposed.
-        // Stage the same identity now so a direct user response has a card to update.
-        stageTool(request.invocation, descriptor: request.descriptor)
-        // Inserted by when the call was *planned*, not by when it got here. A
-        // parallel batch races to this queue, so appending put the cards in
-        // whichever order the scheduler happened to resolve — the same two
-        // calls could be presented either way round on two runs. Planning is
-        // sequential, so `createdAt` is the model's own order, and asking about
-        // the second thing first is a needless surprise in the one place the
-        // user is being asked to authorize something.
-        let index = pendingApprovals.firstIndex {
-            $0.invocation.createdAt > request.invocation.createdAt
+        await withTaskCancellationHandler {
+            await withCheckedContinuation { continuation in
+                guard !Task.isCancelled else {
+                    continuation.resume(returning: Self.cancelledApprovalDecision)
+                    return
+                }
+                // The approval callback can arrive before the channel drains
+                // toolProposed. Stage the same identity now so a direct user
+                // response has a card to update.
+                stageTool(request.invocation, descriptor: request.descriptor)
+                // Inserted by when the call was planned, not by when it got
+                // here. Parallel calls race to this queue, while planning is
+                // sequential and supplies the stable user-facing order.
+                let index = pendingApprovals.firstIndex {
+                    $0.invocation.createdAt > request.invocation.createdAt
+                }
+                pendingApprovals.insert(request, at: index ?? pendingApprovals.endIndex)
+                setToolState(request.invocation.id, .waitingForApproval)
+                approvalWaiters[request.id] = continuation
+            }
+        } onCancel: {
+            Task { @MainActor [weak self] in
+                self?.cancelApproval(request.id)
+            }
         }
-        pendingApprovals.insert(request, at: index ?? pendingApprovals.endIndex)
-        setToolState(request.invocation.id, .waitingForApproval)
-        return await withCheckedContinuation { approvalWaiters[request.id] = $0 }
+    }
+
+    private static var cancelledApprovalDecision: AgentApprovalDecision {
+        .deny(String(localized: "The user denied this action."))
+    }
+
+    private func cancelApproval(_ requestID: UUID) {
+        guard let index = pendingApprovals.firstIndex(where: { $0.id == requestID }) else {
+            approvalWaiters.removeValue(forKey: requestID)?.resume(
+                returning: Self.cancelledApprovalDecision)
+            return
+        }
+        let request = pendingApprovals.remove(at: index)
+        updateToolCard(request.invocation.id) { card in
+            if !card.state.isTerminal { card.state = .interrupted }
+        }
+        approvalWaiters.removeValue(forKey: request.id)?.resume(
+            returning: Self.cancelledApprovalDecision)
     }
 
     public func respondToApproval(_ requestID: UUID, allow: Bool) {

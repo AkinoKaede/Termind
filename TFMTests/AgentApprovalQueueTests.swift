@@ -135,6 +135,7 @@ struct AgentApprovalQueueTests {
     func twoApprovalsInOneTurnQueueAndAreBothAnswered() async {
         let log = CallLog()
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         let runtime = AgentRuntime(
             model: QueueScriptedModel(turnsCalling(["first", "second"])),
             tools: [gatedTool("first", log: log), gatedTool("second", log: log)],
@@ -144,14 +145,16 @@ struct AgentApprovalQueueTests {
                     guard let conversation else { return .deny("gone") }
                     return await conversation.requestApproval(request)
                 }
-            )
+            ),
+            repository: repository
         )
 
         conversation.start(
             runtime: runtime,
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "go", permissionMode: .askForApproval
-            ))
+            ),
+            repository: repository)
 
         await wait { conversation.pendingApprovals.count == 2 }
         // Both are waiting, but only the head is presented: authorizing three
@@ -184,6 +187,7 @@ struct AgentApprovalQueueTests {
     func denyingTheHeadLeavesTheNextRequestAnswerable() async {
         let log = CallLog()
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         let runtime = AgentRuntime(
             model: QueueScriptedModel(turnsCalling(["denied", "allowed"])),
             tools: [gatedTool("denied", log: log), gatedTool("allowed", log: log)],
@@ -193,14 +197,16 @@ struct AgentApprovalQueueTests {
                     guard let conversation else { return .deny("gone") }
                     return await conversation.requestApproval(request)
                 }
-            )
+            ),
+            repository: repository
         )
 
         conversation.start(
             runtime: runtime,
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "go", permissionMode: .askForApproval
-            ))
+            ),
+            repository: repository)
 
         await wait { conversation.pendingApprovals.count == 2 }
         guard let firstID = conversation.pendingApproval?.id else {

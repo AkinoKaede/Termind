@@ -769,6 +769,7 @@ struct ChatComposerStateTests {
     @Test
     func immediatelyCompletedRuntimeStillReachesTheConversation() async {
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         let runtime = AgentRuntime(
             model: ImmediateConversationAgentModel(turns: [
                 [
@@ -777,7 +778,8 @@ struct ChatComposerStateTests {
                 ]
             ]),
             tools: [],
-            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+            repository: repository
         )
 
         conversation.start(
@@ -785,7 +787,8 @@ struct ChatComposerStateTests {
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "hello",
                 permissionMode: .askForApproval
-            ))
+            ),
+            repository: repository)
         await waitForTerminal(conversation)
 
         #expect(conversation.runState == .completed)
@@ -831,9 +834,11 @@ struct ChatComposerStateTests {
             return AgentToolResult(callID: invocation.call.id, content: "host-a")
         }
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         let runtime = AgentRuntime(
             model: model, tools: [tool],
-            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+            repository: repository
         )
 
         conversation.start(
@@ -841,7 +846,8 @@ struct ChatComposerStateTests {
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "inspect",
                 permissionMode: .askForApproval
-            ))
+            ),
+            repository: repository)
         await waitForTerminal(conversation)
 
         #expect(await executions.value == 1)
@@ -883,6 +889,7 @@ struct ChatComposerStateTests {
             AgentToolResult(callID: invocation.call.id, content: "host-a")
         }
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         conversation.appendUserTurn("inspect")
         // The prompt travels on the request, so it must not also be replayed.
         #expect(conversation.pendingPriorMessages.isEmpty)
@@ -890,12 +897,14 @@ struct ChatComposerStateTests {
         conversation.start(
             runtime: AgentRuntime(
                 model: model, tools: [tool],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "inspect",
                 permissionMode: .askForApproval
-            )
+            ),
+            repository: repository
         )
         await waitForTerminal(conversation)
 
@@ -932,6 +941,7 @@ struct ChatComposerStateTests {
             return AgentToolResult(callID: invocation.call.id, content: "never")
         }
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         conversation.appendUserTurn("wait for me")
         conversation.start(
             runtime: AgentRuntime(
@@ -942,12 +952,14 @@ struct ChatComposerStateTests {
                     ]
                 ]),
                 tools: [tool],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "wait for me",
                 permissionMode: .askForApproval
-            )
+            ),
+            repository: repository
         )
         await probe.waitUntilStarted()
         #expect(await probe.started)
@@ -970,6 +982,7 @@ struct ChatComposerStateTests {
     @Test
     func timelineInterleavesToolCardsWithTheMessagesTheyBelongTo() async {
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         conversation.appendUserTurn("inspect")
         conversation.start(
             runtime: AgentRuntime(
@@ -995,12 +1008,14 @@ struct ChatComposerStateTests {
                         AgentToolResult(callID: invocation.call.id, content: "host-a")
                     }
                 ],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "inspect",
                 permissionMode: .askForApproval
-            )
+            ),
+            repository: repository
         )
         await waitForTerminal(conversation)
 
@@ -1312,6 +1327,7 @@ struct ChatComposerStateTests {
     @Test
     func finishedReasoningOnlyAnswerLeavesNoWorkedHistory() async {
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         conversation.appendUserTurn("compare")
         conversation.start(
             runtime: AgentRuntime(
@@ -1323,12 +1339,14 @@ struct ChatComposerStateTests {
                     ]
                 ]),
                 tools: [],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "compare",
                 permissionMode: .askForApproval
-            )
+            ),
+            repository: repository
         )
         await waitForTerminal(conversation)
 
@@ -1435,6 +1453,7 @@ struct ChatComposerStateTests {
     @Test
     func finishedReasoningDisappearsWhileToolsMergeAcrossProviderTurns() async throws {
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         conversation.appendUserTurn("inspect both")
         conversation.start(
             runtime: AgentRuntime(
@@ -1470,12 +1489,14 @@ struct ChatComposerStateTests {
                         AgentToolResult(callID: invocation.call.id, content: "ok")
                     }
                 ],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "inspect both",
                 permissionMode: .askForApproval
-            )
+            ),
+            repository: repository
         )
         await waitForTerminal(conversation)
 
@@ -1501,6 +1522,7 @@ struct ChatComposerStateTests {
     @Test
     func providerTurnsWithoutReasoningShareOneRunScopedToolBatch() async throws {
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         conversation.appendUserTurn("inspect four")
         conversation.start(
             runtime: AgentRuntime(
@@ -1531,12 +1553,14 @@ struct ChatComposerStateTests {
                         AgentToolResult(callID: invocation.call.id, content: "ok")
                     }
                 ],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "inspect four",
                 permissionMode: .askForApproval
-            )
+            ),
+            repository: repository
         )
         await waitForTerminal(conversation)
 
@@ -1898,6 +1922,7 @@ struct ChatComposerStateTests {
         weak var leaked: ConversationModel?
         do {
             let conversation = ConversationModel()
+            let repository = InMemoryAgentRunRepository()
             leaked = conversation
             conversation.appendUserTurn("hello")
             conversation.start(
@@ -1915,12 +1940,14 @@ struct ChatComposerStateTests {
                             return await conversation.requestApproval(request)
                         }
                     ),
+                    repository: repository,
                     userInteraction: WeakAgentUserInteraction(conversation)
                 ),
                 request: AgentRunRequest(
                     conversationID: conversation.id, prompt: "hello",
                     permissionMode: .askForApproval
-                )
+                ),
+                repository: repository
             )
             await waitForTerminal(conversation)
         }
@@ -2023,6 +2050,7 @@ struct ChatComposerStateTests {
     @Test
     func aFinishedRunNotifiesItsOwnerExactlyOnce() async {
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         var finishes = 0
         conversation.runDidFinish = { finishes += 1 }
         conversation.appendUserTurn("hello")
@@ -2034,12 +2062,14 @@ struct ChatComposerStateTests {
                     ]
                 ]),
                 tools: [],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "hello",
                 permissionMode: .askForApproval
-            )
+            ),
+            repository: repository
         )
         await waitForTerminal(conversation)
         await wait { finishes > 0 }

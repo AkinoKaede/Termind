@@ -310,17 +310,20 @@ struct MobileAssistantTests {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel()
+        let repository = InMemoryAgentRunRepository()
         assistant.library.insertAndSelect(conversation)
         conversation.start(
             runtime: AgentRuntime(
                 model: MobileDelayedAgentModel(), tools: [],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "start",
                 permissionMode: .askForApproval,
                 contextSnapshot: .init(
-                    toolAvailability: ["terminal_suggest": true, "future_surface_tool": false]))
+                    toolAvailability: ["terminal_suggest": true, "future_surface_tool": false])),
+            repository: repository
         )
         conversation.composer.draft = "Inspect again"
 

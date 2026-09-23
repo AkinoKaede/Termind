@@ -193,14 +193,17 @@ struct AgentSteeringTests {
             sessionContext: "host A", skillCatalog: "fixed skills", planContract: "fixed mode",
             toolAvailability: ["terminal_suggest": false, "future_surface_tool": false],
             memorySessionID: memorySessionID)
+        let repository = InMemoryAgentRunRepository()
         conversation.start(
             runtime: AgentRuntime(
                 model: HangingAgentModel(), tools: [],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "start", permissionMode: .askForApproval,
-                contextSnapshot: first))
+                contextSnapshot: first),
+            repository: repository)
         conversation.composer.draft = "inspect here"
         conversation.submitSteeringDraft(
             context: SessionContext(hostName: "B", workingDirectory: "/srv"),
@@ -233,15 +236,18 @@ struct AgentSteeringTests {
     }
 
     private func startRun(_ conversation: ConversationModel) {
+        let repository = InMemoryAgentRunRepository()
         conversation.start(
             runtime: AgentRuntime(
                 model: HangingAgentModel(), tools: [],
-                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
             ),
             request: AgentRunRequest(
                 conversationID: conversation.id, prompt: "start",
                 permissionMode: .askForApproval
-            )
+            ),
+            repository: repository
         )
     }
 }
