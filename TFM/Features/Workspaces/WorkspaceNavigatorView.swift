@@ -2,10 +2,9 @@ import AppKit
 import SwiftUI
 import TermindApplication
 import TermindPresentation
-import UniformTypeIdentifiers
 
 /// The native source list for Vault and Workspaces.
-/// Workspace layout drops are accepted only inside the Workspace section.
+/// Workspace layout drops clamp to insertion boundaries in the Workspace section.
 struct WorkspaceNavigatorView: View {
     @Environment(AppModel.self) private var app
     @Environment(WindowModel.self) private var window
@@ -14,15 +13,12 @@ struct WorkspaceNavigatorView: View {
     @AppStorage(DesktopSettingsKey.vaultSectionExpanded) private var vaultExpanded = true
     @AppStorage(DesktopSettingsKey.workspaceSectionExpanded) private var workspaceExpanded = true
 
-    @State private var workspaceDropTarget: WorkspaceSidebarDropTarget?
     @State private var workspaceFrames: [Workspace.ID: CGRect] = [:]
     @State private var workspaceHeaderFrame = CGRect.zero
     @State private var batchStartupFrame = CGRect.zero
 
     @State private var renamingWorkspaceID: Workspace.ID?
     @State private var workspaceRenameTitle = ""
-
-    nonisolated private static let coordinateSpace = "termind.workspaceNavigator"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -52,14 +48,14 @@ struct WorkspaceNavigatorView: View {
             .contentMargins(.horizontal, 0, for: .scrollContent)
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, 0)
-            .coordinateSpace(.named(Self.coordinateSpace))
             .overlay { workspaceLayoutDropTarget }
-
+            .modifier(WorkspaceNavigatorDragSession(window: window))
         }
         // `List` is backed by AppKit. A destination attached to the SwiftUI
         // ancestor sits behind its native rows and only wins sporadically as a
         // pane crosses from Ghostty into the sidebar. Put one receiver above the
-        // complete Workspace section while an internal layout drag is active.
+        // list. It stays registered before AppKit starts its nested drag loop;
+        // the receiver reads the window's drag state for each native callback.
         .onChange(of: window.selectedDestination) {
             switch window.selectedDestination {
             case .vault: vaultExpanded = true
@@ -68,9 +64,6 @@ struct WorkspaceNavigatorView: View {
             }
         }
         .onChange(of: window.vaultDestination) { vaultExpanded = true }
-        .onChange(of: window.dragging) {
-            if window.dragging?.isLayoutPayload != true { workspaceDropTarget = nil }
-        }
     }
 
     private var settingsSection: some View {
@@ -152,7 +145,7 @@ struct WorkspaceNavigatorView: View {
         Group {
             navigatorSectionHeader("Workspaces", isExpanded: $workspaceExpanded)
                 .onGeometryChange(for: CGRect.self) {
-                    $0.frame(in: .named(Self.coordinateSpace))
+                    $0.frame(in: .global)
                 } action: {
                     workspaceHeaderFrame = $0
                 }
@@ -161,32 +154,24 @@ struct WorkspaceNavigatorView: View {
                 if window.workspaces.isEmpty {
                     emptyRow("No Workspaces")
                 }
-                ForEach(Array(window.workspaces.enumerated()), id: \.element.id) { index, workspace in
-                    WorkspaceNavigatorRow(
-                        workspace: workspace,
-                        isSelected: window.displayedWorkspace?.id == workspace.id,
-                        isRenaming: renamingWorkspaceID == workspace.id,
-                        renameTitle: $workspaceRenameTitle,
-                        onBeginRename: { beginWorkspaceRename(workspace) },
-                        onCommitRename: { commitWorkspaceRename(workspace) },
-                        onCancelRename: cancelWorkspaceRename
-                    )
-                    .onGeometryChange(for: CGRect.self) {
-                        $0.frame(in: .named(Self.coordinateSpace))
-                    } action: {
-                        workspaceFrames[workspace.id] = $0
-                    }
-                    .overlay(alignment: .top) {
-                        if workspaceDropTarget?.visibleBoundaryIndex == index {
-                            workspaceInsertionLine
-                        }
-                    }
-                    .overlay(alignment: .bottom) {
-                        if index == window.workspaces.indices.last,
-                            workspaceDropTarget?.visibleBoundaryIndex == window.workspaces.count
-                        {
-                            workspaceInsertionLine
-                        }
+                ForEach(window.workspaces) { workspace in
+                    if renamingWorkspaceID == workspace.id {
+                        workspaceRow(workspace)
+                    } else if #available(macOS 26.0, *) {
+                        // Keep the source outside measurement so List can read
+                        // its drag trait and start a native row drag.
+                        workspaceRow(workspace)
+                            .draggable(workspace.id.uuidString) {
+                                workspaceDragPreview(workspace)
+                            }
+                    } else {
+                        workspaceRow(workspace)
+                            .onDrag {
+                                window.dragging = .workspace(workspace.id)
+                                return NSItemProvider(object: workspace.id.uuidString as NSString)
+                            } preview: {
+                                workspaceDragPreview(workspace)
+                            }
                     }
                 }
 
@@ -197,13 +182,8 @@ struct WorkspaceNavigatorView: View {
                     workspaceExpanded = true
                     app.batchStartup(in: window)
                 }
-                .overlay(alignment: .top) {
-                    if window.workspaces.isEmpty, workspaceDropTarget != nil {
-                        workspaceInsertionLine
-                    }
-                }
                 .onGeometryChange(for: CGRect.self) {
-                    $0.frame(in: .named(Self.coordinateSpace))
+                    $0.frame(in: .global)
                 } action: {
                     batchStartupFrame = $0
                 }
@@ -211,9 +191,33 @@ struct WorkspaceNavigatorView: View {
         }
     }
 
-    private var draggedWorkspaceID: Workspace.ID? {
-        guard case .workspace(let id)? = window.dragging else { return nil }
-        return id
+    private func workspaceRow(_ workspace: Workspace) -> some View {
+        WorkspaceNavigatorRow(
+            workspace: workspace,
+            isSelected: window.displayedWorkspace?.id == workspace.id,
+            isRenaming: renamingWorkspaceID == workspace.id,
+            renameTitle: $workspaceRenameTitle,
+            onBeginRename: { beginWorkspaceRename(workspace) },
+            onCommitRename: { commitWorkspaceRename(workspace) },
+            onCancelRename: cancelWorkspaceRename
+        )
+        .onGeometryChange(for: CGRect.self) {
+            $0.frame(in: .global)
+        } action: {
+            workspaceFrames[workspace.id] = $0
+        }
+    }
+
+    private func workspaceDragPreview(_ workspace: Workspace) -> some View {
+        ItemDragPreview(title: workspace.title(in: app.hostLibrary, locale: locale), symbol: workspace.symbol)
+    }
+
+    private var draggedLayoutID: UUID? {
+        guard window.sidebarMode == .navigation else { return nil }
+        switch window.dragging {
+        case .pane(let id), .workspace(let id): return id
+        case .assistantConversation, nil: return nil
+        }
     }
 
     private var workspaceDropBounds: CGRect {
@@ -224,67 +228,76 @@ struct WorkspaceNavigatorView: View {
         return frames.filter { !$0.isEmpty }.reduce(.null) { $0.union($1) }
     }
 
-    @ViewBuilder
     private var workspaceLayoutDropTarget: some View {
-        if window.dragging?.isLayoutPayload == true,
-            !workspaceDropBounds.isNull, !workspaceDropBounds.isEmpty
-        {
-            GeometryReader { proxy in
-                WorkspaceNavigatorDropReceiver(
-                    onLocation: { point in
-                        guard window.dragging?.isLayoutPayload == true else {
-                            workspaceDropTarget = nil
-                            return false
-                        }
-                        workspaceExpanded = true
-                        workspaceDropTarget = dropTarget(at: point)
-                        return workspaceDropTarget != nil
-                    },
-                    onExit: { workspaceDropTarget = nil },
-                    onDrop: { point in
-                        guard window.dragging?.isLayoutPayload == true,
-                            let target = dropTarget(at: point)
-                        else {
-                            workspaceDropTarget = nil
-                            return false
-                        }
-                        workspaceDropTarget = nil
-                        switch window.dragging {
-                        case .pane(let id): window.detachPane(id, at: target.insertionIndex)
-                        case .workspace(let id): window.move(id, to: target.insertionIndex)
-                        case .assistantConversation, nil: return false
-                        }
-                        window.dragging = nil
-                        return true
+        GeometryReader { proxy in
+            // Native List cells do not inherit a named SwiftUI coordinate
+            // space across their hosting boundary. Measure in global space,
+            // then convert both the pointer and preview at the native overlay.
+            let origin = proxy.frame(in: .global).origin
+            WorkspaceLayoutDropTarget(
+                draggedID: { draggedLayoutID },
+                previewStyle: .insertion,
+                preview: { point, _ in
+                    let location = CGPoint(x: point.x + origin.x, y: point.y + origin.y)
+                    guard draggedLayoutID != nil, let proposal = dropProposal(at: location) else { return nil }
+                    if !workspaceExpanded { workspaceExpanded = true }
+                    return proposal.preview.offsetBy(dx: -origin.x, dy: -origin.y)
+                },
+                perform: { point, _ in
+                    let location = CGPoint(x: point.x + origin.x, y: point.y + origin.y)
+                    guard draggedLayoutID != nil, let proposal = dropProposal(at: location) else { return false }
+                    if !workspaceExpanded { workspaceExpanded = true }
+                    switch window.dragging {
+                    case .pane(let id): window.detachPane(id, at: proposal.target.insertionIndex)
+                    case .workspace(let id): window.move(id, to: proposal.target.insertionIndex)
+                    case .assistantConversation, nil: return false
                     }
-                )
-                .frame(width: proxy.size.width, height: proxy.size.height)
-            }
-            .allowsHitTesting(true)
+                    window.dragging = nil
+                    return true
+                }
+            )
+            .frame(width: proxy.size.width, height: proxy.size.height)
         }
     }
 
-    private func dropTarget(at location: CGPoint) -> WorkspaceSidebarDropTarget? {
+    private func dropProposal(at location: CGPoint) -> (target: WorkspaceSidebarDropTarget, preview: CGRect)? {
+        guard !workspaceDropBounds.isNull, !workspaceDropBounds.isEmpty else { return nil }
         let visibleRows = window.workspaces.compactMap { workspace -> (Workspace.ID, CGRect)? in
-            guard let frame = workspaceFrames[workspace.id] else { return nil }
+            guard let frame = workspaceFrames[workspace.id], !frame.isEmpty else { return nil }
             return (workspace.id, frame)
         }
-        let draggedRowIndex = draggedWorkspaceID.flatMap { draggedID in
-            visibleRows.firstIndex(where: { $0.0 == draggedID })
+        let draggedRowIndex: Int?
+        if case .workspace(let id)? = window.dragging {
+            draggedRowIndex = visibleRows.firstIndex(where: { $0.0 == id })
+        } else {
+            draggedRowIndex = nil
         }
-        return WorkspaceSidebarDropGeometry.target(
+        let target = WorkspaceSidebarDropGeometry.target(
             rowFrames: visibleRows.map(\.1),
             draggedRowIndex: draggedRowIndex,
             pointerY: location.y
         )
-    }
 
-    private var workspaceInsertionLine: some View {
-        Rectangle()
-            .fill(Color.accentColor)
-            .frame(height: 2)
-            .padding(.horizontal, 8)
-            .allowsHitTesting(false)
+        let frame: CGRect
+        let boundaryY: CGFloat
+        if let row = visibleRows.dropFirst(target.visibleBoundaryIndex).first {
+            frame = row.1
+            boundaryY = frame.minY
+        } else if let row = visibleRows.last {
+            frame = row.1
+            boundaryY = frame.maxY
+        } else if workspaceExpanded, !batchStartupFrame.isEmpty {
+            frame = batchStartupFrame
+            boundaryY = frame.minY
+        } else {
+            frame = workspaceHeaderFrame
+            boundaryY = frame.maxY
+        }
+        guard !frame.isEmpty else { return nil }
+        return (
+            target,
+            CGRect(x: frame.minX + 8, y: boundaryY - 1, width: max(0, frame.width - 16), height: 2)
+        )
     }
 
     // MARK: - Shared rows and editing
@@ -341,6 +354,38 @@ struct WorkspaceNavigatorView: View {
 
 }
 
+private struct WorkspaceNavigatorDragSession: ViewModifier {
+    let window: WindowModel
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .dragConfiguration(DragConfiguration(allowMove: true))
+                // Native List owns the session, so observe it here, not on a
+                // row whose listener does not receive the native callbacks.
+                .onDragSessionUpdated { session in
+                    switch session.phase {
+                    case .active:
+                        // The preview-capable draggable API has no session
+                        // item IDs. Its native pasteboard is ready at .active.
+                        // List also queries payloads after ordinary clicks, so
+                        // starting the preview must happen only in this phase.
+                        guard let value = NSPasteboard(name: .drag).string(forType: .string),
+                            let id = UUID(uuidString: value),
+                            window.workspaces.contains(where: { $0.id == id })
+                        else { return }
+                        window.dragging = .workspace(id)
+                    case .ended:
+                        if case .workspace = window.dragging { window.dragging = nil }
+                    default: break
+                    }
+                }
+        } else {
+            content
+        }
+    }
+}
+
 nonisolated struct WorkspaceSidebarDropTarget: Equatable, Sendable {
     let insertionIndex: Int
     let visibleBoundaryIndex: Int
@@ -384,16 +429,8 @@ private struct WorkspaceNavigatorRow: View {
     @Environment(\.locale) private var locale
     @State private var hovering = false
 
-    @ViewBuilder
     var body: some View {
-        if isRenaming {
-            row
-        } else {
-            row.onDrag {
-                window.dragging = .workspace(workspace.id)
-                return NSItemProvider(object: workspace.id.uuidString as NSString)
-            }
-        }
+        row
     }
 
     private var row: some View {
@@ -614,73 +651,4 @@ private struct WorkspaceNavigatorRow: View {
         window.select(workspace.id)
         action()
     }
-}
-
-private struct WorkspaceNavigatorDropReceiver: NSViewRepresentable {
-    let onLocation: (CGPoint) -> Bool
-    let onExit: () -> Void
-    let onDrop: (CGPoint) -> Bool
-
-    func makeNSView(context _: Context) -> WorkspaceNavigatorDropReceivingView {
-        WorkspaceNavigatorDropReceivingView()
-    }
-
-    func updateNSView(_ view: WorkspaceNavigatorDropReceivingView, context _: Context) {
-        view.onLocation = onLocation
-        view.onExit = onExit
-        view.onDrop = onDrop
-    }
-}
-
-@MainActor
-private final class WorkspaceNavigatorDropReceivingView: NSView {
-    var onLocation: (CGPoint) -> Bool = { _ in false }
-    var onExit: () -> Void = {}
-    var onDrop: (CGPoint) -> Bool = { _ in false }
-
-    override var isFlipped: Bool { true }
-
-    override init(frame frameRect: NSRect) {
-        super.init(frame: frameRect)
-        registerForDraggedTypes([.string])
-    }
-
-    @available(*, unavailable)
-    required init?(coder _: NSCoder) { fatalError() }
-
-    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        update(sender) ? .move : []
-    }
-
-    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
-        update(sender) ? .move : []
-    }
-
-    override func draggingExited(_: (any NSDraggingInfo)?) {
-        onExit()
-    }
-
-    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-        let accepted = onDrop(location(of: sender))
-        onExit()
-        return accepted
-    }
-
-    override func concludeDragOperation(_ sender: (any NSDraggingInfo)?) {
-        onExit()
-        super.concludeDragOperation(sender)
-    }
-
-    private func update(_ sender: any NSDraggingInfo) -> Bool {
-        guard sender.draggingPasteboard.availableType(from: [.string]) != nil else {
-            onExit()
-            return false
-        }
-        return onLocation(location(of: sender))
-    }
-
-    private func location(of sender: any NSDraggingInfo) -> CGPoint {
-        convert(sender.draggingLocation, from: nil)
-    }
-
 }

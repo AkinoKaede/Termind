@@ -3,7 +3,6 @@ import SwiftUI
 import TermindApplication
 import TermindDomain
 import TermindPresentation
-import UniformTypeIdentifiers
 
 import struct TermindDomain.Host
 
@@ -387,7 +386,6 @@ private struct PaneView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @TerminalAppearanceSettings private var terminalAppearance
 
-    @State private var dropZone: PaneDropZone?
     @State private var isHovering = false
     @State private var isRenaming = false
     @State private var draftTitle = ""
@@ -404,37 +402,6 @@ private struct PaneView: View {
             }
         #endif
         return isHovering
-    }
-
-    /// A pane accepts a drop when it is something a Workspace may hold, or an
-    /// unfilled slot waiting to be filled. A chat, a form, or a manager page
-    /// shows no preview and takes nothing — see `PaneKind.isCombinable`.
-    ///
-    /// This is the only place in the app where a Workspace is built, so both
-    /// ends of the drag are checked here. The workspace strip used to check the source
-    /// end for workspace drags; it no longer takes them at all.
-    private var acceptsDrop: Bool {
-        guard pane.isCombinable || pane.isEmptySlot else { return false }
-        switch window.dragging {
-        case .pane(let id):
-            // Panes do not cross Workspaces — moving one elsewhere is "drop it
-            // on the strip, then drag that workspace in". Only the front workspace is drawn,
-            // so a foreign pane cannot reach here anyway; the guard says the
-            // rule out loud instead of leaving it to be an accident of what
-            // happens to be on screen. And a pane cannot land beside itself.
-            return id != pane.id && workspace.layout.pane(id) != nil
-        case .workspace(let id):
-            // A Workspace cannot be folded into one of its own panes, and only
-            // a Workspace of sessions and file browsers can be folded at all.
-            // Keeping the content check here also protects this boundary if a
-            // new dynamic Workspace kind is introduced later.
-            guard id != workspace.id else { return false }
-            return window.workspaces.first { $0.id == id }?.isCombinable ?? false
-        case .assistantConversation:
-            return false
-        case nil:
-            return false
-        }
     }
 
     var body: some View {
@@ -454,12 +421,9 @@ private struct PaneView: View {
                     .allowsHitTesting(false)
             }
         }
-        .overlay { dropPreview }
-        // The SSH terminal is an AppKit view. A drop destination installed on
-        // this SwiftUI parent sits behind that native surface and never sees the
-        // drag, so neither `dropEntered` nor the preview fires. Keep a dedicated
-        // SwiftUI receiver above the pane and only let it participate in hit
-        // testing while one of our own layout payloads is in flight.
+        // Keep the native receiver mounted above terminal/table content. It
+        // reads the live drag and displayed workspace without waiting for a
+        // SwiftUI render, and passes ordinary pointer events through.
         .overlay { layoutDropTarget }
         .overlay { paneFileDropDecoration }
         // This must be the outermost pane overlay. Both Ghostty and SwiftUI's
@@ -483,23 +447,13 @@ private struct PaneView: View {
     }
 
     private var layoutDropTarget: some View {
-        GeometryReader { proxy in
-            Color.clear
-                .contentShape(.rect)
-                .onDrop(
-                    of: [.text],
-                    delegate: PaneDropDelegate(
-                        size: proxy.size,
-                        isActive: window.dragging?.isLayoutPayload == true,
-                        isEnabled: acceptsDrop,
-                        replacesWhole: pane.isEmptySlot,
-                        zone: $dropZone,
-                        perform: perform,
-                        cancel: { window.dragging = nil }
-                    )
-                )
-                .allowsHitTesting(window.dragging?.isLayoutPayload == true)
-        }
+        let controller = PaneLayoutDropController(window: window, workspace: workspace, pane: pane)
+        return WorkspaceLayoutDropTarget(
+            draggedID: { controller.draggedID },
+            preview: { point, size in controller.preview(at: point, in: size) },
+            perform: { point, size in controller.perform(at: point, in: size) }
+        )
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
     @ViewBuilder
@@ -596,58 +550,6 @@ private struct PaneView: View {
         guard !payload.fileURLs.isEmpty else { return false }
         localFileDropRequest = LocalFileDropRequest(urls: payload.fileURLs)
         return true
-    }
-
-    /// The preview is the *shape of the result* — the rectangle the dragged panes
-    /// will occupy — rather than a hint that a drop is possible. Four edges a few
-    /// pixels apart need a preview you can read without thinking.
-    @ViewBuilder
-    private var dropPreview: some View {
-        if let dropZone {
-            GeometryReader { proxy in
-                let full = proxy.size
-                let half = dropZone.previewRect(in: full)
-                Rectangle()
-                    .fill(Color.accentColor.opacity(0.25))
-                    .overlay { Rectangle().strokeBorder(Color.accentColor, lineWidth: 2) }
-                    .frame(width: half.width, height: half.height)
-                    .offset(x: half.minX, y: half.minY)
-            }
-            .allowsHitTesting(false)
-        }
-    }
-
-    /// Four outcomes from one gesture: a whole workspace folded in beside this pane or
-    /// into this slot, or a single pane moved to either. Which one is decided by
-    /// what was picked up, not by where it landed.
-    private func perform(_ zone: PaneDropZone) {
-        let dragged = window.dragging
-        switch dragged {
-        case .workspace(let id) where id != workspace.id:
-            if case .replace = zone {
-                window.fill(pane.id, in: workspace.id, withPanesOf: id)
-            } else if let placement = zone.placement {
-                window.merge(
-                    id, into: workspace.id, beside: pane.id,
-                    axis: placement.axis, side: placement.side
-                )
-            }
-        case .pane(let id) where id != pane.id:
-            if case .replace = zone {
-                window.movePane(id, into: pane.id)
-            } else if let placement = zone.placement {
-                window.movePane(
-                    id, beside: pane.id,
-                    axis: placement.axis, side: placement.side
-                )
-            }
-        default:
-            break
-        }
-        // Keep the source omitted from `displayedLayout` until the model move
-        // is complete. Clearing first briefly mounts the same pane in both its
-        // old and new parents, allowing a stale native-view update to win.
-        window.dragging = nil
     }
 
     @ViewBuilder
@@ -847,6 +749,7 @@ private struct PaneView: View {
                 } preview: {
                     dragChip
                 }
+                .modifier(PaneDragSession(window: window, paneID: pane.id))
         } else if pane.kind.isRenameable {
             label
                 .help(Text("Double-click to rename"))
@@ -859,15 +762,7 @@ private struct PaneView: View {
     }
 
     private var dragChip: some View {
-        Label {
-            Text(displayedTitle)
-        } icon: {
-            Image(systemName: pane.symbol)
-        }
-        .font(.system(size: 11, weight: .medium))
-        .padding(.horizontal, Metrics.Space.m)
-        .padding(.vertical, Metrics.Space.s)
-        .termindGlassSurface(cornerRadius: Metrics.Radius.medium)
+        ItemDragPreview(title: displayedTitle, symbol: pane.symbol)
     }
 
     private func beginRename() {
@@ -886,6 +781,27 @@ private struct PaneView: View {
         workspace.isSplit
             ? pane.sidebarTitle(in: app.hostLibrary)
             : workspace.title(in: app.hostLibrary)
+    }
+}
+
+private struct PaneDragSession: ViewModifier {
+    let window: WindowModel
+    let paneID: Pane.ID
+
+    func body(content: Content) -> some View {
+        if #available(macOS 26.0, *) {
+            content
+                .dragConfiguration(DragConfiguration(allowMove: true))
+                .onDragSessionUpdated { session in
+                    switch session.phase {
+                    case .ended:
+                        if window.dragging == .pane(paneID) { window.dragging = nil }
+                    default: break
+                    }
+                }
+        } else {
+            content
+        }
     }
 }
 
@@ -1478,125 +1394,5 @@ private struct WelcomeQuickConnectRow: View {
         .padding(.vertical, Metrics.Space.s)
         .frame(maxWidth: .infinity, minHeight: Metrics.Welcome.rowHeight, alignment: .leading)
         .termindGlassSurface(cornerRadius: Metrics.Radius.medium)
-    }
-}
-
-// MARK: - Dropping onto a pane
-
-/// Where in a pane a drag is hovering, and therefore what letting go would do.
-///
-/// Four edge zones divided along the diagonals, so every point in the pane maps
-/// to its nearest edge and there is no dead middle to hunt for. An empty pane is
-/// the exception: it has nothing to sit beside, so the whole of it replaces.
-enum PaneDropZone: Equatable {
-    case leading
-    case trailing
-    case top
-    case bottom
-    /// The dragged panes take the slot outright — empty panes only.
-    case replace
-
-    var placement: (axis: SplitAxis, side: SplitSide)? {
-        switch self {
-        case .leading: (.horizontal, .before)
-        case .trailing: (.horizontal, .after)
-        case .top: (.vertical, .before)
-        case .bottom: (.vertical, .after)
-        case .replace: nil
-        }
-    }
-
-    /// The half (or whole) the dragged panes will end up occupying.
-    func previewRect(in size: CGSize) -> CGRect {
-        switch self {
-        case .leading: CGRect(x: 0, y: 0, width: size.width / 2, height: size.height)
-        case .trailing: CGRect(x: size.width / 2, y: 0, width: size.width / 2, height: size.height)
-        case .top: CGRect(x: 0, y: 0, width: size.width, height: size.height / 2)
-        case .bottom: CGRect(x: 0, y: size.height / 2, width: size.width, height: size.height / 2)
-        case .replace: CGRect(origin: .zero, size: size)
-        }
-    }
-}
-
-/// Tracks which edge a drag is nearest while it is over a pane.
-///
-/// A `DropDelegate` for the same reason `WorkspaceDropDelegate` is one: the preview has
-/// to follow the pointer across four zones, and `dropDestination`'s `isTargeted`
-/// is a single Bool that can only say whether a drop is possible at all.
-private struct PaneDropDelegate: DropDelegate {
-    let size: CGSize
-    /// True only for one of Termind's own workspace or pane drags. Claiming arbitrary
-    /// text drops here would make otherwise ordinary page content swallow them.
-    let isActive: Bool
-    /// False when this pane cannot take what is being dragged — a chat, a form,
-    /// a manager page, or the dragged thing itself. No preview, no drop.
-    let isEnabled: Bool
-    /// True for an empty pane, which has nothing to sit beside.
-    let replacesWhole: Bool
-    @Binding var zone: PaneDropZone?
-    let perform: (PaneDropZone) -> Void
-    let cancel: () -> Void
-
-    func validateDrop(info: DropInfo) -> Bool {
-        isActive && info.hasItemsConforming(to: [.text])
-    }
-
-    func dropEntered(info: DropInfo) {
-        zone = isEnabled ? currentZone(info) : nil
-    }
-
-    func dropUpdated(info: DropInfo) -> DropProposal? {
-        zone = isEnabled ? currentZone(info) : nil
-        // Keep the internal drop active even when this particular pane cannot
-        // split. A cancelled proposal may never receive `performDrop`, which is
-        // precisely the callback needed to clear the source's transient state.
-        // The absent preview and the no-op result still make the refusal clear.
-        return DropProposal(operation: .move)
-    }
-
-    func dropExited(info: DropInfo) {
-        zone = nil
-    }
-
-    /// Reads what is being dragged from the model rather than the pasteboard —
-    /// the payload would arrive after the drop is over. See `WindowModel.dragging`.
-    func performDrop(info: DropInfo) -> Bool {
-        let landed = currentZone(info)
-        zone = nil
-        guard isEnabled else {
-            // An invalid inner target must still finish the internal drag. If it
-            // simply rejects the drop, SwiftUI does not reliably offer it to the
-            // root cancel target and the source workspace remains hidden indefinitely.
-            cancel()
-            return true
-        }
-        perform(landed)
-        return true
-    }
-
-    private func currentZone(_ info: DropInfo) -> PaneDropZone {
-        guard !replacesWhole else { return .replace }
-        return Self.nearestEdge(to: info.location, in: size)
-    }
-
-    /// Nearest edge, decided by which side of the two diagonals the point falls
-    /// on. Comparing normalised distances rather than absolute ones keeps the
-    /// zones proportional, so a wide short pane does not end up almost entirely
-    /// top-and-bottom.
-    private static func nearestEdge(to point: CGPoint, in size: CGSize) -> PaneDropZone {
-        guard size.width > 0, size.height > 0 else { return .trailing }
-        let x = point.x / size.width
-        let y = point.y / size.height
-        let fromLeading = x
-        let fromTrailing = 1 - x
-        let fromTop = y
-        let fromBottom = 1 - y
-        let nearest = min(fromLeading, fromTrailing, fromTop, fromBottom)
-        return switch nearest {
-        case fromLeading: .leading
-        case fromTrailing: .trailing
-        case fromTop: .top
-        default: .bottom
-        }
     }
 }

@@ -136,8 +136,9 @@ final class WindowModel {
     /// a whole workspace. The pasteboard payload resolves asynchronously, one drop too
     /// late to answer any of them.
     ///
-    /// A drag released over nothing leaves this set. That is harmless — nothing
-    /// moves without a `performDrop` — and the next drag overwrites it.
+    /// Sources clear this when their native session ends on macOS 26 and later.
+    /// Older systems can leave it set after a release outside any destination;
+    /// the next click or drag clears it, and drops still validate the pasteboard.
     var dragging: DragPayload? {
         get { dragState.payload }
         set { dragState.payload = newValue }
@@ -497,8 +498,7 @@ final class WindowModel {
     /// `WorkspaceContentView.displayedLayout` draws a Workspace without the pane in
     /// flight. Nothing is committed, so every way a drag can end — a reorder, a
     /// merge, a cancel, a release outside the window that no delegate ever hears
-    /// about — puts the view back by itself. Storing it would mean an unwind path
-    /// for each of those, and the last one has no callback to unwind from.
+    /// about — restores the selected view once the source clears its drag state.
     var displayedWorkspace: Workspace? {
         guard case .workspace(let id)? = dragging,
             id == selectedWorkspaceID,
@@ -1102,7 +1102,7 @@ final class WindowModel {
     /// Panes do not cross Workspaces. Getting a pane into a different one is two
     /// deliberate moves — drop it on the workspace strip so it becomes a workspace, then drag
     /// that workspace into the target's pane area — rather than one gesture a few
-    /// pixels from a gesture that means something else. `PaneView.acceptsDrop`
+    /// pixels from a gesture that means something else. `PaneLayoutDropController`
     /// enforces the same-Workspace rule at the other end.
     ///
     /// Lifted out before it is placed. That is safe because the target is never

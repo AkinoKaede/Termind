@@ -1264,14 +1264,7 @@ struct AssistantConversationRow: View {
                     window.dragging = .assistantConversation(conversation.id)
                     return NSItemProvider(object: conversation.id.uuidString as NSString)
                 } preview: {
-                    Label(conversation.derivedTitle, systemImage: "sparkles")
-                        .lineLimit(1)
-                        .padding(.horizontal, Metrics.Space.m)
-                        .padding(.vertical, Metrics.Space.s)
-                        .background(
-                            .regularMaterial,
-                            in: .rect(cornerRadius: Metrics.Radius.medium)
-                        )
+                    ItemDragPreview(title: conversation.derivedTitle, symbol: "sparkles")
                 }
         } else {
             row
