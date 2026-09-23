@@ -212,6 +212,33 @@ struct MobileAssistantTests {
         try expectMissingModelFailure(in: draft)
     }
 
+    @Test func planImplementationStartsAnActingTurnWithPendingComposerInputs() throws {
+        let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
+        let conversation = ConversationModel()
+        _ = assistant.library.startConversation(conversation)
+        let plan = AgentPlan(
+            title: "Implementation plan", body: "Apply the requested change.",
+            scratchPath: "/tmp/plan.md")
+        conversation.isPlanning = true
+        conversation.handle(.planPresented(plan))
+        conversation.composer.armedSkillName = "disk-triage"
+        conversation.attach(ContextChip(kind: .file, label: "service.log", content: "connection refused"))
+        let card = try #require(conversation.plans.first)
+
+        assistant.implement(card, in: conversation)
+
+        #expect(conversation.plans.first?.outcome == .implemented)
+        #expect(!conversation.isPlanning)
+        let turn = try #require(conversation.transcript.last)
+        #expect(turn.contextSnapshot?.planContract == nil)
+        #expect(turn.text.contains("connection refused"))
+        #expect(turn.text.contains("<use_skill name=\"disk-triage\">"))
+        #expect(conversation.composer.attachments.isEmpty)
+        #expect(conversation.composer.armedSkillName == nil)
+        try expectMissingModelFailure(in: conversation)
+    }
+
     @Test func existingConversationSendStillUsesTheDraftExecutionPath() async throws {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()

@@ -416,6 +416,46 @@ final class AppModel {
             conversation, context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
     }
 
+    @discardableResult
+    func sendNewAgentConversation(
+        _ conversation: ConversationModel, in library: AssistantLibraryModel,
+        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false
+    ) -> ConversationModel? {
+        assistantExecution.sendNewConversation(
+            conversation, in: library, context: context,
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+    }
+
+    @discardableResult
+    func sendNewAgentDraft(
+        in library: AssistantLibraryModel, context: SessionContext = .none,
+        terminalSuggestionsAvailable: Bool = false
+    ) -> ConversationModel? {
+        assistantExecution.sendDraftConversation(
+            in: library, context: context,
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+    }
+
+    @discardableResult
+    func sendAgentText(
+        _ text: String, in conversation: ConversationModel,
+        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false
+    ) -> Bool {
+        assistantExecution.sendAgentText(
+            text, in: conversation, context: context,
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+    }
+
+    @discardableResult
+    func sendPlanImplementation(
+        _ card: AgentPlanCard, in conversation: ConversationModel,
+        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false
+    ) -> Bool {
+        assistantExecution.sendPlanImplementation(
+            card, in: conversation, context: context,
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+    }
+
     func startAgentRun(
         _ conversation: ConversationModel, promptID: UUID? = nil, prompt: String? = nil,
         authoredPrompt: String? = nil, promptImages: [AgentImageAttachment]? = nil,
@@ -600,20 +640,15 @@ final class AppModel {
         context: SessionContext, terminalSuggestionsAvailable: Bool, reportingTo window: WindowModel?
     ) {
         guard let conversation = conversation(id) else { return }
+        guard
+            let prepared = assistantExecution.prepareAgentEdit(
+                conversation, messageID: messageID, text: value, context: context,
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        else { return }
         Task { [weak window] in
             do {
-                guard
-                    let prompt = try await assistantOperations.edit(
-                        conversation, messageID: messageID, text: value,
-                        contextSnapshot: assistantExecution.contextSnapshot(
-                            for: conversation, context: context,
-                            terminalSuggestionsAvailable: terminalSuggestionsAvailable))
-                else { return }
-                startAgentRun(
-                    conversation, promptID: prompt.id, prompt: prompt.text,
-                    authoredPrompt: prompt.authoredText, promptImages: prompt.images,
-                    promptContextAttachments: prompt.contextAttachments,
-                    context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+                _ = try await assistantExecution.performAgentEdit(
+                    prepared, in: conversation, operations: assistantOperations)
             } catch { window?.assistantOperationError = error.localizedDescription }
         }
     }

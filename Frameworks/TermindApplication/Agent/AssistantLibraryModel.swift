@@ -291,6 +291,29 @@ public final class AssistantLibraryModel {
         return started
     }
 
+    public func canPromote(_ conversation: ConversationModel) -> Bool {
+        !conversations.contains(where: { $0.id == conversation.id })
+    }
+
+    /// Publishes a conversation only after its first user turn and immutable run
+    /// capture have already succeeded.
+    @discardableResult
+    public func promoteCapturedConversation(_ conversation: ConversationModel) -> Bool {
+        guard canPromote(conversation), !conversation.transcript.isEmpty else { return false }
+        store.insert(conversation)
+        selectedConversationID = conversation.id
+        return true
+    }
+
+    @discardableResult
+    public func promoteCapturedDraftConversation(_ conversation: ConversationModel) -> Bool {
+        guard conversation === draftConversation,
+            promoteCapturedConversation(conversation)
+        else { return false }
+        draftConversation = ConversationModel()
+        return true
+    }
+
     /// Promotes the sidebar's scratch conversation into history on its first
     /// real send. Empty drafts remain ephemeral and never create blank rows.
     @discardableResult

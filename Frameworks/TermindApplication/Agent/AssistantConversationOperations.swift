@@ -10,6 +10,7 @@ public final class AssistantConversationOperations {
     public init(repository: any AgentRunPersisting) { self.repository = repository }
 
     public func setArchived(_ value: Bool, conversation: ConversationModel) async throws {
+        await conversation.cancelPendingAgentPreparationAndWait()
         guard !conversation.isStreaming, !conversation.isCompacting,
             pending.insert(conversation.id).inserted
         else { return }
@@ -60,6 +61,7 @@ public final class AssistantConversationOperations {
 
     @discardableResult
     public func delete(_ conversation: ConversationModel) async throws -> (deleted: Bool, cleanupError: String?) {
+        await conversation.cancelPendingAgentPreparationAndWait()
         guard !conversation.isStreaming, !conversation.isCompacting,
             pending.insert(conversation.id).inserted
         else { return (false, nil) }
@@ -119,15 +121,25 @@ public final class AssistantConversationOperations {
     ) async throws -> ConversationModel
         .ComposedUserTurn?
     {
-        guard var replacement = conversation.editedUserMessage(messageID, authoredText: text),
+        guard var replacement = conversation.editedUserMessage(messageID, authoredText: text) else { return nil }
+        replacement.contextSnapshot = contextSnapshot
+        return try await edit(conversation, messageID: messageID, replacement: replacement)
+    }
+
+    public func edit(
+        _ conversation: ConversationModel, messageID: UUID,
+        replacement: AgentTranscriptMessage
+    ) async throws -> ConversationModel.ComposedUserTurn? {
+        try Task.checkCancellation()
+        guard
             pending.insert(conversation.id).inserted
         else { return nil }
-        replacement.contextSnapshot = contextSnapshot
         conversation.isHistoryChanging = true
         defer {
             pending.remove(conversation.id)
             conversation.isHistoryChanging = false
         }
+        try Task.checkCancellation()
         try await repository.truncateConversation(
             conversation.id, fromUserMessageID: messageID, replacingWith: replacement)
         conversation.isHistoryChanging = false

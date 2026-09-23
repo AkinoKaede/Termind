@@ -354,6 +354,7 @@ public final class SwiftDataAgentRunRepository: AgentRunPersisting, Sendable {
         _ id: UUID, fromUserMessageID messageID: UUID,
         replacingWith replacement: AgentTranscriptMessage
     ) async throws {
+        try Task.checkCancellation()
         let allRuns = try context.fetch(FetchDescriptor<PersistentAgentRun>())
         let runs = allRuns.filter { $0.conversationID == id }
             .sorted { $0.startedAt < $1.startedAt }

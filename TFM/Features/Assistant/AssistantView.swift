@@ -215,11 +215,12 @@ struct AssistantPanelView: View {
                 sessionContext: window.sidebar.sessionContext,
                 terminalSuggestionsAvailable: true,
                 onSend: {
-                    if let conversation = window.sendAssistantSidebarDraft() {
-                        app.startAgentRun(
-                            conversation, context: window.sidebar.sessionContext,
-                            terminalSuggestionsAvailable: true
-                        )
+                    if let conversation = app.sendNewAgentConversation(
+                        window.sidebar.assistantDraft, in: window.assistantLibrary,
+                        context: window.sidebar.sessionContext,
+                        terminalSuggestionsAvailable: true)
+                    {
+                        window.assistantSidebarConversationDidStart(conversation)
                     }
                 }
             )
@@ -1407,9 +1408,6 @@ struct AssistantView: View {
     }
 
     private func sendNewConversation() {
-        guard app.proAccess.require(.assistant) else { return }
-        guard let conversation = window.assistantLibrary.startDraftConversation()
-        else { return }
-        app.startAgentRun(conversation)
+        _ = app.sendNewAgentDraft(in: window.assistantLibrary)
     }
 }
