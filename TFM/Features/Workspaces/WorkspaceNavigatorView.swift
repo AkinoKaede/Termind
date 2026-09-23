@@ -444,7 +444,6 @@ private struct WorkspaceNavigatorRow: View {
             window.dragging = nil
             window.select(workspace.id)
         }
-        .simultaneousGesture(TapGesture(count: 2).onEnded(onBeginRename))
         .onHover { hovering = $0 }
         // Match Assistant's inline rename treatment: the row itself must not
         // draw a second keyboard-focus rectangle around the plain field.

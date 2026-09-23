@@ -1249,7 +1249,6 @@ private struct WelcomeWorkspaceTemplateRow: View {
                 row
             }
             .buttonStyle(.plain)
-            .simultaneousGesture(TapGesture(count: 2).onEnded(beginRename))
         }
     }
 
