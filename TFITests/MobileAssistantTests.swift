@@ -225,7 +225,7 @@ struct MobileAssistantTests {
         #expect(assistant.conversation.composer.draft.isEmpty)
     }
 
-    @Test func firstNewConversationSendPromotesDraftAndStartsRun() throws {
+    @Test func firstNewConversationSendPromotesDraftAndStartsRun() async throws {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
         let draft = assistant.conversation
@@ -240,10 +240,11 @@ struct MobileAssistantTests {
         #expect(draft.messages.map(\.role) == [.user])
         #expect(draft.messages.first?.text == "Why is the service unavailable?")
         #expect(draft.transcript.map(\.role) == [.user])
+        #expect(await eventually { draft.runState == .failed })
         try expectMissingModelFailure(in: draft)
     }
 
-    @Test func attachmentOnlyFirstSendPromotesTheConversation() throws {
+    @Test func attachmentOnlyFirstSendPromotesTheConversation() async throws {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
         let draft = assistant.conversation
@@ -257,10 +258,11 @@ struct MobileAssistantTests {
         #expect(draft.messages.first?.text.isEmpty == true)
         #expect(draft.messages.first?.contextChips.map(\.label) == ["service.log"])
         #expect(draft.transcript.first?.text.contains("connection refused") == true)
+        #expect(await eventually { draft.runState == .failed })
         try expectMissingModelFailure(in: draft)
     }
 
-    @Test func planImplementationStartsAnActingTurnWithPendingComposerInputs() throws {
+    @Test func planImplementationStartsAnActingTurnWithPendingComposerInputs() async throws {
         let app = try MobileAppModel(inMemory: true)
         let assistant = app.assistant.makeSceneModel()
         let conversation = ConversationModel()
@@ -284,6 +286,7 @@ struct MobileAssistantTests {
         #expect(turn.text.contains("<use_skill name=\"disk-triage\">"))
         #expect(conversation.composer.attachments.isEmpty)
         #expect(conversation.composer.armedSkillName == nil)
+        #expect(await eventually { conversation.runState == .failed })
         try expectMissingModelFailure(in: conversation)
     }
 
@@ -487,6 +490,67 @@ struct MobileAssistantTests {
         #expect(!app.assistant.isRunning)
     }
 
+    @Test func backgroundExpirationStopsEveryConversationBeforeJoiningTheFirstDrain() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
+        let first = ConversationModel()
+        let second = ConversationModel()
+        assistant.library.insertAndSelect(second)
+        assistant.library.insertAndSelect(first)
+        assistant.select(second)
+        #expect(app.assistant.store.conversations.map(\.id) == [first.id, second.id])
+        let secondCalls = MobileAssistantModelCalls()
+        let firstRepository = MobileTerminalSaveGateRepository()
+        let secondRepository = InMemoryAgentRunRepository()
+        first.start(
+            runtime: AgentRuntime(
+                model: MobileImmediateAssistantModel(calls: MobileAssistantModelCalls()), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: firstRepository
+            ),
+            request: AgentRunRequest(
+                conversationID: first.id, prompt: "first", permissionMode: .askForApproval),
+            repository: firstRepository
+        )
+        await firstRepository.waitForTerminalSave()
+        second.start(
+            runtime: AgentRuntime(
+                model: MobileImmediateAssistantModel(calls: secondCalls), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: secondRepository
+            ),
+            request: AgentRunRequest(
+                conversationID: second.id, prompt: "second", permissionMode: .askForApproval),
+            repository: secondRepository
+        )
+
+        app.assistant.expireBackground()
+        app.assistant.expireBackground()
+
+        #expect(app.assistant.isSuspending)
+        #expect(!first.isStreaming)
+        #expect(first.runState.isTerminal)
+        #expect(second.runState == .cancelled)
+        second.composer.draft = "preserve"
+        assistant.send()
+        #expect(second.composer.draft == "preserve")
+        #expect(secondCalls.count == 0)
+        let join = MobileAssistantJoinProbe()
+        let waiter = Task { @MainActor in
+            join.markStarted()
+            await app.assistant.waitForSuspension()
+            join.markFinished()
+        }
+        await join.waitUntilStarted()
+        #expect(!join.finished)
+        #expect(app.assistant.isSuspending)
+
+        await firstRepository.releaseTerminalSaves()
+        await waiter.value
+        #expect(!app.assistant.isSuspending)
+        #expect(secondCalls.count == 0)
+    }
+
     private func measuredInteractionHeight(
         conversation: ConversationModel,
         hosts: HostLibraryModel,
@@ -519,6 +583,89 @@ private struct MobileDelayedAgentModel: AgentModelStreaming {
             }
         }
     }
+}
+
+nonisolated private final class MobileAssistantModelCalls: @unchecked Sendable {
+    private let lock = NSLock()
+    private var callCount = 0
+
+    func called() {
+        lock.withLock { callCount += 1 }
+    }
+
+    var count: Int { lock.withLock { callCount } }
+}
+
+@MainActor
+private final class MobileAssistantJoinProbe {
+    private(set) var finished = false
+    private var started = false
+    private var startWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func markStarted() {
+        started = true
+        let waiters = startWaiters
+        startWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
+
+    func waitUntilStarted() async {
+        guard !started else { return }
+        await withCheckedContinuation { startWaiters.append($0) }
+    }
+
+    func markFinished() { finished = true }
+}
+
+private struct MobileImmediateAssistantModel: AgentModelStreaming {
+    let calls: MobileAssistantModelCalls
+
+    func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            calls.called()
+            continuation.yield(.finished(.completed))
+            continuation.finish()
+        }
+    }
+}
+
+private actor MobileTerminalSaveGateRepository: AgentRunPersisting {
+    private var terminalSaveEntered = false
+    private var terminalSaveWaiters: [CheckedContinuation<Void, Never>] = []
+    private var terminalReleaseWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func save(_ snapshot: AgentRunSnapshot) async {
+        guard snapshot.state.isTerminal else { return }
+        terminalSaveEntered = true
+        let waiters = terminalSaveWaiters
+        terminalSaveWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+        await withCheckedContinuation { terminalReleaseWaiters.append($0) }
+    }
+
+    func waitForTerminalSave() async {
+        guard !terminalSaveEntered else { return }
+        await withCheckedContinuation { terminalSaveWaiters.append($0) }
+    }
+
+    func releaseTerminalSaves() {
+        let waiters = terminalReleaseWaiters
+        terminalReleaseWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
+
+    func record(_ event: AgentEvent, runID: UUID) {}
+    func persistCompaction(_ record: AgentCompactionRecord, conversationID: UUID) {}
+    func loadConversations() -> [StoredAgentConversation] { [] }
+    func deleteConversation(_ id: UUID) {}
+    func setTitle(_ title: String, conversationID: UUID) {}
+    func setConversationMetadata(_ metadata: StoredAgentConversationMetadata, conversationID: UUID) {}
+    func reorderConversations(_ updates: [StoredAgentConversationOrder]) {}
+    func truncateConversation(
+        _ id: UUID, fromUserMessageID messageID: UUID,
+        replacingWith message: AgentTranscriptMessage
+    ) {}
+    func createConversation(_ conversation: StoredAgentConversation) {}
 }
 
 @MainActor

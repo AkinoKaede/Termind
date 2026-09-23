@@ -144,6 +144,8 @@ final class MobileAssistantModel {
         execution.cancelPendingRuns()
         speech.cancelAll()
         let conversations = store.conversations
+        // Request every cancellation before awaiting a drain that may be held by persistence.
+        for conversation in conversations { conversation.stop() }
         suspensionTask = Task {
             for conversation in conversations { await conversation.stopAndWait() }
             await background.closeAll()
