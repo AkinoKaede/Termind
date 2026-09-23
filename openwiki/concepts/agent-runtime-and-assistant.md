@@ -54,6 +54,8 @@ sources:
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-3dfad0e95bb7d66f292c20c9
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
+  - id: openwiki-source-34542e0f07e1650e098824c7
+    resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -80,10 +82,10 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "codex", at: "2026-09-23T06:54:45.592Z" }
+generated: { by: "codex", at: "2026-09-23T07:42:01.096Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T06:54:45.592Z
+    at: 2026-09-23T07:42:01.096Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory
@@ -200,7 +202,11 @@ Once startup has begun, Stop requests runtime cancellation; the consumer checks 
 
 `stopAndWait()` captures preparation cancellation and all retained run owners before its first await, requests cancellation of the owner active at entry, then joins preparation and those consumers. Consequently `stop()` followed by `stopAndWait()` still joins the stopped run; a replacement accepted during the wait is outside that call's cancellation scope. Completed owners are removed from the retained collection.
 
-The join guarantees that the captured snapshot-save attempt has returned, not that storage succeeded. In pinned AgentKit, terminal events precede the terminal snapshot save, while stream completion follows it; a terminal event alone is therefore an earlier boundary. The separate durable-event recorder and run-secret disposal tasks are not joined by this consumer. These contracts do not promise recovery from a storage failure or process death before a save. Mobile background expiration uses the join before closing its background commands and Agent connections; desktop Stop keeps its immediate presentation behavior without adopting the mobile background lifecycle.
+The join guarantees that the captured snapshot-save attempt has returned, not that storage succeeded. In pinned AgentKit, terminal events precede the terminal snapshot save, while stream completion follows it; a terminal event alone is therefore an earlier boundary. The separate durable-event recorder and run-secret disposal tasks are not joined by this consumer. These contracts do not promise recovery from a storage failure or process death before a save. Desktop Stop keeps its immediate presentation behavior without adopting the mobile background lifecycle.
+
+Mobile background expiration first sets `isSuspending`, cancels pending preparations and recording, snapshots the stored conversations, and calls `stop()` on every conversation synchronously. Only after all cancellation requests are issued does its cleanup task call `stopAndWait()` for each snapshot member, then close background commands and Agent connections. A first conversation's blocked save therefore cannot postpone cancellation of a later queued or active run. Repeated expiration during that cleanup is inert, and composer sends remain blocked until cleanup returns, including when a scene has already returned to the foreground.
+
+The finite UIKit lease has a separate boundary: its expiration callback requests this cleanup and ends the matching valid lease synchronously, without awaiting those drains. Cleanup may continue when execution is available, but iOS suspension or termination can prevent completion. Neither the lease nor Live Activities guarantee persistence or continued network work. See [Platform Runtime](/openwiki/architecture/platform-runtime.md) for scene aggregation, lease identity and workspace recovery.
 
 ## Approval, secrets, and trust boundaries
 
@@ -317,7 +323,7 @@ The focused tests establish behavior that is important when changing this area:
 - `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first history mutations and activity guards, plus queued Stop/Stop-and-Wait with zero provider/tool calls, captured cancelled snapshots, Stop followed by a blocked-save join, persistence after presentation release, direct queued-owner displacement, pending approval cancellation, and an old persistence drain finishing while a replacement remains running. Injected review events verify that the stopped run's review state and card do not contaminate that replacement.
 - `TFMTests/AgentScratchTests.swift` verifies workspace containment, symlink refusal, inter-conversation isolation, quotas, and bounded reads.
 - `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions.
-- `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, acting-mode plan implementation, and tool-incapable models. Mobile's SwiftData restore/edit fixture also verifies same-run prefix preservation and replacement provenance.
+- `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, acting-mode plan implementation, and tool-incapable models. Mobile's SwiftData restore/edit fixture also verifies same-run prefix preservation and replacement provenance. Its expiration fixture holds the first run's terminal save while a second run remains queued, verifies immediate cancellation and zero second-provider calls, and uses an entered/completed join probe to show suspension remains pending until the save releases.
 - `TFMTests/MCPServerToolsTests.swift` checks the exported acting subset against shared descriptors, transfer tools and disabled calls; `AgentHostProtocolListingTests.swift` checks protocol-neutral discovery, and `AgentToolPresentationTests.swift` retains legacy presentation coverage alongside the persistence suite.
 
 The queued-cancellation and captured-failure SwiftData regressions use an in-memory container with a fresh read context, not a process restart or an on-disk crash test. Controller barriers establish save-attempt ordering and inject a repository save rejection; they do not simulate a failing SwiftData disk transaction. The queued-runtime barrier and review-state fixtures remain ordering/presentation tests, with injected events rather than a live Guardian provider. Preserve these distinctions when choosing additional validation.

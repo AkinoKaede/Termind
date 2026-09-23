@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1011bb9602def6c6ca1bb7bf0cde718b8479b58ac8af9526e85bae3771596073",
+  "pageVersion": "sha256:46bd31b52ab67eba8321c1885f18fb3436a08178dbccd92f5b6405559b9c3212",
   "claims": [
     {
       "id": "claim_8e9cf2adb50847f98fcd4516cb0ed521",
@@ -182,7 +182,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Platform/MobileBackgroundController.swift",
-          "version": "repo-file-v1:sha256:0fbc54522867c50f4c6ddff1294d936dd65a21acf6dbdec239bb78866166e525"
+          "version": "repo-file-v1:sha256:75c3d7bda5bf9ce83518666d5801cf3e01f9bbc82ed5acdc557bf17c2c6d4efc"
         },
         {
           "resource": "repo://TFI/Platform/MobileLiveActivityController.swift",
@@ -215,8 +215,8 @@
       "statement": "Native app composition adapts platform device naming into the shared device directory: TFM uses the trimmed kern.hostname with DeviceKit fallback and refreshes on application activation; TFI uses DeviceKit's Device.current.safeDescription and refreshes on active scene transitions.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L580-L589",
-          "version": "repo-lines-v1:sha256:71bcd9d234f4fe43fb8074f23095acbfa238266403359ce6f85621ad7d170c6d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc1Nzg1MjI2MjQyOTAxY2NkOTlmMTgzNjZjYTdhOGNhOGEwNTc1YTA0OGNkOGU3NTZlZmI2ZmRmMjc5MTFiNTkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzZGFiZTIzNDEzOTNjYzU1NWUzZjI0MzRlOTFlZTZjYjVjZTNhYTgwNWEwOWVhNjA2YTY1MDI3YzNlZWUzY2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMzNDVkYzM2OGMxODNiMzEwOTZlMDYwYWFiODA1NzE2MTY3YTYyNDQ5MTgzMTM1NjJlMTgzNmQ1NDk0ZjIwMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4ZWY4Mjc0MmI5NzUwODBiMTdhNDZjZjVjMDYzOGM0MmY1ZGYxNjE3NTBjM2U0OTY1MGRhYTc1OTQzNjJmMWIifQ"
+          "resource": "repo://TFI/App/MobileAppModel.swift#L560-L578",
+          "version": "repo-lines-v1:sha256:e1458e03b4dc3d86d48461e276ad947b989000475cf59e42b68402a40297a355:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjExYjYwOWM3ODJiMmM2NDVhM2M2ZDFmOWMyMDA3YzdjMGVlMWI5MTI1YjJjOGIxOTU0YTFlMTVjY2UxM2VkYjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExMGVhYzUyYWE2NjM0MDczNjQ0MjU1MTg2YTc5NGIxMjdmYzQ5MTA2NTRmYTNhMjBiOTgzMjMxOTIxZWU2ZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjYwZTJhMWYwNzIwY2I4YWNhODQ4ZjIzNzM0N2E4YjUzNGY2YTEzZDVhZTBmMTQ3MDE4ODQ5ZmZjYjkxOTRlZWMifQ"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift#L285-L294",
@@ -231,6 +231,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T05:17:08.701Z"
+    "at": "2026-09-23T07:36:39.730Z"
   }
 }

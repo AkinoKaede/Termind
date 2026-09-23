@@ -82,6 +82,8 @@ sources:
     resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-d44869be46c03fbd0ce9c64c
+    resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-02810e1f8eac4d0983f8cd44
     resource: repo://TFI/Features/Settings/MobileTerminalSettingsView.swift
   - id: openwiki-source-3c85f29e2d0bdf3d44f4e0e8
@@ -90,16 +92,18 @@ sources:
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
-  - id: openwiki-source-350d4a794cfef67e406ddf9b
-    resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
+  - id: openwiki-source-34542e0f07e1650e098824c7
+    resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-e396438eb6a8a7ca888da5f4
     resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-a154b5d36ec59496392d45e4
+    resource: repo://TFITests/MobileAssistantTests.swift
+  - id: openwiki-source-c9618f94f83d3b529a9860e1
+    resource: repo://TFITests/MobileBackgroundControllerTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
-  - id: openwiki-source-9b78a7e39bfa08bea5192722
-    resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -114,10 +118,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T06:54:45.592Z" }
+generated: { by: "codex", at: "2026-09-23T07:42:01.096Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T06:54:45.592Z
+    at: 2026-09-23T07:42:01.096Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -649,8 +653,8 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 ### Workspaces and activity
 
 - One SSH session/SFTP Channel per mobile Workspace, no Welcome/pane composition even with Pro; Assistant independent. Peer switch retains connection,
-  Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. Background expiration closes
-  transports but retains intent; foreground resumes existing Workspaces.
+  Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. Background expiration detaches
+  transports and requests their asynchronous closure while retaining intent; foreground resumes existing Workspaces.
 - `mobile.workspaces.v1` persists ordered local descriptors only (ID/Host/kind/title), no commands/secrets/paths/content/transfers.
   Cold launch after Hosts loads Recent only, no sessions/history/network. MainActor open-by-ID reuses or registers/connects once across scenes;
   failure needs explicit retry. Save retains unopened entries/order. Read legacy arrays/v1 and migrate legacy arrays to the versioned envelope;
@@ -672,9 +676,15 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - App-wide runtime/conversation store prevents duplicate runs; each scene owns navigation/commands/library selection/New Chat draft. Focused values
   route keyboards; per-window delegates consume quick actions once. Switching neither reconnects nor claims terminal focus; Find owns F3/Shift-F3
   and Escape only while active, otherwise Escape passes to Ghostty.
+- Enter global background only when a nonempty set of registered scenes becomes entirely backgrounded, including after scene removal.
+  Repeated notifications/removals do not acquire another lease; removing the final scene starts none. Platform expiration detaches its lease,
+  invokes cancellation synchronously and ends that lease's valid identifier exactly once. Stale callbacks cannot expire a replacement;
+  denied acquisition expires immediately without ending an invalid identifier. Reentrant acquisition cannot leak or overwrite the older lease.
 - Settings editors use explicit drafts; ephemeral probes cancel on config/editor changes and cannot revive discarded data. Secrets remain transient
   until atomic save/rollback. Mobile never starts local MCP. Archive persists before navigation/read-only until restored. Injected speech appends
-  without send and cancels on interruption/conversation change/background. Finite background expiration cancels runs/drains events/closes Agent
-  transports, never replays or auto-approves on return.
+  without send and cancels on interruption/conversation change/background. Finite background expiration requests cancellation of every Assistant
+  conversation before awaiting any retained event drain, then closes Agent background commands and connections. This async cleanup remains best
+  effort under iOS suspension; it never extends the expired lease or promises durable completion. The composer-send guard stays set until cleanup
+  returns, including across foreground transitions; returning never replays or auto-approves runs.
 - Window drop interaction covers visible Workspaces: terminal routes files to uploads, text/links retain Ghostty behavior. Leaving restores original
   interaction/targets. File-provider data is copied inside callbacks into staging retained by queued transfers after navigation.

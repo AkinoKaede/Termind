@@ -16,10 +16,20 @@ sources:
     resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-d44869be46c03fbd0ce9c64c
+    resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-9c78befae6b387426c603305
     resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-34542e0f07e1650e098824c7
+    resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-a154b5d36ec59496392d45e4
+    resource: repo://TFITests/MobileAssistantTests.swift
+  - id: openwiki-source-c9618f94f83d3b529a9860e1
+    resource: repo://TFITests/MobileBackgroundControllerTests.swift
   - id: openwiki-source-2c8d92432bb6dac7ede21141
     resource: repo://TFITests/MobileForwardingLifecycleTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -40,10 +50,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
-generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
+generated: { by: "codex", at: "2026-09-23T07:42:01.096Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T05:17:08.701Z
+    at: 2026-09-23T07:42:01.096Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -163,7 +173,11 @@ Mobile persistence deliberately restores **descriptors, not sessions**. On cold 
 
 ### Mobile foreground and background boundaries
 
-Scene phases are aggregated by scene ID. The app only enters global background behavior when every tracked scene is backgrounded, so one backgrounded scene cannot suspend work still visible in another. On that transition it stops edit monitoring, suspends memory and sync, pauses metrics and outbox work, suspends recording, and starts a finite platform background task. If the task expires, it asks each live workspace to handle background expiration, stops forwarding, pauses transfers, and expires assistant work. It updates Live Activities but does not use them to retain connections.
+Scene phases are aggregated by scene ID. The app enters global background behavior only when a nonempty set of tracked scenes becomes entirely backgrounded. Both phase changes and scene removal check that transition: removing the sole active scene starts background handling for surviving background scenes, while repeated notifications/removals and removal of the final scene do not start another lease. On that transition it stops edit monitoring, suspends memory and sync, pauses metrics and outbox work, suspends recording, and starts a finite platform background task. If the task expires, it asks each live workspace to handle background expiration, stops forwarding, pauses transfers, and expires assistant work. It updates Live Activities but does not use them to retain connections.
+
+`MobileBackgroundController` keeps one identity-bearing lease around the UIKit identifier. The expiration handler runs synchronously on the MainActor: it detaches the matching lease, invokes the app's cancellation callback, and ends that lease's valid identifier before returning. Finishing or replacing a lease makes its old callbacks inert. A denied acquisition immediately invokes expiration without ending an invalid identifier. If expiration reenters `begin`, the old lease cannot end or overwrite its replacement; if the platform calls expiration before returning an identifier, the outer acquisition retires the returned old identifier afterward. Each valid identifier is ended at most once.
+
+The callback requests suspension; it does not await network teardown or persistence. Workspaces detach their sessions and start asynchronous disconnects. Assistant synchronously requests cancellation for every conversation before joining retained consumers, then closes background commands and connection pools. Those drains remain best effort under iOS suspension or termination, so an ended platform lease is not evidence that a save or remote cleanup completed. The Assistant composer-send guard remains set until its cleanup task returns, even if a scene becomes active meanwhile.
 
 When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync according to foreground entitlement, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. Returning before expiration therefore preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
 
@@ -189,7 +203,9 @@ For a service that represents navigation, focus, a sheet, an editor draft, a des
 Tests exercise the lifetime contracts rather than merely constructing views:
 
 - `MobileAppTests` verifies saved descriptors reopen on demand without replaying commands or paths, and that two scenes selecting one restored workspace create only one connection.
-- `MobileWorkspaceConnectionRecoveryTests` verifies background expiration disconnects affected mobile workspaces and foreground resumes them, while a quick foreground return preserves a healthy connection.
+- `MobileWorkspaceConnectionRecoveryTests` verifies background expiration disconnects affected mobile workspaces and foreground resumes them, while a quick foreground return preserves a healthy connection. Scene-removal fixtures also check that removing the sole active scene starts one lease for surviving background scenes and that an empty scene set starts none.
+- `MobileBackgroundControllerTests` checks synchronous callback/end ordering, stale and repeated callbacks, denied acquisition, and reentrant expiration during acquisition without losing or ending the replacement lease.
+- `MobileAssistantTests` holds a first conversation's terminal save while expiring a second queued run: cancellation is immediate, the queued provider never starts, and suspension remains joinable until the save barrier releases. This verifies application ordering, not an operating-system guarantee of cleanup after suspension.
 - `MobileForwardingLifecycleTests` verifies all-scenes background is required before expiration, and expired forwarding/authentication does not revive merely on foreground.
 - `DockMenuTests` verifies Dock-created desktop windows receive distinct `WindowModel`s in the Welcome state and retain per-window UI state independently.
 - `ExternalConnectionURLTests` verifies external desktop connections are temporary and unsaved, including the Telnet-password confirmation boundary.

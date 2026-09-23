@@ -43,7 +43,7 @@ sources:
 generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T06:54:45.592Z
+    at: 2026-09-23T07:36:39.730Z
 ---
 
 # System Boundaries and Dependency Ownership
