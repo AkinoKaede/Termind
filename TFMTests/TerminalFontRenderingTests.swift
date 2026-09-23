@@ -1,3 +1,4 @@
+import AppKit
 import GhosttyTerminal
 import TermindDomain
 import TermindPresentation
@@ -44,9 +45,31 @@ struct TerminalFontRenderingTests {
         #expect(state.theme.dark.rendered.hasSuffix("font-family = Courier"))
     }
 
-    @Test func installedMonospacedFamiliesIncludeMenlo() {
+    @Test func fontCatalogIncludesEveryLoadableMonospacedFamilyInLocalizedOrder() {
         TerminalFontCatalog.shared.refresh()
-        #expect(TerminalFontCatalog.shared.families.contains("Menlo"))
-        #expect(!TerminalFontCatalog.shared.families.contains("Helvetica"))
+        let catalogFamilies = TerminalFontCatalog.shared.families
+        let manager = NSFontManager.shared
+
+        let fixedPitchFamilies = manager.availableFontFamilies.filter { family in
+            NSFontDescriptor(fontAttributes: [.family: family])
+                .matchingFontDescriptors(withMandatoryKeys: [.family])
+                .contains { NSFont(descriptor: $0, size: 14)?.isFixedPitch == true }
+        }
+        .sorted { $0.localizedStandardCompare($1) == .orderedAscending }
+
+        #expect(!catalogFamilies.isEmpty)
+        #expect(catalogFamilies == fixedPitchFamilies)
+
+        let proportionalFamily = manager.availableFontFamilies.first { family in
+            let fonts = NSFontDescriptor(fontAttributes: [.family: family])
+                .matchingFontDescriptors(withMandatoryKeys: [.family])
+                .compactMap { NSFont(descriptor: $0, size: 14) }
+            return !fonts.isEmpty && fonts.allSatisfy { !$0.isFixedPitch }
+        }
+        #expect(proportionalFamily != nil)
+        if let proportionalFamily {
+            #expect(!catalogFamilies.contains(proportionalFamily))
+        }
+
     }
 }
