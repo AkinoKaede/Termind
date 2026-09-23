@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:93690003b8bab2fac2e0b4471cb3dc74e4b046473b3cce51e0a3e0d4e5f8f6b2",
+  "pageVersion": "sha256:ae4a3bccb3836edf9362314d853ddc4634ebac972ee4c7f16eaf1c9c77c95123",
   "claims": [
     {
       "id": "claim_bc1531cd55cc445cbd6964ff7331b6c1",
@@ -149,10 +149,126 @@
           "version": "repo-lines-v1:sha256:52d47a062877d79081bd70483a65e58330e9eb7d6c24da4edd0c1d1c3bc7f9b6:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWQwOTQ0ZmE4OTNhMGM5N2ZhODNhZmRiNjYxMDEwNmMzZDcwOWNhMzc2ZmE5NDFlNWRhOTlmODU0NzFhNDY5NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNTUyMmM0MmNkMTljNmQwM2Q4MDhjNDUyNzIwNTUyODI1YjdlYTFjNWI0OTFiMjE4NTExY2FjNzQxNWNmOWQ5YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMDhkY2E2MGVmOWY4NTBmNGQyOThkNGNmZTQzOTZkYzBjNmNkM2M4NzQ4NGY4ZjczYzE1YmNhMWVjYzkxNmEwOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODkxMzBhZmY4ZGI2NTMyODFiMmFkZDA1YmQ3ZDg2MmI2NTM1Nzk4YmE4Y2FmNzc5MGExYjk4YmM0OTU3MzQ5NyJ9"
         }
       ]
+    },
+    {
+      "id": "claim_0117cea52f0d4ae69af02a6d7f2770a9",
+      "statement": "Shell command and draft OSC payloads are percent-unescaped and decoded with the configured remote charset into Swift strings, as is HOME metadata; raw SHELL and SYSTEM fields also use that charset. A failed conversion falls back to lossy UTF-8, and malformed UTF-8 bytes in a command can become replacement characters rather than round-tripping as raw bytes.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift#L69-L86",
+          "version": "repo-lines-v1:sha256:682fc1771173cf86b22386ecb13cf4f6fdf0121be404c3b9da8a9321a33da29e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI3YjczNGE1Y2ZhYTI2NmZlODgwODVmZjZkMTM0NWM1MTM5YzdlMGU2NjRiNGNiNjVmNGI3NTgxMzA0ZWQ3ZmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3NGNjNmFlNzExODExMzg5ZTVlNzJhYzhhNzRkMmUzMWIyMzM5YTQwMzA4ODIxZDBhYjRjN2ZmM2UxM2M5YjgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L197-L201",
+          "version": "repo-lines-v1:sha256:b85e28331cc97e6841c53ebbdc4e6b8ffc34d2f836697898f9a95f8a8a60dc58:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjAwM2JlMWZkODllM2QyODY3ZDA0NDBkMWIyZTk2NDAwZGFlNDRkNTgzYmI4NWM5NGVkNDU5NDk5MzkwYTM0NyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNjI2NTBmOTJmNGU5NTg1YzkxMTA5YzZkYWYzYmVkMDNhMjk3NzNhNzgwM2ZjYTkzM2Y1OGY5YTA0NmE0YjQ0ZSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjBlZDBhMzAzZWRhN2ViNjA2N2YwNWM4MGYyNTVkNTRmZDJhM2ZlMDBjNzU2NTQxNjNhMzNiMDg4ZTc2NzAyMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWUxZTljZTgwZDJmOWI2NmMzMzk5NWNmYWU4YTA2MmJlNGQwZTlhNDVkYmE2YmI2ZDJjODAxMzAwODA0ZmFjYyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L256-L288",
+          "version": "repo-lines-v1:sha256:6fa9b9e5ec6d89be04013de8295273409b36440d41f7b763f87d7954be9d741f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjMDU5N2M3YWRmYjk2YjIzNGVlZjdkNmU0ODIyYTIyZjE1NGY2YjllZWFhNjNjMWVhZWI5NDBjZDFjN2U1MDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTdjNjc4MDQ0MGNlOWE4YWMwNGE3MDg5ZTU0NzA2MzJkMTFkMTE5ODUwZTBiNWI2M2QxNTU3NjA5ZGI2NzEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ3YjY5NDk1MDQzYTMzYzMzMTZkMWI2ZjAwYmFkZGFhNDU1N2Q5YjM3ODgyZTQxYTI4NTNhZDc3MDJlZjE1ZTIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L543-L565",
+          "version": "repo-lines-v1:sha256:e0fb88f4862196c1af7373f2defde926f9b478da5cccd145bb6bf083d5461c34:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI1MWFmOTgzNjEwZjY3NjhkNzBlZThmYWNkYTVjZWE1NmRmY2NjNTUzNmNhNjJiZTg4ZWE2OTU3YzEwNTVkYjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjMjZiODNmZjI0NzRkNDBjNGM0ODYxMzBiZTFmMDNlMDJhMzhmZjE5MTNlY2IyMDg5Yjg5ZTk3MTkwZmFlMDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlN2Q2NWE0NDYzYjM1MTNmZGZmZjUzOWQ2Y2JiZDBmY2VlNGE0MmVkYTdhNzYxZjU0Y2M2M2ZhYzNkOWZmZjciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA5OGMyYmVjZGI1YzgxMDU4NTg3Y2RmZTViMmQyYmRiMGFkNWE5MGNmZjI5ZGI1OWI2YjNkMWM5MzUzODUzOGIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L604-L623",
+          "version": "repo-lines-v1:sha256:8d0803aa4a42b30a41d018fc29e047944d7476e4f4e33e09d2ae4518692f5f9d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQzY2IyY2U5NmMzNzY4MzljOTc3MjUwOTgwMTQwNzlmNTA5YmViYzBlNzJhNzFlMjBmM2ZjYWYzYTkzZjdjN2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZjMjYxMGM5ZDRlZGY2ZjBjYTk4ZGRlOGE3NDg0NTIyYTU2N2QyOGE0NTlmZmIxNDgyOGZjYTFkMmVjMTgxYjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3MzJhMDM2OWQ4ZjMxNmYwOTcyNzVhYWQ5YzA0MzFhYjI3YWZjZDVlOGE5NDAxNTk3MDU1NjE3MTI4ZjNjZDAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c141ef1c567443e391cd8e3370196e85",
+      "statement": "The OSC 7 cwd filter buffers split `file://localhost` frames, decodes percent-unescaped remote-charset path bytes and rewrites them as percent-encoded UTF-8 for terminal parsing; malformed UTF-8 path bytes are rewritten lossily, while oversized unterminated frames pass through rather than remaining buffered.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift#L88-L105",
+          "version": "repo-lines-v1:sha256:d993b57e4ee07fe64963235749b3d1da91c896eb37a806687ec3a4924fae8690:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjYzBiNjNlMjc4YjhiYWZjNThhZjEyZWU1NDUxOGMxZTEzZjEzYThkNmY4N2JmNDlhNzJiYjEzYjc5MTQ3ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L225-L315",
+          "version": "repo-lines-v1:sha256:154252fa67e4aa6bc5030188590b02acc141d0e793335df9f6d8f5be22e10850:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIwZTQxZGRjNzZkNWU0NWE0Yzc2MWIwZjY1ZTI3NjI0YTQyMjkyNWUzMzg2MTAyZjNlMzZjMzA3M2EzMTIyNjgifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_a5a43368c5e94d96a085aa6f79eabbcf",
+      "statement": "RemoteCharsetStreamConverter has strict default outgoing UTF-8-to-remote encoding, but incoming UTF-8 decoding bypasses bytes unchanged and legacy decoding converts valid sequences while bypassing malformed bytes and flushing incomplete trailing bytes verbatim; string materialization can still be lossy.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift#L26-L67",
+          "version": "repo-lines-v1:sha256:e26eabcaac0395551641ec9be367ea064eff06db917c89c2ac5dcf5011273d8a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2MmYxZjhlNzYyMmY5NjRjMDE0ZTU3YmM0NzQ0NDRjZGQ5YzI4OTcyZTcxMmNiYTJkZGI5ZWZlMmJjODIzNTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwYTg5ZTQ0Yjk3NTMzNThhNzRkZjI3ZjgxNjE5Y2RhY2YzNmVjNTJiOTNlNzcxOGUyNDE3YzYxYTQzNGI4OTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L145-L223",
+          "version": "repo-lines-v1:sha256:f8892502d88bbe21dd53f7d2f5feb868e83104b38e739700e675dd7cf2a539d2:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyOWQwZGQ3Njg3MTU3NzZkZDE5NTU1ZmI3MzU1ZDZmOTE1ZjI4NDM2ZjhmYmIxMTQ3Y2Y5MTUwMThkMjgwM2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlMmY4NzI4MWVkYjU0NmViNTIzNGRiNjk4ZWYyZGJkM2Y1NWM3YjNmZjgxMDQ0YzVhZWJlMTdmMTdiODhiNjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzOGRkMWQ4Zjk2ZGNhNzFiZWE3ZTUyMmU0NDgxNDBhNjc5ODRmYTRlY2Y5ZTJiMzgzYmRmYTNhYmYxZGJmM2YifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L41-L139",
+          "version": "repo-lines-v1:sha256:fb2a42a6ccccf45a6ea6fb302bc378c0e36219610401cfc86b3ef3ac773934ab:eyJzZWxlY3RlZExpbmVDb3VudCI6OTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4MGQ2NzYyOGE1ZDQyMmQzMzNkMDY0MjNlNDRiNDQ5NWRjZjIwODZiMjQ0NzZmZjY4MjZhNGExZmQwMTM1NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE1M2M1MTkzMmRhMWMyNmI0NDkzMTIxNmUyMDRhYjZjYzUwNzE4OTE1MzEwZDZjYmUwNGJhNWY0ZDRlYTVhYTcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_463f22cff8384e89af53a9f0640de4fe",
+      "statement": "SSH PTY configures separate input/output charset converters and strictly encodes environment requests and user input, reporting failed user writes via a charset callback while preserving any bracketed-paste delimiters; OSC 7 rewriting runs even without shell integration, and PTY closure flushes cwd-filter and decoder tails before clearing them.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1097-L1125",
+          "version": "repo-lines-v1:sha256:18b6ec795aa4c05d1e4b820fa966bdcd93eac5d15b1643bf22c9159acd84a950:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMDI0YTNlZDg5OGNiZTliOTI3MDY1OTc4NjFmMjBjZmFkMTY4MTY2OTY5Y2FjNjQzNjI2OWE2MzRmOWU1ODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzNGYyOTRiYzljYWNmMTVjZjM2Y2I1NDIwYmVjOThmNTBmY2Q2ZWIyNmJhYjc1ZmU2NjMwMzMxYjc5ZGFmYmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIwYzFhMDM5NmZhNTI4ODRjN2JkNTAyMGI0YjMyN2IxMzc3NjNkYmQ0NWE5NjFmZDI5ZTczZGEzYzU4MGY5OWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2MzkwMzNmODAyZDEwMDE1YmFkZDExMDc4YzFiZjg5YjljODhhMzc2ZjhjMzlkN2Q0MTZkODk1OTc1MWUyZGEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1170-L1215",
+          "version": "repo-lines-v1:sha256:9ef763280ccf3dab12b1f4ea633744134103d81635f0b148b92ddc2d7c9849cc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQzOGUwMDcwMDY1ZDYwOWQyNmQ0NTgzY2ViYmRhMzExYjhkYmI2NWJkY2VlODI0NGM0YjVjYjFkMWE1YzQ1MTIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjA1ZWMyMjIxNGI5M2JhY2MwNmJhNjhlOWY3NTc0MjU4YmJlMjNiOTIwNzYzMjk2MTU4OTBmZjQ1N2QxNDlkNDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxZDZmMzdjZGY1ZDg5OThlNmZhMjNhNGQyYjg0NjFiYzJiOWYyM2VmZmU5MjRhOTcxZmNhOTM4ZjY3ODU4MWQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1587-L1652",
+          "version": "repo-lines-v1:sha256:34d886a2ed1087143b81e0d9e03f2dee31d2d1d370340807b199379809bfd4c5:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkZjQ0NWVmZGNjZmVlM2IxZjc3OGJjOGU3N2M3NjE2MWUxMGM4ZTE2NjkzNDU4OTllZjgxMWVmNzNlM2MwN2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjYmU4MjRjOWY2YTZmZDQ1ODEwMGI3NGExNzVhZjZlZGY3M2Q2YjNmODg5Y2E4MDUxZGIzYTcwOThhYmQ0MGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwOWQwMDFkMzcyYzAwZTM2MzA1NmIyOTg5MjNhN2Y0ZmUwNTljNTliODRhYjU2MzQzMjlmZjgxOWVhYjIzNDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_633ec495a548432785993802eafa37c2",
+      "statement": "Telnet direct and proxied connections configure charset encoders/decoders independently of SSH hooks; Telnet protocol and NVT parsing precede application-data decoding, and outbound text encoding precedes NVT formatting and IAC escaping. Decoder exceptions display raw application bytes, while outgoing encoding errors do not send the failed write.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L151-L177",
+          "version": "repo-lines-v1:sha256:83eb90aa5f275ba324f4283b41250aeeaf8a0ab789ad8555825a797afb9cc6b4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1NzA0M2EzYmQxMzJiYzI1MGJlMmZhMzZiODg4NzQyYTkxYWJlMzg1ZGQ2NjdlYmE0ZGJlN2U0Yjc3YTlkZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiOTE0NGMxOTM1YWY4MGU1MDM2OTI5ZjVlNTBlMWQwZWNkNDdkZDFjMjdhMmMyNTA1OWZiMzk3Yjg1OTc1OTkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI0YTEwMTVjYmY4M2Y5NTgxM2NlODUzZWU2OTFkZDIyNmJkMWM0MWMxZTYzYjcwZDJhMDA0MjYzMTg5Y2VjYWIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L235-L245",
+          "version": "repo-lines-v1:sha256:db41403872122c2a4dd9a2f6952d26d7f0136af5e5d6a11194d794d8d177c426:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1OGQyZTEwZTZkYjY1ZmMzMTA3NmRmY2Y5ZmQwOTY2MGY5Y2E2Mjc0Zjc0YjYzNDBhYTZjOGUxZjFiNmI3MzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwZGVhNTU1YjQ0YWQ4YTAyY2U3M2NkMjNmZjAwZTU5NDYwYjZjYzJlYzAxMTEzOGU3ODlhNTJiYWI5NjcxZGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZhMmQ0NTQyNGYyODIxYzIxNmQwZWRlMTM1ZjE1ZjRjNjEwYmFjYTA2YTg4YjUzNTgwMTA1NDcyOWMyYjU2YjcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L298-L315",
+          "version": "repo-lines-v1:sha256:2a866f959ab9446ea82d4f1cc2aeda49a0938bfdc66084fd5778c78ce6cdc4f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjYjgyNzgxMTg2ZGExMDJhZTNlYjFjMjY4Zjg3MTIwNjYxNTZlNDk0Y2FkNTk2Mzc2OGZkZWU5OTY0Y2M5Y2YiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjYmNlMGQ0NmNiZGYzODAyOWE5MGExZDBhODdkOTk0NGZjYmVkNjg2NjEwZGJmZWRkMmY1MWFmZDljN2I0NTQifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L397-L405",
+          "version": "repo-lines-v1:sha256:93aba1c315acc3116ca75c4a017b85685d7946c01cc5584478caa0298e808ff0:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2U3ZmM0YzM2YzEzMzA1MDVmMzhmZTFhNmY0NWFhZjdjMjZjNjdkOWE3MGNlNjFlMzdhZGM2ZWE0MWZhMzUwYiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzVhMWM4YzZkYzliZjBlNGFkOTcyZjdmOTQzZDA2YTQ0ZjhmMmFhOTA5ZGNhNmNmYjQxODQyMWEwMjc4ODBmZCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGVhZmFkNWRiNGQ2ZmIyNjE2MjIxN2JiMTk3Zjk2ZGQ5MzJlZTE1NjQ3MjEwMTA0NTBiNjM0OGEzMTE4M2ZhNyJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L94-L120",
+          "version": "repo-lines-v1:sha256:2b3aa7a52e252877039238e3788fced33f9841467c65382082b805a90732665c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJlMmQzNmE5NmE0MzNkMjM5Mzg5NTg5NzdiOGJiYzA2NGRmODM1ZjVhMTI3NWZmOTkwMmFlOWNhNWUzZWY5MzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYyMjY2M2FlMDBiMDc3MGIwMWNjYTljYzRlZTdmNDUzNWI4ZTQxZDBjYmViNjk1YTNiYWI3NjE4YTgwMTgyZGEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRiYTg0YTA3Nzk4ZjI3OTg2OWI0MzVlN2JkZTYyZmRjODZkNGFmOTM3MmRhNzIyZjk1YzYyNjlhMmFiOTAzZTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1ZWI3YTc3YTMyZGJhZWIzMmI4NjUxMDM5Y2ZkY2M3ZTYzZTU1NGMzYTcxNjViMTUxYzkzNDY3NjFjYWY3YTIifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_6ec240e9f8f24da786e3697463377799",
+      "statement": "Telnet automatic login strictly encodes username/password; an encoding failure clears secrets, reports a charset error and continues manually, while cleanup flushes decoded output and clears converter and prompt state.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L318-L395",
+          "version": "repo-lines-v1:sha256:4dc2ebee2e7b4d237580c96c8c6e766f0f1fa5de7381f375a9ff5549e1f15cfe:eyJzZWxlY3RlZExpbmVDb3VudCI6NzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MWQxODI3ZTg0Zjg4MTFjMGJjNWJmNGRjZTcxNTIyZDhiOGQzNDA1NTI1NjE3YTRmMWNmYTcyOGE5MzdiODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI5OGViOTg0ZDg2NjM3YzAxOWE5ZTQ3OWM0YTYyNzkyNTZmMzJlYzZjYmExODUzZTgwN2FkZmMzNGQ1MGNjMGMifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L450-L473",
+          "version": "repo-lines-v1:sha256:965c06543dbae50ff67119b30ae542d45f4e5160e0f2e816d608c8fef3f5c68e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MTVhZjQ0Y2NjYmY3M2ZiOGFlYTRkMmE1ZWUwNTFkMTllMmUyMDMzMWQ3ODVlY2MzOThmMjBlMzgwZDk5ZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmMTIwMTgxYmY2YWI3MWJiMmYxYWZhODE1ZTllZjMwZDIyMTkyZDI2ODhhOTRiYzRiZjQxMDFkMjUxMTI3OWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiOTg0MmMxZjExMTk5ZmUyZDVhZjJmNzhkOTdiZjQ2NDc5ZjA0NTQ0NzQ5ZmZhNGJjMWQxMGUxMDhjMTUyMTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "at": "2026-09-23T10:36:38.039Z"
   }
 }

@@ -1,11 +1,11 @@
 ---
 type: release operations
-title: Build, Validation, Localization, and Dependency Release Operations
-description: Safe, targeted validation and release procedures for Termind’s Xcode targets, localization catalogs, screenshots, Astro landing page, and pinned AgentKit dependency.
+title: Build, Test, and Release
+description: Targeted validation gates for Termind's resolved-package Xcode builds, opt-in UI and StoreKit tests, localization, screenshots, website, and AgentKit releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -27,14 +27,30 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-cd81b8b97e761c0120fdfccb
+    resource: repo://Termind.xcodeproj/xcshareddata/xcschemes/TFI.xcscheme
+  - id: openwiki-source-60081fe11e88625a130dd44c
+    resource: repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme
+  - id: openwiki-source-fffc181d864b6caea779a6f5
+    resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-f4b87eae375fa9241ff8cb35
+    resource: repo://TFITests/MobileForwardingRenderingTests.swift
+  - id: openwiki-source-96b0d4f1528e0e0e4e7b6a12
+    resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
+  - id: openwiki-source-1068a19b8ad42f734f4b4bb6
+    resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
+  - id: openwiki-source-0dd012e3740bcc348fc36ccb
+    resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
-# Build, Validation, Localization, and Dependency Release Operations
+# Build, Test, and Release
 
 This page is the operational playbook for proving a change without accidentally changing the dependency graph or committing local artifacts. The repository has one Xcode project with the macOS `TFM` and iPhone/iPad `TFI` schemes, shared-framework tests in `FrameworkTests/`, and platform tests in `TFMTests/` and `TFITests/`. The Astro landing page is a separate Node workspace under `LandingPage/`.
 
@@ -79,7 +95,7 @@ Constrain a run when a focused suite directly establishes the changed contract, 
 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/AppLanguageTests
 ```
 
-Use the matching mobile scheme and a concrete simulator for `TFITests` work. Typical focused choices are the test file that names the changed feature, `TFMTests/ArchitectureBoundaryTests.swift` for dependency placement, and `TFMTests/AppLanguageTests.swift` for language-selection/catalog behavior. Do not use an unrelated focused test as a substitute for the affected default suite.
+Use the matching mobile scheme and a concrete simulator for `TFITests` work. The `TFM` test action includes `TFMTests` and `FrameworkTests`; `TFI` includes `TFITests` and `FrameworkTests`. Typical focused choices are the test file that names the changed feature, `TFMTests/ArchitectureBoundaryTests.swift` for dependency placement, and `TFMTests/AppLanguageTests.swift` for language-selection/catalog behavior. Do not use an unrelated focused test as a substitute for the affected default suite. Check which suites actually ran: a passing default command does not prove a disabled opt-in suite passed.
 
 ### Formatting is a strict check
 
@@ -102,6 +118,30 @@ TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme
 ```
 
 In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot tests may retain their own dedicated opt-in variables; offscreen layout and logic tests remain part of normal validation. This separation prevents a routine test run from activating the app, stealing focus, or becoming display-dependent.
+
+### Mobile key-window integration tests
+
+Do not treat mobile integration suites as part of routine default coverage. Suites that take UIKit's process-wide key-window/presentation state, including `MobileEditorToolbarTests`, `MobileForwardingRenderingTests`, `MobileHostIntegrationRenderingTests`, and `MobileSavedNameRenderingTests`, use a suite-level `TERMIND_MOBILE_UI_TESTS=1` gate and serialization. To run a changed suite, use an installed iPhone or iPad simulator, disable parallel testing, and narrow the selection:
+
+```sh
+TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileEditorToolbarTests
+```
+
+`TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` is the command-line opt-in; Xcode forwards it to the test host as `TERMIND_MOBILE_UI_TESTS=1`. `MobileAdaptiveLayoutTests` is a separate serialized, **ungated** suite: it mounts `MobileRootView` in a temporary key `UIWindow`, resizes size classes and widths, checks tab and navigation identity, drafts, scroll/focus/marked text, and attaches captures across English and both Chinese locales. Its fixture restores the prior key window after each run. Because it also uses process-wide UIKit state, target it narrowly with `-parallel-testing-enabled NO` when investigating adaptive behavior rather than assuming it has the suite-level opt-in:
+
+```sh
+xcodebuild -project Termind.xcodeproj -scheme TFI -destination 'platform=iOS Simulator,name=<installed simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test -only-testing:TFITests/MobileAdaptiveLayoutTests
+```
+
+### StoreKit authorization gate
+
+`StoreKitTrialTests` is serialized and skipped unless its host has `TERMIND_STOREKIT_TESTS=1`; it requires manual authorization, not just a successful default macOS test run. When authorized, run it alone with the resolved graph and set the host environment explicitly (in Xcode's Test action, use `TERMIND_STOREKIT_TESTS=1`):
+
+```sh
+TERMIND_STOREKIT_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/StoreKitTrialTests
+```
+
+The suite creates and resets an `SKTestSession` against `StoreKit/Termind.storekit`, clears transactions around each fixture, and checks annual trial entitlement and restore, lifetime precedence, pending Ask to Buy, cancellation/network failures, unverified transactions, and invalid or missing introductory-offer configurations. These local StoreKit tests do not replace storefront/Sandbox verification.
 
 For an isolated interactive desktop demo, use a supported scene and one of the three supported languages:
 
@@ -183,8 +223,9 @@ Do not skip the release or resolve steps: a project-file bump alone does not est
 3. Run strict Swift format lint for Swift changes.
 4. Run `Scripts/check-zh-localization.sh` for every commit; complete both Chinese translations and run `AppLanguageTests` when localization behavior changes.
 5. For landing-page changes, run `cd LandingPage && npm ci && npm run build` and inspect English/Chinese routes.
-6. Run visible-window tests only with explicit opt-in and a narrow suite; regenerate marketing captures only through their dedicated scripts when product imagery changes.
-7. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files.
-8. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing.
+6. Keep visible-window, mobile key-window integration, and StoreKit authorization gates off in routine runs; when affected, opt in with the exact flags above and narrow the suite. Run the ungated adaptive-layout suite deliberately without parallel testing for adaptive UI changes.
+7. Regenerate marketing captures only through their dedicated scripts when product imagery changes.
+8. For AgentKit work, complete release → minimum-version bump → re-resolve, and commit both dependency files.
+9. Inspect the staged diff for secrets, local environment files, derived data, build output, and accidental lock/artifact churn before committing.
 
 CloudKit production deployment and signed-device delivery are separate release evidence, not consequences of a successful local build. Use [CloudKit Schema Deployment and Signed-Device Release Readiness](/openwiki/operations/cloudkit-release-readiness.md) for that matrix. Storefront metadata and Sandbox validation live in [App Store Commerce Configuration and Release Verification](/openwiki/operations/storefront-commerce-release.md); capture, Figma export, and icon checks live in [Marketing Assets, Screenshot Production, Figma Exports, and App Icons](/openwiki/operations/marketing-assets-and-app-icons.md); historical transport performance methodology lives in [Port Forwarding Benchmark Design, Results, and Reproduction](/openwiki/operations/port-forwarding-benchmarks.md).

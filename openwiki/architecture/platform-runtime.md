@@ -3,7 +3,22 @@ type: architecture
 title: Platform Runtime, App Composition, and Lifetimes
 description: How Termind composes shared services and persistence on macOS and iOS, and where app-wide, window-local, scene-local, and session state begin and end.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
+  - id: openwiki-source-875da2c4f1040409e53757af
+    resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
+  - id: openwiki-source-1d1f503a260f304a969fcee4
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
+  - id: openwiki-source-3effdff7f6b04e2a66d8f651
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
+  - id: openwiki-source-04ef2b2f02773f8833db9a8b
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift
+  - id: openwiki-source-eaa9d39ab551840299164d96
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
+  - id: openwiki-source-63e25c47c9c7d38b354f4123
+    resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-dc9295278cc250ed20567540
@@ -18,10 +33,20 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-9c78befae6b387426c603305
     resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
+  - id: openwiki-source-492f738896225c6b3acf7d2f
+    resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
+  - id: openwiki-source-34542e0f07e1650e098824c7
+    resource: repo://TFI/Platform/MobileBackgroundController.swift
+  - id: openwiki-source-d34ac3e852773901d0566033
+    resource: repo://TFI/Platform/MobileHomeScreenQuickActions.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-c9618f94f83d3b529a9860e1
+    resource: repo://TFITests/MobileBackgroundControllerTests.swift
   - id: openwiki-source-2c8d92432bb6dac7ede21141
     resource: repo://TFITests/MobileForwardingLifecycleTests.swift
+  - id: openwiki-source-68ab6aaabd7a3499cfe23434
+    resource: repo://TFITests/MobileHomeScreenQuickActionTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-873894299539cce9a737a860
@@ -36,14 +61,15 @@ sources:
     resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
-generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+  - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
+    resource: repo://TFMTests/RepositoryOutboxTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -103,7 +129,7 @@ This diagram shows the desktop composition root and the split between one app ru
 
 `AppModel` is the cross-window coordinator and service owner. It owns the host and credential projections, known-hosts/snippet/forwarding/transfer libraries, terminal and SSH/SFTP settings, histories, AI/skills/memory, metrics, entitlement and review controllers, remote connection coordination, SFTP edit/transfer services, forwarding, MCP services, and sync/outbox integration. It also owns the global conversation store and one speech transcription coordinator, avoiding duplicate conversation state and competing audio taps across windows.
 
-The model keeps only weak registrations for open `WindowModel`s. Registration injects shared stores and coordinators into a window and attaches that window's assistant library to the process-wide conversation store. Fan-out operations—such as a host route change or deletion—find registered windows and disconnect or close the affected window-owned workspaces. This is coordination, not ownership transfer: the window remains responsible for its own UI and workspaces.
+The model keeps only weak registrations for open `WindowModel`s. Registration injects shared stores and coordinators into a window and attaches that window's assistant library to the process-wide conversation store. Fan-out operations—such as a host route change or deletion—find registered windows and disconnect or close the affected window-owned workspaces. A desktop deletion request first persists the repository marker/outbox jobs, clears local histories and projects the Host away; the registered outbox handlers close panes across windows, cancel transfers, stop forwarding and finalize repository cleanup. A failed request reports a storage error instead of projecting the removal. This is coordination, not ownership transfer: the window remains responsible for its own UI and workspaces.
 
 `TermindApp` creates a `WindowGroup(id: "main", for: UUID.self)`. Each scene receives a fresh `WindowModel`, places it in `RootView`, and injects the same `AppModel` and SwiftData container through the SwiftUI environment. `RootView` registers the window on appearance. The independent `Authentication Request` window is intentionally reserved for external authentication presentation rather than normal Window-menu creation.
 
@@ -119,7 +145,7 @@ A host-opening action is centralized in `AppModel`, which chooses the requested 
 
 The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from `MacDeviceName.current`; the synchronized directory can therefore update without rewriting connection events. TFI refreshes its name directly from DeviceKit's `Device.current.safeDescription` on active-scene transitions. On termination the desktop app first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
 
-Shutdown is deliberately idempotent and bounded by the delegate. It suspends memory and edit monitoring, stops metrics, speech, windows, SFTP work, external authentication, forwarding, and the outbox; concurrently awaits MCP and SFTP cancellation, then closes agent background commands and connection pools. The delegate replies to macOS when cleanup completes or after a three-second fallback, preventing an unbounded quit wait.
+Shutdown is deliberately idempotent and bounded by the delegate. It fences new assistant runs, cancels pending run preparation, stops all stored conversations and waits for their terminal saves; it also suspends memory and edit monitoring, stops metrics and speech, closes windows, and cancels SFTP work, external authentication, forwarding, and the outbox. It concurrently awaits MCP and SFTP cancellation, then closes agent background commands and connection pools **after** the assistant drains. The delegate replies to macOS when cleanup completes or after a three-second fallback; that bound applies to the quit reply, not a guarantee that every asynchronous drain finished. `applicationWillTerminate` repeats cleanup safely.
 
 ## Mobile composition
 
@@ -151,11 +177,13 @@ This diagram shows that mobile scenes have independent navigation but select fro
 
 `MobileAppModel` creates or receives its `ModelContainer`, then builds the host repository, outbox, Keychain or in-memory secret store, settings/metrics persistence and sync coordinators, host and credential libraries, AI/skills/memory, assistant, metrics, transfers and SFTP edits, forwarding, histories, the generic device directory, and live activities. The device directory and connection history use separate repositories on the same Vault context and share the stable installation ID; each repository journals its own payload kind transactionally. Workspace publication starts an event and explicit close records its end. Production uses `Termind.store` under Application Support; tests or supplied repositories use an in-memory container and do not enable production live activities or sync coordinators.
 
-The app model wires cross-service invalidation at construction. Host deletion and route changes invalidate edits, cancel transfers, stop/reconfigure forwarding, remove relevant metrics/history, and disconnect or close live workspaces as appropriate. Remote sync application similarly computes a change plan before replacing the local projection, so route-affecting changes retire affected runtime work rather than leaving it attached to stale configuration.
+The app model wires cross-service invalidation at construction. Local `deleteHost` first disconnects the assistant, closes saved descriptors and live workspaces for that Host, invalidates edits, cancels transfers, retires forwarding and metrics, then requests repository deletion, projects the removal, and starts the outbox; failure is reported in `error`. The deletion request commits a hidden-host marker and ordered outbox jobs together, so durable reference cleanup and final removal can resume after a crash. Outbox handlers also close workspaces and clear histories, cancel transfers, and remove forwarding rules. Host route edits disconnect matching live protocols rather than deleting descriptors. Remote sync application computes a change plan before replacing the local projection: changed routes invalidate edits, sessions, transfers and forwarding, while removed Hosts additionally close saved workspaces and clear histories/metrics. This keeps runtime work from using stale configuration.
 
 ### Scene-local navigation, app-wide mobile workspaces
 
 `MobileRootView` creates `@State` `MobileSceneModel` for its scene and reports `scenePhase` to the shared app model. It uses one sidebar-adaptable `TabView`, but each tab hosts its own `NavigationStack`; adapting the tab UI does not replace the feature tree. The scene model owns destination selection, selected/pending workspace IDs, connection-picker and editor presentation, external-link confirmation, local assistant-library route, review page, and recency used to choose an already-open workspace. Focused scene values route commands to that scene.
+
+The UIKit `MobileSceneDelegate` holds a pending Home Screen quick action per scene; `TermindIOSApp` passes its action and one-shot consumer into `MobileRootView`. The root consumes it on change and asks its own `MobileSceneModel` to open the connection picker or open a recent Host using the Host's **current** preferred connection kind. Unknown shortcuts are rejected; a missing or unusable Host presents the workspace-unavailable alert instead of trying to restore a stale session. The system's shortcut list is refreshed from local connection history and host changes, limited to three openable recent Hosts.
 
 `MobileAppModel`, rather than a scene, owns `workspaces` and the persisted descriptor list. `openWorkspace(_:)` first returns an already-live workspace; otherwise it validates the saved descriptor's Host, constructs the workspace, publishes it, and then starts its connection. Publishing before connecting is an invariant: multiple scenes selecting the same descriptor share an instance and cannot trigger duplicate first connections. A scene only selects/presents that shared workspace.
 
@@ -163,9 +191,25 @@ Mobile persistence deliberately restores **descriptors, not sessions**. On cold 
 
 ### Mobile foreground and background boundaries
 
-Scene phases are aggregated by scene ID. The app only enters global background behavior when every tracked scene is backgrounded, so one backgrounded scene cannot suspend work still visible in another. On that transition it stops edit monitoring, suspends memory and sync, pauses metrics and outbox work, suspends recording, and starts a finite platform background task. If the task expires, it asks each live workspace to handle background expiration, stops forwarding, pauses transfers, and expires assistant work. It updates Live Activities but does not use them to retain connections.
+Scene phases are aggregated by scene ID. The app only enters global background behavior when every tracked scene is backgrounded, so one backgrounded scene cannot suspend work still visible in another. Removing the last active scene can trigger that transition when other tracked scenes remain backgrounded; removing the last tracked scene does not. On that transition it stops edit monitoring, suspends memory and sync, pauses metrics and outbox work, suspends recording, and starts a finite platform background task. If the task expires, it asks each live workspace to handle background expiration, stops forwarding, pauses transfers, and expires assistant work. Expiration detaches active workspace transports, clears interactive authentication state and marks a foreground reconnect intent; returning before expiration does not force a reconnect. It updates Live Activities but does not use them to retain connections.
 
-When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync according to foreground entitlement, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. Returning before expiration therefore preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
+`MobileBackgroundController` owns one UIKit background-task lease. Beginning another lease finishes the old one; foreground `finish()` and expiration retire a valid identifier at most once. Expiration calls its cancellation callback synchronously before ending the task, even when UIKit expires during `begin`; a late callback for a retired lease is ignored. If UIKit returns `.invalid`, the controller expires immediately without trying to end an invalid identifier. Async disconnects started by the callback are best effort, not a guarantee that every drain completed before the lease ends.
+
+When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. `reconcileSync()` calls `start()` on Vault, Metrics and Settings coordinators only if at least one tracked scene is `.active` **and** Pro permits Vault sync; otherwise it pauses all three. This is a foreground/entitlement gate, **not** an override of user sync choices: each coordinator's `CloudSyncLifecycle.start()` separately checks the global iCloud switch and that category's enabled preference and pauses if disabled. `setSyncEnabled(_:key:)` gates enabling on Pro, writes the selected preference, migrates custom passwords when enabling global/Vault sync, then reconciles. `MobileRootView` also reconciles when Pro access changes. Desktop `AppModel` starts/reconciles those three coordinators against Pro access without a scene-phase gate, but their individual preferences still govern actual activation. Returning before expiration preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Tracked: Scene reports phase
+    Tracked --> Foreground: Any tracked scene active
+    Foreground --> Background: All tracked scenes backgrounded
+    Background --> Foreground: A scene becomes active
+    Background --> Expired: Background lease expires
+    Expired --> Foreground: A scene becomes active
+    Foreground --> Tracked: No tracked scene active
+    Tracked --> Background: All tracked scenes backgrounded
+```
+
+Mobile phase aggregation controls a single background lease and foreground sync eligibility; expiration retires live runtime work, not persisted workspace descriptors. An empty scene registry is not treated as all-backgrounded.
 
 ## Ownership invariants and safe extension points
 
@@ -188,9 +232,13 @@ For a service that represents navigation, focus, a sheet, an editor draft, a des
 
 Tests exercise the lifetime contracts rather than merely constructing views:
 
-- `MobileAppTests` verifies saved descriptors reopen on demand without replaying commands or paths, and that two scenes selecting one restored workspace create only one connection.
+- `MobileAppTests` verifies saved descriptors reopen on demand without replaying commands or paths, two scenes selecting one restored workspace create only one connection, and local/remote Host deletion removes both opened and unopened descriptors.
 - `MobileWorkspaceConnectionRecoveryTests` verifies background expiration disconnects affected mobile workspaces and foreground resumes them, while a quick foreground return preserves a healthy connection.
 - `MobileForwardingLifecycleTests` verifies all-scenes background is required before expiration, and expired forwarding/authentication does not revive merely on foreground.
+- `MobileBackgroundControllerTests` covers stale callbacks, exactly-once task retirement, synchronous expiration during lease acquisition and invalid UIKit identifiers; `MobileAppTests` covers scene removal and quick versus expired foreground returns.
+- `MobileHomeScreenQuickActionTests` covers recent-host shortcut selection, payload decoding and one-shot consumption by the scene delegate.
+- `AppTerminationTests` verifies shutdown cancels stored and preparing assistant work, waits for terminal saves before closing agent resources, fences new work, and replies once even when the three-second fallback wins.
+- `RepositoryOutboxTests` verifies a Host deletion request commits the hiding marker and complete outbox atomically.
 - `DockMenuTests` verifies Dock-created desktop windows receive distinct `WindowModel`s in the Welcome state and retain per-window UI state independently.
 - `ExternalConnectionURLTests` verifies external desktop connections are temporary and unsaved, including the Telnet-password confirmation boundary.
 

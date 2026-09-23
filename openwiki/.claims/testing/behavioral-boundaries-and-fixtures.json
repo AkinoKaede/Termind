@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9579877be3cc10fce322964052e0c007da12304bb1edf564dab07afb04cea323",
+  "pageVersion": "sha256:15029cc4d76549f995f92d10b81402f0764575eeb49c402d9577fa1bc5c8756d",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -272,47 +272,173 @@
     },
     {
       "id": "claim_612b95bf7d214bf6b16c67c57ea31156",
-      "statement": "Application edit tests reject invalid replacements before repository calls and preserve live history after injected repository rejection; controller cancellation after committed editing checks interrupted staging adoption. These fixtures replace the persistence port and do not inject real SwiftData storage failure.",
+      "statement": "Conversation operations reject a non-user replacement without invoking truncation and preserve visible messages and transcript when an injected repository truncation rejects; controller edit-failure and post-edit cancellation tests check captured replacement context, preserved history, and interrupted real-run adoption of staging. These port-level failures do not inject real SwiftData transaction faults.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/AssistantConversationOperationsTests.swift#L228-L266",
-          "version": "repo-lines-v1:sha256:d504dc650e02ce7236152c633382cef19bd6762a026047c05f7c1ad0785f7a7c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyNWIwMmI1NzE0ZDA2NmZkMzIxNmQyMjMxYmRkZGFjYjM2ZDcwODc3OTE4NmRhYzg5MjQyYWViZDA2ZjQ1M2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYjYzYjhkYTE1ZTdkOGZhNDBlNjhmYjhkNjY0YzhjZDQ4NGFlMzQ4NGEyMjEzNWU0NDAwYjA4NjI3Yjg2ZjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyNWU4YzMwNjkwMDIyNmYwNDA2OWM5YTZmMTZjNmY0ODE2NzkzYzM5NTNjZDM3YWFlNzQ5OWY2OGQ1YjAyNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+          "resource": "repo://FrameworkTests/AssistantConversationOperationsTests.swift#L473-L512",
+          "version": "repo-lines-v1:sha256:1eacb7da0a9be772b50964fdc54146c45614974861d3a1f6012b27a56dd08053:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyNWIwMmI1NzE0ZDA2NmZkMzIxNmQyMjMxYmRkZGFjYjM2ZDcwODc3OTE4NmRhYzg5MjQyYWViZDA2ZjQ1M2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyNWU4YzMwNjkwMDIyNmYwNDA2OWM5YTZmMTZjNmY0ODE2NzkzYzM5NTNjZDM3YWFlNzQ5OWY2OGQ1YjAyNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiMDM2MTMwMWU4MTI1M2UyNTUzNzExYmY4ZWUyOTU3NzBmOTY4NDYyZTY5YjZkMjIwNTc4NWQ4NzJjNjFiZTAifQ"
         },
         {
-          "resource": "repo://FrameworkTests/AssistantConversationOperationsTests.swift#L290-L309",
-          "version": "repo-lines-v1:sha256:1aadebda28ab65aaf172c7524dd75bfbc882c73879618892eee83488349e51aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyMGI5NDg0YjQ4YTE3M2QzMTM2ZjhkYWRiNzdiNTUwYWQ5ZmRiMzU4YjMyMjllNTRjOGQyNjg1NGNkMWVlNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1MjhmNGExMDgwN2M3ZDcxOTRjZTUxNTlmMzNmMjFiZjM1YzYxMzA5ZGNhNDkzNjgyOTViZjBkYzE3Y2QyYTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMWY5Njk2ZTM2ODQ2MzcxNzIxODJiOGMzZmNlMWFlMzQ4Yzc4MzJkOGU4OTE0ZDVjZjJlZjU1NDIxNDIwYWUifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L596-L619",
+          "version": "repo-lines-v1:sha256:9013a9b0c8dda08deb9c74c8b93dd354b89a5d981c5c43457c083341a7639434:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjMWE5ZjIzZTE1YzkwM2U4NGYxMDdkNGI4YmQ2NDZhYjcwNmRkNmEyNjczZWI5N2VhMTZkODc0ZTRhYzMxZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwNTYyNGUyNDJmZjU3YTY0YjU1M2YxMTQzNzBlMmQxZmViYmU4ODIyZjI5NzA2ZmZlYmI4YTgwZjVhM2FiMzcifQ"
         },
         {
-          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L450-L534",
-          "version": "repo-lines-v1:sha256:fd0683e00df11cd8ca35568565d1b1d43a68ad37ab7bf54e5f68803954f14349:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkYTc3OGQ5NDJjNzRkNGFjOGYzMmM1MTgyMDg2MGFlOGE2MDQ5YWE1NDUwYTE5NjMzMTM4MmNmNWVmNWU1MGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NTUyNmNmOWEwOGQ4Yzc1ZTA5ZThhMWZhMTIwODkxZmQ3MWEwMDNhMjkwY2U5ZTEzY2YwOWQ5NjRmYjkxYWUifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L719-L747",
+          "version": "repo-lines-v1:sha256:cafc285231544b00272d58ff3d5e4205703f2bd167937c426e285a131b1184ec:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4ZGIwNzEzYzU1NTE0MjI3ZmQ3NGRmMTNlODYzZjQyMTU0MGFiMDk1YzVhNDU2Mjg5OTJiYzE3YjdlZDE1M2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NTUyNmNmOWEwOGQ4Yzc1ZTA5ZThhMWZhMTIwODkxZmQ3MWEwMDNhMjkwY2U5ZTEzY2YwOWQ5NjRmYjkxYWUifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L987-L1004",
+          "version": "repo-lines-v1:sha256:9108dcb76cfe849fe223f5949339615531b451b34f5d1bd2950254864f3cad06:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUwZjZmN2RhOTIxZWZhNTY1NWE3YTRiODVmYzc5MGIzNDEzYmNhMmM5N2NiYmJlMThkMDYwMWZkNjAwZDhjM2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY2OTQzMDY2Y2ZmNTM1NDRmYWI5M2UwNTUxZTNiNGYwYjQ5OTEwMzg1YjRmZGU4YzAyOTBlOTNjN2RjOTE4OTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiMDdjYTMxZWU1YjNkMTdjMmY4ZGZmYWM1NWU2Njk5ZjVhN2MyYTBlOTZhY2IzNDExNjdhZjAyNTUzN2YzMGEifQ"
         }
       ]
     },
     {
       "id": "claim_9b91e98a29a34c4caa268050b13a5f3e",
-      "statement": "Missing-credential and selection-during-preparation tests wait for the recording repository's failed snapshot as well as checking live failure because production captured failures publish before asynchronous save; actor waiters handle both already-recorded and future snapshots.",
+      "statement": "Captured missing-model or missing-credential preparation failures construct a failed snapshot and keep preparation active until an asynchronous repository save succeeds; only then does the live conversation record failure, while a save error appends an assistant error instead. Controller tests gate the save and verify joining/projection ordering; missing-credential and navigation tests separately wait for a recorded failed save attempt, which does not itself prove save completion.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L231-L255",
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L376-L400",
           "version": "repo-lines-v1:sha256:63509c11ab1c2718bead3930614de6427e1e6df47c0e787aeed401498661891c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0YzVmZGJhOWRmZTUwNjMwNjlkYTdlN2RiZWVjM2QzZWRiNjE3YmUzMTQxYjBmNGEyYzY0OTEzNWI0N2M2ZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyMzkzYWYzYmRiOTExYzA2ZWFmMjNkYjMxZTkyMmNkNGY3NDc2MmYzNGFmMTE1NTJkNDczYzc1ODhhZmFhZTkifQ"
         },
         {
           "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L66-L86",
-          "version": "repo-lines-v1:sha256:80d25cc0451a928bc50f91e07a28b411b83c0d7299889938c179b8d5e96fb33b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1OGZlNzcyYzJiNDExMGEyYzJhOWQxYTk5MjI3OGY4ZTNmZDg5YzMzNzJlZjZmYjE0Y2NjYmU1NDU3MmQyMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkMzMwZjllZDlkNjUwYTVhMDRlNTk4Y2YxNmE2NmZkOTM3NWZjYWIxMzhkMmJiNmE0MWYxNTJjYzRjMjExNDQifQ"
+          "version": "repo-lines-v1:sha256:80d25cc0451a928bc50f91e07a28b411b83c0d7299889938c179b8d5e96fb33b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1OGZlNzcyYzJiNDExMGEyYzJhOWQxYTk5MjI3OGY4ZTNmZDg5YzMzNzJlZjZmYjE0Y2NjYmU1NDU3MmQyMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3ZGY0M2ExZTA3MDM2YzJmMjk2OGUwYzdmMjZhMzQ2ZDJjOTliNWU4MmUyYWU2ODFkZWVhODQ5MWFlMmE2ZWUifQ"
         },
         {
-          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L661-L689",
-          "version": "repo-lines-v1:sha256:74df831f049f3d94b2df3e3684005e41efcfdbae4210f2a76d72f07088772ff4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3M2UyMmU5ZjA4MTYzZWY3NDM5ODE2MTc3YzcyODZiZjg0MGRhODFhYTAxODc0ZTUxOTExNDM3NTNhNTIzNTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4YTQ5OThkMTFmOGNhNTNkOWY1ZWE2OWQ3ZmJmYmE1MGViMTFhMzBhMTdkNDZiNzQzZDZiN2EyNzA5MDhlYzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjYWZkOTVhYTdjMWM0MzA0YWEyNTI0OTg4YWNlMTM1NjQwMjU1MGZjYTg1ZmY5ODlhODEzYjNmNTEwNmJmZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlMzE4ODBjNjRmODIxZTk5ZmMxNGNjNWE0MDY5OTE0MzQzZTIwNGUwYmQ3N2U4NjU5ODhjMzQ1Y2RkZTdiMDgifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L89-L184",
+          "version": "repo-lines-v1:sha256:8ecd718a0eeee7e604484a492c11582ee8447262bfc696d0429756e8a19915d0:eyJzZWxlY3RlZExpbmVDb3VudCI6OTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NzZiOTY4ZTBiYTUzZTU1MTZkN2QyMzg4MjAyNTY1NjNkOTU1MzQ3OGVmYzEwNmExYWE5NDllMWM0YTk5MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjVlNDExNjlhZjJjNDQ2NjUzNzVkOWJhMjYwNmRhOWUzZjk4YzQwZGUyOTZlNGU0N2RiOWM4ZTJjYjQ4ZjBhMTAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L765-L793",
-          "version": "repo-lines-v1:sha256:e87d08aec434dbaca6f03d91f4f5c0cab6e7e04e6040b3e13dc277d1eff4ed2f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU4MzY5NDdmMWVlZjZmNjIwZWJlZmQzMGE0N2EwNWI4ZDhiZWI2ZTNkYTFlZjkzOTM3MTg5OTZiZTI1NDkxYWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ODhmNzU3ODA1NDczNjk2N2U4NzY5MmJiYTg2YjI4MDhmMzI0MTk3NTQ0MDVlYmZkNmM0NWI3MTk4OWQ0NzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3MTVmNGViNzI5YTZmMGMwMDk2MWMyN2JhMzFjNmU2ZGQxNWIwNTFkOTRhOGI5NzY3YWQ4Zjg3NGZmODBjZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjNmM3Y2RjOGM0ZWMwYmM5ZGU4ZTY5MThmYWUwYWE5ODQ0MTJiNDJjZTVjMzY5ZWExZTMzMjg0N2Y4ZjIyOWIifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L909-L953",
+          "version": "repo-lines-v1:sha256:cb72be486241cd24fb1ff192767f453dfdcfc06fafcf88fccc805a2499e50915:eyJzZWxlY3RlZExpbmVDb3VudCI6NDUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhjYTIzYTEzNjJkN2VhODNlMDQ5ZDU4ODU1ZmI2NWEzOTEyMzZiODJjN2JjOTUzNzgxYmZhMWM3N2RjNmZjYjgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMyYjM0ZWYyMjY4OTRlMTE4MjQxY2JhMDZlYjlkNjE2ZTg1NTQwYzNlMjA1MjlkZDE5YTdjYTVjYThlYzNmZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjViMjI1MGU1ODYwNmNjNTE3NWNiOWMyYzE3ZmY3ODU5NzM5YzMxMDQ4MDE3ZjYxMjJkYjU1MGVmM2Y4MTljNjEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L359-L384",
+          "version": "repo-lines-v1:sha256:4a022fd2ff113b343d83bcbf21049418b3b9cfecd4cca03ffbf010665fcbea4d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxOWFhMTM0NTE5ODU0M2M0MTVlZjcyZDYzMDcxMmRmOGE3YzRhMzE5YTgzZWQ1MGRjMzJjOGViZmFlY2UyMWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRjMWRjYmZiMTVjMWU5ZGNiMDFiODBhZTEyMWMxYTJjYjM5NDkyNzkyZTAwNGI0ZDcxNTg3Yjg3ZjRlZjgzMTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU3MDMwNGY3Y2ZhYzBhYTM4ZGEwYjQ0MWZhYTc3MGQ4NWQwMzJiOTJjNDAwNTk1Y2E1OWZlODAwNzYzMTYwYTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFiMDVjYjY2MmMxYmVkOTlhYTM5ZWIxNTEwNWEyNTkwMGI5ZjEwOTJlOWU5MTI5NTcwZmQ5MjA2NGRlYTY1OTkifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L784-L821",
+          "version": "repo-lines-v1:sha256:bd653d42cab6085696236694f1bade43057e0ef81deb1a80530564cd9052282c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5NDc3Yzk3MjM2ZjdjMzNlNGNlYmM4Y2Y0MzQ4NmEwYzU3YmQ1ZjFhMWFlZTY1ZTc4YzM1ODZkNmIxM2Q3MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3MTVmNGViNzI5YTZmMGMwMDk2MWMyN2JhMzFjNmU2ZGQxNWIwNTFkOTRhOGI5NzY3YWQ4Zjg3NGZmODBjZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxNDVmN2U5NmE0M2YyYjc3N2RlNTYwODkwNTUwNjJhY2JlNzk1MWQ1M2FiYjFkNWQzYWI0NzIxNjdmODBkMzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_015d1c1ddfdd41aab15c7f0554d2c1c9",
+      "statement": "Manual compaction is refused while agent preparation is held at a memory snapshot barrier, without starting compaction activity; edit and cancellation fixtures also prohibit stale or cancelled prepared edits from entering truncation and join in-flight truncation before recording interruption.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L279-L374",
+          "version": "repo-lines-v1:sha256:50f7ba5dd5a79924a379eebd2254833cb2f3459b25e2cf641a47f2e54f3b75d9:eyJzZWxlY3RlZExpbmVDb3VudCI6OTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhYTJmZDVlYWY1OGI2OTc2ODY3MzYxOGRhMTY0MDU5NWRiYzRmMWMwZGNlMGMzMDJmYjkzZGFkZDE5M2ZjNDEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxNTEwODE3N2ViMDRiOGRiOTZhNmI0YWE0YTM3MTZiMDBkZGY2NjFmY2FkOWY4NzA5Yjc0N2Q2YjYxMGVlYzYifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L519-L540",
+          "version": "repo-lines-v1:sha256:86b94fd10a8c9d7ca8a12fd280f314f6ed57b669f92add6b32897973ab5fbe31:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUxNDk2NDE4YTVkMGU3OTIyYmYzZjczOGMzMzJmZmNhM2UxZGJlMjkwNmFiMWVhMzBkYmE1YjVmNzdiNGYzNDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjOGE2MGMzNzZlZGJkOWFjYTMwZGY1NDgwMjUwOGVmMDcxYWU4YmYzN2VmZWE3ZjI3ZTkwOTk0Y2VhZTBhYjAifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_e1546ff6a4b548049848c0da7aaf53ef",
+      "statement": "After an edited replacement commits, a pending failed-run save blocks further edit and fork and later adopts the real failed-run ownership; if that save instead throws, preparation retires without adopting staging or recording a completed failed snapshot and displays an assistant error.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L651-L716",
+          "version": "repo-lines-v1:sha256:24a37e6db9a28e2df6a846c75003bc452e86c9b046243ad437f00bc7775874a2:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczZDI1MDVmNDM1NjgxMTE3ZDRhOTY5MGVkZjE3NmVkNzBjZWFiYzhhYmU2N2JlODMyOTIxOTRkMjVhYTU2OWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJhOTU4ZTIzMDAzNTJiNWU3NmQ0YzYyZWM3ODUyYjY4NjViZTQ4ZDgxODg3NDg2Nzk2ZTkyMTI2MmZkNGRmNTcifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L784-L821",
+          "version": "repo-lines-v1:sha256:bd653d42cab6085696236694f1bade43057e0ef81deb1a80530564cd9052282c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5NDc3Yzk3MjM2ZjdjMzNlNGNlYmM4Y2Y0MzQ4NmEwYzU3YmQ1ZjFhMWFlZTY1ZTc4YzM1ODZkNmIxM2Q3MDMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3MTVmNGViNzI5YTZmMGMwMDk2MWMyN2JhMzFjNmU2ZGQxNWIwNTFkOTRhOGI5NzY3YWQ4Zjg3NGZmODBjZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkxNDVmN2U5NmE0M2YyYjc3N2RlNTYwODkwNTUwNjJhY2JlNzk1MWQ1M2FiYjFkNWQzYWI0NzIxNjdmODBkMzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_78f8d81d663b4c5fb8f7c9ca60534d7b",
+      "statement": "Tool presentation regression tests protect the composed AgentKit/Termind presenter ID namespace, equivalent restored and legacy card detail, safe decoding of older metadata, and structured approval details that include provided command/input rather than promising redaction.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationTests.swift#L18-L96",
+          "version": "repo-lines-v1:sha256:d7cbb9925387883a07ea20a4a73a0ec7adc642a071ffd321b25567fa02aaa9ca:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNmZjQxNDhjYTY0MjI2YzYyNzM2MDM3ZjMwMDRiNTMyMGM3MGJkZDYyODMxYWFhOTM4YThkYjY0OTFhYTViNDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM5OTE0NGY4ZTFmMTAxMDVkZmFmY2FmNGVmMWQ2OTA4MDA5NmM4NTI3Yjc1MDY2OWM0NzFhM2FjNTM1NzFmYmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImY3Yzg4MDk0OGI3YmE3MDJiMGJkODA0N2FjNjc4MzdhOWZhMjIwYzQ5YjEzMzhlNGIwZDljYTYzMmVlOWFmYmYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/AgentToolPresentationTests.swift#L733-L823",
+          "version": "repo-lines-v1:sha256:498039f24b8065013b6cbe6421281c9b4213a1c879d3df28c5e5d82357451c2a:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRhY2VhZThhMWRmOTZjNDQwMjA2YzIxZGNmNzEwMGE3MzQ4Nzc0NjliMzE5NGJlZjg5OTg4ZDIxNTU5MmU2OWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNjMzA4ODIxYWI0YzcyYzNkYmM0N2Q3ODJmNTc0NWQxYTUxZWI0OWM3YjJiNmZkZjVlZDM4NGNhNzNjYjE5NGMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_08a2265b3a6242e5ad6c9270b9c8f61c",
+      "statement": "MCP upload tests exercise scoped ticket capacity, acknowledged-offset resume and full digest, stream backpressure, cancellation and cleanup, conflict and terminal status with a fake SFTP client and controllable clock; a loopback HTTP test sends fresh and resumed bodies beyond the ordinary MCP body limit without a real remote SFTP server.",
+      "evidence": [
+        {
+          "resource": "repo://TFMTests/MCPUploadTests.swift#L109-L199",
+          "version": "repo-lines-v1:sha256:0bb89d05c6cbf912adddacee09067a7294ed505b654a33d63ca6d29d90465dc0:eyJzZWxlY3RlZExpbmVDb3VudCI6OTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiMzJhMTA1NTNkMjE1N2I1MGQ5NmE3N2FlMGI3NjAwNjIzMmUzZTE2MjE0NmVhMDM4YTI2N2IyZjFmYzk0ZjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBmZWRkZDIzN2RmMzgwNGU5NzZkNmMxZDg2MDAzZDc3YTYxZTZhM2E5MDE1YTAxMTMwOGM0YjE5OGI3Zjk2MjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhMjA2ZjE3N2FiZmU2OTRhODM5NGM3ODBkYzJiYTE4YWJmMjIzYmYwYjY2YWMzZWEyYWZjYzY0ZjUxZTgzYjQifQ"
+        },
+        {
+          "resource": "repo://TFMTests/MCPUploadTests.swift#L16-L45",
+          "version": "repo-lines-v1:sha256:76eac58ab509219efc87394272fa4f8b9cd1a4d536657160e9cef6e5cba8af4e:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmY2VkNmIzYWFmM2IzNmM0NzAzNjhkNTU0YjBmMDNiZjBhMjVkNzQ5YzQ4ZjMyMjA2YmQyNDI1ZjI5Njk2ZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU1ZDNlYzM2MGVlNTljOTZkOWMxMTllZDExZGFjMTJkYTcwMTM2MTRlZGMwM2ZiYTk2MmJlZWYyZjE4N2M3OWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjliZTNjNmIwMjM5ODhlMjA5YmZkOGMzMDY1ZmM4MWIwNDFiYTk5MDQyNzcwZWFmM2E1ZGUyMGJmN2M5ZjY1ZDcifQ"
+        },
+        {
+          "resource": "repo://TFMTests/MCPUploadTests.swift#L202-L381",
+          "version": "repo-lines-v1:sha256:d35498fb2c532e5cfede2e6a33accc1124a60650c89cd716d1d1ea45bc458781:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiYjM3ZGE1YTY3NzA0OWMwMmY1NjRmM2YzYjkyNmJkYjEwYzRlZWQ3MzZiNzQ3NzExOTBhYjMzYzI1OTY0ZGE1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2NjQ2Y2JlYTllMzY4MTQ3OTFkZTE3ODNmMDEyMDQ0MjU2NDg1OWYxMzE5ZDU3ZGQyODNiODFjMmJmZmFjMzA0IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiJiZjAzZTljZDBlYTM4ODg3YmEzMWY1Y2I0MmE0YmU3YmE5NmFiYmYzYTFhZjgxMjgzODRhN2VhNzQ3NTg4ZGZkIn0"
+        },
+        {
+          "resource": "repo://TFMTests/MCPUploadTests.swift#L391-L500",
+          "version": "repo-lines-v1:sha256:6170abf4e6d6c895681fde4c067cfeb4b4734b75e207845a710c285214a1373b:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI1MTg1NWJjNWI3NWNlODEzOTE2MmQ1YmZhMTgwN2QyNDY0ZmE2OWU4NjVkZjliMWRhMWQzOTk1YjZmMjg1OGYyIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiJjNmRlZGI4OGE0MDg1YTJlMmY2ZDlmMmNhNGMzYjhjMWNhNjk4MGFmNzY2ZmY0ZDhjYmI2YjhhMWJkYzI2ZDYwIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI4ODJjOWQyNDhhODY1OGM5ZTFmMWE3NDUyMmQ4MmY3ZWQ3MjBkYjhkNTk1ZTRlZWRiNDA0OWMyMzg0YzA2NGQxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI3MTQ0ZGU3Y2Y5MGQzMmQ3YmRjMjVlNGNiY2Q3ZjIxOWQ4YzhkMjk5OTAwYjhlZGU1MjNhNGI5YWNkYjIyOGNjIn0"
+        },
+        {
+          "resource": "repo://TFMTests/MCPUploadTests.swift#L503-L535",
+          "version": "repo-lines-v1:sha256:e417524e821c08d749ebf77615bc01268917ebf059f0eb5c54948f8e4940c32d:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhOGYzMTY1Zjg0NDE1OWE5ZTM4MzQxN2Y1ODY1MjNlMTE3MTBiYWNiN2UyZTMxMDVhMzJkYTIwZGRjYzA3NjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyZTkzYjBkOTk4ZmY2M2Y4ZWZiYmEwZGE5Y2Q2NGU3NDY0YjU1OTNkNDMyMWNmNmQ1ODcwODM4MDU3ZjE0MTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc1ZmRhMmE5MmMwNmVjYzllMjc4ZDMyOWE3NmY3MTA2NmQ4OTI3ZGVmNDdjOWFmZWFmYTFmN2U1ZWIxMjhjZjMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_73eb465055b04cc5bd7cb9a079bec417",
+      "statement": "MobileBackgroundController retires a background lease once; platform-spy tests cover repeated/stale expiration, synchronous reentrant expiration during begin that preserves a replacement lease, and invalid task identifiers that expire without ending a UIKit task.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Platform/MobileBackgroundController.swift#L27-L84",
+          "version": "repo-lines-v1:sha256:b633f63ef830e7665dc60afef2702d82bfbfd1cac1b84192699778c674465a93:eyJzZWxlY3RlZExpbmVDb3VudCI6NTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileBackgroundControllerTests.swift#L8-L95",
+          "version": "repo-lines-v1:sha256:4fffd4fec2a91bcf37361ae1bcc965d0cf134030e5ea98b1aaf9848a43796cc8:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI4YzgzZDk2MmE2NDhmZWZkZTJjMjEzZDVkYjQwNWM5MThmNmRiMWU5MzdkMGI4MTMwNmU1ZDY2ZjI2Y2JkMmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyNmNkODQwNGM5Zjc1MjhkODk1MDg3MzBmMTczMjc1M2JhZWZiZWQxMWFmZmI5N2FkNmRiNTllOWQ4NmE4MzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_200f3513ad9e4572a43d268fb6a3f788",
+      "statement": "MobileCardTests verifies card width/accessibility column policy and stable measured heights offscreen, while exercising saved-host timestamp and draft-color persistence through an in-memory MobileAppModel rather than requiring a UIKit key window.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileCardTests.swift#L164-L245",
+          "version": "repo-lines-v1:sha256:4e761b34d17cd99ceb885160e9b2a7d2235d73f7b1a22b8321753a3f455ef939:eyJzZWxlY3RlZExpbmVDb3VudCI6ODIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4ZDNlNWIxNTZmODNkNGNkYjAxY2E1ZGNiNWRhMTExNDc3NzA3M2U0ODA4YTllOGFiNDY2OWRjZTg1M2I5YWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1NTJlNzJlOGU0ZWE2NDNkNDYyYmQyMTAxNTA3Mjg0NWY5OThiYjQ4ZDVhMjFhNTRhZGNjNWM1ZjZmMDhjYmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwNTE0Yzc4NzM5ZDkxMzdiNWM0NDk0OThmOTA0NDI3OTEwMGJhODU0ZjIzMmYyZWZjZmRiN2FjNTI1ZGVmMGEifQ"
+        },
+        {
+          "resource": "repo://TFITests/MobileCardTests.swift#L277-L280",
+          "version": "repo-lines-v1:sha256:2b493cc9e932c2c8fe37f9c4f23a298bbd2cccbf103160cd8b7d79f6b605c2cf:eyJzZWxlY3RlZExpbmVDb3VudCI6NCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2FiMjk1ODIwZTMwNzY2ZmZjZGE1YjFmOGI0NGYxZjMwMTMyNTY3M2EyZWJjNzRmNzc4ZDU1NjIzOTJjMjUxMSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiODkzZGM5OTI5ODM3NTQ3MmRkMTQwYTA1OGE0ZTlmM2QyYTIyOTczYzg3MmViZGNkYjI4OGQwMWY5OTEwMWQzNSJ9"
+        },
+        {
+          "resource": "repo://TFITests/MobileCardTests.swift#L38-L86",
+          "version": "repo-lines-v1:sha256:dfabb2c83bfc0e5d451ff40166d6d3a4d1a5e3772c563ee00e5ac0228ea2061d:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwZDExMDRlNGI2ZGUzNDcwNDllMmE1NTBlMGUwNjQ3M2UyMWJkNmZhNWYyZGQ4NWUxYmY1ZjNmZWNmNzhhZTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZjY2Q5NGQ2N2E3ZjI4ODM4MDEwMTQ1NjZjZGM5OGYwZTJjM2M1MTRiOTBhODM4ZjY2YTgwNjVkMDRlYzgxMDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_c18a815575dc4b92a35d831d9897a418",
+      "statement": "Mobile key-window integration suites are opt-in and must run without parallel testing because UIKit presentation state is process-wide; StoreKit tests require separate manual opt-in, and macOS visible-window tests retain their own opt-in gate.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L40-L46",
+          "version": "repo-lines-v1:sha256:234a5eef8443b4d362174156c84cd70b777a307705ffd81785268d23fbf8080f:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMjBmNzBmODFjMjlmNzJjZWIzYjhjMGQwZWQ3MTBlNDMzYmJjMDgwNDNmNTBmOGZhMTdkNzU0NGRiZDA2NzA4ZCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://TFITests/MobileEditorToolbarTests.swift#L8-L13",
+          "version": "repo-lines-v1:sha256:bada030d4a98c25e3cfa2f66f41e809a06dbeced7a912cf693f97fd2af314710:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzE4MDI1MDRmMjViYTNjZDBiOGZmMTAwYjk0YmViNTI2ZDVlZTI1NDFjMmQ4OTBkODFmM2E0OTY2M2IxMjFjMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDQ3NTE0MGUyNmU5YzVhMTcxMWQ2NDQ1YTE4YjdmNGFlMjAyMmY5OTNlZjYyODQwNzU1NDMwMWI5NmUwZGMyMCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYmNiZTZmZGYxZDQxMjk1ZjY1MDJiYTgxYzVkMmI3ZmU3ZDlmYTAxZmU1NDVkN2U2YTJhYmNjOWJlMzI0YjhiNCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWU5OGYzZjc0YjBhMGM0MTQ2MGJkMDEzOWEyNzlmOGY4NWNhMDI5MmU5ZDM0YzI5ZjljYzUwOGRmMzE2OTIyOSJ9"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "at": "2026-09-23T10:36:38.039Z"
   }
 }

@@ -3,6 +3,9 @@ type: persistence and security concept
 title: Persistent Data, Migrations, and Secret Boundaries
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -10,8 +13,12 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
+  - id: openwiki-source-2d98a2885dc21f508f49b749
+    resource: repo://Frameworks/TermindApplication/Agent/MemoryIndexedAgentRepository.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
+  - id: openwiki-source-7397a04f40a393c81b0ca52d
+    resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-4ddcdd630c9bc1c622a037df
@@ -68,12 +75,16 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-256e2b134a8446ea63b15585
+    resource: repo://FrameworkTests/HermesMemoryTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-3f37062f55fb57a9f2e97f35
     resource: repo://TFI/Features/Vault/MobileVaultView.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-0854be84b166268626a3cb08
@@ -82,10 +93,7 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "codex", at: "2026-09-23T03:40:50.823Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # Persistent Data, Migrations, and Secret Boundaries
@@ -112,15 +120,17 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 ## Store ownership and startup
 
-`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV34` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and construct separate `ModelContext` instances where independent repository contexts are needed; they do not assemble a partial schema per feature or scene.
+`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV34` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and do not assemble a partial schema per feature or scene. Desktop services commonly share `container.mainContext`; mobile creates dedicated `ModelContext(container)` instances for several repositories while sharing a vault context among host, connection-history and device-directory services.
 
-The desktop root makes container opening part of initialization and uses a `KeychainSecretStore` for live composition. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Store-open errors propagate out of these composition paths rather than being silently replaced with a new empty database: data availability is an explicit startup failure condition.
+The desktop root makes container opening part of initialization and uses a `KeychainSecretStore` for live composition. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Store-open errors are not silently replaced with an empty database: the mobile initializer throws; desktop initialization catches and terminates with a fatal database-open error. Data availability is an explicit startup condition.
 
 ### Repository projections and atomic mutation
 
 SwiftData rows are persistence representations, not the feature API. `SwiftDataHostRepository` projects `PersistentHost` and `PersistentHostGroup` into `HostLibrarySnapshot` values and publishes revisioned `AsyncStream` changes. Host upserts update or insert the row, then use one commit path that advances a database revision, records Vault mutation information, saves, and only then publishes the mutation. On failure it rolls the `ModelContext` back.
 
 Deletion is a durable saga, not an immediate blind removal: `requestHostDeletion` atomically writes a pending-deletion marker, outbox jobs, and the revision. The snapshot hides marked hosts. Later steps remove dependent jump/snippet/history/forwarding references and finally remove host-owned identities, the host, and the marker. This lets a crash expose either the live host or a complete, resumable deletion intent rather than a partial state.
+
+The platform projections differ around the durable deletion request. On macOS `AppModel.requestHostDeletion` clears command, SFTP and connection History for the host, stops forwarding and projects the host out; its registered outbox close-workspaces handler also clears connection History, while other handlers cancel transfers and revoke dependent access. On iOS `MobileAppModel.deleteHost` first disconnects the assistant and closes workspaces, invalidates SFTP edits, cancels transfers, stops forwarding and removes metrics, then requests deletion, projects the host out and starts the outbox. It does **not** clear the three History models in this method: mobile's registered outbox close-workspaces handler clears command, SFTP and connection History later, as well as projecting the deleted host (including after a restart). Do not infer identical *immediate* History behavior from the shared repository deletion saga; on either platform, a failure after pre-request side effects may leave those side effects even if the host projection is not removed.
 
 Agent conversations use a separate SwiftData repository with similarly deliberate projections. `SwiftDataAgentRunRepository` stores run snapshots, messages, context/replay backing, tool invocations/results, reviews, compactions, and ordering. It deduplicates replayed earlier turns by message ID, sanitizes persisted text and tool-call JSON, and marks nonterminal runs interrupted when the repository is initialized. Loading orders transcript rows by run and sequence, then restores recorded tool results that were committed before the next transcript snapshot.
 
@@ -136,7 +146,7 @@ The first real snapshot whose final ordinary user turn is this staged replacemen
 
 The repository's in-memory retired-ID set includes the edited target run even when its prefix survives, all removed later runs, and adopted staging runs. `save` and durable-event `record` ignore retired IDs, preventing late work from rebuilding the discarded suffix. This is a repository-instance guard, not a new persisted tombstone or schema migration. Both truncation and snapshot save restore the previous retired-ID set and roll back their `ModelContext` changes if the transaction fails.
 
-`AssistantConversationOperations` applies the live history edit only after the repository commits; invalid replacements and rejected writes leave history unchanged. Live running, failed and interrupted projections adopt staging provenance too, but publication ordering is not universal: a captured missing-model/credential failure still updates live state before its separate asynchronous save. See [Assistant Runtime](agent-runtime-and-assistant.md) for that boundary and the distinct immediate-stop runtime-handoff limitation. Shared replay tests restore failed/interrupted adoption through a fresh context; desktop and mobile fixtures compare same-run prefix history and provenance after edits. These fixtures do not inject a real disk-full or read-only SwiftData failure.
+`AssistantConversationOperations` applies the live history edit only after the repository commits; invalid replacements and rejected writes leave history unchanged. Captured missing-model/credential failure now schedules a separate asynchronous save and **only then** calls `recordFailedRun` to adopt and publish the failed run; preparation remains active in its saving-failure phase until this finishes. Preparation cancellation that records interruption also saves its terminal snapshot before adopting and publishing the interrupted state. A save error appends a visible error rather than projecting a successful failed/interrupted adoption. This commit-before-projection rule does not make every stop a durability barrier: `ConversationModel`'s queued-before-start cancellation projects `.cancelled` when it launches a best-effort `prestartPersistence` task, and `stopAndWait` joins the consumer but the save error is swallowed. See [Assistant Runtime](agent-runtime-and-assistant.md) for runtime handoff. Shared replay tests reopen failed/interrupted adoption through a fresh context and cover queued cancellation and captured configuration failure; desktop and mobile fixtures compare same-run prefix history and provenance after edits. These fixtures do not inject a real disk-full or read-only SwiftData failure.
 
 ## Schema evolution: preserve the past exactly
 
@@ -199,6 +209,25 @@ Hermes Memory does not share the SwiftData database. `GRDBMemoryStore` is an act
 Memory updates run in database writes. A review is accepted only when its expected base `AgentMemoryState` still matches; otherwise it returns `nil` without recording the review. History replacement deletes no-longer-present sessions and only stores user, assistant, and tool messages after visible-text/JSON redaction. Search uses trigram FTS for queries of at least three Unicode scalars and a case-insensitive fallback for shorter queries. `close()` releases the queue; `destroy()` closes it first and removes the entire owned directory.
 
 The focused Hermes tests prove disabled memory creates no files, snapshots survive a close/reopen, stale background reviews cannot overwrite foreground changes, indexed history is searchable and removed with history replacement, and destroy revokes old access before a later enable can backfill retained conversation history.
+
+`MemoryIndexedAgentRepository` wraps agent history rather than moving it into GRDB: it requests indexing only after a successful terminal run save, conversation creation, title change, truncation or deletion. `MemoryModel` loads the SwiftData-backed conversation projection through `AgentRunPersisting` and replaces the separate searchable memory history; disabled or suspended memory does not start that work. Reindexing coalesces changes while a task is running, and a memory search waits for the current indexing task. This is a derived local index, not a second authoritative copy of agent runs. The GRDB replacement compares redacted message IDs and content, not timestamps alone, so editing a turn with an unchanged timestamp still refreshes the index.
+
+Suspension is not deletion. Mobile suspends memory when all scenes enter the background and resumes it on foreground return; desktop suspends it on termination. Suspension rotates a generation token, invalidates session contexts and access handles, and cancels index and review tasks. A resumed session receives a new access handle; an in-flight write that committed across suspension can still finish in GRDB, but its obsolete caller receives cancellation and the current generation reloads the committed state rather than publishing a stale result. Index changes saved during suspension are picked up on resume, while a review computed before suspension cannot apply afterward. Disabling memory closes the store without erasing it. Destroy instead disables access, cancels and joins pending work, then removes the GRDB directory; a `hermesMemoryDestroyPending` preference keeps a failed destroy disabled and triggers a retry at next initialization. Re-enabling after a successful destroy can reindex conversations that remain in SwiftData, but cannot revive destroyed memory entries or old access handles.
+
+```mermaid
+flowchart TD
+    History["SwiftData agent conversation commits"] --> Wrapper["MemoryIndexedAgentRepository"]
+    Wrapper --> Gate{"Memory enabled and not suspended"}
+    Gate -->|yes| Index["Load conversations and replace GRDB history"]
+    Gate -->|no| Deferred["No indexing until enable or resume"]
+    Index --> Search["Search waits for current index task"]
+    Suspend["Suspend or destroy"] --> Invalidate["Invalidate generation and cancel work"]
+    Invalidate --> Resume{"Resume or destroy"}
+    Resume -->|resume| Index
+    Resume -->|destroy| Delete["Close store and remove memory directory"]
+```
+
+Memory history indexing follows committed agent data; suspension invalidates consumers while destroy removes only the separate memory store.
 
 ## Change checklist
 

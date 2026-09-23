@@ -3,7 +3,12 @@ type: implementation guide
 title: SSH Multiplexing, Channel Admission, and I/O Scheduling
 description: "The concrete ownership and scheduling layers behind Termind SSH: per-connection session leases, serial libssh2 workers, exec state machines, multiplexed SFTP retries, readiness, backpressure, and feature-specific connection reuse."
 tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
+  - id: openwiki-source-4f78037bc69b6dfc293aca3d
+    resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-8e06414c0a0a26e45de192bd
     resource: repo://Frameworks/TermindDomain/Connections/SSHPreferences.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
@@ -26,14 +31,15 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-e63615bc111f4678ec12525d
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift
+  - id: openwiki-source-0260a25fb41739d94e23d2ea
+    resource: repo://TFMTests/AgentConnectionPoolTests.swift
+  - id: openwiki-source-cfbc34def649c94f760c5695
+    resource: repo://TFMTests/AgentHostAuthenticationTests.swift
   - id: openwiki-source-7364a5d16e49e89eb03bbee2
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # SSH Multiplexing, Channel Admission, and I/O Scheduling
@@ -76,7 +82,9 @@ This is a conceptual layering diagram, not a claim that every owner supports eve
 
 Metrics deliberately opts out of concurrent operations: `SSHExclusiveConnectionAdapter.withConnection` uses a busy flag and FIFO continuations to serialize complete operations on its owned connection. That adapter has no topology/fallback policy. Similar-looking SSH usage does not authorize merging Metrics, terminal, Agent, and forwarding lifetimes.
 
-The Agent has a separate higher-level reuse policy: `AgentConnectionPool` keys connections by Host ID plus route fingerprint, joins same-fingerprint in-flight opens, and opens primary SFTP on its pooled SSH connection. Reuse survives a follow-up Agent run; default idle expiry is 180 seconds, and active exec/SFTP leases prevent whole-host idle retirement. Missing/changed routes invalidate reuse. This is an Agent-owned pool, not the terminal or forwarding pool.
+The Agent has a separate higher-level reuse policy: `AgentConnectionPool` keeps one primary SSH connection per Host ID and route fingerprint across tool calls, runs, and conversations. Exec and primary SFTP share it; same-fingerprint connection opens and primary SFTP opens are joined rather than duplicated. A changed route retires the old connection and its SFTP state; failure to resolve a deleted/closed target disconnects it. A successful open is bound to the **post-authentication** route fingerprint, so saving an identity during a prompt does not immediately invalidate that new connection. This is an Agent-owned pool, not the terminal or forwarding pool.
+
+Idle retirement defaults to 180 seconds (swept every 30 seconds in the app). Active exec or SFTP operation leases block whole-host retirement; idle auxiliary SFTP connections can be retired separately. Idle expiry then closes the primary and its SFTP state. `openConnectionCount` includes pooled primaries and auxiliary SFTP connections, not sibling subsystem channels. `disconnect(hostID:)` and `closeAll()` also cancel pending opens and SFTP activity. The Agent's `withSFTP` acquires an exclusive channel lease for an operation; overlap can use silent auxiliary connections or sibling channels according to scheduling mode, but the operation itself is never replayed.
 
 ## Session-channel budget: local FIFO, not server discovery
 
@@ -148,7 +156,32 @@ Any libssh2 read can decode packets for another channel. The forwarding worker t
 
 Socket dispatch sources are queue-confined. `SSHSocketEvents.cancel` resumes suspended sources after cancellation and runs the descriptor-close completion only after **both** cancellation handlers have retired. The exec worker increments its generation on cleanup, clears queued work, closes SFTP and the channel budget, and rejects stale scheduled pumps/events. Transport errors report connection failure once and fail outstanding commands; one command's channel-local error follows its own close/free path instead.
 
-The Agent's automatic replacement retry is deliberately narrow: `AgentConnectionPool.execute` retries `SSHCommandExecutionError.connectionUnavailable` once, not arbitrary errors after a remote command may have started. Multiplexing is not permission to replay a command or an established TCP stream.
+## Agent authentication and pool retry boundaries
+
+`AgentSSHAuthenticationRegistry` leases one `AgentSSHAuthenticationContext` per destination to overlapping calls, including exec and SFTP. It removes the context when the last call finishes; temporary passwords/passphrases are **not** a cross-run credential cache even though the authenticated pool connection can persist. A missing connection first resolves local route checkpoints (proxy credentials, identity, required key passphrase) before opening a socket. Configuration attempts and prompts join by generation; cancelling a waiter removes it without cancelling another waiter's work, and the last waiter cancels the shared attempt. Host-key prompts and keyboard-interactive answers are carried on the attempt request, not returned as tool content.
+
+```mermaid
+flowchart TD
+    Call["Agent exec or SFTP acquisition"] --> Reuse{"Pooled connection exists?"}
+    Reuse -->|yes| Pooled["Open without fresh credential attempt"]
+    Reuse -->|no| Config["Resolve local route requirements and join generation attempt"]
+    Config --> Open["Join pooled open by Host and fingerprint"]
+    Pooled --> Open
+    Open --> Result{"Open result"}
+    Result -->|success| Success["Consume attempt secrets and return client"]
+    Result -->|server authentication failure| Evict["Evict pooled connection for ordinary opens"]
+    Evict --> Retry["Advance generation and reprompt failing route node"]
+    Retry --> Config
+    Result -->|local authentication requirement| Local["Resolve configuration without failed-generation reset"]
+    Local --> Config
+    Result -->|cancellation or other error| Fail["Propagate without replaying operation"]
+```
+
+Agent authentication retry and pool acquisition; `withSFTP` uses the same auth loop with pooled eviction disabled during lease acquisition.
+
+For an authentication rejection (`shouldRequestAuthentication`), `openAuthenticated` normally evicts the pooled connection, calls `retry(after:generation:)`, and obtains a new attempt; `withSFTP` deliberately disables that eviction while acquiring a lease. The failed generation alone may clear staged secrets and force a new prompt for the failing route node (including proxy failures); late failures cannot erase a newer answer. A **local** requirement (`isLocalAuthenticationRequirement`, such as missing credentials, username, or key passphrase) instead re-resolves configuration without treating it as a rejected server attempt. Cancellation is checked before each open and after a rejection for transfer tokens; unrelated errors propagate. Authentication success consumes one-shot secrets. `withSFTP` releases its lease on success or failure, disconnects on SFTP connection loss, and never retries the already-running file operation.
+
+A separate, narrower safety net lives in `AgentConnectionPool.execute`: it retries **once** only for `SSHCommandExecutionError.connectionUnavailable`, after disconnecting and replacing the connection. `SSHConnectionWorker` emits that error when the session budget is gone or the connection/budget changed before the exec channel was enqueued. Channel rejection or an error after command start is not a safe replay. When an in-flight pool open loses its only waiter, it cancels the open and disconnects any late successful socket; cancelling just one of multiple waiters leaves their shared open alive. Multiplexing is not permission to replay a command or an established TCP stream.
 
 ## Focused verification and diagnostic routing
 

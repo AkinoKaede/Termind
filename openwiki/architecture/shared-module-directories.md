@@ -1,9 +1,14 @@
 ---
 type: architecture directory guide
 title: Shared Framework Directory Responsibilities
-description: Functional directory responsibilities across Termind's six shared frameworks and shared resources, including flat-root concerns and how policy, persistence, transport, and presentation collaborate.
+description: Responsibilities and boundaries of Termind's shared frameworks and bundle resources, including agent execution, durable replay, SSH charset handling, and synchronized Xcode target membership.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
+  - id: openwiki-source-cd70c531c7abdbbdcb0ea290
+    resource: repo://AgentKit/Sources/AgentKit/Providers/ModelCapabilityResolver.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-96ab247f0823a449c632fdd9
@@ -64,6 +69,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-28d6772acb1a409d29ff1973
+    resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-0b6ab59ec6a684de8101ff8e
     resource: repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
@@ -84,10 +91,18 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Security/KeychainSecretStore.swift
   - id: openwiki-source-9c5b1553c1819d34c34b714b
     resource: repo://Frameworks/TermindRemoteInfrastructure/Security/SecureEnclaveKey.swift
+  - id: openwiki-source-9dfd0d1178e2ed5b33263580
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift
+  - id: openwiki-source-dd3df578da8881d8ba0638e6
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
   - id: openwiki-source-e980c605b1828a2d960bfd5e
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnection.swift
+  - id: openwiki-source-ab74624bdc6b7046d91bcbac
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift
   - id: openwiki-source-d371db64770fd2fcc301086b
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHMaxSessionsPolicy.swift
+  - id: openwiki-source-8c4abf5c09db535e2818e3c4
+    resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-7d9f0c3ee94cd4060d5507d8
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSHImport/SSHImportReader.swift
   - id: openwiki-source-1f7380cad037b68eb1bec322
@@ -100,19 +115,26 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferContext.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
+  - id: openwiki-source-017f5e2abe9b13df755a5322
+    resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
+  - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
+    resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
+  - id: openwiki-source-72f95a523c9b93bf5c81d9e5
+    resource: repo://FrameworkTests/RemoteCharsetTests.swift
+  - id: openwiki-source-41a7ded3800c9422f058a3ef
+    resource: repo://Scripts/check-zh-localization.sh
+  - id: openwiki-source-66092b0aa632065907bc7606
+    resource: repo://Scripts/update-linux-distribution-icons.sh
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # Shared Framework Directory Responsibilities
 
-The six module roots live under `Frameworks`. Paths in each table are **relative to the named framework root**. All current functional child directories are covered; these modules mostly stop at that level. Persistence is flat, while Presentation and Application also contain substantial root-level functionality. The “root files” rows are real responsibilities, not proposed folders.
+The six module roots live under `Frameworks`. Paths in each table are **relative to the named framework root**. All current functional child directories are covered; these modules mostly stop at that level. Persistence is flat, while Presentation and Application also contain substantial root-level functionality. The “root files” rows are real responsibilities, not proposed folders. Xcode uses file-system-synchronized groups for the framework roots; the shared `Resources` group is attached to product targets, not to every framework target. A file's directory and its compiled target membership must not be conflated.
 
 See the [Module Map](module-map.md) for build dependencies and [Native App Directories](native-app-directories.md) for the app-owned halves of these features.
 
@@ -162,6 +184,31 @@ Application depends on Domain and AgentKit abstractions. It exposes the capabili
 
 `HostLibraryModel` is broader than its name: it projects hosts, groups, identities, keys, snippets, forwarding rules, transfers, Known Hosts, and templates. Specialized feature models provide narrower operations over that shared data. Live connection status is kept separate from the saved Host values.
 
+`AssistantExecutionController` is the shared entrypoint for sending drafts/text, editing a prior user turn, starting a run, and manual compaction. It captures model credentials, permission mode, tool registry, skill inventory, and the turn's context snapshot **before** asynchronous memory or compaction preparation; an old turn is not silently reinterpreted using later UI settings. The conversation owns its runtime; the controller tracks one preparation by conversation ID, rejects overlapping submissions, and invalidates cancelled/superseded preparations before the runtime can start. Missing model or credential becomes a persisted failed run before the visible failure state is adopted; cancellation can persist an interrupted run. The injected `AgentRunPersisting` port is the durable boundary, not a SwiftData dependency of Application. The registry factory supplies Termind's host tools to an AgentKit runtime, which combines them with eligible skill/memory tools, uses a single ordered event channel for review and tool events, and keeps approval tied to weak conversation interaction (a closed conversation denies). Compaction persists its record before rewriting the observable transcript.
+
+```mermaid
+sequenceDiagram
+    participant Surface as App surface
+    participant Controller as Application execution controller
+    participant Conversation as Conversation model
+    participant Repository as Agent run repository
+    participant Runtime as AgentKit runtime
+    Surface->>Controller: Send or edit turn
+    Controller->>Conversation: Capture prompt and frozen context
+    Controller->>Controller: Prepare memory and optional compaction
+    alt missing model or credential
+        Controller->>Repository: Save failed snapshot
+        Repository-->>Controller: Save completed
+        Controller->>Conversation: Adopt failure
+    else valid run
+        Controller->>Runtime: Construct with registry and event channel
+        Controller->>Conversation: Start runtime
+        Runtime->>Repository: Persist snapshots and durable events
+    end
+```
+
+A captured turn becomes either a saved failure or a run; the observable failure is not committed ahead of its durable snapshot.
+
 ## TermindPersistence — one stored-model owner
 
 This module currently has **no functional subdirectories**. Its root spans several concerns; the rows below are responsibility groups, not physical folders.
@@ -170,12 +217,14 @@ This module currently has **no functional subdirectories**. Its root spans sever
 | --- | --- |
 | Schema and migration | Current SwiftData schema, frozen historical representations, migration plan, and the sole shared container factory. |
 | Vault and histories | Persistent Host/credential metadata and related Vault records; command and SFTP local histories; separate synchronized connection-event and generic device-directory repositories; and Vault journal integration. |
-| AI, Agent, skills, and audit | Provider/configuration records, agent-run/message replay, tool-audit storage, skill packages, and persistence redaction. |
+| AI, Agent, skills, and audit | Provider/configuration records, agent-run/message replay, tool-audit storage, skill packages, and persistence redaction. `SwiftDataAgentRunRepository` implements the AgentKit persistence port; its SwiftData rows are not the AgentKit loop. |
 | Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault local stores, mutation journals, scoped upload restrictions, recovery checkpoints, and sync-facing persistence adapters. |
 | Secret metadata/adapters | AI secret references and storage policy bridged to the injected Keychain service; not a plaintext secret database. |
 | Memory | Actor-owned GRDB/SQLite memory state, conversation snapshots, session/message indexing, and full-text search. This is distinct from SwiftData's model container. |
 
 The container factory selects the complete versioned schema and migration plan; platform roots choose its location and lifetime. It disables automatic SwiftData CloudKit storage because the explicit CloudKit coordinators use their own records and journals. No app feature or general infrastructure module may introduce a competing `@Model` owner.
+
+The agent repository saves runs by run ID but deduplicates replayed history by **message ID**; compaction messages are not stored as ordinary transcript rows. It keeps per-message frozen context/model text and attachments alongside run, tool, review, and result rows. On reload, it sorts messages within run order, restores the compaction projection and recovers a tool result already persisted before its transcript snapshot, rather than leaving an unanswered call in model history. Initialization marks unfinished runs interrupted. Editing a user turn truncates the suffix and stages a replacement run; the real run adopts the staged message instead of inserting it twice. Deletes remove the associated message/replay/attachment/tool graph, and guards prevent late saves for deleted conversations or retired runs. Title writes redact model-influenced text. These rules belong to Persistence, while the Application controller decides *when* to run, compact, approve, or display failure.
 
 Details: [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-secrets.md).
 
@@ -206,6 +255,8 @@ This layer can use Persistence. It does not depend on either native app, and a C
 
 `SSH` has multiple responsibilities because it is the protocol boundary, not just a terminal client. `Transfers` builds file-operation lifecycles on top of that boundary. **A logical file permit, an SSH session-channel lease, and a physical connection are different resources.**
 
+`RemoteCharsetStreamConverter` is the shared iconv adapter under `SSH`, not an app view or Domain policy: the selected `RemoteCharset` is a Domain value, but byte conversion happens at the protocol edge. It strictly encodes command/PTY input, environment values, and SFTP paths, so unrepresentable text fails instead of being silently changed; exec stdout/stderr, PTY output, SFTP filenames, and Telnet streams decode through the adapter. Fragmented multibyte input is buffered until complete. Malformed received bytes pass through without interrupting the byte stream (final string decoding can replace invalid UTF-8); optional recovery for invalid outgoing UTF-8 reports rejection, while normal encoding throws. `RemoteOSC7CharsetFilter` rewrites shell-integration working-directory paths into percent-encoded UTF-8 before Ghostty receives them, retaining partial frames across chunks and bounding incomplete payloads.
+
 The following diagram shows **collaboration**, not target dependencies. A solid arrow means “requests or uses”; a dashed arrow means an injected callback/result relationship. It summarizes representative paths without claiming all features share one live transport.
 
 ```mermaid
@@ -225,6 +276,8 @@ flowchart TB
     Metrics --> Parsers["Infrastructure / metrics parsers"]
     Parsers -.->|domain snapshots| Monitor["Application / Metrics"]
 ```
+
+The remote-operation path crosses Application policy, AgentKit execution, protocol adapters, and feature-owned interaction without making Application depend on libssh2.
 
 Keep trust/authentication interaction with the initiating feature. Additional silent connections and queued operations have different permissions and retirement rules from a user's interactive terminal. See [SSH Lifecycle](../workflows/ssh-session-lifecycle.md), [SSH Multiplexing and Scheduling](../concepts/ssh-multiplexing-and-scheduling.md), [SFTP Workflow](../workflows/sftp-transfer-and-external-edit.md), and [Assistant Runtime](../concepts/agent-runtime-and-assistant.md).
 
@@ -249,7 +302,9 @@ Details: [UI Design Principles](../concepts/ui-design-principles.md).
 | `Assets.xcassets/LinuxDistributions` | Distribution-specific `LinuxDistro-*.imageset` assets used by host/system presentation. |
 | `LinuxDistributionIcons` | Upstream icon license and disclaimer material, separate from the actual image sets. |
 
-Shared resources are compiled into product bundles; platform-specific icons stay in the apps. Resource consumers such as distribution icons and model catalogs should not create a new dependency on an app target. App localization and AgentKit localization have separate ownership.
+`Frameworks/Resources` is a file-system-synchronized Xcode group included in **TFM, TFI, TermindWidgets, and FrameworkTests**, not the six shared framework targets. The empty explicit resources phases do not enumerate its files individually. Shared data is therefore available in those product/test bundles; do not assume it is in `Bundle(for:)` of an arbitrary shared framework. `LinuxDistributionIconCatalog` loads `LinuxDistributionIcons.json` from `Bundle.main` and matches detected distribution IDs (falling back to like IDs); AgentKit's model capability resolver searches the main and package bundles for the Pi catalog and optional overrides. If the icon catalog cannot load, icon lookup returns no entry. Platform-specific icons stay in `TFM/Resources` and `TFI/Resources`. Resource consumers should not create a dependency on an app target.
+
+App text belongs in `Localizable.xcstrings`, bundle metadata text in `InfoPlist.xcstrings`, and AgentKit runtime text in its own localization catalog. Add finished `zh-Hans` and `zh-Hant` translations with new English strings; run `Scripts/check-zh-localization.sh` and relevant `AppLanguageTests`. For Linux icon refreshes, `Scripts/update-linux-distribution-icons.sh` takes a pinned Simple Icons version and regenerates catalog, image sets and separate license material together; the app does not fetch icons at runtime.
 
 ## Cross-layer flow: edit, persist, synchronize, render
 
@@ -268,12 +323,14 @@ flowchart TB
     Model -.->|secret reference operations| Secrets["Remote / Security Keychain implementation"]
 ```
 
+The edit-and-sync path uses explicit journals and CloudKit coordinators, not automatic SwiftData mirroring; secret storage stays a separate injected path.
+
 The editor owns interaction, the model owns the operation, Persistence owns stored representation, and the coordinator owns synchronization lifecycle. Secret bytes follow their separate storage policy; they do not become ordinary Vault/Settings record payloads.
 
 ## Verification seams
 
 - `ArchitectureBoundaryTests`: import direction, feature construction boundaries, and single SwiftData-model ownership.
-- `FrameworkTests`: portable model/policy, persistence compatibility, sync, presentation, and shared-service behavior.
+- `FrameworkTests`: portable model/policy, persistence compatibility, sync, presentation, and shared-service behavior. In particular `AssistantExecutionControllerTests` check frozen capture, cancellation and failure-save ordering; `AgentReplayPersistenceTests` cover staged edit adoption, replay snapshots and tool-result recovery; `RemoteCharsetTests` cover charset round trips, chunk boundaries, invalid bytes and OSC 7 rewriting.
 - Remote/session/transfer suites: transport, authentication, admission, cancellation, and recovery semantics.
 - Native test targets: screen routing, runtime lifetimes, and platform integration; those contracts are not proven by shared value tests alone.
 

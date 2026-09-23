@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7128b59755ba977881cdcb66403f656aca8e06a74e8217aae2fc581cd6b07aa9",
+  "pageVersion": "sha256:28aa0deba6ac872df151035ac04d0aba9eb9619b16b76c706ecd36c2dbe08425",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a6aef8eda8e5dc79dd30cec5bd6695dfc39d8c06958c49b6d29ec60c3ef1398b"
+          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
@@ -100,7 +100,7 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a6aef8eda8e5dc79dd30cec5bd6695dfc39d8c06958c49b6d29ec60c3ef1398b"
+          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
         },
         {
           "resource": "repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift",
@@ -226,17 +226,93 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:a6aef8eda8e5dc79dd30cec5bd6695dfc39d8c06958c49b6d29ec60c3ef1398b"
+          "version": "repo-file-v1:sha256:f54f1c1bc5f44d2793a5b079b18cf8043d2b1d75455f8130d7a7e237602d3796"
         },
         {
           "resource": "repo://Termind.xcodeproj/xcshareddata/xcschemes/TFM.xcscheme",
           "version": "repo-file-v1:sha256:6215ae5d2e32c9f76d70d6401196b14937f7be4b1e06b67db2297f3b81d86aa4"
         }
       ]
+    },
+    {
+      "id": "claim_23ecd208184940d5b7f7bfabf565ce28",
+      "statement": "Cross-repository AgentKit changes require testing and releasing the separate package before updating Xcode's minimum version and resolved revision together; architecture tests reject app-local redefinitions of package-owned runtime types.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L16-L18",
+          "version": "repo-lines-v1:sha256:79d9222951afd1cde2967f4987b4aa7b4347f1510f1fc4d1141010690b9c8bff:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOGI2ZWFiNGFjNWIwNmRiMjY5NmQ0ZDUzZTJlN2YwZDE3MzhmMWI3NTAyY2UyZWY1YjcwMzIzZjg3NjdjYTllNiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRkZTk1MTMwNGUxYWVlNjRiM2IyYmY3NWZkMzI2YjAyZGM0OTE5YjlhODM4MGZjZTY1YTAyY2VjOTE3MzdjMiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYWM1NjRmZjMwNzY2N2QwZTgzMGJkYjkxYmY1MDYwY2FlODNhMjc2NzRkNTU5NWNiYTU0ZGMwNmQzNmE2NWMzYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMTVkOTdmMmUwNzM5MTAzZjc1MTA1MjljNjA1Zjg0OTIzMTdkNDJmNDA5NzEwNGFmMmRkMjBiOGUyNmZhMmNmNyJ9"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L161",
+          "version": "repo-lines-v1:sha256:7cdee90b6c957a9b654ad149c681648048b6f866215d776195dcdc82e9e60f1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOWJmNjE2ZGNmNTM5YTBkNTRhMTM2YzY2NGM1M2EyNTllZmFkOWNmNWFmYTY5MDY5ZmEzOGI1MzE5OTQ0YzUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0N2NhYjY3NzUxMmRjZWQ0YTIyMGVkZGQ4NjNlZDFlNDM1OTM0NmRiYTk4ZDljYjkwZDBmZjk2MjhjM2IzNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwOTFiNTFiYWM3YThlN2Y5MGRlY2E4MWMzMTYyZTdhYjY4ZmViOWIzZTViMDk3ZDZhMTliNTg0OGJkODZmNjEifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L2852-L2859",
+          "version": "repo-lines-v1:sha256:444f908545e708b1d395265e4292e5529193fc19d4f609c8b5e06f6d68e13abe:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDhlMTQzODY5ZWI0MzVjMzZmNTljZTI5N2IxYWYxNzc3NThjMzVhNzFlNzJiMDQ2MTY2ZjkzNTNkODcxM2E3MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMzYwYjg4YTA1ZDViNTM4NDc2MDIyOWJlNjA1NzJmZTYyYjFjMjljZGM1N2VkYjVlNjk1MWRhYTRmZDQ2YzgwMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYzExMTg1YzI4MDExZTZiNWFiYjU1YzRlOTQ5MjMyMTkwMzE1YWFmNGZhYzU4MzhhMDFjMWZmNTQyMjgwZmFiOSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiN2M5YzA1MzMwYWQ3YTFmNDVhMmI2NDU2MTQ4OGZmY2NjZGY5Yjc3YzZmMDA0ZjBkYzRmNTBiOWRhZWFiYjdmNyJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_f14815c519a24573871b358a9b99cb67",
+      "statement": "The MCP bridge defaults to a loopback URL, accepts URL/token from environment or command line, refuses invalid URL or missing token, skips malformed stdin, emits JSON-RPC errors for failed requests with IDs, and best-effort deletes its session at EOF.",
+      "evidence": [
+        {
+          "resource": "repo://TermindMCPBridge/main.swift#L109-L130",
+          "version": "repo-lines-v1:sha256:4b0af7bee6f0f7d20c1f50e99d9ff54805bf9306b28f10aee8ee646a4a2209d2:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjIyMjM0MWZjYTQzNTFmOTBiYzJlZTdlMDU0M2FiY2NmOGMyNmQyNDQ4ZjM2NjJhMTMzNjkyZjE4ZTM4NTkxNTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiYzA0MzAyOWJiOTU2MjMyYzRhNmEyNDc3OGZlYTY1ZjhlYzBmYWUwZWI5MzkxM2U5OTM2YjBjZjU1NWEwMzkifQ"
+        },
+        {
+          "resource": "repo://TermindMCPBridge/main.swift#L37-L88",
+          "version": "repo-lines-v1:sha256:5660a52ceb6e4e997c228d62cc5f9e79b588dcf8ba41819a12f42d6c185e3586:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYzUzMDFiNzY2N2NjNmE5MGQzNzIxMjI5NWE0YmE5NTM3MTM3NDAwNjhjMzA2NmExYTYwOGUwNzg5ZTlkMDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMzNzE2Y2U1YjJlZjU4ZDU0MThmMzM1MDRlMjgxZTZmMjcyZmYzMWVlOGQwNTYxMmQzMzI1YmRjZDQ2YWYzNzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImVmZmU0MzJlNTVmYzJhYzRiMzc3NmIwZjI1NjhhNTVlOTE0OGQwZDNiOTExOWVlYTE4YTZhNjE4YzMwYjgzM2EifQ"
+        },
+        {
+          "resource": "repo://TermindMCPBridge/main.swift#L4-L23",
+          "version": "repo-lines-v1:sha256:07a524e72460f12d0c060f2965197b7edf17b3f39e8e68ff604727503d88bed5:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MjJjNDJjZDE5YzZkMDNkODA4YzQ1MjcyMDU1MjgyNWI3ZWExYzViNDkxYjIxODUxMWNhYzc0MTVjZjlkOWIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0ODcxYWY5NDg1Yzg3ZThjMGM0ZGNhN2IyYTI3MThiOWY5YTJmN2QxM2RlYWM1Y2MyYTY5YzgyNWVhY2ViZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUwMTlmZWVlZjY3OTE3NjQ5MTAwM2ZlNmE0MTcxNWZjMzFjODI0ZGYxOWNkMzdiYzhhZGI1ZTZiZDRjYTk4MDcifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_5533ba3f491248e08bc6d4210fca6ea2",
+      "statement": "The mobile Live Activity controller restores one active or stale activity and ends duplicates; it serializes updates and retirement, ends on empty workspace state, and requires explicit start intent and start permission before recreating a missing activity.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/Platform/MobileLiveActivityController.swift#L16-L29",
+          "version": "repo-lines-v1:sha256:3bea0397adae7574719a1651c9f1141456f8bed411e39d4f981d518268dd9b26:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM1ZmViNmNmYmY2MzE0YTE1MTk1OGVjOGJmMTdkOWQxYzQ0ZjAxNzE0ZmE4YzMyMDI5MGVhMjZkYjk3MDU4YjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ3MWQyNTBlMDQ0MWQ4NDYxNDAyYzc1YmY2YTNiNTdhNjFlYTRlMjU5YzhjMjY4Y2EwODJmNzU3MzkxNGVkOTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMxMjBkOWZhNzhlY2NmOTY4MWYwMGEzOTdjNGM4NGViOGNjMmRhMmJkNWYwYjA4MWRjMDUwYTU2YzEyOGQ1MmEifQ"
+        },
+        {
+          "resource": "repo://TFI/Platform/MobileLiveActivityController.swift#L38-L70",
+          "version": "repo-lines-v1:sha256:25904d437e3d846013d0a6d6d0b7fe72ced259ca15d37ea18710b89263f59a87:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM5YzBjNjcwMzUxMjRmMzhiYmZmMTRmZDhlODIxYzJhYWUzNzg1MDc3ODJiMGZjODY1NmQ2YjVjZWU5ZDEwNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRiOWM4ZGJlZGQ0ZTBjNDJlMzUzMmI2ZDM0YjZhZmIxMDAzN2I3MDY0NzRmM2MwNTExNmJkNWFlOWE3MWQ3MzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_85382a4e74594dffb2d36a8002fa0a4f",
+      "statement": "The standalone forwarding benchmark consumes fixture metadata and validates connection limits; the Python benchmark runner builds its dedicated Release scheme with pinned dependencies and collects metric records, while architecture tests ensure it is not an app dependency or test-host workload.",
+      "evidence": [
+        {
+          "resource": "repo://Benchmarks/PortForwarding/main.swift#L7-L59",
+          "version": "repo-lines-v1:sha256:f51c7cc6683f5e4f441bf17b4a651aa9a86700c2794e6e0a13dc9b935c590180:eyJzZWxlY3RlZExpbmVDb3VudCI6NTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcwNzA1ZGJmYWE0ZjAyNDYwNTA2ZWM2OTJkOTZmMzUzMzg2ZDVlMzkxYTE0MzQzMjZmNDY3NTk2ODNmZDg5YzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNiZWMwNGMyODI2NGU3MWI2MjIwMTQ3M2MwOTMyMDVlMGIwZGUyZjQyNDM1NGMwMmQ4ZDljMmE4Zjg1MjI4OTQifQ"
+        },
+        {
+          "resource": "repo://Scripts/benchmark-port-forwarding.py#L14-L16",
+          "version": "repo-lines-v1:sha256:f710759d9d1d258e530899145cf791513f7286ea85c3c68c5c1fb64bcec056ae:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYzA1ZDAxODViN2FiYWU1ZTkxMTYyMjgwZWE1MWIxNmRjYjI3Yjg0NTJjNzc1ODkzZjM2N2NiNzc3MDM1Yzc5MyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOTA3MDEyMzE1YjMzZDcxMTgzMmMwMmM5ZWI1ZTI0MWQ1NGFjNGMxMTVmZGY0OWFiMTc2MDJhYjlkYmFiMTA4OCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYjZmNTkxOTA2ZDYyZmZjYzQyOWViYjQ4ZmRiNzlkMzkzZjM5ZDJmMzg1NzViODlmYjQyMWRkNmI0OWE4YTIwYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiYWRiMmE5N2Y0MjAxNGQyMWYwNzYwMTUzNjcwMTlhMmNlZTc0MzM2NzE3ZDJmZDMxNWE4NjNiMTM2YjdiNGFmYiJ9"
+        },
+        {
+          "resource": "repo://Scripts/benchmark-port-forwarding.py#L33-L105",
+          "version": "repo-lines-v1:sha256:80f1083f560e7db60c3a66c32f7a6a0b53936734805c987d01e6bcc4a9d18099:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMmNhZjkyMDVhNDc5OWI1Y2RjODU0MDE0NmU0YWI0NGRjZDY2ODJhMTk1ZWUxYjg3NDRlYzg5MzUxODZlMzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQwMDZiOWNkODI3NzY5ODM0MmJiYmQ2YjU1NjZkYWE3NThiMWExMjBlYTRlN2U5YzJmNDFjZTAxODMxNDZkZDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExYTRmMDVmZjRkNDhiNzRkNGMzNjU1MGNkYmUwYjhjN2UzZWVkYzM3MmEyNDdmMTI1NjY2YjFmNmUzMTljYzUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzMTEwOTA0YTFlMDRkYzYxYjA0NjIxY2RhMDM5YzExMjFkNDVjZWVmZjNmN2I4ZmRiNDgzOTM0MDE4OTVkOGMifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L5-L21",
+          "version": "repo-lines-v1:sha256:98306357e42814b24b1aa8f79d3e9d07347124bc26ff146d80b8ed5d90d4ef9f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ2ZGQ1ZmEyNWE4NWIwYTBhODU3MDBkOTk2ZTIxMzgyMWEwZjk2MmU0NmVkNGU5NDY5ZDVlYzNkYmI2YmM4ZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkMTZmOTdkOTZhZjllZjZjYjY3NGUyNzIxZTU3MmQ2YTFlNWRkOTY4MDJmOGIwZmIxM2RhZGVkNGI3NjYwNGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMyNTMyNzdkNWRjOTAyZTI1OGVlNmZmMmY0MzA4YjRkYTQ2ZGJmM2Y3NmI1N2Q4MzQ1NWU5OGMyMTg3OGU5NTgifQ"
+        },
+        {
+          "resource": "repo://Termind.xcodeproj/project.pbxproj#L1091-L1111",
+          "version": "repo-lines-v1:sha256:90c928ad9e8328b3f2fd4f0325c470b6bfee84f729fdaab7df4dc416481f2c8c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViNGJkM2U1MzkyMzUwMzkzYmQxYmQyYjI0MjdmNjMwZGU2OTUzNjFkNjY2ODMzYzE5ZTE2NzEzYTRiMWZkNWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MGI4OGEwNWQ1YjUzODQ3NjAyMjliZTYwNTcyZmU2MmIxYzI5Y2RjNTdlZGI1ZTY5NTFkYWE0ZmQ0NmM4MDMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImRiOWFlYjQyMDRmZmM1Nzc0MjY2NGY2NDQ3NjcyZWRjZmIyM2IzNDAwYzhhODkwNmFiNmMyODhkZTg5OGVjMGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM0NDNjODdmOTI5NmQwY2E5YTZhZTg3MzFlYWVkMjVjYWJhMmZiOTcyOTAzMjQxNWQwMzc4M2M4NjQzZjQ2NmMifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "at": "2026-09-23T10:36:38.039Z"
   }
 }

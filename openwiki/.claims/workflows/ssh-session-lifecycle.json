@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7e3576b0e372bee5a798e768751d114d3ba06db8df17a182ee83572b288f24f1",
+  "pageVersion": "sha256:557605f4c9e89cf5b14379eef061940a994954d683d87ed5f0e24b963c46f493",
   "claims": [
     {
       "id": "claim_69a9de4ce918417c8a44c6c87c9f6564",
@@ -121,32 +121,24 @@
       "statement": "Desktop restoration does not reconnect live Workspaces, whereas mobile persists only connection-free descriptors containing workspace ID, Host ID, kind and title; cold launch performs no session or network restoration. Mobile background expiration closes transports and foreground can resume existing workspace intent.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L659-L687",
-          "version": "repo-lines-v1:sha256:79cc24d90367f9ef59be0ea4dd25af4951788cf734444c57cefc55aa8a746b6d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4YjM0MjE2MjYzZjM3NTkzNDUyZGMyNDNlYTQyNTQ3MDJkZTEzYjI0OTliYTQ4ODYxODk2NTI4NGNmNDQzNmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ1NWE2YmQ5MDhjMTBjOGM0MzYyZDBkNDAyZDI0Y2JkMDY2MDgyYjNjMjQ0N2YwZTA0MjZhYjEzY2M4NDc2M2MiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5MDlmNTg5MzgzODA2NjM1OTVhOTFhNDhlYjQzNWFhNjI1OGNiZWVlZDc1MjAzMDUxODZiYjBiMGI4MTZjMDIifQ"
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:b24747ff9dedd849a5aabeba6b978fa6c7e3b61954033dcee5163d5ed8064123"
         },
         {
-          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift#L1056-L1101",
-          "version": "repo-lines-v1:sha256:0a7ae642dd083c84f164b264fee0281ba51d48288dcddb66d8c2e9912a631140:eyJzZWxlY3RlZExpbmVDb3VudCI6NDYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjljN2Y4NWI1NDQ5YmI0MTM0YjhmMTAzN2M1ZDkwNjU4ZDNiMjU4YWIxMDZlNWZmNjEzNTBiZjg2MzlmYzY4ODQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE2ZGMzODIwMjNmZDQ2NDhkYjQzZmZhNjFjNWJmYjQ3ZjliOTZjZTIyZjFmNGI2OGYxZTczZGY3ODkxN2VlMDkifQ"
+          "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
+          "version": "repo-file-v1:sha256:3d05ec07c3ea60a68e5a292a2c934ae7f24cc1fd674b1b76dc1003b84fed0059"
         },
         {
-          "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift#L4-L68",
-          "version": "repo-lines-v1:sha256:b43cb4870d4d5319ae6dd1b68255f083bdf1c62a876c6ea566d2ef6c266f5cc6:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxNDkxODZkNzI0Y2I5MzM5MjJhN2U0MTQwZTVkMzhiNGI5MGQ5YzQyZjQxZmY0NDIzMzZjNjVkNWNhMGRlZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE1OGQ0YTkxMDc0MDU5ZjBjOGQyMTM2ZjliZjgwODM0NjE0OGZjOGNmYjM1NDNkZGNiYzc1MGU3NTc2ZTcyNjMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileAppTests.swift#L1516-L1546",
-          "version": "repo-lines-v1:sha256:da0450e18748d4e9ec4ac784144804c174d495f485f47167f501f7493cc28fbe:eyJzZWxlY3RlZExpbmVDb3VudCI6MzEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyNjg1Mjg5MWQ1ZjVjNTVlNjY5YzQyNjRiNzc3NzAyOTVkMDcwYTY0YTVlZDAyZTc4ZmJiYTJhMTk5NGFkNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllOWQzMmRjYWFlMWI1NmZiYzYzMTNjZTM2YzAyMGE5MDhkOGFiMTUxNDk5NTgyM2MyODFhOGI3YWE0ZjQwODEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjczNzhlZjkzMGE2OGVlNWNmZTg4Y2NlMTZlOWYzYjkwMzBhNjExMzYwNzg2OTI0ZDM4ZGU5MzJlZGM3NjI0NDIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBjNTgzMzcyZWM2ZDg1Zjg4NDI1Mzk5ZWE4OWJlYmJlNGY5ODY4ZmExMmU1NWI3YTkzYTdiOTAzMDExNDZmYWUifQ"
-        },
-        {
-          "resource": "repo://TFITests/MobileWorkspaceStoreTests.swift",
-          "version": "repo-file-v1:sha256:9953e49389c0c2b390fe6bd51e467de56c31ec1556a13633ae239ac842c9241d"
+          "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift",
+          "version": "repo-file-v1:sha256:ea46bc5d91b8f0cbbdf562a56e1383dc1d7732ba249b109dd676a54369acf9c6"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:4bc8de73959fb7b78ab29e7936fbeab9a5f13a0e0f7555d520d99ff2bd731cec"
+          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
         },
         {
-          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L17-L32",
-          "version": "repo-lines-v1:sha256:ee52fc70a63ddae0b4a377ac03a5435f3ad519a3c7fff59a6f548eea69dfb70a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU0MzA5NzdmMDljNjhmODk4Yzg4ZGI3MTdiYjU2M2QxMTU4OGZlODRjYzRmOGU0MDVmODE4NDg5YzFkOWZhYTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVkZmI5ZDI5ODQwNzU5MjVlNDRlZGY4MGE0NTViN2M0ZDFhNzhhNDE3NzM2Zjg2OTZjZTA2OTc1OTQ4YWIzMjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyNDgzZjMxMjRhMTUxZjE0YjJjNmU4ZjRkMTEwYzc1ODVmZTE0NWM0OTdkZDE0YjEyYWJmNjAwN2IxNTA5YjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxNzhjOWMzZjc5MjhjNGYxMmZjMDg0ZjY1YTU2MzA0OGI2Mjk2MmM4NTE4OTI4NDYwZTlkZjk3Y2I0ZGE0MjUifQ"
+          "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
+          "version": "repo-file-v1:sha256:4bd147972cb9d30bebe48592542710683383b5deaa2e3d1a49ac0dbbcce44644"
         }
       ]
     },
@@ -171,10 +163,132 @@
           "version": "repo-lines-v1:sha256:28ad85483155b381f658e4828ea80953cc7a916b4bd99ad962ba6fd23a75db0b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiMGE4OWZhY2U5NDE1ODFiNTg4NDc4OTU5Y2YzMTJkNTEwMzdmZWViZTgzMjFmN2MzNDNjMmM1M2QzMTg2YmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzNDU2OWJiNmExNjBkOTQxMzM3ZmVkMDI5N2ZmZGU4YTUyMDdiZGVmNTZkZTFmNWYyZjRmOTYzMDk1ODExYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlNDczYWE3ODczOTlhYzQyMzgyZjdiYWUzZWU3ZmI2ZWU5MTc2OTczOTdlOGVmMGNiZjI5MjU1N2EzNWExYjMifQ"
         }
       ]
+    },
+    {
+      "id": "claim_04ad8be8bf024157b19dd5675f82dd89",
+      "statement": "On desktop TermindApp shares one AppModel across scenes but constructs a WindowModel for each window; AppModel holds app-wide host services including an AgentHostServices resolver, authentication registry, connection pool and background-command owner, distinct from window-owned workspace sessions.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentHostServices.swift",
+          "version": "repo-file-v1:sha256:78f3f9fcb8051efa9ee7115d5ffacc0ffbffb2f6f2d71d6468e46cb51bca6946"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift",
+          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
+        }
+      ]
+    },
+    {
+      "id": "claim_ab8d01c7dc8e49f99bc19cb98baa63a3",
+      "statement": "Agent host listing exposes public Vault metadata and temporary pane targets without credentials; temporary SSH configuration comes from a live desktop pane, and resolution fails when a temporary pane-backed target no longer exists.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift",
+          "version": "repo-file-v1:sha256:fc831e3a719f03db15f95b43e0ed6adbe3c0e8cd197d564fa1226395d80de6c5"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift",
+          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+        }
+      ]
+    },
+    {
+      "id": "claim_db26398d084a46068b316c64b4cb1a48",
+      "statement": "Agent SSH authentication collects missing proxy and host credentials in route order before connecting; the attempt handles host-key and keyboard-interactive challenges during handshake, with permanent host-key trust allowed only for saved Hosts and one-shot approval held in the authentication context.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift",
+          "version": "repo-file-v1:sha256:fc831e3a719f03db15f95b43e0ed6adbe3c0e8cd197d564fa1226395d80de6c5"
+        }
+      ]
+    },
+    {
+      "id": "claim_a99b532134ea4be0b3c72776b1e9f7ce",
+      "statement": "Overlapping Agent connections to the same host share a temporary authentication context and pending configuration/open; cancelling the last waiter cancels its prompt, stale generations cannot erase newer answers, and successful authentication clears staged secrets so unrelated later connections cannot reuse custom credentials.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift",
+          "version": "repo-file-v1:sha256:fc831e3a719f03db15f95b43e0ed6adbe3c0e8cd197d564fa1226395d80de6c5"
+        },
+        {
+          "resource": "repo://TFMTests/AgentHostAuthenticationTests.swift",
+          "version": "repo-file-v1:sha256:e0fc788e24877e6043dfa7d89ad5835df7e94f3b423fa0482e90f0e5447582aa"
+        }
+      ]
+    },
+    {
+      "id": "claim_db9d2f5b9d5d4f8b885904edc7cd8133",
+      "statement": "AgentConnectionPool reuses an authenticated Host-ID-keyed connection across tools and runs according to a route fingerprint built without Keychain reads; route changes invalidate reuse, concurrent misses join an opening, and late cancelled openings are disconnected instead of committed.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift",
+          "version": "repo-file-v1:sha256:fc831e3a719f03db15f95b43e0ed6adbe3c0e8cd197d564fa1226395d80de6c5"
+        }
+      ]
+    },
+    {
+      "id": "claim_8a0f9fc7616349f09f10321474c7b065",
+      "statement": "The Agent pool multiplexes exec and primary SFTP over its own SSH connection, can obtain auxiliary or sibling SFTP channels, exempts active exec/SFTP leases from idle sweeping, and disconnects on host deletion or explicit app shutdown.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift",
+          "version": "repo-file-v1:sha256:fc831e3a719f03db15f95b43e0ed6adbe3c0e8cd197d564fa1226395d80de6c5"
+        },
+        {
+          "resource": "repo://TFM/App/AppModel.swift",
+          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+        }
+      ]
+    },
+    {
+      "id": "claim_c23478395cc94fb0bc817b846f10d053",
+      "statement": "ssh_exec uses a non-PTY command channel with safe-command parallelism and approval for unproven commands; its deadline includes connection, returning connecting without starting a command if setup is still pending, or handing a running command to a background handle while retaining the pooled connection; only a pre-channel connection failure can be retried.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift",
+          "version": "repo-file-v1:sha256:53965fe94927e454ed8aac0a590512bd6ccced1aec98a434bbeeb64adb5a6819"
+        }
+      ]
+    },
+    {
+      "id": "claim_35062280526e42febcba9b5983e964b8",
+      "statement": "Desktop termination checks pending external edits, closes window-owned sessions and app services, waits for Assistant/MCP and SFTP drains before closing Agent background commands and connections, and answers the native termination request after cleanup or a three-second fallback.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift",
+          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
+        }
+      ]
+    },
+    {
+      "id": "claim_5714e81f84c94933bf3eff8231d1138b",
+      "statement": "When every mobile scene backgrounds, a UIKit background task is started; expiration synchronously requests workspace suspension, forwarding stop, transfer pause, and Assistant cancellation, then Assistant drains conversations before closing Agent background commands and pooled connections. Foreground ends the task and resumes only workspaces with recorded intent.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:b24747ff9dedd849a5aabeba6b978fa6c7e3b61954033dcee5163d5ed8064123"
+        },
+        {
+          "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift",
+          "version": "repo-file-v1:sha256:8a9a00fed4426631856719583ac4fe07542c1b12d159913a3936b39342dcee8e"
+        },
+        {
+          "resource": "repo://TFI/Platform/MobileBackgroundController.swift",
+          "version": "repo-file-v1:sha256:75c3d7bda5bf9ce83518666d5801cf3e01f9bbc82ed5acdc557bf17c2c6d4efc"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "at": "2026-09-23T10:36:38.039Z"
   }
 }

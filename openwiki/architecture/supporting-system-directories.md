@@ -3,6 +3,9 @@ type: architecture directory guide
 title: Supporting Products, Packages, and Tooling
 description: Directory responsibilities and integration relationships for AgentKit, the MCP bridge, Live Activities, tests, benchmarks, the Astro site, marketing assets, scripts, and repository automation.
 tags: [architecture, directories, agentkit, mcp, widgets, testing, website, tooling]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-6d4b4e707b8d60b6ccfa3425
     resource: repo://.github/workflows/openwiki-update.yml
@@ -46,6 +49,8 @@ sources:
     resource: repo://LandingPage/src/pages/zh/index.astro
   - id: openwiki-source-446ef49ac8edac86b5511fe5
     resource: repo://Marketing/README.md
+  - id: openwiki-source-d32eeff4d814c0dbd05e14b8
+    resource: repo://Scripts/benchmark-port-forwarding.py
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-a90133154199a9c011127920
@@ -78,10 +83,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "omp", at: "2026-09-22T03:45:03.442Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # Supporting Products, Packages, and Tooling
@@ -92,7 +94,7 @@ Not every top-level directory is an app module. This guide distinguishes separat
 
 The repository includes an `AgentKit` Git submodule as a reference checkout. **The Xcode project still declares a remote, versioned Swift package**, with its actual revision recorded in the resolved dependency graph. Neither this checkout nor the sibling development repository automatically overrides that dependency.
 
-The directory table describes the checked-out package's organization, not a guarantee that a future checkout and the app's resolved package revision are identical.
+The directory table describes the checked-out package's organization, not a guarantee that a future checkout and the app's resolved package revision are identical. For a cross-repository change, test and release AgentKit first, then update the Xcode package minimum version and re-resolve `Package.resolved` in the app-side commit. `ArchitectureBoundaryTests` also guards against redefining AgentKit-owned runtime types in app source.
 
 | Directory, relative to AgentKit | Responsibility |
 | --- | --- |
@@ -142,7 +144,9 @@ flowchart TB
     Services -.->|when interaction is required| Auth["TFM / Features / ExternalRequests"]
 ```
 
-The server's lifetime/controller is assembled by the desktop app. Upload/download application policy, transfer tickets, bearer-token handling, and native authentication presentation stay on their respective sides of this boundary. Details: [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
+The diagram shows stdio-to-desktop requests and the separate interactive authorization boundary.
+
+The server's lifetime/controller is assembled by the desktop app. The bridge takes `TERMIND_MCP_URL` (default `http://127.0.0.1:7391/mcp`) and `TERMIND_MCP_TOKEN`, overrideable by `--url` and `--token`; it refuses a missing token or invalid URL. It skips malformed stdin objects, returns JSON-RPC errors to callers with request IDs on HTTP/transport failures, and sends a best-effort DELETE for its session at EOF. Upload/download application policy, transfer tickets, bearer-token handling, and native authentication presentation stay on their respective sides of this boundary. Details: [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md).
 
 ## Live Activity product and shared source
 
@@ -163,7 +167,9 @@ flowchart TB
     Scene -->|select retained workspace| Workspaces
 ```
 
-Here solid arrows are updates/navigation and dashed arrows are shared type contracts. The payload has bounded session summaries and excludes credentials and terminal output. The extension displays state; it does not keep an SSH connection alive.
+The diagram shows how shared ActivityKit content connects app-owned updates, widget rendering, and workspace navigation.
+
+Here solid arrows are updates/navigation and dashed arrows are shared type contracts. The payload has bounded session summaries and excludes credentials and terminal output. The extension displays state; it does not keep an SSH connection alive. The app controller restores one active or stale activity and ends duplicates, serializes start/update/end, ends when no workspaces remain, and only starts a missing activity after an explicit open intent and permission to start; ordinary updates cannot resurrect one dismissed by the user.
 
 ## Tests, fixtures, benchmarks, and scripts
 
@@ -177,6 +183,8 @@ Here solid arrows are updates/navigation and dashed arrows are shared type contr
 | `Scripts` | Flat executable utilities grouped by function below. |
 | `Scripts/Tests` | Python regression tests for version bumping and forwarding-benchmark tooling. |
 | `StoreKit` | Local StoreKit product/test configuration; not the production entitlement implementation. |
+
+The standalone benchmark reads fixture metadata, enforces the host's 1–64 connection limit, and exits with diagnostics on invalid inputs or workload failures. `Scripts/benchmark-port-forwarding.py` builds its own Release scheme with resolved package versions and collects `FORWARDING_METRIC` output; `ArchitectureBoundaryTests` protects it from becoming an app dependency or a test-host workload.
 
 The script root has multiple independent workflows:
 
@@ -228,6 +236,8 @@ flowchart TB
     Raw -.->|artwork composition workflow| Store["Marketing / AppStore / locale / device"]
     Brand["Design / Brand"] -.->|visual source and guidance| Store
 ```
+
+The diagram distinguishes source captures, derived web frames, and separate final App Store compositions.
 
 The App Store branch represents a separate artwork workflow, not a claim that the frame generator automatically emits final store compositions. Asset conventions and capture verification live in [Marketing Assets and App Icons](../operations/marketing-assets-and-app-icons.md).
 

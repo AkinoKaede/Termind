@@ -3,6 +3,9 @@ type: testing strategy
 title: Testing Strategy and Behavioral Boundaries
 description: Focused regression strategy for Termind's shared frameworks and macOS and mobile targets, with fixtures that protect persistence, security, lifecycle, architecture, and UI contracts.
 tags: [testing, regression, fixtures, architecture, persistence, security, lifecycle, ui]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -30,36 +33,45 @@ sources:
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
+  - id: openwiki-source-34542e0f07e1650e098824c7
+    resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
+  - id: openwiki-source-c9618f94f83d3b529a9860e1
+    resource: repo://TFITests/MobileBackgroundControllerTests.swift
   - id: openwiki-source-7a29627adf93e3da4a56dd5d
     resource: repo://TFITests/MobileCardRenderingTests.swift
+  - id: openwiki-source-c32ed562101f11a0c3c89663
+    resource: repo://TFITests/MobileCardTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
     resource: repo://TFMTests/AgentHostAuthenticationTests.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
     resource: repo://TFMTests/AgentPersistenceTests.swift
+  - id: openwiki-source-23ab3fe73660b171f78763a4
+    resource: repo://TFMTests/AgentToolPresentationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
+  - id: openwiki-source-47dc468698b2904f0004ee04
+    resource: repo://TFMTests/MCPUploadTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-960109cd5bc0de7a879c1e16
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-23T03:34:06.838Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -103,9 +115,11 @@ A message edit inside one run needs a fixture such as `opening → assistant/too
 - Shared `AgentReplayPersistenceTests` parameterizes the first real replacement snapshot as `.failed` or `.interrupted`. It checks the single surviving message/run/replay backing and reloads with a new `ModelContext` and repository over the same in-memory container to verify provenance, terminal state, failure and frozen context. This is fresh-context visibility, not a disk-relaunch test.
 - `ChatComposerStateTests.editingSteeringKeepsCompactedSameRunPrefixAndLegacyToolOwnership` checks full visible-prefix retention even when model history is compacted, alongside tool cards, title, plans, compaction records/marks and run-summary chronology through `runStarted`/`runFinished`. Mobile's `swiftDataRestoreAndEditPreserveASameRunPrefixOnMobile` exercises the same repository/store/operations path and compares live and restored message ownership.
 
-Application error and timing fixtures complement those real SwiftData checks. `AssistantConversationOperationsTests` proves an invalid replacement never reaches persistence and a rejecting truncation leaves both visible and model history unchanged. Controller tests hold preparation at a memory barrier, cancel after a successful edit, and assert interrupted real-run provenance replaces staging. These seams do not inject disk-full or read-only failures into the real SwiftData transaction; its rollback path must not be described as fault-injection tested.
+Application error and timing fixtures complement those real SwiftData checks. `AssistantConversationOperationsTests.invalidReplacementNeverCallsPersistence` rejects a non-user replacement without invoking truncation; `truncationFailureLeavesInMemoryHistoryUnchanged` throws from a rejecting repository and keeps both visible messages and transcript unchanged. In `AssistantExecutionControllerTests`, `manualCompactionIsRefusedWhileRunPreparationIsActive` holds the memory snapshot barrier and verifies no compaction activity starts; `editFailurePreservesHistoryButUsesTheSynchronouslyCapturedReplacement` checks that rejected truncation preserves history while the attempted replacement retains captured host and plan context. `cancellationAfterSuccessfulEditAdoptsTheInterruptedRunProvenance` holds memory preparation after the edit commits, then checks that the interrupted real run owns the replacement rather than its staging ID. These port-level failure seams do not inject disk-full or read-only failure into a real SwiftData transaction; its rollback path must not be described as fault-injection tested.
 
-Use the boundary that the assertion needs as its wait condition. Captured missing-model/credential failure projects `.failed` before launching a separate asynchronous repository save, so `!isPreparingAgentRun` is not a save barrier. The controller fixture's `waitUntilSnapshot(state:)` checks existing snapshots or suspends an actor-owned continuation; `save` records the snapshot before resuming matching waiters. The missing-credential and navigation tests retain both live-state and repository-state assertions and wait for the latter explicitly. This does not change production failure ordering or prove durability across the separate queued-runtime immediate-stop handoff.
+Use the boundary that the assertion needs as its wait condition. `beginFailedRunPersistence` constructs a failed snapshot and starts a repository-save task, but keeps preparation active and does **not** project `.failed` into the live conversation until `save` succeeds; on save failure it appends an error message instead. `missingModelFailureStaysOwnedUntilSaveAndAllCancellationPathsJoinIt` and `missingCredentialAfterMemoryPreparationProjectsOnlyAfterSaveCompletes` block the first save and verify stop, cancellation, and projection ordering. `credentialAddedAfterCaptureDoesNotReviveTheTurn` and `selectingAnotherConversationDoesNotCancelPreparation` check live `.failed` after preparation and additionally wait for the recording repository's failed snapshot. The fixture's `waitUntilSnapshot(state:)` checks existing snapshots or suspends an actor-owned continuation; `save` records the attempt before resuming matching waiters. A recorded attempt is **not** proof of a completed save: use `completedSnapshots` or the joined preparation where completion is the contract. This does not prove durability across the separate queued-runtime immediate-stop handoff.
+
+The controller's `failedReplacementSaveCannotBeSupersededOrMutatedBeforeItCompletes` holds a failed-run save after truncation: edit/fork cannot bypass the pending preparation, and after release the failed real run takes the replacement's ownership. `failedSnapshotSaveRetiresPreparationWithoutAdoptingStaging` injects a save error at the repository port instead: the staging owner remains, no failed summary is adopted, an assistant error appears, and no save completes. When changing edit/cancel ordering, also run `cancelledPreparedEditCannotEnterHistoryMutation`, `supersededPreparedEditCannotEnterHistoryMutation`, `cancellationDuringEditJoinsHistoryWorkBeforeRecordingInterruption`, and `supersededPreparationIgnoresAnOlderCancellationCompletion` to keep stale operations from mutating the new history.
 
 ### CloudKit compatibility: test prohibited uploads, not just decoding
 
@@ -142,6 +156,10 @@ SFTP transfer tests use a controlled `TransferChannelHarness`, a `TransferChanne
 
 Those tests are intentionally actor-driven and use polling only to wait for observable harness state. Prefer this style for races: hold the transfer at a known point, make the ownership transition, then release it and assert the terminal state and disconnect count.
 
+For tool-card changes use `AgentToolPresentationTests`: the registered tool's argument projection appears in approval detail (including submitted command/input, not a claimed secret-redaction guarantee), while unknown tools get generic fields. Check the composed AgentKit-plus-Termind presenter ID catalog for collisions, restored and legacy cards for equivalent detail, and old descriptor metadata for safe defaults before relying on a new presentation field. Batch and long-output fixtures cover mixed lifecycle states, Unicode preview bounds and full-copy content; avoid replacing structured detail with an untested JSON string.
+
+For MCP upload changes use `MCPUploadTests` with the real coordinator and streaming operation, a fake SFTP client and controlled clock. Protect ticket/run scope and capacity, acknowledged-offset resume and full digest, bounded streaming/backpressure, timeout/cancellation and cleanup residue, revocation on disable, conflict policy and queryable terminal status. `actualHTTPRouteStreamsAboveTheMCPBodyLimit` additionally runs a loopback HTTP server for fresh and resumed bodies larger than the ordinary MCP limit; a passing fake SFTP upload does not establish interoperability with a real remote server.
+
 ### Mobile: app state, scenes, and device-local restoration
 
 `TFITests` owns `MobileAppModel` composition and mobile scene behavior. Mobile app tests build `MobileAppModel(inMemory: true)` or supply dependency seams, which permits assertions over the actual shared schema and repositories without using the user's database or Keychain. Representative tests verify that scenes share durable conversations while navigation, selected conversation, and composer drafts stay scene-local; shared SwiftData history is observable from fresh repositories over the same container.
@@ -149,6 +167,10 @@ Those tests are intentionally actor-driven and use polling only to wait for obse
 External connection URLs are another ownership boundary: opening one creates an ephemeral workspace and does not create a Vault host or saved workspace descriptor. Conversely, closing all workspaces disconnects each live workspace and is repeatable. Background-expiration tests provide a controlled connection service and cover resume intent, foreground recovery, and rejection of retired callbacks. A lifecycle change must preserve the appropriate one of these contracts rather than merely asserting that a view updates.
 
 `MobileWorkspaceStoreTests` protects the device-local restoration format. The store contains connection intent only—workspace descriptor identity, host reference, title and kind—not credentials, commands, duplicate indices or live session state. It migrates legacy arrays into the versioned snapshot while preserving IDs, titles and kinds and discarding legacy indices. If bytes are malformed, unknown-version, or invalid (including duplicate IDs), loading and later saving fail while the original bytes remain untouched; a successful load is required before replacement. Add a fixture for every format transition and for corruption behavior, because silently replacing unreadable restoration data with an empty list loses recoverable user state.
+
+`MobileBackgroundControllerTests` replaces UIKit's background-task platform to drive expiration synchronously. The tests check stale/repeated callbacks end each lease at most once, reentrant expiration during `begin` retires the returned old identifier without overwriting a newly begun lease, and an invalid identifier expires once without an `end` call. Use these for lease mechanics; `MobileAppTests` covers foreground recovery and retired workspace callbacks at the app boundary.
+
+`MobileCardTests` exercises card policy offscreen: adaptive column thresholds and accessibility sizing, bounded tag display and measured stable card heights, plus in-memory app/repository checks for saved-host timestamps and draft color persistence. Use `MobileCardRenderingTests` or the affected mobile rendering suite for visual output instead of making basic layout-policy tests acquire a key window.
 
 ## Fixture design rules
 
@@ -168,7 +190,7 @@ Run a named visible-window suite only when its interaction contract changed, for
 TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/ChooserInteractionTests
 ```
 
-In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot suites can retain their dedicated gates. A visual change still needs behavior-appropriate coverage: an offscreen test for state/policy, a visible-window test for focus/presentation when applicable, and screenshot/marketing capture only where that workflow owns the deliverable.
+In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot suites can retain their dedicated gates. Mobile key-window integration suites are also skipped by default because UIKit presentation is process-wide: opt in with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` (forwarded as `TERMIND_MOBILE_UI_TESTS=1`), `-parallel-testing-enabled NO`, and a narrow `-only-testing:TFITests/<Suite>` filter. StoreKit tests require separate manual authorization and remain skipped by default; run `TERMIND_STOREKIT_TESTS=1` with a narrow `-only-testing:TFMTests/StoreKitTrialTests` filter. A visual change still needs behavior-appropriate coverage: an offscreen test for state/policy, an opted-in window/key-window test for focus/presentation when applicable, and screenshot/marketing capture only where that workflow owns the deliverable.
 
 ## Change-to-regression matrix
 
@@ -180,7 +202,10 @@ In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing 
 | CloudKit format, upload scheduling, conflict or recovery behavior | Shared lifecycle, coordinator-safety and on-disk safety fixtures | Unsupported IDs never upload, compatible peers progress, restrictions survive retry/reopen, and failed reconciliation cannot unblock data. |
 | SSH credentials, prompts, host trust, or agent authentication | Authentication and interaction-policy fixtures | Ephemeral secrets stay ephemeral, prompt scope/order/coalescing is correct, forbidden work stays noninteractive, and secrets are invalidated after use. |
 | SSH/SFTP transfer scheduling or pane/session teardown | `SFTPTransferContextTests` with a controlled channel harness | Concurrency bounds hold, background transfer ownership survives UI teardown, cancellation cleans up, and fallback does not invite interaction. |
-| Mobile workspace, scene, restoration, or background lifecycle | `MobileAppTests` and `MobileWorkspaceStoreTests` | State is shared or local at the intended scope, external sessions remain ephemeral, restoration is safe, and callbacks cannot revive retired state. |
+| Mobile workspace, scene, restoration, or background lifecycle | `MobileAppTests`, `MobileWorkspaceStoreTests`, and `MobileBackgroundControllerTests` | State is shared or local at the intended scope, external sessions remain ephemeral, restoration is safe, leases retire once, and callbacks cannot revive retired state. |
+| Mobile cards or visual presentation | `MobileCardTests` for layout policy plus focused rendering/key-window suite if needed | Container width/accessibility layout and stable heights work offscreen; shared UIKit presentation is opted in and serialized. |
+| Tool approval, transcript cards, or presenter metadata | `AgentToolPresentationTests` and affected platform rendering suites | Registry IDs stay unique, legacy/restored detail agrees, and structured detail, preview and copy behavior survive. |
+| MCP upload ticket, stream, or HTTP route | `MCPUploadTests` plus affected server/session suite | Authenticated tickets remain scoped; offset/digest/commit and cancellation/cleanup state remain correct through loopback HTTP. |
 | macOS rendering or focus behavior | Focused offscreen test plus `.requiresVisibleWindow` suite when needed | Default tests stay headless; opted-in tests prove the user-visible interaction. |
 
 ## Execution strategy

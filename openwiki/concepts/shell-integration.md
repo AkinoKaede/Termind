@@ -1,8 +1,11 @@
 ---
 type: implementation guide
 title: "Shell Integration: Bootstrap, OSC Events, and Terminal State"
-description: "How Termind installs session-local Bash, Zsh, and Fish hooks over the PTY, hides bootstrap exchanges, decodes OSC events, and drives cwd, history, startup commands, and command composition on macOS and iOS."
-tags: [ssh, terminal, shell-integration, osc, command-history, charset, lifecycle]
+description: "How SSH PTY shell hooks bootstrap and decode command and cwd events, and how remote charset conversion differs between SSH PTY and Telnet terminal data paths."
+tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
     resource: repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift
@@ -12,6 +15,10 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift
   - id: openwiki-source-8c4abf5c09db535e2818e3c4
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
+  - id: openwiki-source-1f7380cad037b68eb1bec322
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift
+  - id: openwiki-source-72f95a523c9b93bf5c81d9e5
+    resource: repo://FrameworkTests/RemoteCharsetTests.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-7e796927b780e67cc73f6a5b
@@ -22,10 +29,7 @@ sources:
     resource: repo://TFMTests/HostShellIntegrationSessionTests.swift
   - id: openwiki-source-b1446950c4c60caef12aa43a
     resource: repo://TFMTests/ShellIntegrationBootstrapTests.swift
-generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # Shell Integration: Bootstrap, OSC Events, and Terminal State
@@ -54,6 +58,8 @@ flowchart TD
     Events --> Feature[Desktop session or mobile workspace]
     WorkingDirectory --> Feature
 ```
+
+SSH PTY receive flow: event frames are removed before charset conversion, while cwd is rewritten before terminal parsing.
 
 `deliverOutput` first lets the bootstrap suppress its exchange. `applyShellIntegrationUpdate` queues any next command, emits availability/home/system events, and routes visible bytes through `deliverIntegratedOutput`. That method removes recognized OSC 777 frames, forwards remaining output, then emits its ordered event array. `emitConvertedOutput` rewrites OSC 7 before the streaming charset converter and terminal callback. Thus parsing is not performed by searching already-rendered terminal text, and ordering within the event array does not imply atomic ordering with native terminal rendering.
 
@@ -86,6 +92,8 @@ stateDiagram-v2
     Installing --> Complete: installation deadline
 ```
 
+Bootstrap lifecycle: a late probe can still install hooks unless the user already wrote to the PTY.
+
 The first probe deadline is **3 seconds**. It restores ordinary output and reports home resolution unavailable, but intentionally does **not** mark the bootstrap complete: a late-signature scanner remains active. The scanner streams unrelated output through, retains only a possible signature suffix, and flushes an unresolved suffix after **500 ms** of quiet. Recognized late-probe suppression ends at its 3-second deadline or after 500 ms of quiet. Installation gets its own 3-second deadline.
 
 `write(_:)` calls `noteUserInput` before appending user bytes. If a supported probe arrives **late** after any user write, the bootstrap skips installation so it does not inject a hook command into the user's new input. This check is specifically the late-probe branch; it is not a general rule that any early keystroke immediately cancels bootstrap. An unsupported shell likewise gets no installation command. Successful installation emits the saved banner plus bytes after the DONE line; timeout cleanup attempts to keep the latest prompt while hiding probe/installer echo.
@@ -117,19 +125,41 @@ The following are descriptions of wire frames, not strings to paste into a termi
 
 `RemoteCommandEventFilter` finds the earliest recognized prefix, preserves preceding output, waits for BEL, decodes the event, and repeats. It retains incomplete prefix suffixes across SSH reads, so a frame split at any byte still works. Command/draft payloads are percent-decoded to remote-charset bytes and then converted to text. Status must be `0...255`; a valid optional duration is an unsigned value no larger than `31_536_000_000` milliseconds and is converted to seconds. Invalid duration becomes absent rather than invalidating a valid status.
 
+For command and draft text, `decodePercentEncoded` unescapes valid `%HH` triplets to bytes, then uses the configured remote charset to produce a Swift string; HOME uses the same helper, while the SHELL and SYSTEM markers decode their raw bytes with that charset. These are per-frame conversions, not the streaming display decoder. If conversion fails, the helper falls back to lossy UTF-8; even when conversion succeeds, bypassed malformed bytes may become replacement characters when converted to a Swift string. The UTF-8 `%FF` command test specifically expects `.commandStarted("�")`; the GB18030 command test establishes non-UTF-8 decoding, but neither test promises byte-perfect command history for malformed text.
+
 Payload retention is capped at **64 KiB** for recognized frames. An oversized unterminated frame is dropped so future output can resume; an oversized terminated frame is skipped. Ordinary output, OSC 0/2 titles, and wrong-token OSC 777 data remain on the terminal path and generate no local command events.
 
 The token provides **session scoping and accidental/spoofed-frame rejection without the matching token**, not cryptographic authentication against the remote host: the installer sends the token to that host and stores it in shell state. Treat command text, paths, and system fields as remote input even after they pass this parser. Also, OSC 7 is a standard terminal signal and is not authenticated by the OSC 777 token.
 
 ## Cwd, home, history, and composition are different state
 
-- **Cwd** comes through the terminal's OSC 7 handling. `RemoteOSC7CharsetFilter` recognizes `file://localhost`, decodes the remote-charset path and re-encodes it as percent-encoded UTF-8 before the terminal parses it. Desktop observes `TerminalViewState.workingDirectory`. **Home** comes from the bootstrap HOME marker and is stored separately for path display; an unresolved home is not evidence that cwd is absent.
+- **Cwd** comes through the terminal's OSC 7 handling. `RemoteOSC7CharsetFilter` recognizes `file://localhost`, buffers split prefixes/frames, unescapes the path bytes, decodes using the remote charset and re-encodes them as percent-encoded UTF-8 before the terminal parses them. For malformed UTF-8 `%FF`, the resulting path is `/%EF%BF%BD`, not the original byte. Its 64 KiB unterminated payload limit passes the oversized data through instead of retaining it indefinitely; an unfinished prefix is flushed on PTY close. Desktop observes `TerminalViewState.workingDirectory`. **Home** comes from the bootstrap HOME marker and is stored separately for path display; an unresolved home is not evidence that cwd is absent.
 - **Availability** means installation completed. On desktop, `.available` sets integration available but leaves `isShellPromptReady = false`; `.promptReady` sets it true and `.commandStarted` clears it. Mobile intentionally also treats `.available` and `.commandFinished` as prompt-ready recovery boundaries, because a separate prompt marker may not reach mobile state. Do not merge these policies during a shared-state refactor.
 - **History** is driven by command-start/completion events, not by recording every keystroke. Both consumers normalize explicit line continuations and associate completion with the active recorded row. Their one-shot startup-command exclusion suppresses only the matching synthetic command rather than disabling subsequent history.
 - **Startup submission readiness** is separate from command-generator prompt readiness. Desktop can unblock a pending startup command on `.available`, `.promptReady`, or `.homeResolutionUnavailable`, so failed/late integration does not indefinitely withhold startup work.
 - **Composition** reads the current shell draft with `ESC [777;1~`. `TerminalCommandDraftController` allows one pending read, times it out after 2 seconds, and resolves it from a draft event. Replacement sends the clear binding `ESC [777;2~` followed by bracketed-paste start/content/end, with no submit newline. The feature gates reads on a live supported shell, enabled/available integration, and prompt readiness.
 
 Desktop callbacks reject a mismatched `connectionAttemptID`. Mobile serializes exit and shell events through one `AsyncStream` consumer guarded by the workspace generation, preserving event consumption order across MainActor delivery. Closing the PTY clears bootstrap, command filter, converters, and pending input; the underlying SSH connection may remain alive if sibling SFTP channels still own it. See the transfer lifetime distinction in [SFTP Workflow](/openwiki/workflows/sftp-transfer-and-external-edit.md).
+
+## Charset boundary and the separate Telnet path
+
+`RemoteCharsetStreamConverter` maps the configured `RemoteCharset` to iconv names (UTF-8, GB18030, Big5, Shift_JIS, EUC-JP, EUC-KR, ISO-8859-1, Windows-1252). It retains incomplete source characters between `convert` calls and `finish` flushes trailing input. **Outgoing encoding is strict**: an unrepresentable character or invalid UTF-8 raises `RemoteCharsetConversionError` by default; only callers explicitly opting into `recoveringInvalidInput` may discard invalid input and see `rejectedInput`. Inbound conversion favors uninterrupted display: UTF-8 decoding passes bytes through unchanged, including invalid bytes; for legacy decoding, iconv converts valid sequences, bypasses malformed source bytes in place, and holds incomplete sequences until later input or flushes them verbatim at finish. A byte stream that survives decoding is not necessarily valid UTF-8: Swift `String(decoding:as:)` used for metadata/events is lossy for invalid UTF-8, and the terminal backend may render such bytes as replacements. Do not interpret `rejectedInput == false` on decode as proof of valid text, or generalize the UTF-8 bypass test to claim all charsets take an identical byte-for-byte path.
+
+For SSH PTY, the worker creates distinct input and output converters from the connection charset. Environment variable names and values are strictly encoded before channel setup; user input is encoded before entering the pending SSH write queue, and an encoding error reports through the charset-error callback rather than sending the offending text (the write error branch still queues any bracketed-paste delimiters found in that input). The receive chain in the diagram strips command events and rewrites OSC 7 on raw PTY bytes before streaming text conversion. On terminal close, `finishCharsetOutput` flushes the OSC 7 filter remainder through the output converter and finishes the decoder before clearing session state; catastrophic receive conversion errors fall back to raw bytes rather than halting the PTY. Cwd rewriting is installed even if shell integration is disabled, so a remote OSC 7 frame can still reach the terminal; this does not install Termind command hooks.
+
+Telnet uses the same converter **but does not run the SSH shell bootstrap, OSC 777 filter, or OSC 7 rewrite**. Both direct TCP and proxied-socket connection paths configure encoder and decoder before opening the transport. `TelnetProtocolParser` first strips Telnet negotiations and handles NVT data, then the worker decodes application bytes for the terminal and login-prompt scanner; a decoder exception falls back to raw application bytes. Input (including automated username/password) is strictly encoded before Telnet NVT formatting and IAC escaping. A user-write encoding error calls `charsetError` without sending that write; an automatic-login encoding error clears the secret, reports the error and continues manually. Cleanup finishes the output converter to deliver its remaining bytes and clears converter and prompt state. Desktop and mobile Telnet session models pass converted output to their terminal backends and surface charset errors, but do not consume SSH shell integration events for Telnet.
+
+```mermaid
+flowchart TD
+    Wire[Telnet TCP or proxy socket] --> Protocol[Telnet protocol and NVT parser]
+    Protocol --> Decode[Streaming remote charset decode]
+    Decode --> Backend[Terminal backend and login prompt scanner]
+    Input[User or automated login text] --> Encode[Strict charset encoding]
+    Encode --> NVT[NVT formatting and IAC escaping]
+    NVT --> Wire
+```
+
+Telnet terminal data path: negotiation is removed before decoding, and outgoing text is encoded before wire escaping; there is no SSH hook installation in this route.
 
 ## Debugging and focused test map
 
@@ -138,7 +168,8 @@ Desktop callbacks reject a mismatched `connectionAttemptID`. Mobile serializes e
 | Probe/installer text appears, or a slow login loses its prompt | `receiveProbe`, `scanForLateProbe`, `poll`, `cleanBufferedOutput` | `ShellIntegrationBootstrapTests`: redraw, chunked late probe, quiet timeout, user-input skip, unsupported shell. |
 | Zsh prompt or ordinary output disappears | Installer's prompt hook and exit-status preservation | `zshRunsPromptHooksAndPreservesCommandOutput`, including startup-output capture. |
 | History duplicates or has no completion | OSC token/parser, then feature's active history row | `CommandHistoryTests`, including split frames, order, wrong token, invalid status and oversized recovery. |
-| Cwd contains mojibake | OSC 7 rewrite before output conversion, not history decoding | `RemoteOSC7CharsetFilter` and `RemoteCharsetTests`. |
+| Cwd contains mojibake or invalid path bytes | OSC 7 rewrite before output conversion, not history decoding | `RemoteCharsetTests`: GB18030 cwd UTF-8 rewrite and UTF-8 `%FF` lossy rewrite. |
+| Text cannot be sent, or malformed incoming bytes display oddly | Outgoing strict encoding versus inbound byte bypass and terminal rendering; Telnet strips protocol bytes before decoding | `RemoteCharsetTests`: representative charset round-trips, every GB18030 multibyte split, ISO-8859-1 rejection, UTF-8 bypass and legacy malformed/trailing-byte recovery. |
 | Compose is enabled while a command runs | Availability versus prompt-ready transitions | `TerminalCommandDraftControllerTests`; `MobileCommandGeneratorAndUploadTests` prompt/integration cases. |
 | Settings change an already connected shell | Attempt-time preference capture | `HostShellIntegrationSessionTests`; mobile `integrationUsesConnectionSnapshotUntilManualOrAutomaticReconnect`. |
 

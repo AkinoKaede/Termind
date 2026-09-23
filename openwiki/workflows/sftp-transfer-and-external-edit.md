@@ -1,16 +1,22 @@
 ---
 type: workflow
 title: SFTP Transfer, Scheduling, and External Edit Workflow
-description: How SFTP browser operations become scheduled transfers, choose an SSH topology, resolve conflicts and resume safely, and support explicit external-file editing without durable staging or replay.
+description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
+  - id: openwiki-source-96c4e228b6057cf9d989eb04
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
+  - id: openwiki-source-e1a028bd99d4dbe6d1e14f6a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift
+  - id: openwiki-source-f2860ea1e34da1a6d9ec1510
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/SFTPCopyTool.swift
   - id: openwiki-source-dd3df578da8881d8ba0638e6
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift
   - id: openwiki-source-f45e107ba4ae15ff23a99333
@@ -33,13 +39,19 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-d92ce4bb378fe3506b55c85a
     resource: repo://FrameworkTests/SFTPRemoteConflictResolverTests.swift
+  - id: openwiki-source-76b1cdca4a02038756187f92
+    resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
+  - id: openwiki-source-396f97a332870d48c065d7e9
+    resource: repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift
+  - id: openwiki-source-0260a25fb41739d94e23d2ea
+    resource: repo://TFMTests/AgentConnectionPoolTests.swift
   - id: openwiki-source-83498f1ebb2addd4dded3bc1
     resource: repo://TFMTests/SFTPConcurrencySchedulerTests.swift
   - id: openwiki-source-bdee3a21bf24d48b877a78fe
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "omp", at: "2026-09-22T02:21:47.705Z" }
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 ## Scope and operating model
@@ -168,11 +180,47 @@ Assume setup succeeds, no other files consume the stated limits, and the SSH ses
 
 ## Agent SFTP reuse is related, not identical
 
-Agent data work joins the same file-admission mechanism through `AgentSSHAuthenticationRegistry.withSFTP` when `schedulesDataTransfer` is true. Metadata calls can bypass a data permit and default to channel mode; callers with a supplied permit do not acquire/release it twice. Authentication and the channel lease are obtained inside that admitted operation.
+Agent SFTP does **not** borrow the browser's `SFTPTransferContext`. `SFTPToolDefinition` validates host and normalized absolute path in preflight, then routes the operation through `AgentToolSupport.withAuthenticatedSFTP` and `AgentSSHAuthenticationRegistry.withSFTP`. `sftp_read` and `sftp_write` request data admission (using bounded read size or UTF-8 write length); list, stat, mkdir, move, chmod and delete use the default metadata path without a file permit. `scratch_pull` and `scratch_push` also request data admission. `withSFTP` acquires a permit from the shared scheduler for `.agentRun(runID ?? invocationID)` only when requested and no permit was supplied, then authenticates and acquires a pool lease **inside** admission, releasing its owned permit on both success and failure. An externally supplied permit is not released by this wrapper. [^agent-tools] [^agent-admission] [^scratch-admission]
 
-`AgentConnectionPool.acquireSFTP` first reuses an eligible idle record, preferring least-recently-used idle records; channel-only mode limits record reuse to the primary. If that primary is busy, channel-only work opens a sibling and can wait/retry the primary on sibling failure. Connection-preferred overlap joins a per-Host unknown-capability probe or opens another silent connection after capability is known. Pooled records become idle on lease release; ephemeral siblings are disconnected. Idle auxiliaries can later be swept, unlike the coordinator context's operation-scoped extras.
+```mermaid
+sequenceDiagram
+    participant Tool as Agent Tool
+    participant Registry as Auth Registry
+    participant Scheduler
+    participant Pool as Agent Pool
+    participant SSH as SSH Connection
+    Tool->>Registry: withSFTP with data flag and size
+    opt data work without supplied permit
+        Registry->>Scheduler: acquire agentRun permit
+        Scheduler-->>Registry: mode and permit
+    end
+    Registry->>Registry: join authentication context for host
+    Registry->>Pool: acquireSFTP with selected mode
+    Pool->>SSH: reuse or open primary SFTP subsystem
+    alt primary busy
+        Pool->>SSH: lease idle auxiliary or open silent auxiliary or sibling
+    end
+    Pool-->>Registry: exclusive channel lease
+    Registry->>Tool: run operation once
+    Registry->>Pool: releaseSFTP
+    opt owned permit
+        Registry->>Scheduler: release permit
+    end
+```
 
-Do not copy browser-context assumptions wholesale into this pool. In particular, the Agent's shared initial-probe catch updates capability before rethrowing cancellation, whereas the browser context checks cancellation before recording a downgrade. They also have different final fallback paths and cache lifetimes. Review the specific owner and tests for a scheduling change rather than inventing one universal SFTP pool.
+*File admission and the Agent pool's exclusive channel lease are separate resources; acquiring a lease never replays the tool operation.*
+
+The Agent pool retains **one primary SSH connection per Host across tool calls, runs and conversations**; exec and primary SFTP share its transport, and simultaneous initial exec/SFTP opens join rather than creating competing primary connections. The primary SFTP subsystem is opened once on that SSH connection. Reuse checks a route fingerprint (host, route hops, login identity, proxy, known-host fingerprints and destination charset); changing or deleting the route retires the old connection. The fingerprint deliberately does not read Keychain secrets: rotating a credential without changing login identity does not break an already authenticated session, but affects the next connection. A pane-backed temporary target stops resolving when its pane disappears. [^agent-primary] [^agent-route] [^agent-pool-tests]
+
+`AgentConnectionPool.acquireSFTP` first obtains the primary and reuses an eligible idle record, preferring the least-recently-used idle one. In `channelsOnly`, only an idle primary record qualifies; overlap opens a sibling on the primary transport. If sibling opening actually fails (not cancellation), it polls until the primary is free and retries acquisition. In `connectionsPreferred`, an unknown Host capability uses a shared, interaction-forbidden extra-connection probe; success stores an auxiliary record and marks connections capable. Further overlap can silently open other auxiliaries. Failed silent setup downgrades to sibling channels, but unlike channel-only fallback, a sibling-opening failure on this path propagates. The initial shared-probe catch records channel capability *before* rethrowing cancellation; browser `SFTPTransferContext` instead checks cancellation before downgrading. No extra credential prompt is allowed for an auxiliary open. [^agent-lease] [^agent-probe] [^context-probe]
+
+On release a pooled primary or auxiliary becomes idle, while an ephemeral sibling disconnects. Idle auxiliaries are swept independently; the primary and exec connection close together only after the Host has no active exec/SFTP leases and the 180-second idle timeout has passed (the app's sweep interval defaults to 30 seconds). Disconnect, route invalidation and `closeAll` cancel active SFTP lease tokens and close channels/connections; `SFTPError.notConnected` or `.connectionLost` evicts the Host after the operation fails, **not** by rerunning it. Authentication can retry a rejected connection attempt before the operation starts; overlapping attempts share a short-lived authentication context that is discarded after its last lease, not a persistent cache of custom passwords. [^agent-release] [^agent-sweep] [^agent-auth] [^agent-admission]
+
+For an Agent `sftp_copy`, the tool obtains **one** destination-anchored global permit charged to both endpoint Hosts and passes it into each endpoint's `withSFTP`, so neither endpoint acquires another permit. A same-host copy in channel-only mode uses its one leased channel for both endpoints; other copies acquire source then destination leases and stream through `SFTPRemoteCopyOperation`. This differs from browser coordinator copy leases and from a pair of independent single-host Agent tools. [^agent-copy] [^remote-copy-leases]
+
+MCP uploads are a separate HTTP ticket workflow, **not** browser queue rows or scratch files. `MCPUploadCoordinator` validates target path, byte count and SHA-256, issues a session-bound loopback PUT URL/token, and checks origin, token, body length and resumable offset before claiming the MCP transfer budget. `MCPServerTools` then runs `SFTPStreamUploadOperation` through the same Agent authentication/pool lease and scheduler with `schedulesDataTransfer: true`; cleanup uses another SFTP lease without data admission. A disconnected HTTP attempt or recoverable SFTP failure may pause a ticket for an explicit offset-matched retry while it is unexpired; integrity errors and cancellations clean up rather than silently replaying bytes. Ticket status and cancellation belong to the MCP coordinator, not `SFTPTransferCoordinator`. [^mcp-tickets] [^mcp-transfer] [^mcp-failure]
+
+Do not copy browser-context assumptions wholesale into the Agent pool: browser auxiliaries are operation-scoped, Agent auxiliaries remain eligible for reuse, and MCP's HTTP budget/tickets are not scheduler permits. Focused pool tests verify one handshake across repeated execs, concurrent primary opens and exec/SFTP sharing, cancellation of one or the last connection opener, route retirement, idle sweeps and no replay of a command that already started. These tests cover primary reuse rather than exhaustively asserting every SFTP auxiliary-mode branch. [^agent-pool-tests] [^agent-lease]
 
 ## From a file lease to libssh2 turns
 
@@ -257,6 +305,22 @@ Discard is intentionally non-destructive to user work: it stops tracking and for
 - When changing connection lifetimes, test both owner release and terminal transport fallback: a pane close must not interrupt retained work, but a last unused context primary must disconnect. [^context-close] [^pause-ownership]
 
 Focused tests cover the materially risky cases: scheduler fairness across hosts/sources, cross-host capacity accounting, and the Smart threshold; topology fallback, cancellation of a silent probe, pane-close continuity, and resume after release; conflict mapping, cancellation points, and safe recursive delete; and edit confirmation, immutable snapshots, loss-to-pause, invalidation, observation of atomic saves, discard, and cleanup. [^scheduler-tests] [^context-tests] [^resolver-tests] [^edit-tests]
+
+[^agent-tools]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L26-L75`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L79-L348`.
+[^scratch-admission]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L49-L61`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift#L124-L146`.
+[^agent-admission]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L989-L1057`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSFTPTools.swift#L626-L657`.
+[^agent-primary]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1131-L1141`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1462-L1527`.
+[^agent-route]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L492-L527`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1607-L1635`.
+[^agent-lease]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1234-L1296`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1359-L1386`.
+[^agent-probe]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1298-L1365`.
+[^agent-release]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1368-L1386`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1529-L1562`.
+[^agent-sweep]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1154-L1157`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1564-L1605`.
+[^agent-auth]: `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L912-L926`; `Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift#L1059-L1128`.
+[^agent-copy]: `Frameworks/TermindRemoteInfrastructure/Agent/SFTPCopyTool.swift#L93-L156`.
+[^agent-pool-tests]: `TFMTests/AgentConnectionPoolTests.swift#L43-L186`; `TFMTests/AgentConnectionPoolTests.swift#L200-L342`.
+[^mcp-tickets]: `TFM/Application/MCPServer/MCPUploadCoordinator.swift#L7-L28`; `TFM/Application/MCPServer/MCPUploadCoordinator.swift#L94-L195`.
+[^mcp-transfer]: `TFM/Application/MCPServer/MCPServerTools.swift#L37-L81`.
+[^mcp-failure]: `TFM/Application/MCPServer/MCPUploadCoordinator.swift#L231-L280`; `TFM/Application/MCPServer/MCPUploadCoordinator.swift#L329-L388`.
 
 [^client-channel]: `Frameworks/TermindRemoteInfrastructure/SSH/SFTPClient.swift#L293-L387`; `Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L120-L160`.
 [^resume-state]: `Frameworks/TermindRemoteInfrastructure/Transfers/SFTPResumeState.swift#L5-L75`.

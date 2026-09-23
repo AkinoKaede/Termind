@@ -5,7 +5,7 @@ description: "How the macOS app composes its native window shell, persistent wor
 tags: [macos, tfm, ui, navigation, workspaces, swiftui, appkit, design]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -15,6 +15,8 @@ sources:
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-6a1a95f7d01cc8e15a397f6b
+    resource: repo://TFM/App/TermindCommands.swift
   - id: openwiki-source-f490cb5bfbb8ce236a7f1bf4
     resource: repo://TFM/Design/DesignTokens.swift
   - id: openwiki-source-95f72232fb896aa95dd5f6c7
@@ -33,6 +35,12 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-931aff66b28d38cd69ce2324
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
+  - id: openwiki-source-7e364c6182a8339831ecab24
+    resource: repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift
+  - id: openwiki-source-22e92f96394f292a731fc6fb
+    resource: repo://TFM/Platform/MainWindowCoordinator.swift
+  - id: openwiki-source-5e2670d68f19777e2dd312ea
+    resource: repo://TFM/UI/Components/WindowToolbar.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-23acce6fe9173a886d433b44
@@ -41,7 +49,13 @@ sources:
     resource: repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
-generated: { by: "codex", at: "2026-09-23T05:17:08.701Z" }
+  - id: openwiki-source-91826a88f242f001f33fff89
+    resource: repo://TFMTests/WindowToolbarFindTests.swift
+  - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
+    resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
+  - id: openwiki-source-05f0aeba12df8388b97b3c76
+    resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # TFM Desktop UI Architecture
@@ -85,7 +99,26 @@ The main layers are:
 | Feature views | Render projected state, present interaction, dispatch intent to owners. | Recreating connections merely because a destination appears. |
 | Reusable renderers and native bridges | Collection interaction, layout, focus/native mounting, terminal/transcript presentation. | Resource-specific repository mutations hidden behind generic drawing code. |
 
-`TermindApp` shares `AppModel` across main windows but creates a `WindowModel` for each. `RootView` exposes that model through the environment and focused scene values so commands can target the correct window. The dedicated external-authentication scene is not another normal workspace window and is removed from the ordinary scene-opening commands.
+`TermindApp` builds the persistence container and shared `AppModel` once. Its `WindowGroup(id: "main", for: UUID.self)` calls `makeWindow(requestID:)` for each scene: ordinary and restored windows receive a fresh `WindowModel`, while a debug screenshot launch without a request ID can receive a demo-configured model. `RootView` stores the supplied instance in `@State` and exposes it through the environment and focused scene values so commands target the correct window. The separate `Window` for external authentication shares app dependencies but is not a workspace scene; `.commandsRemoved()` keeps it out of normal scene-opening commands. The main scene uses the saved default window size and content minimum resizing; screenshot mode disables scene restoration.
+
+`MainWindowRegistration` connects a real AppKit window to `app.mainWindows`. A **Move Workspace to New Window** action requests the UUID-valued main scene first; the source retains its live workspace until the destination registers. Only then does `MainWindowCoordinator` take it from the source and open it in the new model, preserving the running session rather than treating a move as a close/reopen. Closing a real window instead unregisters its model and `closeForWindow()` disconnects its workspaces and clears window-scoped caches. A restored scene has no pending move request and keeps its system-restored frame.
+
+```mermaid
+sequenceDiagram
+    participant Navigator as Workspace Navigator
+    participant Coordinator as MainWindowCoordinator
+    participant Scene as Main WindowGroup
+    participant Source as Source WindowModel
+    participant Target as Target WindowModel
+    Navigator->>Coordinator: moveWorkspace with workspace ID
+    Coordinator->>Scene: createScene with request UUID
+    Scene->>Target: create fresh window model
+    Target->>Coordinator: register native window and request UUID
+    Coordinator->>Source: takeWorkspaceForMove
+    Coordinator->>Target: open live workspace
+```
+
+A workspace move waits for native destination registration before changing ownership. [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
 
 ## The window shell owns chrome once
 
@@ -95,6 +128,8 @@ The sidebar is one column whose mode rail switches between Navigator, Assistant,
 
 The column's material belongs to the native split view on macOS 26 and later; `RootView` does not layer another glass sheet over it. Earlier systems receive `LegacySidebarMaterialBackground`, an AppKit visual-effect fallback. Explicit glass remains on controls: the mode rail is one capsule with a neutral moving selection highlight, readable symbols, selected accessibility traits and a separate key-window keyboard-focus outline. Reduce Motion disables its selection animation. See [UI Design Principles](/openwiki/concepts/ui-design-principles.md) for row foreground and active/inactive selection roles.
 
+The tool modes are projections of the **current window and focused pane**, not new destinations. Snippets searches the shared host-library snippets in its own footer, inserts into a live focused SSH/Telnet terminal on a single click, and double-click execution of a risky command asks for a second confirmation. History chooses SSH command history, SFTP browse history, or connection history from the focused pane; it uses the native `ListViewKit`-backed `SidebarNativeList` for stable card geometry and blank-area context menus. Snippet package folding is a persisted sidebar-only preference, separate from expansion on the main Snippets page. The snippet and history footer fields are not the titlebar Find field.
+
 Keep the following coordinates distinct:
 
 - **Destination**: Vault, a workspace, full Assistant, Metrics or Settings.
@@ -102,7 +137,42 @@ Keep the following coordinates distinct:
 - **Focused pane**: the session targeted by workspace commands.
 - **Presentation route**: an editor, chooser, sheet, or other transient interaction.
 
-They influence one another, but they are not interchangeable selections. `WindowModel` remembers return destinations for reversible trips to Assistant and Settings. Page searches, selections and archive presentation are window-local, so two windows may inspect the same shared data differently.
+They influence one another, but they are not interchangeable selections. `WindowModel` remembers return destinations for reversible trips to Assistant and Settings. If the remembered Assistant workspace has closed, Navigator falls back to Vault. Page searches, selections and archive presentation are window-local, so two windows may inspect the same shared data differently. The workspace collection and recoverable close stack live in its `WorkspaceDeckModel`; the `WindowSidebarState`, `WindowPresentationState` and `WorkspaceDragState` isolate the column, transient routes and live drag payload from session ownership.
+
+### Navigator interactions and workspace lifetime
+
+`WorkspaceNavigatorView` is an AppKit-backed SwiftUI `List` of Welcome, Metrics, Vault pages, Workspaces and Settings. A workspace row selects its workspace without starting a drag; the close affordance closes that workspace (Option-click closes the others). Its context menu can save/update a template, rename/reset eligible names, separate split panes, duplicate or split combinable sessions, move a workspace to another window, or close one/others/all. Context actions that operate on the selected pane first select the row's workspace. Section expansion is stored with `@AppStorage` and selecting a Vault page or workspace expands the corresponding section; this is sidebar presentation state, not the workspace collection.
+
+Inline rename seeds the editor with `workspace.title(in: app.hostLibrary, locale: locale)` **before** activating the rename field; commit sends the text to `WindowModel.rename`, cancel discards it. The model refuses non-renameable workspaces and trims whitespace: split names belong to the workspace, single-pane overrides to its pane; clearing restores an automatically allocated/derived name. This ordering matters because the native text field selects its initial text when focused. The visible-window `WorkspaceNavigatorRenameTests` exercise both the context-menu and double-click entrypoints and require the full existing title in the editable field.
+
+The layout drop receiver overlays the `List`, rather than attaching a target behind its native rows. Workspace and pane drags carry IDs, but live `WindowModel.dragging` identifies the payload during native callbacks, even before another SwiftUI render. On macOS 26+, the workspace row uses `.draggable` and the **active** native drag session sets this state from the pasteboard; querying a writer after a click must not start a drag. Earlier systems set it with `.onDrag`. Row/header frames are measured in global coordinates, translated at the receiver, then insertion geometry excludes the dragged workspace from the mutation index. A valid drop reorders with `move` or lifts a pane from a split workspace with `detachPane`; a lone pane cannot detach. Drops outside the Workspace section or after switching away from Navigator are rejected, and successful drops clear drag state. Older systems may retain drag state after a release outside any target until the next click or drag, so receivers still validate the pasteboard. See `WorkspaceNavigatorDropTests` for native drag, scrolled insertion previews, immediate callbacks, mode-change rejection and pane detachment.
+
+### Toolbar commands follow the detail, not the mode rail
+
+The window titlebar contributes creation actions from `WindowModel.creationActions` for the **foreground destination**: a single action is a plus button, several form a New menu, and Settings/Metrics detail can replace that position with Back or contextual controls. A Vault row's context menu calls `creationActions(for:)` through `creationMenu(for:locale:)`, so it can offer that page's creation verbs even when another page is in front. Switching the sidebar from Navigator to Assistant does not change the titlebar's New or Find target.
+
+`WindowModel.findKind` resolves the foreground Vault page, full Assistant, Metrics list/process detail, or the **focused** SSH/Telnet/Serial terminal or SFTP pane. Welcome has its own content search and no titlebar Find; Settings and unsearchable panes offer none. `findContext()` binds the toolbar to the actual page/window query or session query, with SSH/Serial terminal navigation and cancel callbacks. A focused Telnet pane reports `.terminal` from `findKind` and `focusToolbarFind()` presents its terminal search, but `findContext()` currently has no Telnet binding: unlike SSH/Serial it cannot render a usable titlebar field through that path. Per-page queries survive page switches. `TermindCommands` routes Find to the focused window model, which stands down pane focus *before* presenting terminal search, increments the focus request and invokes the mounted toolbar field's focus handler. Welcome instead increments its content-field request; with no searchable target it does nothing.
+
+```mermaid
+sequenceDiagram
+    participant Command as Find command
+    participant Model as WindowModel
+    participant Toolbar as Toolbar search
+    participant Pane as Focused pane
+    Command->>Model: focusToolbarFind
+    alt Welcome content search
+        Model->>Model: request Welcome field focus
+    else Searchable foreground content
+        Model->>Pane: suppress pane keyboard claim
+        Model->>Pane: present terminal find if applicable
+        Model->>Toolbar: request focus through installed handler
+        Toolbar->>Model: bind query and report keyboard ownership
+    end
+```
+
+Find ownership flows through the active window; the sidebar mode does not choose the query.
+
+On macOS 26+, a background `WindowToolbarSearchHost` supplies the system `.searchable` item without changing the persistent split-view branch; the toolbar slot itself is fixed by OS availability, not by navigation. On earlier macOS versions, `WindowToolbarLegacySearch` supplies a retained `NSSearchField` (or a compact Metrics-detail popover). The field owner and coordinator preserve editing/focus across toolbar bridge updates, handle terminal Return/Shift-Return and Escape, and release keyboard ownership on a real user exit so the pane can reclaim focus. Reserve toolbar height even when no Find target is available: removing the entire item would resize the content when switching destinations.
 
 ## Persistent workspace deck: hidden is not destroyed
 
@@ -208,13 +278,14 @@ Before changing a UI owner, trace both what happens when its view disappears and
 
 | Change | Focused seams |
 | --- | --- |
-| Multi-window navigation, return routes or sidebar modes | `WindowModel`, `WindowSidebarTests`, `MultiWindowTests`, `SettingsNavigationTests`. |
+| Scene ownership, workspace moves, window close or return routes | `TermindApp`, `MainWindowCoordinator`, `MultiWindowTests`, `WindowStateTests`, `SettingsNavigationTests`. |
+| Sidebar modes, Navigator rename or layout drops | `WindowSidebarTests`, `WorkspaceNavigatorRenameTests` (visible-window), `WorkspaceNavigatorDropTests` (some visible-window cases), `WorkspaceLayoutDropTests`. |
 | Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |
 | Narrow editor or Metrics detail layout | `ResponsivePageLayoutTests`, including native table identity and retained scroll positions. |
 | Managed selection/reordering | `ManagedCardDropResolver`, selection and marquee tests; resource-specific move tests. |
 | Transcript persistence, incremental updates or mounting | `TranscriptListViewTests`, rendering and performance suites. |
-| Focused toolbar and terminal commands | `WindowToolbarFindTests`, `TerminalFindTests`, `UserInputModalityTests`. |
+| Focused toolbar and terminal commands | `WindowToolbarFindTests` pins foreground/focused-pane routing, Welcome focus and per-page queries; `TerminalFindTests` and `UserInputModalityTests` cover terminal interaction. |
 | Welcome Recents, connection-history limits or pane close tracking | `ConnectionHistoryTests`, `VaultSyncTests`, and workspace close/reopen tests. |
 
 Some rendering tests explicitly require a visible window; routine checks should not enable those globally. The narrow-editor rendering cases cover English, Simplified Chinese and Traditional Chinese. This guide was derived from implementation and tests; it does not report a new test run or visual approval. Use [Build, Test, and Release Operations](/openwiki/operations/build-test-and-release.md) for the appropriate verification commands.

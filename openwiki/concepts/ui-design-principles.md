@@ -3,11 +3,18 @@ type: design guide
 title: UI Design Principles and Shared Presentation Boundaries
 description: "Source-backed UI principles for TFM and TFI: semantic visual systems, native interaction, shared forms and presentation values, stable rendering identity, accessibility, localization and safe extension boundaries."
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
+  - id: openwiki-source-d1d534769c300d5fb8dbe9d7
+    resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
   - id: openwiki-source-4ae2a0061a7bd729d6e132b4
     resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift
   - id: openwiki-source-0ad8e888a4a6fb517fde6f7a
     resource: repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift
+  - id: openwiki-source-5b42af91dbdc738123786a99
+    resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
   - id: openwiki-source-400e4d9303a3f9d98f90660d
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptEntry.swift
   - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
@@ -36,22 +43,34 @@ sources:
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-fc448263e4e5ce330b8cbda1
     resource: repo://TFI/Features/HostEditor/MobileHostEditor.swift
+  - id: openwiki-source-a053f8c3524e81f98b0b0938
+    resource: repo://TFI/Features/Metrics/MobileMetricsView.swift
   - id: openwiki-source-5503f969776cb509a7d69160
     resource: repo://TFI/Features/Ports/MobileForwardingView.swift
   - id: openwiki-source-02810e1f8eac4d0983f8cd44
     resource: repo://TFI/Features/Settings/MobileTerminalSettingsView.swift
   - id: openwiki-source-db402cad9d68dd8e66bdd7ee
     resource: repo://TFI/Features/Snippets/MobileSnippetsView.swift
+  - id: openwiki-source-3f37062f55fb57a9f2e97f35
+    resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-e396438eb6a8a7ca888da5f4
     resource: repo://TFI/Platform/TerminalFontCatalog.swift
+  - id: openwiki-source-3af0aeffcab26dc81096aefc
+    resource: repo://TFI/UI/Components/MobileEditorSheet.swift
   - id: openwiki-source-a4f3a690a8395e2ac9b065b9
     resource: repo://TFI/UI/Components/MobileNativeList.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-c32ed562101f11a0c3c89663
+    resource: repo://TFITests/MobileCardTests.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
   - id: openwiki-source-8194e1eb3652c7ad61d75cfa
     resource: repo://TFITests/MobileTerminalFontTests.swift
+  - id: openwiki-source-5636c5d112b9e5b2266c3058
+    resource: repo://TFITests/MobileVaultFeatureTests.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-f490cb5bfbb8ce236a7f1bf4
@@ -62,6 +81,8 @@ sources:
     resource: repo://TFM/Features/Assistant/AssistantView.swift
   - id: openwiki-source-1e0cf223ab8448c8eee3f345
     resource: repo://TFM/Features/HostEditor/HostEditorView.swift
+  - id: openwiki-source-b0f15ccf6473e8cbe34bd9c3
+    resource: repo://TFM/Features/Hosts/HostActions.swift
   - id: openwiki-source-f1d91230931f6a1921af6d03
     resource: repo://TFM/Features/Ports/PortForwardingView.swift
   - id: openwiki-source-cfe2a6b22338023c37a5b503
@@ -72,26 +93,37 @@ sources:
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-23281ca04cda9d7abc31173f
     resource: repo://TFM/Features/Snippets/SnippetsPageView.swift
+  - id: openwiki-source-564c1a0cc523e70840b9fc66
+    resource: repo://TFM/Features/Workspaces/PaneLayoutDropController.swift
   - id: openwiki-source-ba160208435f3410138a3539
     resource: repo://TFM/Features/Workspaces/PersistentWorkspaceDeckLayout.swift
+  - id: openwiki-source-931aff66b28d38cd69ce2324
+    resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
+  - id: openwiki-source-7e364c6182a8339831ecab24
+    resource: repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift
   - id: openwiki-source-385c953ef1c6bf095d1c1244
     resource: repo://TFM/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-4a6780d3dff41f37f56a094f
     resource: repo://TFM/UI/Components/SidebarRow.swift
+  - id: openwiki-source-5e2670d68f19777e2dd312ea
+    resource: repo://TFM/UI/Components/WindowToolbar.swift
+  - id: openwiki-source-f941c4bd7cfa47476dcdb53f
+    resource: repo://TFM/UI/Components/WorkspaceLayoutDropTarget.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-98505b843db3ce6b8e4ca024
+    resource: repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
   - id: openwiki-source-2891f940e682279163740c83
     resource: repo://TFMTests/TerminalFontRenderingTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T05:17:08.701Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T05:17:08.701Z
+  - id: openwiki-source-1c583949c6f00d5acc015c90
+    resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # UI Design Principles and Shared Presentation Boundaries
@@ -120,6 +152,8 @@ flowchart TD
     Mobile --> MobileShell[Scene routes and mobile interaction]
     Mobile --> UIKit[UIKit terminal / list / input adapters]
 ```
+
+The shared layer supplies values and fields; each app composes and owns its native shell.
 
 These arrows show conceptual dependencies and consumption, not an exhaustive target dependency graph. See [System Boundaries](/openwiki/architecture/system-boundaries.md) for the broader module structure.
 
@@ -174,7 +208,7 @@ TFI's card surface similarly uses system glass where available, but keeps a near
 
 Desktop `ManagedCardPage` is a protocol-oriented page composition seam. It supplies typed sections, externally owned selection, capabilities, card/header/ghost views and presentation modifiers to `ManagedCardPageRenderer`. The renderer handles geometry, selection and drag mechanics, then reports stable IDs back to the page's actions.
 
-Mobile uses a simpler `MobileCardPage` / `MobileCardGrid` / `MobileActionCard` composition. A card's primary action fills the card, while secondary actions live in its context menu. Other mobile lists use swipe actions and navigation links. There is no requirement to reproduce the desktop marquee-selection renderer on touch devices merely because both display Hosts.
+Mobile uses a simpler `MobileCardPage` / `MobileCardGrid` / `MobileActionCard` composition. A card's primary action fills the card, while secondary actions live in its context menu. Other mobile lists use swipe actions and navigation links. There is no requirement to reproduce the desktop marquee-selection renderer on touch devices merely because both display Hosts. For a Vault Host, tapping the card invokes the scene's host activation; its context menu is instead grouped into connection protocols (SSH/SFTP only if SSH is enabled, Telnet only if Telnet is enabled), Edit/Duplicate, and destructive Delete. Even a Host with no enabled protocol retains the editing and deletion groups. The menu delegates opening to the scene, duplication to `MobileAppModel` (with a fresh ID and without reusing Host-custom identities), and deletion to confirmation before the app-owned delete path. Desktop `HostContextMenu` has its own Quick Connect, Connect submenu and Copy SSH Command; do not assume the two platforms have an identical set of verbs or move these operations into shared card rendering.
 
 The intended separation is:
 
@@ -188,21 +222,40 @@ flowchart LR
     Update --> Data
 ```
 
+A card reports intent; the feature/application owner decides whether and how to perform it.
+
 Use capabilities to say what a renderer may offer; keep the operation's actual validity check with its owner. Disabled UI is useful feedback, not a replacement for business validation.
 
 Native menu structure can differ without changing the operation. A single desktop Port Forwarding card groups **Address** and **SSH Command** under **Copy**, before the Edit/Duplicate group. Mobile keeps flat **Copy Address** and **Copy SSH Command** actions in the equivalent position. Both write through their native pasteboard adapter and disable SSH-command copying when the library cannot generate a command; copying never starts forwarding.
 
 Snippet library cards expose one **Run** action instead of separate Execute and Execute on Hosts actions; the mobile detail and host-selection surfaces use the same Run vocabulary. Target selection and destructive confirmation remain in the existing feature flow: desktop fills missing saved targets through its chooser, while mobile asks when no valid targets remain. Renaming the action and removing the duplicate override affordance does not remove the host validation or destructive-script confirmation boundary.
 
+### Keep toolbar commands attached to the content in front
+
+Desktop titlebar Find is a window-level control, not a second search field in each feature. `WindowModel.findContext()` binds it to the active Vault page, Assistant, Metrics or focused terminal/SFTP query; terminal Find additionally supplies Return/Shift-Return navigation and Escape cancellation. `NativeSearchField` retains an AppKit field owner and a keyboard-focus claim across toolbar bridge rebuilds as filtering changes the page. The command installs a direct focus callback because a toolbar-item refresh is not guaranteed to deliver a focus counter change; the field releases that claim on actual user exit so panes can regain focus. On older macOS versions a compact Metrics layout uses a toolbar popover; the toolbar slot remains chosen by OS availability rather than changing the page's view parent on navigation. The leading New menu similarly resolves actions from the front destination, while Navigator row menus can request the same page-specific verbs without first navigating there. This is an example of sharing *intent and ownership*, not making every feature implement its own titlebar.
+
 ## 5. Share form fields; keep draft and route lifetimes explicit
 
 Both Host editors reuse `HostOrganizationSection`, `HostProtocolProfileControls` and `HostConnectionFields`, but their containers are intentionally different:
 
 - TFM edits a local Host draft in the Vault work column. Nested editing stays in that column; introducing another `NavigationStack` there can promote its destination into the enclosing split detail and cover the collection.
-- TFI edits a local Host draft in `MobileEditorSheet`, with mobile routes, dirty-state checking and save eligibility. Shared fields add platform-appropriate keyboard/autocorrection behavior where needed.
-- Group/tag controls are injected by each platform into the shared organization section rather than forcing one platform's picker into the other.
+- TFI presents `MobileHostEditor` from Vault's `editingHost` sheet route. It seeds a local Host draft from the selected or newly created Host; the shared protocol control switches which SSH/Telnet connection fields are edited. Group/tag controls are injected by each platform into the shared organization section rather than forcing one platform's picker into the other. Shared connection fields apply iOS URL/number keyboards and no autocorrection for addresses.
+- The mobile editor passes draft dirtiness and save eligibility to `MobileEditorSheet`. Its save gate requires a nonblank address, at least one enabled terminal protocol, enabled-port ranges, valid custom SSH/Telnet/proxy identities and SSH environment variables. `HostCustomIdentityDraft` holds temporary custom credentials separately from the Host draft, loads them once on appearance and saves them through the Host library along with the Host only when Save runs. Desktop additionally checks SSH route and SFTP initial-path validity in its own commit policy; do not infer identical validation just because the visible fields are shared.
+- Child editing on mobile uses item-based sheets for identities, groups and environment variables; saved children update the parent draft or its selections. Desktop instead keeps nested routes in the Vault work column. The mobile sheet owns Cancel/discard confirmation, disabled Save and content during an in-flight save, error alert and dismissal only after successful save. A failed save leaves the editor visible for correction.
 
-The data path is draft binding → shared fields → platform validation/save action. It is not shared fields → database or transport.
+```mermaid
+flowchart TD
+    Vault["Vault Add or Edit"] --> Editor["Host draft and identity draft"]
+    Editor --> Fields["Shared fields and mobile-only sections"]
+    Fields --> Validate["Mobile save eligibility"]
+    Validate -->|invalid| Disabled["Save disabled"]
+    Validate -->|valid| Sheet["MobileEditorSheet Save"]
+    Sheet --> Library["Identity draft saves through Host library"]
+    Library -->|success| Dismiss["Dismiss editor"]
+    Library -->|failure| Error["Keep sheet and show error"]
+```
+
+The mobile form's draft, child routes, validation gate and save lifecycle are distinct from the shared field fragments. The data path is draft binding → shared fields → platform validation/save action, not shared fields → database or transport.
 
 ### Terminal preferences: shared fields, native adapters
 
@@ -215,6 +268,10 @@ Typography is device-local through `TerminalFontSettings`/`@AppStorage`, separat
 Focused tests cover complete macOS monospaced-family membership, typography precedence and controller identity, appearance filtering and fallback, base-theme changes beneath an overlay, and opening the actual desktop settings page without a preference write. Mobile rendering cases exercise the font controls in English, Simplified Chinese and Traditional Chinese.
 
 `SingleLineTextInput` illustrates a narrow shared policy. It replaces runs of newline scalars with one space, preserves attributed paste content, and normalizes only edits through the binding setter. Reading the original bound value does not rewrite stored data. This is not a general sanitizer for secrets, multiline commands, snippets or existing repository records. Native paste/input insertion is supplied by app-owned environment adapters so selection and input-method handling can stay platform-specific.
+
+### Shared presentation must not change execution data
+
+`AgentToolPresentation` converts Assistant tool calls/results into localized human-readable summaries, batch tints and details for both apps. A live approval projection uses the in-memory request's unredacted arguments for the person reviewing it, but does not attach those arguments to the durable tool card or model transcript. Built-in tool results become structured detail where possible; remote-defined MCP output keeps its JSON presentation, and failed/denied results cannot select a success-shaped knowledge presenter. The display preview bounds long output while retaining the full transformed text for Copy. These are display policies, not approval, execution, replay or persistence policies. When adding a tool or localized label, change its presentation metadata/projector and test the visible wording and failure state without rewriting protocol payloads.
 
 ## 6. Native rendering is a deliberate workload boundary
 
@@ -240,22 +297,46 @@ The implementation already treats accessibility as behavior, not a final label p
 - Motion helpers accept Reduce Motion, and native-list adapters propagate motion and scene activity into hosted rows.
 - Mobile geometry tests retain marked Chinese text and first responder status during region changes, not just the final draft string.
 
-Localization likewise affects measurement and identity-sensitive presentation. The existing adaptive/rendering cases exercise English, Simplified Chinese and Traditional Chinese, including narrow desktop editors and the mobile tab set. A layout that works only with the shortest English label is not proven by a source-level logic test.
+Localization likewise affects measurement and identity-sensitive presentation. The existing adaptive/rendering cases exercise English, Simplified Chinese and Traditional Chinese, including narrow desktop editors and the mobile tab set. A layout that works only with the shortest English label is not proven by a source-level logic test. On mobile, `MobileRootView` keeps a scene-owned destination binding and a `NavigationStack` per registered tab under `.sidebarAdaptable`, rather than rebuilding a compact-only tab set. The adaptive test checks the *same* native `UITabBarController` with five available tabs through regular and compact widths with both ordinary and accessibility text sizes; it selects every tab and checks that scene selection, selected native tab identity and a visible title agree. At regular width the system bar may scroll, whereas compact width requires all five titles to be visible. Other tests retain the same Assistant navigation/conversation/draft, Metrics page and native list/scroll offset, Vault search controller, nested Settings editor draft and in-flight Save sheet across width changes. They also exercise Assistant title/switcher and Metrics detail toolbar placement, including vertical menu layout and iPad sidebar transitions. These are behavioral identity checks and captured layout regressions, not a promise that every screen is pixel-identical at every width.
 
 Do not claim all animation sites are already Reduce Motion-aware: the helpers make that policy available, but each changed call site still needs inspection. Likewise, an accessibility label does not prove that focus order, clipping, menu reachability or large-text layout is correct.
 
 ## 8. Continuity has a cost budget
 
-The platform guides describe several different retention strategies:
+The platform guides describe several different retention strategies. `MobileContentRegions` subtracts active divisions and occlusions, chooses the largest unobstructed continuous rectangle and only offers a split when both sides are usable. Assistant assigns transcript to the first region and composer to the second; Metrics displays both panels when the split is usable (or on sufficiently wide continuous space), otherwise keeps the selected panel. `MobilePaneLayout` places the *same* children even when a frame disappears, caching their last usable sizes rather than giving a covered native surface a zero-size proposal. Usability gates visibility, hit testing and accessibility together. The fold tests check that the Assistant transcript native scroll view and focused composer with marked input remain the very same objects through horizontal and vertical divisions, occlusion and reopening; Metrics retains its native list and offset when the segmented picker becomes a vertical toolbar menu and returns.
+
 
 | Mechanism | What is preserved | How unnecessary work is limited |
 | --- | --- | --- |
 | Desktop workspace deck | Mounted session views and native terminal state. | Hidden geometry is parked and invisible controls are disabled. |
 | Desktop transcript owner cache | Native list, measurements and presentation caches across remounts. | LRU trimming of unmounted owners; separate keys for sidebar/full screen. |
-| Mobile workspace registry | Shared session and native terminal across navigation. | Explicit close and app background-expiration policy, not unconditional foreground work. |
+| Mobile workspace registry | `MobileAppModel` publishes live workspaces independently of scenes; saved descriptors are recent rows, not connected sessions at cold launch. | Explicit close disconnects and removes the descriptor; when all scenes background, expiration suspends workspaces, while foreground activity resumes them. |
 | Mobile region layout | Native child identity during adaptive geometry changes. | Only usable regions accept input/accessibility; covered children keep valid sizes. |
 
+The mobile registry saves descriptors separately from live workspaces, publishes a restored workspace before calling `connect()` so scenes share one instance and attempt, and removes missing-Host descriptors rather than trying to connect them. A cold launch lists recent descriptors without opening every session; selecting one connects only that workspace. Closing a live workspace disconnects it, removes its saved row and updates activity state. Background expiration suspends live sessions; returning to an active scene resumes them without reconstructing the tab hierarchy.
+
+```mermaid
+flowchart TD
+    Saved["Saved workspace descriptor"] --> Recent["Recent row with no live session"]
+    Recent --> Selected["Scene selects workspace"]
+    Selected --> Published["App publishes one live workspace"]
+    Published --> Connecting["Connect once"]
+    Connecting --> Background["All scenes backgrounded"]
+    Background --> Expired["Expiration suspends live work"]
+    Expired --> Active["Active scene resumes work"]
+    Connecting --> Closed["Explicit close disconnects and removes descriptor"]
+    Active --> Closed
+```
+
+Saved rows and live workspaces follow different lifetimes; only selection connects and explicit close removes the descriptor.
+
+Mobile descriptor and live-session lifetimes are separate; a fold or tab switch is not a close operation.
+
+Desktop continuity includes an interaction constraint as well as a layout cache. `WorkspaceContentView` keeps a dragged pane mounted but temporarily omits its branch from split geometry, disabling hit testing and accessibility for that pane; removing its native drag source would end AppKit's session prematurely. Its pane-level native receiver reads the live `WindowModel` and displayed workspace at drag time, previews the nearest edge on an occupied pane (whole-area replacement on an empty slot), and only mutates the model on drop. `WorkspaceNavigatorView` overlays its native List with one receiver for workspace-section insertion, using measured global row frames; preview boundaries include the dragged row while the move index excludes it. The source session is cleaned up after mutation, and unrelated pasteboard data or a destination that became hidden must not commit a layout change. `WorkspaceLayoutDropTests` cover edge merges, live pane rearrangement, empty slots, stale drags and the changed-destination rejection; `PersistentWorkspaceDeckLayoutTests` cover parked sizes and sidebar insertion indices.
+
 “Keep state” does not mean “keep every view measuring, animating and accepting events forever.” Conversely, unmounting a view does not by itself authorize terminating the work it displays.
+
+For changes at these seams, use focused tests rather than only visual snapshots: `MobileCardTests` measures tag-insensitive card height and container-width columns (including one column at accessibility sizes); `MobileVaultFeatureTests` checks proxy defaults, preserved custom ports and credential validity; and the opt-in, serialized `MobileEditorToolbarTests` exercises Cancel, in-flight Save, failed Save and overflow actions with English and Chinese toolbar labels. The last suite needs `TERMIND_MOBILE_UI_TESTS=1` and nonparallel key-window testing. Shared Assistant presentation tests cover preview shortening; a new projector needs cases for localized wording, approval detail and failure handling as well as the app's native row rendering.
 
 ## Practical extension checklist
 

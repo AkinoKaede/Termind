@@ -1,8 +1,11 @@
 ---
 type: architecture-contract
 title: Cross-Cutting Engineering Invariants
-description: Exhaustive architecture, ownership, lifecycle, security, persistence, remote-session, agent, sync, and mobile safety contracts that span Termind's specialized wiki pages.
+description: Cross-platform safety boundaries for durable Host deletion, Assistant preparation and run persistence, workspace restoration, and app-scoped services. Use this page to check ordering and lifecycle assumptions before changing shared behavior.
 tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -12,6 +15,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
+  - id: openwiki-source-875da2c4f1040409e53757af
+    resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
   - id: openwiki-source-5c91b796f7e6d651aedf3023
     resource: repo://Frameworks/TermindApplication/FeatureModels/CommandHistoryModel.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
@@ -24,6 +29,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
+  - id: openwiki-source-c3006decff414f8b4ca021c4
+    resource: repo://Frameworks/TermindDomain/Hosts/HostDeletion.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-4957f13c836c497e7ebe4656
@@ -40,8 +47,12 @@ sources:
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
+  - id: openwiki-source-63e25c47c9c7d38b354f4123
+    resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-5b42af91dbdc738123786a99
+    resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-0689f4693840cd29f5ac352c
@@ -66,6 +77,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
+  - id: openwiki-source-aec5af6c3be13b44140585c2
+    resource: repo://FrameworkTests/AssistantTranscriptPresentationTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-40cfadc2320da9a292c64d26
@@ -82,6 +95,8 @@ sources:
     resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-d44869be46c03fbd0ce9c64c
+    resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
   - id: openwiki-source-02810e1f8eac4d0983f8cd44
     resource: repo://TFI/Features/Settings/MobileTerminalSettingsView.swift
   - id: openwiki-source-3c85f29e2d0bdf3d44f4e0e8
@@ -92,14 +107,18 @@ sources:
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
+  - id: openwiki-source-34542e0f07e1650e098824c7
+    resource: repo://TFI/Platform/MobileBackgroundController.swift
   - id: openwiki-source-e396438eb6a8a7ca888da5f4
     resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-a154b5d36ec59496392d45e4
+    resource: repo://TFITests/MobileAssistantTests.swift
+  - id: openwiki-source-c9618f94f83d3b529a9860e1
+    resource: repo://TFITests/MobileBackgroundControllerTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
-  - id: openwiki-source-9b78a7e39bfa08bea5192722
-    resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -110,14 +129,15 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-385c953ef1c6bf095d1c1244
     resource: repo://TFM/Platform/TerminalFontCatalog.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
+    resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T03:34:06.838Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -151,6 +171,10 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
 - Architecture tests fail closed on absent/empty production roots. Source checks guard dependencies, native-list
   allowlists, AgentKit/SwiftData ownership only; UI/copy/wiring need behavioral or visual coverage.
+  Their mobile and shared-framework import checks prohibit storage/transport construction in feature layers; the
+  CloudKit delegate check additionally requires all sync delegates to use the shared lifecycle upload gate and
+  quarantine/conflict validation, rather than constructing ad hoc change batches. These are source-boundary checks,
+  not a substitute for behavioral sync or UI tests.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
@@ -171,9 +195,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 ### Windows and sessions
 
-- App-wide snapshots/preferences and `VaultStore` transactions feed narrow feature intents; sessions receive only
-  `RemoteSessionHostStore`. Each scene owns a `WindowModel`, shell/navigation/search/context panels. Process routing
-  is UUID-scoped with weak native windows. Paywalls stay pinned to one window; speech belongs to one composer.
+- Desktop `AppModel` coordinates saved Hosts, settings, transfers, sync, Assistant conversation storage and process services; registered `WindowModel`s own their Workspaces and navigation/search/context panels. The app holds weak window registrations and routes Host opens into the selected window. On mobile, `MobileAppModel` owns the live Workspace array and process services while each `MobileSceneModel` owns its destination, selected Workspace and Assistant navigation. App-wide snapshots/preferences and `VaultStore` transactions feed narrow feature intents; sessions receive only `RemoteSessionHostStore`. Paywalls stay pinned to one window; speech belongs to one composer.
 - New desktop windows start at Welcome; Dock reopen preserves destination and Metrics entry selects Metrics. Dock
   New Window uses the registered factory and activates hidden/windowless apps. Restoration never reconnects live
   Workspaces. New windows snapshot ordinary content size once, after full-size content styling; fullscreen/auxiliary
@@ -201,6 +223,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 - Known Hosts is independent of Host records: editing/deleting a Host never changes trust. Plain and OpenSSH `|1|`
   hashed endpoints share matching; hashed records retain wire hostname and ignore the separate port.
+- Saved-Host deletion is a durable request, not an immediate cascade. `SwiftDataHostRepository.requestHostDeletion` commits the pending-deletion marker, ordered outbox jobs, revision and Vault mutation together; snapshots hide the marked Host before physical removal. The outbox runs Workspace close, transfer cancellation, forwarding stop, reference/history cleanup and final Host/owned-Identity removal. Repository cleanup retries after interruption; do not replace it with only an in-memory UI removal. Desktop `AppModel.requestHostDeletion` projects the Host and clears local histories after the request succeeds; its registered runtime/outbox callbacks revoke live work. Mobile `deleteHost` also proactively disconnects Assistant and closes current and unopened Workspace entries, invalidates edits/transfers/forwardings and removes Metrics before requesting deletion, then starts its outbox. This mobile preflight is not the durable commit: an unsuccessful request returns an error, not a guarantee of restored live sessions. Remote Vault removal has its own runtime invalidation path on both platforms. Focused checks: `TFMTests/RepositoryOutboxTests.swift` for marker/jobs/reference and trust behavior; `TFITests/MobileAppTests.swift` for both current and Recent entries.
 - SSH import previews are window-owned indexed public metadata. Host selection never selects credentials; imported
   identities require selected keys. The actor retains scoped descriptors/digests, not private-key text/passphrases;
   reread selected keys at unlock/commit and fail closed if changed. Picking/drop share validation; config parsing
@@ -467,6 +490,37 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 
 ## Agent runtime and security
 
+```mermaid
+sequenceDiagram
+    participant User as Caller
+    participant Controller as AssistantExecutionController
+    participant Conversation as ConversationModel
+    participant Repository as AgentRunPersisting
+    User->>Controller: submit or prepare edit
+    Controller->>Conversation: capture turn and install preparation identity
+    opt edit
+        Controller->>Repository: truncate selected history
+        Repository-->>Controller: committed edit
+    end
+    alt preparation cancelled
+        User->>Conversation: stop
+        Conversation->>Controller: invalidate preparation immediately
+        Controller->>Controller: join tracked history and preparation work
+        Controller->>Repository: save interrupted snapshot
+        Repository-->>Controller: save outcome
+        Controller->>Conversation: project interruption on success or report save error
+    else missing model or credential
+        Controller->>Conversation: mark failure persistence in progress
+        Controller->>Repository: save failed snapshot
+        Repository-->>Controller: save outcome
+        Controller->>Conversation: project failed run on success or report save error
+    else ready
+        Controller->>Conversation: start runtime
+    end
+```
+Preparation has distinct cancellation and failure-save phases; `stop()` requests the first path but does not await the repository.
+
+
 ### Providers
 
 - Empty credential reference means anonymous; nonempty missing/empty/unreadable secret is an error. `modelSecret(for:)` applies consistently
@@ -506,10 +560,7 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
   search, skills/registry, Guardian and preparation settings synchronously before memory or automatic compaction awaits. First-send promotion
   follows accepted capture; edit UI captures before creating its persistence task. Plan implementation captures acting mode and consumes
   attachments/armed skills once. Historical context replay does not reconstruct old model settings or skill-package bytes.
-- Preparation is distinct from streaming. Stop/background expiration invalidates preparation identity synchronously and joins pending
-  history/preparation work before its interrupted save; stale captures cannot edit or start. Archive/delete cancel pending preparation,
-  manual compaction refuses it, and navigation alone leaves it running. See [Assistant Runtime](/openwiki/concepts/agent-runtime-and-assistant.md)
-  for the preparation boundary and existing runtime/recovery limitations.
+- Preparation is distinct from streaming and from terminal-failure persistence. For a still-`preparing` capture, `stop`, global cancellation and mobile background expiration request cancellation immediately on the MainActor: the identity becomes noncurrent before async work joins, so a stale edit cannot enter history mutation or start a run. The cancellation task waits for tracked edit/history and preparation tasks, then attempts to save an interrupted snapshot before projecting interruption and retiring preparation. `stop()` itself does **not** wait for that save; use `stopAndWait()` or await `cancelPendingRuns().value` at a drain boundary. A failed interrupted save reports an error instead of claiming durable interruption. Archive/delete await preparation cancellation; manual compaction refuses active preparation, and selection alone does not cancel it. Once missing-model/credential handling enters `savingFailure`, cancellation instead joins the in-flight failure save without replacing it with an interrupted snapshot: the failure is projected only after successful persistence; a failed save leaves an error and retires preparation. Tests block memory, truncation and save independently, so do not generalize the interruption guarantee across these phases. See [Assistant Runtime](/openwiki/concepts/agent-runtime-and-assistant.md).
 - History edits validate before persistence and publish their live replacement only after truncation commits. The boundary is the selected
   user message in canonical run/message order, not its whole run: retain the same-run prefix and owned tool graph with a neutral completed
   summary, remove the suffix and later runs, and prune compactions by removed message IDs. Compacted display history still informs ownership
@@ -517,7 +568,7 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - An edited replacement initially owns a staging run whose ID equals its message ID. The first real snapshot transaction adopts only that
   staged row and deletes the staging run; historical replay rows keep their owners. Live running, failed and interrupted projections use
   the same provenance and preserve the staging chronology lower bound. Retired run IDs reject late saves/events in the repository instance.
-  This is not universal persist-before-publish: missing-model/credential failures still project live before their asynchronous save.
+  Missing-model/credential *preparation* failures are different: they keep the preparation owned through the asynchronous save, project a failed run only after it commits, and leave staging unadopted if that save fails. An already-started runtime has its own cancellation/event-drain lifecycle; do not infer universal persist-before-publish for its streaming UI from the preparation rule.
 - Project tool output once before `toolFinished`: bounded preview and scratch reference, retaining crash/replay metadata and paging offsets.
   Later completion never shortens earlier results; `sftp_read`/`scratch_read` report complete lines/truthful offsets.
 - Terminal suggestions use latest delivered user snapshot, not focus. Surface availability is partial and does not restrict independent SSH/
@@ -572,6 +623,14 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - Approval callbacks idempotently stage the same card before response; queued events cannot erase denial irrespective of arrival order. Historical
   repair recognizes local presenter identity, never MCP/name-only matches. Bounded previews/scrollable arguments keep actions accessible without
   reading live skill/memory stores or changing authorization/results/persistence.
+- Approval arguments are a **live, user-only** projection of the original in-memory request, never copied to the durable
+  card or model transcript. A resolved Host name can replace `host_id` in the displayed arguments, while a presenter
+  may format the remaining arguments for review; compact action titles keep commands/paths in scrollable detail.
+  Result detail decodes local built-ins through an injected presenter or generic formatting, but MCP keeps its remote
+  JSON output; failed/denied/interrupted knowledge results cannot be rendered by a success presenter. A denial reason
+  identical to the review reason is displayed only once. Batch summaries group by tool, state and knowledge action so
+  mixed failures cannot be mislabeled successful; preview keeps head/tail within 8,192 characters and 120 lines while
+  Copy retains the full transformed output. Focused checks: `FrameworkTests/AssistantTranscriptPresentationTests.swift`.
 
 ## Commerce, review invitations and metrics
 
@@ -595,6 +654,13 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
   temporary trust clears on pause/removal/config change. Free cap atomically three cards including paused, never delete on downgrade; Pro unlimited.
 - Desktop status item/popover receives model explicitly; last window close retains app/monitors, Quit cancels. Sleep/inactive login independently
   suspend; resume only awake/active with Data Protection Keychain available. Native lifecycle stays in `TFM/Platform`.
+- On macOS Quit, the native delegate first rechecks dirty remote edits and offers Cancel/Quit Anyway; confirmed termination
+  requests one idempotent `AppModel.shutdownForTermination()` task. It fences new Assistant admissions, cancels captured
+  preparations and stops all stored conversations **before** awaiting saves/event drains. MCP and SFTP stop in parallel;
+  Agent background commands and connections close after the Assistant drains. Windows, forwarding, metrics, speech,
+  transfers and outbox are also retired. The delegate replies after cleanup or a three-second timeout, whichever wins,
+  exactly once: the deadline bounds app termination, not a promise that every save has completed. See
+  `TFMTests/AppTerminationTests.swift` for blocked-save, admission-fence and timeout ordering cases.
 
 ## Settings replication
 
@@ -644,13 +710,36 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 ### Workspaces and activity
 
 - One SSH session/SFTP Channel per mobile Workspace, no Welcome/pane composition even with Pro; Assistant independent. Peer switch retains connection,
-  Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. Background expiration closes
-  transports but retains intent; foreground resumes existing Workspaces.
+  Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. When all scenes background, the app pauses sync, Metrics, edits and outbox and begins a finite background task; **only on its expiration** it suspends Workspace transports, stops forwarding, pauses transfers and expires Assistant work. Foreground resumes only existing live Workspaces with foreground-resume intent; it does not cold-open other saved descriptors. This resume can initiate a fresh connection attempt, so it is not an implicit trust approval or command replay.
+- `MobileBackgroundController` delivers expiration on the MainActor **synchronously** before retiring its finite UIKit
+  lease; the expiration closure immediately requests Workspace/forwarding/transfer/Assistant cancellation, but async
+  Assistant persistence and transport drains remain best effort under OS suspension. Replacement/finished leases ignore
+  late callbacks and each valid UIKit task ends once, even if expiration reenters `begin` before it returns; a failed
+  `.invalid` begin still requests expiration without ending an invalid task. `MobileAssistantModel` fences new sends,
+  edits, compaction and plan implementation while suspending, stops every conversation before awaiting any drain, then
+  closes background commands and connections. Do not equate expiration-handler return with a durable interrupted save.
+  Check `TFITests/MobileBackgroundControllerTests.swift` and `TFITests/MobileAssistantTests.swift`.
+
+```mermaid
+sequenceDiagram
+    participant UIKit
+    participant Lease as MobileBackgroundController
+    participant App as MobileAppModel
+    participant Assistant as MobileAssistantModel
+    UIKit->>Lease: background task expires
+    Lease->>App: invoke expiration synchronously
+    App->>App: suspend workspaces and stop forwarding and transfers
+    App->>Assistant: expireBackground
+    Assistant->>Assistant: request all cancellations before draining
+    App-->>Lease: expiration returns
+    Lease->>UIKit: end valid task once
+    Assistant->>Assistant: drain saves then close agent transports best effort
+```
+The finite UIKit lease ends after synchronous cancellation requests, not after asynchronous Assistant cleanup.
 - `mobile.workspaces.v1` persists ordered local descriptors only (ID/Host/kind/title), no commands/secrets/paths/content/transfers.
-  Cold launch after Hosts loads Recent only, no sessions/history/network. MainActor open-by-ID reuses or registers/connects once across scenes;
-  failure needs explicit retry. Save retains unopened entries/order. Read legacy arrays/v1 and migrate legacy arrays to the versioned envelope;
+  Cold launch after Hosts loads Recent only, no sessions/history/network. MainActor open-by-ID reuses or publishes then connects one instance across scenes; repeated selection does not retry a failed first attempt. Save retains unopened entries/order. Read legacy arrays/v1 and migrate legacy arrays to the versioned envelope;
   only successful loads permit save. Corrupt/unknown bytes remain/write-blocked. Prune missing Hosts; close/exit/delete removes live+Recent entries;
-  Close All preserves connection history. Host-delete outbox cancels related runtime/local history.
+  Close All preserves connection history. Local Host deletion closes both live and unopened descriptors immediately, with outbox cleanup for surviving durable work; remote removal closes them through Vault-apply handling.
 - Connection history is a synchronized Vault event stream for saved-host SSH/Telnet/SFTP only; Serial and temporary targets never enter it. Each
   event carries a stable `sourceDeviceID`, start time and optional end time, but no device name. The reusable synchronized device directory maps
   installation IDs to mutable display names, so a rename updates every feature that resolves that ID without rewriting history events. Closing a

@@ -1,8 +1,11 @@
 ---
 type: integration guide
 title: MCP Server, Transfer APIs, and Stdio Bridge
-description: How the macOS-only Termind MCP listener authenticates local clients, executes host tools through external UI authentication, and provides scoped HTTP SFTP transfers. Covers the bundled termind-mcp stdio bridge and MCP session lifecycle.
+description: How the desktop MCP listener and stdio bridge expose local host tools and scoped HTTP SFTP transfers, including ticket states and failure recovery. Distinguishes macOS server ownership from the iOS remote MCP client.
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
@@ -12,6 +15,8 @@ sources:
     resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-b8fca76c89564e16eccfbb53
     resource: repo://TFM/App/MCPServerController.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
@@ -42,15 +47,14 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "codex", at: "2026-09-23T01:34:03.251Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # MCP Server, Transfer APIs, and Stdio Bridge
 
-Termind’s built-in MCP endpoint is a **macOS-only, local integration boundary**. The desktop app owns the listener, the tool registry, external authentication UI, audit trail, and transfer lifecycle; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server and iOS does not start a local MCP listener.
+Termind’s built-in MCP **server** is a **macOS-only, local integration boundary**. `TFM/App/AppModel.swift` constructs `MCPServerController`, which owns the listener, tool registry, external authentication UI, audit trail, and transfer lifecycle; an MCP client supplies JSON-RPC requests. The listener accepts only loopback connections and authenticates normal MCP traffic with a device-local Bearer token. It is not a remote-access server. The iOS `MobileAppModel` instead composes a mobile Assistant and ordinary SFTP transfers, not this listener. iOS **does** support the other side of MCP: its Pro-gated remote MCP settings/editor can discover HTTP(S) servers with `MCPClient`, store a bearer credential, configure per-tool permissions, and make their tools available to the Assistant. Do not confuse the mobile outbound client with the desktop inbound server or its `/uploads` and `/downloads` routes.
+
+The shared `AgentHostServices.live(...)` composition is not a shared MCP listener: macOS passes its resolver, connection pool, authentication registry, and background commands to `MCPServerController`, while iOS passes its host services to `MobileAssistantModel` and separately creates its app SFTP transfer coordinator. The MCP upload/download ticket coordinators and their HTTP byte routes belong to the desktop server, not the mobile transfer coordinator.
 
 The endpoint is normally `http://127.0.0.1:7391/mcp`, but the port is configurable. The server is off by default and requires the MCP Server Pro entitlement to enable, configure, rotate its token, or change exported tools.
 
@@ -137,13 +141,38 @@ Tool audit records are registered per MCP session. The UI can show client, tool,
 
 Large or binary data does not travel in the 4 MiB MCP body. An MCP call creates a transfer ticket and returns a loopback URL, method, scoped Bearer capability, and identifier; status is queried using the ticket ID through MCP. Ticket creation itself does not open SSH, local files, or the remote source.
 
-Upload and download are separate state machines and separate capabilities, even though they share a global budget of four active slots. Each ticket is bound to the creating MCP session/run, host, remote path, direction and intent; its 256-bit token expires after ten minutes. Waiting and paused tickets expire, while active work is allowed to finish. Each direction permits up to 64 unfinished tickets, retains up to 256 terminal records for 30 minutes, and terminal status remains queryable during that retention interval. Host/session revocation, server stop, token rotation, or disabling the matching direction cancels/revokes work.
+Upload and download are separate state machines and separate capabilities, even though they share a global budget of four active slots. Each ticket is bound to the creating MCP session/run, host, remote path, direction and intent; its 256-bit token expires after ten minutes. Waiting and paused tickets expire, while active work is allowed to finish. Each direction permits up to 64 unfinished tickets, retains up to 256 terminal records for 30 minutes, and terminal status remains queryable during that retention interval **while the owning session still exists**. Host/session revocation, server stop, token rotation, or disabling the matching direction cancels/revokes work. Ticket creation only validates request/host and allocates a capability; the subsequent HTTP claim acquires a shared active slot (or returns `429` without consuming a waiting ticket). The session activity check covers live work, unexpired paused tickets, and recently audited completions so a long-running transfer and its status remain queryable past normal session idle expiry.
 
 ### Upload: `sftp_upload` then `PUT /uploads/<id>`
 
-The upload ticket binds the expected byte count, SHA-256 digest, target path, and overwrite intent. The byte route accepts only its capability and required binary request shape, claims the ticket atomically, and streams with backpressure into a dedicated SFTP operation—no scratch workspace or whole-file staging. The remote write commits only after exact length and incremental digest verification. A duplicate/parallel claim cannot replay committed bytes.
+The upload ticket binds the expected byte count (up to 10 GiB), SHA-256 digest, target path, and overwrite intent. Its MCP result includes `upload_id`, `upload_url`, `upload_token`, `expires_at`, method `PUT`, and the initial `Authorization`, `Content-Type`, `Content-Length`, and `Upload-Offset` headers. The byte route accepts only its capability and required binary request shape: no URL query/fragment, a loopback `Origin` if supplied, `application/octet-stream`, decimal suffix `Content-Length`, matching decimal `Upload-Offset` (default `0`), no chunked transfer encoding, and only `Expect: 100-continue` if an expectation is sent. Header/token/offset failures leave the ticket waiting or paused; `100 Continue` is sent only **after** authorization and the atomic claim, before body reading. The route streams bounded chunks with backpressure into a dedicated SFTP operation—no scratch workspace or whole-file staging. A duplicate/parallel claim cannot replay committed bytes.
 
-Interrupted uploads can resume only from the coordinator’s acknowledged remote offset. The client must provide matching `Upload-Offset` and suffix `Content-Length`; the remote prefix is verified before continuation. Digest mismatch, truncation, cancellation, or cleanup failure does not publish a successful remote file. The status may report a possible temporary remote path if cleanup fails. Uploads never overwrite directories; `overwrite` is only meaningful for an existing regular file.
+```mermaid
+stateDiagram-v2
+    [*] --> waiting: create ticket
+    waiting --> connecting: valid PUT and capacity claim
+    waiting --> expired: ten minute deadline
+    waiting --> cancelled: revoke
+    connecting --> transferring: progress
+    connecting --> paused: recoverable interruption
+    transferring --> paused: recoverable interruption
+    connecting --> succeeded: verified remote commit
+    transferring --> succeeded: verified remote commit
+    connecting --> cleaning: revoke with temporary file
+    transferring --> cleaning: revoke with temporary file
+    paused --> connecting: valid suffix PUT before expiry
+    paused --> expired: ten minute deadline
+    paused --> cleaning: revoke with temporary file
+    cleaning --> cancelled: cleanup attempted
+    connecting --> failed: nonresumable failure
+    transferring --> failed: nonresumable failure
+    connecting --> cancelled: revoke
+    transferring --> cancelled: revoke
+```
+
+Upload ticket states and representative transitions in `MCPUploadCoordinator`; cleanup can also run on a failed attempt before it becomes terminal, and expired/revoked tickets cannot resume.
+
+Interrupted uploads can resume only from the coordinator’s acknowledged remote `upload_offset`. Poll `sftp_upload_status` in the same live MCP session after an interruption or a lost HTTP response; if `paused` and `resumable`, PUT only the suffix with matching `Upload-Offset` and remaining `Content-Length`. The remote prefix is verified before continuation. A successful remote commit sets `succeeded` even if a late disconnect loses the HTTP response; never repeat a succeeded upload. The remote write commits only after exact length and incremental full-file digest verification. Digest mismatch (`422`), invalid/truncated body (`400`), changed partial (`409`), or timeout (`504`) must not be interpreted as success; recoverable connection loss/timeout or disconnect can pause when not explicitly revoked and before expiry. Cancellation/revocation (`410`) and integrity failures cannot resume. Failure cleanup runs outside the failed HTTP attempt's cancellation context; `temporary_file_may_remain` reports a possible remote partial path if cleanup fails, not the file body. Uploads never overwrite directories; `overwrite` is only meaningful for an existing regular file.
 
 ### Download: `sftp_download` then `GET /downloads/<id>`
 

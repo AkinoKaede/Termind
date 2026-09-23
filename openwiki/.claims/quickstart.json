@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:acf6dc6d43a7314db512e046d19dad8aa17f3056196ad9c5f6b540a591bb4d73",
+  "pageVersion": "sha256:ed6123ee29f371389d58e4ef425a381efb7f9a251c135b317d168b2e7ec27e70",
   "claims": [
     {
       "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
@@ -26,15 +26,15 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:5391ee5b542127ba539cac32e1f3d49c335e78f9c09aa06499c6c61fd00e42fa"
+          "version": "repo-file-v1:sha256:f7b86ed89575ed3b8d34683c776d646efa81ead11ae75f125ed47b2ae384e99c"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift",
-          "version": "repo-file-v1:sha256:9daf1c0933fdbcff826165a8edc171876c54faa343a184348284e63f736e86bf"
+          "version": "repo-file-v1:sha256:a6722f9b8e04de670c0e17ec823b23cd344c8cdfe9286052edb9bca9854f43f4"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:4bc8de73959fb7b78ab29e7936fbeab9a5f13a0e0f7555d520d99ff2bd731cec"
+          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L17-L49",
@@ -48,7 +48,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:4bc8de73959fb7b78ab29e7936fbeab9a5f13a0e0f7555d520d99ff2bd731cec"
+          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
         }
       ]
     },
@@ -57,8 +57,8 @@
       "statement": "`TermindIOSApp` performs language migration and creates a single live or testing `MobileAppModel`; its window injects the model container on success and presents an unavailable-data view when startup composition fails.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/TermindIOSApp.swift#L5-L33",
-          "version": "repo-lines-v1:sha256:1574c44f26f386fca5834af375adbea23b9471aaca384b9aa647006e94caec2e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0MDI1ZTA5ZDBlYTM3ZDMyNTYyMDVjODkwYTg5YjU0NmE0MDcwNTg4MDJmZWUyZDY1N2Q2ZjJmODg5MzllMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwOWRlZDA1YTMwZTBiMDk1ZjI3NWRkNTcwMzRmNzU2NTgzNjBjOWQ4ZWIyNTg3NjNjNGI0MDMwYmM5ZGRjYjEifQ"
+          "resource": "repo://TFI/App/TermindIOSApp.swift",
+          "version": "repo-file-v1:sha256:a6722f9b8e04de670c0e17ec823b23cd344c8cdfe9286052edb9bca9854f43f4"
         }
       ]
     },
@@ -112,7 +112,7 @@
         },
         {
           "resource": "repo://AGENTS.md#L40-L48",
-          "version": "repo-lines-v1:sha256:e0e8c9958812182ec2d7001a28a31979a8ef4bba9255fe9f04867d56046faca6:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+          "version": "repo-lines-v1:sha256:1504391daf2c6128093191cf4154eebb7c2a830ea322086e3cbf2a30066708cc:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3ZmM5ODZlZjAxZWU1ZjU4YzZmMWZhMjY1YjhhNjQxMzExNjhmOGFhNTk5M2Q3ODg2ZDk2YzZlMTg5ODk0MzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg0NTE4ZWQ0MjVmYWVjYTU4MTRhMWMxMDE1NGYxMzI4MThlYjNlYzBiNmU4Mzk4ZGY0OTRiOGFkZjdjM2EyNDYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQxZGE4Nzc5OGNjOTU3NTdiNzc0NDU4ZWM0OWI4NDFkY2FjMzgwNTFkOTI5Y2RiOTgxOTBiYjE3YjI3ZGZkODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBlZGM0MzMyOThhZDU4MTI5ZWUwYTg4NTJjMTNmNTI5MjBkYWFmOTRhOGM2NGE0ODcxZWVlZjQ2ZTEzMTVlZDIifQ"
         }
       ]
     },
@@ -125,10 +125,98 @@
           "version": "repo-lines-v1:sha256:a556c3aea2c14cdaa85d89a15243c4606e48562f600fe675a3e4f75594c7a07e:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiM2VkMDNiODMzODVkNTYyYTZmN2VhN2FjNzljMDRjOTAyYjliNDc1YmU2ZGRmMGJmZWU4NmJmNGY1MWYxMTAyOSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODI1YTI1OWIwZmM4NzNiZDgwYjhhOTVlYzE0NTVlYjI4YWNmMDBjZDE1YzAzZGQxN2Q5NGU4YmVlNDI4NTEzYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiYTAyZjA5NDM5NjA4ZjcyZGY0MzQxYzNiZWJlODVjNDFiMGI1YWQyNmFmZjY1ZTYwZDhjZGI2MzAzNjAyNjAxMSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
         }
       ]
+    },
+    {
+      "id": "claim_c024c979a5864f7c864a6e33042d4316",
+      "statement": "MobileAppModel aggregates scene phases so all scenes must background before it pauses monitoring, memory, sync, metrics and outbox; background-task expiration suspends workspaces, stops forwarding, pauses transfers and expires the Assistant, while an active scene resumes eligible services.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:b24747ff9dedd849a5aabeba6b978fa6c7e3b61954033dcee5163d5ed8064123"
+        },
+        {
+          "resource": "repo://TFI/App/MobileRootView.swift",
+          "version": "repo-file-v1:sha256:f7b86ed89575ed3b8d34683c776d646efa81ead11ae75f125ed47b2ae384e99c"
+        }
+      ]
+    },
+    {
+      "id": "claim_54a92b4e0f4b4678a15dea08e22fd005",
+      "statement": "On macOS the last window closes the app only when menu-bar metrics is disabled and metrics is not keeping it running; a quit request rechecks pending SFTP edits and lets the user cancel before beginning termination.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
+        }
+      ]
+    },
+    {
+      "id": "claim_454657f6df2c48f0ba5f8d101fc90939",
+      "statement": "Mac app termination fences new Assistant work, cancels and drains conversations and pending preparations before agent resource closure, while stopping MCP and transfers; AppKit receives one termination reply on cleanup completion or after a three-second fallback.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/AppModel.swift",
+          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+        },
+        {
+          "resource": "repo://TFM/App/TermindApp.swift",
+          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
+        },
+        {
+          "resource": "repo://TFMTests/AppTerminationTests.swift",
+          "version": "repo-file-v1:sha256:b20c89cdeef69667b3220ca2e4ce86656855ed4b9d942a4b1dfd0f046bb4ecdc"
+        }
+      ]
+    },
+    {
+      "id": "claim_ff89031fb529435fa8af6ac31eabda49",
+      "statement": "Mobile scenes share an app model and its live workspace instances, but each MobileRootView creates a scene-local navigation model; saved descriptors are restored without reconnecting at cold launch and connection-history entries are ended when the owning workspace closes.",
+      "evidence": [
+        {
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:b24747ff9dedd849a5aabeba6b978fa6c7e3b61954033dcee5163d5ed8064123"
+        },
+        {
+          "resource": "repo://TFI/App/MobileRootView.swift",
+          "version": "repo-file-v1:sha256:f7b86ed89575ed3b8d34683c776d646efa81ead11ae75f125ed47b2ae384e99c"
+        },
+        {
+          "resource": "repo://TFI/App/TermindIOSApp.swift",
+          "version": "repo-file-v1:sha256:a6722f9b8e04de670c0e17ec823b23cd344c8cdfe9286052edb9bca9854f43f4"
+        }
+      ]
+    },
+    {
+      "id": "claim_bab15ba1864d4119a35c8d60fd8c76a5",
+      "statement": "Mobile key-window integration tests are opt-in with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, disabled parallel testing and a narrow TFITests filter; manual-authorization StoreKit tests are separately opt-in with `TERMIND_STOREKIT_TESTS=1`.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:7c19a99ec73d4473ac94bb134b62a1306c62d1285e5b8af26430f1d466de35a7"
+        },
+        {
+          "resource": "repo://TFITests/MobileEditorToolbarTests.swift",
+          "version": "repo-file-v1:sha256:b7bdc9c7e0f80d81f6610283c947786cfc0f0d13dc06ddd683a4240e1236b38a"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift",
+          "version": "repo-file-v1:sha256:74c325de244d31d41b7799dd7a8bf4694630e4cb98e3d1b1b2ab165bc6d41765"
+        }
+      ]
+    },
+    {
+      "id": "claim_b929e9957fc64a1fba4955c60b9c8b83",
+      "statement": "App copy changes require completed simplified and traditional Chinese translations and the localization script, while language behavior changes use AppLanguageTests and website changes require a production build and English/Chinese route checks.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:7c19a99ec73d4473ac94bb134b62a1306c62d1285e5b8af26430f1d466de35a7"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "at": "2026-09-23T10:36:38.039Z"
   }
 }

@@ -3,6 +3,9 @@ type: architecture map
 title: Module and Directory Architecture Map
 description: A concise map of Termind's modules, second-level functional directories, build dependencies, and responsibility boundaries, with links to the detailed directory guides.
 tags: [architecture, modules, directories, dependencies, ownership]
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -30,12 +33,18 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-a62bfbbc7de13a894444718b
     resource: repo://TermindMCPBridge/main.swift
+  - id: openwiki-source-dc9295278cc250ed20567540
+    resource: repo://TFI/App/MobileAppDependencies.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
     resource: repo://TFI/App/MobileSceneModel.swift
+  - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
+    resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
@@ -46,10 +55,7 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:08:51.776Z
+generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 ---
 
 # Module and Directory Architecture Map
@@ -102,11 +108,11 @@ flowchart TB
     Application --> Domain
 ```
 
-Both app targets directly depend on all six frameworks. The diagram also explains why Persistence is not interchangeable with general Infrastructure: Infrastructure can use Persistence, while Persistence must not depend on Infrastructure or Remote Infrastructure. Shared frameworks never depend on an app target.
+Both `TFM` and `TFI` directly depend on all six frameworks; `TermindDomain` has no shared-target dependency. These are explicit `PBXTargetDependency` edges, not inferred from directory proximity or imports. The diagram also explains why Persistence is not interchangeable with general Infrastructure: Infrastructure can use Persistence, while Persistence must not depend on Infrastructure or Remote Infrastructure. Shared frameworks never depend on an app target. `FrameworkTests` depends on all six shared frameworks, while `TFMTests` and `TFITests` depend on their respective app plus selected shared frameworks; the benchmark does not depend on either app or a test target.
 
 ## Product and package boundaries
 
-Arrows here are **labeled relationships**, not a complete link graph. The shared-framework group expands into the graph above. AgentKit's package products are linked by multiple layers, including Domain, Application, Persistence, Remote Infrastructure, and app composition; the single package edge below groups those consumers rather than implying one exclusive entry point.
+Arrows here are **labeled relationships**, not a complete link graph. The shared-framework group expands into the graph above. The remote AgentKit package supplies `AgentKit` to Domain, Application, Persistence, both apps, and tests; `AgentKitScrubber` is linked by Remote Infrastructure and desktop composition. The single package edge below groups those consumers rather than implying one exclusive entry point. `TermindPresentation` instead directly links the Ghostty and MarkdownView package products, and `TermindRemoteInfrastructure` links `CSSH2` and `OpenSSL`. Check target `packageProductDependencies` for the exact package linkage before relocating code.
 
 ```mermaid
 flowchart LR
@@ -118,11 +124,13 @@ flowchart LR
     Activity["WorkspaceActivitySupport"] -.->|source compiled into both| Mobile
     Activity -.->|source compiled into both| Widget
     Package["Resolved AgentKit package products"] -.->|linked by owning consumers| Shared
-    Checkout["AgentKit reference checkout"] -.->|inspect separately; not an Xcode path dependency| Package
+    Checkout["AgentKit reference checkout"] -.->|not an Xcode path dependency| Package
     Benchmark["Port-forwarding benchmark"] -->|depends on| Remote["Remote Infrastructure + Application + Domain"]
 ```
 
-The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable, not app startup logic or a test-host dependency.
+The MCP bridge translates stdio requests into authenticated HTTP calls to the desktop server; it is not the server itself. `TFM` builds and embeds this separate tool. `TFI` builds and embeds the `TermindWidgets` extension, which directly depends on Presentation; `WorkspaceActivitySupport` is source-compiled in both the app and extension (and in `TFITests`), not a seventh framework. The widget renders a bounded workspace summary; it does not establish SSH sessions. The benchmark is a standalone executable linked to Remote Infrastructure, Application, and Domain, not app startup logic or a test-host dependency.
+
+**AgentKit version boundary:** `.gitmodules` names an `AgentKit/` reference checkout, and repository guidance also describes a sibling `../AgentKit` development tree. Neither is wired into this Xcode project as a local package path: the project declares a remote `upToNextMajorVersion` requirement starting at `0.14.0`, and `Package.resolved` currently pins the remote to `0.14.0` at revision `ffc4aa41c8854142aa47c35231e57f56f961ba9f`. A local checkout edit alone will not change the Xcode build; release the package change, update the project requirement, and re-resolve the pin together. AgentKit owns the generic agent loop and tools; Termind registers host-specific SSH/SFTP tools in Remote Infrastructure.
 
 ## How responsibilities meet
 
@@ -137,7 +145,9 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 
 This split is also a placement rule: shared behavior belongs with its existing owner; native lifetime or platform API usage stays in the app. Similar names such as `Agent`, `Transfers`, `Terminal`, or `Metrics` in different modules do not imply duplicated responsibilities.
 
-## State boundaries to keep in mind
+## Composition and state boundaries
+
+`TFM/App/TermindApp.swift` is the desktop `@main` entrypoint. It opens the Persistence container, wires stores, Keychain-backed secrets, sync and connection coordinators into an app-wide `AppModel`, and injects that model and container into each `WindowGroup` root. Each main window receives its own `WindowModel`; a separate authentication window uses the shared app environment. A failed desktop database open ends launch with `fatalError`. On mobile, `TFI/App/TermindIOSApp.swift` is the actual `@main`, **not** `MobileAppModel.swift`: it chooses live versus test dependencies, creates one `MobileAppModel` and supplies its container to the scene root, or shows an unavailable-content view if initialization throws. `MobileAppModel` assembles SwiftData, Keychain or in-memory secrets, remote services, sync coordinators, Assistant and workspaces. In the in-memory/test path it disables live sync and Live Activities. `MobileSceneModel` resolves selected workspace IDs against app-owned live instances rather than owning connections itself.
 
 - **Process-wide:** shared stores, service coordinators, and application models.
 - **Desktop window:** navigation, workspace collection, pane selection, searches, and transcript caches.
@@ -146,3 +156,7 @@ This split is also a placement rule: shared behavior belongs with its existing o
 - **Durable storage:** metadata, histories, configuration, and separately governed memory; not live transports or transient credentials.
 
 For lifetime diagrams, continue with [Native App Directory Responsibilities](native-app-directories.md) and [Platform Runtime](platform-runtime.md). For change-oriented navigation and verification, return to the [Engineering Quickstart](../quickstart.md).
+
+## Verifying a boundary change
+
+`TFMTests/ArchitectureBoundaryTests.swift` checks import and ownership restrictions: Domain stays free of platform and transport libraries, Application cannot construct concrete implementations, Persistence cannot import Infrastructure or Remote Infrastructure, shared Presentation avoids app and storage dependencies, and native Features do not reach directly into storage or transports. It also checks that the forwarding benchmark is not pulled into apps or tests and that AgentKit-owned runtime types are not redefined in the app. These source-level guards complement rather than replace the Xcode target graph: when moving a capability, inspect both the destination target's dependency/package-product list and these tests. Use the pinned-resolution build/test commands in [Engineering Quickstart](../quickstart.md).
