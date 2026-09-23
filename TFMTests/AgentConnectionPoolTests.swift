@@ -79,6 +79,63 @@ struct AgentConnectionPoolTests {
     }
 
     @Test
+    func cancellingTheOnlyConnectionWaiterDoesNotWaitForTheSharedOpen() async throws {
+        let backend = StubBackend()
+        let gate = Gate()
+        let pool = makePool(backend, openerGate: gate)
+        let host = UUID()
+        let completion = ConnectionCompletionProbe()
+        let opening = Task {
+            defer { Task { await completion.finish() } }
+            return try await pool.connection(hostID: host)
+        }
+        while await gate.arrivals == 0 { await Task.yield() }
+
+        opening.cancel()
+        let completedBeforeOpenFinished = await waitForCompletion(completion)
+        await gate.open()
+
+        #expect(completedBeforeOpenFinished)
+        await #expect(throws: CancellationError.self) {
+            _ = try await opening.value
+        }
+        for _ in 0..<1_000 where await backend.execDisconnects == 0 {
+            await Task.yield()
+        }
+        #expect(await backend.execDisconnects == 1)
+        #expect(await pool.openConnectionCount == 0)
+    }
+
+    @Test
+    func cancellingOneConnectionWaiterPreservesTheSharedOpenForAnotherWaiter() async throws {
+        let backend = StubBackend()
+        let gate = Gate()
+        let pool = makePool(backend, openerGate: gate)
+        let host = UUID()
+        let firstCompletion = ConnectionCompletionProbe()
+        let first = Task {
+            defer { Task { await firstCompletion.finish() } }
+            return try await pool.connection(hostID: host)
+        }
+        while await gate.arrivals == 0 { await Task.yield() }
+        let second = Task { try await pool.connection(hostID: host) }
+        for _ in 0..<100 { await Task.yield() }
+
+        first.cancel()
+        let firstCompletedBeforeOpenFinished = await waitForCompletion(firstCompletion)
+        await gate.open()
+
+        #expect(firstCompletedBeforeOpenFinished)
+        await #expect(throws: CancellationError.self) {
+            _ = try await first.value
+        }
+        #expect(try serial(await second.value) == 1)
+        #expect(await backend.execOpens == 1)
+        #expect(await backend.execDisconnects == 0)
+        #expect(await pool.openConnectionCount == 1)
+    }
+
+    @Test
     func execAndSFTPShareOneConnectionAndCloseTogether() async throws {
         let backend = StubBackend()
         let pool = makePool(backend)
@@ -283,6 +340,20 @@ struct AgentConnectionPoolTests {
         #expect(await backend.execDisconnects == 3)
         #expect(await backend.sftpDisconnects == 3)
     }
+}
+
+private func waitForCompletion(_ completion: ConnectionCompletionProbe) async -> Bool {
+    for _ in 0..<1_000 {
+        if await completion.isFinished { return true }
+        await Task.yield()
+    }
+    return await completion.isFinished
+}
+
+private actor ConnectionCompletionProbe {
+    private(set) var isFinished = false
+
+    func finish() { isFinished = true }
 }
 
 /// Which stub connection the pool handed back. Distinguishing "reused" from
