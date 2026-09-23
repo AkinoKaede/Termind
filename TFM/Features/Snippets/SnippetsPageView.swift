@@ -165,7 +165,6 @@ struct SnippetsPageView: ManagedCardPage {
             extendSelection: context.extendSelection,
             actionSnippets: context.actionItems,
             execute: requestExecution,
-            executeOnHosts: executeOnHosts,
             edit: { edit(snippet, action: context.select) },
             duplicate: duplicate,
             delete: {
@@ -327,18 +326,6 @@ struct SnippetsPageView: ManagedCardPage {
         app.execute(snippets, in: window)
     }
 
-    private func executeOnHosts(_ snippets: [Snippet]) {
-        guard !snippets.isEmpty else { return }
-        window.openVaultWork(
-            .snippetExecutionTargets(
-                SnippetHostChooserRequest(
-                    snippetIDs: snippets.map(\.id), strategy: .overrideAllTargets
-                )
-            ),
-            on: .snippets
-        )
-    }
-
     private func executionMessage(_ snippets: [Snippet]) -> String {
         snippets.map { snippet in
             let wanted = Set(snippet.targetHostIDs)
@@ -407,7 +394,7 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
                 actions.deleteSnippets(batch.snippets)
             }
         case .executeDestructive(let batch):
-            Button("Execute", role: .destructive) {
+            Button("Run", role: .destructive) {
                 actions.performExecution(batch.snippets)
             }
         case nil:
@@ -422,7 +409,7 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
             batch.snippets.count == 1
                 ? Text("Delete Snippet?")
                 : Text("Delete \(batch.snippets.count) Snippets?")
-        case .executeDestructive: Text("Execute destructive scripts?")
+        case .executeDestructive: Text("Run destructive scripts?")
         case nil: Text("")
         }
     }
@@ -454,7 +441,6 @@ private struct SnippetCard: View {
     let extendSelection: () -> Void
     let actionSnippets: [Snippet]
     let execute: ([Snippet]) -> Void
-    let executeOnHosts: ([Snippet]) -> Void
     let edit: () -> Void
     let duplicate: (Snippet) -> Void
     let delete: ([Snippet]) -> Void
@@ -470,10 +456,7 @@ private struct SnippetCard: View {
             SnippetCardContent(snippet: snippet, allowsTextSelection: true)
         }
         .contextMenu {
-            Button("Execute", systemImage: MenuSymbol.execute) { execute(actionSnippets) }
-            Button("Execute on Hosts", systemImage: MenuSymbol.executeOnHosts) {
-                executeOnHosts(actionSnippets)
-            }
+            Button("Run", systemImage: MenuSymbol.execute) { execute(actionSnippets) }
             if actionSnippets.count == 1 {
                 Divider()
                 Button("Edit", systemImage: MenuSymbol.edit, action: edit)

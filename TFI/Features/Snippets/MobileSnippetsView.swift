@@ -97,7 +97,6 @@ struct MobileSnippetsView: View {
             MobileSnippetDetailView(
                 app: app, snippetID: id,
                 execute: { requestExecution($0, overrideTargets: false) },
-                executeOnHosts: { requestExecution($0, overrideTargets: true) },
                 edit: {
                     editorRequest = SnippetEditorRequest(snippetID: id, packageID: nil)
                 },
@@ -121,7 +120,7 @@ struct MobileSnippetsView: View {
         }
         .sheet(item: $targetRequest, onDismiss: completeTargetSelection) { request in
             MobileSnippetHostPicker(
-                app: app, selected: [], title: "Execute on Hosts", actionTitle: "Execute",
+                app: app, selected: [], title: "Run", actionTitle: "Run",
                 requiresSelection: true
             ) { ids in
                 pendingTargetExecution = ExecutionRequest(snippetID: request.snippetID, hostIDs: ids)
@@ -153,7 +152,7 @@ struct MobileSnippetsView: View {
             Text(packageDeletionMessage)
         }
         .confirmationDialog(
-            "Execute a destructive script?",
+            "Run a destructive script?",
             isPresented: Binding(
                 get: { destructiveRequest != nil },
                 set: { if !$0 { destructiveRequest = nil } }),
@@ -289,12 +288,8 @@ struct MobileSnippetsView: View {
                 }
             }
         } actions: {
-            Button("Execute", systemImage: "play.fill") {
+            Button("Run", systemImage: "play.fill") {
                 requestExecution(snippet.id, overrideTargets: false)
-            }
-            .disabled(app.snippets.hosts.isEmpty)
-            Button("Execute on Hosts", systemImage: "play.rectangle") {
-                requestExecution(snippet.id, overrideTargets: true)
             }
             .disabled(app.snippets.hosts.isEmpty)
             Divider()
@@ -405,10 +400,10 @@ struct MobileSnippetsView: View {
     }
 
     private var destructiveExecuteTitle: String {
-        guard let request = destructiveRequest else { return String(localized: "Execute") }
+        guard let request = destructiveRequest else { return String(localized: "Run") }
         return request.hostIDs.count == 1
-            ? String(localized: "Execute on 1 Host")
-            : String(localized: "Execute on \(request.hostIDs.count) Hosts")
+            ? String(localized: "Run on 1 Host")
+            : String(localized: "Run on \(request.hostIDs.count) Hosts")
     }
 
     private var destructiveMessage: String {
@@ -436,7 +431,6 @@ struct MobileSnippetDetailView: View {
     let app: MobileAppModel
     let snippetID: Snippet.ID
     let execute: (Snippet.ID) -> Void
-    let executeOnHosts: (Snippet.ID) -> Void
     let edit: () -> Void
     let duplicate: (Snippet.ID) -> Void
     let delete: () -> Void
@@ -459,7 +453,7 @@ struct MobileSnippetDetailView: View {
                         Button {
                             execute(snippet.id)
                         } label: {
-                            Label("Execute", systemImage: "play.fill")
+                            Label("Run", systemImage: "play.fill")
                                 .frame(maxWidth: .infinity).padding(.vertical, 6)
                         }
                         .buttonStyle(.borderedProminent)
@@ -477,10 +471,6 @@ struct MobileSnippetDetailView: View {
                     }
                     .mobileProminentAction()
                     MobileToolbarOverflow {
-                        Button("Execute on Hosts", systemImage: "play.rectangle") {
-                            executeOnHosts(snippet.id)
-                        }
-                        .disabled(app.snippets.hosts.isEmpty)
                         Button("Duplicate", systemImage: "plus.square.on.square") {
                             duplicate(snippet.id)
                         }

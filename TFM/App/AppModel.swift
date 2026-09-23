@@ -554,7 +554,7 @@ final class AppModel {
                     if window.sidebar.assistantConversationID == id {
                         window.sidebar.assistantConversationID = nil
                         if wasArchived {
-                            window.sidebar.isAssistantArchivePresented = true
+                            window.isAssistantArchivePresented = true
                         }
                     }
                 }
@@ -958,7 +958,7 @@ final class AppModel {
     }
 
     /// Turns Snippet execution into ordinary visible sessions rather than a
-    /// hidden job. `overrideHostIDs` powers Execute on Hosts; `fallbackHostIDs`
+    /// hidden job. `overrideHostIDs` powers explicit host overrides; `fallbackHostIDs`
     /// is used only by snippets whose saved target list is empty.
     func execute(
         _ snippets: [Snippet], overrideHostIDs: [Host.ID]? = nil,
