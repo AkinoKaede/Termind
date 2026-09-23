@@ -4,6 +4,8 @@ title: CloudKit Schema Deployment and Signed-Device Release Readiness
 description: Production CloudKit schema, compatibility, and signed-device checks for Vault, Settings, SFTP preferences, Metrics, and Keychain-backed secrets.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
 sources:
+  - id: openwiki-source-7ca30f0e781e8c2df826b47a
+    resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
   - id: openwiki-source-46ef2fcd9e3aba751015021b
@@ -30,6 +32,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SettingsSyncJournal.swift
   - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
+  - id: openwiki-source-a0d614d618b11f103ec246ae
+    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
@@ -54,10 +58,10 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-960109cd5bc0de7a879c1e16
     resource: repo://TFMTests/VaultSyncTests.swift
-generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # CloudKit Schema Deployment and Signed-Device Release Readiness
@@ -73,12 +77,14 @@ Validate the Development schema first, then explicitly deploy it to Production.
 | Category | Zone | Record type | Subscription |
 | --- | --- | --- | --- |
 | Settings and AI configuration | `TermindAIConfigurationV1` | `AIConfigurationItem` | `termind-ai-configuration-v1-changes` |
+| SSH preferences | `TermindAIConfigurationV1` | `SSHPreferencesItem` | `termind-ai-configuration-v1-changes` |
 | SFTP preferences | `TermindAIConfigurationV1` | `SFTPPreferencesItem` | `termind-ai-configuration-v1-changes` |
+| Workspace preferences | `TermindAIConfigurationV1` | `WorkspacePreferencesItem` | `termind-ai-configuration-v1-changes` |
 | Metrics | `TermindMetricsV1` | `MetricsItem` | `termind-metrics-v1-changes` |
 
 Vault records use the same private container through their own coordinator and compatibility contract. A Vault envelope stores integer `formatVersion` and `counter`, Boolean `isDeleted`, strings `kind`, `entityID`, `writerID`, and `payloadHash`, date `modifiedAt`, inline bytes `payload`, or `payloadAsset` for payloads above the 700,000-byte inline limit. Preserve zone names, record types, subscription identifiers, envelope fields, and format compatibility: older clients must be able to ignore the distinct `SFTPPreferencesItem` record type before attempting to decode it.
 
-Connection-history events and the reusable device directory use separate `connectionHistory` and `device` payload kinds inside the existing Vault `VaultItem` record type; neither requires a new CloudKit zone, record type, field or Production schema deployment. Release validation still needs mixed-version coverage because older clients cannot decode those payload kinds safely until the quarantine-capable build is deployed. On signed devices verify event start/end updates and tombstones, local-only Recents versus all-device History, and deterministic convergence to the newest 300 events. Independently rename a device and verify that one `device` update changes every history row resolving its stable ID, while event pruning, per-Host deletion and Clear History leave device records intact.
+Connection-history events and the reusable device directory use separate `connectionHistory` and `device` payload kinds inside the existing Vault `VaultItem` record type; neither requires a new CloudKit zone, record type, field or Production schema deployment. Release validation still needs mixed-version coverage because older clients cannot decode those payload kinds safely until the quarantine-capable build is deployed. On signed devices verify event start/end updates and tombstones, local-only Recents versus all-device History, and deterministic convergence to the newest 250 events. Independently rename a device and verify that one `device` update changes every history row resolving its stable ID, while event pruning, per-Host deletion and Clear History leave device records intact.
 
 There is no public-database access in this design. Before release, verify the app entitlements, the private-container Development schema, and the deployed Production schema with credentials that actually have CloudKit management access. An unavailable management token or a successful local test is not deployment evidence.
 
@@ -106,7 +112,7 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## First-stage mixed-version safety
 
-Local schema V31 adds replica-scoped quarantine and recovery checkpoints. It does **not** add a CloudKit record type, change the existing zones, or raise the V1 envelope formats. Treat local database migration and cloud schema deployment as separate decisions.
+Local schema V31 adds replica-scoped quarantine and recovery checkpoints. The current V34 schema retains that safety storage and adds the connection-history/device shapes through the direct V31→V34 migration. Those local changes do **not** add a Vault record type, change the existing zones, or raise the V1 envelope formats. Treat local database migration and cloud schema deployment as separate decisions; the distinct Settings record types in the inventory still require deployment before use.
 
 The compatibility contract is now fail-closed for records a client detects it cannot safely understand: keep the received bytes and local pending edits, remove that record from upload scheduling, and recheck the final batch/provider. Other compatible records remain eligible. Unsupported fetches and `serverRecordChanged` replies share this path. Only successful supported-data reconciliation clears the restriction; pressing Retry, pausing a category or restarting does not discard it.
 

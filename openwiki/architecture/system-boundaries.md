@@ -36,12 +36,14 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-68b5f4529ef349aac826b1d9
+    resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # System Boundaries and Dependency Ownership
@@ -101,7 +103,7 @@ The checks also prohibit all shared frameworks from importing `Termind` or `Term
 
 ## Persistence is a single-owner boundary
 
-`TermindPersistence` exports the complete current schema (`TermindSchemaV33`) and builds a `ModelContainer` using its migration plan. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
+`TermindPersistence` exports the complete current schema (`TermindSchemaV34`) and builds a `ModelContainer` using its migration plan. Its factory rejects an in-memory request that also supplies a file URL and configures the store with CloudKit disabled; platform composition roots choose *where* the store lives and retain the container, but do not define the model set or construct a substitute container.
 
 Connection history follows the same boundary: Domain owns the portable event value, Application owns the observable model and repository protocol, and Persistence owns its SwiftData shape and Vault-journal transaction. The reusable ID-to-name mapping is deliberately separate: Domain owns `DeviceRecord`, Application owns `DeviceDirectoryModel` and `DeviceDirectoryRepository`, and Persistence owns `PersistentDeviceRecord` plus the SwiftData adapter. A history event merely references `sourceDeviceID`; it does not own or capture the device name. Platform apps inject connection lifecycles, acquire their native system display name, and choose local versus all-device presentation; they do not declare stored models.
 
@@ -111,7 +113,7 @@ Both app roots call `TermindPersistence.makeContainer`. Desktop turns an unavail
 
 ## Composition, resource, and state ownership
 
-The app targets are composition roots. `TermindApp` creates the desktop `ModelContainer`, keychain store, sync persistence/coordinators, repositories, connection coordinator, logging, and app-wide `AppModel`; it also adapts DeviceKit's `Device.current.safeDescription` into the shared device-directory port. It injects the shared model and container into its window scenes. `TermindIOSApp` chooses live or testing dependencies, creates one startup `MobileAppModel`, and injects that model's container into its `WindowGroup`; the mobile composition uses the same DeviceKit description for the device-directory port. This is where a concrete implementation or platform value becomes a port supplied to shared feature code.
+The app targets are composition roots. `TermindApp` creates the desktop `ModelContainer`, keychain store, sync persistence/coordinators, repositories, connection coordinator, logging, and app-wide `AppModel`; it also supplies `MacDeviceName.current` to the shared device-directory port (trimmed `kern.hostname`, with DeviceKit's `Device.current.safeDescription` as fallback). It injects the shared model and container into its window scenes. `TermindIOSApp` chooses live or testing dependencies, creates one startup `MobileAppModel`, and injects that model's container into its `WindowGroup`; the mobile composition uses DeviceKit's description directly for the device-directory port. This is where a concrete implementation or platform value becomes a port supplied to shared feature code.
 
 Do not use this as permission to move live state into the app-wide layer. Durable stores and cross-window coordinators are app-wide; desktop navigation and workspaces are window-owned; mobile navigation is scene-owned; live SSH/SFTP transports remain with the workspace/session that opened them. Refer to [Platform Runtime, App Composition, and Lifetimes](platform-runtime.md) for the detailed ownership map.
 

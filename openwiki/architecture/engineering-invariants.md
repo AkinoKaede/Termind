@@ -6,18 +6,18 @@ tags: [architecture, invariants, lifecycle, security, persistence, remote-sessio
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-5c91b796f7e6d651aedf3023
+    resource: repo://Frameworks/TermindApplication/FeatureModels/CommandHistoryModel.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
+  - id: openwiki-source-7ca30f0e781e8c2df826b47a
+    resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
     resource: repo://Frameworks/TermindApplication/SSHConnectionTypes.swift
   - id: openwiki-source-cd3e43e60522274ce1f1908b
     resource: repo://Frameworks/TermindApplication/SSHSecret.swift
-  - id: openwiki-source-e4f5ea9b30063cdc7d027956
-    resource: repo://Frameworks/TermindDomain/Connections/ConnectionHistoryEntry.swift
-  - id: openwiki-source-7367aa06bc3b7ce470e78113
-    resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-4957f13c836c497e7ebe4656
@@ -32,10 +32,16 @@ sources:
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
-  - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
-    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
+  - id: openwiki-source-8185a608f0b79f1af097efbd
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
+  - id: openwiki-source-0689f4693840cd29f5ac352c
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontFields.swift
+  - id: openwiki-source-821c6451f936b3390d26080d
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
+  - id: openwiki-source-07dbc9527b95676a55499eb8
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemePicker.swift
   - id: openwiki-source-87b90af0bd504e35083a8414
     resource: repo://Frameworks/TermindPresentation/VaultSyncStatusLabel.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
@@ -66,26 +72,42 @@ sources:
     resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-02810e1f8eac4d0983f8cd44
+    resource: repo://TFI/Features/Settings/MobileTerminalSettingsView.swift
+  - id: openwiki-source-3c85f29e2d0bdf3d44f4e0e8
+    resource: repo://TFI/Features/Terminal/MobileTerminalListPresentation.swift
+  - id: openwiki-source-3f37062f55fb57a9f2e97f35
+    resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
     resource: repo://TFI/Infrastructure/MobileWorkspaceStore.swift
+  - id: openwiki-source-e396438eb6a8a7ca888da5f4
+    resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-16ec96bd78162e7e62effd0e
+    resource: repo://TFITests/MobileConnectionPickerTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-0854be84b166268626a3cb08
+    resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-385c953ef1c6bf095d1c1244
+    resource: repo://TFM/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+  - id: openwiki-source-9442022b3dba1be62a55f0f0
+    resource: repo://TFMTests/TerminalThemeTests.swift
+generated: { by: "codex", at: "2026-09-23T00:59:31.979Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:59:31.979Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -108,7 +130,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 | TermindInfrastructure | In-memory repositories, metrics parsing, StoreKit, Vault/Settings/Metrics CloudKit; Application, Domain, Persistence. |
 | TermindRemoteInfrastructure | SSH/SFTP/Telnet, Keychain, keys, sampling, forwarding, transfers, scoped imports; Infrastructure, Application, Domain. C libraries stay outside portable framework tests. |
 | TermindPresentation | Reusable SwiftUI policy/content, Ghostty themes, `TerminalPreferences` bridge; Application and Domain only. |
-| TermindPersistence | All SwiftData models, frozen V1–V31 history, V32 live models, migrations and container construction; no app dependency. |
+| TermindPersistence | All SwiftData models, historical schemas, V34 live schema, migrations and container construction; no app dependency. |
 | TFM / TFI | Native UI/adapters/lifetimes; shared modules never import apps. |
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
@@ -119,6 +141,10 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
 - Architecture tests fail closed on absent/empty production roots. Source checks guard dependencies, native-list
   allowlists, AgentKit/SwiftData ownership only; UI/copy/wiring need behavioral or visual coverage.
+- V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
+  schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
+  preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
+  do not change the independently versioned CloudKit envelopes.
 
 ## State, navigation and editing
 
@@ -322,6 +348,13 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   missing local size from pre-upgrade local data before remote materialization; existing mirrors win. Ignore legacy remote
   font fields and omit outgoing fields. Themes/custom text (including authored fonts) still sync. Missing fonts fall back
   without deleting choice. Apply local overrides after theme/custom commands, resetting family lists; update surfaces in place.
+- Shared `TerminalFontFields` binds local typography with an 8–36 point editing range, a macOS slider and an iOS stepper;
+  merely presenting the controls does not normalize saved sizes. Font discovery/refresh stays app-owned: a family qualifies
+  when any loadable member is monospaced, with localized ordering rather than a shared AppKit/UIKit adapter.
+- Shared theme options are appearance-filtered and name-sorted. Keep unavailable or wrong-appearance saved names as picker
+  selections and show the actual fallback; opening Settings must not replace or persist them. Rendering uses the matching
+  Termind default, then custom commands, then local typography. Base-theme selection remains editable with custom commands
+  enabled, since commands overlay only their specified keys. Save/remote-apply and native terminal lifetimes stay with their owners.
 - Desktop copy-completed-selection/right-click-paste default off and sync in the terminal record; mobile preserves without
   exposing/applying. Keep native surfaces. Copy only local completion; paste once on release through Ghostty clipboard/input
   capture. Remote mouse/Option-right-click stay Ghostty-owned; mouse reports never broadcast. Empty paste arms no capture;
@@ -334,7 +367,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   submits it once at the authenticated prompt boundary, including automatic reconnects; explicit launch commands override only
   until submitted. Missing/empty Snippets are no-ops. SFTP, forwarding, Metrics, Agent and route connections never run it.
 - History starts after authenticated start, retains optional remote status/duration (never receive-time inference), normalizes
-  backslash continuation only and caps at 1,000 rows/Host. Both UIs show first line plus ellipsis.
+  backslash continuation only and caps at the shared 250 rows/Host. Both UIs show first line plus ellipsis.
 
 ### SFTP and external edits
 
@@ -587,16 +620,16 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - One SSH session/SFTP Channel per mobile Workspace, no Welcome/pane composition even with Pro; Assistant independent. Peer switch retains connection,
   Recent opens on demand, cross-open retains live paths. Explicit close never retries; failures stay in Journey. Background expiration closes
   transports but retains intent; foreground resumes existing Workspaces.
-- `mobile.workspaces.v1` persists ordered local descriptors only (ID/Host/kind/title/duplicate index), no commands/secrets/paths/content/transfers.
+- `mobile.workspaces.v1` persists ordered local descriptors only (ID/Host/kind/title), no commands/secrets/paths/content/transfers.
   Cold launch after Hosts loads Recent only, no sessions/history/network. MainActor open-by-ID reuses or registers/connects once across scenes;
-  failure needs explicit retry. Save retains unopened entries/order. Read legacy arrays/v1, assign missing lowest-free indices and write envelope;
+  failure needs explicit retry. Save retains unopened entries/order. Read legacy arrays/v1 and migrate legacy arrays to the versioned envelope;
   only successful loads permit save. Corrupt/unknown bytes remain/write-blocked. Prune missing Hosts; close/exit/delete removes live+Recent entries;
-  Close All preserves connection history. Titles reserve indices without renumbering. Host-delete outbox cancels related runtime/local history.
+  Close All preserves connection history. Host-delete outbox cancels related runtime/local history.
 - Connection history is a synchronized Vault event stream for saved-host SSH/Telnet/SFTP only; Serial and temporary targets never enter it. Each
   event carries a stable `sourceDeviceID`, start time and optional end time, but no device name. The reusable synchronized device directory maps
   installation IDs to mutable display names, so a rename updates every feature that resolves that ID without rewriting history events. Closing a
-  pane/workspace ends its event; moving preserves it. Stores retain the newest 300 deterministically. Welcome/mobile Recents use local events and
-  aggregate by Host, while desktop/mobile History presents at most 100 all-device events. Aggregated Delete clears that Host's events across
+  pane/workspace ends its event; moving preserves it. Stores retain the newest 250 deterministically. Welcome/mobile Recents use local events and
+  aggregate by Host, while desktop History presents at most 100 all-device events and mobile History at most 50. Aggregated Delete clears that Host's events across
   devices; Clear History clears the complete timeline.
 - One serialized Live Activity for current Workspaces only. Secret/command-free validated links select ID/list without restoring unrelated sessions;
   cold launch ends leftover activities but links may open saved entries. Explicit start intent waits for foreground; last current close clears it

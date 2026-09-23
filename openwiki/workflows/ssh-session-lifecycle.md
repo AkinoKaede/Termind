@@ -24,6 +24,8 @@ sources:
     resource: repo://FrameworkTests/SSHConnectionPreparationTests.swift
   - id: openwiki-source-2635e6aecc48e14adbb07b91
     resource: repo://FrameworkTests/SSHHostKeyAuthorizationTests.swift
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-350d4a794cfef67e406ddf9b
@@ -32,14 +34,16 @@ sources:
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-22b9fca540c3029c5ace451e
+    resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
-  - id: openwiki-source-578f30372fe67f8688f44b76
-    resource: repo://TFMTests/WindowStateTests.swift
-generated: { by: "omp", at: "2026-09-22T02:21:47.705Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # SSH, Telnet, Trust, and Workspace Session Lifecycle
@@ -167,7 +171,7 @@ The platform rules intentionally differ:
 
 | Situation | Desktop macOS | Mobile iOS and iPadOS |
 | --- | --- | --- |
-| Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `mobile.workspaces.v1` stores only ordered local descriptors such as workspace ID, Host ID, kind, title, and duplicate index. Cold launch shows Recent entries but creates no sessions, history, or network activity. |
+| Window or app restoration | Native scene/frame restoration restores window presentation, not live Workspace transports. Dynamic Workspaces are window-owned and are not reconnected simply because a window is restored. | `mobile.workspaces.v1` stores only ordered local descriptors containing workspace ID, Host ID, kind and title. Cold launch shows saved descriptors but creates no sessions, history, or network activity. |
 | Reopen/select | Mounting a preserved desktop workspace does not repeat authentication; explicit retry or reopen may. Moving a workspace preserves its surfaces, transport, splits, and state. | Opening a descriptor reuses or registers one live workspace across scenes and makes at most one initial connection attempt; a failure needs explicit retry. Peer switching retains the live workspace. |
 | Background/foreground | Desktop quit/close follows owned-session teardown; independent transfers and services have their own lifetime. | Background expiration closes transports but retains workspace intent. Foreground resumes existing workspaces when their recorded foreground-resume intent is set. |
 | Explicit close | The owning window closes its own sessions; closing a pane removes empty workspaces without transferring ownership. | Explicit close removes the live and recent entry and never retries it. |

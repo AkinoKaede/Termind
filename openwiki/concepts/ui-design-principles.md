@@ -4,12 +4,26 @@ title: UI Design Principles and Shared Presentation Boundaries
 description: "Source-backed UI principles for TFM and TFI: semantic visual systems, native interaction, shared forms and presentation values, stable rendering identity, accessibility, localization and safe extension boundaries."
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
 sources:
+  - id: openwiki-source-4ae2a0061a7bd729d6e132b4
+    resource: repo://Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift
+  - id: openwiki-source-0ad8e888a4a6fb517fde6f7a
+    resource: repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift
   - id: openwiki-source-400e4d9303a3f9d98f90660d
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptEntry.swift
   - id: openwiki-source-eec1a2bc6dfc2c60b2bee55c
     resource: repo://Frameworks/TermindPresentation/HostConnectionFields.swift
   - id: openwiki-source-db3eac4d3fbf63570c0e0d56
     resource: repo://Frameworks/TermindPresentation/SingleLineTextInput.swift
+  - id: openwiki-source-8185a608f0b79f1af097efbd
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
+  - id: openwiki-source-0689f4693840cd29f5ac352c
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontFields.swift
+  - id: openwiki-source-98bdcb8d33d425fe144907e1
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontPicker.swift
+  - id: openwiki-source-821c6451f936b3390d26080d
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift
+  - id: openwiki-source-07dbc9527b95676a55499eb8
+    resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemePicker.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-c8d832474c03f5ebad7b0578
@@ -22,12 +36,18 @@ sources:
     resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-fc448263e4e5ce330b8cbda1
     resource: repo://TFI/Features/HostEditor/MobileHostEditor.swift
+  - id: openwiki-source-02810e1f8eac4d0983f8cd44
+    resource: repo://TFI/Features/Settings/MobileTerminalSettingsView.swift
+  - id: openwiki-source-e396438eb6a8a7ca888da5f4
+    resource: repo://TFI/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-a4f3a690a8395e2ac9b065b9
     resource: repo://TFI/UI/Components/MobileNativeList.swift
   - id: openwiki-source-c99ab42abad536ed4396933c
     resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-8194e1eb3652c7ad61d75cfa
+    resource: repo://TFITests/MobileTerminalFontTests.swift
   - id: openwiki-source-873894299539cce9a737a860
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-f490cb5bfbb8ce236a7f1bf4
@@ -36,18 +56,28 @@ sources:
     resource: repo://TFM/Features/AI/TranscriptListView.swift
   - id: openwiki-source-1e0cf223ab8448c8eee3f345
     resource: repo://TFM/Features/HostEditor/HostEditorView.swift
+  - id: openwiki-source-cfe2a6b22338023c37a5b503
+    resource: repo://TFM/Features/Settings/SettingsPageView.swift
+  - id: openwiki-source-af7fbbca079c2cb6201a5151
+    resource: repo://TFM/Features/Settings/TerminalCustomConfigurationEditorSheet.swift
   - id: openwiki-source-ba160208435f3410138a3539
     resource: repo://TFM/Features/Workspaces/PersistentWorkspaceDeckLayout.swift
+  - id: openwiki-source-385c953ef1c6bf095d1c1244
+    resource: repo://TFM/Platform/TerminalFontCatalog.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
-generated: { by: "omp", at: "2026-09-22T02:51:54.212Z" }
+  - id: openwiki-source-2891f940e682279163740c83
+    resource: repo://TFMTests/TerminalFontRenderingTests.swift
+  - id: openwiki-source-9442022b3dba1be62a55f0f0
+    resource: repo://TFMTests/TerminalThemeTests.swift
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T09:51:39.958Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # UI Design Principles and Shared Presentation Boundaries
@@ -153,6 +183,16 @@ Both Host editors reuse `HostOrganizationSection`, `HostProtocolProfileControls`
 - Group/tag controls are injected by each platform into the shared organization section rather than forcing one platform's picker into the other.
 
 The data path is draft binding → shared fields → platform validation/save action. It is not shared fields → database or transport.
+
+### Terminal preferences: shared fields, native adapters
+
+`TerminalFontFields` receives a `TerminalFontPreferences` binding and an app-supplied family list. Both apps reuse its family and Follow Theme/Custom controls and the 8–36 size-editing range; macOS uses a native `Slider`, while iOS uses a `Stepper`. Font discovery remains app-owned: AppKit/UIKit catalogs include a family when any loadable member is monospaced, sort with `localizedStandardCompare`, and refresh on settings appearance and active-scene transitions. The picker previews available families and retains an unavailable family name; resolving a renderable copy does not rewrite the saved choice.
+
+Typography is device-local through `TerminalFontSettings`/`@AppStorage`, separate from synchronized `TerminalPreferences`. Theme edits go through `TerminalSettingsModel`, which persists before publishing new preferences and exposes storage errors on failure. Sharing these fields does not move persistence or native font enumeration into the shared view.
+
+`TerminalThemePicker` uses the shared appearance-filtered, name-sorted catalog. Missing, empty, or wrong-appearance selections remain selected values, with a localized fallback hint; the renderer chooses the matching default without saving a replacement merely because Settings appeared. Custom configuration overlays the selected base theme, and explicit local font overrides apply last. The base picker remains editable while the overlay is enabled. Editor workflows remain native: desktop configuration editing autosaves and supports file import; mobile uses a draft sheet with explicit Save.
+
+Focused tests cover complete macOS monospaced-family membership, typography precedence and controller identity, appearance filtering and fallback, base-theme changes beneath an overlay, and opening the actual desktop settings page without a preference write. Mobile rendering cases exercise the font controls in English, Simplified Chinese and Traditional Chinese.
 
 `SingleLineTextInput` illustrates a narrow shared policy. It replaces runs of newline scalars with one space, preserves attributed paste content, and normalizes only edits through the binding setter. Reading the original bound value does not rewrite stored data. This is not a general sanitizer for secrets, multiline commands, snippets or existing repository records. Native paste/input insertion is supplied by app-owned environment adapters so selection and input-method handling can stay platform-specific.
 

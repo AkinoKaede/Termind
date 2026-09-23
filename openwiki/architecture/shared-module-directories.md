@@ -58,8 +58,6 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Logging/LaunchFileLogService.swift
   - id: openwiki-source-f18e361c4458ef5e475b60b6
     resource: repo://Frameworks/TermindInfrastructure/Speech/AppleSpeechTranscriptionService.swift
-  - id: openwiki-source-ec0a64adad50721ec500ebc2
-    resource: repo://Frameworks/TermindPersistence/AISecretStore.swift
   - id: openwiki-source-1366e71322413c98e0ac1534
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-e14697ea11a99078be3adee9
@@ -106,10 +104,10 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # Shared Framework Directory Responsibilities
@@ -192,7 +190,7 @@ Details: [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-
 | `Logging` | Launch-scoped file logging and log-file lifecycle. |
 | `Speech` | Apple speech-recognition implementation plus an audio-input abstraction; each app supplies its native audio capture. |
 
-This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. The shared safety adapter projects scoped persistent restrictions and recovery state into the lifecycle; it does not merge the categories' engines, accounts, subscriptions or journals. V31 added safety storage locally; V32 replaces current Host/connection-history shapes, adds the generic device-directory record, and keeps the existing CloudKit record format. Both received records and save-conflict replies use the same validation path before allowing a blocked record to become uploadable again.
+This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. The shared safety adapter projects scoped persistent restrictions and recovery state into the lifecycle; it does not merge the categories' engines, accounts, subscriptions or journals. V31 added safety storage locally; the current V34 schema replaces Host/connection-history and Identity shapes, adds the generic device directory and workspace preferences, and keeps the independently versioned CloudKit envelopes. Released V31 stores migrate directly to V34; V32 and V33 were never distributed schema endpoints. Both received records and save-conflict replies use the same validation path before allowing a blocked record to become uploadable again.
 
 ## TermindRemoteInfrastructure — protocol and remote-operation machinery
 

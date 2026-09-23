@@ -4,6 +4,10 @@ title: Persistent Data, Migrations, and Secret Boundaries
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
 sources:
+  - id: openwiki-source-dc7b363138921b0923d2dc2f
+    resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
+  - id: openwiki-source-7ca30f0e781e8c2df826b47a
+    resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-4ddcdd630c9bc1c622a037df
     resource: repo://Frameworks/TermindApplication/SecretStoring.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
@@ -42,6 +46,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
   - id: openwiki-source-bc351b6c699ff4bbf9f8c2b1
     resource: repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift
+  - id: openwiki-source-a0d614d618b11f103ec246ae
+    resource: repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-8fda0c115d3df709fffe110c
@@ -58,14 +64,18 @@ sources:
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-3f37062f55fb57a9f2e97f35
+    resource: repo://TFI/Features/Vault/MobileVaultView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-0854be84b166268626a3cb08
+    resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # Persistent Data, Migrations, and Secret Boundaries
@@ -92,7 +102,7 @@ This diagram distinguishes durable SwiftData and GRDB records from Keychain mate
 
 ## Store ownership and startup
 
-`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV33` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and construct separate `ModelContext` instances where independent repository contexts are needed; they do not assemble a partial schema per feature or scene.
+`TermindPersistence.makeContainer(inMemory:url:)` is the single SwiftData entry point. It exposes the complete `TermindSchemaV34` schema, attaches `TermindMigrationPlan`, disables SwiftData CloudKit integration for this store, and rejects the invalid combination of an in-memory store and a file URL. Both apps retain one container for the process and construct separate `ModelContext` instances where independent repository contexts are needed; they do not assemble a partial schema per feature or scene.
 
 The desktop root makes container opening part of initialization and uses a `KeychainSecretStore` for live composition. The mobile root creates its Application Support parent before opening `Termind.store`, or chooses an in-memory container and `InMemorySecretStore` for test/injected configurations. Store-open errors propagate out of these composition paths rather than being silently replaced with a new empty database: data availability is an explicit startup failure condition.
 
@@ -106,7 +116,7 @@ Agent conversations use a separate SwiftData repository with similarly deliberat
 
 ## Schema evolution: preserve the past exactly
 
-Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan therefore retains every schema from V1 through V33 and stages each adjacent migration. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
+Historical SwiftData model shapes are deliberately frozen. A `VersionedSchema` hashes the types it names, so retroactively editing a type used by an already shipped schema can make an installed store unopenable rather than migrated. The migration plan retains the released endpoints V1–V27, V30, V31, and V34, with direct V27→V30 and V31→V34 stages; V28/V29 and V32/V33 were never distributed endpoints. When a persisted shape changes, introduce a version-specific model and replace it only in the new schema; do not “clean up” an old model definition.
 
 Examples show why this matters:
 
@@ -114,18 +124,18 @@ Examples show why this matters:
 - V11’s provider model remains frozen while V12 changes address representation; legacy columns in the live provider model are folded on read to preserve the former endpoint behavior.
 - V30 removes the obsolete persisted Known Host mismatch flag by replacing the V29 known-host model, while retaining hostname, port, algorithm, fingerprint, and date.
 - V31 additively introduces scoped CloudKit quarantine and recovery models with a lightweight V30→V31 migration. The existing V1–V30 model shapes remain unchanged; the local schema increment does not change the V1 CloudKit envelope formats.
-- V32 replaces the live Host and connection-history representations and adds the generic device-directory representation. The Host replacement removes its obsolete `lastUsedAt` column. The custom migration preserves events, assigns the stable installation ID to their `sourceDeviceID`, and inserts a separate `DeviceRecord` for that installation. The event itself receives no hostname field, and the CloudKit envelope format remains V1.
-- V33 replaces the live Identity representation to remove device-local `lastUsedAt` usage metadata. Its lightweight migration preserves Identity configuration and the independent Vault journal modification date; historical Identity shapes retain the old column solely for schema compatibility.
+- V34 directly migrates released V31 stores to the Host/connection-history/device model types named V32 and the Identity type named V33, and adds workspace preferences. These type names do not imply intermediate released schema endpoints. Host and Identity replacements remove obsolete `lastUsedAt` columns. The custom migration preserves events, assigns the stable installation ID to their `sourceDeviceID`, and inserts a separate `DeviceRecord` for that installation. The event itself receives no hostname field, and the CloudKit envelope format remains V1.
+- The V31→V34 compatibility test verifies retained Identity configuration and the independent Vault journal modification date, connection origin/backfill with no invented end time, and default workspace-preference journal bootstrap. Historical Host and Identity shapes retain the old columns solely for schema compatibility.
 
 `PersistenceCompatibilityTests` opens original V1 and V14 fixture stores and verifies their data survives; it also checks a file store can reopen, that in-memory containers use the full schema but remain independent, and that representative version upgrades retain data while giving new fields their intended defaults. Treat these compatibility fixtures as a release contract when changing entities, defaults, migration stages, or storage enum raw values.
 
 ### Synchronized connection events and device directory
 
-`SwiftDataConnectionHistoryRepository` stores each saved-host SSH, Telnet or SFTP attempt as an independent event with stable ID, Host ID, protocol, start time, `sourceDeviceID` and optional end time. Every insert/end/delete/clear reconciles the complete local event set with `VaultSyncJournal` inside the same `ModelContext` commit, so a successful history mutation and its envelope or tombstone cannot diverge. The repository and remote-merge path sort by start time and UUID, then deterministically retain the newest 300. The 100-row History limit is presentation-only.
+`SwiftDataConnectionHistoryRepository` stores each saved-host SSH, Telnet or SFTP attempt as an independent event with stable ID, Host ID, protocol, start time, `sourceDeviceID` and optional end time. Every insert/end/delete/clear reconciles the complete local event set with `VaultSyncJournal` inside the same `ModelContext` commit, so a successful history mutation and its envelope or tombstone cannot diverge. The repository and remote-merge path sort by start time and UUID, then deterministically retain the newest 250. The History limits of 100 desktop rows and 50 mobile rows are presentation-only.
 
-`SwiftDataDeviceDirectoryRepository` independently persists reusable `DeviceRecord` values that map installation IDs to mutable display names. Its upsert and `.device` journal envelope commit together. Device records are not dropped when a Host is deleted, History is cleared, or the 300-event retention rule prunes old events; this lets any feature resolve the current name for a stable installation ID. A system-name change updates one directory row, so all connection events and future consumers display the new name without event rewrites.
+`SwiftDataDeviceDirectoryRepository` independently persists reusable `DeviceRecord` values that map installation IDs to mutable display names. Its upsert and `.device` journal envelope commit together. Device records are not dropped when a Host is deleted, History is cleared, or the 250-event retention rule prunes old events; this lets any feature resolve the current name for a stable installation ID. A system-name change updates one directory row, so all connection events and future consumers display the new name without event rewrites.
 
-The old Host `lastUsedAt` column is not a replacement source for this timeline and is removed from the live V32 Host model. V33 likewise removes Identity usage timestamps; neither Host nor Identity usage metadata drives connection History.
+The old Host `lastUsedAt` column is not a replacement source for this timeline. The live Host and Identity model types selected by V34 both omit usage timestamps; neither Host nor Identity usage metadata drives connection History.
 
 ## Cloud sync restrictions are durable local state
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e71b16d155c8189cf4bc29a8e15efcfc015a8b5ea0a52154a4842e5584633c5d",
+  "pageVersion": "sha256:769919ef95916ccc91f27ef2666730600005e79c052893c2ae098644ac389a07",
   "claims": [
     {
       "id": "claim_fbb919f62a2d4ab88aafcc4c1186731b",
@@ -40,7 +40,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:1861792f3f00f64e974298d8d61e0d8b9538bb1e78d2c2f0cd8318359ee36290"
+          "version": "repo-file-v1:sha256:72bc88a9f06e31aca2ec86d3b13ba58773798d2a53742e63a0287edf971c7f25"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
@@ -48,7 +48,7 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift",
-          "version": "repo-file-v1:sha256:88d9fcebce0e42f5177fc9e7052e38651020d19534d9ac6d5668a27114ca59c6"
+          "version": "repo-file-v1:sha256:f3209667a7bc50005bac10a013a881940663e225a9844359d831eb71873a33cd"
         }
       ]
     },
@@ -108,7 +108,7 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift#L136-L251",
-          "version": "repo-lines-v1:sha256:2a363f15c40691f5935bc1fe91ef1f52f62b6f8acb05876e99064f6871e6dab3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE2LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhNjJmNmU2M2U0MjE3OTlkODZiZTU1OWVmNzFhNDAzMzJjYzM2M2JhNmM2NzlhYTk1Mjg5Njc5YjZjMTVmOGFlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1YjNmYzQwMDRkNTU5YWM3ZWE5MjVlZTljOGYzMTA4MmUwZTFkODI2Nzc4OGM0MTBjMjQ1MzEyY2MxMjZjZGZhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4NjE1ZjdkYWRmOGM3ODMxMmJkMTE4MmIxODgyNzQ5NmQ4ZmM2YTY3MWFiM2Y4MWM1YzcwOWY4NTBkNTE3YWRkIn0"
+          "version": "repo-lines-v1:sha256:0c59640ed6d27d6c81930878a17245c46e01668167c58d2d07ebae792ed531c5:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJhNjJmNmU2M2U0MjE3OTlkODZiZTU1OWVmNzFhNDAzMzJjYzM2M2JhNmM2NzlhYTk1Mjg5Njc5YjZjMTVmOGFlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI1YjNmYzQwMDRkNTU5YWM3ZWE5MjVlZTljOGYzMTA4MmUwZTFkODI2Nzc4OGM0MTBjMjQ1MzEyY2MxMjZjZGZhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI4NjE1ZjdkYWRmOGM3ODMxMmJkMTE4MmIxODgyNzQ5NmQ4ZmM2YTY3MWFiM2Y4MWM1YzcwOWY4NTBkNTE3YWRkIn0"
         }
       ]
     },
@@ -194,19 +194,23 @@
     },
     {
       "id": "claim_691b837e633448ff9d3dd27ecf34c11e",
-      "statement": "TFI Workspaces Recents uses only local-device events and aggregates to five Hosts, Home Screen quick actions publish at most three host-only items, and the Vault History page presents at most 100 all-device events.",
+      "statement": "TFI Workspaces Recents uses only local-device events and aggregates to five Hosts, Home Screen quick actions publish at most three host-only items, and the Vault History page presents at most 50 all-device events.",
       "evidence": [
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:cd7a3b0fcbc217401dd3273c3a3463c4feb7f55a26f3985a0a15daefa1d178f4"
+          "version": "repo-file-v1:sha256:ccb0a1c9c7db91c0e853149a638c43c633f8a0fe41fca90a0e39e3566df7bce8"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift",
-          "version": "repo-file-v1:sha256:88d9fcebce0e42f5177fc9e7052e38651020d19534d9ac6d5668a27114ca59c6"
+          "version": "repo-file-v1:sha256:f3209667a7bc50005bac10a013a881940663e225a9844359d831eb71873a33cd"
         },
         {
           "resource": "repo://TFI/Platform/MobileHomeScreenQuickActions.swift",
           "version": "repo-file-v1:sha256:876e36822c6894079fa98043df42e98d7044a2b7658eacb3a4e049075d41cf88"
+        },
+        {
+          "resource": "repo://TFITests/MobileConnectionPickerTests.swift#L142-L168",
+          "version": "repo-lines-v1:sha256:34ffbbbe2fef5d46ef7874361f9eac02fc08dd4fc8e0fd8ebcb72467cb717449:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5NjQ5MzRlNTAwMzZlMDJhNjAzMTAwODk3MDdkZDE5YmNmZWFkOGYwYWI2Y2QxMzM5NTk0NzU4ZDhhZDc5OWIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjOGQ0ZjUxZGVmNWU1ZmI1M2MyODMzMTE3ODI5ZDA4YjhkN2ZmODQ0MmY1ZTc4MDM3NDAyYTk3YjA5ZDk1OWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0YzMyNDlmNDI2MmUyOGE5NzRiZTQ0ODI2MjhmZmIyMGE4ZDRkYjZkNWExMWVmOGViYzg2MjRmZWJiZGNiMjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZhNzU2NzMzYTg1NmYyMTA1MGQxMTFkNGJlN2QxYmI3ZTg4ZDVlY2RjZDljYmFmYTgzMWYyMjZmODg5OTk1M2YifQ"
         }
       ]
     },
@@ -216,7 +220,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift",
-          "version": "repo-file-v1:sha256:88d9fcebce0e42f5177fc9e7052e38651020d19534d9ac6d5668a27114ca59c6"
+          "version": "repo-file-v1:sha256:f3209667a7bc50005bac10a013a881940663e225a9844359d831eb71873a33cd"
         }
       ]
     },
@@ -226,15 +230,15 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceListView.swift",
-          "version": "repo-file-v1:sha256:88d9fcebce0e42f5177fc9e7052e38651020d19534d9ac6d5668a27114ca59c6"
+          "version": "repo-file-v1:sha256:f3209667a7bc50005bac10a013a881940663e225a9844359d831eb71873a33cd"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspaceView.swift",
-          "version": "repo-file-v1:sha256:4ded58e76f48b96d9fb4c8de99a641cd5966b35460360605359f3210c2f4bfb3"
+          "version": "repo-file-v1:sha256:5bbad71afa88faa5c9d4351c6f05d4efee6ae1baa952172f64a55293091ae9e7"
         },
         {
           "resource": "repo://TFITests/MobileWorkspaceMenuTests.swift",
-          "version": "repo-file-v1:sha256:664f7213a7c9950ddc18baee1ca457b7ef08aead40deab681ccfc1e7c34e8e8b"
+          "version": "repo-file-v1:sha256:498e60b8b8587bd1257b77ce6a1b7bdbf4bb346da467f9b39eb8d12cc0314c7a"
         }
       ]
     },
@@ -244,7 +248,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:1861792f3f00f64e974298d8d61e0d8b9538bb1e78d2c2f0cd8318359ee36290"
+          "version": "repo-file-v1:sha256:72bc88a9f06e31aca2ec86d3b13ba58773798d2a53742e63a0287edf971c7f25"
         },
         {
           "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift",
@@ -252,13 +256,13 @@
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
-          "version": "repo-file-v1:sha256:f4a0aba7ad07392adbc7b5e56e5c6ff67e41cfd3f4ace4cdd9754a5a487ef0ce"
+          "version": "repo-file-v1:sha256:d2466771edf0d6d85ccbd8d5c6a8a7cd05521af153016478430a466085380ba9"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T11:34:21.807Z"
+    "at": "2026-09-23T00:59:31.979Z"
   }
 }
