@@ -13,8 +13,8 @@ struct MobileMetricsView: View {
         MobileCardPage {
             if app.metrics.servers.isEmpty {
                 ContentUnavailableView(
-                    TermindCopy.Metrics.noMonitoredServers.swiftUIKey, systemImage: "waveform.path.ecg",
-                    description: Text(TermindCopy.Metrics.addASavedLinuxServerToStartMonitoring))
+                    AppStrings.Metrics.noMonitoredServers.swiftUIKey, systemImage: "waveform.path.ecg",
+                    description: Text(AppStrings.Metrics.addASavedLinuxServerToStartMonitoring))
             }
             MobileCardGrid {
                 ForEach(app.metrics.servers) { server in
@@ -30,25 +30,25 @@ struct MobileMetricsView: View {
                     } actions: {
                         Button(
                             server.selection.enabled
-                                ? TermindCopy.Metrics.pause.swiftUIKey : TermindCopy.Metrics.resume.swiftUIKey,
+                                ? AppStrings.Metrics.pause.swiftUIKey : AppStrings.Metrics.resume.swiftUIKey,
                             systemImage: server.selection.enabled ? "pause" : "play"
                         ) {
                             app.metrics.core.setEnabled(!server.selection.enabled, for: server)
                         }
-                        Button(TermindCopy.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
+                        Button(AppStrings.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
                             app.metrics.core.retry(server)
                         }
                         Divider()
-                        Button(TermindCopy.Common.remove.swiftUIKey, systemImage: "trash", role: .destructive) {
+                        Button(AppStrings.Common.remove.swiftUIKey, systemImage: "trash", role: .destructive) {
                             app.metrics.remove(server.id)
                         }
                     }
                 }
             }
         }
-        .navigationTitle(TermindCopy.Navigation.metrics.swiftUIKey)
+        .navigationTitle(AppStrings.Navigation.metrics.swiftUIKey)
         .toolbar {
-            Button(TermindCopy.Metrics.addServer.swiftUIKey, systemImage: "plus") { selecting = true }.labelStyle(
+            Button(AppStrings.Metrics.addServer.swiftUIKey, systemImage: "plus") { selecting = true }.labelStyle(
                 .iconOnly)
         }
         .navigationDestination(item: $selectedID) { id in
@@ -61,8 +61,8 @@ struct MobileMetricsView: View {
                 MobileHostPicker(
                     library: app.library,
                     useCase: .metrics,
-                    title: TermindCopy.Metrics.addServer,
-                    emptyDescription: TermindCopy.Metrics.addASavedLinuxServerToStartMonitoring,
+                    title: AppStrings.Metrics.addServer,
+                    emptyDescription: AppStrings.Metrics.addASavedLinuxServerToStartMonitoring,
                     cancel: { selecting = false },
                     select: { host in
                         selecting = false
@@ -139,7 +139,7 @@ struct MobileMetricsDetailView: View {
                         Menu {
                             pagePicker
                         } label: {
-                            Label(TermindCopy.Metrics.details.swiftUIKey, systemImage: page.systemImage)
+                            Label(AppStrings.Metrics.details.swiftUIKey, systemImage: page.systemImage)
                         }
                         .labelStyle(.iconOnly)
                     }
@@ -150,15 +150,15 @@ struct MobileMetricsDetailView: View {
                     }
                 }
             }
-            MobileToolbarOverflow(title: TermindCopy.Navigation.metrics) {
+            MobileToolbarOverflow(title: AppStrings.Navigation.metrics) {
                 Button(
                     server.selection.enabled
-                        ? TermindCopy.Metrics.pause.swiftUIKey : TermindCopy.Metrics.resume.swiftUIKey,
+                        ? AppStrings.Metrics.pause.swiftUIKey : AppStrings.Metrics.resume.swiftUIKey,
                     systemImage: server.selection.enabled ? "pause" : "play"
                 ) {
                     app.metrics.core.setEnabled(!server.selection.enabled, for: server)
                 }
-                Button(TermindCopy.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
+                Button(AppStrings.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
                     app.metrics.core.retry(server)
                 }
             }
@@ -169,10 +169,10 @@ struct MobileMetricsDetailView: View {
     }
 
     private var pagePicker: some View {
-        Picker(TermindCopy.Metrics.details.swiftUIKey, selection: $page) {
-            Label(TermindCopy.Common.status.swiftUIKey, systemImage: MobileMetricsDetailPage.status.systemImage).tag(
+        Picker(AppStrings.Metrics.details.swiftUIKey, selection: $page) {
+            Label(AppStrings.Common.status.swiftUIKey, systemImage: MobileMetricsDetailPage.status.systemImage).tag(
                 MobileMetricsDetailPage.status)
-            Label(TermindCopy.Metrics.processes.swiftUIKey, systemImage: MobileMetricsDetailPage.processes.systemImage)
+            Label(AppStrings.Metrics.processes.swiftUIKey, systemImage: MobileMetricsDetailPage.processes.systemImage)
                 .tag(
                     MobileMetricsDetailPage.processes)
         }
@@ -243,13 +243,13 @@ private struct MobileMetricsProcessesView: View {
     }
     var body: some View {
         List {
-            Picker(TermindCopy.Common.sortBy.swiftUIKey, selection: $sort) {
-                Text(TermindCopy.Metrics.cpu).tag(ProcessSort.cpu)
-                Text(TermindCopy.Metrics.memory).tag(ProcessSort.memory)
-                Text(TermindCopy.Metrics.pid).tag(ProcessSort.pid)
+            Picker(AppStrings.Common.sortBy.swiftUIKey, selection: $sort) {
+                Text(AppStrings.Metrics.cpu).tag(ProcessSort.cpu)
+                Text(AppStrings.Metrics.memory).tag(ProcessSort.memory)
+                Text(AppStrings.Metrics.pid).tag(ProcessSort.pid)
             }
             if server.processesFailed {
-                Text(TermindCopy.Metrics.processMetricsUnavailable).foregroundStyle(.secondary)
+                Text(AppStrings.Metrics.processMetricsUnavailable).foregroundStyle(.secondary)
             }
             ForEach(rows) { process in
                 HStack {

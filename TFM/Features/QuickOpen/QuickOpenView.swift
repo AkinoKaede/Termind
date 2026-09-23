@@ -32,7 +32,7 @@ struct QuickOpenOverlay: View {
         }
         .onExitCommand(perform: close)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text(TermindCopy.Navigation.quickOpen))
+        .accessibilityLabel(Text(AppStrings.Navigation.quickOpen))
     }
 
     private func close() {
@@ -121,7 +121,7 @@ struct QuickOpenView: View {
                 .accessibilityHidden(true)
 
             TextField(
-                TermindCopy.Navigation.searchPagesChatsWorkspacesHostsAndActions.swiftUIKey,
+                AppStrings.Navigation.searchPagesChatsWorkspacesHostsAndActions.swiftUIKey,
                 text: $query.singleLineText,
                 axis: .horizontal
             )
@@ -140,7 +140,7 @@ struct QuickOpenView: View {
             .onKeyPress(.upArrow) { moveSelection(by: -1) }
             .onKeyPress(.downArrow) { moveSelection(by: 1) }
             .onExitCommand(perform: dismiss)
-            .accessibilityLabel(Text(TermindCopy.Navigation.searchQuickOpen))
+            .accessibilityLabel(Text(AppStrings.Navigation.searchQuickOpen))
 
             if !query.isEmpty {
                 Button {
@@ -153,8 +153,8 @@ struct QuickOpenView: View {
                 }
                 .buttonStyle(.plain)
                 .focusable(false)
-                .help(Text(TermindCopy.Common.clearSearch))
-                .accessibilityLabel(Text(TermindCopy.Common.clearSearch))
+                .help(Text(AppStrings.Common.clearSearch))
+                .accessibilityLabel(Text(AppStrings.Common.clearSearch))
             }
 
             QuickOpenKeycap(keys: "esc")
@@ -172,9 +172,9 @@ struct QuickOpenView: View {
                     .font(.system(size: 25, weight: .medium))
                     .foregroundStyle(.tertiary)
                     .accessibilityHidden(true)
-                Text(TermindCopy.Common.noResults)
+                Text(AppStrings.Common.noResults)
                     .font(.headline)
-                Text(TermindCopy.Common.noResultsMatch(query))
+                Text(AppStrings.Common.noResultsMatch(query))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -290,9 +290,9 @@ struct QuickOpenView: View {
 
     private var shortcutFooter: some View {
         HStack(spacing: Metrics.Space.xl) {
-            QuickOpenShortcutHint(keys: "↑↓", label: String(localized: TermindCopy.Navigation.navigate))
-            QuickOpenShortcutHint(keys: "↩", label: String(localized: TermindCopy.Common.open))
-            QuickOpenShortcutHint(keys: "esc", label: String(localized: TermindCopy.Common.close))
+            QuickOpenShortcutHint(keys: "↑↓", label: String(localized: AppStrings.Navigation.navigate))
+            QuickOpenShortcutHint(keys: "↩", label: String(localized: AppStrings.Common.open))
+            QuickOpenShortcutHint(keys: "esc", label: String(localized: AppStrings.Common.close))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, Metrics.Space.xl)

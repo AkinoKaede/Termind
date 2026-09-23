@@ -30,7 +30,7 @@ struct WorkspaceNavigatorView: View {
                 Group {
                     welcomeRow
                     SidebarNavigatorRow(
-                        title: TermindCopy.Navigation.metrics, symbol: "waveform.path.ecg",
+                        title: AppStrings.Navigation.metrics, symbol: "waveform.path.ecg",
                         isSelected: window.selectedDestination == .metrics
                     ) {
                         window.dragging = nil
@@ -68,7 +68,7 @@ struct WorkspaceNavigatorView: View {
 
     private var settingsSection: some View {
         Group {
-            Text(TermindCopy.Navigation.settings)
+            Text(AppStrings.Navigation.settings)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(height: 32)
                 .padding(
@@ -78,7 +78,7 @@ struct WorkspaceNavigatorView: View {
                 .termindSidebarSectionLabel()
 
             SidebarNavigatorRow(
-                title: TermindCopy.Navigation.settings,
+                title: AppStrings.Navigation.settings,
                 symbol: "gearshape",
                 isSelected: window.selectedDestination == .settings
             ) {
@@ -105,7 +105,7 @@ struct WorkspaceNavigatorView: View {
 
     private var vaultSection: some View {
         Group {
-            navigatorSectionHeader(TermindCopy.Navigation.vault, isExpanded: $vaultExpanded)
+            navigatorSectionHeader(AppStrings.Navigation.vault, isExpanded: $vaultExpanded)
 
             if vaultExpanded {
                 ForEach(VaultPage.allCases.filter { $0 != .welcome }) { page in
@@ -143,7 +143,7 @@ struct WorkspaceNavigatorView: View {
 
     private var workspaceSection: some View {
         Group {
-            navigatorSectionHeader(TermindCopy.Navigation.workspaces, isExpanded: $workspaceExpanded)
+            navigatorSectionHeader(AppStrings.Navigation.workspaces, isExpanded: $workspaceExpanded)
                 .onGeometryChange(for: CGRect.self) {
                     $0.frame(in: .global)
                 } action: {
@@ -152,7 +152,7 @@ struct WorkspaceNavigatorView: View {
 
             if workspaceExpanded {
                 if window.workspaces.isEmpty {
-                    emptyRow(TermindCopy.Workspace.noWorkspaces)
+                    emptyRow(AppStrings.Workspace.noWorkspaces)
                 }
                 ForEach(window.workspaces) { workspace in
                     if renamingWorkspaceID == workspace.id {
@@ -178,7 +178,7 @@ struct WorkspaceNavigatorView: View {
                 // The same container as the destinations above it. Drawn by
                 // hand it sat 8pt further left than every other row and never
                 // lit up under the pointer.
-                SidebarNavigatorRow(title: TermindCopy.Vault.batchStartup, symbol: MenuSymbol.batchStartup) {
+                SidebarNavigatorRow(title: AppStrings.Vault.batchStartup, symbol: MenuSymbol.batchStartup) {
                     workspaceExpanded = true
                     app.batchStartup(in: window)
                 }
@@ -447,7 +447,7 @@ private struct WorkspaceNavigatorRow: View {
             if isRenaming {
                 SidebarInlineRenameField(
                     text: $renameTitle,
-                    prompt: String(localized: TermindCopy.Workspace.workspaceName),
+                    prompt: String(localized: AppStrings.Workspace.workspaceName),
                     isSelected: isSelected,
                     controlActiveState: controlActiveState,
                     onSubmit: onCommitRename,
@@ -509,7 +509,7 @@ private struct WorkspaceNavigatorRow: View {
                     .frame(width: 14, height: 14)
             }
             .buttonStyle(.plain)
-            .help(Text(TermindCopy.Workspace.closeWorkspaceClickToCloseTheOthers))
+            .help(Text(AppStrings.Workspace.closeWorkspaceClickToCloseTheOthers))
         } else if workspace.status != .disconnected || workspace.hasUnreadOutput {
             StatusDot(status: workspace.status, hasUnread: workspace.hasUnreadOutput, size: 6)
                 .frame(width: 14)
@@ -524,7 +524,7 @@ private struct WorkspaceNavigatorRow: View {
             NativeMenuEntry(
                 title: localized(
                     workspace.sourceTemplateID == nil
-                        ? TermindCopy.Workspace.saveWorkspaceTemplate : TermindCopy.Workspace.updateWorkspaceTemplate
+                        ? AppStrings.Workspace.saveWorkspaceTemplate : AppStrings.Workspace.updateWorkspaceTemplate
                 ),
                 symbol: "square.and.arrow.down",
                 isEnabled: workspace.workspaceTemplateLayout(in: app.hostLibrary) != nil
@@ -536,7 +536,7 @@ private struct WorkspaceNavigatorRow: View {
         if workspace.isRenameable {
             entries.append(
                 NativeMenuEntry(
-                    title: localized(TermindCopy.Common.rename),
+                    title: localized(AppStrings.Common.rename),
                     symbol: MenuSymbol.rename,
                     action: onBeginRename
                 )
@@ -544,7 +544,7 @@ private struct WorkspaceNavigatorRow: View {
             if namedTitle != nil {
                 entries.append(
                     NativeMenuEntry(
-                        title: localized(TermindCopy.Workspace.resetName), symbol: MenuSymbol.resetName
+                        title: localized(AppStrings.Workspace.resetName), symbol: MenuSymbol.resetName
                     ) {
                         window.rename(workspace.id, to: "")
                     }
@@ -559,7 +559,7 @@ private struct WorkspaceNavigatorRow: View {
         if workspace.isSplit {
             entries.append(
                 NativeMenuEntry(
-                    title: localized(TermindCopy.Workspace.separatePanes), symbol: MenuSymbol.separatePanes
+                    title: localized(AppStrings.Workspace.separatePanes), symbol: MenuSymbol.separatePanes
                 ) {
                     window.separatePanes(in: workspace.id)
                 }
@@ -570,7 +570,7 @@ private struct WorkspaceNavigatorRow: View {
             if workspace.isSplit {
                 entries.append(
                     NativeMenuEntry(
-                        title: localized(TermindCopy.Workspace.duplicateInNewWorkspace),
+                        title: localized(AppStrings.Workspace.duplicateInNewWorkspace),
                         symbol: MenuSymbol.duplicate
                     ) {
                         act { window.duplicateSelectedInNewWorkspace() }
@@ -579,17 +579,17 @@ private struct WorkspaceNavigatorRow: View {
             } else {
                 entries.append(
                     NativeMenuEntry(
-                        title: localized(TermindCopy.Common.duplicate),
+                        title: localized(AppStrings.Common.duplicate),
                         symbol: MenuSymbol.duplicate,
                         children: [
                             NativeMenuEntry(
-                                title: localized(TermindCopy.Workspace.inCurrentWorkspace),
+                                title: localized(AppStrings.Workspace.inCurrentWorkspace),
                                 symbol: MenuSymbol.currentWorkspace
                             ) {
                                 act { window.duplicateSelected(axis: .horizontal) }
                             },
                             NativeMenuEntry(
-                                title: localized(TermindCopy.Workspace.inNewWorkspace),
+                                title: localized(AppStrings.Workspace.inNewWorkspace),
                                 symbol: MenuSymbol.newWorkspace
                             ) {
                                 act { window.duplicateSelectedInNewWorkspace() }
@@ -600,12 +600,12 @@ private struct WorkspaceNavigatorRow: View {
             }
             entries.append(.separator)
             entries.append(
-                NativeMenuEntry(title: localized(TermindCopy.Workspace.splitRight), symbol: MenuSymbol.splitRight) {
+                NativeMenuEntry(title: localized(AppStrings.Workspace.splitRight), symbol: MenuSymbol.splitRight) {
                     act { window.splitSelected(axis: .horizontal) }
                 }
             )
             entries.append(
-                NativeMenuEntry(title: localized(TermindCopy.Workspace.splitDown), symbol: MenuSymbol.splitDown) {
+                NativeMenuEntry(title: localized(AppStrings.Workspace.splitDown), symbol: MenuSymbol.splitDown) {
                     act { window.splitSelected(axis: .vertical) }
                 }
             )
@@ -613,7 +613,7 @@ private struct WorkspaceNavigatorRow: View {
         }
         entries.append(
             NativeMenuEntry(
-                title: localized(TermindCopy.Workspace.moveWorkspaceToNewWindow), symbol: MenuSymbol.moveToNewWindow
+                title: localized(AppStrings.Workspace.moveWorkspaceToNewWindow), symbol: MenuSymbol.moveToNewWindow
             ) {
                 app.mainWindows.moveWorkspace(workspace.id, from: window)
             }
@@ -623,18 +623,18 @@ private struct WorkspaceNavigatorRow: View {
         // so only the first of the run carries a glyph.
         entries.append(
             NativeMenuEntry(
-                title: localized(TermindCopy.Workspace.closeWorkspace), symbol: MenuSymbol.closeWorkspace
+                title: localized(AppStrings.Workspace.closeWorkspace), symbol: MenuSymbol.closeWorkspace
             ) {
                 window.close(workspace.id)
             }
         )
         entries.append(
-            NativeMenuEntry(title: localized(TermindCopy.Workspace.closeOtherWorkspaces)) {
+            NativeMenuEntry(title: localized(AppStrings.Workspace.closeOtherWorkspaces)) {
                 window.closeOthers(than: workspace.id)
             }
         )
         entries.append(
-            NativeMenuEntry(title: localized(TermindCopy.Workspace.closeAllWorkspaces)) {
+            NativeMenuEntry(title: localized(AppStrings.Workspace.closeAllWorkspaces)) {
                 window.closeAll()
             }
         )

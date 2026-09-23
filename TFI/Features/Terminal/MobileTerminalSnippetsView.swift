@@ -17,7 +17,7 @@ struct MobileTerminalSnippetsView: View {
             Group {
                 if snippets.isEmpty {
                     if query.isEmpty {
-                        ContentUnavailableView(TermindCopy.Snippets.noSnippets.swiftUIKey, systemImage: "curlybraces")
+                        ContentUnavailableView(AppStrings.Snippets.noSnippets.swiftUIKey, systemImage: "curlybraces")
                     } else {
                         ContentUnavailableView.search(text: query)
                     }
@@ -30,10 +30,10 @@ struct MobileTerminalSnippetsView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
+                            Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
                                 UIPasteboard.general.string = snippet.body
                             }
-                            Button(TermindCopy.Common.insert.swiftUIKey, systemImage: "text.insert") { insert(snippet) }
+                            Button(AppStrings.Common.insert.swiftUIKey, systemImage: "text.insert") { insert(snippet) }
                                 .disabled(!workspace.connected)
                         }
                     }
@@ -42,10 +42,10 @@ struct MobileTerminalSnippetsView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .searchable(text: $query.singleLineText)
-            .navigationTitle(TermindCopy.Navigation.snippets.swiftUIKey)
+            .navigationTitle(AppStrings.Navigation.snippets.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TermindCopy.Common.done.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
+                    Button(AppStrings.Common.done.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
                 }
             }
         }

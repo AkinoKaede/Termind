@@ -448,10 +448,10 @@ nonisolated enum MCPDownloadError: LocalizedError {
     case invalidRequest, unavailable, capacity, unknown
     var errorDescription: String? {
         switch self {
-        case .invalidRequest: String(localized: TermindCopy.MCP.invalidDownloadRequest)
-        case .unavailable: String(localized: TermindCopy.MCP.downloadsUnavailable)
-        case .capacity: String(localized: TermindCopy.MCP.tooManyPendingDownloads)
-        case .unknown: String(localized: TermindCopy.MCP.unknownOrExpiredDownload)
+        case .invalidRequest: String(localized: AppStrings.MCP.invalidDownloadRequest)
+        case .unavailable: String(localized: AppStrings.MCP.downloadsUnavailable)
+        case .capacity: String(localized: AppStrings.MCP.tooManyPendingDownloads)
+        case .unknown: String(localized: AppStrings.MCP.unknownOrExpiredDownload)
         }
     }
 }

@@ -42,8 +42,8 @@ struct MobileHostEditor: View {
 
     var editorTitle: String {
         app.library.host(original.id) == nil
-            ? String(localized: TermindCopy.Vault.addHost)
-            : String(localized: TermindCopy.Vault.editHost)
+            ? String(localized: AppStrings.Vault.addHost)
+            : String(localized: AppStrings.Vault.editHost)
     }
 
     var body: some View {
@@ -68,69 +68,69 @@ struct MobileHostEditor: View {
             },
             content: {
                 HostOrganizationSection(host: $draft) {
-                    Picker(TermindCopy.Vault.group.swiftUIKey, selection: groupChoice) {
-                        Text(TermindCopy.Common.none).tag(Choice<HostGroup.ID>.unset)
+                    Picker(AppStrings.Vault.group.swiftUIKey, selection: groupChoice) {
+                        Text(AppStrings.Common.none).tag(Choice<HostGroup.ID>.unset)
                         ForEach(library.groups) { group in
                             Text(group.name).tag(Choice.existing(group.id))
                         }
                         Divider()
-                        Text(TermindCopy.Vault.newGroup).tag(Choice<HostGroup.ID>.new)
+                        Text(AppStrings.Vault.newGroup).tag(Choice<HostGroup.ID>.new)
                     }
                 } tagsField: {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text(TermindCopy.Vault.tags)
+                        Text(AppStrings.Vault.tags)
                         MobileTagField(tags: $draft.tags, suggestions: library.allTags)
                     }
                 }
                 HostConnectionFields(host: $draft, protocol: $selectedProtocol)
                 if selectedProtocol == .ssh && draft.sshEnabled {
-                    Section(TermindCopy.Vault.authentication.swiftUIKey) {
-                        Picker(TermindCopy.Vault.identity.swiftUIKey, selection: identityChoice) {
-                            Text(TermindCopy.Vault.custom).tag(Choice<Identity.ID>.unset)
+                    Section(AppStrings.Vault.authentication.swiftUIKey) {
+                        Picker(AppStrings.Vault.identity.swiftUIKey, selection: identityChoice) {
+                            Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.unset)
                             Divider()
                             ForEach(library.reusableIdentities) { identity in
                                 Text(identity.name).tag(Choice.existing(identity.id))
                             }
                             Divider()
-                            Text(TermindCopy.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                            Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
                         }
                         if usesCustomIdentity {
-                            LabeledContent(TermindCopy.Vault.username.swiftUIKey) {
+                            LabeledContent(AppStrings.Vault.username.swiftUIKey) {
                                 TextField(
-                                    TermindCopy.Vault.username.swiftUIKey,
+                                    AppStrings.Vault.username.swiftUIKey,
                                     text: $customIdentity.sshUsername.singleLineText
                                 )
                                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                                 .multilineTextAlignment(.trailing)
                             }
-                            LabeledContent(TermindCopy.Vault.password.swiftUIKey) {
-                                RevealableSecretField(TermindCopy.Common.optional, text: $customIdentity.sshPassword)
+                            LabeledContent(AppStrings.Vault.password.swiftUIKey) {
+                                RevealableSecretField(AppStrings.Common.optional, text: $customIdentity.sshPassword)
                                     .multilineTextAlignment(.trailing)
                                     .disabled(!customIdentity.sshPasswordIsEditable)
                             }
-                            Picker(TermindCopy.Vault.key.swiftUIKey, selection: $customIdentity.sshKeyID) {
-                                Text(TermindCopy.Common.none).tag(SSHKeyRef.ID?.none)
+                            Picker(AppStrings.Vault.key.swiftUIKey, selection: $customIdentity.sshKeyID) {
+                                Text(AppStrings.Common.none).tag(SSHKeyRef.ID?.none)
                                 ForEach(library.keys) { key in Text(key.label).tag(SSHKeyRef.ID?.some(key.id)) }
                             }
                         }
                     }
-                    Section(TermindCopy.Vault.routing.swiftUIKey) {
-                        Picker(TermindCopy.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {
-                            Text(TermindCopy.Common.none).tag(UUID?.none)
+                    Section(AppStrings.Vault.routing.swiftUIKey) {
+                        Picker(AppStrings.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {
+                            Text(AppStrings.Common.none).tag(UUID?.none)
                             ForEach(library.hosts.filter { $0.id != draft.id && $0.sshEnabled }) {
                                 Text($0.name).tag(Optional($0.id))
                             }
                         }
-                        Picker(TermindCopy.Vault.proxy.swiftUIKey, selection: proxyKind) {
-                            Text(TermindCopy.Common.none).tag(HostProxy.ProtocolKind?.none)
+                        Picker(AppStrings.Vault.proxy.swiftUIKey, selection: proxyKind) {
+                            Text(AppStrings.Common.none).tag(HostProxy.ProtocolKind?.none)
                             ForEach(HostProxy.ProtocolKind.allCases) { kind in
                                 Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
                             }
                         }
                         if draft.proxy != nil {
-                            LabeledContent(TermindCopy.Vault.hostname.swiftUIKey) {
+                            LabeledContent(AppStrings.Vault.hostname.swiftUIKey) {
                                 TextField(
-                                    TermindCopy.Vault.hostname.swiftUIKey,
+                                    AppStrings.Vault.hostname.swiftUIKey,
                                     text: proxyString(\.hostname).singleLineText, axis: .horizontal
                                 )
                                 .singleLinePaste()
@@ -140,10 +140,10 @@ struct MobileHostEditor: View {
                                 .keyboardType(.URL)
                                 .multilineTextAlignment(.trailing)
                             }
-                            .accessibilityLabel(TermindCopy.Vault.proxyHostname.swiftUIKey)
-                            LabeledContent(TermindCopy.Common.port.swiftUIKey) {
+                            .accessibilityLabel(AppStrings.Vault.proxyHostname.swiftUIKey)
+                            LabeledContent(AppStrings.Common.port.swiftUIKey) {
                                 TextField(
-                                    TermindCopy.Common.port.swiftUIKey, value: proxyInt(\.port),
+                                    AppStrings.Common.port.swiftUIKey, value: proxyInt(\.port),
                                     format: .number.grouping(.never)
                                 ).lineLimit(
                                     1
@@ -151,39 +151,39 @@ struct MobileHostEditor: View {
                                 .keyboardType(.numberPad)
                                 .multilineTextAlignment(.trailing)
                             }
-                            .accessibilityLabel(TermindCopy.Vault.proxyPort.swiftUIKey)
-                            Picker(TermindCopy.Vault.identity.swiftUIKey, selection: proxyIdentityChoice) {
-                                Text(TermindCopy.Common.none).tag(Choice<Identity.ID>.unset)
-                                Text(TermindCopy.Vault.custom).tag(Choice<Identity.ID>.custom)
+                            .accessibilityLabel(AppStrings.Vault.proxyPort.swiftUIKey)
+                            Picker(AppStrings.Vault.identity.swiftUIKey, selection: proxyIdentityChoice) {
+                                Text(AppStrings.Common.none).tag(Choice<Identity.ID>.unset)
+                                Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.custom)
                                 Divider()
                                 ForEach(proxyIdentities) { identity in
                                     Text("\(identity.name) · \(identity.username)")
                                         .tag(Choice.existing(identity.id))
                                 }
                                 Divider()
-                                Text(TermindCopy.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                                Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
                             }
-                            .accessibilityLabel(TermindCopy.Vault.proxyIdentity.swiftUIKey)
+                            .accessibilityLabel(AppStrings.Vault.proxyIdentity.swiftUIKey)
                             if customIdentity.usesCustomProxy {
-                                LabeledContent(TermindCopy.Vault.username.swiftUIKey) {
+                                LabeledContent(AppStrings.Vault.username.swiftUIKey) {
                                     TextField(
-                                        TermindCopy.Vault.username.swiftUIKey,
+                                        AppStrings.Vault.username.swiftUIKey,
                                         text: proxyString(\.username).singleLineText
                                     )
                                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                                     .multilineTextAlignment(.trailing)
                                 }
-                                LabeledContent(TermindCopy.Vault.password.swiftUIKey) {
+                                LabeledContent(AppStrings.Vault.password.swiftUIKey) {
                                     RevealableSecretField(
-                                        TermindCopy.Vault.required, text: $customIdentity.proxyPassword
+                                        AppStrings.Vault.required, text: $customIdentity.proxyPassword
                                     )
                                     .multilineTextAlignment(.trailing)
                                     .disabled(!customIdentity.proxyPasswordIsEditable)
                                 }
                             } else if draft.proxy?.identityID != nil {
-                                LabeledContent(TermindCopy.Vault.username.swiftUIKey) {
+                                LabeledContent(AppStrings.Vault.username.swiftUIKey) {
                                     TextField(
-                                        TermindCopy.Vault.username.swiftUIKey,
+                                        AppStrings.Vault.username.swiftUIKey,
                                         text: proxyString(\.username).singleLineText, axis: .horizontal
                                     )
                                     .singleLinePaste()
@@ -192,7 +192,7 @@ struct MobileHostEditor: View {
                                     .autocorrectionDisabled()
                                     .multilineTextAlignment(.trailing)
                                 }
-                                .accessibilityLabel(TermindCopy.Vault.proxyUsername.swiftUIKey)
+                                .accessibilityLabel(AppStrings.Vault.proxyUsername.swiftUIKey)
                             }
                         }
                     }
@@ -209,8 +209,8 @@ struct MobileHostEditor: View {
                 } else if selectedProtocol == .telnet && draft.telnetEnabled {
                     telnetAuthenticationSection
                     telnetRoutingSection
-                    Section(TermindCopy.Vault.session.swiftUIKey) {
-                        Picker(TermindCopy.Vault.charset.swiftUIKey, selection: $draft.telnetCharset) {
+                    Section(AppStrings.Vault.session.swiftUIKey) {
+                        Picker(AppStrings.Vault.charset.swiftUIKey, selection: $draft.telnetCharset) {
                             ForEach(RemoteCharset.allCases) { charset in
                                 Text(charset.displayName).tag(charset)
                             }
@@ -285,27 +285,27 @@ struct MobileHostEditor: View {
     }
 
     private var telnetAuthenticationSection: some View {
-        Section(TermindCopy.Vault.authentication.swiftUIKey) {
-            Picker(TermindCopy.Vault.identity.swiftUIKey, selection: telnetIdentityChoice) {
-                Text(TermindCopy.Common.none).tag(Choice<Identity.ID>.unset)
-                Text(TermindCopy.Vault.custom).tag(Choice<Identity.ID>.custom)
+        Section(AppStrings.Vault.authentication.swiftUIKey) {
+            Picker(AppStrings.Vault.identity.swiftUIKey, selection: telnetIdentityChoice) {
+                Text(AppStrings.Common.none).tag(Choice<Identity.ID>.unset)
+                Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.custom)
                 Divider()
                 ForEach(telnetIdentities) { identity in
                     Text(identity.name).tag(Choice.existing(identity.id))
                 }
                 Divider()
-                Text(TermindCopy.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
             }
             if customIdentity.usesCustomTelnet(for: draft) {
-                LabeledContent(TermindCopy.Vault.username.swiftUIKey) {
+                LabeledContent(AppStrings.Vault.username.swiftUIKey) {
                     TextField(
-                        TermindCopy.Vault.username.swiftUIKey, text: $customIdentity.telnetUsername.singleLineText
+                        AppStrings.Vault.username.swiftUIKey, text: $customIdentity.telnetUsername.singleLineText
                     )
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .multilineTextAlignment(.trailing)
                 }
-                LabeledContent(TermindCopy.Vault.password.swiftUIKey) {
-                    RevealableSecretField(TermindCopy.Vault.required, text: $customIdentity.telnetPassword)
+                LabeledContent(AppStrings.Vault.password.swiftUIKey) {
+                    RevealableSecretField(AppStrings.Vault.required, text: $customIdentity.telnetPassword)
                         .multilineTextAlignment(.trailing)
                         .disabled(!customIdentity.telnetPasswordIsEditable)
                 }
@@ -315,48 +315,48 @@ struct MobileHostEditor: View {
 
     @ViewBuilder
     private var telnetRoutingSection: some View {
-        Section(TermindCopy.Vault.routing.swiftUIKey) {
-            Picker(TermindCopy.Vault.proxy.swiftUIKey, selection: telnetProxyKind) {
-                Text(TermindCopy.Common.none).tag(HostProxy.ProtocolKind?.none)
+        Section(AppStrings.Vault.routing.swiftUIKey) {
+            Picker(AppStrings.Vault.proxy.swiftUIKey, selection: telnetProxyKind) {
+                Text(AppStrings.Common.none).tag(HostProxy.ProtocolKind?.none)
                 ForEach(HostProxy.ProtocolKind.allCases) { kind in
                     Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
                 }
             }
             if draft.telnetProxy != nil {
-                LabeledContent(TermindCopy.Vault.hostname.swiftUIKey) {
+                LabeledContent(AppStrings.Vault.hostname.swiftUIKey) {
                     TextField(
-                        TermindCopy.Vault.hostname.swiftUIKey, text: telnetProxyString(\.hostname).singleLineText
+                        AppStrings.Vault.hostname.swiftUIKey, text: telnetProxyString(\.hostname).singleLineText
                     )
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .multilineTextAlignment(.trailing)
                 }
-                LabeledContent(TermindCopy.Common.port.swiftUIKey) {
+                LabeledContent(AppStrings.Common.port.swiftUIKey) {
                     TextField(
-                        TermindCopy.Common.port.swiftUIKey, value: telnetProxyInt(\.port),
+                        AppStrings.Common.port.swiftUIKey, value: telnetProxyInt(\.port),
                         format: .number.grouping(.never)
                     )
                     .keyboardType(.numberPad).multilineTextAlignment(.trailing)
                 }
-                Picker(TermindCopy.Vault.identity.swiftUIKey, selection: telnetProxyIdentityChoice) {
-                    Text(TermindCopy.Common.none).tag(Choice<Identity.ID>.unset)
-                    Text(TermindCopy.Vault.custom).tag(Choice<Identity.ID>.custom)
+                Picker(AppStrings.Vault.identity.swiftUIKey, selection: telnetProxyIdentityChoice) {
+                    Text(AppStrings.Common.none).tag(Choice<Identity.ID>.unset)
+                    Text(AppStrings.Vault.custom).tag(Choice<Identity.ID>.custom)
                     Divider()
                     ForEach(telnetIdentities) { identity in
                         Text(identity.name).tag(Choice.existing(identity.id))
                     }
                     Divider()
-                    Text(TermindCopy.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
+                    Text(AppStrings.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
                 }
                 if customIdentity.usesCustomTelnetProxy {
-                    LabeledContent(TermindCopy.Vault.username.swiftUIKey) {
+                    LabeledContent(AppStrings.Vault.username.swiftUIKey) {
                         TextField(
-                            TermindCopy.Vault.username.swiftUIKey, text: telnetProxyString(\.username).singleLineText
+                            AppStrings.Vault.username.swiftUIKey, text: telnetProxyString(\.username).singleLineText
                         )
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .multilineTextAlignment(.trailing)
                     }
-                    LabeledContent(TermindCopy.Vault.password.swiftUIKey) {
-                        RevealableSecretField(TermindCopy.Vault.required, text: $customIdentity.telnetProxyPassword)
+                    LabeledContent(AppStrings.Vault.password.swiftUIKey) {
+                        RevealableSecretField(AppStrings.Vault.required, text: $customIdentity.telnetProxyPassword)
                             .multilineTextAlignment(.trailing)
                             .disabled(!customIdentity.telnetProxyPasswordIsEditable)
                     }
@@ -368,7 +368,7 @@ struct MobileHostEditor: View {
     @ViewBuilder
     private var telnetCommandSection: some View {
         if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Section(TermindCopy.Vault.telnetCommand.swiftUIKey) {
+            Section(AppStrings.Vault.telnetCommand.swiftUIKey) {
                 Text(library.telnetCommand(for: draft))
                     .font(.caption.monospaced()).foregroundStyle(.secondary)
                     .textSelection(.enabled)
@@ -548,14 +548,14 @@ private struct MobileHostEnvironmentVariableEditor: View {
     var body: some View {
         MobileEditorSheet(
             title: String(
-                localized: isNew ? TermindCopy.Vault.newEnvironmentVariable : TermindCopy.Vault.editEnvironmentVariable),
+                localized: isNew ? AppStrings.Vault.newEnvironmentVariable : AppStrings.Vault.editEnvironmentVariable),
             isDirty: draft != original,
             canSave: draft.isValid && !usedVariables.contains(draft.variable),
             compact: true,
             save: { didSave(draft) },
             content: {
-                LabeledContent(TermindCopy.Vault.variable.swiftUIKey) {
-                    TextField(TermindCopy.Vault.variable.swiftUIKey, text: $draft.variable.singleLineText)
+                LabeledContent(AppStrings.Vault.variable.swiftUIKey) {
+                    TextField(AppStrings.Vault.variable.swiftUIKey, text: $draft.variable.singleLineText)
                         .singleLinePaste()
                         .lineLimit(1)
                         .labelsHidden()
@@ -564,8 +564,8 @@ private struct MobileHostEnvironmentVariableEditor: View {
                         .multilineTextAlignment(.trailing)
                         .font(.body.monospaced())
                 }
-                LabeledContent(TermindCopy.Common.value.swiftUIKey) {
-                    TextField(TermindCopy.Common.value.swiftUIKey, text: $draft.value.singleLineText)
+                LabeledContent(AppStrings.Common.value.swiftUIKey) {
+                    TextField(AppStrings.Common.value.swiftUIKey, text: $draft.value.singleLineText)
                         .singleLinePaste()
                         .lineLimit(1)
                         .labelsHidden()

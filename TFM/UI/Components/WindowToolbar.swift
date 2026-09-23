@@ -451,7 +451,7 @@ struct WindowToolbarSearchHost: View {
                 text: searchText.singleLineText,
                 isPresented: $isPresented,
                 placement: .automatic,
-                prompt: Text(TermindCopy.Common.search)
+                prompt: Text(AppStrings.Common.search)
             )
             .onAppear { installFocusHandler() }
             .onChange(of: isPresented, initial: true) { _, presented in
@@ -516,11 +516,11 @@ struct WindowToolbarLegacySearch: View {
         let presentation = $isPresented
         Group {
             if window.showsCompactMetricsDetail {
-                Button(TermindCopy.Common.search.swiftUIKey, systemImage: "magnifyingglass") {
+                Button(AppStrings.Common.search.swiftUIKey, systemImage: "magnifyingglass") {
                     window.focusToolbarFind()
                 }
                 .labelStyle(.iconOnly)
-                .help(TermindCopy.Common.search.swiftUIKey)
+                .help(AppStrings.Common.search.swiftUIKey)
                 .onAppear { installCompactFocusHandler() }
             } else {
                 WindowToolbarFindField()
@@ -578,7 +578,7 @@ struct WindowToolbarFindField: View {
             if let context = window.findContext() {
                 NativeSearchField(
                     text: context.query,
-                    placeholder: AppLocalization.resolve(TermindCopy.Common.search, locale: locale),
+                    placeholder: AppLocalization.resolve(AppStrings.Common.search, locale: locale),
                     owner: searchFieldOwner,
                     focusRequest: context.focusRequest,
                     maintainsKeyboardFocus: window.isToolbarFindFocused,
@@ -588,9 +588,9 @@ struct WindowToolbarFindField: View {
                     onFocusChange: { window.isToolbarFindFocused = $0 }
                 ).singleLinePaste()
                     .frame(width: Metrics.Toolbar.searchFieldWidth)
-                    .help(Text(AppLocalization.resolve(TermindCopy.Common.search, locale: locale)))
+                    .help(Text(AppLocalization.resolve(AppStrings.Common.search, locale: locale)))
                     .accessibilityLabel(
-                        Text(AppLocalization.resolve(TermindCopy.Common.search, locale: locale))
+                        Text(AppLocalization.resolve(AppStrings.Common.search, locale: locale))
                     )
             } else {
                 // Zero width, full height. A toolbar with nothing in it is
@@ -625,9 +625,9 @@ struct WindowToolbarLeadingActions: View {
             Button {
                 window.metricsHostID = nil
             } label: {
-                Label(TermindCopy.Common.back.swiftUIKey, systemImage: "chevron.backward").labelStyle(.iconOnly)
+                Label(AppStrings.Common.back.swiftUIKey, systemImage: "chevron.backward").labelStyle(.iconOnly)
             }
-            .help(Text(TermindCopy.Common.back))
+            .help(Text(AppStrings.Common.back))
             if let server = app.serverMetrics.servers.first(where: { $0.id == window.metricsHostID }),
                 !server.showsConnectionJourney
             {
@@ -636,11 +636,11 @@ struct WindowToolbarLeadingActions: View {
         }
         if window.selectedDestination == .settings {
             Button(action: window.navigateBackInSettings) {
-                Label(TermindCopy.Common.back.swiftUIKey, systemImage: "chevron.backward")
+                Label(AppStrings.Common.back.swiftUIKey, systemImage: "chevron.backward")
                     .labelStyle(.iconOnly)
             }
             .keyboardShortcut(.cancelAction)
-            .help(Text(TermindCopy.Common.back))
+            .help(Text(AppStrings.Common.back))
         } else if actions.count == 1, let only = actions.first {
             Button(action: only.perform) {
                 Label(
@@ -660,9 +660,9 @@ struct WindowToolbarLeadingActions: View {
                     )
                 }
             } label: {
-                Label(TermindCopy.Common.new.swiftUIKey, systemImage: "plus")
+                Label(AppStrings.Common.new.swiftUIKey, systemImage: "plus")
             }
-            .help(Text(TermindCopy.Common.new))
+            .help(Text(AppStrings.Common.new))
         }
         // Archived is deliberately not here. It belongs beside the list it
         // filters, which is the sidebar's own bottom bar — see
@@ -706,7 +706,7 @@ extension WindowModel {
         case .assistant:
             return [
                 WindowToolbarCreationAction(
-                    id: "chat", title: TermindCopy.Assistant.newChat, symbol: MenuSymbol.newChat
+                    id: "chat", title: AppStrings.Assistant.newChat, symbol: MenuSymbol.newChat
                 ) {
                     self.openNewAssistantChat()
                 }
@@ -716,8 +716,7 @@ extension WindowModel {
         case .metrics:
             guard metricsHostID == nil else { return [] }
             return [
-                WindowToolbarCreationAction(id: "metrics-server", title: TermindCopy.Metrics.addServer, symbol: "plus")
-                {
+                WindowToolbarCreationAction(id: "metrics-server", title: AppStrings.Metrics.addServer, symbol: "plus") {
                     guard self.metricsModel?.requestAddition() ?? true else { return }
                     self.pendingMetricsHostIDs = []
                     self.presentations.hostChooser = .metrics
@@ -735,7 +734,7 @@ extension WindowModel {
     /// added without first visiting the page to add it on.
     func creationActions(for page: VaultPage) -> [WindowToolbarCreationAction] {
         let importFolder = WindowToolbarCreationAction(
-            id: "ssh-folder", title: TermindCopy.Vault.importSshFolder, symbol: MenuSymbol.importItem,
+            id: "ssh-folder", title: AppStrings.Vault.importSshFolder, symbol: MenuSymbol.importItem,
             startsGroup: true
         ) { self.openVaultWork(.sshImport(knownHostsOnly: false), on: page) }
         switch page {
@@ -744,12 +743,12 @@ extension WindowModel {
         case .hosts:
             return [
                 WindowToolbarCreationAction(
-                    id: "host", title: TermindCopy.Vault.newHost, symbol: MenuSymbol.newHost
+                    id: "host", title: AppStrings.Vault.newHost, symbol: MenuSymbol.newHost
                 ) {
                     self.openHostEditor(host: nil)
                 },
                 WindowToolbarCreationAction(
-                    id: "group", title: TermindCopy.Vault.newGroup, symbol: MenuSymbol.newGroup
+                    id: "group", title: AppStrings.Vault.newGroup, symbol: MenuSymbol.newGroup
                 ) {
                     self.openVaultWork(
                         .hostGroupEditor(groupID: nil, parentID: nil), on: .hosts
@@ -760,17 +759,17 @@ extension WindowModel {
         case .keychain:
             return [
                 WindowToolbarCreationAction(
-                    id: "import", title: TermindCopy.Keychain.importKey, symbol: MenuSymbol.importItem
+                    id: "import", title: AppStrings.Keychain.importKey, symbol: MenuSymbol.importItem
                 ) {
                     self.openVaultWork(.importKey, on: .keychain)
                 },
                 WindowToolbarCreationAction(
-                    id: "generate", title: TermindCopy.Keychain.generateKey, symbol: MenuSymbol.generateKey
+                    id: "generate", title: AppStrings.Keychain.generateKey, symbol: MenuSymbol.generateKey
                 ) {
                     self.openVaultWork(.generateKey, on: .keychain)
                 },
                 WindowToolbarCreationAction(
-                    id: "identity", title: TermindCopy.Keychain.newIdentity, symbol: MenuSymbol.newIdentity,
+                    id: "identity", title: AppStrings.Keychain.newIdentity, symbol: MenuSymbol.newIdentity,
                     startsGroup: true
                 ) {
                     self.openVaultWork(.identityEditor(nil), on: .keychain)
@@ -780,7 +779,7 @@ extension WindowModel {
         case .portForwarding:
             return [
                 WindowToolbarCreationAction(
-                    id: "forwarding", title: TermindCopy.Forwarding.newForwarding, symbol: "plus"
+                    id: "forwarding", title: AppStrings.Forwarding.newForwarding, symbol: "plus"
                 ) {
                     self.openVaultWork(.forwardingEditor(nil), on: .portForwarding)
                 }
@@ -788,12 +787,12 @@ extension WindowModel {
         case .knownHosts:
             return [
                 WindowToolbarCreationAction(
-                    id: "known-host", title: TermindCopy.KnownHosts.addKnownHost, symbol: "plus"
+                    id: "known-host", title: AppStrings.KnownHosts.addKnownHost, symbol: "plus"
                 ) {
                     self.openVaultWork(.knownHostEditor(nil), on: .knownHosts)
                 },
                 WindowToolbarCreationAction(
-                    id: "known-hosts-import", title: TermindCopy.KnownHosts.importKnownHosts,
+                    id: "known-hosts-import", title: AppStrings.KnownHosts.importKnownHosts,
                     symbol: MenuSymbol.importItem
                 ) {
                     self.openVaultWork(.sshImport(knownHostsOnly: true), on: .knownHosts)
@@ -803,14 +802,14 @@ extension WindowModel {
         case .snippets:
             return [
                 WindowToolbarCreationAction(
-                    id: "snippet", title: TermindCopy.Snippets.newSnippet, symbol: MenuSymbol.newSnippet
+                    id: "snippet", title: AppStrings.Snippets.newSnippet, symbol: MenuSymbol.newSnippet
                 ) {
                     self.openVaultWork(
                         .snippetEditor(snippetID: nil, packageID: nil), on: .snippets
                     )
                 },
                 WindowToolbarCreationAction(
-                    id: "package", title: TermindCopy.Snippets.newPackage, symbol: MenuSymbol.newPackage
+                    id: "package", title: AppStrings.Snippets.newPackage, symbol: MenuSymbol.newPackage
                 ) {
                     self.openVaultWork(
                         .snippetPackageEditor(packageID: nil, parentID: nil), on: .snippets

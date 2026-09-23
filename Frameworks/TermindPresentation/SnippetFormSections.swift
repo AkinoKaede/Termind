@@ -32,7 +32,7 @@ public struct SnippetScriptSection<Assessment: View>: View {
     }
 
     public var body: some View {
-        Section(TermindCopy.Snippets.script.swiftUIKey) {
+        Section(AppStrings.Snippets.script.swiftUIKey) {
             TextEditor(text: $script)
                 .multilineTextAlignment(.leading)
                 .font(.body.monospaced())

@@ -7,7 +7,7 @@ struct MetricsConnectionNotice: View {
     let server: ServerMetric
 
     var body: some View {
-        if !server.status.isEmpty, server.status != String(localized: TermindCopy.Metrics.live) {
+        if !server.status.isEmpty, server.status != String(localized: AppStrings.Metrics.live) {
             HStack(spacing: 6) {
                 if server.isConnecting { ProgressView().controlSize(.mini) }
                 Text(server.status).font(.caption).foregroundStyle(.secondary)
@@ -22,13 +22,13 @@ struct MetricsDetailPagePicker: View {
     var body: some View {
         @Bindable var window = window
         if window.showsCompactMetricsDetail {
-            Picker(TermindCopy.Metrics.details.swiftUIKey, selection: $window.metricsDetailPage) {
+            Picker(AppStrings.Metrics.details.swiftUIKey, selection: $window.metricsDetailPage) {
                 Image(systemName: "gauge.with.dots.needle.33percent")
-                    .accessibilityLabel(TermindCopy.Common.status.swiftUIKey).help(TermindCopy.Common.status.swiftUIKey)
+                    .accessibilityLabel(AppStrings.Common.status.swiftUIKey).help(AppStrings.Common.status.swiftUIKey)
                     .tag(MetricsDetailPage.status)
                 Image(systemName: "list.bullet.rectangle")
-                    .accessibilityLabel(TermindCopy.Metrics.processes.swiftUIKey).help(
-                        TermindCopy.Metrics.processes.swiftUIKey
+                    .accessibilityLabel(AppStrings.Metrics.processes.swiftUIKey).help(
+                        AppStrings.Metrics.processes.swiftUIKey
                     ).tag(MetricsDetailPage.processes)
             }
             .pickerStyle(.segmented)
@@ -46,16 +46,16 @@ struct MetricsDetailToolbar: View {
     var body: some View {
         if !window.showsCompactMetricsDetail {
             pauseButton.labelStyle(.iconOnly)
-                .help(server.selection.enabled ? Text(TermindCopy.Metrics.pause) : Text(TermindCopy.Metrics.resume))
+                .help(server.selection.enabled ? Text(AppStrings.Metrics.pause) : Text(AppStrings.Metrics.resume))
         }
         Menu {
             if window.showsCompactMetricsDetail { pauseButton }
-            Button(TermindCopy.Common.retry.swiftUIKey, systemImage: MenuSymbol.refresh) { model.retry(server) }
-            Button(TermindCopy.Metrics.selectDevices.swiftUIKey, systemImage: MenuSymbol.selectDevices) {
+            Button(AppStrings.Common.retry.swiftUIKey, systemImage: MenuSymbol.refresh) { model.retry(server) }
+            Button(AppStrings.Metrics.selectDevices.swiftUIKey, systemImage: MenuSymbol.selectDevices) {
                 configuring = true
             }
             Divider()
-            DestructiveMenuButton(TermindCopy.Common.delete) {
+            DestructiveMenuButton(AppStrings.Common.delete) {
                 model.remove(server.id)
                 window.metricsHostID = nil
             }
@@ -70,7 +70,7 @@ struct MetricsDetailToolbar: View {
             model.setEnabled(!server.selection.enabled, for: server)
         } label: {
             Label(
-                server.selection.enabled ? TermindCopy.Metrics.pause.swiftUIKey : TermindCopy.Metrics.resume.swiftUIKey,
+                server.selection.enabled ? AppStrings.Metrics.pause.swiftUIKey : AppStrings.Metrics.resume.swiftUIKey,
                 systemImage: server.selection.enabled ? "pause" : "play")
         }
     }

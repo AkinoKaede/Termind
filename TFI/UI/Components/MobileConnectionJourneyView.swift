@@ -84,9 +84,9 @@ struct MobileConnectionJourneyView: View {
     private var logs: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(TermindCopy.Terminal.connectionLog).font(.headline)
+                Text(AppStrings.Terminal.connectionLog).font(.headline)
                 Spacer()
-                Button(TermindCopy.Common.copy.swiftUIKey, action: copyLogs)
+                Button(AppStrings.Common.copy.swiftUIKey, action: copyLogs)
                     .controlSize(.small)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -134,7 +134,7 @@ private struct MobileJourneyFailureCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label(TermindCopy.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
+            Label(AppStrings.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
                 .font(.headline)
                 .foregroundStyle(.red)
             Text(message)
@@ -155,15 +155,15 @@ private struct MobileJourneyFailureCard: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(spacing: 10) {
                 HStack {
-                    Button(TermindCopy.Common.cancel.swiftUIKey, action: cancel)
+                    Button(AppStrings.Common.cancel.swiftUIKey, action: cancel)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
-                    Button(TermindCopy.Terminal.copyLogs.swiftUIKey, action: copyLogs)
+                    Button(AppStrings.Terminal.copyLogs.swiftUIKey, action: copyLogs)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
                     Spacer()
                 }
-                Button(TermindCopy.Common.retry.swiftUIKey, action: retry)
+                Button(AppStrings.Common.retry.swiftUIKey, action: retry)
                     .buttonStyle(.borderedProminent)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -171,14 +171,14 @@ private struct MobileJourneyFailureCard: View {
             }
         } else {
             HStack {
-                Button(TermindCopy.Common.cancel.swiftUIKey, action: cancel)
+                Button(AppStrings.Common.cancel.swiftUIKey, action: cancel)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
-                Button(TermindCopy.Terminal.copyLogs.swiftUIKey, action: copyLogs)
+                Button(AppStrings.Terminal.copyLogs.swiftUIKey, action: copyLogs)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
                 Spacer()
-                Button(TermindCopy.Common.retry.swiftUIKey, action: retry)
+                Button(AppStrings.Common.retry.swiftUIKey, action: retry)
                     .buttonStyle(.borderedProminent)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)

@@ -49,8 +49,8 @@ enum SFTPApplicationOpener {
 
     static func chooseApplication() async -> URL? {
         let panel = NSOpenPanel()
-        panel.title = String(localized: TermindCopy.SFTP.openWith)
-        panel.prompt = String(localized: TermindCopy.Common.open)
+        panel.title = String(localized: AppStrings.SFTP.openWith)
+        panel.prompt = String(localized: AppStrings.Common.open)
         panel.directoryURL = URL(filePath: "/Applications", directoryHint: .isDirectory)
         panel.allowedContentTypes = [.applicationBundle]
         panel.canChooseFiles = true

@@ -67,7 +67,7 @@ final class MobileKeyEditorModel: Identifiable {
             case .some(.failed(let message)):
                 privateKeyLoadError = message
             case .some(.missing), .some(.notConfigured), .none:
-                privateKeyLoadError = String(localized: TermindCopy.Keychain.thePrivateKeyIsUnavailableOnThisDevice)
+                privateKeyLoadError = String(localized: AppStrings.Keychain.thePrivateKeyIsUnavailableOnThisDevice)
             case .some(.available):
                 break
             }
@@ -149,7 +149,7 @@ final class MobileKeyEditorModel: Identifiable {
         do {
             guard case .software(let secret)? = try credentials.keyCredential(for: original) else {
                 throw TermindSSHError.library(
-                    String(localized: TermindCopy.Keychain.thePrivateKeyIsUnavailableOnThisDevice)
+                    String(localized: AppStrings.Keychain.thePrivateKeyIsUnavailableOnThisDevice)
                 )
             }
             privateKey = secret.privateKey

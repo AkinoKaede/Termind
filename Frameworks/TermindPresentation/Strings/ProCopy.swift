@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Pro {
         public static var annual: LocalizedStringResource {
             "Annual"

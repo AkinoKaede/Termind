@@ -157,7 +157,7 @@ final class ToolAuditModel {
         }
         let row = ExternalToolCall(
             runID: invocation.runID,
-            clientName: clients[invocation.runID] ?? String(localized: TermindCopy.MCP.unknownMcpClient),
+            clientName: clients[invocation.runID] ?? String(localized: AppStrings.MCP.unknownMcpClient),
             toolName: descriptor.qualifiedName,
             hostID: hostID,
             hostDisplayName: hostID.flatMap(hostName),
@@ -263,7 +263,7 @@ final class ToolAuditModel {
                 + (arguments["mode"]?.stringValue ?? "")
         case let name where name.hasPrefix("sftp_"):
             return oneLine(arguments["path"]?.stringValue ?? "")
-        case "list_hosts": return String(localized: TermindCopy.MCP.listSavedHosts)
+        case "list_hosts": return String(localized: AppStrings.MCP.listSavedHosts)
         default: return ""
         }
     }

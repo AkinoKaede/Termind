@@ -10,7 +10,7 @@ struct MobileSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Button(TermindCopy.Pro.termindPro.swiftUIKey, systemImage: "sparkles.rectangle.stack") {
+                Button(AppStrings.Pro.termindPro.swiftUIKey, systemImage: "sparkles.rectangle.stack") {
                     app.pro.presentPaywall()
                 }
             }
@@ -21,27 +21,27 @@ struct MobileSettingsView: View {
                         appReview: app.appReview,
                         reviewScene: reviewScene)
                 } label: {
-                    Label(TermindCopy.Settings.app.swiftUIKey, systemImage: "app.badge")
+                    Label(AppStrings.Settings.app.swiftUIKey, systemImage: "app.badge")
                 }
                 NavigationLink {
                     MobileTerminalSettingsView(model: app.terminalSettings)
                 } label: {
-                    Label(TermindCopy.Settings.terminal.swiftUIKey, systemImage: "terminal")
+                    Label(AppStrings.Settings.terminal.swiftUIKey, systemImage: "terminal")
                 }
                 NavigationLink {
                     MobileConnectionSettingsView(ssh: app.sshSettings, sftp: app.sftpSettings)
                 } label: {
-                    Label(TermindCopy.Settings.connections.swiftUIKey, systemImage: "network")
+                    Label(AppStrings.Settings.connections.swiftUIKey, systemImage: "network")
                 }
                 NavigationLink {
                     MobileAISettingsView(app: app)
                 } label: {
-                    Label(TermindCopy.Settings.ai.swiftUIKey, systemImage: "sparkles")
+                    Label(AppStrings.Settings.ai.swiftUIKey, systemImage: "sparkles")
                 }
                 NavigationLink {
                     MobileSyncSettingsView(app: app)
                 } label: {
-                    Label(TermindCopy.Settings.sync.swiftUIKey, systemImage: "icloud")
+                    Label(AppStrings.Settings.sync.swiftUIKey, systemImage: "icloud")
                 }
             }
             if debugSectionEnabled {
@@ -49,17 +49,17 @@ struct MobileSettingsView: View {
                     NavigationLink {
                         MobileLoggingView(logging: app.logging)
                     } label: {
-                        Label(TermindCopy.Settings.logging.swiftUIKey, systemImage: "doc.text")
+                        Label(AppStrings.Settings.logging.swiftUIKey, systemImage: "doc.text")
                     }
                     LabeledContent {
                         Text(verbatim: String(DeviceCensorship.canDisplayTaiwanFlag))
                     } label: {
-                        Label(TermindCopy.Settings.taiwanFlagAvailable.swiftUIKey, systemImage: "touchid")
+                        Label(AppStrings.Settings.taiwanFlagAvailable.swiftUIKey, systemImage: "touchid")
                     }
                 }
             }
         }
-        .navigationTitle(TermindCopy.Navigation.settings.swiftUIKey)
+        .navigationTitle(AppStrings.Navigation.settings.swiftUIKey)
         .mobileReviewPage("settings", scene: reviewScene)
     }
 }

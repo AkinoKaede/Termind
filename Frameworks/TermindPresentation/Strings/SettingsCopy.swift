@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Settings {
         public static var developer: LocalizedStringResource { "Developer" }
 

@@ -46,15 +46,15 @@ struct LoggingFilesSettings: View {
         }
         .background(LoggingSharingService(url: $shareURL))
         .confirmationDialog(
-            TermindCopy.Settings.deleteAllLoggingFilesConfirmation.swiftUIKey, isPresented: $showsDeleteAll,
+            AppStrings.Settings.deleteAllLoggingFilesConfirmation.swiftUIKey, isPresented: $showsDeleteAll,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.deleteAll.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.deleteAll.swiftUIKey, role: .destructive) {
                 perform { try app.logging.deleteAll() }
             }
         }
-        .alert(TermindCopy.Settings.logging.swiftUIKey, isPresented: errorPresented) {
-            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
+        .alert(AppStrings.Settings.logging.swiftUIKey, isPresented: errorPresented) {
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }
@@ -67,9 +67,9 @@ struct LoggingFilesSettings: View {
 
     @ViewBuilder
     private var logsSection: some View {
-        Section(TermindCopy.Settings.logs.swiftUIKey) {
+        Section(AppStrings.Settings.logs.swiftUIKey) {
             if files.isEmpty {
-                Text(TermindCopy.Settings.noSavedLogsLabel).foregroundStyle(.secondary)
+                Text(AppStrings.Settings.noSavedLogsLabel).foregroundStyle(.secondary)
             } else {
                 ForEach(files) { file in
                     logRow(file)
@@ -82,7 +82,7 @@ struct LoggingFilesSettings: View {
     private var deleteAllSection: some View {
         if !files.isEmpty {
             Section {
-                Button(TermindCopy.Common.deleteAll.swiftUIKey, role: .destructive) { showsDeleteAll = true }
+                Button(AppStrings.Common.deleteAll.swiftUIKey, role: .destructive) { showsDeleteAll = true }
             }
         }
     }
@@ -100,14 +100,14 @@ struct LoggingFilesSettings: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button(TermindCopy.Common.save.swiftUIKey, systemImage: "square.and.arrow.down") {
+            Button(AppStrings.Common.save.swiftUIKey, systemImage: "square.and.arrow.down") {
                 prepare(file, action: .save)
             }
-            Button(TermindCopy.Common.share.swiftUIKey, systemImage: "square.and.arrow.up") {
+            Button(AppStrings.Common.share.swiftUIKey, systemImage: "square.and.arrow.up") {
                 prepare(file, action: .share)
             }
             Divider()
-            DestructiveMenuButton(TermindCopy.Common.delete) {
+            DestructiveMenuButton(AppStrings.Common.delete) {
                 perform { try app.logging.delete(file.id) }
             }
         }
@@ -181,17 +181,17 @@ private struct LoggingShareSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text(TermindCopy.Settings.shareLogging).font(.title2.bold())
+            Text(AppStrings.Settings.shareLogging).font(.title2.bold())
             Label(
-                TermindCopy.Settings.logExportWarning.swiftUIKey,
+                AppStrings.Settings.logExportWarning.swiftUIKey,
                 systemImage: "hand.raised.fill"
             )
             .foregroundStyle(.secondary)
             HStack {
-                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { dismiss() }
+                Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { dismiss() }
                 Spacer()
-                Button(TermindCopy.Common.save.swiftUIKey) { save() }
-                Button(TermindCopy.Common.share.swiftUIKey) { share() }.keyboardShortcut(.defaultAction)
+                Button(AppStrings.Common.save.swiftUIKey) { save() }
+                Button(AppStrings.Common.share.swiftUIKey) { share() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding(24)

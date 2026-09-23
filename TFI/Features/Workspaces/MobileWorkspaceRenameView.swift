@@ -15,14 +15,14 @@ struct MobileWorkspaceRenameView: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: TermindCopy.Common.rename),
+            title: String(localized: AppStrings.Common.rename),
             isDirty: normalizedTitle != originalTitle,
             canSave: !normalizedTitle.isEmpty && normalizedTitle != originalTitle,
             compact: true,
             save: { save(normalizedTitle) },
             content: {
                 TextField(
-                    TermindCopy.Workspace.workspaceName.swiftUIKey, text: $title.singleLineText, axis: .horizontal
+                    AppStrings.Workspace.workspaceName.swiftUIKey, text: $title.singleLineText, axis: .horizontal
                 ).singleLinePaste().lineLimit(
                     1)
             }

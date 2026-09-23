@@ -75,7 +75,7 @@ struct TermindSearchField: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(TermindCopy.Common.clearSearch))
+                .accessibilityLabel(Text(AppStrings.Common.clearSearch))
             }
         }
         .padding(.horizontal, horizontalPadding)
@@ -123,7 +123,7 @@ struct VaultDetailScaffold<Content: View, Footer: View>: View {
     let title: LocalizedStringResource
     let symbol: String
     let close: () -> Void
-    var closeLabel: LocalizedStringResource = TermindCopy.Common.close
+    var closeLabel: LocalizedStringResource = AppStrings.Common.close
     var closeSymbol = "xmark"
     @ViewBuilder let content: Content
     @ViewBuilder let footer: Footer
@@ -226,7 +226,7 @@ struct ManagedChooserHeader: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(TermindCopy.Common.clearSearch))
+                .accessibilityLabel(Text(AppStrings.Common.clearSearch))
             }
         }
         .padding(Metrics.Space.s)

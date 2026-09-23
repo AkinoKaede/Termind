@@ -18,27 +18,27 @@ struct WebSearchSettings: View {
 
     var body: some View {
         Section {
-            Toggle(TermindCopy.Settings.enableWebSearch.swiftUIKey, isOn: binding(\.isEnabled))
+            Toggle(AppStrings.Settings.enableWebSearch.swiftUIKey, isOn: binding(\.isEnabled))
 
-            Toggle(TermindCopy.Settings.preferBuiltInWebSearch.swiftUIKey, isOn: binding(\.prefersBuiltIn))
+            Toggle(AppStrings.Settings.preferBuiltInWebSearch.swiftUIKey, isOn: binding(\.prefersBuiltIn))
                 .disabled(!isEnabled)
 
             Text(
                 usesBuiltIn
                     ? String(
                         localized:
-                            TermindCopy.Settings.nativeAndFallbackSearchExplanation
+                            AppStrings.Settings.nativeAndFallbackSearchExplanation
                     )
                     : String(
                         localized:
-                            TermindCopy.Settings.webSearchExplanation
+                            AppStrings.Settings.webSearchExplanation
                     )
             )
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text(TermindCopy.Settings.webSearch)
+            Text(AppStrings.Settings.webSearch)
         }
 
     }

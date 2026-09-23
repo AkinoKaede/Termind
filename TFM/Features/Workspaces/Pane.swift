@@ -335,11 +335,11 @@ final class Pane: Identifiable {
             telnetSession.title
         case .sftpChannel(let sftpChannel):
             store.host(sftpChannel.hostID)?.name
-                ?? AppLocalization.resolve(TermindCopy.SFTP.sftp, locale: locale)
+                ?? AppLocalization.resolve(AppStrings.SFTP.sftp, locale: locale)
         case .serialSession(let serialSession):
             serialSession.title
         case .empty:
-            AppLocalization.resolve(TermindCopy.Common.empty, locale: locale)
+            AppLocalization.resolve(AppStrings.Common.empty, locale: locale)
         }
     }
 

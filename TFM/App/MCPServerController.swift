@@ -14,10 +14,10 @@ final class MCPServerController {
 
         var label: String {
             switch self {
-            case .stopped: String(localized: TermindCopy.MCP.off)
-            case .starting: String(localized: TermindCopy.MCP.startingProgress)
+            case .stopped: String(localized: AppStrings.MCP.off)
+            case .starting: String(localized: AppStrings.MCP.startingProgress)
             case .ready(let port):
-                String(localized: TermindCopy.MCP.listeningOnLocalhost(String(port)))
+                String(localized: AppStrings.MCP.listeningOnLocalhost(String(port)))
             case .failed(let reason): reason
             }
         }
@@ -130,7 +130,7 @@ final class MCPServerController {
     func rotateToken() {
         guard requestPro() else { return }
         guard let generated = try? Self.makeToken() else {
-            status = .failed(String(localized: TermindCopy.MCP.unableToGenerateASecureToken))
+            status = .failed(String(localized: AppStrings.MCP.unableToGenerateASecureToken))
             return
         }
         do {

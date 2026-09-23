@@ -28,12 +28,12 @@ public struct SkillPackageEditor: View {
                     }.disabled(package?.files[path].flatMap { String(data: $0, encoding: .utf8) } == nil)
                     Spacer()
                     Menu {
-                        Button(TermindCopy.Common.export.swiftUIKey) {
+                        Button(AppStrings.Common.export.swiftUIKey) {
                             exportData = package?.files[path] ?? Data()
                             exportName = URL(filePath: path).lastPathComponent
                             exporting = true
                         }
-                        Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+                        Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                             var value = package
                             value?.files.removeValue(forKey: path)
                             package = value
@@ -79,10 +79,10 @@ public struct SkillPackageEditor: View {
                 .navigationTitle("Supporting File")
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button(TermindCopy.Common.cancel.swiftUIKey) { editing = false }
+                        Button(AppStrings.Common.cancel.swiftUIKey) { editing = false }
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button(TermindCopy.Common.save.swiftUIKey) {
+                        Button(AppStrings.Common.save.swiftUIKey) {
                             do {
                                 try save(Data(text.utf8), at: path)
                                 editing = false

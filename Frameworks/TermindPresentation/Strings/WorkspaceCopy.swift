@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Workspace {
         public static var advisoryTelnetPassword: LocalizedStringResource {
             "This link includes an advisory Telnet password. It will be used once and will not be saved."

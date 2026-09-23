@@ -25,9 +25,9 @@ nonisolated enum HostConnectionProtocol: String, CaseIterable, Identifiable, Sen
 
     func displayName(locale: Locale = .current) -> String {
         switch self {
-        case .terminal: AppLocalization.resolve(TermindCopy.Vault.ssh, locale: locale)
-        case .sftp: AppLocalization.resolve(TermindCopy.SFTP.sftp, locale: locale)
-        case .serial: AppLocalization.resolve(TermindCopy.Vault.serial, locale: locale)
+        case .terminal: AppLocalization.resolve(AppStrings.Vault.ssh, locale: locale)
+        case .sftp: AppLocalization.resolve(AppStrings.SFTP.sftp, locale: locale)
+        case .serial: AppLocalization.resolve(AppStrings.Vault.serial, locale: locale)
         }
     }
 
@@ -50,10 +50,10 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
 
     var title: LocalizedStringResource {
         switch self {
-        case .connect: TermindCopy.Common.connect
-        case .batchStartup: TermindCopy.Vault.batchStartup
-        case .metrics: TermindCopy.Metrics.addServer
-        case .snippet: TermindCopy.Common.run
+        case .connect: AppStrings.Common.connect
+        case .batchStartup: AppStrings.Vault.batchStartup
+        case .metrics: AppStrings.Metrics.addServer
+        case .snippet: AppStrings.Common.run
         }
     }
 
@@ -70,9 +70,9 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
     /// explicit action, while clicking a host performs the ordinary Connect case.
     var confirmLabel: LocalizedStringResource {
         switch self {
-        case .connect, .batchStartup: TermindCopy.Common.connect
-        case .metrics: TermindCopy.Metrics.addServer
-        case .snippet: TermindCopy.Common.run
+        case .connect, .batchStartup: AppStrings.Common.connect
+        case .metrics: AppStrings.Metrics.addServer
+        case .snippet: AppStrings.Common.run
         }
     }
 
@@ -237,19 +237,19 @@ struct HostChooserView: View {
             }
         }
         .confirmationDialog(
-            TermindCopy.Snippets.runADestructiveScriptConfirmation.swiftUIKey,
+            AppStrings.Snippets.runADestructiveScriptConfirmation.swiftUIKey,
             isPresented: $isConfirmingDestructiveSnippet,
             titleVisibility: .visible
         ) {
             Button(
                 chooser.selected.count == 1
-                    ? TermindCopy.Snippets.runOn1Host.swiftUIKey
-                    : TermindCopy.Snippets.runOnHosts(chooser.selected.count).swiftUIKey,
+                    ? AppStrings.Snippets.runOn1Host.swiftUIKey
+                    : AppStrings.Snippets.runOnHosts(chooser.selected.count).swiftUIKey,
                 role: .destructive
             ) {
                 performSnippetExecution()
             }
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
             Text(snippetConfirmationMessage)
         }
@@ -276,7 +276,7 @@ struct HostChooserView: View {
             } else {
                 VStack(spacing: Metrics.Space.m) {
                     ConnectionChooserSearchField(
-                        prompt: TermindCopy.Vault.searchHosts,
+                        prompt: AppStrings.Vault.searchHosts,
                         query: queryBinding,
                         onSubmit: openSelected,
                         moveCursor: move,
@@ -296,7 +296,7 @@ struct HostChooserView: View {
     private var connectionTopBar: some View {
         HStack {
             glassActionButton(
-                TermindCopy.Common.cancel,
+                AppStrings.Common.cancel,
                 symbol: "xmark",
                 identifier: "host-chooser.cancel",
                 action: close
@@ -362,7 +362,7 @@ struct HostChooserView: View {
         ManagedChooserHeader(
             title: purpose.title,
             symbol: purpose.symbol,
-            prompt: TermindCopy.Vault.searchHosts,
+            prompt: AppStrings.Vault.searchHosts,
             query: queryBinding,
             aboveSearch: chooserOptions,
             showsSearch: connectionProtocol != .serial,
@@ -375,32 +375,32 @@ struct HostChooserView: View {
     private var chooserOptions: AnyView? {
         if purpose == .metrics, app.serverMetrics.remainingCardSlots != nil {
             return AnyView(
-                Text(TermindCopy.Pro.freeMetricsLimit)
+                Text(AppStrings.Pro.freeMetricsLimit)
                     .font(.caption).foregroundStyle(.secondary))
         }
         return nil
     }
 
     private var connectionProtocolPicker: some View {
-        Picker(TermindCopy.Vault.connectionProtocol.swiftUIKey, selection: $connectionProtocol) {
+        Picker(AppStrings.Vault.connectionProtocol.swiftUIKey, selection: $connectionProtocol) {
             ForEach(purpose.availableConnectionProtocols) { connectionProtocol in
                 Text(connectionProtocol.displayName(locale: locale)).tag(connectionProtocol)
             }
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .accessibilityLabel(TermindCopy.Vault.connectionProtocolLabel.swiftUIKey)
+        .accessibilityLabel(AppStrings.Vault.connectionProtocolLabel.swiftUIKey)
     }
 
     @ViewBuilder
     private var managedContent: some View {
         if app.hostLibrary.hosts.isEmpty {
             ContentUnavailableView {
-                Label(TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
+                Label(AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
             } description: {
-                Text(TermindCopy.Vault.addAHostToConnectToIt)
+                Text(AppStrings.Vault.addAHostToConnectToIt)
             } actions: {
-                Button(TermindCopy.Vault.newHost.swiftUIKey) {
+                Button(AppStrings.Vault.newHost.swiftUIKey) {
                     close()
                     window.openHostEditor(host: nil)
                 }
@@ -464,11 +464,11 @@ struct HostChooserView: View {
     private var connectionHosts: some View {
         if app.hostLibrary.hosts.isEmpty {
             ContentUnavailableView {
-                Label(TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
+                Label(AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
             } description: {
-                Text(TermindCopy.Vault.addAHostToConnectToIt)
+                Text(AppStrings.Vault.addAHostToConnectToIt)
             } actions: {
-                Button(TermindCopy.Vault.newHost.swiftUIKey) {
+                Button(AppStrings.Vault.newHost.swiftUIKey) {
                     close()
                     window.openHostEditor(host: nil)
                 }
@@ -521,53 +521,53 @@ struct HostChooserView: View {
 
     private var serialForm: some View {
         Form {
-            Section(TermindCopy.Vault.device.swiftUIKey) {
+            Section(AppStrings.Vault.device.swiftUIKey) {
                 SerialEditableComboField(
-                    title: TermindCopy.Vault.devicePath,
+                    title: AppStrings.Vault.devicePath,
                     value: $serialConfiguration.devicePath,
                     options: serialPorts.map {
                         SerialComboOption(value: $0.path, label: $0.displayName)
                     }
                 )
                 if serialPorts.isEmpty {
-                    Text(TermindCopy.Vault.noSerialDevicesExplanation)
+                    Text(AppStrings.Vault.noSerialDevicesExplanation)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
 
-            Section(TermindCopy.Vault.communication.swiftUIKey) {
+            Section(AppStrings.Vault.communication.swiftUIKey) {
                 SerialEditableComboField(
-                    title: TermindCopy.Vault.baudRate,
+                    title: AppStrings.Vault.baudRate,
                     value: $serialBaudRate,
                     options: SerialConnectionConfiguration.commonBaudRates.map {
                         SerialComboOption(value: String($0), label: $0.formatted())
                     }
                 )
-                Picker(TermindCopy.Vault.dataBits.swiftUIKey, selection: $serialConfiguration.dataBits) {
+                Picker(AppStrings.Vault.dataBits.swiftUIKey, selection: $serialConfiguration.dataBits) {
                     ForEach(SerialDataBits.allCases) { Text("\($0.rawValue)").tag($0) }
                 }
-                Picker(TermindCopy.Vault.parity.swiftUIKey, selection: $serialConfiguration.parity) {
+                Picker(AppStrings.Vault.parity.swiftUIKey, selection: $serialConfiguration.parity) {
                     ForEach(SerialParity.allCases) { Text($0.displayName).tag($0) }
                 }
-                Picker(TermindCopy.Vault.stopBits.swiftUIKey, selection: $serialConfiguration.stopBits) {
+                Picker(AppStrings.Vault.stopBits.swiftUIKey, selection: $serialConfiguration.stopBits) {
                     ForEach(SerialStopBits.allCases) { Text("\($0.rawValue)").tag($0) }
                 }
-                Picker(TermindCopy.Vault.flowControl.swiftUIKey, selection: $serialConfiguration.flowControl) {
+                Picker(AppStrings.Vault.flowControl.swiftUIKey, selection: $serialConfiguration.flowControl) {
                     ForEach(SerialFlowControl.allCases) { Text($0.displayName).tag($0) }
                 }
             }
 
-            Section(TermindCopy.Settings.terminal.swiftUIKey) {
-                Picker(TermindCopy.Vault.charset.swiftUIKey, selection: $serialConfiguration.charset) {
+            Section(AppStrings.Settings.terminal.swiftUIKey) {
+                Picker(AppStrings.Vault.charset.swiftUIKey, selection: $serialConfiguration.charset) {
                     ForEach(RemoteCharset.allCases) { charset in
                         Text(charset.displayName).tag(charset)
                     }
                 }
-                Picker(TermindCopy.Vault.enterSends.swiftUIKey, selection: $serialConfiguration.enterKey) {
+                Picker(AppStrings.Vault.enterSends.swiftUIKey, selection: $serialConfiguration.enterKey) {
                     ForEach(SerialEnterKey.allCases) { Text($0.displayName).tag($0) }
                 }
-                Toggle(TermindCopy.Vault.localEcho.swiftUIKey, isOn: $serialConfiguration.localEcho)
+                Toggle(AppStrings.Vault.localEcho.swiftUIKey, isOn: $serialConfiguration.localEcho)
             }
 
             if let serialError {
@@ -595,7 +595,7 @@ struct HostChooserView: View {
             if purpose.allowsMultiple, connectionProtocol != .serial {
                 Text(
                     AppLocalization.resolve(
-                        TermindCopy.Common.selected(chooser.selected.count), locale: locale
+                        AppStrings.Common.selected(chooser.selected.count), locale: locale
                     )
                 )
                 .font(.caption)
@@ -610,7 +610,7 @@ struct HostChooserView: View {
 
             Spacer()
 
-            Button(TermindCopy.Common.cancel.swiftUIKey, action: close)
+            Button(AppStrings.Common.cancel.swiftUIKey, action: close)
                 .keyboardShortcut(.cancelAction)
                 .accessibilityIdentifier("host-chooser.cancel")
 
@@ -664,13 +664,13 @@ struct HostChooserView: View {
         var info = stat()
         guard lstat(path, &info) == 0 else {
             serialError = AppLocalization.resolve(
-                TermindCopy.Vault.theDevicePathDoesNotExist, locale: locale
+                AppStrings.Vault.theDevicePathDoesNotExist, locale: locale
             )
             return
         }
         guard (info.st_mode & S_IFMT) == S_IFCHR else {
             serialError = AppLocalization.resolve(
-                TermindCopy.Vault.theDevicePathIsNotACharacterDevice, locale: locale
+                AppStrings.Vault.theDevicePathIsNotACharacterDevice, locale: locale
             )
             return
         }
@@ -755,7 +755,7 @@ struct HostChooserView: View {
 
     private var selectAllLabel: String {
         AppLocalization.resolve(
-            allResultsChecked ? TermindCopy.Common.deselectAll : TermindCopy.Common.selectAll, locale: locale
+            allResultsChecked ? AppStrings.Common.deselectAll : AppStrings.Common.selectAll, locale: locale
         )
     }
 
@@ -813,7 +813,7 @@ private struct ConnectionChooserSearchField: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(TermindCopy.Common.clearSearch))
+                .accessibilityLabel(Text(AppStrings.Common.clearSearch))
             }
         }
         .padding(Metrics.Space.s)

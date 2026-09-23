@@ -22,7 +22,7 @@ struct CopyButton: View {
         } label: {
             if let title {
                 Label(
-                    hasCopied ? TermindCopy.Common.copied.swiftUIKey : title.swiftUIKey,
+                    hasCopied ? AppStrings.Common.copied.swiftUIKey : title.swiftUIKey,
                     systemImage: hasCopied ? "checkmark" : "doc.on.doc"
                 )
                 .contentTransition(.symbolEffect(.replace))
@@ -38,7 +38,7 @@ struct CopyButton: View {
         .buttonStyle(.plain)
         .font(.caption)
         .foregroundStyle(.secondary)
-        .help(Text(title ?? TermindCopy.Common.copy))
-        .accessibilityLabel(Text(title ?? TermindCopy.Common.copy))
+        .help(Text(title ?? AppStrings.Common.copy))
+        .accessibilityLabel(Text(title ?? AppStrings.Common.copy))
     }
 }

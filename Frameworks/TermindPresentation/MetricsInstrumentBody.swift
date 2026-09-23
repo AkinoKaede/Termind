@@ -19,7 +19,7 @@ public struct MetricsInstrumentBody: View {
     private var showsMetrics: Bool {
         !server.isConnecting && server.point != nil && !server.needsAttention
             && server.selection.enabled && !sleeping
-            && (server.status.isEmpty || server.status == String(localized: TermindCopy.Metrics.live))
+            && (server.status.isEmpty || server.status == String(localized: AppStrings.Metrics.live))
     }
 
     public var body: some View {
@@ -58,13 +58,13 @@ public struct MetricsInstrumentBody: View {
     private var adaptiveInstruments: some View {
         VStack(alignment: .leading, spacing: 12) {
             if typeSize.isAccessibilitySize {
-                capacity(TermindCopy.Metrics.cpu, value: server.point?.cpu)
-                capacity(TermindCopy.Metrics.memory, value: server.point?.memory)
+                capacity(AppStrings.Metrics.cpu, value: server.point?.cpu)
+                capacity(AppStrings.Metrics.memory, value: server.point?.memory)
                 adaptiveRates
             } else {
                 HStack(alignment: .top, spacing: 12) {
-                    capacity(TermindCopy.Metrics.cpu, value: server.point?.cpu)
-                    capacity(TermindCopy.Metrics.memory, value: server.point?.memory)
+                    capacity(AppStrings.Metrics.cpu, value: server.point?.cpu)
+                    capacity(AppStrings.Metrics.memory, value: server.point?.memory)
                 }
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 12) {
@@ -125,8 +125,8 @@ public struct MetricsInstrumentBody: View {
 
     private var instruments: some View {
         HStack(alignment: .center, spacing: 12) {
-            MetricsRing(title: TermindCopy.Metrics.cpu, value: server.point?.cpu)
-            MetricsRing(title: TermindCopy.Metrics.memory, value: server.point?.memory)
+            MetricsRing(title: AppStrings.Metrics.cpu, value: server.point?.cpu)
+            MetricsRing(title: AppStrings.Metrics.memory, value: server.point?.memory)
                 .help(MetricsFormat.capacity(server.point?.memoryUsed, server.point?.memoryTotal))
             VStack(alignment: .leading, spacing: 6) {
                 rate("Network Send", symbol: "arrow.up", value: server.point?.networkSend)

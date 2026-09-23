@@ -1495,7 +1495,7 @@ final class WindowModel {
             if let cleaned {
                 workspace.customTitle = cleaned
             } else {
-                let prefix = AppLocalization.resolve(TermindCopy.Workspace.workspace, locale: .current)
+                let prefix = AppLocalization.resolve(AppStrings.Workspace.workspace, locale: .current)
                 let automatic = WorkspaceNameAllocator.nextName(
                     prefix: prefix,
                     occupiedNames: occupiedWorkspaceNames(excluding: workspace.id),

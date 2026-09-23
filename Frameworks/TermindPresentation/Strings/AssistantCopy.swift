@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Assistant {
         public static var permissions: LocalizedStringResource { "Permissions" }
         public static var addAttachment: LocalizedStringResource {

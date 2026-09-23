@@ -228,7 +228,7 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
     ) throws {
         guard configuration.isValid else {
             throw SerialPortError.invalidConfiguration(
-                String(localized: TermindCopy.Terminal.enterAnAbsoluteDevicePathAndAValidBaudRate)
+                String(localized: AppStrings.Terminal.enterAnAbsoluteDevicePathAndAValidBaudRate)
             )
         }
         self.receive = receive
@@ -236,13 +236,13 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
         let path = configuration.normalizedDevicePath
         descriptor = Darwin.open(path, O_RDWR | O_NOCTTY | O_NONBLOCK)
         guard descriptor >= 0 else {
-            throw SerialPortError.system(operation: String(localized: TermindCopy.Terminal.openSerialPort), code: errno)
+            throw SerialPortError.system(operation: String(localized: AppStrings.Terminal.openSerialPort), code: errno)
         }
         progress(.deviceOpened)
         do {
             guard ioctl(descriptor, TIOCEXCL) == 0 else {
                 throw SerialPortError.system(
-                    operation: String(localized: TermindCopy.Terminal.openSerialPort), code: errno
+                    operation: String(localized: AppStrings.Terminal.openSerialPort), code: errno
                 )
             }
             try Self.configure(descriptor, with: configuration)
@@ -278,7 +278,7 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
                             }
                             if count < 0, errno == EINTR { continue }
                             throw SerialPortError.system(
-                                operation: String(localized: TermindCopy.Terminal.writeSerialPort), code: errno
+                                operation: String(localized: AppStrings.Terminal.writeSerialPort), code: errno
                             )
                         }
                     }
@@ -310,7 +310,7 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
             let code = count == 0 ? ENXIO : errno
             finish(
                 SerialPortError.system(
-                    operation: String(localized: TermindCopy.Terminal.readSerialPort), code: code
+                    operation: String(localized: AppStrings.Terminal.readSerialPort), code: code
                 ).localizedDescription)
         }
     }
@@ -330,7 +330,7 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
         var options = termios()
         guard tcgetattr(descriptor, &options) == 0 else {
             throw SerialPortError.system(
-                operation: String(localized: TermindCopy.Terminal.readSerialSettings), code: errno)
+                operation: String(localized: AppStrings.Terminal.readSerialSettings), code: errno)
         }
         cfmakeraw(&options)
         options.c_cflag |= tcflag_t(CLOCAL | CREAD)
@@ -359,11 +359,11 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
         ].contains(configuration.baudRate)
         let termiosSpeed = speed_t(usesStandardSpeed ? configuration.baudRate : 9_600)
         guard cfsetspeed(&options, termiosSpeed) == 0 else {
-            throw SerialPortError.system(operation: String(localized: TermindCopy.Terminal.setBaudRate), code: errno)
+            throw SerialPortError.system(operation: String(localized: AppStrings.Terminal.setBaudRate), code: errno)
         }
         guard tcsetattr(descriptor, TCSANOW, &options) == 0 else {
             throw SerialPortError.system(
-                operation: String(localized: TermindCopy.Terminal.applySerialSettings), code: errno)
+                operation: String(localized: AppStrings.Terminal.applySerialSettings), code: errno)
         }
         if !usesStandardSpeed {
             var speed = speed_t(configuration.baudRate)
@@ -372,7 +372,7 @@ nonisolated private final class POSIXSerialPortConnection: SerialPortConnection,
             let setArbitrarySpeed = UInt(0x8008_5402)
             guard ioctl(descriptor, setArbitrarySpeed, &speed) == 0 else {
                 throw SerialPortError.system(
-                    operation: String(localized: TermindCopy.Terminal.setBaudRate), code: errno)
+                    operation: String(localized: AppStrings.Terminal.setBaudRate), code: errno)
             }
         }
     }

@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum KnownHosts {
         public static var addKnownHost: LocalizedStringResource {
             "Add Known Host"

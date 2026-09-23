@@ -214,8 +214,8 @@ struct StatusBarView: View {
                 .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .help(Text(TermindCopy.Workspace.hideSessionDetails))
-        .accessibilityLabel(Text(TermindCopy.Workspace.hideSessionDetails))
+        .help(Text(AppStrings.Workspace.hideSessionDetails))
+        .accessibilityLabel(Text(AppStrings.Workspace.hideSessionDetails))
     }
 
     /// The whole circle is the target. Its content still carries the one fact
@@ -249,7 +249,7 @@ struct StatusBarView: View {
         }
         .buttonStyle(.plain)
         .help(Text(collapsedHelp(glyph)))
-        .accessibilityLabel(Text(TermindCopy.Workspace.showSessionDetails))
+        .accessibilityLabel(Text(AppStrings.Workspace.showSessionDetails))
         .accessibilityValue(Text(collapsedHelp(glyph)))
     }
 
@@ -259,7 +259,7 @@ struct StatusBarView: View {
             host.map { "\(app.hostLibrary.loginAddress(for: $0)) — \(status.label)" }
                 ?? status.label
         case .transfers:
-            String(localized: TermindCopy.SFTP.transfers)
+            String(localized: AppStrings.SFTP.transfers)
         }
     }
 
@@ -310,22 +310,22 @@ struct StatusBarView: View {
             )
         }
         .buttonStyle(.plain)
-        .help(Text(TermindCopy.SFTP.openDirectoryWithSFTPHelp))
-        .accessibilityLabel(Text(TermindCopy.SFTP.openWithSftp))
+        .help(Text(AppStrings.SFTP.openDirectoryWithSFTPHelp))
+        .accessibilityLabel(Text(AppStrings.SFTP.openWithSftp))
         .contextMenu {
             // The children read on from the parent — "Open with SFTP ▸ in New
             // Workspace" — and take the same pair of glyphs Duplicate's do.
-            Menu(TermindCopy.SFTP.openWithSftp.swiftUIKey, systemImage: MenuSymbol.sftp) {
-                Button(TermindCopy.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace) {
+            Menu(AppStrings.SFTP.openWithSftp.swiftUIKey, systemImage: MenuSymbol.sftp) {
+                Button(AppStrings.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSFTP(path, placement: .currentWorkspace)
                 }
-                Button(TermindCopy.Workspace.inNewWorkspace.swiftUIKey, systemImage: MenuSymbol.newWorkspace) {
+                Button(AppStrings.Workspace.inNewWorkspace.swiftUIKey, systemImage: MenuSymbol.newWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSFTP(path, placement: .newWorkspace)
                 }
             }
-            Button(TermindCopy.Workspace.copyPath.swiftUIKey, systemImage: MenuSymbol.copy) {
+            Button(AppStrings.Workspace.copyPath.swiftUIKey, systemImage: MenuSymbol.copy) {
                 app.onboarding.recordUse(of: .statusBarPath)
                 copyToPasteboard(path)
             }
@@ -342,20 +342,20 @@ struct StatusBarView: View {
             )
         }
         .buttonStyle(.plain)
-        .help(Text(TermindCopy.Workspace.openDirectoryWithSSHHelp))
-        .accessibilityLabel(Text(TermindCopy.Connections.openWithSsh))
+        .help(Text(AppStrings.Workspace.openDirectoryWithSSHHelp))
+        .accessibilityLabel(Text(AppStrings.Connections.openWithSsh))
         .contextMenu {
-            Menu(TermindCopy.Connections.openWithSsh.swiftUIKey, systemImage: MenuSymbol.ssh) {
-                Button(TermindCopy.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace) {
+            Menu(AppStrings.Connections.openWithSsh.swiftUIKey, systemImage: MenuSymbol.ssh) {
+                Button(AppStrings.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSSH(path, placement: .currentWorkspace)
                 }
-                Button(TermindCopy.Workspace.inNewWorkspace.swiftUIKey, systemImage: MenuSymbol.newWorkspace) {
+                Button(AppStrings.Workspace.inNewWorkspace.swiftUIKey, systemImage: MenuSymbol.newWorkspace) {
                     app.onboarding.recordUse(of: .statusBarPath)
                     openInSSH(path, placement: .newWorkspace)
                 }
             }
-            Button(TermindCopy.Workspace.copyPath.swiftUIKey, systemImage: MenuSymbol.copy) {
+            Button(AppStrings.Workspace.copyPath.swiftUIKey, systemImage: MenuSymbol.copy) {
                 app.onboarding.recordUse(of: .statusBarPath)
                 copyToPasteboard(path)
             }
@@ -365,7 +365,7 @@ struct StatusBarView: View {
     private func sftpOperationStatus(_ session: SFTPChannelModel) -> some View {
         HStack(spacing: Metrics.Space.s) {
             ProgressView().controlSize(.mini)
-            Text(session.hint.isEmpty ? String(localized: TermindCopy.Workspace.working) : session.hint)
+            Text(session.hint.isEmpty ? String(localized: AppStrings.Workspace.working) : session.hint)
                 .truncationMode(.middle)
             if session.canCancelOperation {
                 Button {
@@ -374,8 +374,8 @@ struct StatusBarView: View {
                     Image(systemName: "xmark.circle.fill")
                 }
                 .buttonStyle(.plain)
-                .help(TermindCopy.Workspace.cancelOperation.swiftUIKey)
-                .accessibilityLabel(TermindCopy.Workspace.cancelOperation.swiftUIKey)
+                .help(AppStrings.Workspace.cancelOperation.swiftUIKey)
+                .accessibilityLabel(AppStrings.Workspace.cancelOperation.swiftUIKey)
             }
         }
     }
@@ -512,15 +512,15 @@ private struct TransferCenterButton: View {
     private var summary: String {
         if summaryValue.activeCount > 0 {
             return summaryValue.activeCount == 1
-                ? String(localized: TermindCopy.SFTP.oneActiveTransfer)
-                : String(localized: TermindCopy.SFTP.activeTransfers(summaryValue.activeCount))
+                ? String(localized: AppStrings.SFTP.oneActiveTransfer)
+                : String(localized: AppStrings.SFTP.activeTransfers(summaryValue.activeCount))
         }
         if summaryValue.failedCount > 0 {
             return summaryValue.failedCount == 1
-                ? String(localized: TermindCopy.SFTP.oneFailedTransfer)
-                : String(localized: TermindCopy.SFTP.failedTransfers(summaryValue.failedCount))
+                ? String(localized: AppStrings.SFTP.oneFailedTransfer)
+                : String(localized: AppStrings.SFTP.failedTransfers(summaryValue.failedCount))
         }
-        return String(localized: TermindCopy.SFTP.transfers)
+        return String(localized: AppStrings.SFTP.transfers)
     }
 }
 
@@ -545,10 +545,10 @@ private struct TransferCenterPopover: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(TermindCopy.SFTP.transfers).font(.headline)
+                Text(AppStrings.SFTP.transfers).font(.headline)
                 Spacer()
                 if hasFinished {
-                    Button(TermindCopy.Common.clear.swiftUIKey) {
+                    Button(AppStrings.Common.clear.swiftUIKey) {
                         confirmsClearFinished = true
                     }
                     .buttonStyle(.plain)
@@ -582,14 +582,14 @@ private struct TransferCenterPopover: View {
         }
         .frame(width: Metrics.TransferCenter.width)
         .confirmationDialog(
-            TermindCopy.SFTP.clearFinishedTransfersConfirmation.swiftUIKey, isPresented: $confirmsClearFinished,
+            AppStrings.SFTP.clearFinishedTransfersConfirmation.swiftUIKey, isPresented: $confirmsClearFinished,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.SFTP.clearFinished.swiftUIKey, role: .destructive) {
+            Button(AppStrings.SFTP.clearFinished.swiftUIKey, role: .destructive) {
                 coordinator.clearFinished()
                 if coordinator.sftpTransfers.isEmpty { dismiss() }
             }
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         }
     }
 
@@ -677,11 +677,11 @@ private struct TransferCenterRow: View {
             }
 
             if canPause {
-                Button(TermindCopy.SFTP.pauseTransfer.swiftUIKey, systemImage: "pause.circle", action: pause)
-                    .labelStyle(.iconOnly).buttonStyle(.plain).help(TermindCopy.SFTP.pauseTransfer.swiftUIKey)
+                Button(AppStrings.SFTP.pauseTransfer.swiftUIKey, systemImage: "pause.circle", action: pause)
+                    .labelStyle(.iconOnly).buttonStyle(.plain).help(AppStrings.SFTP.pauseTransfer.swiftUIKey)
             } else if transfer.state == .paused {
-                Button(TermindCopy.SFTP.resumeTransfer.swiftUIKey, systemImage: "play.circle", action: resume)
-                    .labelStyle(.iconOnly).buttonStyle(.plain).help(TermindCopy.SFTP.resumeTransfer.swiftUIKey)
+                Button(AppStrings.SFTP.resumeTransfer.swiftUIKey, systemImage: "play.circle", action: resume)
+                    .labelStyle(.iconOnly).buttonStyle(.plain).help(AppStrings.SFTP.resumeTransfer.swiftUIKey)
             }
             if isActive || transfer.state == .paused {
                 Button(action: cancel) {
@@ -690,8 +690,8 @@ private struct TransferCenterRow: View {
                 }
                 .buttonStyle(.plain)
                 .termindInputAwareFocusEffect()
-                .help(TermindCopy.SFTP.cancelTransfer.swiftUIKey)
-                .accessibilityLabel(TermindCopy.SFTP.cancelTransfer.swiftUIKey)
+                .help(AppStrings.SFTP.cancelTransfer.swiftUIKey)
+                .accessibilityLabel(AppStrings.SFTP.cancelTransfer.swiftUIKey)
             }
         }
         .padding(.horizontal, Metrics.Space.l)

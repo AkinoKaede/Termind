@@ -19,23 +19,23 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
 
     var label: LocalizedStringResource {
         switch self {
-        case .welcome: TermindCopy.Navigation.welcome
-        case .hosts: TermindCopy.Vault.hosts
-        case .keychain: TermindCopy.Navigation.keychain
-        case .portForwarding: TermindCopy.Navigation.portForwarding
-        case .snippets: TermindCopy.Navigation.snippets
-        case .knownHosts: TermindCopy.Navigation.knownHosts
+        case .welcome: AppStrings.Navigation.welcome
+        case .hosts: AppStrings.Vault.hosts
+        case .keychain: AppStrings.Navigation.keychain
+        case .portForwarding: AppStrings.Navigation.portForwarding
+        case .snippets: AppStrings.Navigation.snippets
+        case .knownHosts: AppStrings.Navigation.knownHosts
         }
     }
 
     func title(locale: Locale = .current) -> String {
         switch self {
-        case .welcome: AppLocalization.resolve(TermindCopy.Navigation.welcome, locale: locale)
-        case .hosts: AppLocalization.resolve(TermindCopy.Vault.hosts, locale: locale)
-        case .keychain: AppLocalization.resolve(TermindCopy.Navigation.keychain, locale: locale)
-        case .portForwarding: AppLocalization.resolve(TermindCopy.Navigation.portForwarding, locale: locale)
-        case .snippets: AppLocalization.resolve(TermindCopy.Navigation.snippets, locale: locale)
-        case .knownHosts: AppLocalization.resolve(TermindCopy.Navigation.knownHosts, locale: locale)
+        case .welcome: AppLocalization.resolve(AppStrings.Navigation.welcome, locale: locale)
+        case .hosts: AppLocalization.resolve(AppStrings.Vault.hosts, locale: locale)
+        case .keychain: AppLocalization.resolve(AppStrings.Navigation.keychain, locale: locale)
+        case .portForwarding: AppLocalization.resolve(AppStrings.Navigation.portForwarding, locale: locale)
+        case .snippets: AppLocalization.resolve(AppStrings.Navigation.snippets, locale: locale)
+        case .knownHosts: AppLocalization.resolve(AppStrings.Navigation.knownHosts, locale: locale)
         }
     }
 

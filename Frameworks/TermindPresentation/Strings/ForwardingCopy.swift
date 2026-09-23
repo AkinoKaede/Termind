@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Forwarding {
         public static var address: LocalizedStringResource {
             "Address"

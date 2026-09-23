@@ -17,21 +17,21 @@ struct DeveloperSettingsPage: View {
                     Button {
                         app.onboarding.cancelPreview()
                     } label: {
-                        Text(TermindCopy.Onboarding.cancelPreview)
+                        Text(AppStrings.Onboarding.cancelPreview)
                     }
                 }
 
                 Button(role: .destructive) {
                     app.onboarding.resetAll()
                 } label: {
-                    Text(TermindCopy.Onboarding.resetAll)
+                    Text(AppStrings.Onboarding.resetAll)
                 }
 
-                Text(TermindCopy.Onboarding.previewExplanation)
+                Text(AppStrings.Onboarding.previewExplanation)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } header: {
-                Text(TermindCopy.Onboarding.title)
+                Text(AppStrings.Onboarding.title)
             }
         }
         .formStyle(.grouped)
@@ -52,12 +52,12 @@ struct DeveloperSettingsPage: View {
                 Button {
                     app.onboarding.preview(step)
                 } label: {
-                    Text(TermindCopy.Onboarding.preview)
+                    Text(AppStrings.Onboarding.preview)
                 }
                 Button {
                     app.onboarding.reset(step)
                 } label: {
-                    Text(TermindCopy.Onboarding.reset)
+                    Text(AppStrings.Onboarding.reset)
                 }
             }
 

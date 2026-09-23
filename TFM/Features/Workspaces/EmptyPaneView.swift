@@ -26,10 +26,10 @@ struct EmptyPaneView: View {
                 .foregroundStyle(.tertiary)
 
             VStack(spacing: Metrics.Space.xs) {
-                Text(TermindCopy.Workspace.emptyPane)
+                Text(AppStrings.Workspace.emptyPane)
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text(TermindCopy.Workspace.dragAnSshTerminalOrSftpBrowserHere)
+                Text(AppStrings.Workspace.dragAnSshTerminalOrSftpBrowserHere)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

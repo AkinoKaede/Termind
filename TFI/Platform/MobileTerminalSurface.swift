@@ -22,8 +22,8 @@ final class MobileTerminalView: TerminalView {
 
     override var keyCommands: [UIKeyCommand]? {
         var commands = super.keyCommands ?? []
-        commands.append(findCommand(title: TermindCopy.Terminal.findNextInTerminal, modifiers: []))
-        commands.append(findCommand(title: TermindCopy.Terminal.findPreviousInTerminal, modifiers: .shift))
+        commands.append(findCommand(title: AppStrings.Terminal.findNextInTerminal, modifiers: []))
+        commands.append(findCommand(title: AppStrings.Terminal.findPreviousInTerminal, modifiers: .shift))
 
         guard findController?.isPresented == true else { return commands }
         commands.removeAll(where: isDismissFindEquivalent)
@@ -53,7 +53,7 @@ final class MobileTerminalView: TerminalView {
 
     private func dismissFindCommand(modifiers: UIKeyModifierFlags) -> UIKeyCommand {
         let command = UIKeyCommand(
-            title: String(localized: TermindCopy.Terminal.closeFind),
+            title: String(localized: AppStrings.Terminal.closeFind),
             action: #selector(handleDismissFindCommand(_:)),
             input: UIKeyCommand.inputEscape,
             modifierFlags: modifiers

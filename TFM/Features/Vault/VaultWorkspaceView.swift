@@ -124,16 +124,16 @@ struct VaultWorkspaceContent: View {
         }
         .environment(editingSession)
         .confirmationDialog(
-            TermindCopy.Vault.saveChangesConfirmation.swiftUIKey,
+            AppStrings.Vault.saveChangesConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { editingSession.confirmationID != nil },
                 set: { if !$0 { editingSession.cancelTransition() } }
             ),
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.save.swiftUIKey, action: editingSession.saveAndProceed)
-            Button(TermindCopy.Common.discard.swiftUIKey, role: .destructive, action: editingSession.discardAndProceed)
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel, action: editingSession.cancelTransition)
+            Button(AppStrings.Common.save.swiftUIKey, action: editingSession.saveAndProceed)
+            Button(AppStrings.Common.discard.swiftUIKey, role: .destructive, action: editingSession.discardAndProceed)
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel, action: editingSession.cancelTransition)
         }
     }
 }

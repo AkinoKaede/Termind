@@ -312,12 +312,12 @@ struct MobileVaultFeatureTests {
         #expect(MobileIdentityEditor(app: app, identity: identity).isNew)
         #expect(
             MobileIdentityEditor(app: app, identity: identity).title
-                == String(localized: TermindCopy.Keychain.newIdentity))
+                == String(localized: AppStrings.Keychain.newIdentity))
         app.library.upsert(identity)
         #expect(!MobileIdentityEditor(app: app, identity: identity).isNew)
         #expect(
             MobileIdentityEditor(app: app, identity: identity).title
-                == String(localized: TermindCopy.Keychain.editIdentity))
+                == String(localized: AppStrings.Keychain.editIdentity))
         app.outbox.stop()
     }
 

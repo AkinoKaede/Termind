@@ -53,7 +53,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .vault,
-                title: TermindCopy.Navigation.vault,
+                title: AppStrings.Navigation.vault,
                 symbol: "server.rack"
             ) { app, scene in
                 AnyView(
@@ -74,7 +74,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .metrics,
-                title: TermindCopy.Navigation.metrics,
+                title: AppStrings.Navigation.metrics,
                 symbol: "waveform.path.ecg"
             ) { app, _ in
                 AnyView(MobileMetricsView(app: app))
@@ -83,7 +83,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .workspaces,
-                title: TermindCopy.Navigation.workspaces,
+                title: AppStrings.Navigation.workspaces,
                 symbol: "terminal"
             ) { app, scene in
                 AnyView(MobileWorkspaceListView(app: app, scene: scene))
@@ -92,7 +92,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .assistant,
-                title: TermindCopy.Navigation.assistant,
+                title: AppStrings.Navigation.assistant,
                 symbol: "sparkles"
             ) { app, scene in
                 AnyView(
@@ -109,7 +109,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .settings,
-                title: TermindCopy.Navigation.settings,
+                title: AppStrings.Navigation.settings,
                 symbol: "gearshape"
             ) { app, scene in
                 AnyView(MobileSettingsView(app: app, reviewScene: scene))

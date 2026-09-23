@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:292b2eb72af811fc62750a5dadf871d3b272b65a49013ce5fd8e551a35437b1f",
+  "pageVersion": "sha256:216d710179536721300e3c6e1e630475e42a0e45c2f4ea0664977a46faf164a5",
   "claims": [
     {
       "id": "claim_8e9cf2adb50847f98fcd4516cb0ed521",
@@ -12,15 +12,15 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:c2f5bd4b56b1c901b8f139b34372452037e6c95315e1dc3e50b08f3215f5d748"
+          "version": "repo-file-v1:sha256:5662b9599bb4480d7fe8c187efd1cc5b0940aca825ba69f4e72efe150b764034"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
+          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         }
       ]
     },
@@ -34,11 +34,11 @@
         },
         {
           "resource": "repo://TFM/Application/Serial/SerialPortService.swift",
-          "version": "repo-file-v1:sha256:c7c790b6611795b1817fd485ec5a43805edf146fe262f0869537b816ac181d6b"
+          "version": "repo-file-v1:sha256:c99ebdee2a7701a25c37531517337f025cc59567b67c1af1a497447954c1d8c2"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:7909f5be1f0742e4dae9989a00e7801c7ddc9e6cf72be4d24bc1108e2c393cfd"
+          "version": "repo-file-v1:sha256:cba31c98549c0bb9eee68a82b0924fa9c6433e6d9a37e82b549af9432e2f2757"
         }
       ]
     },
@@ -48,15 +48,15 @@
       "evidence": [
         {
           "resource": "repo://TFM/Application/MCPServer/MCPDownloadCoordinator.swift",
-          "version": "repo-file-v1:sha256:8be3783d975ac47d92fcbd9364e39db11b449980d07c87bcfa5fe3abf15d1ced"
+          "version": "repo-file-v1:sha256:278394ec7976accd3fb1f7e9f5e7875c9f07aeedea46cc37c92588ba2b2ee8fc"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:11a618b54c8c7c8cf212423feb11ef58ee507f58a852a9fa4a7e5fd06bdf2800"
+          "version": "repo-file-v1:sha256:6e1ccc217b7c3ea17192067e55e62343eacffa72bf0f3ed202aaf3fe98c8edba"
         },
         {
           "resource": "repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift",
-          "version": "repo-file-v1:sha256:40e4a170562f9f04dc759dcff0727cb52dae8ad2a62af6d7b7ab66368bb26907"
+          "version": "repo-file-v1:sha256:ea52c7d8251960ac6e8e8d881c049b0b33ff120ac324deaa5e64ccd3c5149c8b"
         },
         {
           "resource": "repo://TFM/Infrastructure/MCP/MCPServerSession.swift",
@@ -82,7 +82,7 @@
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:7909f5be1f0742e4dae9989a00e7801c7ddc9e6cf72be4d24bc1108e2c393cfd"
+          "version": "repo-file-v1:sha256:cba31c98549c0bb9eee68a82b0924fa9c6433e6d9a37e82b549af9432e2f2757"
         }
       ]
     },
@@ -92,7 +92,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Assistant/MobileAssistantView.swift",
-          "version": "repo-file-v1:sha256:d18bef4e97506ba41d6a1437e72fc60f54b2154d70f04c5030288e48087c40fe"
+          "version": "repo-file-v1:sha256:0e1d30b54db00f2b3172c44c0db199ba64296dcf613e425c951e5362599ed7b2"
         },
         {
           "resource": "repo://TFI/Features/Shell/MobileNavigation.swift",
@@ -100,19 +100,19 @@
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:c2f5bd4b56b1c901b8f139b34372452037e6c95315e1dc3e50b08f3215f5d748"
+          "version": "repo-file-v1:sha256:5662b9599bb4480d7fe8c187efd1cc5b0940aca825ba69f4e72efe150b764034"
         },
         {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift",
-          "version": "repo-file-v1:sha256:8afffffbb974da8b4c7e4629ccac060f2b0cae5164ffa4f932dee2e083cbc15f"
+          "version": "repo-file-v1:sha256:9904a3837a3361c3c293771cc6b7567874d9ee6fcb61b1c53a69d42e0177d548"
         },
         {
           "resource": "repo://TFM/Features/Shell/WindowRoute.swift",
-          "version": "repo-file-v1:sha256:d9456b2dc0c826014e380cd98127f5253a73ad0042ef94da57faa39218943b9e"
+          "version": "repo-file-v1:sha256:9596180288e21a1ddd42f232a81ed1b8e0ae81e41bd727f91aa13002400cefde"
         },
         {
           "resource": "repo://TFM/Features/Terminal/SSHSessionModel.swift",
-          "version": "repo-file-v1:sha256:f3113440c05b4980693bc14f691e1a3c74a81e297641cd6b431054b2bacd1024"
+          "version": "repo-file-v1:sha256:5ed0746a2e4c18274303a8bd272899e134b7cd88c4596f6a1f0a1c86b40486f8"
         }
       ]
     },
@@ -126,11 +126,11 @@
         },
         {
           "resource": "repo://TFI/Platform/MobileTerminalSurface.swift",
-          "version": "repo-file-v1:sha256:5e5e6b2bccb3c873dc0211ea9588b54b388ba89bc83abe52886e514bf4e31e6f"
+          "version": "repo-file-v1:sha256:4b153637bcffb887abae4fcb50008c74396611e04d81c0c9e7f194e624f1636b"
         },
         {
           "resource": "repo://TFM/UI/Managed/ManagedCardPage.swift",
-          "version": "repo-file-v1:sha256:4dd8898a11a11ac393678c5ed5f49b5c33572705cb8031ae5cb7e33f2c37499c"
+          "version": "repo-file-v1:sha256:1be5c3201f569c5f8581336dbcb6030f0131a93098a3be3ec8c95c12a2365fe9"
         }
       ]
     },
@@ -148,19 +148,19 @@
         },
         {
           "resource": "repo://TFI/Features/Settings/MobileSettingsView.swift",
-          "version": "repo-file-v1:sha256:dbe410f9ab27057bc37a5f7e5f0db0a87feb31f7b986cf44bf96decc2fb46d11"
+          "version": "repo-file-v1:sha256:eb0f0f03a865926312815b3c58ac341b6c78b7b45da083eab8c1c642de54e68d"
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:4d6cb5a6d8fa8731e3c787f44930a19e846a92aeeb8ff4b732f2e9190d40d31c"
+          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
         },
         {
           "resource": "repo://TFM/Features/SFTP/SFTPChannelModel.swift",
-          "version": "repo-file-v1:sha256:e4820c6f0d57812a1b01234145f3291d1a919133125122a4f45eac4e3f87f45a"
+          "version": "repo-file-v1:sha256:e1c9030782da2be935a621bb3bae801fd51d4a773f070fd4f8d22872a87da305"
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:302951c6d2364dacb597c0374f419d44acd4952eb20ba1b313e31a4b9c059cf8"
+          "version": "repo-file-v1:sha256:241630ccbe213a2cc448dcf534a36eff0d093f8c529b8e34c2757a59d3d14c10"
         },
         {
           "resource": "repo://TFM/Features/Vault/VaultView.swift",
@@ -182,7 +182,7 @@
         },
         {
           "resource": "repo://TFI/Platform/MobileSFTPOpenWithPresenter.swift",
-          "version": "repo-file-v1:sha256:98f529f35aadeaee38eb35e808ff43bfd81837ac2b80ea5eed932794cf2db222"
+          "version": "repo-file-v1:sha256:068a3d1a05a09dc3d5b6dfbfdad789aa6cf00d03871934097408ad7ea90d900a"
         },
         {
           "resource": "repo://TFM/Platform/MacOSSpeechAudioInput.swift",
@@ -208,11 +208,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
+          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
         },
         {
           "resource": "repo://TFM/Platform/MacDeviceName.swift",
@@ -226,7 +226,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
+          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
         }
       ]
     },
@@ -236,7 +236,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:c5176c9083a21a9f97844730e93608df4897b24b4cadbc328e81dfb46f88641a"
+          "version": "repo-file-v1:sha256:148237060fb32863988d3fce056529b2032e381e1b8da4070eee592134c86bff"
         }
       ]
     },
@@ -246,7 +246,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift",
-          "version": "repo-file-v1:sha256:40e4a170562f9f04dc759dcff0727cb52dae8ad2a62af6d7b7ab66368bb26907"
+          "version": "repo-file-v1:sha256:ea52c7d8251960ac6e8e8d881c049b0b33ff120ac324deaa5e64ccd3c5149c8b"
         },
         {
           "resource": "repo://TFMTests/MCPUploadTests.swift",
@@ -260,15 +260,15 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:b2e3a927ec2eeb48b6bcf9b186a3c5541d86848d10425a29d6cb9383ecd900d0"
+          "version": "repo-file-v1:sha256:ea39a7339e46a612edf4d5be9370614aeb8598ed53927cb88041b2efeee760d7"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift",
-          "version": "repo-file-v1:sha256:62d2846629487dc148a1113d7d21298d7389693debd1c2f51b61ed640ada69fa"
+          "version": "repo-file-v1:sha256:e9b1f42fece05a48a98387a1c658a59225b62cdc85338269a6e04c3fea6e68f0"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
@@ -282,11 +282,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:b2e3a927ec2eeb48b6bcf9b186a3c5541d86848d10425a29d6cb9383ecd900d0"
+          "version": "repo-file-v1:sha256:ea39a7339e46a612edf4d5be9370614aeb8598ed53927cb88041b2efeee760d7"
         },
         {
           "resource": "repo://TFITests/MobileSettingsPortTests.swift",
@@ -300,7 +300,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
@@ -328,7 +328,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         }
       ]
     },
@@ -338,11 +338,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileFeatureRegistry.swift",
-          "version": "repo-file-v1:sha256:fd447af3f35bb38e151b34b2bd314e949d15f460f5ad89d7515e01ae1f88098c"
+          "version": "repo-file-v1:sha256:fcc06c752453ef9bfcfbd29e6a67083822412307ea58af7c8f76925b5eb16ee9"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:b2e3a927ec2eeb48b6bcf9b186a3c5541d86848d10425a29d6cb9383ecd900d0"
+          "version": "repo-file-v1:sha256:ea39a7339e46a612edf4d5be9370614aeb8598ed53927cb88041b2efeee760d7"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
@@ -356,7 +356,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
@@ -364,7 +364,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:4d6cb5a6d8fa8731e3c787f44930a19e846a92aeeb8ff4b732f2e9190d40d31c"
+          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
         }
       ]
     },
@@ -378,7 +378,7 @@
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:4d6cb5a6d8fa8731e3c787f44930a19e846a92aeeb8ff4b732f2e9190d40d31c"
+          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
         },
         {
           "resource": "repo://TFITests/MobileConnectionPickerTests.swift",
@@ -392,11 +392,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:0ca046969bd969fa4d4f4d245220726eb709fe97d4df67d7969b19807a8aae32"
+          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
         },
         {
           "resource": "repo://TFI/Features/KnownHosts/MobileKnownHostsView.swift",
-          "version": "repo-file-v1:sha256:fa8263ae0b73e44ebc464500c12d7b4d05158c8a9ccf45f2d8fd85c82c4b0fa4"
+          "version": "repo-file-v1:sha256:9bc9d602e889528a87d9f4530e13c87bb45baf098d0568629a8f0b307c146a61"
         }
       ]
     },
@@ -406,19 +406,19 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/RootView.swift",
-          "version": "repo-file-v1:sha256:b541d1995a8473c132e0e7aea10c0b56bc96d12cf1d003ffaa0f6bdf1f605eb9"
+          "version": "repo-file-v1:sha256:414ce4495383d17da60f76df64b09ae0330227dccec58c227b79b6bfdaedd8aa"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
+          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:e2f23f2dff6d1fba8ec85ae36c7e68960694da2a669507bdeb6e4f57ff3e5463"
+          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         },
         {
           "resource": "repo://TFMTests/WindowSidebarTests.swift",
@@ -429,6 +429,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:05:10.244Z"
+    "at": "2026-09-23T14:32:50.942Z"
   }
 }

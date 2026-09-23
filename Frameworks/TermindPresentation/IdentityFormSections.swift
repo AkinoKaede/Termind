@@ -44,9 +44,9 @@ public struct IdentityFormSections: View {
             }
             VaultColorField(selection: $colorTag)
         }
-        Section(TermindCopy.Vault.identity.swiftUIKey) {
-            LabeledContent(TermindCopy.Vault.username.swiftUIKey) {
-                TextField(TermindCopy.Vault.username.swiftUIKey, text: $username.singleLineText, axis: .horizontal)
+        Section(AppStrings.Vault.identity.swiftUIKey) {
+            LabeledContent(AppStrings.Vault.username.swiftUIKey) {
+                TextField(AppStrings.Vault.username.swiftUIKey, text: $username.singleLineText, axis: .horizontal)
                     .singleLinePaste()
                     .lineLimit(1)
                     .labelsHidden()
@@ -61,7 +61,7 @@ public struct IdentityFormSections: View {
                     #if os(iOS)
                         Label(
                             storage == .thisDevice
-                                ? String(localized: TermindCopy.Keychain.thisDevice) : storage.displayName,
+                                ? String(localized: AppStrings.Keychain.thisDevice) : storage.displayName,
                             systemImage: storage == .thisDevice ? "ipad.and.iphone" : storage.symbol
                         )
                         .tag(storage)
@@ -71,17 +71,17 @@ public struct IdentityFormSections: View {
                 }
             }
             .disabled(!canEditPasswordStorage)
-            LabeledContent(TermindCopy.Vault.password.swiftUIKey) {
+            LabeledContent(AppStrings.Vault.password.swiftUIKey) {
                 RevealableSecretField(
-                    TermindCopy.Vault.password, text: $password, prompt: Text(TermindCopy.Common.optional)
+                    AppStrings.Vault.password, text: $password, prompt: Text(AppStrings.Common.optional)
                 )
                 .labelsHidden()
                 .multilineTextAlignment(.trailing)
                 .disabled(!canEditPassword)
             }
             if showsKey {
-                Picker(TermindCopy.Vault.key.swiftUIKey, selection: $keyID) {
-                    Text(TermindCopy.Common.none).tag(SSHKeyRef.ID?.none)
+                Picker(AppStrings.Vault.key.swiftUIKey, selection: $keyID) {
+                    Text(AppStrings.Common.none).tag(SSHKeyRef.ID?.none)
                     ForEach(keys) { key in
                         Text(key.label).tag(SSHKeyRef.ID?.some(key.id))
                     }

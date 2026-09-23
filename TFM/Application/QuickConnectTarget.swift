@@ -39,11 +39,11 @@ enum QuickConnectResolver {
             guard matches.count <= 1 else {
                 throw TermindSSHError.route(
                     AppLocalization.resolve(
-                        TermindCopy.Connections.moreThanOneSavedHostIsNamed(endpoint.host), locale: locale))
+                        AppStrings.Connections.moreThanOneSavedHostIsNamed(endpoint.host), locale: locale))
             }
             if matches.isEmpty, endpoint.host.contains(where: \.isWhitespace) {
                 throw TermindSSHError.route(
-                    AppLocalization.resolve(TermindCopy.Connections.invalidSshDestination, locale: locale))
+                    AppLocalization.resolve(AppStrings.Connections.invalidSshDestination, locale: locale))
             }
             var host = matches.first ?? Host(name: endpoint.host, host: endpoint.host)
             if let original = matches.first { originals[host.id] = original }
@@ -73,7 +73,7 @@ enum QuickConnectResolver {
         if let hostname = input.hostname {
             guard !hostname.contains(where: \.isWhitespace) else {
                 throw TermindSSHError.route(
-                    AppLocalization.resolve(TermindCopy.Connections.invalidSshDestination, locale: locale))
+                    AppLocalization.resolve(AppStrings.Connections.invalidSshDestination, locale: locale))
             }
             destination.host = hostname
         }
@@ -128,7 +128,7 @@ enum QuickConnectResolver {
         guard matches.count <= 1 else {
             throw TermindSSHError.route(
                 AppLocalization.resolve(
-                    TermindCopy.Connections.moreThanOneSavedHostIsNamed(input.destination.host), locale: locale))
+                    AppStrings.Connections.moreThanOneSavedHostIsNamed(input.destination.host), locale: locale))
         }
         var host =
             matches.first

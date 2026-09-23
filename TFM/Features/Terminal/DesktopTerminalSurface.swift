@@ -163,8 +163,8 @@ struct SimpleDesktopTerminalView: View {
                 denyHostKey: closePane,
                 retry: retry,
                 cancel: closePane,
-                failureCancelLabel: TermindCopy.Common.close,
-                failureRetryLabel: TermindCopy.Terminal.reconnect,
+                failureCancelLabel: AppStrings.Common.close,
+                failureRetryLabel: AppStrings.Terminal.reconnect,
                 compactFailureActions: true
             )
         }

@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Navigation {
 
         public static var assistant: LocalizedStringResource {

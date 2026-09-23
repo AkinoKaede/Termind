@@ -4,7 +4,7 @@ import TermindDomain
 extension TagColor {
     public var displayName: LocalizedStringResource {
         switch self {
-        case .none: TermindCopy.Common.none
+        case .none: AppStrings.Common.none
         case .red: "Red"
         case .orange: "Orange"
         case .yellow: "Yellow"

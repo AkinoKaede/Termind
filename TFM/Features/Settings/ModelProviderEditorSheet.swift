@@ -53,7 +53,7 @@ struct ModelProviderEditorPage: View {
             if let provider {
                 settings(provider)
             } else {
-                ContentUnavailableView(TermindCopy.Settings.providerDeleted.swiftUIKey, systemImage: "trash")
+                ContentUnavailableView(AppStrings.Settings.providerDeleted.swiftUIKey, systemImage: "trash")
             }
         }
         .onAppear(perform: loadSecrets)
@@ -65,11 +65,11 @@ struct ModelProviderEditorPage: View {
 
     private var brokenRolesSummary: String {
         let names = brokenRoles.map(\.displayName).formatted(.list(type: .and).locale(locale))
-        return String(localized: TermindCopy.Settings.wouldGoBackToAutomatic(names))
+        return String(localized: AppStrings.Settings.wouldGoBackToAutomatic(names))
     }
 
     private var deleteHelp: Text {
-        Text(TermindCopy.Settings.permanentlyDeletesThisProviderItsKeyAndItsModels)
+        Text(AppStrings.Settings.permanentlyDeletesThisProviderItsKeyAndItsModels)
     }
 
     // MARK: - Settings column
@@ -87,10 +87,10 @@ struct ModelProviderEditorPage: View {
             if session.endpoint.apiType == .generateContent { vertexSection(provider) }
             if let error = session.error { Text(error).foregroundStyle(.red) }
 
-            Section(TermindCopy.Settings.models.swiftUIKey) {
+            Section(AppStrings.Settings.models.swiftUIKey) {
                 Button(action: showModels) {
                     HStack {
-                        Label(TermindCopy.Settings.manageModels.swiftUIKey, systemImage: "cube")
+                        Label(AppStrings.Settings.manageModels.swiftUIKey, systemImage: "cube")
                         Spacer()
                         Text(provider.models.count, format: .number)
                             .foregroundStyle(.secondary)
@@ -105,7 +105,7 @@ struct ModelProviderEditorPage: View {
             }
 
             Section {
-                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+                Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                     app.aiConfiguration.delete(modelProviderID: modelProviderID)
                     deleted()
                 }
@@ -126,7 +126,7 @@ struct ModelProviderEditorPage: View {
     private var credentialSection: some View {
         Section {
             RevealableSecretField(
-                TermindCopy.Settings.apiKey,
+                AppStrings.Settings.apiKey,
                 text: Binding(
                     get: { session.secret },
                     set: {
@@ -134,11 +134,11 @@ struct ModelProviderEditorPage: View {
                         store(secret: $0)
                     }
                 ),
-                prompt: Text(TermindCopy.Common.optional)
+                prompt: Text(AppStrings.Common.optional)
             )
 
             Text(
-                TermindCopy.Settings.theKeyIsStoredInThisMacSDataProtectionKeychain
+                AppStrings.Settings.theKeyIsStoredInThisMacSDataProtectionKeychain
             )
             .font(.caption)
             .foregroundStyle(.secondary)

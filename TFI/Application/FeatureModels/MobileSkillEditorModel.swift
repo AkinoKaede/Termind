@@ -26,7 +26,7 @@ final class MobileSkillEditorModel {
         var value = draft
         if wasPersisted {
             guard let current = library.skill(original.id) else {
-                throw MobileEditorError.message(String(localized: TermindCopy.Settings.skillDeleted))
+                throw MobileEditorError.message(String(localized: AppStrings.Settings.skillDeleted))
             }
             var fields = SettingsFields(original, draft, current)
             if draft.name != original.name {
@@ -34,7 +34,7 @@ final class MobileSkillEditorModel {
                     !library.hasNameConflict(draft.name, excluding: draft.id)
                 else {
                     throw MobileEditorError.message(
-                        String(localized: TermindCopy.Settings.anotherSkillAlreadyUsesThisName))
+                        String(localized: AppStrings.Settings.anotherSkillAlreadyUsesThisName))
                 }
                 try fields.merge(\.name)
             }

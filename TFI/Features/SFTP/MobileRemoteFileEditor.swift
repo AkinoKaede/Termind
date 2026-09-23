@@ -21,7 +21,7 @@ struct MobileRemoteFileEditor: View {
     var body: some View {
         MobileEditorSheet(
             title: mode == .rename
-                ? String(localized: TermindCopy.Common.rename) : String(localized: TermindCopy.SFTP.editPermissions),
+                ? String(localized: AppStrings.Common.rename) : String(localized: AppStrings.SFTP.editPermissions),
             isDirty: name != file.name || permissions.text != SFTPPermissionDraft.octalString(for: file.permissions),
             canSave: workspace.connected
                 && (mode == .rename ? !name.isEmpty && name != file.name : permissions.canSave),
@@ -36,14 +36,14 @@ struct MobileRemoteFileEditor: View {
             content: {
                 Section { Text(file.path).font(.caption.monospaced()).textSelection(.enabled) }
                 if mode == .rename {
-                    TextField(TermindCopy.Common.name.swiftUIKey, text: $name.singleLineText, axis: .horizontal)
+                    TextField(AppStrings.Common.name.swiftUIKey, text: $name.singleLineText, axis: .horizontal)
                         .singleLinePaste().lineLimit(1)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .multilineTextAlignment(.leading)
                 } else {
-                    Section(TermindCopy.SFTP.permissions.swiftUIKey) {
+                    Section(AppStrings.SFTP.permissions.swiftUIKey) {
                         TextField(
-                            TermindCopy.SFTP.octalPermissions.swiftUIKey,
+                            AppStrings.SFTP.octalPermissions.swiftUIKey,
                             text: Binding(
                                 get: { permissions.text },
                                 set: { _ = permissions.accept($0) }
@@ -52,10 +52,10 @@ struct MobileRemoteFileEditor: View {
                             .font(.body.monospaced())
                             .keyboardType(.numberPad)
                     }
-                    Section(TermindCopy.SFTP.fileAccess.swiftUIKey) { UnixPermissionGrid(draft: $permissions) }
-                    Section(TermindCopy.SFTP.ownership.swiftUIKey) {
-                        LabeledContent(TermindCopy.SFTP.uid.swiftUIKey, value: file.ownerUID.formatted())
-                        LabeledContent(TermindCopy.SFTP.gid.swiftUIKey, value: file.ownerGID.formatted())
+                    Section(AppStrings.SFTP.fileAccess.swiftUIKey) { UnixPermissionGrid(draft: $permissions) }
+                    Section(AppStrings.SFTP.ownership.swiftUIKey) {
+                        LabeledContent(AppStrings.SFTP.uid.swiftUIKey, value: file.ownerUID.formatted())
+                        LabeledContent(AppStrings.SFTP.gid.swiftUIKey, value: file.ownerGID.formatted())
                     }
                 }
             })

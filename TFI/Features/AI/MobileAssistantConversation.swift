@@ -21,8 +21,8 @@ private struct MobileConversationAttachmentDropModifier: ViewModifier {
                     if isTargeted {
                         DropTargetOverlay(
                             presentation: DropTargetPresentation(
-                                title: String(localized: TermindCopy.Assistant.attachToChat),
-                                detail: String(localized: TermindCopy.Assistant.filesAndImages),
+                                title: String(localized: AppStrings.Assistant.attachToChat),
+                                detail: String(localized: AppStrings.Assistant.filesAndImages),
                                 systemImage: "paperclip"
                             )
                         )
@@ -53,7 +53,7 @@ private struct MobileConversationAttachmentDropModifier: ViewModifier {
             }
             if !payload.images.isEmpty {
                 conversation.importAttachmentImages(
-                    payload.images, label: String(localized: TermindCopy.Assistant.droppedImage)
+                    payload.images, label: String(localized: AppStrings.Assistant.droppedImage)
                 )
             }
             if !payload.failures.isEmpty {
@@ -290,7 +290,7 @@ private struct MobileAssistantTaskCapsule: View {
                     lineWidth: 1.7
                 )
                 Text(
-                    TermindCopy.Assistant.step(
+                    AppStrings.Assistant.step(
                         completed: conversation.completedTaskCount, total: conversation.tasks.count)
                 )
                 .font(.caption2.monospacedDigit())
@@ -308,10 +308,10 @@ private struct MobileAssistantTaskCapsule: View {
         .frame(minHeight: 44)
         .accessibilityLabel(
             Text(
-                TermindCopy.Assistant.tasksOfDone(
+                AppStrings.Assistant.tasksOfDone(
                     completed: conversation.completedTaskCount, total: conversation.tasks.count))
         )
-        .accessibilityValue(isExpanded ? Text(TermindCopy.Assistant.expanded) : Text(TermindCopy.Assistant.collapsed))
+        .accessibilityValue(isExpanded ? Text(AppStrings.Assistant.expanded) : Text(AppStrings.Assistant.collapsed))
     }
 
     private var list: some View {
@@ -340,7 +340,7 @@ private struct MobileAssistantTaskCapsule: View {
         }
         .shadow(color: .black.opacity(0.08), radius: 16, y: 6)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text(TermindCopy.Assistant.tasks))
+        .accessibilityLabel(Text(AppStrings.Assistant.tasks))
     }
 
     private func row(_ task: AgentTask) -> some View {
@@ -388,7 +388,7 @@ private struct MobileAssistantSteeringQueue: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label(TermindCopy.Assistant.steering.swiftUIKey, systemImage: "arrow.turn.down.right")
+            Label(AppStrings.Assistant.steering.swiftUIKey, systemImage: "arrow.turn.down.right")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
 
@@ -411,7 +411,7 @@ private struct MobileAssistantSteeringQueue: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .mobileAssistantInteractionSurface()
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text(TermindCopy.Assistant.queuedMessages))
+        .accessibilityLabel(Text(AppStrings.Assistant.queuedMessages))
     }
 
     private func row(_ pending: PendingSteeringMessage) -> some View {
@@ -444,8 +444,8 @@ private struct MobileAssistantSteeringQueue: View {
             .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text(TermindCopy.Assistant.unqueueMessage))
-        .accessibilityHint(Text(TermindCopy.Assistant.takeThisBackAndEditIt))
+        .accessibilityLabel(Text(AppStrings.Assistant.unqueueMessage))
+        .accessibilityHint(Text(AppStrings.Assistant.takeThisBackAndEditIt))
     }
 }
 
@@ -524,14 +524,14 @@ struct MobileAssistantConversation: View {
             NavigationStack {
                 MobileAssistantEditMessageTextEditor(text: $editedText)
                     .padding()
-                    .navigationTitle(TermindCopy.Assistant.editMessage.swiftUIKey)
+                    .navigationTitle(AppStrings.Assistant.editMessage.swiftUIKey)
                     .toolbar {
                         ToolbarItem(placement: .cancellationAction) {
-                            Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark") { editing = nil }
+                            Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") { editing = nil }
                                 .labelStyle(.iconOnly)
                         }
                         ToolbarItem(placement: .confirmationAction) {
-                            Button(TermindCopy.Assistant.send.swiftUIKey, systemImage: "arrow.up") {
+                            Button(AppStrings.Assistant.send.swiftUIKey, systemImage: "arrow.up") {
                                 model.edit(conversation, messageID: message.id, text: editedText)
                                 editing = nil
                             }.labelStyle(.iconOnly).disabled(
@@ -641,13 +641,13 @@ struct MobileAssistantConversation: View {
     }
 
     private var archivedNoticeLabel: some View {
-        Label(TermindCopy.Assistant.archivedConversationsAreReadOnly.swiftUIKey, systemImage: "archivebox")
+        Label(AppStrings.Assistant.archivedConversationsAreReadOnly.swiftUIKey, systemImage: "archivebox")
             .font(.callout)
             .foregroundStyle(.secondary)
     }
 
     private var unarchiveButton: some View {
-        Button(TermindCopy.Assistant.unarchive.swiftUIKey, systemImage: "arrow.uturn.backward") {
+        Button(AppStrings.Assistant.unarchive.swiftUIKey, systemImage: "arrow.uturn.backward") {
             Task { await model.archive(conversation, archived: false) }
         }
         .buttonStyle(.borderedProminent)
@@ -658,8 +658,8 @@ struct MobileAssistantConversation: View {
         switch entry.content {
         case .empty:
             VStack(alignment: .leading, spacing: 12) {
-                Text(TermindCopy.Assistant.startAConversation).font(.headline)
-                Text(TermindCopy.Assistant.askAQuestionOrDescribeWhatYouWantToDo).foregroundStyle(.secondary)
+                Text(AppStrings.Assistant.startAConversation).font(.headline)
+                Text(AppStrings.Assistant.askAQuestionOrDescribeWhatYouWantToDo).foregroundStyle(.secondary)
             }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, 24)
         case .user(let message, _), .assistant(let message, _):
             messageRow(message)
@@ -678,7 +678,7 @@ struct MobileAssistantConversation: View {
         case .failure(let failure):
             agentFailureRow(failure)
         case .interrupted:
-            Label(TermindCopy.Assistant.thisRunWasInterruptedAndWasNotResumed.swiftUIKey, systemImage: "pause.circle")
+            Label(AppStrings.Assistant.thisRunWasInterruptedAndWasNotResumed.swiftUIKey, systemImage: "pause.circle")
                 .font(.caption).foregroundStyle(.secondary)
         }
     }
@@ -710,7 +710,7 @@ struct MobileAssistantConversation: View {
             compactionRule
             Label(
                 AppLocalization.resolve(
-                    TermindCopy.Assistant.compactionSummary(
+                    AppStrings.Assistant.compactionSummary(
                         summarized: ContextBreakdownView.compact(mark.summarizedTokens),
                         retained: ContextBreakdownView.compact(mark.keptTokens)),
                     locale: locale
@@ -723,7 +723,7 @@ struct MobileAssistantConversation: View {
             .fixedSize(horizontal: true, vertical: false)
             compactionRule
         }
-        .accessibilityHint(Text(TermindCopy.Assistant.compactionExplanation))
+        .accessibilityHint(Text(AppStrings.Assistant.compactionExplanation))
     }
 
     private var compactionRule: some View {
@@ -738,7 +738,7 @@ struct MobileAssistantConversation: View {
         case .running:
             HStack(spacing: 8) {
                 Image(systemName: "doc.text.magnifyingglass")
-                Text(TermindCopy.Assistant.compactingContext).modifier(MobileAssistantScanning(active: true))
+                Text(AppStrings.Assistant.compactingContext).modifier(MobileAssistantScanning(active: true))
                 Spacer()
             }
             .font(.callout)
@@ -761,13 +761,13 @@ struct MobileAssistantConversation: View {
                 HStack(spacing: 8) {
                     Image(systemName: "exclamationmark.triangle")
                         .foregroundStyle(.red)
-                    Text(TermindCopy.Assistant.compactionFailed)
+                    Text(AppStrings.Assistant.compactionFailed)
                         .foregroundStyle(.primary)
                 }
                 .font(.callout)
             }
             .tint(.secondary)
-            .accessibilityHint(Text(TermindCopy.Assistant.showFailureDetails))
+            .accessibilityHint(Text(AppStrings.Assistant.showFailureDetails))
         }
     }
 
@@ -783,7 +783,7 @@ struct MobileAssistantConversation: View {
                     .foregroundStyle(.red)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
+                Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
                     UIPasteboard.general.string = failure.reason
                 }
                 .labelStyle(.iconOnly)
@@ -795,13 +795,13 @@ struct MobileAssistantConversation: View {
             HStack(spacing: 8) {
                 Image(systemName: "exclamationmark.triangle")
                     .foregroundStyle(.red)
-                Text(TermindCopy.Assistant.agentError)
+                Text(AppStrings.Assistant.agentError)
                     .foregroundStyle(.primary)
             }
             .font(.callout)
         }
         .tint(.secondary)
-        .accessibilityHint(Text(TermindCopy.Assistant.showFailureDetails))
+        .accessibilityHint(Text(AppStrings.Assistant.showFailureDetails))
     }
 
     private var imageTileSize: CGFloat { sizeClass == .compact ? 104 : 160 }
@@ -877,18 +877,18 @@ struct MobileAssistantConversation: View {
             ForEach(message.commands) { command in MobileAssistantCommandRow(command: command) }
         }
         .contextMenu {
-            Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
+            Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
                 UIPasteboard.general.string = message.text
             }
             ShareLink(item: message.text)
             if conversation.canEditUserMessage(message.id) {
-                Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") {
+                Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
                     editedText = message.text
                     editing = message
                 }
             }
             if conversation.canForkAssistantMessage(message.id) {
-                Button(TermindCopy.Assistant.forkConversation.swiftUIKey, systemImage: "arrow.triangle.branch") {
+                Button(AppStrings.Assistant.forkConversation.swiftUIKey, systemImage: "arrow.triangle.branch") {
                     Task { await model.fork(conversation, at: message.id) }
                 }
             }
@@ -903,18 +903,18 @@ struct MobileAssistantConversation: View {
             }
 
             if conversation.canEditUserMessage(message.id) {
-                messageAction(TermindCopy.Common.edit, systemImage: "pencil") {
+                messageAction(AppStrings.Common.edit, systemImage: "pencil") {
                     editedText = message.text
                     editing = message
                 }
             }
 
-            messageAction(TermindCopy.Common.copy, systemImage: "doc.on.doc") {
+            messageAction(AppStrings.Common.copy, systemImage: "doc.on.doc") {
                 UIPasteboard.general.string = message.text
             }
 
             if conversation.canForkAssistantMessage(message.id) {
-                messageAction(TermindCopy.Assistant.fork, systemImage: "arrow.triangle.branch") {
+                messageAction(AppStrings.Assistant.fork, systemImage: "arrow.triangle.branch") {
                     Task { await model.fork(conversation, at: message.id) }
                 }
             }

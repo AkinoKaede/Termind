@@ -12,8 +12,8 @@ public struct VaultNameField: View {
     }
 
     public var body: some View {
-        LabeledContent(TermindCopy.Common.name.swiftUIKey) {
-            TextField(TermindCopy.Common.name.swiftUIKey, text: $text.singleLineText, prompt: prompt, axis: .horizontal)
+        LabeledContent(AppStrings.Common.name.swiftUIKey) {
+            TextField(AppStrings.Common.name.swiftUIKey, text: $text.singleLineText, prompt: prompt, axis: .horizontal)
                 .singleLinePaste()
                 .lineLimit(1)
                 .labelsHidden()
@@ -29,12 +29,12 @@ public struct VaultColorField: View {
 
     public var body: some View {
         #if os(macOS)
-            LabeledContent(TermindCopy.Vault.color.swiftUIKey) {
+            LabeledContent(AppStrings.Vault.color.swiftUIKey) {
                 ColorTagPicker(selection: $selection, layout: .compact)
             }
         #else
             VStack(alignment: .leading, spacing: 8) {
-                Text(TermindCopy.Vault.color)
+                Text(AppStrings.Vault.color)
                 ColorTagPicker(selection: $selection, layout: .touch)
             }
         #endif

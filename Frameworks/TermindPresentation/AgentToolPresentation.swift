@@ -75,7 +75,7 @@ nonisolated public enum AgentToolPresentation {
         }
         let activity = approvalActivity(for: card, locale: locale)
         guard let kind = actionKind(for: card) else {
-            let action = localized(TermindCopy.Assistant.run(activity), locale: locale)
+            let action = localized(AppStrings.Assistant.run(activity), locale: locale)
             guard let hostName, !hostName.isEmpty else { return action }
             if isChinese(locale) {
                 return localized("Approval action target: \(action) \(hostName)", locale: locale)
@@ -1035,7 +1035,7 @@ nonisolated public enum AgentToolPresentation {
         case .sshConnecting:
             return target.map {
                 localized("Connecting to \($0)", locale: locale)
-            } ?? localized(TermindCopy.Connections.connecting, locale: locale)
+            } ?? localized(AppStrings.Connections.connecting, locale: locale)
         case .sshRunningCommand:
             return target.map {
                 localized("Running “\(activity)” on \($0)", locale: locale)

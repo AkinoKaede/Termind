@@ -196,7 +196,7 @@ struct TermindApp: App {
         .windowResizability(.contentMinSize)
         .commands { TermindCommands(app: app) }
 
-        Window(TermindCopy.Connections.authenticationRequest.swiftUIKey, id: ExternalAuthWindowPresenter.sceneID) {
+        Window(AppStrings.Connections.authenticationRequest.swiftUIKey, id: ExternalAuthWindowPresenter.sceneID) {
             ExternalAuthWindow()
                 .environment(app)
                 .environment(\.locale, launchLanguage.locale)
@@ -335,7 +335,7 @@ struct TermindApp: App {
             let menu = NSMenu()
             menu.autoenablesItems = false
             let item = NSMenuItem(
-                title: String(localized: TermindCopy.Workspace.newWindow), action: #selector(newWindowFromDock(_:)),
+                title: String(localized: AppStrings.Workspace.newWindow), action: #selector(newWindowFromDock(_:)),
                 keyEquivalent: "")
             item.target = self
             item.isEnabled = app?.mainWindows.createScene != nil
@@ -390,13 +390,13 @@ struct TermindApp: App {
                 await app.sftpEdits.recheck()
                 if app.sftpEdits.model.hasPendingChanges {
                     let alert = NSAlert()
-                    alert.messageText = String(localized: TermindCopy.SFTP.quitWithUnuploadedChangesConfirmation)
+                    alert.messageText = String(localized: AppStrings.SFTP.quitWithUnuploadedChangesConfirmation)
                     alert.informativeText = String(
                         localized:
-                            TermindCopy.SFTP.pendingEditedFilesWarning
+                            AppStrings.SFTP.pendingEditedFilesWarning
                     )
-                    alert.addButton(withTitle: String(localized: TermindCopy.Common.cancel))
-                    alert.addButton(withTitle: String(localized: TermindCopy.Common.quitAnyway))
+                    alert.addButton(withTitle: String(localized: AppStrings.Common.cancel))
+                    alert.addButton(withTitle: String(localized: AppStrings.Common.quitAnyway))
                     guard alert.runModal() == .alertSecondButtonReturn else {
                         self?.awaitingTermination = false
                         NSApp.reply(toApplicationShouldTerminate: false)

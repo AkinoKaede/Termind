@@ -4,7 +4,7 @@ import TermindDomain
 extension PortForwardingRule {
     public nonisolated func displayName(hostName: String?) -> String {
         SavedName.resolve(
-            label, default: defaultName(hostName: hostName ?? String(localized: TermindCopy.Forwarding.hostUnavailable))
+            label, default: defaultName(hostName: hostName ?? String(localized: AppStrings.Forwarding.hostUnavailable))
         )
     }
 }

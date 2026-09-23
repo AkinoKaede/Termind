@@ -118,17 +118,17 @@ struct SnippetsPageView: ManagedCardPage {
                     isDropTarget: isDropTarget
                 )
                 .contextMenu {
-                    Button(TermindCopy.Snippets.newSnippet.swiftUIKey, systemImage: MenuSymbol.newSnippet) {
+                    Button(AppStrings.Snippets.newSnippet.swiftUIKey, systemImage: MenuSymbol.newSnippet) {
                         openSnippetEditor(snippetID: nil, packageID: package.id)
                     }
-                    Button(TermindCopy.Snippets.newSubpackage.swiftUIKey, systemImage: MenuSymbol.newPackage) {
+                    Button(AppStrings.Snippets.newSubpackage.swiftUIKey, systemImage: MenuSymbol.newPackage) {
                         openPackageEditor(packageID: nil, parentID: package.id)
                     }
-                    Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
+                    Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
                         openPackageEditor(packageID: package.id, parentID: package.parentID)
                     }
                     Divider()
-                    DestructiveMenuButton(TermindCopy.Snippets.deletePackage) {
+                    DestructiveMenuButton(AppStrings.Snippets.deletePackage) {
                         state.confirmation = .deletePackage(package)
                     }
                 }
@@ -143,10 +143,10 @@ struct SnippetsPageView: ManagedCardPage {
                 isDropTarget: isDropTarget
             )
             .contextMenu {
-                Button(TermindCopy.Snippets.newSnippet.swiftUIKey, systemImage: MenuSymbol.newSnippet) {
+                Button(AppStrings.Snippets.newSnippet.swiftUIKey, systemImage: MenuSymbol.newSnippet) {
                     openSnippetEditor(snippetID: nil, packageID: nil)
                 }
-                Button(TermindCopy.Snippets.newPackage.swiftUIKey, systemImage: MenuSymbol.newPackage) {
+                Button(AppStrings.Snippets.newPackage.swiftUIKey, systemImage: MenuSymbol.newPackage) {
                     openPackageEditor(packageID: nil, parentID: nil)
                 }
             }
@@ -184,12 +184,12 @@ struct SnippetsPageView: ManagedCardPage {
         let packageID = section?.packageID
         return [
             NativeMenuEntry(
-                title: TermindCopy.Snippets.newSnippet, symbol: MenuSymbol.newSnippet
+                title: AppStrings.Snippets.newSnippet, symbol: MenuSymbol.newSnippet
             ) {
                 openSnippetEditor(snippetID: nil, packageID: packageID)
             },
             NativeMenuEntry(
-                title: TermindCopy.Snippets.newPackage, symbol: MenuSymbol.newPackage
+                title: AppStrings.Snippets.newPackage, symbol: MenuSymbol.newPackage
             ) {
                 openPackageEditor(packageID: nil, parentID: packageID)
             },
@@ -203,15 +203,15 @@ struct SnippetsPageView: ManagedCardPage {
 
     func managedEmptyState() -> some View {
         ContentUnavailableView {
-            Label(TermindCopy.Snippets.noSnippets.swiftUIKey, systemImage: "curlybraces")
+            Label(AppStrings.Snippets.noSnippets.swiftUIKey, systemImage: "curlybraces")
         } description: {
-            Text(TermindCopy.Snippets.emptyDescription)
+            Text(AppStrings.Snippets.emptyDescription)
         } actions: {
             HStack {
-                Button(TermindCopy.Snippets.newPackage.swiftUIKey) {
+                Button(AppStrings.Snippets.newPackage.swiftUIKey) {
                     openPackageEditor(packageID: nil, parentID: nil)
                 }
-                Button(TermindCopy.Snippets.newSnippet.swiftUIKey) {
+                Button(AppStrings.Snippets.newSnippet.swiftUIKey) {
                     openSnippetEditor(snippetID: nil, packageID: nil)
                 }
                 .buttonStyle(.borderedProminent)
@@ -375,7 +375,7 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
                 )
             ) {
                 confirmationActions
-                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { state.confirmation = nil }
+                Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { state.confirmation = nil }
             } message: {
                 confirmationMessage
             }
@@ -385,16 +385,16 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
     private var confirmationActions: some View {
         switch state.confirmation {
         case .deletePackage(let package):
-            Button(TermindCopy.Snippets.deletePackageAndSnippets.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Snippets.deletePackageAndSnippets.swiftUIKey, role: .destructive) {
                 actions.deletePackage(package, false)
             }
-            Button(TermindCopy.Snippets.keepSnippets.swiftUIKey) { actions.deletePackage(package, true) }
+            Button(AppStrings.Snippets.keepSnippets.swiftUIKey) { actions.deletePackage(package, true) }
         case .deleteSnippets(let batch):
-            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                 actions.deleteSnippets(batch.snippets)
             }
         case .executeDestructive(let batch):
-            Button(TermindCopy.Common.run.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.run.swiftUIKey, role: .destructive) {
                 actions.performExecution(batch.snippets)
             }
         case nil:
@@ -404,12 +404,12 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
 
     private var confirmationTitle: Text {
         switch state.confirmation {
-        case .deletePackage(let package): Text(TermindCopy.Common.deleteNamedConfirmation(package.name))
+        case .deletePackage(let package): Text(AppStrings.Common.deleteNamedConfirmation(package.name))
         case .deleteSnippets(let batch):
             batch.snippets.count == 1
-                ? Text(TermindCopy.Snippets.deleteSnippetConfirmation)
-                : Text(TermindCopy.Snippets.deleteSnippetsConfirmation(batch.snippets.count))
-        case .executeDestructive: Text(TermindCopy.Snippets.runDestructiveScriptsConfirmation)
+                ? Text(AppStrings.Snippets.deleteSnippetConfirmation)
+                : Text(AppStrings.Snippets.deleteSnippetsConfirmation(batch.snippets.count))
+        case .executeDestructive: Text(AppStrings.Snippets.runDestructiveScriptsConfirmation)
         case nil: Text("")
         }
     }
@@ -423,11 +423,11 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
             let count = actions.store.snippets.filter {
                 $0.packageID.map(packages.contains) == true
             }.count
-            return Text(TermindCopy.Snippets.packageDeletionMessage(snippetCount: count))
+            return Text(AppStrings.Snippets.packageDeletionMessage(snippetCount: count))
         case .executeDestructive(let batch):
             return Text(actions.executionMessage(batch.snippets))
         case .deleteSnippets:
-            return Text(TermindCopy.Snippets.thisActionCannotBeUndone)
+            return Text(AppStrings.Snippets.thisActionCannotBeUndone)
         case nil:
             return Text("")
         }
@@ -456,16 +456,16 @@ private struct SnippetCard: View {
             SnippetCardContent(snippet: snippet, allowsTextSelection: true)
         }
         .contextMenu {
-            Button(TermindCopy.Common.run.swiftUIKey, systemImage: MenuSymbol.execute) { execute(actionSnippets) }
+            Button(AppStrings.Common.run.swiftUIKey, systemImage: MenuSymbol.execute) { execute(actionSnippets) }
             if actionSnippets.count == 1 {
                 Divider()
-                Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
-                Button(TermindCopy.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
+                Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
+                Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
                     duplicate(snippet)
                 }
             }
             Divider()
-            DestructiveMenuButton(TermindCopy.Common.delete) { delete(actionSnippets) }
+            DestructiveMenuButton(AppStrings.Common.delete) { delete(actionSnippets) }
         }
         .help(Text(snippet.body))
     }
@@ -535,7 +535,7 @@ private struct SnippetCardContent: View {
     }
 
     private var targetSummary: String {
-        String(localized: TermindCopy.Snippets.targetSummary(count: snippet.targetHostIDs.count))
+        String(localized: AppStrings.Snippets.targetSummary(count: snippet.targetHostIDs.count))
     }
 }
 
@@ -601,25 +601,25 @@ struct SnippetEditorSheet: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            TermindCopy.Snippets.deleteSnippetConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Snippets.deleteSnippetConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Snippets.deleteSnippet.swiftUIKey, role: .destructive, action: delete)
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Snippets.deleteSnippet.swiftUIKey, role: .destructive, action: delete)
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text(TermindCopy.Snippets.thisActionCannotBeUndone)
+            Text(AppStrings.Snippets.thisActionCannotBeUndone)
         }
     }
 
     private var editor: some View {
         VaultDetailScaffold(
-            title: existing == nil ? TermindCopy.Snippets.newSnippet : TermindCopy.Snippets.editSnippet,
-            symbol: "curlybraces", close: cancelEditing, closeLabel: TermindCopy.Common.cancel
+            title: existing == nil ? AppStrings.Snippets.newSnippet : AppStrings.Snippets.editSnippet,
+            symbol: "curlybraces", close: cancelEditing, closeLabel: AppStrings.Common.cancel
         ) {
             Form {
                 SnippetOrganizationSection(name: $title) {
-                    Picker(TermindCopy.Snippets.package.swiftUIKey, selection: $packageID) {
-                        Text(TermindCopy.Common.ungrouped).tag(SnippetPackage.ID?.none)
+                    Picker(AppStrings.Snippets.package.swiftUIKey, selection: $packageID) {
+                        Text(AppStrings.Common.ungrouped).tag(SnippetPackage.ID?.none)
                         ForEach(packageChoices, id: \.package.id) { choice in
                             Text(choice.path).tag(SnippetPackage.ID?.some(choice.package.id))
                         }
@@ -632,8 +632,8 @@ struct SnippetEditorSheet: View {
                     if selectedHosts.isEmpty {
                         Text(
                             app.snippets.hosts.isEmpty
-                                ? String(localized: TermindCopy.Snippets.noSavedHosts)
-                                : String(localized: TermindCopy.Snippets.noTargetsSelected)
+                                ? String(localized: AppStrings.Snippets.noSavedHosts)
+                                : String(localized: AppStrings.Snippets.noTargetsSelected)
                         )
                         .foregroundStyle(.secondary)
                     } else {
@@ -653,23 +653,23 @@ struct SnippetEditorSheet: View {
                                         .foregroundStyle(.secondary)
                                 }
                                 .buttonStyle(.plain)
-                                .help(Text(TermindCopy.Common.removeNamed(host.name)))
-                                .accessibilityLabel(Text(TermindCopy.Common.removeNamed(host.name)))
+                                .help(Text(AppStrings.Common.removeNamed(host.name)))
+                                .accessibilityLabel(Text(AppStrings.Common.removeNamed(host.name)))
                             }
                         }
                     }
                 } header: {
                     HStack {
-                        Text(TermindCopy.Snippets.targets)
+                        Text(AppStrings.Snippets.targets)
                         Spacer()
                         Button {
                             route = .targets
                         } label: {
-                            Label(TermindCopy.Snippets.addHosts.swiftUIKey, systemImage: "plus")
+                            Label(AppStrings.Snippets.addHosts.swiftUIKey, systemImage: "plus")
                         }
                         .disabled(app.snippets.hosts.isEmpty)
                         .accessibilityIdentifier("snippet-editor.add-hosts")
-                        .help(TermindCopy.Snippets.addHosts.swiftUIKey)
+                        .help(AppStrings.Snippets.addHosts.swiftUIKey)
                     }
                 }
                 if let error { Text(error).foregroundStyle(.red) }
@@ -678,11 +678,11 @@ struct SnippetEditorSheet: View {
         } footer: {
             HStack(spacing: Metrics.Space.m) {
                 if existing != nil {
-                    Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
+                    Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
                 }
                 Spacer()
-                Button(TermindCopy.Common.cancel.swiftUIKey, action: cancelEditing)
-                Button(TermindCopy.Common.save.swiftUIKey, action: saveAndClose)
+                Button(AppStrings.Common.cancel.swiftUIKey, action: cancelEditing)
+                Button(AppStrings.Common.save.swiftUIKey, action: saveAndClose)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(trimmedTitle.isEmpty || trimmedBody.isEmpty)
@@ -722,7 +722,7 @@ struct SnippetEditorSheet: View {
     private func commitChanges() -> Bool {
         guard isDirty else { return true }
         guard !trimmedTitle.isEmpty, !trimmedBody.isEmpty else {
-            error = String(localized: TermindCopy.Common.completeAllRequiredFieldsBeforeSaving)
+            error = String(localized: AppStrings.Common.completeAllRequiredFieldsBeforeSaving)
             return false
         }
         let orderedTargets = app.snippets.searchHosts("").filter { targets.contains($0.id) }.map(\.id)
@@ -792,8 +792,8 @@ struct SnippetTargetPickerView: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: TermindCopy.Snippets.addHosts, symbol: "server.rack", close: close,
-            closeLabel: TermindCopy.Common.back, closeSymbol: "chevron.backward"
+            title: AppStrings.Snippets.addHosts, symbol: "server.rack", close: close,
+            closeLabel: AppStrings.Common.back, closeSymbol: "chevron.backward"
         ) {
             VStack(spacing: 0) {
                 header
@@ -816,9 +816,9 @@ struct SnippetTargetPickerView: View {
 
     private var header: some View {
         ManagedChooserHeader(
-            title: TermindCopy.Snippets.addHosts,
+            title: AppStrings.Snippets.addHosts,
             symbol: "server.rack",
-            prompt: TermindCopy.Vault.searchHosts,
+            prompt: AppStrings.Vault.searchHosts,
             query: queryBinding,
             onSubmit: commit,
             moveCursor: moveCursor,
@@ -830,9 +830,9 @@ struct SnippetTargetPickerView: View {
     private var content: some View {
         if app.snippets.hosts.isEmpty {
             ContentUnavailableView {
-                Label(TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
+                Label(AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
             } description: {
-                Text(TermindCopy.Snippets.addAHostBeforeChoosingDefaultTargets)
+                Text(AppStrings.Snippets.addAHostBeforeChoosingDefaultTargets)
             }
         } else if results.isEmpty {
             ContentUnavailableView.search(text: query)
@@ -874,22 +874,22 @@ struct SnippetTargetPickerView: View {
 
     private var footer: some View {
         HStack {
-            Text(TermindCopy.Common.selected(chooser.selected.count))
+            Text(AppStrings.Common.selected(chooser.selected.count))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
 
             Button(
-                allResultsChecked ? TermindCopy.Common.deselectAll.swiftUIKey : TermindCopy.Common.selectAll.swiftUIKey
+                allResultsChecked ? AppStrings.Common.deselectAll.swiftUIKey : AppStrings.Common.selectAll.swiftUIKey
             ) {
                 toggleAllResults()
             }
             .disabled(results.isEmpty)
 
             Spacer()
-            Button(TermindCopy.Common.cancel.swiftUIKey, action: close)
+            Button(AppStrings.Common.cancel.swiftUIKey, action: close)
                 .accessibilityIdentifier("snippet-target-picker.cancel")
-            Button(TermindCopy.Common.done.swiftUIKey, action: commit)
+            Button(AppStrings.Common.done.swiftUIKey, action: commit)
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
                 .accessibilityIdentifier("snippet-target-picker.done")
@@ -953,14 +953,14 @@ struct SnippetPackageSheet: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: existing == nil ? TermindCopy.Snippets.newPackage : TermindCopy.Snippets.editPackage,
+            title: existing == nil ? AppStrings.Snippets.newPackage : AppStrings.Snippets.editPackage,
             symbol: "folder.fill", close: close
         ) {
             Form {
-                TextField(TermindCopy.Common.name.swiftUIKey, text: $name.singleLineText, axis: .horizontal)
+                TextField(AppStrings.Common.name.swiftUIKey, text: $name.singleLineText, axis: .horizontal)
                     .singleLinePaste().lineLimit(1)
-                Picker(TermindCopy.Common.inside.swiftUIKey, selection: $parentID) {
-                    Text(TermindCopy.Common.topLevel).tag(SnippetPackage.ID?.none)
+                Picker(AppStrings.Common.inside.swiftUIKey, selection: $parentID) {
+                    Text(AppStrings.Common.topLevel).tag(SnippetPackage.ID?.none)
                     ForEach(parentChoices, id: \.package.id) { choice in
                         Text(choice.path).tag(SnippetPackage.ID?.some(choice.package.id))
                     }
@@ -970,9 +970,9 @@ struct SnippetPackageSheet: View {
         } footer: {
             HStack {
                 Spacer()
-                Button(TermindCopy.Common.cancel.swiftUIKey, action: close).keyboardShortcut(.cancelAction)
+                Button(AppStrings.Common.cancel.swiftUIKey, action: close).keyboardShortcut(.cancelAction)
                 Button(
-                    existing == nil ? TermindCopy.Common.add.swiftUIKey : TermindCopy.Common.save.swiftUIKey,
+                    existing == nil ? AppStrings.Common.add.swiftUIKey : AppStrings.Common.save.swiftUIKey,
                     action: commit
                 )
                 .keyboardShortcut(.defaultAction)

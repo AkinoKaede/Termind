@@ -8,9 +8,9 @@ struct MobileConnectionSettingsView: View {
 
     var body: some View {
         Form {
-            Section(TermindCopy.Vault.ssh.swiftUIKey) { SSHSettingsFields(model: ssh) }
-            Section(TermindCopy.SFTP.sftp.swiftUIKey) { SFTPSettingsFields(model: sftp) }
+            Section(AppStrings.Vault.ssh.swiftUIKey) { SSHSettingsFields(model: ssh) }
+            Section(AppStrings.SFTP.sftp.swiftUIKey) { SFTPSettingsFields(model: sftp) }
         }
-        .navigationTitle(TermindCopy.Settings.connections.swiftUIKey)
+        .navigationTitle(AppStrings.Settings.connections.swiftUIKey)
     }
 }

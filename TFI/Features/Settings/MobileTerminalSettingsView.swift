@@ -14,15 +14,15 @@ struct MobileTerminalSettingsView: View {
         Form {
             themeSection(dark: false)
             themeSection(dark: true)
-            Section(TermindCopy.Settings.font.swiftUIKey) {
+            Section(AppStrings.Settings.font.swiftUIKey) {
                 TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
             }
-            Section(TermindCopy.Settings.integration.swiftUIKey) {
-                Toggle(TermindCopy.Settings.shellIntegration.swiftUIKey, isOn: binding(\.shellIntegration))
+            Section(AppStrings.Settings.integration.swiftUIKey) {
+                Toggle(AppStrings.Settings.shellIntegration.swiftUIKey, isOn: binding(\.shellIntegration))
             }
             if let error = model.storageError { Text(error).foregroundStyle(.red) }
         }
-        .navigationTitle(TermindCopy.Settings.terminal.swiftUIKey)
+        .navigationTitle(AppStrings.Settings.terminal.swiftUIKey)
         .onAppear { TerminalFontCatalog.shared.refresh() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { TerminalFontCatalog.shared.refresh() }
@@ -32,7 +32,7 @@ struct MobileTerminalSettingsView: View {
                 let original =
                     dark ? model.preferences.darkCustomConfiguration : model.preferences.lightCustomConfiguration
                 MobileEditorSheet(
-                    title: String(localized: TermindCopy.Settings.customConfiguration), isDirty: customText != original,
+                    title: String(localized: AppStrings.Settings.customConfiguration), isDirty: customText != original,
                     save: {
                         guard model.set(customText, for: dark ? \.darkCustomConfiguration : \.lightCustomConfiguration)
                         else {
@@ -44,7 +44,7 @@ struct MobileTerminalSettingsView: View {
                             .system(.body, design: .monospaced)
                         )
                         .textInputAutocapitalization(.never).autocorrectionDisabled().frame(minHeight: 280)
-                        .accessibilityLabel(TermindCopy.Settings.customConfiguration.swiftUIKey)
+                        .accessibilityLabel(AppStrings.Settings.customConfiguration.swiftUIKey)
                     })
             }
         }
@@ -54,19 +54,19 @@ struct MobileTerminalSettingsView: View {
         Section {
             TerminalThemePicker(selection: binding(dark ? \.darkTheme : \.lightTheme), isDark: dark)
             Toggle(
-                TermindCopy.Settings.customConfiguration.swiftUIKey,
+                AppStrings.Settings.customConfiguration.swiftUIKey,
                 isOn: binding(dark ? \.darkCustomEnabled : \.lightCustomEnabled))
-            Button(TermindCopy.Settings.editConfiguration.swiftUIKey, systemImage: "pencil") {
+            Button(AppStrings.Settings.editConfiguration.swiftUIKey, systemImage: "pencil") {
                 customText =
                     dark ? model.preferences.darkCustomConfiguration : model.preferences.lightCustomConfiguration
                 editingDark = dark
             }
         } header: {
-            Text(dark ? String(localized: TermindCopy.Settings.dark) : String(localized: TermindCopy.Settings.light))
+            Text(dark ? String(localized: AppStrings.Settings.dark) : String(localized: AppStrings.Settings.light))
         } footer: {
             if dark {
                 Text(
-                    TermindCopy.Settings.terminalConfigurationExplanation
+                    AppStrings.Settings.terminalConfigurationExplanation
                 )
             }
         }

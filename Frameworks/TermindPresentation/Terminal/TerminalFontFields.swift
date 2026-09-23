@@ -17,7 +17,7 @@ public struct TerminalFontFields: View {
         VStack(alignment: .leading, spacing: 8) {
             Picker("Font Size", selection: $preferences.sizeFollowsTheme) {
                 Text("Follow Theme").tag(true)
-                Text(TermindCopy.Vault.custom).tag(false)
+                Text(AppStrings.Vault.custom).tag(false)
             }
             .pickerStyle(.menu)
             if !preferences.sizeFollowsTheme {

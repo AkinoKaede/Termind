@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:4d74f05a7122684c6b96ed5356b6f6195a539e57beb0e540084accada9d032af",
+  "pageVersion": "sha256:0f7fd98bc990723ebe70c11e31b97113af0dddb33d7acb03d6bb649aa8058f86",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -70,7 +70,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:11a618b54c8c7c8cf212423feb11ef58ee507f58a852a9fa4a7e5fd06bdf2800"
+          "version": "repo-file-v1:sha256:6e1ccc217b7c3ea17192067e55e62343eacffa72bf0f3ed202aaf3fe98c8edba"
         },
         {
           "resource": "repo://TFM/Infrastructure/MCP/MCPServerSession.swift",
@@ -313,6 +313,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:05:10.244Z"
+    "at": "2026-09-23T14:32:50.942Z"
   }
 }

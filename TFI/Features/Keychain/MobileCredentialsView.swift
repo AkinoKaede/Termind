@@ -26,9 +26,9 @@ struct MobileCredentialsView: View {
                 ContentUnavailableView.search(text: query)
             }
             if query.isEmpty || !keys.isEmpty {
-                MobileCardSection(title: TermindCopy.Keychain.keys, count: keys.count) {
+                MobileCardSection(title: AppStrings.Keychain.keys, count: keys.count) {
                     if app.credentials.keys.isEmpty {
-                        ContentUnavailableView(TermindCopy.Keychain.noKeys.swiftUIKey, systemImage: "key")
+                        ContentUnavailableView(AppStrings.Keychain.noKeys.swiftUIKey, systemImage: "key")
                     }
                     MobileCardGrid {
                         ForEach(keys) { key in
@@ -37,12 +37,12 @@ struct MobileCredentialsView: View {
                             } content: {
                                 MobileKeyCredentialCard(key: key, credentials: app.credentials)
                             } actions: {
-                                Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") {
+                                Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") {
                                     keyEditor = MobileKeyEditorModel(
                                         mode: .edit, credentials: app.credentials, key: key)
                                 }
                                 Divider()
-                                Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                                Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                     deletingKey = key
                                 }
                             }
@@ -51,10 +51,10 @@ struct MobileCredentialsView: View {
                 }
             }
             if query.isEmpty || !identities.isEmpty {
-                MobileCardSection(title: TermindCopy.Keychain.identities, count: identities.count) {
+                MobileCardSection(title: AppStrings.Keychain.identities, count: identities.count) {
                     if app.credentials.identities.isEmpty {
                         ContentUnavailableView(
-                            TermindCopy.Keychain.noIdentities.swiftUIKey, systemImage: "person.crop.square")
+                            AppStrings.Keychain.noIdentities.swiftUIKey, systemImage: "person.crop.square")
                     }
                     MobileCardGrid {
                         ForEach(identities) { identity in
@@ -63,9 +63,9 @@ struct MobileCredentialsView: View {
                             } content: {
                                 MobileIdentityCredentialCard(identity: identity, credentials: app.credentials)
                             } actions: {
-                                Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") { editing = identity }
+                                Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = identity }
                                 Divider()
-                                Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                                Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                     deletingIdentity = identity
                                 }
                             }
@@ -75,64 +75,64 @@ struct MobileCredentialsView: View {
             }
         }
         .searchable(text: $query.singleLineText)
-        .navigationTitle(TermindCopy.Navigation.keychain.swiftUIKey)
+        .navigationTitle(AppStrings.Navigation.keychain.swiftUIKey)
         .toolbar {
             Menu {
-                Button(TermindCopy.Keychain.generateKey.swiftUIKey, systemImage: "key") {
+                Button(AppStrings.Keychain.generateKey.swiftUIKey, systemImage: "key") {
                     keyEditor = MobileKeyEditorModel(
                         mode: .generate, credentials: app.credentials,
                         defaultStorage: app.newVaultKeyStorage)
                 }
-                Button(TermindCopy.Keychain.importKey.swiftUIKey, systemImage: "square.and.arrow.down") {
+                Button(AppStrings.Keychain.importKey.swiftUIKey, systemImage: "square.and.arrow.down") {
                     keyEditor = MobileKeyEditorModel(
                         mode: .importKey, credentials: app.credentials,
                         defaultStorage: app.newVaultKeyStorage)
                 }
                 Divider()
-                Button(TermindCopy.Keychain.newIdentity.swiftUIKey, systemImage: "person.crop.circle.badge.plus") {
+                Button(AppStrings.Keychain.newIdentity.swiftUIKey, systemImage: "person.crop.circle.badge.plus") {
                     editing = Identity(
                         name: "", username: "",
                         passwordStorage: app.newVaultPasswordStorage)
                 }
             } label: {
-                Label(TermindCopy.Common.add.swiftUIKey, systemImage: "plus").labelStyle(.iconOnly)
+                Label(AppStrings.Common.add.swiftUIKey, systemImage: "plus").labelStyle(.iconOnly)
             }
         }
         .sheet(item: $editing) { MobileIdentityEditor(app: app, identity: $0) }
         .sheet(item: $keyEditor) { MobileKeyEditor(model: $0) }
         .confirmationDialog(
-            TermindCopy.Keychain.deleteIdentityConfirmation.swiftUIKey,
+            AppStrings.Keychain.deleteIdentityConfirmation.swiftUIKey,
             isPresented: Binding(get: { deletingIdentity != nil }, set: { if !$0 { deletingIdentity = nil } }),
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                 if let identity = deletingIdentity, !app.credentials.delete(identityID: identity.id) {
                     error = app.credentials.storageError
                 }
                 deletingIdentity = nil
             }
         } message: {
-            Text(TermindCopy.Keychain.deleteIdentityWarning)
+            Text(AppStrings.Keychain.deleteIdentityWarning)
         }
         .confirmationDialog(
-            TermindCopy.Keychain.deleteKeyConfirmation.swiftUIKey,
+            AppStrings.Keychain.deleteKeyConfirmation.swiftUIKey,
             isPresented: Binding(get: { deletingKey != nil }, set: { if !$0 { deletingKey = nil } }),
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                 if let key = deletingKey {
                     do { try app.credentials.delete(keyID: key.id) } catch { self.error = error.localizedDescription }
                 }
                 deletingKey = nil
             }
         } message: {
-            Text(TermindCopy.Keychain.deleteKeyWarning)
+            Text(AppStrings.Keychain.deleteKeyWarning)
         }
         .alert(
-            TermindCopy.Common.unableToDelete.swiftUIKey,
+            AppStrings.Common.unableToDelete.swiftUIKey,
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
         ) {
-            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { error = nil }
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { error = nil }
         } message: {
             Text(error ?? "")
         }
@@ -171,7 +171,7 @@ private struct MobileKeyCredentialCard: View {
     @ViewBuilder private var primaryChips: some View {
         MobileCardChip(text: keyDisplayName)
         if key.hasPassphrase {
-            MobileCardChip(title: TermindCopy.Keychain.passphraseRequired, symbol: "lock.fill")
+            MobileCardChip(title: AppStrings.Keychain.passphraseRequired, symbol: "lock.fill")
         }
     }
 
@@ -180,10 +180,10 @@ private struct MobileKeyCredentialCard: View {
         switch credentials.keyAvailability(for: key) {
         case .missing:
             MobileCardChip(
-                title: TermindCopy.Keychain.privateKeyMissing, symbol: "exclamationmark.triangle.fill", tint: .orange)
+                title: AppStrings.Keychain.privateKeyMissing, symbol: "exclamationmark.triangle.fill", tint: .orange)
         case .failed:
             MobileCardChip(
-                title: TermindCopy.Keychain.keychainUnavailable, symbol: "exclamationmark.triangle.fill", tint: .orange)
+                title: AppStrings.Keychain.keychainUnavailable, symbol: "exclamationmark.triangle.fill", tint: .orange)
         case .available, .notConfigured:
             EmptyView()
         }
@@ -191,7 +191,7 @@ private struct MobileKeyCredentialCard: View {
 
     @ViewBuilder private var dependentLabel: some View {
         if dependents > 0 {
-            Text(TermindCopy.Keychain.identityCount(dependents))
+            Text(AppStrings.Keychain.identityCount(dependents))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .lineLimit(1)
@@ -238,13 +238,13 @@ private struct MobileIdentityCredentialCard: View {
         if identity.usesPassword {
             switch credentials.passwordAvailability(for: identity) {
             case .available:
-                MobileCardChip(title: TermindCopy.Vault.password, symbol: "lock.fill")
+                MobileCardChip(title: AppStrings.Vault.password, symbol: "lock.fill")
             case .missing:
                 MobileCardChip(
-                    title: TermindCopy.Keychain.passwordMissing, symbol: "exclamationmark.triangle.fill", tint: .orange)
+                    title: AppStrings.Keychain.passwordMissing, symbol: "exclamationmark.triangle.fill", tint: .orange)
             case .failed:
                 MobileCardChip(
-                    title: TermindCopy.Keychain.passwordUnavailable, symbol: "exclamationmark.triangle.fill",
+                    title: AppStrings.Keychain.passwordUnavailable, symbol: "exclamationmark.triangle.fill",
                     tint: .orange)
             case .notConfigured:
                 EmptyView()
@@ -258,18 +258,18 @@ private struct MobileIdentityCredentialCard: View {
                 MobileCardChip(text: key.label, symbol: "key.fill", tint: key.colorTag.color ?? .accentColor)
             } else {
                 MobileCardChip(
-                    title: TermindCopy.Keychain.keyMissing, symbol: "exclamationmark.triangle.fill", tint: .orange)
+                    title: AppStrings.Keychain.keyMissing, symbol: "exclamationmark.triangle.fill", tint: .orange)
             }
         }
         if !identity.hasSecret {
-            MobileCardChip(title: TermindCopy.Keychain.noSecret, symbol: "questionmark.circle")
+            MobileCardChip(title: AppStrings.Keychain.noSecret, symbol: "questionmark.circle")
         }
     }
 
     private var modifiedLabel: some View {
         Text(
             modifiedAt?.formatted(.relative(presentation: .numeric))
-                ?? String(localized: TermindCopy.SFTP.unknown)
+                ?? String(localized: AppStrings.SFTP.unknown)
         )
         .font(.caption2)
         .foregroundStyle(.tertiary)
@@ -289,8 +289,8 @@ private struct MobileIdentityCredentialCard: View {
 extension PasswordStorage {
     fileprivate var mobileDisplayName: String {
         switch self {
-        case .thisDevice: String(localized: TermindCopy.Keychain.thisDevice)
-        case .iCloud: String(localized: TermindCopy.Keychain.iCloud)
+        case .thisDevice: String(localized: AppStrings.Keychain.thisDevice)
+        case .iCloud: String(localized: AppStrings.Keychain.iCloud)
         }
     }
 
@@ -305,9 +305,9 @@ extension PasswordStorage {
 extension KeyStorage {
     fileprivate var mobileDisplayName: String {
         switch self {
-        case .thisDevice: String(localized: TermindCopy.Keychain.thisDevice)
-        case .iCloud: String(localized: TermindCopy.Keychain.iCloud)
-        case .secureEnclave: String(localized: TermindCopy.Keychain.secureEnclave)
+        case .thisDevice: String(localized: AppStrings.Keychain.thisDevice)
+        case .iCloud: String(localized: AppStrings.Keychain.iCloud)
+        case .secureEnclave: String(localized: AppStrings.Keychain.secureEnclave)
         }
     }
 
@@ -400,7 +400,7 @@ struct MobileIdentityEditor: View {
     }
 
     var title: String {
-        String(localized: isNew ? TermindCopy.Keychain.newIdentity : TermindCopy.Keychain.editIdentity)
+        String(localized: isNew ? AppStrings.Keychain.newIdentity : AppStrings.Keychain.editIdentity)
     }
 
     private var hasAvailablePassword: Bool {

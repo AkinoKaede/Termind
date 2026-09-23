@@ -74,12 +74,12 @@ final class MobileProviderEditorModel {
 
     func requestSecret() throws -> String {
         guard !wasPersisted || ai.modelProvider(original.id) != nil else {
-            throw MobileEditorError.message(String(localized: TermindCopy.Settings.providerDeleted))
+            throw MobileEditorError.message(String(localized: AppStrings.Settings.providerDeleted))
         }
         let provider = requestProvider
         guard ModelProviderForm.hasValidAddress(provider) else {
             throw MobileEditorError.message(
-                String(localized: TermindCopy.Settings.enterAValidProviderUrlOrAVertexProjectAndLocation))
+                String(localized: AppStrings.Settings.enterAValidProviderUrlOrAVertexProjectAndLocation))
         }
         let credential = provider.usesVertexEndpoint ? serviceAccount : key
         let reference = provider.effectiveCredentialRef
@@ -89,7 +89,7 @@ final class MobileProviderEditorModel {
                 || (!provider.usesVertexEndpoint && credential.action == .clear)
         else {
             throw MobileEditorError.message(
-                String(localized: TermindCopy.Settings.providerCredentialUnavailable))
+                String(localized: AppStrings.Settings.providerCredentialUnavailable))
         }
         return secret
     }
@@ -115,7 +115,7 @@ final class MobileProviderEditorModel {
         guard canSave else { return }
         let current = ai.modelProvider(original.id)
         guard !wasPersisted || current != nil else {
-            throw MobileEditorError.message(String(localized: TermindCopy.Settings.providerDeleted))
+            throw MobileEditorError.message(String(localized: AppStrings.Settings.providerDeleted))
         }
         var value = draft
         var savedEndpoint = endpoint
@@ -140,7 +140,7 @@ final class MobileProviderEditorModel {
         guard ModelProviderForm.hasValidAddress(ModelProviderForm.normalized(value, endpoint: savedEndpoint).provider)
         else {
             throw MobileEditorError.message(
-                String(localized: TermindCopy.Settings.enterAValidProviderUrlOrAVertexProjectAndLocation))
+                String(localized: AppStrings.Settings.enterAValidProviderUrlOrAVertexProjectAndLocation))
         }
         let edits = try [
             key.providerEdit(reference: value.credentialRef, kind: .apiKey),

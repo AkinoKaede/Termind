@@ -5,8 +5,8 @@ import TermindPresentation
 /// Controls which parts of the shared Identity editor are visible and which
 /// credentials are mandatory for the context that raised it.
 nonisolated struct IdentityEditorConfiguration: Hashable, Sendable {
-    var newTitle: LocalizedStringResource { TermindCopy.Keychain.newIdentity }
-    var editTitle: LocalizedStringResource { TermindCopy.Keychain.editIdentity }
+    var newTitle: LocalizedStringResource { AppStrings.Keychain.newIdentity }
+    var editTitle: LocalizedStringResource { AppStrings.Keychain.editIdentity }
     var showsName: Bool
     var showsKey: Bool
     var requiresPassword: Bool
@@ -102,7 +102,7 @@ struct NewIdentitySheet: View {
             close: {
                 if requestedClose == nil { close() } else { cancelEditing() }
             },
-            closeLabel: requestedClose == nil ? TermindCopy.Common.back : TermindCopy.Common.cancel,
+            closeLabel: requestedClose == nil ? AppStrings.Common.back : AppStrings.Common.cancel,
             closeSymbol: requestedClose == nil ? "chevron.backward" : "xmark"
         ) {
             form
@@ -121,13 +121,13 @@ struct NewIdentitySheet: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            TermindCopy.Keychain.deleteIdentityConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Keychain.deleteIdentityConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Keychain.deleteIdentity.swiftUIKey, role: .destructive, action: delete)
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Keychain.deleteIdentity.swiftUIKey, role: .destructive, action: delete)
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text(TermindCopy.Keychain.deleteIdentityWarning)
+            Text(AppStrings.Keychain.deleteIdentityWarning)
         }
     }
 
@@ -156,13 +156,13 @@ struct NewIdentitySheet: View {
     private var footer: some View {
         HStack(spacing: Metrics.Space.m) {
             if existing != nil, requestedClose != nil {
-                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
+                Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
             }
             Spacer()
-            Button(TermindCopy.Common.cancel.swiftUIKey) {
+            Button(AppStrings.Common.cancel.swiftUIKey) {
                 if requestedClose == nil { close() } else { cancelEditing() }
             }
-            Button(TermindCopy.Common.save.swiftUIKey, action: saveAndClose)
+            Button(AppStrings.Common.save.swiftUIKey, action: saveAndClose)
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!isValid)
@@ -237,7 +237,7 @@ struct NewIdentitySheet: View {
     private func commitChanges() -> Bool {
         guard isDirty else { return true }
         guard isValid else {
-            saveError = String(localized: TermindCopy.Common.completeAllRequiredFieldsBeforeSaving)
+            saveError = String(localized: AppStrings.Common.completeAllRequiredFieldsBeforeSaving)
             return false
         }
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -274,7 +274,7 @@ struct NewIdentitySheet: View {
         guard let existing else { return }
         guard app.credentials.delete(identityID: existing.id) else {
             saveError =
-                app.credentials.storageError ?? String(localized: TermindCopy.Keychain.theIdentityCouldNotBeDeleted)
+                app.credentials.storageError ?? String(localized: AppStrings.Keychain.theIdentityCouldNotBeDeleted)
             return
         }
         window.pruneVaultSelections(in: app.credentials)

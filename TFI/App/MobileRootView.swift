@@ -71,21 +71,21 @@ struct MobileRootView: View {
         .onOpenURL(perform: scene.open)
         .focusedSceneValue(\.mobileScene, scene)
         .alert(
-            TermindCopy.Workspace.openTelnetConnectionConfirmation.swiftUIKey,
+            AppStrings.Workspace.openTelnetConnectionConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { scene.pendingExternalConnection != nil },
                 set: { if !$0 { scene.pendingExternalConnection = nil } }
             )
         ) {
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { scene.pendingExternalConnection = nil }
-            Button(TermindCopy.Common.continue.swiftUIKey) { scene.confirmExternalConnection() }
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { scene.pendingExternalConnection = nil }
+            Button(AppStrings.Common.continue.swiftUIKey) { scene.confirmExternalConnection() }
         } message: {
-            Text(TermindCopy.Workspace.advisoryTelnetPassword)
+            Text(AppStrings.Workspace.advisoryTelnetPassword)
         }
         .alert(
             scene.isWorkspaceUnavailable
-                ? String(localized: TermindCopy.Workspace.workspaceUnavailable)
-                : String(localized: TermindCopy.Common.operationFailed),
+                ? String(localized: AppStrings.Workspace.workspaceUnavailable)
+                : String(localized: AppStrings.Common.operationFailed),
             isPresented: Binding(
                 get: { scene.isWorkspaceUnavailable || app.error != nil },
                 set: {
@@ -95,7 +95,7 @@ struct MobileRootView: View {
                     }
                 })
         ) {
-            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) {
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) {
                 scene.isWorkspaceUnavailable = false
                 app.error = nil
             }
@@ -104,7 +104,7 @@ struct MobileRootView: View {
                 scene.isWorkspaceUnavailable
                     ? String(
                         localized:
-                            TermindCopy.Workspace.unavailableWorkspaceExplanation
+                            AppStrings.Workspace.unavailableWorkspaceExplanation
                     ) : app.error ?? "")
         }
         .modifier(MobileAppReviewPresenter(app: app, scene: scene, scenePhase: scenePhase))

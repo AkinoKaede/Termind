@@ -157,8 +157,8 @@ struct ConnectionJourneyView: View {
     var reconnectState: ReconnectState? = nil
     var retryReconnectNow: (() -> Void)? = nil
     var stopReconnecting: (() -> Void)? = nil
-    var failureCancelLabel: LocalizedStringResource = TermindCopy.Common.cancel
-    var failureRetryLabel: LocalizedStringResource = TermindCopy.Common.retry
+    var failureCancelLabel: LocalizedStringResource = AppStrings.Common.cancel
+    var failureRetryLabel: LocalizedStringResource = AppStrings.Common.retry
     var compactFailureActions = false
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
     var cancelKeyboardAuthentication: (() -> Void)? = nil
@@ -266,9 +266,9 @@ struct ConnectionJourneyView: View {
     private var logs: some View {
         VStack(spacing: 0) {
             HStack {
-                Text(TermindCopy.Terminal.connectionLog).font(.headline)
+                Text(AppStrings.Terminal.connectionLog).font(.headline)
                 Spacer()
-                Button(TermindCopy.Common.copy.swiftUIKey, action: copyLogs).controlSize(.small)
+                Button(AppStrings.Common.copy.swiftUIKey, action: copyLogs).controlSize(.small)
             }
             .padding(14)
             Divider()
@@ -383,7 +383,7 @@ private struct JourneyFailureCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label(TermindCopy.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
+            Label(AppStrings.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
                 .font(.headline).foregroundStyle(TermindColor.danger)
             Text(message).foregroundStyle(.secondary).textSelection(.enabled)
             if compactActions {
@@ -432,8 +432,8 @@ private struct JourneyFailureCard: View {
     @ViewBuilder
     private var secondaryActions: some View {
         Button(cancelLabel, action: cancel).keyboardShortcut(.cancelAction)
-        Button(TermindCopy.Terminal.copyLogs.swiftUIKey, action: copyLogs)
-        if let askAssistant { Button(TermindCopy.Assistant.askAssistant.swiftUIKey, action: askAssistant) }
+        Button(AppStrings.Terminal.copyLogs.swiftUIKey, action: copyLogs)
+        if let askAssistant { Button(AppStrings.Assistant.askAssistant.swiftUIKey, action: askAssistant) }
     }
 
     private var retryButton: some View {

@@ -37,7 +37,7 @@ public struct ModelProviderVertexFields: View {
 
     public var body: some View {
         Section("Google Vertex AI") {
-            Toggle(TermindCopy.Settings.vertexAi.swiftUIKey, isOn: $isEnabled)
+            Toggle(AppStrings.Settings.vertexAi.swiftUIKey, isOn: $isEnabled)
             if isEnabled {
                 LabeledContent("Project ID") {
                     TextField("Project ID", text: $projectID.singleLineText, axis: .horizontal)
@@ -55,7 +55,7 @@ public struct ModelProviderVertexFields: View {
                     if hasCredential {
                         Text(clientEmail).textSelection(.enabled)
                     } else {
-                        Text(TermindCopy.Vault.required)
+                        Text(AppStrings.Vault.required)
                     }
                 }
                 ViewThatFits(in: .horizontal) {
@@ -105,12 +105,12 @@ public struct ModelProviderVertexFields: View {
                     .frame(minHeight: 220)
                 if let error { Text(error).foregroundStyle(.red) }
                 HStack {
-                    Button(TermindCopy.Common.cancel.swiftUIKey) {
+                    Button(AppStrings.Common.cancel.swiftUIKey) {
                         json = ""
                         pasting = false
                     }
                     Spacer()
-                    Button(TermindCopy.Common.import.swiftUIKey) {
+                    Button(AppStrings.Common.import.swiftUIKey) {
                         perform {
                             try importJSON(json)
                             json = ""
@@ -135,12 +135,12 @@ public struct ModelProviderVertexFields: View {
     }
 
     @ViewBuilder private var credentialActions: some View {
-        Button(TermindCopy.Common.import.swiftUIKey) {
+        Button(AppStrings.Common.import.swiftUIKey) {
             importTask?.cancel()
             error = nil
             importingFile = true
         }
-        Button(TermindCopy.Common.paste.swiftUIKey) {
+        Button(AppStrings.Common.paste.swiftUIKey) {
             importTask?.cancel()
             error = nil
             json = ""

@@ -117,7 +117,7 @@ extension WindowModel {
         guard let workspace = workspaces.first(where: { $0.id == presentation.workspaceID }),
             let layout = workspace.workspaceTemplateLayout(in: hosts)
         else {
-            presentation.error = String(localized: TermindCopy.Workspace.thisWorkspaceCanNoLongerBeSavedAsATemplate)
+            presentation.error = String(localized: AppStrings.Workspace.thisWorkspaceCanNoLongerBeSavedAsATemplate)
             return
         }
         let template = WorkspaceTemplate(name: presentation.name, layout: layout)
@@ -142,7 +142,7 @@ extension WindowModel {
         open(workspace)
         if result.missingHosts > 0 {
             workspaceTemplateNotice = String(
-                localized: TermindCopy.Workspace.unavailableHostsWereOpenedAsEmptyPanes(result.missingHosts)
+                localized: AppStrings.Workspace.unavailableHostsWereOpenedAsEmptyPanes(result.missingHosts)
             )
         }
         return workspace
@@ -168,7 +168,7 @@ struct WorkspaceTemplateNameSheet: View {
             Text(title)
                 .font(.title2.weight(.semibold))
             TextField(
-                TermindCopy.Workspace.workspaceName.swiftUIKey, text: $presentation.name.singleLineText,
+                AppStrings.Workspace.workspaceName.swiftUIKey, text: $presentation.name.singleLineText,
                 axis: .horizontal
             ).singleLinePaste()
                 .lineLimit(1)
@@ -181,9 +181,9 @@ struct WorkspaceTemplateNameSheet: View {
             }
             HStack {
                 Spacer()
-                Button(TermindCopy.Common.cancel.swiftUIKey) { window.presentations.workspaceTemplateName = nil }
+                Button(AppStrings.Common.cancel.swiftUIKey) { window.presentations.workspaceTemplateName = nil }
                     .keyboardShortcut(.cancelAction)
-                Button(TermindCopy.Common.save.swiftUIKey) { window.commitWorkspaceTemplateName() }
+                Button(AppStrings.Common.save.swiftUIKey) { window.commitWorkspaceTemplateName() }
                     .keyboardShortcut(.defaultAction)
                     .disabled(presentation.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -193,5 +193,5 @@ struct WorkspaceTemplateNameSheet: View {
         .onAppear { isNameFocused = true }
     }
 
-    private var title: LocalizedStringResource { TermindCopy.Workspace.saveWorkspaceTemplate }
+    private var title: LocalizedStringResource { AppStrings.Workspace.saveWorkspaceTemplate }
 }

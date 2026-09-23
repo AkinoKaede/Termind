@@ -24,7 +24,7 @@ final class MobileModelDiscovery {
         do {
             guard let secret = ai.modelSecret(for: provider) else {
                 throw MobileEditorError.message(
-                    ai.secretStorageError ?? String(localized: TermindCopy.Settings.providerCredentialUnavailable))
+                    ai.secretStorageError ?? String(localized: AppStrings.Settings.providerCredentialUnavailable))
             }
             start(provider: provider, secret: secret, isCurrent: { ai.modelProvider(provider.id) == provider })
         } catch { self.error = error.localizedDescription }

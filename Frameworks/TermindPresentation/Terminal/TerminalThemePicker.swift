@@ -23,7 +23,7 @@ public struct TerminalThemePicker: View {
     }
 
     public var body: some View {
-        Picker(TermindCopy.Settings.theme.swiftUIKey, selection: $selection) {
+        Picker(AppStrings.Settings.theme.swiftUIKey, selection: $selection) {
             if !selectedThemeIsAvailable {
                 if selection.isEmpty {
                     Text("No Theme Selected").tag(selection)

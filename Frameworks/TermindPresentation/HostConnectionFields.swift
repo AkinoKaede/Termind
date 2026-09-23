@@ -20,7 +20,7 @@ public struct HostOrganizationSection<GroupField: View, TagsField: View>: View {
     }
 
     public var body: some View {
-        Section(TermindCopy.Vault.host.swiftUIKey) {
+        Section(AppStrings.Vault.host.swiftUIKey) {
             VaultNameField(text: $host.name, prompt: Text(verbatim: host.defaultName))
             groupField
             tagsField
@@ -67,10 +67,10 @@ public struct HostConnectionFields: View {
     }
 
     public var body: some View {
-        Section(TermindCopy.Settings.connection.swiftUIKey) {
-            LabeledContent(TermindCopy.Vault.host.swiftUIKey) {
+        Section(AppStrings.Settings.connection.swiftUIKey) {
+            LabeledContent(AppStrings.Vault.host.swiftUIKey) {
                 TextField(
-                    TermindCopy.Vault.host.swiftUIKey, text: $host.host.singleLineText,
+                    AppStrings.Vault.host.swiftUIKey, text: $host.host.singleLineText,
                     prompt: Text("IP address or hostname"), axis: .horizontal
                 ).singleLinePaste().lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)
@@ -80,11 +80,11 @@ public struct HostConnectionFields: View {
                         .keyboardType(.URL)
                     #endif
             }
-            Toggle(TermindCopy.Common.enabled.swiftUIKey, isOn: enabled)
+            Toggle(AppStrings.Common.enabled.swiftUIKey, isOn: enabled)
                 .toggleStyle(.switch)
             if host.isEnabled(connectionProtocol) {
-                LabeledContent(TermindCopy.Common.port.swiftUIKey) {
-                    TextField(TermindCopy.Common.port.swiftUIKey, value: port, format: .number.grouping(.never))
+                LabeledContent(AppStrings.Common.port.swiftUIKey) {
+                    TextField(AppStrings.Common.port.swiftUIKey, value: port, format: .number.grouping(.never))
                         .lineLimit(1)
                         .labelsHidden().multilineTextAlignment(.trailing)
                         #if os(iOS)

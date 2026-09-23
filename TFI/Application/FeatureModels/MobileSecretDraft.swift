@@ -69,7 +69,7 @@ final class MobileSecretDraft {
         }
         let next = action == .preserve ? reference : action == .clear ? "" : ref
         guard save(next) else {
-            var message = ai.storageError ?? String(localized: TermindCopy.Common.unableToSave)
+            var message = ai.storageError ?? String(localized: AppStrings.Common.unableToSave)
             if action != .preserve {
                 ai.setSecret(previous, for: ref)
                 if let error = ai.secretStorageError { message += "\n" + error }

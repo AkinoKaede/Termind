@@ -54,7 +54,7 @@ final class MobileWorkspace: Identifiable {
     @ObservationIgnored private(set) var activitySession: WorkspaceActivityAttributes.Session
     @ObservationIgnored var didChangeState: ((WorkspaceActivityAttributes.Session) -> Void)?
     @ObservationIgnored var didRequestClose: ((ID) -> Void)?
-    private(set) var status = String(localized: TermindCopy.Connections.disconnected)
+    private(set) var status = String(localized: AppStrings.Connections.disconnected)
     private(set) var connected = false {
         didSet {
             guard activitySession.connected != connected else { return }
@@ -215,11 +215,11 @@ final class MobileWorkspace: Identifiable {
             )
         case .sftp:
             guard connected, transferSnapshot != nil, sftp != nil else {
-                return String(localized: TermindCopy.Workspace.theSftpChannelIsNotConnected)
+                return String(localized: AppStrings.Workspace.theSftpChannelIsNotConnected)
             }
             return nil
         case .telnet:
-            return String(localized: TermindCopy.Workspace.telnetDoesNotSupportFileUpload)
+            return String(localized: AppStrings.Workspace.telnetDoesNotSupportFileUpload)
         }
     }
     private var connectionResumeIntent: MobileWorkspaceConnectionResumeIntent
@@ -422,14 +422,14 @@ final class MobileWorkspace: Identifiable {
             showCommandGenerationFailure(
                 String(
                     localized:
-                        TermindCopy.Workspace.commandGeneratorShellRequirement
+                        AppStrings.Workspace.commandGeneratorShellRequirement
                 )
             )
             return
         }
         guard let workingDirectory, !workingDirectory.isEmpty, let integratedShell else {
             showCommandGenerationFailure(
-                String(localized: TermindCopy.Workspace.theFocusedShellHasNotReportedItsCurrentDirectory)
+                String(localized: AppStrings.Workspace.theFocusedShellHasNotReportedItsCurrentDirectory)
             )
             return
         }
@@ -618,12 +618,12 @@ final class MobileWorkspace: Identifiable {
         busy = true
         connectionFailure = nil
         status = String(
-            localized: reconnecting ? TermindCopy.Connections.reconnecting : TermindCopy.Connections.connecting)
+            localized: reconnecting ? AppStrings.Connections.reconnecting : AppStrings.Connections.connecting)
         guard let host = connectionHost(descriptor.hostID) else {
-            let message = String(localized: TermindCopy.Connections.theHostIsNoLongerAvailable)
+            let message = String(localized: AppStrings.Connections.theHostIsNoLongerAvailable)
             connection.stopRecovery()
             connectionFailure = message
-            status = String(localized: TermindCopy.Connections.disconnected)
+            status = String(localized: AppStrings.Connections.disconnected)
             busy = false
             journey.fail(message)
             return
@@ -732,7 +732,7 @@ final class MobileWorkspace: Identifiable {
                     ssh = session
                     await session.configureEnvironment(host.environmentVariables) { variables in
                         let list = variables.joined(separator: ", ")
-                        let warning = String(localized: TermindCopy.Terminal.rejectedEnvironmentVariables(list))
+                        let warning = String(localized: AppStrings.Terminal.rejectedEnvironmentVariables(list))
                         backend.receive(Data("\r\n⚠︎ \(warning)\r\n".utf8))
                     }
                     try await connectionServices.connectSSH(
@@ -770,14 +770,14 @@ final class MobileWorkspace: Identifiable {
                         }
                         guard let resource = try await client.attributes(at: resolved) else {
                             throw SFTPError.operation(
-                                String(localized: TermindCopy.SFTP.theRemoteFileIsNoLongerAvailable))
+                                String(localized: AppStrings.SFTP.theRemoteFileIsNoLongerAvailable))
                         }
                         if resource.isDirectory {
                             initialPath = resource.path
                         } else {
                             guard !externalSFTPMustBeDirectory else {
                                 throw SFTPError.operation(
-                                    String(localized: TermindCopy.SFTP.theSftpLinkRequiresADirectoryButItsPathIsAFile))
+                                    String(localized: AppStrings.SFTP.theSftpLinkRequiresADirectoryButItsPathIsAFile))
                             }
                             initialPath = RemotePath.parent(of: resource.path)
                             externalFile = resource
@@ -815,10 +815,10 @@ final class MobileWorkspace: Identifiable {
                 proxySubmissions.removeAll()
                 let wasReconnecting = connection.markConnected()
                 connected = true
-                status = String(localized: TermindCopy.Connections.connected)
+                status = String(localized: AppStrings.Connections.connected)
                 journey.succeed()
                 if wasReconnecting, descriptor.kind == .ssh {
-                    appendTerminalNotice(String(localized: TermindCopy.Terminal.reconnectedANewRemoteShellHasStarted))
+                    appendTerminalNotice(String(localized: AppStrings.Terminal.reconnectedANewRemoteShellHasStarted))
                 }
                 if descriptor.kind == .ssh {
                     if !isShellIntegrationEnabled {
@@ -888,7 +888,7 @@ final class MobileWorkspace: Identifiable {
                     } else {
                         connection.stopRecovery()
                         journey.fail(error.localizedDescription)
-                        status = String(localized: TermindCopy.Connections.disconnected)
+                        status = String(localized: AppStrings.Connections.disconnected)
                     }
                 }
                 await ssh?.disconnect()
@@ -904,9 +904,9 @@ final class MobileWorkspace: Identifiable {
     private func connectTelnet(host: Host, token: UUID, reconnecting: Bool) {
         guard host.telnetEnabled else {
             busy = false
-            let message = String(localized: TermindCopy.Connections.telnetIsDisabledForThisHost)
+            let message = String(localized: AppStrings.Connections.telnetIsDisabledForThisHost)
             connectionFailure = message
-            status = String(localized: TermindCopy.Connections.disconnected)
+            status = String(localized: AppStrings.Connections.disconnected)
             journey.fail(message)
             return
         }
@@ -925,7 +925,7 @@ final class MobileWorkspace: Identifiable {
                         _ = self.connection.markConnected()
                         self.connected = true
                         self.busy = false
-                        self.status = String(localized: TermindCopy.Connections.connected)
+                        self.status = String(localized: AppStrings.Connections.connected)
                         self.journey.succeed()
                     }
                 }
@@ -934,13 +934,13 @@ final class MobileWorkspace: Identifiable {
                 Task { @MainActor in
                     guard let self, self.generation == token else { return }
                     self.telnet = nil
-                    let message = message ?? String(localized: TermindCopy.Terminal.theTelnetConnectionClosed)
+                    let message = message ?? String(localized: AppStrings.Terminal.theTelnetConnectionClosed)
                     if self.connection.hasConnectedOnce {
                         self.handleConnectionFailure(message)
                     } else {
                         self.busy = false
                         self.connected = false
-                        self.status = String(localized: TermindCopy.Connections.disconnected)
+                        self.status = String(localized: AppStrings.Connections.disconnected)
                         self.journey.fail(message)
                     }
                 }
@@ -963,13 +963,13 @@ final class MobileWorkspace: Identifiable {
             } catch is CancellationError {
                 guard generation == token else { return }
                 busy = false
-                status = String(localized: TermindCopy.Connections.disconnected)
+                status = String(localized: AppStrings.Connections.disconnected)
             } catch {
                 guard generation == token else { return }
                 telnet = nil
                 busy = false
                 connectionFailure = error.localizedDescription
-                status = String(localized: TermindCopy.Connections.disconnected)
+                status = String(localized: AppStrings.Connections.disconnected)
                 journey.fail(error.localizedDescription)
             }
         }
@@ -1033,7 +1033,7 @@ final class MobileWorkspace: Identifiable {
         busy = false
         connected = false
         transferSnapshot = nil
-        status = String(localized: TermindCopy.Connections.disconnected)
+        status = String(localized: AppStrings.Connections.disconnected)
         connectionFailure = reconnectState.lastError
         journey.fail(reconnectState.lastError)
         Task {
@@ -1076,7 +1076,7 @@ final class MobileWorkspace: Identifiable {
         operationError = nil
         connection.suspendForForegroundResume(reconnecting: reconnecting)
         status = String(
-            localized: reconnecting ? TermindCopy.Connections.reconnecting : TermindCopy.Connections.connecting)
+            localized: reconnecting ? AppStrings.Connections.reconnecting : AppStrings.Connections.connecting)
         presentConnectionJourney(mode: reconnecting ? .reconnection : .connection)
         Task {
             await oldSSH?.disconnect()
@@ -1106,7 +1106,7 @@ final class MobileWorkspace: Identifiable {
         case .success:
             connectionResumeIntent = .none
             connection.resetRecovery()
-            status = String(localized: TermindCopy.Connections.disconnected)
+            status = String(localized: AppStrings.Connections.disconnected)
             didRequestClose?(id)
         case .failure(let failure):
             handleConnectionFailure(failure.localizedDescription)
@@ -1138,9 +1138,9 @@ final class MobileWorkspace: Identifiable {
         busy = false
         connected = false
         transferSnapshot = nil
-        status = String(localized: TermindCopy.Connections.reconnecting)
+        status = String(localized: AppStrings.Connections.reconnecting)
         if announcesLoss, descriptor.kind == .ssh {
-            appendTerminalNotice(String(localized: TermindCopy.Connections.connectionLostReconnectingProgress))
+            appendTerminalNotice(String(localized: AppStrings.Connections.connectionLostReconnectingProgress))
         }
         if let host = connectionHost(descriptor.hostID) {
             if descriptor.kind == .telnet {
@@ -1215,7 +1215,7 @@ final class MobileWorkspace: Identifiable {
         }
         busy = false
         connected = false
-        status = String(localized: TermindCopy.Connections.disconnected)
+        status = String(localized: AppStrings.Connections.disconnected)
     }
 
     func consumePendingExternalPreviewURL() -> URL? {
@@ -1290,7 +1290,7 @@ final class MobileWorkspace: Identifiable {
 
     private func presentConnectionJourney(mode: ConnectionJourney.Mode) {
         guard let host = hosts.host(descriptor.hostID) else {
-            journey.fail(String(localized: TermindCopy.Connections.theHostIsNoLongerAvailable))
+            journey.fail(String(localized: AppStrings.Connections.theHostIsNoLongerAvailable))
             return
         }
         journey.begin(
@@ -1310,7 +1310,7 @@ final class MobileWorkspace: Identifiable {
             showUploadNotice(
                 .rejected(
                     uploadTargetProblem
-                        ?? String(localized: TermindCopy.SFTP.theUploadDestinationIsUnavailable)
+                        ?? String(localized: AppStrings.SFTP.theUploadDestinationIsUnavailable)
                 )
             )
             return false
@@ -1356,7 +1356,7 @@ final class MobileWorkspace: Identifiable {
                     throw CancellationError()
                 }
                 guard !batch.isEmpty else {
-                    throw SFTPError.localFile(String(localized: TermindCopy.SFTP.noUploadableFilesWereFound))
+                    throw SFTPError.localFile(String(localized: AppStrings.SFTP.noUploadableFilesWereFound))
                 }
                 let context: SFTPTransferContext
                 if ownsClient {
@@ -1407,7 +1407,7 @@ final class MobileWorkspace: Identifiable {
         guard let transfers, transferSnapshot != nil,
             let sftp, connected
         else {
-            operationError = String(localized: TermindCopy.SFTP.theSftpConnectionIsNotAvailable)
+            operationError = String(localized: AppStrings.SFTP.theSftpConnectionIsNotAvailable)
             return
         }
         cancelPendingUpload()
@@ -1449,7 +1449,7 @@ final class MobileWorkspace: Identifiable {
         guard transfers != nil, transferSnapshot != nil,
             let sftp, connected
         else {
-            operationError = String(localized: TermindCopy.SFTP.theSftpConnectionIsNotAvailable)
+            operationError = String(localized: AppStrings.SFTP.theSftpConnectionIsNotAvailable)
             return
         }
         cancelPendingUpload()
@@ -1704,7 +1704,7 @@ final class MobileWorkspace: Identifiable {
 
     func reopenHistoryFile(at path: String, completion: @escaping (URL) -> Void = { _ in }) async -> Bool {
         guard let sftp, connected else {
-            operationError = String(localized: TermindCopy.SFTP.theSftpConnectionIsNotAvailable)
+            operationError = String(localized: AppStrings.SFTP.theSftpConnectionIsNotAvailable)
             return false
         }
         let connectionGeneration = generation
@@ -1712,7 +1712,7 @@ final class MobileWorkspace: Identifiable {
             let file = try await sftp.attributes(at: path)
             guard generation == connectionGeneration, connected else { return false }
             guard let file, !file.isDirectory else {
-                operationError = String(localized: TermindCopy.SFTP.theRemoteFileIsNoLongerAvailable)
+                operationError = String(localized: AppStrings.SFTP.theRemoteFileIsNoLongerAvailable)
                 return false
             }
             return preview(file, completion: completion)

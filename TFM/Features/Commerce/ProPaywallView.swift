@@ -19,8 +19,8 @@ struct ProPaywallView: View {
                     .font(.system(size: 40, weight: .medium))
                     .foregroundStyle(.tint)
                 VStack(spacing: Metrics.Space.s) {
-                    Text(TermindCopy.Pro.termindPro).font(.largeTitle.bold())
-                    Text(TermindCopy.Pro.planExplanation)
+                    Text(AppStrings.Pro.termindPro).font(.largeTitle.bold())
+                    Text(AppStrings.Pro.planExplanation)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -28,23 +28,23 @@ struct ProPaywallView: View {
             .padding(.top, 24)
 
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                feature(TermindCopy.Pro.assistantFeature, "sparkles")
-                feature(TermindCopy.Pro.metricsFeature, "waveform.path.ecg")
-                feature(TermindCopy.Pro.terminalUploadFeature, "arrow.up.doc")
-                feature(TermindCopy.Pro.connectMcpToolsAndRunTheBuiltInMcpServer, "server.rack")
-                feature(TermindCopy.Pro.syncFeature, "icloud")
+                feature(AppStrings.Pro.assistantFeature, "sparkles")
+                feature(AppStrings.Pro.metricsFeature, "waveform.path.ecg")
+                feature(AppStrings.Pro.terminalUploadFeature, "arrow.up.doc")
+                feature(AppStrings.Pro.connectMcpToolsAndRunTheBuiltInMcpServer, "server.rack")
+                feature(AppStrings.Pro.syncFeature, "icloud")
             }
             .frame(maxWidth: 460)
             .padding(.vertical, 20)
 
             if pro.requestedFeature == .unlimitedMetrics {
-                Text(TermindCopy.Pro.freeMetricsLimit)
+                Text(AppStrings.Pro.freeMetricsLimit)
                     .font(.callout).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center).padding(.horizontal, 24).padding(.bottom, 12)
             }
 
             if pro.isProcessing {
-                ProgressView(TermindCopy.Pro.contactingTheAppStoreProgress.swiftUIKey).padding(.bottom, 12)
+                ProgressView(AppStrings.Pro.contactingTheAppStoreProgress.swiftUIKey).padding(.bottom, 12)
             }
             if let message = pro.message {
                 Text(message).font(.caption).foregroundStyle(.orange)
@@ -77,30 +77,30 @@ struct ProPaywallView: View {
                 }
                 if canManageSubscription {
                     Link(
-                        TermindCopy.Pro.manageSubscription.swiftUIKey,
+                        AppStrings.Pro.manageSubscription.swiftUIKey,
                         destination: URL(string: "https://apps.apple.com/account/subscriptions")!
                     )
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                 }
-                Button(TermindCopy.Pro.restorePurchase.swiftUIKey) { Task { await pro.restorePurchases() } }
+                Button(AppStrings.Pro.restorePurchase.swiftUIKey) { Task { await pro.restorePurchases() } }
                     .buttonStyle(.link)
                     .disabled(pro.isProcessing)
                 if pro.annualProduct == nil || pro.product == nil {
-                    Button(TermindCopy.Pro.reloadAppStorePrices.swiftUIKey) { Task { await pro.reloadProducts() } }
+                    Button(AppStrings.Pro.reloadAppStorePrices.swiftUIKey) { Task { await pro.reloadProducts() } }
                         .buttonStyle(.link)
                         .disabled(pro.isProcessing)
                 }
                 HStack(spacing: Metrics.Space.m) {
                     Link(
-                        TermindCopy.Pro.privacyPolicy.swiftUIKey,
+                        AppStrings.Pro.privacyPolicy.swiftUIKey,
                         destination: URL(string: "https://termind.akinokaede.com/privacy/")!)
                     Link(
-                        TermindCopy.Pro.termsOfUse.swiftUIKey,
+                        AppStrings.Pro.termsOfUse.swiftUIKey,
                         destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
                 }
                 .font(.caption2)
-                Text(TermindCopy.Pro.familySharingDisclosure)
+                Text(AppStrings.Pro.familySharingDisclosure)
                     .font(.caption2).foregroundStyle(.tertiary)
             }
             .padding(.bottom, 20)
@@ -113,7 +113,7 @@ struct ProPaywallView: View {
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(TermindCopy.Common.close.swiftUIKey) { dismiss() }
+                Button(AppStrings.Common.close.swiftUIKey) { dismiss() }
             }
         }
     }
@@ -122,17 +122,17 @@ struct ProPaywallView: View {
         HStack(spacing: Metrics.Space.s) {
             planCard(
                 .annual,
-                title: TermindCopy.Pro.annual,
+                title: AppStrings.Pro.annual,
                 price: pro.annualDisplayPrice,
                 detail: offer.annualBillingUnit.map {
-                    AppLocalization.resolve(TermindCopy.Pro.billingPeriod($0), locale: locale)
+                    AppLocalization.resolve(AppStrings.Pro.billingPeriod($0), locale: locale)
                 },
                 badge: offer.trialBadge)
             planCard(
                 .lifetime,
-                title: TermindCopy.Pro.lifetime,
+                title: AppStrings.Pro.lifetime,
                 price: pro.displayPrice,
-                detail: AppLocalization.resolve(TermindCopy.Pro.oneTimePurchase, locale: locale),
+                detail: AppLocalization.resolve(AppStrings.Pro.oneTimePurchase, locale: locale),
                 badge: nil)
         }
         .frame(maxWidth: 420)

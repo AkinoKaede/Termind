@@ -112,14 +112,14 @@ struct MobileAssistantToolRow: View {
                 .modifier(MobileAssistantScanning(active: card.state == .running))
                 if card.state == .reviewing {
                     Image(systemName: "checkmark.shield").foregroundStyle(.orange)
-                        .accessibilityLabel(Text(TermindCopy.Assistant.autoReviewingInProgress))
+                        .accessibilityLabel(Text(AppStrings.Assistant.autoReviewingInProgress))
                 }
             }
             .font(.callout).opacity(card.state == .interrupted ? 0.5 : 1)
         } content: {
             VStack(alignment: .leading, spacing: 8) {
                 if let review = card.review {
-                    Text(TermindCopy.Assistant.automaticReview(risk: review.risk.displayName, reason: review.reason))
+                    Text(AppStrings.Assistant.automaticReview(risk: review.risk.displayName, reason: review.reason))
                         .font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
                 }
                 if let detail = AgentToolPresentation.detail(
@@ -144,7 +144,7 @@ struct MobileAssistantToolRow: View {
                     }
                 }
                 if card.result?.isTruncated == true {
-                    Text(TermindCopy.Assistant.outputTruncated).font(.caption2).foregroundStyle(.orange)
+                    Text(AppStrings.Assistant.outputTruncated).font(.caption2).foregroundStyle(.orange)
                 }
             }
             .padding(.leading, iconSize + 8)

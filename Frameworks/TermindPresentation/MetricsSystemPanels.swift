@@ -50,7 +50,7 @@ public struct MetricsSystemPanels: View {
                     figure("Free Memory", value: MetricsFormat.bytes(point?.memoryFree))
                     figure("Used", value: MetricsFormat.bytes(point?.memoryUsed))
                     figure("Page Cache", value: MetricsFormat.bytes(point?.memoryCached))
-                    MetricsRing(title: TermindCopy.Metrics.memory, value: point?.memory)
+                    MetricsRing(title: AppStrings.Metrics.memory, value: point?.memory)
                 }
             }
             if let swapTotal = point?.swapTotal, swapTotal > 0 {

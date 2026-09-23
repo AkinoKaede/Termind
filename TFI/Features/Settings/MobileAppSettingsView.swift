@@ -11,16 +11,16 @@ struct MobileAppSettingsView: View {
 
     var body: some View {
         Form {
-            Section(TermindCopy.Settings.appearance.swiftUIKey) {
-                Picker(TermindCopy.Settings.theme.swiftUIKey, selection: $appearance) {
-                    Text(TermindCopy.Settings.followSystem).tag("system")
-                    Text(TermindCopy.Settings.light).tag("light")
-                    Text(TermindCopy.Settings.dark).tag("dark")
+            Section(AppStrings.Settings.appearance.swiftUIKey) {
+                Picker(AppStrings.Settings.theme.swiftUIKey, selection: $appearance) {
+                    Text(AppStrings.Settings.followSystem).tag("system")
+                    Text(AppStrings.Settings.light).tag("light")
+                    Text(AppStrings.Settings.dark).tag("dark")
                 }
             }
             Section {
                 Toggle(
-                    TermindCopy.Settings.automaticallyRenameWorkspaces.swiftUIKey,
+                    AppStrings.Settings.automaticallyRenameWorkspaces.swiftUIKey,
                     isOn: Binding(
                         get: { workspaceSettings.preferences.automaticallyRenamesWorkspaces },
                         set: { _ = workspaceSettings.setAutomaticRenaming($0) }
@@ -30,24 +30,24 @@ struct MobileAppSettingsView: View {
                     Text(error).foregroundStyle(.red)
                 }
             } header: {
-                Text(TermindCopy.Navigation.workspaces)
+                Text(AppStrings.Navigation.workspaces)
             } footer: {
-                Text(TermindCopy.Settings.workspaceNumberingExplanation)
+                Text(AppStrings.Settings.workspaceNumberingExplanation)
             }
-            Section(TermindCopy.Settings.version.swiftUIKey) {
+            Section(AppStrings.Settings.version.swiftUIKey) {
                 LabeledContent(
-                    TermindCopy.Settings.app.swiftUIKey,
+                    AppStrings.Settings.app.swiftUIKey,
                     value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
                 )
                 .contentShape(Rectangle())
                 .onTapGesture(count: 3) { debugSectionEnabled.toggle() }
-                LabeledContent(TermindCopy.Settings.ghostty.swiftUIKey, value: MobileRuntimeVersions.ghostty)
-                LabeledContent(TermindCopy.Settings.libssh2.swiftUIKey, value: MobileRuntimeVersions.libssh2)
-                LabeledContent(TermindCopy.Settings.openSSL.swiftUIKey, value: MobileRuntimeVersions.openSSL)
+                LabeledContent(AppStrings.Settings.ghostty.swiftUIKey, value: MobileRuntimeVersions.ghostty)
+                LabeledContent(AppStrings.Settings.libssh2.swiftUIKey, value: MobileRuntimeVersions.libssh2)
+                LabeledContent(AppStrings.Settings.openSSL.swiftUIKey, value: MobileRuntimeVersions.openSSL)
             }
-            Section(TermindCopy.Settings.support.swiftUIKey) {
+            Section(AppStrings.Settings.support.swiftUIKey) {
                 Link(destination: AppReviewController.reviewURL) {
-                    Label(TermindCopy.Settings.rateOnTheAppStore.swiftUIKey, systemImage: "star")
+                    Label(AppStrings.Settings.rateOnTheAppStore.swiftUIKey, systemImage: "star")
                 }
                 .environment(
                     \.openURL,
@@ -57,14 +57,14 @@ struct MobileAppSettingsView: View {
                     }
                 )
                 Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
-                    Label(TermindCopy.Settings.support.swiftUIKey, systemImage: "questionmark.circle")
+                    Label(AppStrings.Settings.support.swiftUIKey, systemImage: "questionmark.circle")
                 }
                 Link(destination: URL(string: "https://termind.akinokaede.com/privacy/")!) {
-                    Label(TermindCopy.Pro.privacyPolicy.swiftUIKey, systemImage: "hand.raised")
+                    Label(AppStrings.Pro.privacyPolicy.swiftUIKey, systemImage: "hand.raised")
                 }
             }
         }
-        .navigationTitle(TermindCopy.Settings.app.swiftUIKey)
+        .navigationTitle(AppStrings.Settings.app.swiftUIKey)
         .mobileReviewPage("settings.app", scene: reviewScene)
     }
 }

@@ -1,7 +1,7 @@
 import Foundation
 import TermindApplication
 
-extension TermindCopy.Vault {
+extension AppStrings.Vault {
     public static func groupDeletionMessage(
         hostCount: Int, nestedGroupCount: Int, locale: Locale
     ) -> String {
@@ -15,7 +15,7 @@ extension TermindCopy.Vault {
     }
 }
 
-extension TermindCopy.Snippets {
+extension AppStrings.Snippets {
     public static func packageDeletionMessage(snippetCount: Int) -> LocalizedStringResource {
         snippetCount == 1 ? packageContainsOneSnippet : packageContainsSnippets(snippetCount)
     }
@@ -29,7 +29,7 @@ extension TermindCopy.Snippets {
     }
 }
 
-extension TermindCopy.Assistant {
+extension AppStrings.Assistant {
     public static func modelSummary(modelName: String?, effortName: String?, locale: Locale) -> String {
         guard let modelName else { return AppLocalization.resolve(noModel, locale: locale) }
         // Both values are display names. The separator is typography, not a
@@ -54,7 +54,7 @@ extension TermindCopy.Assistant {
     }
 }
 
-extension TermindCopy.SFTP {
+extension AppStrings.SFTP {
     public static func deletionMessage(paths: String, remainingCount: Int, locale: Locale) -> String {
         let remainder =
             remainingCount > 0

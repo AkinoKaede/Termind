@@ -9,25 +9,25 @@ struct MobileModelFields: View {
 
     var body: some View {
         Section {
-            LabeledContent(TermindCopy.Common.name.swiftUIKey) {
+            LabeledContent(AppStrings.Common.name.swiftUIKey) {
                 TextField(
-                    TermindCopy.Common.name.swiftUIKey, text: $model.displayName.singleLineText,
+                    AppStrings.Common.name.swiftUIKey, text: $model.displayName.singleLineText,
                     prompt: Text(verbatim: model.id), axis: .horizontal
                 ).singleLinePaste()
                     .lineLimit(1)
                     .multilineTextAlignment(.trailing)
             }
-            Picker(TermindCopy.Common.type.swiftUIKey, selection: $model.kind) {
+            Picker(AppStrings.Common.type.swiftUIKey, selection: $model.kind) {
                 ForEach(AIModel.Kind.allCases) { Text($0.displayName).tag($0) }
             }
-            Toggle(TermindCopy.Settings.showInAssistant.swiftUIKey, isOn: $model.isShownInAssistant)
+            Toggle(AppStrings.Settings.showInAssistant.swiftUIKey, isOn: $model.isShownInAssistant)
         } header: {
-            Text(TermindCopy.Settings.basics)
+            Text(AppStrings.Settings.basics)
         } footer: {
-            if model.origin == .manual { Text(TermindCopy.Settings.addedManually) }
+            if model.origin == .manual { Text(AppStrings.Settings.addedManually) }
         }
 
-        Section(TermindCopy.Settings.input.swiftUIKey) {
+        Section(AppStrings.Settings.input.swiftUIKey) {
             ForEach(AIModel.Modality.allCases) { modality in
                 Toggle(
                     modality.displayName,
@@ -44,7 +44,7 @@ struct MobileModelFields: View {
             }
         }
 
-        Section(TermindCopy.Settings.abilities.swiftUIKey) {
+        Section(AppStrings.Settings.abilities.swiftUIKey) {
             ForEach(AIModel.Ability.allCases) { ability in
                 Toggle(
                     ability.displayName,
@@ -58,14 +58,14 @@ struct MobileModelFields: View {
 
         if model.abilities.contains(.reasoning) { reasoning }
 
-        Section(TermindCopy.Settings.limits.swiftUIKey) {
-            LabeledContent(TermindCopy.Settings.contextWindow.swiftUIKey) {
-                TextField(TermindCopy.Settings.contextWindow.swiftUIKey, value: $model.contextLength, format: .number)
+        Section(AppStrings.Settings.limits.swiftUIKey) {
+            LabeledContent(AppStrings.Settings.contextWindow.swiftUIKey) {
+                TextField(AppStrings.Settings.contextWindow.swiftUIKey, value: $model.contextLength, format: .number)
                     .lineLimit(1)
                     .multilineTextAlignment(.trailing).keyboardType(.numberPad)
             }
-            LabeledContent(TermindCopy.Settings.maxOutput.swiftUIKey) {
-                TextField(TermindCopy.Settings.maxOutput.swiftUIKey, value: $model.maxOutputTokens, format: .number)
+            LabeledContent(AppStrings.Settings.maxOutput.swiftUIKey) {
+                TextField(AppStrings.Settings.maxOutput.swiftUIKey, value: $model.maxOutputTokens, format: .number)
                     .lineLimit(1)
                     .multilineTextAlignment(.trailing).keyboardType(.numberPad)
             }
@@ -79,21 +79,21 @@ struct MobileModelFields: View {
     }
 
     private var reasoning: some View {
-        Section(TermindCopy.Settings.reasoningEffort.swiftUIKey) {
+        Section(AppStrings.Settings.reasoningEffort.swiftUIKey) {
             if model.reasoningProfile == nil {
-                Text(TermindCopy.Settings.automaticFromModelCatalog).font(.caption)
-                Button(TermindCopy.Common.customize.swiftUIKey, systemImage: "slider.horizontal.3") {
+                Text(AppStrings.Settings.automaticFromModelCatalog).font(.caption)
+                Button(AppStrings.Common.customize.swiftUIKey, systemImage: "slider.horizontal.3") {
                     model.reasoningProfile = ModelCapabilityResolver.customProfile(from: automatic)
                 }
                 ForEach(automatic.supported) { effort in
                     LabeledContent(
                         effort.displayName,
                         value: automatic.wireValue(for: effort)
-                            ?? String(localized: TermindCopy.Settings.providerDefault))
+                            ?? String(localized: AppStrings.Settings.providerDefault))
                 }
             } else {
-                Text(TermindCopy.Settings.customMapping).font(.caption)
-                Button(TermindCopy.Settings.resetToAutomatic.swiftUIKey, systemImage: "arrow.counterclockwise") {
+                Text(AppStrings.Settings.customMapping).font(.caption)
+                Button(AppStrings.Settings.resetToAutomatic.swiftUIKey, systemImage: "arrow.counterclockwise") {
                     model.reasoningProfile = nil
                 }
                 ForEach(ReasoningEffort.allCases) { effort in
@@ -120,7 +120,7 @@ struct MobileModelFields: View {
             .frame(width: 120, alignment: .leading)
 
             TextField(
-                TermindCopy.Settings.providerDefault.swiftUIKey,
+                AppStrings.Settings.providerDefault.swiftUIKey,
                 text: Binding(
                     get: { model.reasoningProfile?.mapping(for: effort).wireValue ?? "" },
                     set: { value in
@@ -136,7 +136,7 @@ struct MobileModelFields: View {
                 .autocorrectionDisabled()
                 .disabled(!mapping.isSupported)
                 .opacity(mapping.isSupported ? 1 : 0.55)
-                .accessibilityLabel(Text(TermindCopy.Settings.reasoningProviderValue(effort.displayName)))
+                .accessibilityLabel(Text(AppStrings.Settings.reasoningProviderValue(effort.displayName)))
         }
     }
 

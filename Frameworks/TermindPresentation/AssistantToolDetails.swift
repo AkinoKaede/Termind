@@ -49,9 +49,9 @@ public struct AssistantToolDetails: View {
             }
             if let preview, preview.isShortened {
                 HStack {
-                    Text(TermindCopy.Assistant.outputShortenedForDisplay).font(.caption2).foregroundStyle(.secondary)
+                    Text(AppStrings.Assistant.outputShortenedForDisplay).font(.caption2).foregroundStyle(.secondary)
                     if let copy {
-                        Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(preview.full) }
+                        Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(preview.full) }
                             .font(.caption).frame(minHeight: 44)
                     }
                 }
@@ -80,7 +80,7 @@ public struct AssistantToolDetails: View {
                     if let detail = row.detail { Text(detail).font(.caption.monospaced()) }
                     if !row.badges.isEmpty { Text(row.badges.joined(separator: " · ")).font(.caption) }
                     if let url = allowedURL(row.url) {
-                        Link(TermindCopy.Common.open.swiftUIKey, destination: url)
+                        Link(AppStrings.Common.open.swiftUIKey, destination: url)
                     }
                 }
             }

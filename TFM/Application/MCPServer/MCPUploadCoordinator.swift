@@ -439,10 +439,10 @@ nonisolated enum MCPUploadError: LocalizedError {
     case invalidRequest, unavailable, capacity, unknown
     var errorDescription: String? {
         switch self {
-        case .invalidRequest: String(localized: TermindCopy.MCP.theUploadRequestIsInvalid)
-        case .unavailable: String(localized: TermindCopy.MCP.httpUploadsAreNotAvailable)
-        case .capacity: String(localized: TermindCopy.MCP.tooManyUploadsAreWaiting)
-        case .unknown: String(localized: TermindCopy.MCP.theUploadIsUnknownOrExpired)
+        case .invalidRequest: String(localized: AppStrings.MCP.theUploadRequestIsInvalid)
+        case .unavailable: String(localized: AppStrings.MCP.httpUploadsAreNotAvailable)
+        case .capacity: String(localized: AppStrings.MCP.tooManyUploadsAreWaiting)
+        case .unknown: String(localized: AppStrings.MCP.theUploadIsUnknownOrExpired)
         }
     }
 }

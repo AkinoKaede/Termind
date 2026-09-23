@@ -22,11 +22,11 @@ struct MobileLoggingView: View {
             loggingOptionsSection
             logsSection
         }
-        .navigationTitle(TermindCopy.Settings.logging.swiftUIKey)
+        .navigationTitle(AppStrings.Settings.logging.swiftUIKey)
         .toolbar {
             if !files.isEmpty {
                 MobileToolbarOverflow {
-                    Button(TermindCopy.Common.deleteAll.swiftUIKey, systemImage: "trash", role: .destructive) {
+                    Button(AppStrings.Common.deleteAll.swiftUIKey, systemImage: "trash", role: .destructive) {
                         showsDeleteAll = true
                     }
                 }
@@ -57,13 +57,13 @@ struct MobileLoggingView: View {
             if case .failure(let error) = result { errorMessage = error.localizedDescription }
         }
         .confirmationDialog(
-            TermindCopy.Settings.deleteAllLoggingFilesConfirmation.swiftUIKey, isPresented: $showsDeleteAll,
+            AppStrings.Settings.deleteAllLoggingFilesConfirmation.swiftUIKey, isPresented: $showsDeleteAll,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.deleteAll.swiftUIKey, role: .destructive) { perform { try logging.deleteAll() } }
+            Button(AppStrings.Common.deleteAll.swiftUIKey, role: .destructive) { perform { try logging.deleteAll() } }
         }
-        .alert(TermindCopy.Settings.logging.swiftUIKey, isPresented: errorPresented) {
-            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
+        .alert(AppStrings.Settings.logging.swiftUIKey, isPresented: errorPresented) {
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }
@@ -75,9 +75,9 @@ struct MobileLoggingView: View {
 
     @ViewBuilder
     private var logsSection: some View {
-        Section(TermindCopy.Settings.logs.swiftUIKey) {
+        Section(AppStrings.Settings.logs.swiftUIKey) {
             if files.isEmpty {
-                ContentUnavailableView(TermindCopy.Settings.noSavedLogs.swiftUIKey, systemImage: "doc.text")
+                ContentUnavailableView(AppStrings.Settings.noSavedLogs.swiftUIKey, systemImage: "doc.text")
             } else {
                 ForEach(files) { file in
                     logRow(file)
@@ -94,19 +94,19 @@ struct MobileLoggingView: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button(TermindCopy.Common.save.swiftUIKey, systemImage: "square.and.arrow.down") {
+            Button(AppStrings.Common.save.swiftUIKey, systemImage: "square.and.arrow.down") {
                 prepare(file, action: .save)
             }
-            Button(TermindCopy.Common.share.swiftUIKey, systemImage: "square.and.arrow.up") {
+            Button(AppStrings.Common.share.swiftUIKey, systemImage: "square.and.arrow.up") {
                 prepare(file, action: .share)
             }
             Divider()
-            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                 perform { try logging.delete(file.id) }
             }
         }
         .swipeActions {
-            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) { perform { try logging.delete(file.id) } }
+            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) { perform { try logging.delete(file.id) } }
         }
     }
 
@@ -186,19 +186,19 @@ private struct MobileLoggingShareSheet: View {
             Form {
                 Section {
                     Label(
-                        TermindCopy.Settings.logExportWarning.swiftUIKey,
+                        AppStrings.Settings.logExportWarning.swiftUIKey,
                         systemImage: "hand.raised.fill"
                     )
                 }
                 Section {
-                    Button(TermindCopy.Common.save.swiftUIKey, systemImage: "square.and.arrow.down", action: save)
-                    Button(TermindCopy.Common.share.swiftUIKey, systemImage: "square.and.arrow.up", action: share)
+                    Button(AppStrings.Common.save.swiftUIKey, systemImage: "square.and.arrow.down", action: save)
+                    Button(AppStrings.Common.share.swiftUIKey, systemImage: "square.and.arrow.up", action: share)
                 }
             }
-            .navigationTitle(TermindCopy.Settings.shareLogging.swiftUIKey)
+            .navigationTitle(AppStrings.Settings.shareLogging.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TermindCopy.Common.close.swiftUIKey, systemImage: "xmark") { dismiss() }
+                    Button(AppStrings.Common.close.swiftUIKey, systemImage: "xmark") { dismiss() }
                         .labelStyle(.iconOnly)
                 }
             }

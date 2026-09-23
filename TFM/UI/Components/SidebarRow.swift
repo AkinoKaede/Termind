@@ -381,8 +381,8 @@ struct SidebarSectionHeader: View {
         }
         .buttonStyle(.plain)
         .termindSidebarSectionLabel()
-        .accessibilityValue(Text(isExpanded ? TermindCopy.Assistant.expanded : TermindCopy.Assistant.collapsed))
-        .accessibilityAction(named: Text(isExpanded ? TermindCopy.Common.collapse : TermindCopy.Common.expand)) {
+        .accessibilityValue(Text(isExpanded ? AppStrings.Assistant.expanded : AppStrings.Assistant.collapsed))
+        .accessibilityAction(named: Text(isExpanded ? AppStrings.Common.collapse : AppStrings.Common.expand)) {
             isExpanded.toggle()
         }
     }

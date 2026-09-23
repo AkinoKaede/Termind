@@ -24,9 +24,9 @@ struct MobileAssistantPlanRow: View {
                     Text(card.plan.title).font(.headline).lineLimit(expanded ? nil : 1)
                     Spacer(minLength: 0)
                     if card.outcome == .implemented {
-                        Text(TermindCopy.Assistant.implemented).font(.caption).foregroundStyle(.secondary)
+                        Text(AppStrings.Assistant.implemented).font(.caption).foregroundStyle(.secondary)
                     } else if card.outcome == .discarded {
-                        Text(TermindCopy.Assistant.discarded).font(.caption).foregroundStyle(.secondary)
+                        Text(AppStrings.Assistant.discarded).font(.caption).foregroundStyle(.secondary)
                     }
                     Image(systemName: expanded ? "chevron.down" : "chevron.right")
                         .font(.caption2).foregroundStyle(.tertiary)
@@ -62,16 +62,16 @@ struct MobileAssistantPlanRow: View {
     }
 
     private var discardButton: some View {
-        Button(TermindCopy.Common.discard.swiftUIKey, role: .destructive, action: discard).frame(minHeight: 44)
+        Button(AppStrings.Common.discard.swiftUIKey, role: .destructive, action: discard).frame(minHeight: 44)
     }
 
     private var implementButton: some View {
-        Button(TermindCopy.Assistant.implement.swiftUIKey, systemImage: "play", action: implement)
+        Button(AppStrings.Assistant.implement.swiftUIKey, systemImage: "play", action: implement)
             .buttonStyle(.borderedProminent).disabled(isStreaming)
     }
 
     private var planningHint: some View {
-        Text(TermindCopy.Assistant.replyToKeepPlanning).font(.caption).foregroundStyle(.secondary)
+        Text(AppStrings.Assistant.replyToKeepPlanning).font(.caption).foregroundStyle(.secondary)
     }
 
     private var symbol: String {
@@ -97,7 +97,7 @@ struct MobileAssistantCommandRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label(TermindCopy.Assistant.suggestedCommand.swiftUIKey, systemImage: "sparkles").foregroundStyle(
+                Label(AppStrings.Assistant.suggestedCommand.swiftUIKey, systemImage: "sparkles").foregroundStyle(
                     .secondary)
                 Spacer(minLength: 8)
                 Label(command.risk.risk.label, systemImage: command.risk.risk.symbol).foregroundStyle(riskColor)
@@ -112,7 +112,7 @@ struct MobileAssistantCommandRow: View {
             }
             HStack {
                 Spacer()
-                Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
+                Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
                     UIPasteboard.general.string = command.command
                 }
                 .font(.caption).frame(minHeight: 44)

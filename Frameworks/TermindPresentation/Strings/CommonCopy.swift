@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Common {
         public static var action: LocalizedStringResource {
             "Action"

@@ -49,7 +49,7 @@ struct SlashCommandMenuView: View {
         .frame(height: listHeight)
         .composerBlock()
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text(TermindCopy.Assistant.commands))
+        .accessibilityLabel(Text(AppStrings.Assistant.commands))
     }
 
     private var listHeight: CGFloat {

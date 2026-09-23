@@ -26,8 +26,8 @@ nonisolated enum TerminalCustomConfigurationScheme: String, Identifiable, Hashab
 
     var title: String {
         switch self {
-        case .light: String(localized: TermindCopy.Settings.lightCustomConfiguration)
-        case .dark: String(localized: TermindCopy.Settings.darkCustomConfiguration)
+        case .light: String(localized: AppStrings.Settings.lightCustomConfiguration)
+        case .dark: String(localized: AppStrings.Settings.darkCustomConfiguration)
         }
     }
 }
@@ -57,7 +57,7 @@ struct TerminalCustomConfigurationEditorPage: View {
                         Image(systemName: "xmark")
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(Text(TermindCopy.Settings.dismissError))
+                    .accessibilityLabel(Text(AppStrings.Settings.dismissError))
                 }
                 .padding(.horizontal, Metrics.Space.xl)
                 .padding(.vertical, Metrics.Space.s)
@@ -67,14 +67,14 @@ struct TerminalCustomConfigurationEditorPage: View {
 
             HStack {
                 Toggle(
-                    TermindCopy.Common.enabled.swiftUIKey,
+                    AppStrings.Common.enabled.swiftUIKey,
                     isOn: Binding(
                         get: { app.terminalSettings.preferences[keyPath: scheme.enabledKeyPath] },
                         set: { app.terminalSettings.set($0, for: scheme.enabledKeyPath) })
                 )
                 .toggleStyle(.switch)
                 Spacer()
-                Button(TermindCopy.Settings.importFromFile.swiftUIKey) { isImporting = true }
+                Button(AppStrings.Settings.importFromFile.swiftUIKey) { isImporting = true }
             }
             .padding(.horizontal, Metrics.Space.l)
             .padding(.vertical, Metrics.Space.s)
@@ -140,7 +140,7 @@ struct TerminalCustomConfigurationEditorPage: View {
         do {
             let data = try Data(contentsOf: url)
             guard let imported = String(data: data, encoding: .utf8) else {
-                importError = String(localized: TermindCopy.Settings.fileIsNotValidUtf8Text)
+                importError = String(localized: AppStrings.Settings.fileIsNotValidUtf8Text)
                 return
             }
             content = imported

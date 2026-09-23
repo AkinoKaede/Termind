@@ -52,8 +52,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
-  - id: openwiki-source-2e9889796b354b6c280c8168
-    resource: repo://Frameworks/TermindPresentation/Copy/TermindCopy.swift
+  - id: openwiki-source-2d3fd78e62a89dd2c0b202e6
+    resource: repo://Frameworks/TermindPresentation/Strings/AppStrings.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-0689f4693840cd29f5ac352c
@@ -140,10 +140,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "omp", at: "2026-09-23T14:21:19.398Z" }
+generated: { by: "codex", at: "2026-09-23T14:32:50.942Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:21:19.398Z
+    at: 2026-09-23T14:32:50.942Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -171,8 +171,8 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
   Shared resources enter both app bundles; icons, metadata and signing remain platform-owned.
-- Define app-facing copy as `LocalizedStringResource` under `Frameworks/TermindPresentation/Copy`, even for a single-platform
-  surface. Both apps reuse semantic `TermindCopy` entries and shared formatting; platform-specific wording uses explicit
+- Define app-facing copy as `LocalizedStringResource` under `Frameworks/TermindPresentation/Strings`, even for a single-platform
+  surface. Both apps reuse semantic `AppStrings` entries and shared formatting; platform-specific wording uses explicit
   variants. Keep protocol values, identifiers and diagnostic codes with their existing owners. The string catalog remains
   in `Frameworks/Resources/Localizable.xcstrings`, not in the framework bundle. See
   [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for
@@ -182,7 +182,7 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   recreate a failed store silently. macOS retains its `Termind` location; mobile uses Application Support/in-memory
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
 - Architecture tests fail closed on absent/empty production roots. Source checks guard dependencies, native-list
-  allowlists, AgentKit/SwiftData ownership and the single `TermindCopy` declaration outside the apps; Copy files cannot
+  allowlists, AgentKit/SwiftData ownership and the single `AppStrings` declaration outside the apps; Strings files cannot
   import app targets, AppKit/UIKit, TermindInfrastructure or TermindPersistence. The SwiftSyntax-based
   `Scripts/check-presentation-copy.sh` detects selected UI-literal patterns in TFM/TFI; run it with
   `Scripts/check-zh-localization.sh`. Neither check proves semantic reuse, correct runtime rendering or every possible

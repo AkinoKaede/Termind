@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:2982b1391ab0cc4693ecb8b635762eee92406f0dc4e73d3f8a0d9fbbaebb213e",
+  "pageVersion": "sha256:46ca5fc1f3f59bbabc6436d57324d58404fab52fd19b26765879468d7cd6632d",
   "claims": [
     {
       "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/RootView.swift",
-          "version": "repo-file-v1:sha256:b541d1995a8473c132e0e7aea10c0b56bc96d12cf1d003ffaa0f6bdf1f605eb9"
+          "version": "repo-file-v1:sha256:414ce4495383d17da60f76df64b09ae0330227dccec58c227b79b6bfdaedd8aa"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
+          "version": "repo-file-v1:sha256:e1da1cc2ef0da4f4a01ee620e6854611b66a4381f4b8c36eb003ddfaa6e6eae9"
         }
       ]
     },
@@ -36,11 +36,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:e2f23f2dff6d1fba8ec85ae36c7e68960694da2a669507bdeb6e4f57ff3e5463"
+          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         }
       ]
     },
@@ -68,7 +68,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift",
-          "version": "repo-file-v1:sha256:13d650fa687f2e9cb5e519fa50bbab9bcea7a98ae2f58c2ce5a50819d0ef199e"
+          "version": "repo-file-v1:sha256:d8130654892fddec5743f5be7ce42839e1774887e19289d1e5a0d68bccae02a7"
         }
       ]
     },
@@ -77,12 +77,8 @@
       "statement": "Vault list and detail children retain identity across the split breakpoint; a covered list keeps its cached size, and detail transitions animate position and reserved space rather than resizing the form.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Vault/VaultWorkspaceView.swift#L141-L180",
-          "version": "repo-lines-v1:sha256:ea3408eba17a8ad62fcab847cf2d9db371f73c9e4bee3e1d8c7d387f60251ad1:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU3ZGMxYTQyMjViOGRjNjZmZTk3NDJkZDYwZGM4ZWJmNzAxZjI2ZTNiMzczYzMwODMyM2YyMTQ5Y2U5OTQ3OTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg5OTAyYjBmMzY1MWQzNzlhMWNhNDU1NjA3ZGVhOWJlNTliOTgwNDA5ODBhOTE2YWY4OGNhMWZiNGQ5ZTFjNDQifQ"
-        },
-        {
-          "resource": "repo://TFM/Features/Vault/VaultWorkspaceView.swift#L89-L138",
-          "version": "repo-lines-v1:sha256:75f1b7baa38bae0fc7b8aeb25d8a6fb039ea80c60be7771c34e72178432cdf9e:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiYmE5MjVhMjNkMmJkMDBmNTZmMjIyMzUxYzc0ZTAwZDE1ZGQwMjU3YTU2MzJmZGVhY2ZiMDk2MjVjMTRkM2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3MGQ1ODBmMGQzN2Y1MDA5MTExN2IyMTI2MTk2ZWZkMGUyMmViNzVlODJhOTAzYWVjZmE4MWU3YTYzODUyYjgifQ"
+          "resource": "repo://TFM/Features/Vault/VaultWorkspaceView.swift#L89-L190",
+          "version": "repo-lines-v1:sha256:5c591172846c33ade089b9a32c7d45141c491cea5fd9f9c9a889c1460d01168c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAyLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJkYmJhOTI1YTIzZDJiZDAwZjU2ZjIyMjM1MWM3NGUwMGQxNWRkMDI1N2E1NjMyZmRlYWNmYjA5NjI1YzE0ZDNlIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIxOWU3NjM1NWNmMTE5OTQ4MGMzZjk5ODM2YjE0ODZjODQxZDg5MWZhYWQ5MDRjNjA4ZTA5MzAyMmQzNzU3YWVlIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MSwiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0MTJjYTM0NWNjZjc1YmY5YzA4MDZiY2U2OTViZThkZTgwOGI3OTk4NDI1MWE3YTU0ZDIwMmNmNjEwMWRkNDUxIn0"
         }
       ]
     },
@@ -92,7 +88,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/UI/Managed/ManagedCardPage.swift",
-          "version": "repo-file-v1:sha256:4dd8898a11a11ac393678c5ed5f49b5c33572705cb8031ae5cb7e33f2c37499c"
+          "version": "repo-file-v1:sha256:1be5c3201f569c5f8581336dbcb6030f0131a93098a3be3ec8c95c12a2365fe9"
         }
       ]
     },
@@ -148,15 +144,15 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:e9aef4633beb47f5d7db513235051e9a8375646b70a2dbd93da8fb13554d47c2"
+          "version": "repo-file-v1:sha256:5be5de6bd8364a812d8fc08ea776841beb51beb6df7bda201306174590879da0"
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:e2f23f2dff6d1fba8ec85ae36c7e68960694da2a669507bdeb6e4f57ff3e5463"
+          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift",
-          "version": "repo-file-v1:sha256:13d650fa687f2e9cb5e519fa50bbab9bcea7a98ae2f58c2ce5a50819d0ef199e"
+          "version": "repo-file-v1:sha256:d8130654892fddec5743f5be7ce42839e1774887e19289d1e5a0d68bccae02a7"
         }
       ]
     },
@@ -198,7 +194,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/RootView.swift",
-          "version": "repo-file-v1:sha256:b541d1995a8473c132e0e7aea10c0b56bc96d12cf1d003ffaa0f6bdf1f605eb9"
+          "version": "repo-file-v1:sha256:414ce4495383d17da60f76df64b09ae0330227dccec58c227b79b6bfdaedd8aa"
         },
         {
           "resource": "repo://TFM/Design/DesignTokens.swift",
@@ -206,7 +202,7 @@
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:e2f23f2dff6d1fba8ec85ae36c7e68960694da2a669507bdeb6e4f57ff3e5463"
+          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
         }
       ]
     },
@@ -216,7 +212,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L16-L50",
-          "version": "repo-lines-v1:sha256:51fadb1bc9a3ab8c7a7870ce75e2ec530476b9ef3d7c1a0ff6aaf332b9aba385:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjNDM5YTE4M2ZlMTJlOGM1N2I4NjFjY2FiM2E0ZWFlMzM3NDQ5OTU5NjYxODcyZjEzZGJjMzgzMjEyMGVlZWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhNWY2NTk4ZTYzNzgwODdkZjQ0ODlhZjc5MjY4MjgwZmVhYTllNzgxMDk3ZGQzMjhjYmRjODAwMmVmMGFlOTkifQ"
+          "version": "repo-lines-v1:sha256:9711510b98648249a42d7b35e113fb78566b05078507e8ed5e9f132e17548325:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdjNDM5YTE4M2ZlMTJlOGM1N2I4NjFjY2FiM2E0ZWFlMzM3NDQ5OTU5NjYxODcyZjEzZGJjMzgzMjEyMGVlZWUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlhNWY2NTk4ZTYzNzgwODdkZjQ0ODlhZjc5MjY4MjgwZmVhYTllNzgxMDk3ZGQzMjhjYmRjODAwMmVmMGFlOTkifQ"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift#L1424-L1437",
@@ -242,11 +238,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift",
-          "version": "repo-file-v1:sha256:d313a5cd993d79e7820782ec1317c58bf4bd5483e03f9019245667f260b210f4"
+          "version": "repo-file-v1:sha256:e8d96ef3f766a15b53ca2e4e14074834a565b815eb7e41256dcf4f637d215f15"
         },
         {
           "resource": "repo://TFM/Platform/MainWindowCoordinator.swift",
@@ -278,11 +274,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift",
-          "version": "repo-file-v1:sha256:d313a5cd993d79e7820782ec1317c58bf4bd5483e03f9019245667f260b210f4"
+          "version": "repo-file-v1:sha256:e8d96ef3f766a15b53ca2e4e14074834a565b815eb7e41256dcf4f637d215f15"
         },
         {
           "resource": "repo://TFMTests/WorkspaceNavigatorRenameTests.swift",
@@ -296,11 +292,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift",
-          "version": "repo-file-v1:sha256:d313a5cd993d79e7820782ec1317c58bf4bd5483e03f9019245667f260b210f4"
+          "version": "repo-file-v1:sha256:e8d96ef3f766a15b53ca2e4e14074834a565b815eb7e41256dcf4f637d215f15"
         },
         {
           "resource": "repo://TFMTests/WorkspaceNavigatorDropTests.swift",
@@ -336,11 +332,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift",
-          "version": "repo-file-v1:sha256:d313a5cd993d79e7820782ec1317c58bf4bd5483e03f9019245667f260b210f4"
+          "version": "repo-file-v1:sha256:e8d96ef3f766a15b53ca2e4e14074834a565b815eb7e41256dcf4f637d215f15"
         }
       ]
     },
@@ -350,7 +346,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:e2f23f2dff6d1fba8ec85ae36c7e68960694da2a669507bdeb6e4f57ff3e5463"
+          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
         }
       ]
     },
@@ -360,11 +356,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:e2f23f2dff6d1fba8ec85ae36c7e68960694da2a669507bdeb6e4f57ff3e5463"
+          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         }
       ]
     },
@@ -374,11 +370,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift",
-          "version": "repo-file-v1:sha256:d313a5cd993d79e7820782ec1317c58bf4bd5483e03f9019245667f260b210f4"
+          "version": "repo-file-v1:sha256:e8d96ef3f766a15b53ca2e4e14074834a565b815eb7e41256dcf4f637d215f15"
         },
         {
           "resource": "repo://TFM/UI/Components/WindowToolbar.swift",
-          "version": "repo-file-v1:sha256:8ede24734501a15d123f6d1578103ea2386d2a44c797e4723b1dcdfa15455944"
+          "version": "repo-file-v1:sha256:ff88ccfd8a2de0d12938592728425de238fee9f1c3ce7b01bf68c986e6333152"
         },
         {
           "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
@@ -414,15 +410,15 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/TermindCommands.swift",
-          "version": "repo-file-v1:sha256:cb907484b84cf467c27a3e6a5e595544469fb3fb26046554040b5883efa09ace"
+          "version": "repo-file-v1:sha256:262b0af86c872fc271ddfd60fc0077b00159a8548d907525ceaaeed14a00dc21"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
+          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
         },
         {
           "resource": "repo://TFM/UI/Components/WindowToolbar.swift",
-          "version": "repo-file-v1:sha256:8ede24734501a15d123f6d1578103ea2386d2a44c797e4723b1dcdfa15455944"
+          "version": "repo-file-v1:sha256:ff88ccfd8a2de0d12938592728425de238fee9f1c3ce7b01bf68c986e6333152"
         },
         {
           "resource": "repo://TFMTests/WindowToolbarFindTests.swift",
@@ -436,11 +432,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/RootView.swift",
-          "version": "repo-file-v1:sha256:b541d1995a8473c132e0e7aea10c0b56bc96d12cf1d003ffaa0f6bdf1f605eb9"
+          "version": "repo-file-v1:sha256:414ce4495383d17da60f76df64b09ae0330227dccec58c227b79b6bfdaedd8aa"
         },
         {
           "resource": "repo://TFM/UI/Components/WindowToolbar.swift",
-          "version": "repo-file-v1:sha256:8ede24734501a15d123f6d1578103ea2386d2a44c797e4723b1dcdfa15455944"
+          "version": "repo-file-v1:sha256:ff88ccfd8a2de0d12938592728425de238fee9f1c3ce7b01bf68c986e6333152"
         }
       ]
     },
@@ -465,6 +461,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:05:10.244Z"
+    "at": "2026-09-23T14:32:50.942Z"
   }
 }

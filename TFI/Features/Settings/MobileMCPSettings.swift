@@ -14,14 +14,14 @@ struct MobileMCPSettings: View {
             Section {
                 if !ai.conflictingMCPServerIDs.isEmpty {
                     Text(
-                        TermindCopy.Settings.duplicateMCPNamespaces
+                        AppStrings.Settings.duplicateMCPNamespaces
                     )
                     .foregroundStyle(.orange)
                 }
                 if ai.mcpServers.isEmpty {
                     ContentUnavailableView(
-                        TermindCopy.Settings.noMcpServers.swiftUIKey, systemImage: "network",
-                        description: Text(TermindCopy.Settings.addAnMcpServerToConnectRemoteTools)
+                        AppStrings.Settings.noMcpServers.swiftUIKey, systemImage: "network",
+                        description: Text(AppStrings.Settings.addAnMcpServerToConnectRemoteTools)
                     )
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -29,24 +29,24 @@ struct MobileMCPSettings: View {
                 ForEach(ai.mcpServers) { server in
                     serverLink(server)
                         .contextMenu {
-                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 ai.delete(serverID: server.id)
                             }
                         }
                         .swipeActions(edge: .trailing) {
-                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 ai.delete(serverID: server.id)
                             }
                         }
                 }
             } footer: {
-                Text(TermindCopy.Settings.connectToRemoteMcpServersOverHttp)
+                Text(AppStrings.Settings.connectToRemoteMcpServersOverHttp)
             }
         }
-        .navigationTitle(TermindCopy.Settings.mcp.swiftUIKey)
+        .navigationTitle(AppStrings.Settings.mcp.swiftUIKey)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(TermindCopy.MCP.addServer.swiftUIKey, systemImage: "plus") {
+                Button(AppStrings.MCP.addServer.swiftUIKey, systemImage: "plus") {
                     if pro.require(.remoteMCP) { adding = MCPServer(name: "", namespaceID: "") }
                 }
                 .labelStyle(.iconOnly)
@@ -98,7 +98,7 @@ private struct MobileMCPServerRow: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(server.name).foregroundStyle(.primary).lineLimit(1)
-                Text(server.url.isEmpty ? String(localized: TermindCopy.Settings.noUrl) : server.url)
+                Text(server.url.isEmpty ? String(localized: AppStrings.Settings.noUrl) : server.url)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -132,13 +132,13 @@ private struct MobileMCPStatusBadge: View {
     @ViewBuilder private var label: some View {
         switch status {
         case .conflict:
-            Text(TermindCopy.Settings.conflict)
+            Text(AppStrings.Settings.conflict)
         case .disabled:
-            Text(TermindCopy.Settings.disabled)
+            Text(AppStrings.Settings.disabled)
         case .notConnected:
-            Text(TermindCopy.Settings.notConnected)
+            Text(AppStrings.Settings.notConnected)
         case .tools(let count):
-            Text(TermindCopy.Settings.toolsNamed(count))
+            Text(AppStrings.Settings.toolsNamed(count))
         }
     }
 
@@ -191,31 +191,31 @@ struct MobileMCPEditor: View {
 
     var body: some View {
         Form {
-            Section(TermindCopy.Settings.connection.swiftUIKey) {
-                LabeledContent(TermindCopy.Common.name.swiftUIKey) {
+            Section(AppStrings.Settings.connection.swiftUIKey) {
+                LabeledContent(AppStrings.Common.name.swiftUIKey) {
                     TextField(
-                        TermindCopy.Common.name.swiftUIKey, text: $model.draft.name.singleLineText, axis: .horizontal
+                        AppStrings.Common.name.swiftUIKey, text: $model.draft.name.singleLineText, axis: .horizontal
                     ).singleLinePaste()
                         .lineLimit(1)
                         .multilineTextAlignment(.trailing)
                 }
-                Toggle(TermindCopy.Common.enabled.swiftUIKey, isOn: $model.draft.isEnabled)
-                LabeledContent(TermindCopy.Settings.id.swiftUIKey) {
+                Toggle(AppStrings.Common.enabled.swiftUIKey, isOn: $model.draft.isEnabled)
+                LabeledContent(AppStrings.Settings.id.swiftUIKey) {
                     Text(model.draft.effectiveNamespaceID).font(.caption.monospaced()).textSelection(.enabled)
                 }
                 if model.draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text(TermindCopy.Settings.nameIsRequired).foregroundStyle(.orange)
+                    Text(AppStrings.Settings.nameIsRequired).foregroundStyle(.orange)
                 } else if model.draft.effectiveNamespaceID.isEmpty {
-                    Text(TermindCopy.Settings.namespaceNameRequirement).foregroundStyle(.orange)
+                    Text(AppStrings.Settings.namespaceNameRequirement).foregroundStyle(.orange)
                 } else if ai.hasMCPNamespaceConflict(model.draft.effectiveNamespaceID, excluding: model.draft.id) {
-                    Text(TermindCopy.Settings.anotherMcpServerAlreadyUsesThisId).foregroundStyle(.orange)
+                    Text(AppStrings.Settings.anotherMcpServerAlreadyUsesThisId).foregroundStyle(.orange)
                 }
-                Picker(TermindCopy.Settings.transport.swiftUIKey, selection: $model.draft.transport) {
+                Picker(AppStrings.Settings.transport.swiftUIKey, selection: $model.draft.transport) {
                     ForEach(MCPServer.Transport.allCases) { Text($0.displayName).tag($0) }
                 }
-                LabeledContent(TermindCopy.Settings.url.swiftUIKey) {
+                LabeledContent(AppStrings.Settings.url.swiftUIKey) {
                     TextField(
-                        TermindCopy.Settings.mcpEndpointUrl.swiftUIKey, text: $model.draft.url.singleLineText,
+                        AppStrings.Settings.mcpEndpointUrl.swiftUIKey, text: $model.draft.url.singleLineText,
                         axis: .horizontal
                     )
                     .singleLinePaste().lineLimit(1)
@@ -223,7 +223,7 @@ struct MobileMCPEditor: View {
                     .multilineTextAlignment(.trailing)
                 }
                 if !model.draft.url.isEmpty && !model.hasValidURL {
-                    Text(TermindCopy.Settings.enterAnHttpOrHttpsMcpUrl).font(.caption).foregroundStyle(.orange)
+                    Text(AppStrings.Settings.enterAnHttpOrHttpsMcpUrl).font(.caption).foregroundStyle(.orange)
                 }
                 if model.running { ProgressView() }
                 if let connection = model.connection { Text(connection).font(.caption).textSelection(.enabled) }
@@ -237,60 +237,60 @@ struct MobileMCPEditor: View {
                         MobileMCPHeaderRow(header: header)
                     }
                     .contextMenu {
-                        Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                        Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                             removeHeader(header.id)
                         }
                     }
                 }
                 .onDelete(perform: model.removeHeaders)
-                Button(TermindCopy.Settings.addHeader.swiftUIKey, systemImage: "plus") { editingHeader = MCPHeader() }
+                Button(AppStrings.Settings.addHeader.swiftUIKey, systemImage: "plus") { editingHeader = MCPHeader() }
             } header: {
-                Text(TermindCopy.Settings.customHeaders)
+                Text(AppStrings.Settings.customHeaders)
             }
-            Section(TermindCopy.Settings.tools.swiftUIKey) {
-                if model.draft.tools.isEmpty { Text(TermindCopy.Settings.connectToSeeWhatThisServerOffers) }
+            Section(AppStrings.Settings.tools.swiftUIKey) {
+                if model.draft.tools.isEmpty { Text(AppStrings.Settings.connectToSeeWhatThisServerOffers) }
                 ForEach($model.draft.tools) { $tool in
                     VStack(alignment: .leading) {
                         Text(qualified(tool)).font(.caption.monospaced()).textSelection(.enabled)
                         if !tool.summary.isEmpty {
                             Text(tool.summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                         }
-                        Picker(TermindCopy.Common.permission.swiftUIKey, selection: $tool.accessPolicy) {
-                            Text(TermindCopy.Common.deny).tag(AgentToolDescriptor.ApprovalPolicy.deny)
-                            Text(TermindCopy.Settings.ask).tag(AgentToolDescriptor.ApprovalPolicy.ask)
-                            Text(TermindCopy.Settings.approve)
+                        Picker(AppStrings.Common.permission.swiftUIKey, selection: $tool.accessPolicy) {
+                            Text(AppStrings.Common.deny).tag(AgentToolDescriptor.ApprovalPolicy.deny)
+                            Text(AppStrings.Settings.ask).tag(AgentToolDescriptor.ApprovalPolicy.ask)
+                            Text(AppStrings.Settings.approve)
                                 .tag(AgentToolDescriptor.ApprovalPolicy.approve)
                         }
                     }
                 }
                 Text(
-                    TermindCopy.Settings.toolApprovalExplanation
+                    AppStrings.Settings.toolApprovalExplanation
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle(TermindCopy.MCP.mcpServer.swiftUIKey)
+        .navigationTitle(AppStrings.MCP.mcpServer.swiftUIKey)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             MobileToolbarOverflow {
-                Button(TermindCopy.Common.connect.swiftUIKey, systemImage: "bolt") {
+                Button(AppStrings.Common.connect.swiftUIKey, systemImage: "bolt") {
                     if pro.require(.remoteMCP) { model.connect() }
                 }
                 .disabled(!model.canSave || model.running)
                 if ai.mcpServer(model.original.id) != nil {
                     Divider()
                     Button(
-                        TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive, action: delete)
+                        AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive, action: delete)
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button {
                     save()
                 } label: {
-                    Label(TermindCopy.Common.save.swiftUIKey, systemImage: "checkmark")
+                    Label(AppStrings.Common.save.swiftUIKey, systemImage: "checkmark")
                 }
                 .labelStyle(.iconOnly)
-                .accessibilityLabel(Text(TermindCopy.Common.save))
+                .accessibilityLabel(Text(AppStrings.Common.save))
                 .disabled(!model.canSave || !pro.canUse(.remoteMCP))
             }
             .mobileProminentAction()
@@ -307,10 +307,10 @@ struct MobileMCPEditor: View {
         .onChange(of: pro.hasProAccess) { _, granted in if !granted { model.cancel() } }
         .onDisappear { model.cancel() }
         .alert(
-            (alert?.title ?? TermindCopy.Common.unableToSave).swiftUIKey,
+            (alert?.title ?? AppStrings.Common.unableToSave).swiftUIKey,
             isPresented: Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })
         ) {
-            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { alert = nil }
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) { alert = nil }
         } message: {
             Text(alert?.message ?? "")
         }
@@ -319,7 +319,7 @@ struct MobileMCPEditor: View {
     private func delete() {
         ai.delete(serverID: model.original.id)
         if let error = ai.storageError ?? ai.secretStorageError {
-            alert = EditorAlert(title: TermindCopy.Common.unableToDelete, message: error)
+            alert = EditorAlert(title: AppStrings.Common.unableToDelete, message: error)
         } else {
             dismiss()
         }
@@ -330,7 +330,7 @@ struct MobileMCPEditor: View {
             try model.save()
             dismiss()
         } catch {
-            alert = EditorAlert(title: TermindCopy.Common.unableToSave, message: error.localizedDescription)
+            alert = EditorAlert(title: AppStrings.Common.unableToSave, message: error.localizedDescription)
         }
     }
 
@@ -351,7 +351,7 @@ private struct MobileMCPHeaderRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(header.isComplete ? header.name : String(localized: TermindCopy.Settings.headerName))
+            Text(header.isComplete ? header.name : String(localized: AppStrings.Settings.headerName))
                 .foregroundStyle(header.isComplete ? .primary : .secondary)
                 .lineLimit(1)
             if !header.value.isEmpty {
@@ -386,17 +386,17 @@ private struct MobileMCPHeaderEditor: View {
     var body: some View {
         Form {
             Section {
-                LabeledContent(TermindCopy.Common.name.swiftUIKey) {
+                LabeledContent(AppStrings.Common.name.swiftUIKey) {
                     TextField(
-                        TermindCopy.Settings.headerName.swiftUIKey, text: $draft.name.singleLineText, axis: .horizontal
+                        AppStrings.Settings.headerName.swiftUIKey, text: $draft.name.singleLineText, axis: .horizontal
                     ).singleLinePaste()
                         .lineLimit(1)
                         .focused($focusedField, equals: .name)
                         .multilineTextAlignment(.trailing)
                 }
-                LabeledContent(TermindCopy.Common.value.swiftUIKey) {
+                LabeledContent(AppStrings.Common.value.swiftUIKey) {
                     TextField(
-                        TermindCopy.Settings.headerValue.swiftUIKey, text: $draft.value.singleLineText,
+                        AppStrings.Settings.headerValue.swiftUIKey, text: $draft.value.singleLineText,
                         axis: .horizontal
                     ).singleLinePaste()
                         .lineLimit(1)
@@ -404,16 +404,16 @@ private struct MobileMCPHeaderEditor: View {
                         .multilineTextAlignment(.trailing)
                 }
             } footer: {
-                Text(TermindCopy.Settings.headerStorageWarning)
+                Text(AppStrings.Settings.headerStorageWarning)
             }
         }
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
-        .navigationTitle(TermindCopy.Settings.customHeader.swiftUIKey)
+        .navigationTitle(AppStrings.Settings.customHeader.swiftUIKey)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button(TermindCopy.Common.done.swiftUIKey, systemImage: "checkmark") {
+                Button(AppStrings.Common.done.swiftUIKey, systemImage: "checkmark") {
                     save(draft)
                     dismiss()
                 }

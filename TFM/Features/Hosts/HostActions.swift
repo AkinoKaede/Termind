@@ -45,7 +45,7 @@ struct HostContextMenu: View {
         // No "Connect in Split": a Workspace is built by combining workspaces that are
         // already open, so connecting never decides a layout for you. Connect,
         // then drag the new workspace onto the one you want it beside.
-        Button(TermindCopy.Vault.quickConnect.swiftUIKey, systemImage: MenuSymbol.quickConnect) {
+        Button(AppStrings.Vault.quickConnect.swiftUIKey, systemImage: MenuSymbol.quickConnect) {
             app.open(
                 hosts,
                 as: .preferredTerminal,
@@ -62,11 +62,11 @@ struct HostContextMenu: View {
         Divider()
 
         if hosts.count == 1, let host = hosts.first {
-            Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
+            Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
                 window.openHostEditor(host: host)
             }
             if showsDuplicate {
-                Button(TermindCopy.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
+                Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
                     var copy = host
                     if host.identityID.flatMap(app.hostLibrary.identity)?.isHostCustom == true {
                         copy.identityID = nil
@@ -83,7 +83,7 @@ struct HostContextMenu: View {
                         copy.telnetProxy?.username = ""
                     }
                     copy.id = UUID()
-                    copy.name = String(localized: TermindCopy.Vault.duplicatedHostName(host.name))
+                    copy.name = String(localized: AppStrings.Vault.duplicatedHostName(host.name))
                     app.hostLibrary.upsert(copy)
                 }
             }
@@ -91,7 +91,7 @@ struct HostContextMenu: View {
         }
 
         if let requestDelete {
-            DestructiveMenuButton(TermindCopy.Common.delete) {
+            DestructiveMenuButton(AppStrings.Common.delete) {
                 requestDelete()
             }
             .disabled(hosts.isEmpty)
@@ -100,15 +100,15 @@ struct HostContextMenu: View {
 
     @ViewBuilder
     private func copySSHCommandButton(_ host: Host) -> some View {
-        Button(TermindCopy.Vault.copySshCommand.swiftUIKey, systemImage: MenuSymbol.copy) {
+        Button(AppStrings.Vault.copySshCommand.swiftUIKey, systemImage: MenuSymbol.copy) {
             guard let command = app.hostLibrary.sshCommand(for: host) else { return }
             copyToPasteboard(command)
         }
         .disabled(app.hostLibrary.sshCommand(for: host) == nil)
         .help(
             app.hostLibrary.sshCommand(for: host) == nil
-                ? TermindCopy.Vault.sshCommandsAreUnavailableForRoutesThatUseAProxy.swiftUIKey
-                : TermindCopy.Vault.copyAnOpenSSHCommandForThisRoute.swiftUIKey
+                ? AppStrings.Vault.sshCommandsAreUnavailableForRoutesThatUseAProxy.swiftUIKey
+                : AppStrings.Vault.copyAnOpenSSHCommandForThisRoute.swiftUIKey
         )
     }
 }
@@ -142,9 +142,9 @@ enum HostConnectAction: CaseIterable, Hashable {
 
     var title: LocalizedStringResource {
         switch self {
-        case .ssh: TermindCopy.Vault.withSsh
-        case .telnet: TermindCopy.Vault.withTelnet
-        case .sftp: TermindCopy.Vault.withSftp
+        case .ssh: AppStrings.Vault.withSsh
+        case .telnet: AppStrings.Vault.withTelnet
+        case .sftp: AppStrings.Vault.withSftp
         }
     }
 
@@ -181,7 +181,7 @@ enum HostMenuEntries {
         let connectActions = HostConnectAction.available(for: [host])
         var entries = [
             NativeMenuEntry(
-                title: TermindCopy.Vault.quickConnect, symbol: MenuSymbol.quickConnect
+                title: AppStrings.Vault.quickConnect, symbol: MenuSymbol.quickConnect
             ) {
                 app.open([host], as: .preferredTerminal, in: window)
             }
@@ -189,7 +189,7 @@ enum HostMenuEntries {
         if !connectActions.isEmpty {
             entries.append(
                 NativeMenuEntry(
-                    title: TermindCopy.Common.connect,
+                    title: AppStrings.Common.connect,
                     symbol: MenuSymbol.connect,
                     children: connectActions.map { action in
                         NativeMenuEntry(
@@ -203,7 +203,7 @@ enum HostMenuEntries {
         if includesCopySSHCommand {
             entries.append(
                 NativeMenuEntry(
-                    title: TermindCopy.Vault.copySshCommand,
+                    title: AppStrings.Vault.copySshCommand,
                     symbol: MenuSymbol.copy,
                     isEnabled: app.hostLibrary.sshCommand(for: host) != nil
                 ) {
@@ -213,7 +213,7 @@ enum HostMenuEntries {
         }
         entries.append(.separator)
         entries.append(
-            NativeMenuEntry(title: TermindCopy.Common.edit, symbol: MenuSymbol.edit) {
+            NativeMenuEntry(title: AppStrings.Common.edit, symbol: MenuSymbol.edit) {
                 window.openHostEditor(host: host)
             })
         return entries
@@ -229,7 +229,7 @@ struct HostConnectMenu: View {
     var body: some View {
         let actions = HostConnectAction.available(for: hosts)
         if !actions.isEmpty {
-            Menu(TermindCopy.Common.connect.swiftUIKey, systemImage: MenuSymbol.connect) {
+            Menu(AppStrings.Common.connect.swiftUIKey, systemImage: MenuSymbol.connect) {
                 ForEach(actions, id: \.self) { action in
                     Button {
                         app.open(action.matchingHosts(in: hosts), as: action.target, in: window)

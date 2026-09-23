@@ -85,7 +85,7 @@ struct SerialEditableComboField: View {
         ScrollView {
             LazyVStack(spacing: Metrics.Space.xxs) {
                 if options.isEmpty {
-                    Text(TermindCopy.Terminal.noDetectedSerialDevices)
+                    Text(AppStrings.Terminal.noDetectedSerialDevices)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(Metrics.Space.m)

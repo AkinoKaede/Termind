@@ -22,7 +22,7 @@ struct SkillSettings: View {
         Section {
             if !app.skills.conflictingSkillIDs.isEmpty {
                 Label(
-                    TermindCopy.Settings.duplicateSkillNames.swiftUIKey,
+                    AppStrings.Settings.duplicateSkillNames.swiftUIKey,
                     systemImage: "exclamationmark.triangle"
                 )
                 .foregroundStyle(.orange)
@@ -31,16 +31,16 @@ struct SkillSettings: View {
                 SkillRow(skill: skill) { edit(skill.id, false) }
             }
 
-            FormNavigationAction(title: TermindCopy.Settings.addSkill) {
+            FormNavigationAction(title: AppStrings.Settings.addSkill) {
                 let skill = AgentSkill(name: "")
                 app.skills.upsert(skill)
                 edit(skill.id, true)
             }
 
-            Button(TermindCopy.Settings.importSkill.swiftUIKey) { importSkill() }
+            Button(AppStrings.Settings.importSkill.swiftUIKey) { importSkill() }
 
             Text(
-                TermindCopy.Settings.skillExplanation
+                AppStrings.Settings.skillExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -67,7 +67,7 @@ struct SkillSettings: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         } header: {
-            Text(TermindCopy.Settings.skills)
+            Text(AppStrings.Settings.skills)
         }
     }
 
@@ -87,7 +87,7 @@ struct SkillSettings: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = true
         panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
-        panel.message = String(localized: TermindCopy.Settings.chooseASkillMdFileOrAFolderThatContainsOne)
+        panel.message = String(localized: AppStrings.Settings.chooseASkillMdFileOrAFolderThatContainsOne)
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
         do {
@@ -118,7 +118,7 @@ private struct SkillRow: View {
                     .lineLimit(1)
                 Text(
                     skill.summary.isEmpty
-                        ? String(localized: TermindCopy.Settings.noDescription) : skill.summary
+                        ? String(localized: AppStrings.Settings.noDescription) : skill.summary
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -129,7 +129,7 @@ private struct SkillRow: View {
             Spacer(minLength: Metrics.Space.m)
 
             if !skill.isComplete {
-                CardChip(text: String(localized: TermindCopy.Settings.draft), symbol: "pencil.line")
+                CardChip(text: String(localized: AppStrings.Settings.draft), symbol: "pencil.line")
             }
 
             Toggle("", isOn: enabled)
@@ -137,7 +137,7 @@ private struct SkillRow: View {
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .disabled(!skill.isComplete)
-                .accessibilityLabel(Text(TermindCopy.Settings.enableNamed(skill.displayTitle)))
+                .accessibilityLabel(Text(AppStrings.Settings.enableNamed(skill.displayTitle)))
 
             Button(action: edit) {
                 Image(systemName: "chevron.right")
@@ -145,7 +145,7 @@ private struct SkillRow: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(TermindCopy.Settings.edit(skill.displayTitle)))
+            .accessibilityLabel(Text(AppStrings.Settings.edit(skill.displayTitle)))
         }
         .contentShape(.rect)
         .onTapGesture(perform: edit)

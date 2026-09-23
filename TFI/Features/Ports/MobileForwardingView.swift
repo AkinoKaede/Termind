@@ -26,8 +26,8 @@ struct MobileForwardingView: View {
         MobileCardPage {
             if app.forwardingLibrary.rules.isEmpty {
                 ContentUnavailableView(
-                    TermindCopy.Forwarding.noPortForwarding.swiftUIKey, systemImage: "arrow.left.arrow.right",
-                    description: Text(TermindCopy.Forwarding.createAForwardingRuleThenStartItManually))
+                    AppStrings.Forwarding.noPortForwarding.swiftUIKey, systemImage: "arrow.left.arrow.right",
+                    description: Text(AppStrings.Forwarding.createAForwardingRuleThenStartItManually))
             } else if rules.isEmpty {
                 ContentUnavailableView.search(text: query)
             }
@@ -37,11 +37,11 @@ struct MobileForwardingView: View {
                 }
             }
         }
-        .navigationTitle(TermindCopy.Navigation.portForwarding.swiftUIKey)
+        .navigationTitle(AppStrings.Navigation.portForwarding.swiftUIKey)
         .searchable(text: $query.singleLineText)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(TermindCopy.Forwarding.newForwarding.swiftUIKey, systemImage: "plus") {
+                Button(AppStrings.Forwarding.newForwarding.swiftUIKey, systemImage: "plus") {
                     editing = PortForwardingRule(hostID: UUID())
                 }
             }
@@ -54,21 +54,21 @@ struct MobileForwardingView: View {
             MobileForwardingEditor(app: app, rule: rule, isNew: app.forwardingLibrary.portForwarding(rule.id) == nil)
         }
         .confirmationDialog(
-            TermindCopy.Forwarding.deleteForwardingRulesConfirmation.swiftUIKey,
+            AppStrings.Forwarding.deleteForwardingRulesConfirmation.swiftUIKey,
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                 guard let removing else { return }
                 do { try app.forwardingLibrary.delete(removing.id) } catch { self.error = error.localizedDescription }
                 self.removing = nil
             }
         }
         .alert(
-            TermindCopy.Common.operationFailed.swiftUIKey,
+            AppStrings.Common.operationFailed.swiftUIKey,
             isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
         ) {
-            Button(TermindCopy.Common.ok.swiftUIKey) { error = nil }
+            Button(AppStrings.Common.ok.swiftUIKey) { error = nil }
         } message: {
             Text(error ?? "")
         }
@@ -82,31 +82,31 @@ struct MobileForwardingView: View {
             MobileForwardingCardContent(
                 rule: rule,
                 hostName: app.library.host(rule.hostID)?.name
-                    ?? String(localized: TermindCopy.Forwarding.hostUnavailable),
+                    ?? String(localized: AppStrings.Forwarding.hostUnavailable),
                 runtime: runtime)
         } actions: {
             if runtime.isActive {
-                Button(TermindCopy.Common.stop.swiftUIKey, systemImage: "stop") { app.forwardings.stop(rule.id) }
+                Button(AppStrings.Common.stop.swiftUIKey, systemImage: "stop") { app.forwardings.stop(rule.id) }
             } else {
                 Button(
-                    runtime.isFailed ? TermindCopy.Common.retry.swiftUIKey : TermindCopy.Forwarding.start.swiftUIKey,
+                    runtime.isFailed ? AppStrings.Common.retry.swiftUIKey : AppStrings.Forwarding.start.swiftUIKey,
                     systemImage: "play"
                 ) { start(rule) }.disabled(
                     !canStart(rule))
             }
-            Button(TermindCopy.Forwarding.copyAddress.swiftUIKey, systemImage: "doc.on.doc") {
+            Button(AppStrings.Forwarding.copyAddress.swiftUIKey, systemImage: "doc.on.doc") {
                 UIPasteboard.general.string = rule.bindAddress
             }
-            Button(TermindCopy.Vault.copySshCommand.swiftUIKey, systemImage: "apple.terminal") {
+            Button(AppStrings.Vault.copySshCommand.swiftUIKey, systemImage: "apple.terminal") {
                 UIPasteboard.general.string = app.forwardingLibrary.sshCommand(for: rule)
             }
             .disabled(app.forwardingLibrary.sshCommand(for: rule) == nil)
             Divider()
-            Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") { editing = rule }.disabled(
+            Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = rule }.disabled(
                 runtime.isActive)
-            Button(TermindCopy.Common.duplicate.swiftUIKey, systemImage: "plus.square.on.square") { duplicate(rule) }
+            Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: "plus.square.on.square") { duplicate(rule) }
             Divider()
-            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) { removing = rule }
+            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) { removing = rule }
         }
     }
     private func canStart(_ rule: PortForwardingRule) -> Bool {
@@ -122,7 +122,7 @@ struct MobileForwardingView: View {
     private func duplicate(_ rule: PortForwardingRule) {
         var copy = rule
         copy.id = UUID()
-        if !copy.label.isEmpty { copy.label += String(localized: TermindCopy.Common.copySuffix) }
+        if !copy.label.isEmpty { copy.label += String(localized: AppStrings.Common.copySuffix) }
         do {
             editing = try app.forwardingLibrary.save(copy)
         } catch { self.error = error.localizedDescription }
@@ -171,19 +171,19 @@ struct MobileForwardingDetailView: View {
                 } else {
                     Form {
                         Section {
-                            LabeledContent(TermindCopy.Common.status.swiftUIKey, value: runtime.label)
+                            LabeledContent(AppStrings.Common.status.swiftUIKey, value: runtime.label)
                         }
-                        Section(TermindCopy.Navigation.portForwarding.swiftUIKey) {
+                        Section(AppStrings.Navigation.portForwarding.swiftUIKey) {
                             LabeledContent(
-                                TermindCopy.Vault.host.swiftUIKey,
+                                AppStrings.Vault.host.swiftUIKey,
                                 value: app.library.host(rule.hostID)?.name
-                                    ?? String(localized: TermindCopy.Forwarding.hostUnavailable))
-                            LabeledContent(TermindCopy.Forwarding.direction.swiftUIKey, value: rule.kind.displayName)
+                                    ?? String(localized: AppStrings.Forwarding.hostUnavailable))
+                            LabeledContent(AppStrings.Forwarding.direction.swiftUIKey, value: rule.kind.displayName)
                             Text(rule.summary).font(.body.monospaced()).textSelection(.enabled)
-                            Button(TermindCopy.Forwarding.copyAddress.swiftUIKey) {
+                            Button(AppStrings.Forwarding.copyAddress.swiftUIKey) {
                                 UIPasteboard.general.string = rule.bindAddress
                             }
-                            Button(TermindCopy.Vault.copySshCommand.swiftUIKey) {
+                            Button(AppStrings.Vault.copySshCommand.swiftUIKey) {
                                 UIPasteboard.general.string = app.forwardingLibrary.sshCommand(for: rule)
                             }
                             .disabled(app.forwardingLibrary.sshCommand(for: rule) == nil)
@@ -192,7 +192,7 @@ struct MobileForwardingDetailView: View {
                 }
             } else {
                 ContentUnavailableView(
-                    TermindCopy.Forwarding.theForwardingRuleIsUnavailable.swiftUIKey,
+                    AppStrings.Forwarding.theForwardingRuleIsUnavailable.swiftUIKey,
                     systemImage: "arrow.left.arrow.right")
             }
         }
@@ -200,11 +200,11 @@ struct MobileForwardingDetailView: View {
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 if runtime.isActive {
-                    Button(TermindCopy.Common.stop.swiftUIKey, systemImage: "stop") { app.forwardings.stop(ruleID) }
+                    Button(AppStrings.Common.stop.swiftUIKey, systemImage: "stop") { app.forwardings.stop(ruleID) }
                 } else if let rule {
                     Button(
                         runtime.isFailed
-                            ? TermindCopy.Common.retry.swiftUIKey : TermindCopy.Forwarding.start.swiftUIKey,
+                            ? AppStrings.Common.retry.swiftUIKey : AppStrings.Forwarding.start.swiftUIKey,
                         systemImage: runtime.isFailed ? "arrow.clockwise" : "play"
                     ) {
                         app.forwardings.start(ruleID)
@@ -216,7 +216,7 @@ struct MobileForwardingDetailView: View {
             }
             ToolbarItem(placement: .secondaryAction) {
                 if let rule {
-                    Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") { editing = rule }.disabled(
+                    Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = rule }.disabled(
                         runtime.isActive)
                 }
             }

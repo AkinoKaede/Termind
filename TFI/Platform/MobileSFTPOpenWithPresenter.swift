@@ -44,7 +44,7 @@ final class MobileSFTPOpenWithPresenter: NSObject, UIDocumentInteractionControll
         self.controller = controller
         if !present(controller, sourceView) {
             self.controller = nil
-            failed(String(localized: TermindCopy.SFTP.noInstalledAppCanOpenThisFile))
+            failed(String(localized: AppStrings.SFTP.noInstalledAppCanOpenThisFile))
         }
     }
 

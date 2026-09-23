@@ -9,7 +9,7 @@ actor MobileSFTPEditedCopyImporter {
         case differentFormat
 
         var errorDescription: String? {
-            String(localized: TermindCopy.SFTP.editedCopyFormatRequirement)
+            String(localized: AppStrings.SFTP.editedCopyFormatRequirement)
         }
     }
 

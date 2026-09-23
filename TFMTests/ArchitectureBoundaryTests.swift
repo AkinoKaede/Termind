@@ -190,7 +190,7 @@ struct ArchitectureBoundaryTests {
 
     @Test
     func presentationCopyHasOneSharedOwner() throws {
-        let declaration = try Regex(#"\b(?:enum|struct|class)\s+TermindCopy\b"#)
+        let declaration = try Regex(#"\b(?:enum|struct|class)\s+AppStrings\b"#)
         for directory in ["", "../TFI"] {
             for file in try swiftFiles(in: directory) {
                 let source = try String(contentsOf: file, encoding: .utf8)
@@ -198,7 +198,7 @@ struct ArchitectureBoundaryTests {
             }
         }
         try assertNoImports(
-            in: "../Frameworks/TermindPresentation/Copy",
+            in: "../Frameworks/TermindPresentation/Strings",
             forbidden: ["Termind", "TermindIOS", "AppKit", "UIKit", "TermindInfrastructure", "TermindPersistence"])
     }
 

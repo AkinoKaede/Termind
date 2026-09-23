@@ -29,10 +29,10 @@ final class WindowSidebarState {
 
         var label: LocalizedStringResource {
             switch self {
-            case .navigation: TermindCopy.Workspace.navigator
-            case .assistant: TermindCopy.Navigation.assistant
-            case .snippets: TermindCopy.Navigation.snippets
-            case .history: TermindCopy.Common.history
+            case .navigation: AppStrings.Workspace.navigator
+            case .assistant: AppStrings.Navigation.assistant
+            case .snippets: AppStrings.Navigation.snippets
+            case .history: AppStrings.Common.history
             }
         }
 

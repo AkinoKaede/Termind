@@ -374,8 +374,8 @@ final class SSHSessionModel: Identifiable {
         guard let host = connectionHost(hostID, using: store) else {
             connection.stopRecovery()
             connectionAttemptID = nil
-            status = .failed(String(localized: TermindCopy.Connections.theHostIsNoLongerAvailable))
-            connectionJourney.fail(String(localized: TermindCopy.Connections.theHostIsNoLongerAvailable))
+            status = .failed(String(localized: AppStrings.Connections.theHostIsNoLongerAvailable))
+            connectionJourney.fail(String(localized: AppStrings.Connections.theHostIsNoLongerAvailable))
             return
         }
         isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
@@ -462,7 +462,7 @@ final class SSHSessionModel: Identifiable {
                             )
                         } else {
                             credentialFailures.append(
-                                String(localized: TermindCopy.Terminal.theSelectedKeyHasNoSavedPrivateKey)
+                                String(localized: AppStrings.Terminal.theSelectedKeyHasNoSavedPrivateKey)
                             )
                         }
                     } catch {
@@ -470,7 +470,7 @@ final class SSHSessionModel: Identifiable {
                     }
                 } else {
                     credentialFailures.append(
-                        String(localized: TermindCopy.Terminal.theSelectedKeyIsNoLongerAvailable)
+                        String(localized: AppStrings.Terminal.theSelectedKeyIsNoLongerAvailable)
                     )
                 }
             }
@@ -484,7 +484,7 @@ final class SSHSessionModel: Identifiable {
                         credentials.append(.password(password))
                     } else {
                         credentialFailures.append(
-                            String(localized: TermindCopy.Terminal.theSavedPasswordIsNoLongerAvailable)
+                            String(localized: AppStrings.Terminal.theSavedPasswordIsNoLongerAvailable)
                         )
                     }
                 } catch {
@@ -831,7 +831,7 @@ final class SSHSessionModel: Identifiable {
         do {
             await actor.configureEnvironment(host.environmentVariables) { variables in
                 let list = variables.joined(separator: ", ")
-                let warning = String(localized: TermindCopy.Terminal.rejectedEnvironmentVariables(list))
+                let warning = String(localized: AppStrings.Terminal.rejectedEnvironmentVariables(list))
                 terminalSurface.receive(Data("\r\n⚠︎ \(warning)\r\n".utf8))
             }
             try await actor.connect(
@@ -865,7 +865,7 @@ final class SSHSessionModel: Identifiable {
             }
             if wasReconnecting {
                 appendTerminalNotice(
-                    String(localized: TermindCopy.Terminal.reconnectedANewRemoteShellHasStarted)
+                    String(localized: AppStrings.Terminal.reconnectedANewRemoteShellHasStarted)
                 )
             }
             if !isShellIntegrationEnabled {
@@ -921,7 +921,7 @@ final class SSHSessionModel: Identifiable {
             status = .failed(message)
             return
         }
-        appendTerminalNotice(String(localized: TermindCopy.Connections.connectionLostReconnectingProgress))
+        appendTerminalNotice(String(localized: AppStrings.Connections.connectionLostReconnectingProgress))
         scheduleReconnect(after: message, using: store)
     }
 

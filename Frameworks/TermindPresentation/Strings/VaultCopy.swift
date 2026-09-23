@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Vault {
         public static var addHost: LocalizedStringResource { "Add Host" }
 

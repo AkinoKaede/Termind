@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Connections {
 
         public static var authenticationRequest: LocalizedStringResource {

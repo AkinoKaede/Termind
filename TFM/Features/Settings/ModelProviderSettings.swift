@@ -17,12 +17,12 @@ struct ModelProviderSettings: View {
     private var modelProviders: [ModelProvider] { app.aiConfiguration.modelProviders }
 
     var body: some View {
-        Section(TermindCopy.Settings.modelProviders.swiftUIKey) {
+        Section(AppStrings.Settings.modelProviders.swiftUIKey) {
             ForEach(modelProviders) { provider in
                 ModelProviderRow(provider: provider) { edit(provider.id, false) }
             }
 
-            FormNavigationAction(title: TermindCopy.Settings.addProvider) {
+            FormNavigationAction(title: AppStrings.Settings.addProvider) {
                 // Created immediately rather than assembled inside the sheet, so
                 // there is one code path for "new" and "edit" and no half-built
                 // provider living in a view's `@State`. Cancelling takes it back
@@ -34,7 +34,7 @@ struct ModelProviderSettings: View {
             }
 
             Text(
-                TermindCopy.Settings.directProviderConnectionExplanation
+                AppStrings.Settings.directProviderConnectionExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -75,11 +75,11 @@ private struct ModelProviderRow: View {
                     if provider.usesVertexEndpoint {
                         Text(
                             ModelProviderForm.hasValidAddress(provider)
-                                ? provider.requestURL() : String(localized: TermindCopy.Settings.vertexAi))
+                                ? provider.requestURL() : String(localized: AppStrings.Settings.vertexAi))
                     } else if endpoint.isConfigured {
                         Text(endpoint.url)
                     } else {
-                        Text(TermindCopy.Settings.needsAUrl)
+                        Text(AppStrings.Settings.needsAUrl)
                     }
                 }
                 .font(.caption)
@@ -96,7 +96,7 @@ private struct ModelProviderRow: View {
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.mini)
-                .accessibilityLabel(Text(TermindCopy.Settings.enableNamed(provider.name)))
+                .accessibilityLabel(Text(AppStrings.Settings.enableNamed(provider.name)))
 
             Button(action: edit) {
                 Image(systemName: "chevron.right")
@@ -104,7 +104,7 @@ private struct ModelProviderRow: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(TermindCopy.Settings.edit(provider.name)))
+            .accessibilityLabel(Text(AppStrings.Settings.edit(provider.name)))
         }
         .contentShape(.rect)
         // The whole row opens the editor; the toggle and the chevron are
@@ -130,7 +130,7 @@ private struct ModelProviderRow: View {
         CardChip(text: provider.apiFormat.displayName)
 
         if provider.models.isEmpty {
-            CardChip(text: String(localized: TermindCopy.Settings.noModels), symbol: "questionmark.circle")
+            CardChip(text: String(localized: AppStrings.Settings.noModels), symbol: "questionmark.circle")
         } else {
             CardChip(text: "\(provider.models.count)", symbol: "cube")
         }

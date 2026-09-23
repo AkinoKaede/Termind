@@ -64,8 +64,8 @@ struct MetricsManagedCardPage: ManagedCardPage {
     }
     func managedEmptyState() -> some View {
         ContentUnavailableView(
-            TermindCopy.Metrics.noMonitoredServers.swiftUIKey, systemImage: "waveform.path.ecg",
-            description: Text(TermindCopy.Metrics.addASavedLinuxServerToStartMonitoring)
+            AppStrings.Metrics.noMonitoredServers.swiftUIKey, systemImage: "waveform.path.ecg",
+            description: Text(AppStrings.Metrics.addASavedLinuxServerToStartMonitoring)
         )
     }
     func managedNoResultsState() -> some View { ContentUnavailableView.search(text: window.metricsQuery) }

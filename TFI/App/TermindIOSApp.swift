@@ -26,8 +26,8 @@ struct TermindIOSApp: App {
                     .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
             case .failure:
                 ContentUnavailableView(
-                    TermindCopy.Common.unableToOpenTermind.swiftUIKey, systemImage: "exclamationmark.triangle",
-                    description: Text(TermindCopy.Common.openDataStoreFailure))
+                    AppStrings.Common.unableToOpenTermind.swiftUIKey, systemImage: "exclamationmark.triangle",
+                    description: Text(AppStrings.Common.openDataStoreFailure))
             }
         }
         .commands { MobileCommands() }

@@ -49,7 +49,7 @@ struct MobileEditorSheet<Content: View>: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark") {
+                    Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") {
                         if isDirty {
                             discard = true
                         } else {
@@ -83,23 +83,23 @@ struct MobileEditorSheet<Content: View>: View {
                             } catch { self.error = error.localizedDescription }
                         }
                     } label: {
-                        Label(TermindCopy.Common.save.swiftUIKey, systemImage: "checkmark")
-                    }.labelStyle(.iconOnly).accessibilityLabel(Text(TermindCopy.Common.save)).disabled(
+                        Label(AppStrings.Common.save.swiftUIKey, systemImage: "checkmark")
+                    }.labelStyle(.iconOnly).accessibilityLabel(Text(AppStrings.Common.save)).disabled(
                         !canSave || isSaving)
                 }
                 .mobileProminentAction()
             }
             .confirmationDialog(
-                TermindCopy.Common.discardChangesConfirmation.swiftUIKey, isPresented: $discard,
+                AppStrings.Common.discardChangesConfirmation.swiftUIKey, isPresented: $discard,
                 titleVisibility: .visible
             ) {
-                Button(TermindCopy.Common.discardChanges.swiftUIKey, role: .destructive, action: cancel)
+                Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: cancel)
             }
             .alert(
-                TermindCopy.Common.unableToSave.swiftUIKey,
+                AppStrings.Common.unableToSave.swiftUIKey,
                 isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
             ) {
-                Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel, action: { error = nil })
+                Button(AppStrings.Common.ok.swiftUIKey, role: .cancel, action: { error = nil })
             } message: {
                 Text(error ?? "")
             }

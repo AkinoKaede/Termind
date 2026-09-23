@@ -84,7 +84,7 @@ final class MobileMCPEditorModel {
                 draft.negotiatedVersion = outcome.protocolVersion
                 draft.lastConnectedAt = .now
                 connection = String(
-                    localized: TermindCopy.Settings.discoveredTools(
+                    localized: AppStrings.Settings.discoveredTools(
                         server: outcome.serverName, count: draft.tools.count))
             } catch {
                 guard let self, generation == token, !Task.isCancelled,
@@ -132,7 +132,7 @@ final class MobileMCPEditorModel {
         var value = draft
         if wasPersisted {
             guard let current = ai.mcpServer(original.id) else {
-                throw MobileEditorError.message(String(localized: TermindCopy.Settings.serverDeleted))
+                throw MobileEditorError.message(String(localized: AppStrings.Settings.serverDeleted))
             }
             var fields = SettingsFields(original, draft, current)
             try fields.merge(\.name)
@@ -165,7 +165,7 @@ final class MobileMCPEditorModel {
         value.url = value.url.trimmingCharacters(in: .whitespacesAndNewlines)
         if value.namespaceID.isEmpty { value.namespaceID = value.effectiveNamespaceID }
         guard !ai.hasMCPNamespaceConflict(value.effectiveNamespaceID, excluding: value.id) else {
-            throw MobileEditorError.message(String(localized: TermindCopy.Settings.anotherMcpServerAlreadyUsesThisId))
+            throw MobileEditorError.message(String(localized: AppStrings.Settings.anotherMcpServerAlreadyUsesThisId))
         }
         try key.commit(in: ai, reference: value.credentialRef, kind: "mcp") { reference in
             value.credentialRef = reference

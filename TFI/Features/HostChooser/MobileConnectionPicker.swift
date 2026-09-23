@@ -12,12 +12,12 @@ struct MobileWorkspaceToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
-            Button(TermindCopy.Common.connect.swiftUIKey, systemImage: "network", action: connect)
+            Button(AppStrings.Common.connect.swiftUIKey, systemImage: "network", action: connect)
                 .labelStyle(.iconOnly)
         }
         .mobileProminentAction()
         MobileToolbarOverflow {
-            Button(TermindCopy.Vault.closeAll.swiftUIKey, systemImage: "xmark", role: .destructive) {
+            Button(AppStrings.Vault.closeAll.swiftUIKey, systemImage: "xmark", role: .destructive) {
                 closeAll()
             }
             .disabled(!hasWorkspaces)
@@ -43,16 +43,16 @@ struct MobileConnectionPicker: View {
     var body: some View {
         MobileHostPicker(
             library: library,
-            title: TermindCopy.Common.connect,
-            emptyDescription: TermindCopy.Vault.addAHostToConnectToIt,
+            title: AppStrings.Common.connect,
+            emptyDescription: AppStrings.Vault.addAHostToConnectToIt,
             cancel: cancel,
             select: model.select,
             isEligible: { host in model.kind != .sftp || host.sshEnabled },
             header: {
                 Section {
-                    Picker(TermindCopy.Vault.connectionProtocol.swiftUIKey, selection: $model.kind) {
-                        Text(TermindCopy.Vault.ssh).tag(ConnectionHistoryEntry.Kind.ssh)
-                        Text(TermindCopy.SFTP.sftp).tag(ConnectionHistoryEntry.Kind.sftp)
+                    Picker(AppStrings.Vault.connectionProtocol.swiftUIKey, selection: $model.kind) {
+                        Text(AppStrings.Vault.ssh).tag(ConnectionHistoryEntry.Kind.ssh)
+                        Text(AppStrings.SFTP.sftp).tag(ConnectionHistoryEntry.Kind.sftp)
                     }
                     .pickerStyle(.segmented)
                 }
@@ -146,7 +146,7 @@ struct MobileHostPicker<Header: View>: View {
 
             if model.isLibraryEmpty {
                 ContentUnavailableView(
-                    TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack",
+                    AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack",
                     description: Text(emptyDescription)
                 )
                 .listRowBackground(Color.clear)
@@ -170,12 +170,12 @@ struct MobileHostPicker<Header: View>: View {
                 }
             }
         }
-        .searchable(text: $model.query.singleLineText, prompt: TermindCopy.Vault.searchHosts.swiftUIKey)
+        .searchable(text: $model.query.singleLineText, prompt: AppStrings.Vault.searchHosts.swiftUIKey)
         .navigationTitle(Text(title))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark", action: cancel)
+                Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark", action: cancel)
                     .labelStyle(.iconOnly)
             }
         }

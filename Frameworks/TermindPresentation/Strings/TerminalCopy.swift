@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Terminal {
         public static var armed: LocalizedStringResource {
             "Armed"

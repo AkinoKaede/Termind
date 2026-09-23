@@ -396,7 +396,7 @@ struct CardSectionHeader: View {
                 Button(action: toggle) { paddedLabel }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(title))
-                    .accessibilityHint(Text(isCollapsed ? TermindCopy.Common.expand : TermindCopy.Common.collapse))
+                    .accessibilityHint(Text(isCollapsed ? AppStrings.Common.expand : AppStrings.Common.collapse))
             } else {
                 paddedLabel.onTapGesture { select?() }
             }
@@ -429,7 +429,7 @@ struct CardSectionHeader: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(Text(isCollapsed ? TermindCopy.Common.expand : TermindCopy.Common.collapse))
+                    .accessibilityLabel(Text(isCollapsed ? AppStrings.Common.expand : AppStrings.Common.collapse))
                 }
             }
 

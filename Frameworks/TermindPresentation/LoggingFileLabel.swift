@@ -17,7 +17,7 @@ public struct LoggingFileLabel: View {
                 HStack(spacing: 6) {
                     Text(file.createdAt, format: dateFormat)
                     if file.isCurrent {
-                        Text(TermindCopy.Common.current).font(.caption).foregroundStyle(.secondary)
+                        Text(AppStrings.Common.current).font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 Text(ByteCountFormatter.string(fromByteCount: file.byteCount, countStyle: .file))

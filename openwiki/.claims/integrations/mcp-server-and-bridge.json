@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:462d6503cb6b0ad2bd0a90ca359bc490fec86311945bb735c8dfd20e4b83ed5b",
+  "pageVersion": "sha256:c5bc5f9ca5aec9baf7cef84a0e408483976858073900fb97ece8c7c68129cfdb",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:c5176c9083a21a9f97844730e93608df4897b24b4cadbc328e81dfb46f88641a"
+          "version": "repo-file-v1:sha256:148237060fb32863988d3fce056529b2032e381e1b8da4070eee592134c86bff"
         },
         {
           "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift",
@@ -48,7 +48,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:c5176c9083a21a9f97844730e93608df4897b24b4cadbc328e81dfb46f88641a"
+          "version": "repo-file-v1:sha256:148237060fb32863988d3fce056529b2032e381e1b8da4070eee592134c86bff"
         },
         {
           "resource": "repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift",
@@ -66,7 +66,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:c5176c9083a21a9f97844730e93608df4897b24b4cadbc328e81dfb46f88641a"
+          "version": "repo-file-v1:sha256:148237060fb32863988d3fce056529b2032e381e1b8da4070eee592134c86bff"
         },
         {
           "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift",
@@ -132,7 +132,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:11a618b54c8c7c8cf212423feb11ef58ee507f58a852a9fa4a7e5fd06bdf2800"
+          "version": "repo-file-v1:sha256:6e1ccc217b7c3ea17192067e55e62343eacffa72bf0f3ed202aaf3fe98c8edba"
         },
         {
           "resource": "repo://TFMTests/MCPServerToolsTests.swift",
@@ -329,6 +329,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:05:10.244Z"
+    "at": "2026-09-23T14:32:50.942Z"
   }
 }

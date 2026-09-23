@@ -73,7 +73,7 @@ final class MobileTerminalTextSelectionViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = String(localized: TermindCopy.Terminal.selectText)
+        title = String(localized: AppStrings.Terminal.selectText)
         view.backgroundColor = .clear
         textView.text = selection.text
         view.addSubview(textView)

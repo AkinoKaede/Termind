@@ -48,9 +48,9 @@ struct NewGroupSheet: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: isEditing ? TermindCopy.Vault.editGroup : TermindCopy.Vault.newGroup,
+            title: isEditing ? AppStrings.Vault.editGroup : AppStrings.Vault.newGroup,
             symbol: "folder.fill", close: close,
-            closeLabel: requestedClose == nil ? TermindCopy.Common.back : TermindCopy.Common.close,
+            closeLabel: requestedClose == nil ? AppStrings.Common.back : AppStrings.Common.close,
             closeSymbol: requestedClose == nil ? "chevron.backward" : "xmark"
         ) {
             form
@@ -65,14 +65,14 @@ struct NewGroupSheet: View {
     private var form: some View {
         Form {
             Section {
-                TextField(TermindCopy.Common.name.swiftUIKey, text: $name.singleLineText, axis: .horizontal)
+                TextField(AppStrings.Common.name.swiftUIKey, text: $name.singleLineText, axis: .horizontal)
                     .singleLinePaste().lineLimit(1)
 
                 // "Inside", not "Parent": the answer is where the group goes,
                 // and every other row here is phrased as a property of the
                 // group rather than of the tree.
-                Picker(TermindCopy.Common.inside.swiftUIKey, selection: $parentID) {
-                    Text(TermindCopy.Common.topLevel).tag(HostGroup.ID?.none)
+                Picker(AppStrings.Common.inside.swiftUIKey, selection: $parentID) {
+                    Text(AppStrings.Common.topLevel).tag(HostGroup.ID?.none)
                     ForEach(parentCandidates) { candidate in
                         Text(candidate.name).tag(HostGroup.ID?.some(candidate.id))
                     }
@@ -86,10 +86,10 @@ struct NewGroupSheet: View {
         HStack {
             Spacer()
 
-            Button(TermindCopy.Common.cancel.swiftUIKey, action: close)
+            Button(AppStrings.Common.cancel.swiftUIKey, action: close)
                 .keyboardShortcut(.cancelAction)
 
-            Button(isEditing ? TermindCopy.Common.save.swiftUIKey : TermindCopy.Common.add.swiftUIKey, action: add)
+            Button(isEditing ? AppStrings.Common.save.swiftUIKey : AppStrings.Common.add.swiftUIKey, action: add)
                 .keyboardShortcut(.defaultAction)
                 .disabled(trimmedName.isEmpty)
         }

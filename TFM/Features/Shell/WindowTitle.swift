@@ -56,23 +56,23 @@ struct SettingsWindowTitleProvider: WindowTitleProviding {
         guard window.selectedDestination == .settings else { return nil }
         switch window.settingsRoute {
         case .index:
-            return AppLocalization.resolve(TermindCopy.Navigation.settings, locale: locale)
+            return AppLocalization.resolve(AppStrings.Navigation.settings, locale: locale)
         case .category(let category):
             return category.title(locale: locale)
         case .modelProvider:
-            return AppLocalization.resolve(TermindCopy.Settings.modelProvider, locale: locale)
+            return AppLocalization.resolve(AppStrings.Settings.modelProvider, locale: locale)
         case .providerModels:
-            return AppLocalization.resolve(TermindCopy.Settings.models, locale: locale)
+            return AppLocalization.resolve(AppStrings.Settings.models, locale: locale)
         case .mcpServer:
-            return AppLocalization.resolve(TermindCopy.Settings.mcp, locale: locale)
+            return AppLocalization.resolve(AppStrings.Settings.mcp, locale: locale)
         case .localMCPServer:
-            return AppLocalization.resolve(TermindCopy.MCP.mcpServer, locale: locale)
+            return AppLocalization.resolve(AppStrings.MCP.mcpServer, locale: locale)
         case .skill:
-            return AppLocalization.resolve(TermindCopy.Settings.skill, locale: locale)
+            return AppLocalization.resolve(AppStrings.Settings.skill, locale: locale)
         case .terminalConfiguration(let scheme):
             return scheme.title
         case .logging:
-            return AppLocalization.resolve(TermindCopy.Settings.logging, locale: locale)
+            return AppLocalization.resolve(AppStrings.Settings.logging, locale: locale)
         }
     }
 }
@@ -96,10 +96,10 @@ struct AssistantWindowTitleProvider: WindowTitleProviding {
     func title(in window: WindowModel, locale: Locale) -> String? {
         guard window.selectedDestination == .assistant else { return nil }
         if window.isAssistantArchivePresented {
-            return AppLocalization.resolve(TermindCopy.Assistant.archived, locale: locale)
+            return AppLocalization.resolve(AppStrings.Assistant.archived, locale: locale)
         }
         return window.assistantLibrary.selectedConversation?.derivedTitle
-            ?? AppLocalization.resolve(TermindCopy.Assistant.newChat, locale: locale)
+            ?? AppLocalization.resolve(AppStrings.Assistant.newChat, locale: locale)
     }
 }
 
@@ -118,6 +118,6 @@ struct MetricsWindowTitleProvider: WindowTitleProviding {
     func title(in window: WindowModel, locale: Locale) -> String? {
         guard window.selectedDestination == .metrics else { return nil }
         return window.metricsHostID.flatMap { hosts?.host($0)?.name }
-            ?? AppLocalization.resolve(TermindCopy.Navigation.metrics, locale: locale)
+            ?? AppLocalization.resolve(AppStrings.Navigation.metrics, locale: locale)
     }
 }

@@ -28,7 +28,7 @@ final class CopyBoundaryVisitor: SyntaxVisitor {
         guard prose.contains(where: { $0.isLetter }), isPresentationLiteral(node) else { return .visitChildren }
         let line = locations.location(for: node.positionAfterSkippingLeadingTrivia).line
         violations.append(
-            "\(path):\(line): move presentation copy into TermindPresentation: \(node.trimmedDescription)")
+            "\(path):\(line): move presentation copy into TermindPresentation/Strings: \(node.trimmedDescription)")
         return .visitChildren
     }
 
@@ -62,6 +62,10 @@ final class CopyBoundaryVisitor: SyntaxVisitor {
 }
 
 let repository = URL(fileURLWithPath: CommandLine.arguments[1]).standardizedFileURL
+let sharedStrings = repository.appending(path: "Frameworks/TermindPresentation/Strings/AppStrings.swift")
+guard FileManager.default.fileExists(atPath: sharedStrings.path) else {
+    throw CocoaError(.fileReadNoSuchFile)
+}
 var violations: [String] = []
 for app in ["TFM", "TFI"] {
     let directory = repository.appending(path: app)
@@ -80,4 +84,4 @@ if !violations.isEmpty {
     FileHandle.standardError.write(Data((violations.sorted().joined(separator: "\n") + "\n").utf8))
     exit(1)
 }
-print("TFM and TFI presentation copy uses shared resources.")
+print("TFM and TFI presentation copy uses shared AppStrings resources.")

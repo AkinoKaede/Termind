@@ -13,9 +13,9 @@ nonisolated enum OnboardingStep: String, CaseIterable, Identifiable, Sendable {
 
     var title: LocalizedStringResource {
         switch self {
-        case .quickOpen: TermindCopy.Navigation.quickOpen
-        case .statusBarPath: TermindCopy.Onboarding.statusBarPath
-        case .commandGenerator: TermindCopy.Onboarding.commandGenerator
+        case .quickOpen: AppStrings.Navigation.quickOpen
+        case .statusBarPath: AppStrings.Onboarding.statusBarPath
+        case .commandGenerator: AppStrings.Onboarding.commandGenerator
         }
     }
 
@@ -66,10 +66,10 @@ nonisolated enum OnboardingDeveloperStatus: Equatable, Sendable {
 
     var label: LocalizedStringResource {
         switch self {
-        case .completed: TermindCopy.Onboarding.completed
-        case .pending: TermindCopy.Onboarding.pending
-        case .previewing: TermindCopy.Onboarding.previewing
-        case .waitingForContext: TermindCopy.Onboarding.waitingForContext
+        case .completed: AppStrings.Onboarding.completed
+        case .pending: AppStrings.Onboarding.pending
+        case .previewing: AppStrings.Onboarding.previewing
+        case .waitingForContext: AppStrings.Onboarding.waitingForContext
         }
     }
 }
@@ -187,7 +187,7 @@ final class OnboardingController {
                 return .previewing
             }
             if previewRequest == step {
-                return .waitingForContext(previewWaitingReason ?? TermindCopy.Onboarding.waitingForWindow)
+                return .waitingForContext(previewWaitingReason ?? AppStrings.Onboarding.waitingForWindow)
             }
             return isCompleted(step) ? .completed : .pending
         }
@@ -195,7 +195,7 @@ final class OnboardingController {
         func preview(_ step: OnboardingStep) {
             presentation = nil
             previewRequest = step
-            previewWaitingReason = TermindCopy.Onboarding.waitingForWindow
+            previewWaitingReason = AppStrings.Onboarding.waitingForWindow
             revision &+= 1
         }
 
@@ -257,15 +257,15 @@ final class OnboardingController {
         guard let previewRequest else { return }
         let reason: LocalizedStringResource
         if !context.canPresentCoachMark {
-            reason = TermindCopy.Onboarding.dismissCurrentPresentation
+            reason = AppStrings.Onboarding.dismissCurrentPresentation
         } else {
             switch previewRequest {
             case .quickOpen:
-                reason = TermindCopy.Onboarding.waitingForActiveWindow
+                reason = AppStrings.Onboarding.waitingForActiveWindow
             case .statusBarPath:
-                reason = TermindCopy.Onboarding.pathPreviewRequirement
+                reason = AppStrings.Onboarding.pathPreviewRequirement
             case .commandGenerator:
-                reason = TermindCopy.Onboarding.commandPreviewRequirement
+                reason = AppStrings.Onboarding.commandPreviewRequirement
             }
         }
         if previewWaitingReason != reason {

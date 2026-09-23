@@ -38,7 +38,7 @@ public struct RevealableSecretField: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(
-                isRevealed ? Text(TermindCopy.Settings.hideSecret) : Text(TermindCopy.Settings.showSecret))
+                isRevealed ? Text(AppStrings.Settings.hideSecret) : Text(AppStrings.Settings.showSecret))
         }
         .onDisappear { isRevealed = false }
         .onChange(of: scenePhase) { _, phase in

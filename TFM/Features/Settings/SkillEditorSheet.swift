@@ -50,9 +50,9 @@ struct SkillEditorPage: View {
                         // equals and Delete sits directly under the pointer
                         // after an Export.
                         HStack {
-                            Button(TermindCopy.Common.export.swiftUIKey) { export(skill) }
+                            Button(AppStrings.Common.export.swiftUIKey) { export(skill) }
                             Spacer(minLength: Metrics.Space.m)
-                            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+                            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                                 app.skills.delete(id: skillID)
                                 deleted()
                             }
@@ -64,7 +64,7 @@ struct SkillEditorPage: View {
                 .formStyle(.grouped)
                 .frame(maxWidth: .infinity)
             } else {
-                ContentUnavailableView(TermindCopy.Settings.skillDeleted.swiftUIKey, systemImage: "trash")
+                ContentUnavailableView(AppStrings.Settings.skillDeleted.swiftUIKey, systemImage: "trash")
             }
         }
         .onDisappear { app.skills.lockName(for: skillID) }
@@ -75,19 +75,19 @@ struct SkillEditorPage: View {
     @ViewBuilder
     private func identitySection(_ skill: AgentSkill) -> some View {
         Section {
-            TextField(TermindCopy.Common.title.swiftUIKey, text: binding(\.title).singleLineText, axis: .horizontal)
+            TextField(AppStrings.Common.title.swiftUIKey, text: binding(\.title).singleLineText, axis: .horizontal)
                 .singleLinePaste().lineLimit(1)
 
             if isNameLocked {
-                LabeledContent(TermindCopy.Common.name.swiftUIKey) {
+                LabeledContent(AppStrings.Common.name.swiftUIKey) {
                     Text(skill.name)
                         .font(.callout.monospaced())
                         .textSelection(.enabled)
                 }
             } else {
-                LabeledContent(TermindCopy.Common.name.swiftUIKey) {
+                LabeledContent(AppStrings.Common.name.swiftUIKey) {
                     Text(
-                        derivedName.isEmpty ? String(localized: TermindCopy.Settings.derivedFromTheTitle) : derivedName
+                        derivedName.isEmpty ? String(localized: AppStrings.Settings.derivedFromTheTitle) : derivedName
                     )
                     .font(.callout.monospaced())
                     .foregroundStyle(derivedName.isEmpty ? .secondary : .primary)
@@ -96,7 +96,7 @@ struct SkillEditorPage: View {
             }
 
             Toggle(
-                TermindCopy.Common.enabled.swiftUIKey,
+                AppStrings.Common.enabled.swiftUIKey,
                 isOn: Binding(
                     get: { skill.isEnabled && skill.isComplete },
                     set: { app.skills.setEnabled($0, for: skillID) }
@@ -109,15 +109,15 @@ struct SkillEditorPage: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             } else if hasNameConflict {
-                TextField(TermindCopy.Common.name.swiftUIKey, text: $replacementName.singleLineText).singleLinePaste()
-                Button(TermindCopy.Common.rename.swiftUIKey) {
+                TextField(AppStrings.Common.name.swiftUIKey, text: $replacementName.singleLineText).singleLinePaste()
+                Button(AppStrings.Common.rename.swiftUIKey) {
                     app.skills.renameConflictingSkill(skillID, to: replacementName)
                 }
                 .disabled(
                     !AgentSkillNaming.isValid(replacementName)
                         || app.skills.hasNameConflict(replacementName, excluding: skillID))
                 Label(
-                    TermindCopy.Settings.anotherSkillAlreadyUsesThisName.swiftUIKey,
+                    AppStrings.Settings.anotherSkillAlreadyUsesThisName.swiftUIKey,
                     systemImage: "exclamationmark.triangle.fill"
                 )
                 .font(.caption)
@@ -125,14 +125,14 @@ struct SkillEditorPage: View {
             }
 
             if !skill.importedFrom.isEmpty {
-                LabeledContent(TermindCopy.Settings.importedFrom.swiftUIKey) {
+                LabeledContent(AppStrings.Settings.importedFrom.swiftUIKey) {
                     Text(skill.importedFrom)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         } header: {
-            Text(TermindCopy.Settings.skill)
+            Text(AppStrings.Settings.skill)
         }
     }
 
@@ -146,7 +146,7 @@ struct SkillEditorPage: View {
 
             HStack {
                 Text(
-                    TermindCopy.Settings.skillDescriptionExplanation
+                    AppStrings.Settings.skillDescriptionExplanation
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -162,7 +162,7 @@ struct SkillEditorPage: View {
                     )
             }
         } header: {
-            Text(TermindCopy.Settings.description)
+            Text(AppStrings.Settings.description)
         }
     }
 
@@ -175,7 +175,7 @@ struct SkillEditorPage: View {
                 .scrollContentBackground(.hidden)
 
             HStack {
-                Text(TermindCopy.Settings.skillBodyExplanation)
+                Text(AppStrings.Settings.skillBodyExplanation)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -183,7 +183,7 @@ struct SkillEditorPage: View {
 
                 if skill.body.utf8.count > AgentSkill.maximumBodyBytes {
                     Label(
-                        TermindCopy.Settings.longerThan(DataSizeFormat.bytes(AgentSkill.maximumBodyBytes)).swiftUIKey,
+                        AppStrings.Settings.longerThan(DataSizeFormat.bytes(AgentSkill.maximumBodyBytes)).swiftUIKey,
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.caption)
@@ -191,7 +191,7 @@ struct SkillEditorPage: View {
                 }
             }
         } header: {
-            Text(TermindCopy.Settings.instructions)
+            Text(AppStrings.Settings.instructions)
         }
     }
 

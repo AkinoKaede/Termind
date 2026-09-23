@@ -45,7 +45,7 @@ struct WindowSidebarView: View {
         .termindGlassCapsule()
         .animation(reduceMotion ? nil : Motion.panel, value: window.sidebarMode)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text(TermindCopy.Navigation.sidebar))
+        .accessibilityLabel(Text(AppStrings.Navigation.sidebar))
     }
 
     private func modeButton(_ mode: WindowSidebarState.Mode) -> some View {
@@ -441,14 +441,14 @@ enum TerminalSidebarMenuBuilder {
     ) -> [NativeMenuEntry] {
         [
             NativeMenuEntry(
-                title: localized(TermindCopy.Common.copy, locale: locale),
+                title: localized(AppStrings.Common.copy, locale: locale),
                 symbol: MenuSymbol.copy,
                 isEnabled: snippet != nil
             ) {
                 if let snippet { copy(snippet) }
             },
             NativeMenuEntry(
-                title: localized(TermindCopy.Common.insert, locale: locale),
+                title: localized(AppStrings.Common.insert, locale: locale),
                 symbol: MenuSymbol.insert,
                 isEnabled: snippet != nil && canInsert
             ) {
@@ -467,21 +467,21 @@ enum TerminalSidebarMenuBuilder {
     ) -> [NativeMenuEntry] {
         var entries = [
             NativeMenuEntry(
-                title: localized(TermindCopy.Common.copy, locale: locale),
+                title: localized(AppStrings.Common.copy, locale: locale),
                 symbol: MenuSymbol.copy,
                 isEnabled: entry != nil
             ) {
                 if let entry { copy(entry) }
             },
             NativeMenuEntry(
-                title: localized(TermindCopy.Common.insert, locale: locale),
+                title: localized(AppStrings.Common.insert, locale: locale),
                 symbol: MenuSymbol.insert,
                 isEnabled: entry != nil && canInsert
             ) {
                 if let entry { insert(entry) }
             },
             NativeMenuEntry(
-                title: localized(TermindCopy.Snippets.saveAsSnippet, locale: locale),
+                title: localized(AppStrings.Snippets.saveAsSnippet, locale: locale),
                 symbol: MenuSymbol.saveAsSnippet,
                 isEnabled: entry != nil
             ) {
@@ -491,7 +491,7 @@ enum TerminalSidebarMenuBuilder {
         if let entry {
             entries.append(
                 NativeMenuEntry(
-                    title: localized(TermindCopy.Common.delete, locale: locale),
+                    title: localized(AppStrings.Common.delete, locale: locale),
                     symbol: MenuSymbol.delete,
                     imageVisibility: .visible
                 ) {
@@ -501,7 +501,7 @@ enum TerminalSidebarMenuBuilder {
         entries.append(.separator)
         entries.append(
             NativeMenuEntry(
-                title: localized(TermindCopy.Common.clearAll, locale: locale),
+                title: localized(AppStrings.Common.clearAll, locale: locale),
                 symbol: MenuSymbol.clearHistory,
                 imageVisibility: .visible,
                 isEnabled: canClear,
@@ -564,11 +564,11 @@ private struct SnippetsSidebarView: View {
 
             SidebarSearchFooter(
                 text: $query,
-                placeholder: localized(TermindCopy.Snippets.searchSnippets)
+                placeholder: localized(AppStrings.Snippets.searchSnippets)
             )
         }
         .confirmationDialog(
-            TermindCopy.Snippets.runADestructiveScriptConfirmation.swiftUIKey,
+            AppStrings.Snippets.runADestructiveScriptConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { destructiveSnippet != nil },
                 set: { if !$0 { destructiveSnippet = nil } }
@@ -576,8 +576,8 @@ private struct SnippetsSidebarView: View {
             titleVisibility: .visible,
             presenting: destructiveSnippet
         ) { snippet in
-            Button(TermindCopy.Common.run.swiftUIKey, role: .destructive) { executeNow(snippet) }
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { destructiveSnippet = nil }
+            Button(AppStrings.Common.run.swiftUIKey, role: .destructive) { executeNow(snippet) }
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { destructiveSnippet = nil }
         } message: { snippet in
             let assessment = CommandRiskClassifier.assess(snippet.body)
             Text(([snippet.body] + assessment.reasons).joined(separator: "\n"))
@@ -587,7 +587,7 @@ private struct SnippetsSidebarView: View {
     private var snippetListItems: [SidebarListItem] {
         if !query.isEmpty {
             return SnippetSidebarListBuilder.searchItems(
-                displayedSnippets, title: localized(TermindCopy.Common.results)
+                displayedSnippets, title: localized(AppStrings.Common.results)
             )
         }
         var groups = packageSections.map {
@@ -598,7 +598,7 @@ private struct SnippetsSidebarView: View {
         if !ungrouped.isEmpty {
             groups.append(
                 SnippetSidebarGroup(
-                    id: .ungrouped, title: localized(TermindCopy.Common.ungrouped), snippets: ungrouped
+                    id: .ungrouped, title: localized(AppStrings.Common.ungrouped), snippets: ungrouped
                 )
             )
         }
@@ -857,7 +857,7 @@ private struct SSHCommandHistorySidebar: View {
                 // ever happened in History because this is the one sidebar mode
                 // with a child that demands height, and it appears exactly when
                 // `status.isLive` flips — the instant a connection succeeds.
-                Text(TermindCopy.Terminal.commandHistoryRequirement)
+                Text(AppStrings.Terminal.commandHistoryRequirement)
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .lineLimit(4)
@@ -866,20 +866,20 @@ private struct SSHCommandHistorySidebar: View {
                     .padding(.vertical, Metrics.Space.s)
             }
 
-            SidebarSearchFooter(text: $query, placeholder: String(localized: TermindCopy.Common.searchHistory))
+            SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
         .confirmationDialog(
-            TermindCopy.Terminal.clearCommandHistoryForThisHostConfirmation.swiftUIKey,
+            AppStrings.Terminal.clearCommandHistoryForThisHostConfirmation.swiftUIKey,
             isPresented: $confirmsClear,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive, action: clearHistory)
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive, action: clearHistory)
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text(TermindCopy.Terminal.clearCommandHistoryWarning)
+            Text(AppStrings.Terminal.clearCommandHistoryWarning)
         }
         .confirmationDialog(
-            TermindCopy.Assistant.executeADestructiveCommandConfirmation.swiftUIKey,
+            AppStrings.Assistant.executeADestructiveCommandConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { destructiveEntry != nil },
                 set: { if !$0 { destructiveEntry = nil } }
@@ -887,8 +887,8 @@ private struct SSHCommandHistorySidebar: View {
             titleVisibility: .visible,
             presenting: destructiveEntry
         ) { entry in
-            Button(TermindCopy.Common.execute.swiftUIKey, role: .destructive) { executeNow(entry) }
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { destructiveEntry = nil }
+            Button(AppStrings.Common.execute.swiftUIKey, role: .destructive) { executeNow(entry) }
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { destructiveEntry = nil }
         } message: { entry in
             let assessment = CommandRiskClassifier.assess(entry.command)
             Text(([entry.command] + assessment.reasons).joined(separator: "\n"))
@@ -908,7 +908,7 @@ private struct SSHCommandHistorySidebar: View {
             VStack(alignment: .leading, spacing: 3) {
                 SidebarInlineTextField(
                     text: $snippetName,
-                    prompt: String(localized: TermindCopy.Snippets.snippetName),
+                    prompt: String(localized: AppStrings.Snippets.snippetName),
                     onSubmit: { saveSnippet(from: entry) },
                     onCancel: cancelSnippetNaming
                 ).singleLinePaste()
@@ -966,7 +966,7 @@ private struct SSHCommandHistorySidebar: View {
             SidebarListItem.history($0, isNaming: namingEntryID == $0.id)
         }
         guard !query.isEmpty else { return entries }
-        return [.section(.results, title: String(localized: TermindCopy.Common.results))] + entries
+        return [.section(.results, title: String(localized: AppStrings.Common.results))] + entries
     }
 
     @ViewBuilder
@@ -975,8 +975,8 @@ private struct SSHCommandHistorySidebar: View {
             ContentUnavailableView.search(text: query)
         } else {
             ContentUnavailableView(
-                TermindCopy.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath",
-                description: Text(TermindCopy.Terminal.commandsConfirmedByTheRemoteShellAppearHere)
+                AppStrings.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath",
+                description: Text(AppStrings.Terminal.commandsConfirmedByTheRemoteShellAppearHere)
             )
         }
     }
@@ -1081,8 +1081,8 @@ private struct SFTPBrowseHistorySidebar: View {
                 Group {
                     if query.isEmpty {
                         ContentUnavailableView(
-                            TermindCopy.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath",
-                            description: Text(TermindCopy.SFTP.foldersYouVisitAndFilesYouOpenAppearHere)
+                            AppStrings.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath",
+                            description: Text(AppStrings.SFTP.foldersYouVisitAndFilesYouOpenAppearHere)
                         )
                     } else {
                         ContentUnavailableView.search(text: query)
@@ -1106,33 +1106,33 @@ private struct SFTPBrowseHistorySidebar: View {
                 }
             }
 
-            SidebarSearchFooter(text: $query, placeholder: String(localized: TermindCopy.Common.searchHistory))
+            SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
         .confirmationDialog(
-            TermindCopy.SFTP.clearFileHistoryForThisHostConfirmation.swiftUIKey, isPresented: $confirmsClear,
+            AppStrings.SFTP.clearFileHistoryForThisHostConfirmation.swiftUIKey, isPresented: $confirmsClear,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
                 if let session { app.sftpHistory.clear(for: session.hostID) }
             }
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         }
     }
 
     private var globalMenu: [NativeMenuEntry] {
         [
             NativeMenuEntry(
-                title: TermindCopy.Common.open, symbol: MenuSymbol.open, isEnabled: false
+                title: AppStrings.Common.open, symbol: MenuSymbol.open, isEnabled: false
             ),
             NativeMenuEntry(
-                title: TermindCopy.Common.delete,
+                title: AppStrings.Common.delete,
                 symbol: MenuSymbol.delete,
                 imageVisibility: .visible,
                 isEnabled: false
             ),
             .separator,
             NativeMenuEntry(
-                title: TermindCopy.Common.clearAll,
+                title: AppStrings.Common.clearAll,
                 symbol: MenuSymbol.clearHistory,
                 imageVisibility: .visible,
                 isEnabled: !entries.isEmpty,
@@ -1154,17 +1154,17 @@ private struct SFTPBrowseHistorySidebar: View {
         .onTapGesture { selectedID = entry.id }
         .termindSidebarRow(isSelected: selectedID == entry.id) {
             [
-                NativeMenuEntry(title: TermindCopy.Common.open, symbol: MenuSymbol.open) {
+                NativeMenuEntry(title: AppStrings.Common.open, symbol: MenuSymbol.open) {
                     reopen(entry)
                 },
                 NativeMenuEntry(
-                    title: TermindCopy.Common.delete,
+                    title: AppStrings.Common.delete,
                     symbol: MenuSymbol.delete,
                     imageVisibility: .visible,
                 ) { app.sftpHistory.delete(entry.id) },
                 .separator,
                 NativeMenuEntry(
-                    title: TermindCopy.Common.clearAll,
+                    title: AppStrings.Common.clearAll,
                     symbol: MenuSymbol.clearHistory,
                     imageVisibility: .visible,
                 ) { confirmsClear = true },
@@ -1223,8 +1223,8 @@ private struct ConnectionHistorySidebar: View {
                 Group {
                     if query.isEmpty {
                         ContentUnavailableView(
-                            TermindCopy.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath",
-                            description: Text(TermindCopy.Connections.hostsYouConnectToAppearHere)
+                            AppStrings.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath",
+                            description: Text(AppStrings.Connections.hostsYouConnectToAppearHere)
                         )
                     } else {
                         ContentUnavailableView.search(text: query)
@@ -1251,19 +1251,19 @@ private struct ConnectionHistorySidebar: View {
                 }
             }
 
-            SidebarSearchFooter(text: $query, placeholder: String(localized: TermindCopy.Common.searchHistory))
+            SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
         .confirmationDialog(
-            TermindCopy.Connections.clearConnectionHistoryConfirmation.swiftUIKey,
+            AppStrings.Connections.clearConnectionHistoryConfirmation.swiftUIKey,
             isPresented: $confirmsClear,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
                 app.clearConnectionHistory()
             }
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text(TermindCopy.Workspace.clearHistoryWarning)
+            Text(AppStrings.Workspace.clearHistoryWarning)
         }
     }
 
@@ -1275,19 +1275,19 @@ private struct ConnectionHistorySidebar: View {
     private var globalMenu: [NativeMenuEntry] {
         [
             NativeMenuEntry(
-                title: TermindCopy.Vault.quickConnect,
+                title: AppStrings.Vault.quickConnect,
                 symbol: MenuSymbol.quickConnect,
                 isEnabled: false
             ),
             NativeMenuEntry(
-                title: TermindCopy.Common.delete,
+                title: AppStrings.Common.delete,
                 symbol: MenuSymbol.delete,
                 imageVisibility: .visible,
                 isEnabled: false
             ),
             .separator,
             NativeMenuEntry(
-                title: TermindCopy.Common.clearAll,
+                title: AppStrings.Common.clearAll,
                 symbol: MenuSymbol.clearHistory,
                 imageVisibility: .visible,
                 isEnabled: !allRows.isEmpty,
@@ -1335,13 +1335,13 @@ private struct ConnectionHistorySidebar: View {
                 for: host, app: app, window: window, includesCopySSHCommand: false
             ) + [
                 NativeMenuEntry(
-                    title: TermindCopy.Common.delete,
+                    title: AppStrings.Common.delete,
                     symbol: MenuSymbol.delete,
                     imageVisibility: .visible,
                 ) { app.connectionHistory.delete(entry.id) },
                 .separator,
                 NativeMenuEntry(
-                    title: TermindCopy.Common.clearAll,
+                    title: AppStrings.Common.clearAll,
                     symbol: MenuSymbol.clearHistory,
                     imageVisibility: .visible,
                 ) { confirmsClear = true },
@@ -1397,8 +1397,8 @@ private struct CommandHistoryCard: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .help(TermindCopy.Common.delete.swiftUIKey)
-                    .accessibilityLabel(TermindCopy.Common.delete.swiftUIKey)
+                    .help(AppStrings.Common.delete.swiftUIKey)
+                    .accessibilityLabel(AppStrings.Common.delete.swiftUIKey)
                 } else {
                     RiskBadge(
                         assessment: CommandRiskClassifier.assess(entry.command),

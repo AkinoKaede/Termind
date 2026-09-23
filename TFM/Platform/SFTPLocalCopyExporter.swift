@@ -6,7 +6,7 @@ import TermindPresentation
 enum SFTPLocalCopyExporter {
     static func present(for source: URL, failed: @escaping (any Error) -> Void) {
         let panel = NSSavePanel()
-        panel.title = String(localized: TermindCopy.SFTP.keepLocalCopy)
+        panel.title = String(localized: AppStrings.SFTP.keepLocalCopy)
         panel.nameFieldStringValue = source.lastPathComponent
         panel.canCreateDirectories = true
         panel.begin { response in

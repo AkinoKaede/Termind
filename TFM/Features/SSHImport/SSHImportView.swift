@@ -34,14 +34,14 @@ private struct SSHImportContent: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: knownHostsOnly ? TermindCopy.KnownHosts.importKnownHosts : TermindCopy.Vault.importSshFolder,
+            title: knownHostsOnly ? AppStrings.KnownHosts.importKnownHosts : AppStrings.Vault.importSshFolder,
             symbol: "square.and.arrow.down",
             close: closeWhenIdle
         ) {
             if model.completed {
                 VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                    Label(TermindCopy.Vault.importComplete.swiftUIKey, systemImage: "checkmark.circle").font(.headline)
-                    Text(TermindCopy.Vault.importedItems(model.importedCount)).foregroundStyle(.secondary)
+                    Label(AppStrings.Vault.importComplete.swiftUIKey, systemImage: "checkmark.circle").font(.headline)
+                    Text(AppStrings.Vault.importedItems(model.importedCount)).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 .padding()
@@ -52,31 +52,31 @@ private struct SSHImportContent: View {
                     }
                     if !knownHostsOnly {
                         Section {
-                            Picker(TermindCopy.Keychain.storeIn.swiftUIKey, selection: $model.storage) {
+                            Picker(AppStrings.Keychain.storeIn.swiftUIKey, selection: $model.storage) {
                                 ForEach(PasswordStorage.allCases) { storage in
                                     Label(storage.displayName, systemImage: storage.symbol).tag(storage)
                                 }
                             }
-                            LabeledContent(TermindCopy.Vault.color.swiftUIKey) {
+                            LabeledContent(AppStrings.Vault.color.swiftUIKey) {
                                 ColorTagPicker(selection: $model.importColor, layout: .compact)
                             }
                         }
-                        Section(TermindCopy.Vault.hosts.swiftUIKey) {
-                            Picker(TermindCopy.Vault.group.swiftUIKey, selection: $model.hostGroupID) {
-                                Text(TermindCopy.Common.none).tag(HostGroup.ID?.none)
+                        Section(AppStrings.Vault.hosts.swiftUIKey) {
+                            Picker(AppStrings.Vault.group.swiftUIKey, selection: $model.hostGroupID) {
+                                Text(AppStrings.Common.none).tag(HostGroup.ID?.none)
                                 ForEach(app.hostLibrary.groups) { group in
                                     Text(group.name).tag(HostGroup.ID?.some(group.id))
                                 }
                             }
                             VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                                Text(TermindCopy.Vault.tags)
+                                Text(AppStrings.Vault.tags)
                                 TagField(tags: $model.hostTags, suggestions: app.hostLibrary.allTags)
                             }
                         }
                     }
                     if !model.items.isEmpty {
                         Section {
-                            selectionButton(category: nil, title: String(localized: TermindCopy.Common.selectAll))
+                            selectionButton(category: nil, title: String(localized: AppStrings.Common.selectAll))
                         }
                         ForEach(SSHImportCategory.allCases) { category in
                             if model.items.contains(where: { $0.category == category }) {
@@ -110,17 +110,17 @@ private struct SSHImportContent: View {
             VStack(alignment: .leading, spacing: Metrics.Space.s) {
                 HStack {
                     if !model.items.isEmpty && !model.completed {
-                        Text(TermindCopy.Common.selected(model.selectedItems().count))
+                        Text(AppStrings.Common.selected(model.selectedItems().count))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                     if model.isWorking { ProgressView().controlSize(.small) }
                     Spacer()
                     Button(
-                        model.completed ? TermindCopy.Common.done.swiftUIKey : TermindCopy.Common.cancel.swiftUIKey,
+                        model.completed ? AppStrings.Common.done.swiftUIKey : AppStrings.Common.cancel.swiftUIKey,
                         action: close
                     ).disabled(model.isWorking)
                     if !model.completed {
-                        Button(TermindCopy.Common.import.swiftUIKey) {
+                        Button(AppStrings.Common.import.swiftUIKey) {
                             Task {
                                 await model.commit()
                                 passphrases = [:]
@@ -135,10 +135,10 @@ private struct SSHImportContent: View {
             if nativeDropKind != nil {
                 DropTargetOverlay(
                     presentation: DropTargetPresentation(
-                        title: String(localized: TermindCopy.Common.dragToImport),
+                        title: String(localized: AppStrings.Common.dragToImport),
                         detail: knownHostsOnly
-                            ? String(localized: TermindCopy.Vault.knownHostsFile)
-                            : String(localized: TermindCopy.Vault.sshFolder),
+                            ? String(localized: AppStrings.Vault.knownHostsFile)
+                            : String(localized: AppStrings.Vault.sshFolder),
                         systemImage: knownHostsOnly ? "touchid" : "folder"
                     ))
             }
@@ -155,7 +155,7 @@ private struct SSHImportContent: View {
     private var sourcePicker: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
             Label(
-                knownHostsOnly ? TermindCopy.Vault.knownHostsFile.swiftUIKey : TermindCopy.Vault.sshFolder.swiftUIKey,
+                knownHostsOnly ? AppStrings.Vault.knownHostsFile.swiftUIKey : AppStrings.Vault.sshFolder.swiftUIKey,
                 systemImage: knownHostsOnly ? "touchid" : "folder"
             )
             .font(.headline)
@@ -164,12 +164,12 @@ private struct SSHImportContent: View {
             } else {
                 Text(
                     knownHostsOnly
-                        ? TermindCopy.Vault.dropAKnownHostsFileHereOrChooseAFile
-                        : TermindCopy.Vault.dropASshFolderHereOrChooseAFolder
+                        ? AppStrings.Vault.dropAKnownHostsFileHereOrChooseAFile
+                        : AppStrings.Vault.dropASshFolderHereOrChooseAFolder
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }
-            Button(TermindCopy.Common.choose.swiftUIKey) {
+            Button(AppStrings.Common.choose.swiftUIKey) {
                 Task {
                     if let url = await SSHImportFilePicker.choose(folder: !knownHostsOnly) {
                         inputError = nil
@@ -212,10 +212,10 @@ private struct SSHImportContent: View {
         .buttonStyle(.plain)
         .accessibilityValue(
             selected == 0
-                ? String(localized: TermindCopy.Vault.noneSelected)
+                ? String(localized: AppStrings.Vault.noneSelected)
                 : selected == total
-                    ? String(localized: TermindCopy.Vault.allSelected)
-                    : String(localized: TermindCopy.Vault.partiallySelected)
+                    ? String(localized: AppStrings.Vault.allSelected)
+                    : String(localized: AppStrings.Vault.partiallySelected)
         )
         .disabled(total == 0)
     }
@@ -284,13 +284,13 @@ private struct SSHImportContent: View {
             }
             .disabled(!model.selectable(item))
             if item.existingID != nil {
-                Label(TermindCopy.Vault.alreadyImported.swiftUIKey, systemImage: "checkmark.circle").font(.caption)
+                Label(AppStrings.Vault.alreadyImported.swiftUIKey, systemImage: "checkmark.circle").font(.caption)
                     .foregroundStyle(.secondary)
             }
             if item.host != nil && model.selectable(item) {
                 if model.hasNameConflict(item) || editingNames.contains(item.id) {
                     TextField(
-                        TermindCopy.Common.name.swiftUIKey,
+                        AppStrings.Common.name.swiftUIKey,
                         text: Binding(
                             get: { binding.name.wrappedValue },
                             set: {
@@ -303,7 +303,7 @@ private struct SSHImportContent: View {
                 let options = model.keyOptions(for: item)
                 if options.count > 1 {
                     Picker(
-                        TermindCopy.Vault.key.swiftUIKey,
+                        AppStrings.Vault.key.swiftUIKey,
                         selection: Binding(
                             get: { model.chosenKey(for: item)?.id },
                             set: { model.setPreferredKey($0, for: item.id) })
@@ -314,47 +314,47 @@ private struct SSHImportContent: View {
             }
             if item.host != nil {
                 LabeledContent(
-                    TermindCopy.Vault.identity.swiftUIKey,
-                    value: model.identityName(for: item) ?? String(localized: TermindCopy.Common.none))
+                    AppStrings.Vault.identity.swiftUIKey,
+                    value: model.identityName(for: item) ?? String(localized: AppStrings.Common.none))
             }
             if let identity = item.identity {
                 if model.selectable(item) {
                     TextField(
-                        TermindCopy.Common.name.swiftUIKey,
+                        AppStrings.Common.name.swiftUIKey,
                         text: Binding(
                             get: { binding.name.wrappedValue },
                             set: { model.setName($0, for: item.id) }
                         ).singleLineText, axis: .horizontal
                     ).singleLinePaste().lineLimit(1)
                 }
-                LabeledContent(TermindCopy.Vault.username.swiftUIKey, value: identity.username)
+                LabeledContent(AppStrings.Vault.username.swiftUIKey, value: identity.username)
                 LabeledContent(
-                    TermindCopy.Vault.key.swiftUIKey,
+                    AppStrings.Vault.key.swiftUIKey,
                     value: identity.keyID.flatMap { id in
                         model.keyName(id)
-                    } ?? String(localized: TermindCopy.Vault.noKey)
+                    } ?? String(localized: AppStrings.Vault.noKey)
                 )
                 let hosts = model.linkedHostNames(for: item)
                 if !hosts.isEmpty {
-                    LabeledContent(TermindCopy.Vault.hosts.swiftUIKey, value: hosts.joined(separator: ", "))
+                    LabeledContent(AppStrings.Vault.hosts.swiftUIKey, value: hosts.joined(separator: ", "))
                 }
             }
             if item.requiresPassphrase {
                 RevealableSecretField(
-                    TermindCopy.Keychain.passphrase,
+                    AppStrings.Keychain.passphrase,
                     text: Binding(get: { passphrases[item.id] ?? "" }, set: { passphrases[item.id] = $0 }),
-                    prompt: Text(TermindCopy.Keychain.passphrase)
+                    prompt: Text(AppStrings.Keychain.passphrase)
                 )
                 .labelsHidden()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, Metrics.Space.m)
-                Button(TermindCopy.Vault.unlockKey.swiftUIKey) {
+                Button(AppStrings.Vault.unlockKey.swiftUIKey) {
                     let passphrase = passphrases.removeValue(forKey: item.id) ?? ""
                     Task { await model.unlock(item.id, passphrase: passphrase) }
                 }
             }
             if let path = item.needsAuthorization {
-                Button(TermindCopy.Vault.authorizeFile.swiftUIKey) {
+                Button(AppStrings.Vault.authorizeFile.swiftUIKey) {
                     Task {
                         if let url = await SSHImportFilePicker.choose(folder: path.contains("*"), suggestedPath: path) {
                             await model.authorize(url)
@@ -367,7 +367,7 @@ private struct SSHImportContent: View {
                 ForEach(Array(warnings.enumerated()), id: \.offset) { _, warning in
                     Text(warning).font(.caption).foregroundStyle(.orange)
                 }
-                Toggle(TermindCopy.Vault.acceptTheseImportWarnings.swiftUIKey, isOn: binding.acceptedWarnings)
+                Toggle(AppStrings.Vault.acceptTheseImportWarnings.swiftUIKey, isOn: binding.acceptedWarnings)
                     .toggleStyle(.checkbox)
             }
             if let issue = model.problem(for: item, includeWarningReminder: false), item.existingID == nil {

@@ -18,10 +18,10 @@ extension ConnectionStatus {
 
     var label: String {
         switch self {
-        case .disconnected: String(localized: TermindCopy.Connections.notConnected)
-        case .connecting: String(localized: TermindCopy.Connections.connecting)
-        case .connected: String(localized: TermindCopy.Connections.connected)
-        case .reconnecting: String(localized: TermindCopy.Connections.reconnecting)
+        case .disconnected: String(localized: AppStrings.Connections.notConnected)
+        case .connecting: String(localized: AppStrings.Connections.connecting)
+        case .connected: String(localized: AppStrings.Connections.connected)
+        case .reconnecting: String(localized: AppStrings.Connections.reconnecting)
         case .failed(let message): message
         }
     }

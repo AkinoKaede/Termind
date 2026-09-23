@@ -115,7 +115,7 @@ final class TelnetSessionModel: Identifiable {
         connection = nil
         let host = store.host(hostID) ?? transientHost
         guard host.telnetEnabled else {
-            fail(String(localized: TermindCopy.Connections.telnetIsDisabledForThisHost))
+            fail(String(localized: AppStrings.Connections.telnetIsDisabledForThisHost))
             return
         }
         let username = usernameHint ?? store.identity(for: host, protocol: .telnet)?.username
@@ -146,7 +146,7 @@ final class TelnetSessionModel: Identifiable {
                 Task { @MainActor in
                     guard let self, self.connection != nil else { return }
                     self.connection = nil
-                    self.fail(message ?? String(localized: TermindCopy.Terminal.theTelnetConnectionClosed))
+                    self.fail(message ?? String(localized: AppStrings.Terminal.theTelnetConnectionClosed))
                 }
             }
         )

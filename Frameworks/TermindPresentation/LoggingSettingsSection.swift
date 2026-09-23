@@ -12,16 +12,16 @@ public struct LoggingSettingsSection: View {
 
     public var body: some View {
         Section {
-            Toggle(TermindCopy.Common.save.swiftUIKey, isOn: $saving)
-            Picker(TermindCopy.Settings.level.swiftUIKey, selection: $level) {
+            Toggle(AppStrings.Common.save.swiftUIKey, isOn: $saving)
+            Picker(AppStrings.Settings.level.swiftUIKey, selection: $level) {
                 ForEach(ApplicationLogLevel.allCases) { level in
                     Text(verbatim: level.localizedName).tag(level.rawValue)
                 }
             }
         } header: {
-            Text(TermindCopy.Settings.logging)
+            Text(AppStrings.Settings.logging)
         } footer: {
-            Text(TermindCopy.Settings.logSharingWarning)
+            Text(AppStrings.Settings.logSharingWarning)
         }
     }
 }

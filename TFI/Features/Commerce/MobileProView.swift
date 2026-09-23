@@ -28,7 +28,7 @@ struct MobileProView: View {
             .safeAreaInset(edge: .bottom, spacing: 0) { purchaseActions }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TermindCopy.Common.close.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(
+                    Button(AppStrings.Common.close.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(
                         .iconOnly)
                 }
             }
@@ -47,8 +47,8 @@ struct MobileProView: View {
                 .font(.system(size: 52, weight: .medium))
                 .foregroundStyle(.tint)
                 .symbolRenderingMode(.hierarchical)
-            Text(TermindCopy.Pro.termindPro).font(.largeTitle.bold())
-            Text(TermindCopy.Pro.planExplanation)
+            Text(AppStrings.Pro.termindPro).font(.largeTitle.bold())
+            Text(AppStrings.Pro.planExplanation)
                 .font(.body).foregroundStyle(.secondary).multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
         }
@@ -59,35 +59,35 @@ struct MobileProView: View {
     @ViewBuilder private var accessStatus: some View {
         switch pro.status {
         case .loading:
-            statusCard(TermindCopy.Pro.checkingProgress, symbol: "arrow.triangle.2.circlepath", tint: .secondary)
+            statusCard(AppStrings.Pro.checkingProgress, symbol: "arrow.triangle.2.circlepath", tint: .secondary)
         case .free:
-            statusCard(TermindCopy.Pro.free, symbol: "person.crop.circle", tint: .secondary)
+            statusCard(AppStrings.Pro.free, symbol: "person.crop.circle", tint: .secondary)
         case .subscription(let subscription):
             subscriptionStatusCard(subscription)
         case .purchased(.purchased):
-            statusCard(TermindCopy.Pro.lifetimeAccess, symbol: "checkmark.seal.fill", tint: .green)
+            statusCard(AppStrings.Pro.lifetimeAccess, symbol: "checkmark.seal.fill", tint: .green)
         case .purchased(.familyShared):
-            statusCard(TermindCopy.Pro.lifetimeAccessFamilyShared, symbol: "person.3.fill", tint: .green)
+            statusCard(AppStrings.Pro.lifetimeAccessFamilyShared, symbol: "person.3.fill", tint: .green)
         case .verificationFailed:
             statusCard(
-                TermindCopy.Pro.theAppStoreCouldNotVerifyThisPurchase,
+                AppStrings.Pro.theAppStoreCouldNotVerifyThisPurchase,
                 symbol: "exclamationmark.triangle.fill", tint: .orange)
         case .unrestrictedForTesting:
-            statusCard(TermindCopy.Pro.proActive, symbol: "checkmark.seal.fill", tint: .green)
+            statusCard(AppStrings.Pro.proActive, symbol: "checkmark.seal.fill", tint: .green)
         }
     }
 
     private var featureList: some View {
         VStack(spacing: 0) {
-            feature(TermindCopy.Pro.assistantFeature, symbol: "sparkles")
+            feature(AppStrings.Pro.assistantFeature, symbol: "sparkles")
             Divider().padding(.leading, 52)
-            feature(TermindCopy.Pro.metricsFeature, symbol: "waveform.path.ecg")
+            feature(AppStrings.Pro.metricsFeature, symbol: "waveform.path.ecg")
             Divider().padding(.leading, 52)
-            feature(TermindCopy.Pro.terminalUploadFeature, symbol: "arrow.up.doc")
+            feature(AppStrings.Pro.terminalUploadFeature, symbol: "arrow.up.doc")
             Divider().padding(.leading, 52)
-            feature(TermindCopy.Pro.connectRemoteMcpTools, symbol: "server.rack")
+            feature(AppStrings.Pro.connectRemoteMcpTools, symbol: "server.rack")
             Divider().padding(.leading, 52)
-            feature(TermindCopy.Pro.syncFeature, symbol: "icloud")
+            feature(AppStrings.Pro.syncFeature, symbol: "icloud")
         }
         .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 16))
         .overlay {
@@ -98,7 +98,7 @@ struct MobileProView: View {
     @ViewBuilder private var purchaseActions: some View {
         if showsPurchaseActions {
             VStack(spacing: 8) {
-                if pro.isProcessing { ProgressView(TermindCopy.Pro.contactingTheAppStoreProgress.swiftUIKey) }
+                if pro.isProcessing { ProgressView(AppStrings.Pro.contactingTheAppStoreProgress.swiftUIKey) }
                 if let message = pro.message {
                     Text(message).font(.caption).foregroundStyle(.orange).multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
@@ -134,21 +134,21 @@ struct MobileProView: View {
     private var secondaryActions: some View {
         VStack(spacing: 10) {
             if canManageSubscription {
-                Button(TermindCopy.Pro.manageSubscription.swiftUIKey) { isManagingSubscriptions = true }
+                Button(AppStrings.Pro.manageSubscription.swiftUIKey) { isManagingSubscriptions = true }
                     .buttonStyle(.plain).foregroundStyle(.tint)
             }
-            Button(TermindCopy.Pro.restorePurchase.swiftUIKey) { Task { await pro.restorePurchases() } }
+            Button(AppStrings.Pro.restorePurchase.swiftUIKey) { Task { await pro.restorePurchases() } }
                 .buttonStyle(.plain).foregroundStyle(.tint).disabled(pro.isProcessing)
             HStack(spacing: 16) {
                 Link(
-                    TermindCopy.Pro.privacyPolicy.swiftUIKey,
+                    AppStrings.Pro.privacyPolicy.swiftUIKey,
                     destination: URL(string: "https://termind.akinokaede.com/privacy/")!)
                 Link(
-                    TermindCopy.Pro.termsOfUse.swiftUIKey,
+                    AppStrings.Pro.termsOfUse.swiftUIKey,
                     destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
             }
             .font(.caption2)
-            Text(TermindCopy.Pro.familySharingDisclosure)
+            Text(AppStrings.Pro.familySharingDisclosure)
                 .font(.caption2).foregroundStyle(.tertiary).multilineTextAlignment(.center)
         }
     }
@@ -161,15 +161,15 @@ struct MobileProView: View {
         HStack(spacing: 8) {
             planCard(
                 .annual,
-                title: TermindCopy.Pro.annual,
+                title: AppStrings.Pro.annual,
                 price: pro.annualDisplayPrice,
-                detail: offer.annualBillingUnit.map { String(localized: TermindCopy.Pro.billingPeriod($0)) },
+                detail: offer.annualBillingUnit.map { String(localized: AppStrings.Pro.billingPeriod($0)) },
                 badge: offer.trialBadge)
             planCard(
                 .lifetime,
-                title: TermindCopy.Pro.lifetime,
+                title: AppStrings.Pro.lifetime,
                 price: pro.displayPrice,
-                detail: String(localized: TermindCopy.Pro.oneTimePurchase),
+                detail: String(localized: AppStrings.Pro.oneTimePurchase),
                 badge: nil)
         }
     }
@@ -238,26 +238,26 @@ struct MobileProView: View {
         }
         switch subscription.phase {
         case .introductoryTrial:
-            statusCard(TermindCopy.Pro.freeTrial, symbol: "clock.fill", tint: .orange, detail: detail)
+            statusCard(AppStrings.Pro.freeTrial, symbol: "clock.fill", tint: .orange, detail: detail)
         case .subscribed:
             statusCard(
                 subscription.willAutoRenew == false
-                    ? TermindCopy.Pro.annualAccessUntil : TermindCopy.Pro.annualSubscription,
+                    ? AppStrings.Pro.annualAccessUntil : AppStrings.Pro.annualSubscription,
                 symbol: "checkmark.seal.fill", tint: .green, detail: detail)
         case .gracePeriod:
             statusCard(
-                TermindCopy.Pro.billingGracePeriod, symbol: "clock.badge.exclamationmark", tint: .orange, detail: detail
+                AppStrings.Pro.billingGracePeriod, symbol: "clock.badge.exclamationmark", tint: .orange, detail: detail
             )
         case .billingRetry:
             statusCard(
-                TermindCopy.Pro.billingIssue, symbol: "creditcard.trianglebadge.exclamationmark", tint: .orange,
+                AppStrings.Pro.billingIssue, symbol: "creditcard.trianglebadge.exclamationmark", tint: .orange,
                 detail: detail)
         case .expired:
             statusCard(
-                TermindCopy.Pro.subscriptionExpired, symbol: "calendar.badge.exclamationmark", tint: .orange,
+                AppStrings.Pro.subscriptionExpired, symbol: "calendar.badge.exclamationmark", tint: .orange,
                 detail: detail)
         case .revoked:
-            statusCard(TermindCopy.Pro.subscriptionRevoked, symbol: "xmark.seal", tint: .red, detail: detail)
+            statusCard(AppStrings.Pro.subscriptionRevoked, symbol: "xmark.seal", tint: .red, detail: detail)
         }
     }
 

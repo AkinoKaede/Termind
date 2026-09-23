@@ -93,8 +93,8 @@ struct MobileAssistantActivity: View {
             } else if cyclesText && displayed && !reduceMotion && sceneIsActive {
                 TimelineView(.animation(minimumInterval: AssistantTranscriptStyle.activityTextDuration)) { context in
                     let titles: [LocalizedStringResource] = [
-                        TermindCopy.Assistant.workingProgress, TermindCopy.Assistant.thinkingProgress,
-                        TermindCopy.Assistant.reasoningProgress,
+                        AppStrings.Assistant.workingProgress, AppStrings.Assistant.thinkingProgress,
+                        AppStrings.Assistant.reasoningProgress,
                     ]
                     let index =
                         max(
@@ -105,7 +105,7 @@ struct MobileAssistantActivity: View {
                     Text(titles[index])
                 }
             } else {
-                Text(TermindCopy.Assistant.workingProgress)
+                Text(AppStrings.Assistant.workingProgress)
             }
         }
         .foregroundStyle(
@@ -135,7 +135,7 @@ struct MobileAssistantDisclosure<Title: View, Content: View>: View {
             }
             .buttonStyle(.plain)
             .accessibilityValue(
-                expanded ? Text(TermindCopy.Assistant.hideDetails) : Text(TermindCopy.Assistant.showDetails))
+                expanded ? Text(AppStrings.Assistant.hideDetails) : Text(AppStrings.Assistant.showDetails))
             if expanded { content() }
         }
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Metrics {
         public static var addASavedLinuxServerToStartMonitoring: LocalizedStringResource {
             "Add a saved Linux server to start monitoring."

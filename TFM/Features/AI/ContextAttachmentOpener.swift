@@ -91,7 +91,7 @@ nonisolated enum ContextAttachmentOpener {
         var errorDescription: String? {
             switch self {
             case .noDefaultApplication:
-                String(localized: TermindCopy.Assistant.noApplicationIsAvailableToOpenThisAttachment)
+                String(localized: AppStrings.Assistant.noApplicationIsAvailableToOpenThisAttachment)
             }
         }
     }

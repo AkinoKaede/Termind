@@ -86,7 +86,7 @@ struct ManagedCardDeletionPresentation<ID: Hashable>: ManagedCardPresentationMod
                 confirmationTitle,
                 isPresented: Binding(get: { !deleting.isEmpty }, set: { if !$0 { deleting = [] } })
             ) {
-                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive, action: delete)
+                Button(AppStrings.Common.delete.swiftUIKey, role: .destructive, action: delete)
             } message: {
                 if let explanation { explanation }
             }
@@ -94,7 +94,7 @@ struct ManagedCardDeletionPresentation<ID: Hashable>: ManagedCardPresentationMod
                 errorTitle,
                 isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
             ) {
-                Button(TermindCopy.Common.ok.swiftUIKey) { error = nil }
+                Button(AppStrings.Common.ok.swiftUIKey) { error = nil }
             } message: {
                 Text(error ?? "")
             }

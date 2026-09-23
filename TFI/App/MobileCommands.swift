@@ -42,27 +42,27 @@ struct MobileCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .appSettings) {
-            Button(TermindCopy.Navigation.settings.swiftUIKey, systemImage: "gearshape") { scene?.openSettings() }
+            Button(AppStrings.Navigation.settings.swiftUIKey, systemImage: "gearshape") { scene?.openSettings() }
                 .keyboardShortcut(MobileShortcut.settings)
                 .disabled(scene == nil)
         }
 
         CommandGroup(replacing: .newItem) {
-            Button(TermindCopy.Common.connect.swiftUIKey, systemImage: "network") { scene?.openConnectionPicker() }
+            Button(AppStrings.Common.connect.swiftUIKey, systemImage: "network") { scene?.openConnectionPicker() }
                 .keyboardShortcut(MobileShortcut.connect)
                 .disabled(scene == nil)
-            Button(TermindCopy.Assistant.newChat.swiftUIKey, systemImage: "plus.bubble") {
+            Button(AppStrings.Assistant.newChat.swiftUIKey, systemImage: "plus.bubble") {
                 scene?.openNewConversation()
             }
             .keyboardShortcut(MobileShortcut.newChat)
             .disabled(scene == nil)
-            Button(TermindCopy.Vault.newHost.swiftUIKey, systemImage: "server.rack") { scene?.openNewHost() }
+            Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: "server.rack") { scene?.openNewHost() }
                 .keyboardShortcut(MobileShortcut.newHost)
                 .disabled(scene == nil)
         }
 
         CommandGroup(after: .pasteboard) {
-            Button(TermindCopy.Workspace.generateCommand.swiftUIKey, systemImage: "sparkles") {
+            Button(AppStrings.Workspace.generateCommand.swiftUIKey, systemImage: "sparkles") {
                 scene?.generateTerminalCommand()
             }
             .keyboardShortcut(MobileShortcut.generateCommand)
@@ -70,34 +70,34 @@ struct MobileCommands: Commands {
 
             Divider()
 
-            Button(TermindCopy.Workspace.find.swiftUIKey, systemImage: "magnifyingglass") {
+            Button(AppStrings.Workspace.find.swiftUIKey, systemImage: "magnifyingglass") {
                 scene?.presentTerminalFind()
             }
             .keyboardShortcut(MobileShortcut.find)
             .disabled(scene?.canUseTerminalCommands != true)
-            Button(TermindCopy.Terminal.findNextInTerminal.swiftUIKey) { scene?.navigateTerminalFind(.previous) }
+            Button(AppStrings.Terminal.findNextInTerminal.swiftUIKey) { scene?.navigateTerminalFind(.previous) }
                 .keyboardShortcut(MobileShortcut.findNext)
                 .disabled(scene?.canUseTerminalCommands != true)
-            Button(TermindCopy.Terminal.findPreviousInTerminal.swiftUIKey) { scene?.navigateTerminalFind(.next) }
+            Button(AppStrings.Terminal.findPreviousInTerminal.swiftUIKey) { scene?.navigateTerminalFind(.next) }
                 .keyboardShortcut(MobileShortcut.findPrevious)
                 .disabled(scene?.canUseTerminalCommands != true)
         }
 
         CommandGroup(replacing: .saveItem) {
-            Button(TermindCopy.Workspace.closeWorkspace.swiftUIKey, systemImage: "xmark") {
+            Button(AppStrings.Workspace.closeWorkspace.swiftUIKey, systemImage: "xmark") {
                 scene?.closeActiveWorkspace()
             }
             .keyboardShortcut(MobileShortcut.closeWorkspace)
             .disabled(scene?.canCloseWorkspace != true)
         }
 
-        CommandMenu(TermindCopy.Navigation.workspaces.swiftUIKey) {
-            Button(TermindCopy.Workspace.nextWorkspace.swiftUIKey, systemImage: "chevron.forward") {
+        CommandMenu(AppStrings.Navigation.workspaces.swiftUIKey) {
+            Button(AppStrings.Workspace.nextWorkspace.swiftUIKey, systemImage: "chevron.forward") {
                 scene?.selectNextWorkspace()
             }
             .keyboardShortcut(MobileShortcut.nextWorkspace)
             .disabled(scene?.hasWorkspaces != true)
-            Button(TermindCopy.Workspace.previousWorkspace.swiftUIKey, systemImage: "chevron.backward") {
+            Button(AppStrings.Workspace.previousWorkspace.swiftUIKey, systemImage: "chevron.backward") {
                 scene?.selectPreviousWorkspace()
             }
             .keyboardShortcut(MobileShortcut.previousWorkspace)
@@ -106,13 +106,13 @@ struct MobileCommands: Commands {
             Divider()
 
             ForEach(1...8, id: \.self) { index in
-                Button(TermindCopy.Workspace.numberedWorkspace(index).swiftUIKey, systemImage: "terminal") {
+                Button(AppStrings.Workspace.numberedWorkspace(index).swiftUIKey, systemImage: "terminal") {
                     scene?.selectWorkspace(at: index - 1)
                 }
                 .keyboardShortcut(MobileShortcut.workspace(index))
                 .disabled((scene?.workspaceCount ?? 0) < index)
             }
-            Button(TermindCopy.Workspace.lastWorkspace.swiftUIKey, systemImage: "terminal") {
+            Button(AppStrings.Workspace.lastWorkspace.swiftUIKey, systemImage: "terminal") {
                 scene?.selectLastWorkspace()
             }
             .keyboardShortcut(MobileShortcut.workspace(9))

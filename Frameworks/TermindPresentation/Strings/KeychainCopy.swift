@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Keychain {
         public static var addAndConnectToAHostBeforeExportingAKeyToIt: LocalizedStringResource {
             "Add and connect to a host before exporting a key to it."

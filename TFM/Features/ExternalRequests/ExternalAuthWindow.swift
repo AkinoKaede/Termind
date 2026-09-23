@@ -37,7 +37,7 @@ struct ExternalAuthWindow: View {
         Group {
             if let visiblePending {
                 VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                    Text(TermindCopy.MCP.requestedBy(visiblePending.clientName))
+                    Text(AppStrings.MCP.requestedBy(visiblePending.clientName))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     requestView(visiblePending)
@@ -189,7 +189,7 @@ enum ExternalAuthWindowChrome {
         window.styleMask.insert([
             .titled, .closable, .miniaturizable, .fullSizeContentView,
         ])
-        window.title = String(localized: TermindCopy.Connections.authenticationRequest)
+        window.title = String(localized: AppStrings.Connections.authenticationRequest)
         window.titleVisibility = .visible
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
@@ -261,7 +261,7 @@ private struct ExternalSecretRequestForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Label(TermindCopy.MCP.secretInput.swiftUIKey, systemImage: "key.fill")
+            Label(AppStrings.MCP.secretInput.swiftUIKey, systemImage: "key.fill")
                 .font(.headline)
             if let question {
                 Text(question.prompt)
@@ -269,24 +269,24 @@ private struct ExternalSecretRequestForm: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let hostName {
-                LabeledContent(TermindCopy.MCP.destination.swiftUIKey, value: hostName)
+                LabeledContent(AppStrings.MCP.destination.swiftUIKey, value: hostName)
             }
             if !request.purpose.isEmpty {
-                LabeledContent(TermindCopy.MCP.purpose.swiftUIKey, value: request.purpose)
+                LabeledContent(AppStrings.MCP.purpose.swiftUIKey, value: request.purpose)
             }
-            RevealableSecretField(TermindCopy.Keychain.secret, text: $secret)
+            RevealableSecretField(AppStrings.Keychain.secret, text: $secret)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
             Text(
-                TermindCopy.MCP.secretHandleExplanation
+                AppStrings.MCP.secretHandleExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)
             HStack {
-                Button(TermindCopy.Common.cancel.swiftUIKey) { cancel() }
+                Button(AppStrings.Common.cancel.swiftUIKey) { cancel() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
-                Button(TermindCopy.Common.continue.swiftUIKey) { submitSecret() }
+                Button(AppStrings.Common.continue.swiftUIKey) { submitSecret() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(secret.isEmpty || question == nil)

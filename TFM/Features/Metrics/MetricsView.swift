@@ -121,24 +121,24 @@ struct ServerMetricsCard: View {
         .contextMenu {
             if contextActionItems.count > 1 {
                 if contextActionItems.contains(where: { $0.selection.enabled }) {
-                    Button(TermindCopy.Metrics.pause.swiftUIKey, systemImage: MenuSymbol.pause) {
+                    Button(AppStrings.Metrics.pause.swiftUIKey, systemImage: MenuSymbol.pause) {
                         for item in contextActionItems where item.selection.enabled {
                             model.setEnabled(false, for: item)
                         }
                     }
                 }
                 if contextActionItems.contains(where: { !$0.selection.enabled }) {
-                    Button(TermindCopy.Metrics.resume.swiftUIKey, systemImage: MenuSymbol.start) {
+                    Button(AppStrings.Metrics.resume.swiftUIKey, systemImage: MenuSymbol.start) {
                         for item in contextActionItems where !item.selection.enabled {
                             model.setEnabled(true, for: item)
                         }
                     }
                 }
-                Button(TermindCopy.Common.retry.swiftUIKey, systemImage: MenuSymbol.refresh) {
+                Button(AppStrings.Common.retry.swiftUIKey, systemImage: MenuSymbol.refresh) {
                     for item in contextActionItems { model.retry(item) }
                 }
                 Divider()
-                DestructiveMenuButton(TermindCopy.Common.delete) {
+                DestructiveMenuButton(AppStrings.Common.delete) {
                     for item in contextActionItems { model.remove(item.id) }
                 }
             } else {
@@ -161,7 +161,7 @@ struct ServerMetricsCard: View {
                 if let openTerminal {
                     Button(action: openTerminal) { Image(systemName: "terminal") }
                         .buttonStyle(.plain).foregroundStyle(TermindColor.secondaryForeground).help(
-                            TermindCopy.Metrics.openTerminal.swiftUIKey)
+                            AppStrings.Metrics.openTerminal.swiftUIKey)
                 }
                 if !compact {
                     Menu {
@@ -184,20 +184,20 @@ struct ServerMetricsCard: View {
     @ViewBuilder
     private var singleServerMenu: some View {
         if let inspect {
-            Button(TermindCopy.Metrics.details.swiftUIKey, systemImage: MenuSymbol.details, action: inspect)
+            Button(AppStrings.Metrics.details.swiftUIKey, systemImage: MenuSymbol.details, action: inspect)
         }
         Button(
-            server.selection.enabled ? TermindCopy.Metrics.pause.swiftUIKey : TermindCopy.Metrics.resume.swiftUIKey,
+            server.selection.enabled ? AppStrings.Metrics.pause.swiftUIKey : AppStrings.Metrics.resume.swiftUIKey,
             systemImage: server.selection.enabled ? MenuSymbol.pause : MenuSymbol.start
         ) {
             model.setEnabled(!server.selection.enabled, for: server)
         }
-        Button(TermindCopy.Common.retry.swiftUIKey, systemImage: MenuSymbol.refresh) { model.retry(server) }
-        Button(TermindCopy.Metrics.selectDevices.swiftUIKey, systemImage: MenuSymbol.selectDevices) {
+        Button(AppStrings.Common.retry.swiftUIKey, systemImage: MenuSymbol.refresh) { model.retry(server) }
+        Button(AppStrings.Metrics.selectDevices.swiftUIKey, systemImage: MenuSymbol.selectDevices) {
             configuring = true
         }
         Divider()
-        DestructiveMenuButton(TermindCopy.Common.delete) { model.remove(server.id) }
+        DestructiveMenuButton(AppStrings.Common.delete) { model.remove(server.id) }
     }
 
     private var cardBody: some View {
@@ -218,22 +218,22 @@ struct MetricsProcessList: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(TermindCopy.Metrics.processes).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
+            Text(AppStrings.Metrics.processes).font(.headline).frame(maxWidth: .infinity, alignment: .leading)
             if server.processesDate == nil {
                 VStack(spacing: 12) {
                     if server.processesFailed {
                         Image(systemName: "exclamationmark.triangle").font(.title2).foregroundStyle(
                             TermindColor.warning)
-                        Text(TermindCopy.Metrics.processMetricsUnavailable).foregroundStyle(.secondary)
+                        Text(AppStrings.Metrics.processMetricsUnavailable).foregroundStyle(.secondary)
                     } else {
                         ProgressView().controlSize(.regular)
-                        Text(TermindCopy.Metrics.collectingProcessesProgress).foregroundStyle(.secondary)
+                        Text(AppStrings.Metrics.collectingProcessesProgress).foregroundStyle(.secondary)
                     }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 if server.processesFailed {
-                    Text(TermindCopy.Metrics.processMetricsUnavailableShowingTheLastSample).font(.caption)
+                    Text(AppStrings.Metrics.processMetricsUnavailableShowingTheLastSample).font(.caption)
                         .foregroundStyle(
                             TermindColor.warning)
                 }
@@ -249,18 +249,18 @@ struct MetricsProcessList: View {
 
     private var processTable: some View {
         Table(rows, sortOrder: $sortOrder) {
-            TableColumn(TermindCopy.Metrics.pid.swiftUIKey, value: \.pid) { process in
+            TableColumn(AppStrings.Metrics.pid.swiftUIKey, value: \.pid) { process in
                 Text(String(process.pid)).foregroundStyle(.secondary).frame(height: 28)
             }
             .width(48)
-            TableColumn(TermindCopy.Metrics.process.swiftUIKey, value: \.name) { process in
+            TableColumn(AppStrings.Metrics.process.swiftUIKey, value: \.name) { process in
                 Text(process.name).lineLimit(1).help(process.name).frame(height: 28)
             }.width(min: 80, ideal: 180)
-            TableColumn(TermindCopy.Metrics.cpu.swiftUIKey, value: \.cpuSortValue) { process in
+            TableColumn(AppStrings.Metrics.cpu.swiftUIKey, value: \.cpuSortValue) { process in
                 Text(MetricsFormat.percent(process.cpu)).frame(height: 28)
             }.width(
                 58)
-            TableColumn(TermindCopy.Metrics.memory.swiftUIKey, value: \.memorySortValue) { process in
+            TableColumn(AppStrings.Metrics.memory.swiftUIKey, value: \.memorySortValue) { process in
                 Text(MetricsFormat.bytes(process.memory)).frame(height: 28)
             }
             .width(72)
@@ -282,22 +282,22 @@ struct MetricsDevicePicker: View {
     @State private var allInterfaces = true
     var body: some View {
         Form {
-            Section(TermindCopy.Metrics.disks.swiftUIKey) {
-                Toggle(TermindCopy.Metrics.allDefaultDisks.swiftUIKey, isOn: $allDisks)
+            Section(AppStrings.Metrics.disks.swiftUIKey) {
+                Toggle(AppStrings.Metrics.allDefaultDisks.swiftUIKey, isOn: $allDisks)
                 ForEach(server.disks, id: \.self) { name in
                     Toggle(name, isOn: selected(name, in: $disks)).disabled(allDisks)
                 }
             }
-            Section(TermindCopy.Metrics.networkInterfaces.swiftUIKey) {
-                Toggle(TermindCopy.Metrics.defaultNetworkInterfaces.swiftUIKey, isOn: $allInterfaces)
+            Section(AppStrings.Metrics.networkInterfaces.swiftUIKey) {
+                Toggle(AppStrings.Metrics.defaultNetworkInterfaces.swiftUIKey, isOn: $allInterfaces)
                 ForEach(server.interfaces, id: \.self) { name in
                     Toggle(name, isOn: selected(name, in: $interfaces)).disabled(allInterfaces)
                 }
             }
             HStack {
-                Button(TermindCopy.Common.cancel.swiftUIKey) { dismiss() }
+                Button(AppStrings.Common.cancel.swiftUIKey) { dismiss() }
                 Spacer()
-                Button(TermindCopy.Common.save.swiftUIKey) {
+                Button(AppStrings.Common.save.swiftUIKey) {
                     model.selectDevices(
                         server, disks: allDisks ? nil : disks, interfaces: allInterfaces ? nil : interfaces)
                     dismiss()
@@ -338,18 +338,18 @@ struct MetricsMenuView: View {
                     Image(systemName: "macwindow").frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain).termindInputAwareFocusEffect()
-                .help(Text(TermindCopy.Metrics.openTermind)).accessibilityLabel(Text(TermindCopy.Metrics.openTermind))
+                .help(Text(AppStrings.Metrics.openTermind)).accessibilityLabel(Text(AppStrings.Metrics.openTermind))
                 Button(action: { NSApp.terminate(nil) }) {
                     Image(systemName: "power").frame(width: 24, height: 24)
                 }
                 .buttonStyle(.plain).termindInputAwareFocusEffect()
-                .help(Text(TermindCopy.Metrics.quitTermind)).accessibilityLabel(Text(TermindCopy.Metrics.quitTermind))
+                .help(Text(AppStrings.Metrics.quitTermind)).accessibilityLabel(Text(AppStrings.Metrics.quitTermind))
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
             Divider()
             if model.servers.isEmpty {
-                Text(TermindCopy.Metrics.noMonitoredServers).foregroundStyle(.secondary)
+                Text(AppStrings.Metrics.noMonitoredServers).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 ScrollView {

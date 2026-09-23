@@ -22,7 +22,7 @@ struct PortForwardingPageView: ManagedCardPage {
     var managedSections: [ManagedCardSection<String, PortForwardingRule>] {
         [
             ManagedCardSection(
-                id: "forwardings", title: String(localized: TermindCopy.Navigation.portForwarding),
+                id: "forwardings", title: String(localized: AppStrings.Navigation.portForwarding),
                 items: app.forwardings.search(state.query), canAcceptDrop: false, showsWhenEmpty: false)
         ]
     }
@@ -50,28 +50,28 @@ struct PortForwardingPageView: ManagedCardPage {
         )
         .contextMenu {
             if context.actionItems.count > 1 {
-                Button(TermindCopy.Common.stop.swiftUIKey, systemImage: MenuSymbol.stop) {
+                Button(AppStrings.Common.stop.swiftUIKey, systemImage: MenuSymbol.stop) {
                     app.forwarding.stop(
                         context.actionItems.filter { app.forwarding.state(for: $0.id).isActive }.map(\.id))
                 }
                 .disabled(!context.actionItems.contains { app.forwarding.state(for: $0.id).isActive })
             } else {
                 if app.forwarding.state(for: item.id).isActive {
-                    Button(TermindCopy.Common.stop.swiftUIKey, systemImage: MenuSymbol.stop) {
+                    Button(AppStrings.Common.stop.swiftUIKey, systemImage: MenuSymbol.stop) {
                         app.forwarding.stop(item.id)
                     }
                 } else {
                     Button(
                         app.forwarding.state(for: item.id).isFailed
-                            ? TermindCopy.Common.retry.swiftUIKey : TermindCopy.Forwarding.start.swiftUIKey,
+                            ? AppStrings.Common.retry.swiftUIKey : AppStrings.Forwarding.start.swiftUIKey,
                         systemImage: MenuSymbol.start
                     ) { start(item) }.disabled(!canStart(item))
                 }
-                Menu(TermindCopy.Common.copy.swiftUIKey, systemImage: MenuSymbol.copy) {
-                    Button(TermindCopy.Forwarding.address.swiftUIKey, systemImage: MenuSymbol.copy) {
+                Menu(AppStrings.Common.copy.swiftUIKey, systemImage: MenuSymbol.copy) {
+                    Button(AppStrings.Forwarding.address.swiftUIKey, systemImage: MenuSymbol.copy) {
                         copyToPasteboard(item.bindAddress)
                     }
-                    Button(TermindCopy.Vault.sshCommand.swiftUIKey, systemImage: MenuSymbol.ssh) {
+                    Button(AppStrings.Vault.sshCommand.swiftUIKey, systemImage: MenuSymbol.ssh) {
                         if let command = app.forwardings.sshCommand(for: item) {
                             copyToPasteboard(command)
                         }
@@ -79,11 +79,11 @@ struct PortForwardingPageView: ManagedCardPage {
                     .disabled(app.forwardings.sshCommand(for: item) == nil)
                 }
                 Divider()
-                Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) { open(item) }
-                Button(TermindCopy.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) { duplicate(item) }
+                Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) { open(item) }
+                Button(AppStrings.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) { duplicate(item) }
             }
             Divider()
-            DestructiveMenuButton(TermindCopy.Common.delete) {
+            DestructiveMenuButton(AppStrings.Common.delete) {
                 state.deleting = Set(context.actionItems.map(\.id))
             }
         }
@@ -98,11 +98,11 @@ struct PortForwardingPageView: ManagedCardPage {
     }
     func managedEmptyState() -> some View {
         ContentUnavailableView {
-            Label(TermindCopy.Forwarding.noPortForwarding.swiftUIKey, systemImage: "arrow.left.arrow.right")
+            Label(AppStrings.Forwarding.noPortForwarding.swiftUIKey, systemImage: "arrow.left.arrow.right")
         } description: {
-            Text(TermindCopy.Forwarding.createAForwardingRuleThenStartItManually)
+            Text(AppStrings.Forwarding.createAForwardingRuleThenStartItManually)
         } actions: {
-            Button(TermindCopy.Forwarding.newForwarding.swiftUIKey) {
+            Button(AppStrings.Forwarding.newForwarding.swiftUIKey) {
                 window.openVaultWork(.forwardingEditor(nil), on: .portForwarding)
             }
         }
@@ -111,7 +111,7 @@ struct PortForwardingPageView: ManagedCardPage {
     var managedPresentation: ManagedCardDeletionPresentation<UUID> {
         ManagedCardDeletionPresentation(
             deleting: $state.deleting, error: $state.error, ids: app.forwardings.rules.map(\.id),
-            confirmationTitle: deletionTitle, errorTitle: TermindCopy.Common.operationFailed,
+            confirmationTitle: deletionTitle, errorTitle: AppStrings.Common.operationFailed,
             explanation: deletionExplanation,
             prune: { window.pruneVaultSelections(in: app.hostLibrary) },
             delete: {
@@ -122,14 +122,14 @@ struct PortForwardingPageView: ManagedCardPage {
 
     private var deletionTitle: LocalizedStringResource {
         state.deleting.count == 1
-            ? TermindCopy.Forwarding.deleteForwardingRuleConfirmation
-            : TermindCopy.Forwarding.deleteForwardingRulesConfirmationNamed(state.deleting.count)
+            ? AppStrings.Forwarding.deleteForwardingRuleConfirmation
+            : AppStrings.Forwarding.deleteForwardingRulesConfirmationNamed(state.deleting.count)
     }
 
     private var deletionExplanation: Text {
         state.deleting.count == 1
-            ? Text(TermindCopy.Forwarding.anyActiveForwardingSessionForThisRuleWillBeStopped)
-            : Text(TermindCopy.Forwarding.deleteActiveRulesWarning)
+            ? Text(AppStrings.Forwarding.anyActiveForwardingSessionForThisRuleWillBeStopped)
+            : Text(AppStrings.Forwarding.deleteActiveRulesWarning)
     }
 
     private func card(_ rule: Item, selected: Bool, select: @escaping () -> Void, extend: @escaping () -> Void)
@@ -158,7 +158,7 @@ struct PortForwardingPageView: ManagedCardPage {
                     CardChip(text: rule.kind.shortDisplayName)
                     Text(
                         app.hostLibrary.host(rule.hostID)?.name
-                            ?? String(localized: TermindCopy.Forwarding.hostUnavailable)
+                            ?? String(localized: AppStrings.Forwarding.hostUnavailable)
                     )
                     .font(.caption2).foregroundStyle(.secondary).lineLimit(1)
                     Spacer(minLength: 0)
@@ -197,7 +197,7 @@ struct PortForwardingPageView: ManagedCardPage {
     private func duplicate(_ rule: Item) {
         var copy = rule
         copy.id = UUID()
-        if !copy.label.isEmpty { copy.label += String(localized: TermindCopy.Common.copySuffix) }
+        if !copy.label.isEmpty { copy.label += String(localized: AppStrings.Common.copySuffix) }
         do {
             open(try app.forwardings.save(copy))
         } catch { state.error = error.localizedDescription }
@@ -236,8 +236,8 @@ struct PortForwardingDetailView: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: ruleID == nil ? TermindCopy.Forwarding.newForwarding : TermindCopy.Forwarding.editForwarding,
-            symbol: "arrow.left.arrow.right", close: cancelEditing, closeLabel: TermindCopy.Common.cancel
+            title: ruleID == nil ? AppStrings.Forwarding.newForwarding : AppStrings.Forwarding.editForwarding,
+            symbol: "arrow.left.arrow.right", close: cancelEditing, closeLabel: AppStrings.Common.cancel
         ) {
             let context = app.forwarding.connection(for: draft.id)
             ZStack {
@@ -247,14 +247,14 @@ struct PortForwardingDetailView: View {
                     Form {
                         if ruleID != nil {
                             Section {
-                                LabeledContent(TermindCopy.Common.status.swiftUIKey, value: runtime.label)
+                                LabeledContent(AppStrings.Common.status.swiftUIKey, value: runtime.label)
                                 if runtime.isActive {
-                                    Button(TermindCopy.Common.stop.swiftUIKey) { app.forwarding.stop(draft.id) }
+                                    Button(AppStrings.Common.stop.swiftUIKey) { app.forwarding.stop(draft.id) }
                                 } else {
                                     Button(
                                         runtime.isFailed
-                                            ? TermindCopy.Common.retry.swiftUIKey
-                                            : TermindCopy.Forwarding.start.swiftUIKey
+                                            ? AppStrings.Common.retry.swiftUIKey
+                                            : AppStrings.Forwarding.start.swiftUIKey
                                     ) { app.forwarding.start(draft.id) }
                                     .disabled(
                                         saved == nil || normalized != saved || !canSave
@@ -270,7 +270,7 @@ struct PortForwardingDetailView: View {
                             .disabled(runtime.isActive)
                         if let error { Text(error).foregroundStyle(.red) }
                         if ruleID != nil && saved == nil {
-                            Text(TermindCopy.Forwarding.theForwardingRuleIsUnavailable).foregroundStyle(.secondary)
+                            Text(AppStrings.Forwarding.theForwardingRuleIsUnavailable).foregroundStyle(.secondary)
                         }
                     }.formStyle(.grouped)
                         .transition(.opacity)
@@ -280,11 +280,11 @@ struct PortForwardingDetailView: View {
         } footer: {
             HStack(spacing: Metrics.Space.m) {
                 if ruleID != nil {
-                    Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
+                    Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
                 }
                 Spacer()
-                Button(TermindCopy.Common.cancel.swiftUIKey, action: cancelEditing)
-                Button(TermindCopy.Common.save.swiftUIKey, action: saveAndClose).buttonStyle(.borderedProminent)
+                Button(AppStrings.Common.cancel.swiftUIKey, action: cancelEditing)
+                Button(AppStrings.Common.save.swiftUIKey, action: saveAndClose).buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction).disabled(!canSave)
             }.padding(Metrics.Space.l)
         }
@@ -304,19 +304,19 @@ struct PortForwardingDetailView: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            TermindCopy.Forwarding.deleteForwardingRuleConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Forwarding.deleteForwardingRuleConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive, action: delete)
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive, action: delete)
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text(TermindCopy.Forwarding.anyActiveForwardingSessionForThisRuleWillBeStopped)
+            Text(AppStrings.Forwarding.anyActiveForwardingSessionForThisRuleWillBeStopped)
         }
         .alert(
-            TermindCopy.Common.operationFailed.swiftUIKey,
+            AppStrings.Common.operationFailed.swiftUIKey,
             isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })
         ) {
-            Button(TermindCopy.Common.ok.swiftUIKey) { deletionError = nil }
+            Button(AppStrings.Common.ok.swiftUIKey) { deletionError = nil }
         } message: {
             Text(deletionError ?? "")
         }
@@ -358,7 +358,7 @@ struct PortForwardingDetailView: View {
     private func commitChanges() -> Bool {
         guard isDirty else { return true }
         guard canSave, let normalized else {
-            error = String(localized: TermindCopy.Common.completeAllRequiredFieldsBeforeSaving)
+            error = String(localized: AppStrings.Common.completeAllRequiredFieldsBeforeSaving)
             return false
         }
         do {

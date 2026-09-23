@@ -13,8 +13,8 @@ nonisolated enum SerialPortError: LocalizedError, Sendable {
         case .invalidConfiguration(let message): message
         case .system(let operation, let code):
             "\(operation): \(String(cString: strerror(code)))"
-        case .closed: String(localized: TermindCopy.Terminal.theSerialPortIsClosed)
-        case .openTimedOut: String(localized: TermindCopy.Terminal.openingTheSerialPortTimedOut)
+        case .closed: String(localized: AppStrings.Terminal.theSerialPortIsClosed)
+        case .openTimedOut: String(localized: AppStrings.Terminal.openingTheSerialPortTimedOut)
         }
     }
 }
@@ -26,9 +26,9 @@ nonisolated enum SerialPortOpenStage: Sendable {
 
     var message: String {
         switch self {
-        case .deviceOpened: String(localized: TermindCopy.Terminal.serialDeviceOpened)
-        case .settingsApplied: String(localized: TermindCopy.Terminal.serialSettingsApplied)
-        case .monitoringStarted: String(localized: TermindCopy.Terminal.serialInputMonitoringStarted)
+        case .deviceOpened: String(localized: AppStrings.Terminal.serialDeviceOpened)
+        case .settingsApplied: String(localized: AppStrings.Terminal.serialSettingsApplied)
+        case .monitoringStarted: String(localized: AppStrings.Terminal.serialInputMonitoringStarted)
         }
     }
 }

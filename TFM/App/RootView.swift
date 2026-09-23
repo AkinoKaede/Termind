@@ -159,35 +159,35 @@ struct RootView: View {
         )
         .animation(Motion.panel(reduceMotion: reduceMotion), value: presentations.route?.id)
         .alert(
-            TermindCopy.Assistant.conversationOperationFailed.swiftUIKey,
+            AppStrings.Assistant.conversationOperationFailed.swiftUIKey,
             isPresented: Binding(
                 get: { window.assistantOperationError != nil },
                 set: { if !$0 { window.assistantOperationError = nil } }
             )
         ) {
-            Button(TermindCopy.Common.ok.swiftUIKey) { window.assistantOperationError = nil }
+            Button(AppStrings.Common.ok.swiftUIKey) { window.assistantOperationError = nil }
         } message: {
             Text(window.assistantOperationError ?? "")
         }
         .alert(
-            TermindCopy.Workspace.workspaceTemplate.swiftUIKey,
+            AppStrings.Workspace.workspaceTemplate.swiftUIKey,
             isPresented: Binding(
                 get: { window.workspaceTemplateNotice != nil },
                 set: { if !$0 { window.workspaceTemplateNotice = nil } }
             )
         ) {
-            Button(TermindCopy.Common.ok.swiftUIKey) { window.workspaceTemplateNotice = nil }
+            Button(AppStrings.Common.ok.swiftUIKey) { window.workspaceTemplateNotice = nil }
         } message: {
             Text(window.workspaceTemplateNotice ?? "")
         }
         .dismissalConfirmationDialog(
-            TermindCopy.Workspace.closeThisWindowConfirmation, shouldPresent: !window.workspaces.isEmpty
+            AppStrings.Workspace.closeThisWindowConfirmation, shouldPresent: !window.workspaces.isEmpty
         ) {
-            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
                 .keyboardShortcut(.defaultAction)
-            Button(TermindCopy.Workspace.closeWindow.swiftUIKey, role: .destructive) {}
+            Button(AppStrings.Workspace.closeWindow.swiftUIKey, role: .destructive) {}
         } message: {
-            Text(TermindCopy.Workspace.closeWindowWarning)
+            Text(AppStrings.Workspace.closeWindowWarning)
         }
         // No ancestor drop target: pane and Navigator targets must own internal
         // layout drops without competing for the same text payload.
@@ -404,25 +404,25 @@ private struct ExternalConnectionURLPresenter: ViewModifier {
         content
             .onOpenURL { app.openExternalConnection($0, in: window) }
             .alert(
-                TermindCopy.Workspace.openTelnetConnectionConfirmation.swiftUIKey,
+                AppStrings.Workspace.openTelnetConnectionConfirmation.swiftUIKey,
                 isPresented: Binding(
                     get: { window.pendingExternalConnection != nil },
                     set: { if !$0 { window.pendingExternalConnection = nil } }
                 )
             ) {
-                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { window.pendingExternalConnection = nil }
-                Button(TermindCopy.Common.continue.swiftUIKey) { app.confirmExternalConnection(in: window) }
+                Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { window.pendingExternalConnection = nil }
+                Button(AppStrings.Common.continue.swiftUIKey) { app.confirmExternalConnection(in: window) }
             } message: {
-                Text(TermindCopy.Workspace.advisoryTelnetPassword)
+                Text(AppStrings.Workspace.advisoryTelnetPassword)
             }
             .alert(
-                TermindCopy.Workspace.connectionLinkFailed.swiftUIKey,
+                AppStrings.Workspace.connectionLinkFailed.swiftUIKey,
                 isPresented: Binding(
                     get: { window.externalConnectionError != nil },
                     set: { if !$0 { window.externalConnectionError = nil } }
                 )
             ) {
-                Button(TermindCopy.Common.ok.swiftUIKey) { window.externalConnectionError = nil }
+                Button(AppStrings.Common.ok.swiftUIKey) { window.externalConnectionError = nil }
             } message: {
                 Text(window.externalConnectionError ?? "")
             }

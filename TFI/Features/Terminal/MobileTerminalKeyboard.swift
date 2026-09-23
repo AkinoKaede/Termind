@@ -24,19 +24,19 @@ struct MobileTerminalKeyboard: View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    key(TermindCopy.Terminal.escape, systemImage: "escape", .escape)
-                    key(TermindCopy.Terminal.tab, systemImage: "arrow.right.to.line", .tab)
-                    modifier(TermindCopy.Terminal.control, systemImage: "control", .ctrl, activation: control)
-                    modifier(TermindCopy.Terminal.option, systemImage: "option", .alt, activation: alt)
+                    key(AppStrings.Terminal.escape, systemImage: "escape", .escape)
+                    key(AppStrings.Terminal.tab, systemImage: "arrow.right.to.line", .tab)
+                    modifier(AppStrings.Terminal.control, systemImage: "control", .ctrl, activation: control)
+                    modifier(AppStrings.Terminal.option, systemImage: "option", .alt, activation: alt)
                     shiftModifier
-                    key(TermindCopy.Terminal.leftArrow, systemImage: "arrowtriangle.left.fill", .arrowLeft)
-                    key(TermindCopy.Terminal.downArrow, systemImage: "arrowtriangle.down.fill", .arrowDown)
-                    key(TermindCopy.Terminal.upArrow, systemImage: "arrowtriangle.up.fill", .arrowUp)
-                    key(TermindCopy.Terminal.rightArrow, systemImage: "arrowtriangle.right.fill", .arrowRight)
-                    key(TermindCopy.Terminal.home, systemImage: "arrow.up.to.line.compact", .home)
-                    key(TermindCopy.Terminal.end, systemImage: "arrow.down.to.line.compact", .end)
-                    key(TermindCopy.Terminal.pageUp, systemImage: "arrowtriangle.up.square", .pageUp)
-                    key(TermindCopy.Terminal.pageDown, systemImage: "arrowtriangle.down.square", .pageDown)
+                    key(AppStrings.Terminal.leftArrow, systemImage: "arrowtriangle.left.fill", .arrowLeft)
+                    key(AppStrings.Terminal.downArrow, systemImage: "arrowtriangle.down.fill", .arrowDown)
+                    key(AppStrings.Terminal.upArrow, systemImage: "arrowtriangle.up.fill", .arrowUp)
+                    key(AppStrings.Terminal.rightArrow, systemImage: "arrowtriangle.right.fill", .arrowRight)
+                    key(AppStrings.Terminal.home, systemImage: "arrow.up.to.line.compact", .home)
+                    key(AppStrings.Terminal.end, systemImage: "arrow.down.to.line.compact", .end)
+                    key(AppStrings.Terminal.pageUp, systemImage: "arrowtriangle.up.square", .pageUp)
+                    key(AppStrings.Terminal.pageDown, systemImage: "arrowtriangle.down.square", .pageDown)
                     ForEach(MobileTerminalControlShortcut.allCases) { shortcut in
                         controlShortcut(shortcut)
                     }
@@ -69,7 +69,7 @@ struct MobileTerminalKeyboard: View {
         Button {
             shift.toggle()
         } label: {
-            modifierLabel(TermindCopy.Terminal.shift, systemImage: "shift", activation: shift.activation)
+            modifierLabel(AppStrings.Terminal.shift, systemImage: "shift", activation: shift.activation)
         }
         .accessibilityValue(accessibilityValue(for: shift.activation))
         .accessibilityAddTraits(shift.activation == .inactive ? [] : .isSelected)
@@ -77,7 +77,7 @@ struct MobileTerminalKeyboard: View {
 
     private var pasteButton: some View {
         Button(action: paste) {
-            Label(TermindCopy.Common.paste.swiftUIKey, systemImage: "doc.on.clipboard")
+            Label(AppStrings.Common.paste.swiftUIKey, systemImage: "doc.on.clipboard")
                 .labelStyle(.iconOnly)
                 .frame(width: 44, height: 44)
                 .contentShape(.rect)
@@ -94,7 +94,7 @@ struct MobileTerminalKeyboard: View {
         } label: {
             Label(
                 state.isFocused
-                    ? TermindCopy.Terminal.hideKeyboard.swiftUIKey : TermindCopy.Terminal.showKeyboard.swiftUIKey,
+                    ? AppStrings.Terminal.hideKeyboard.swiftUIKey : AppStrings.Terminal.showKeyboard.swiftUIKey,
                 systemImage: state.isFocused ? "keyboard.chevron.compact.down" : "keyboard"
             )
             .labelStyle(.iconOnly)
@@ -146,9 +146,9 @@ struct MobileTerminalKeyboard: View {
 
     private func accessibilityValue(for activation: TerminalPublicStickyActivation) -> Text {
         switch activation {
-        case .inactive: Text(TermindCopy.Terminal.inactive)
-        case .armed: Text(TermindCopy.Terminal.armed)
-        case .locked: Text(TermindCopy.Terminal.locked)
+        case .inactive: Text(AppStrings.Terminal.inactive)
+        case .armed: Text(AppStrings.Terminal.armed)
+        case .locked: Text(AppStrings.Terminal.locked)
         }
     }
 
@@ -174,7 +174,7 @@ struct MobileTerminalKeyboard: View {
                 .frame(width: 44, height: 44)
                 .contentShape(.rect)
         }
-        .accessibilityLabel(Text(TermindCopy.Terminal.control) + Text(verbatim: " \(shortcut.letter)"))
+        .accessibilityLabel(Text(AppStrings.Terminal.control) + Text(verbatim: " \(shortcut.letter)"))
     }
 }
 

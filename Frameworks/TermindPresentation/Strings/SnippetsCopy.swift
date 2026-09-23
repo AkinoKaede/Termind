@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Snippets {
         public static var addAHostBeforeChoosingDefaultTargets: LocalizedStringResource {
             "Add a host before choosing default targets."

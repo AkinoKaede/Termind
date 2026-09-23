@@ -19,18 +19,18 @@ struct SFTPOpenWithMenu {
         if !otherApplications.isEmpty { children.append(.separator) }
         children.append(
             NativeMenuEntry(
-                title: AppLocalization.resolve(TermindCopy.SFTP.appStoreProgress, locale: locale),
+                title: AppLocalization.resolve(AppStrings.SFTP.appStoreProgress, locale: locale),
                 isEnabled: SFTPApplicationOpener.appStoreSearchURL(for: filename) != nil,
                 action: { SFTPApplicationOpener.openAppStore(for: filename) }
             ))
         children.append(
-            NativeMenuEntry(title: AppLocalization.resolve(TermindCopy.SFTP.otherProgress, locale: locale)) {
+            NativeMenuEntry(title: AppLocalization.resolve(AppStrings.SFTP.otherProgress, locale: locale)) {
                 Task {
                     if let application = await SFTPApplicationOpener.chooseApplication() { open(application) }
                 }
             })
         return NativeMenuEntry(
-            title: AppLocalization.resolve(TermindCopy.SFTP.openWith, locale: locale), children: children)
+            title: AppLocalization.resolve(AppStrings.SFTP.openWith, locale: locale), children: children)
     }
 
     private func applicationEntry(_ application: SFTPFileApplication) -> NativeMenuEntry {

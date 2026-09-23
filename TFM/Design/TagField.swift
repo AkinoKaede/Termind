@@ -79,7 +79,7 @@ struct TagField: View {
             Image(systemName: "number")
                 .foregroundStyle(.secondary)
 
-            TextField(text: $query.singleLineText, prompt: Text(TermindCopy.Vault.addATagProgress), axis: .horizontal) {
+            TextField(text: $query.singleLineText, prompt: Text(AppStrings.Vault.addATagProgress), axis: .horizontal) {
                 EmptyView()
             }
             .singleLinePaste()
@@ -87,7 +87,7 @@ struct TagField: View {
             .textFieldStyle(.plain)
             .labelsHidden()
             .multilineTextAlignment(.leading)
-            .accessibilityLabel(Text(TermindCopy.Vault.addATagProgress))
+            .accessibilityLabel(Text(AppStrings.Vault.addATagProgress))
             .focused($isFocused)
             // Return takes the highlighted row, so the whole interaction is
             // type-then-Return without reaching for the arrow keys. A
@@ -136,7 +136,7 @@ struct TagField: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(
-                Text(isListOpen ? TermindCopy.Vault.hideTagSuggestions : TermindCopy.Vault.showTagSuggestions))
+                Text(isListOpen ? AppStrings.Vault.hideTagSuggestions : AppStrings.Vault.showTagSuggestions))
         }
         .padding(Metrics.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -261,7 +261,7 @@ private struct TagRowView: View {
             case .create(let tag):
                 Image(systemName: "plus.circle")
                     .foregroundStyle(.secondary)
-                Text(TermindCopy.Vault.createNamed(tag))
+                Text(AppStrings.Vault.createNamed(tag))
             }
 
             Spacer(minLength: 0)
@@ -304,7 +304,7 @@ private struct RemovableTagChip: View {
                     .foregroundStyle(isHovering ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(TermindCopy.Vault.removeTag(tag)))
+            .accessibilityLabel(Text(AppStrings.Vault.removeTag(tag)))
         }
         .font(.caption2)
         .foregroundStyle(.secondary)
@@ -320,9 +320,9 @@ private struct RemovableTagChip: View {
     @Previewable @State var tags = ["nginx", "prod"]
 
     Form {
-        Section(TermindCopy.Vault.groupingAndTags.swiftUIKey) {
+        Section(AppStrings.Vault.groupingAndTags.swiftUIKey) {
             VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                Text(TermindCopy.Vault.tags)
+                Text(AppStrings.Vault.tags)
                 TagField(tags: $tags, suggestions: HostLibraryModel.demo().allTags)
             }
         }

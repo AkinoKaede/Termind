@@ -99,7 +99,7 @@ final class LoginItemController {
         let description = error.localizedDescription
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return description.isEmpty
-            ? String(localized: TermindCopy.Settings.unableToUpdateTheLoginItem)
+            ? String(localized: AppStrings.Settings.unableToUpdateTheLoginItem)
             : description
     }
 }

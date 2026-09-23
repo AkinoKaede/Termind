@@ -189,7 +189,7 @@ struct ContextChipsView: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text(TermindCopy.Assistant.attachedContext))
+        .accessibilityLabel(Text(AppStrings.Assistant.attachedContext))
     }
 }
 
@@ -209,7 +209,7 @@ private struct ChipView: View {
                     .buttonStyle(.plain)
                     .onHover { isHovering = $0 }
                     .focused($isFocused)
-                    .accessibilityLabel(Text(TermindCopy.Common.removeNamed(chip.label)))
+                    .accessibilityLabel(Text(AppStrings.Common.removeNamed(chip.label)))
             } else {
                 styledContent(removable: false)
             }
@@ -217,8 +217,8 @@ private struct ChipView: View {
         .help(
             Text(
                 remove == nil
-                    ? String(localized: TermindCopy.Assistant.alwaysIncluded)
-                    : String(localized: TermindCopy.Assistant.removeAttachment)
+                    ? String(localized: AppStrings.Assistant.alwaysIncluded)
+                    : String(localized: AppStrings.Assistant.removeAttachment)
             ))
     }
 
@@ -265,8 +265,8 @@ private struct PendingChipView: View {
         .buttonStyle(.plain)
         .focused($isFocused)
         .onHover { isHovering = $0 }
-        .help(Text(TermindCopy.Assistant.cancelImport))
-        .accessibilityLabel(Text(TermindCopy.Assistant.cancelImporting(pending.label)))
+        .help(Text(AppStrings.Assistant.cancelImport))
+        .accessibilityLabel(Text(AppStrings.Assistant.cancelImporting(pending.label)))
     }
 }
 
@@ -424,7 +424,7 @@ private struct PlanModeChip: View {
                     // control running away from the click.
                     .frame(width: Self.glyphWidth)
                 if !compact {
-                    Text(TermindCopy.Assistant.plan)
+                    Text(AppStrings.Assistant.plan)
                 }
             }
             .font(.caption2)
@@ -436,8 +436,8 @@ private struct PlanModeChip: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
-        .help(Text(TermindCopy.Assistant.planModeClickToTurnOff))
-        .accessibilityLabel(Text(TermindCopy.Assistant.planModeOnTurnOff))
+        .help(Text(AppStrings.Assistant.planModeClickToTurnOff))
+        .accessibilityLabel(Text(AppStrings.Assistant.planModeOnTurnOff))
     }
 
     /// A lit bulb — the one drawn with rays, not the dark `lightbulb`. Planning
@@ -482,8 +482,8 @@ private struct SkillChip: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }
-        .help(Text(TermindCopy.Assistant.armedSkillHelp(name)))
-        .accessibilityLabel(Text(TermindCopy.Assistant.skillArmedRemove(name)))
+        .help(Text(AppStrings.Assistant.armedSkillHelp(name)))
+        .accessibilityLabel(Text(AppStrings.Assistant.skillArmedRemove(name)))
     }
 
     /// A closed book: a procedure that exists and has not been opened yet, which
@@ -500,7 +500,7 @@ struct ComposerView: View {
     }
 
     let conversation: ConversationModel
-    var prompt: LocalizedStringResource = TermindCopy.Assistant.prompt
+    var prompt: LocalizedStringResource = AppStrings.Assistant.prompt
     /// The full Assistant destination shares one centered column with its transcript.
     /// `nil` keeps compact/sidebar composers fluid.
     var maxContentWidth: CGFloat? = nil
@@ -542,7 +542,7 @@ struct ComposerView: View {
     }
 
     private var resolvedModelLabel: String {
-        resolved?.model.label ?? String(localized: TermindCopy.Assistant.noModel)
+        resolved?.model.label ?? String(localized: AppStrings.Assistant.noModel)
     }
 
     private var resolvedPermissionMode: AgentPermissionMode {
@@ -627,26 +627,26 @@ struct ComposerView: View {
             transcription.cancel(ownerID: transcriptionOwnerID)
         }
         .alert(
-            transcriptionError?.title ?? String(localized: TermindCopy.Assistant.transcriptionFailed),
+            transcriptionError?.title ?? String(localized: AppStrings.Assistant.transcriptionFailed),
             isPresented: transcriptionErrorPresented
         ) {
             if transcriptionError?.offersSystemSettings == true {
-                Button(TermindCopy.Assistant.openSystemSettings.swiftUIKey) { openTranscriptionPrivacySettings() }
+                Button(AppStrings.Assistant.openSystemSettings.swiftUIKey) { openTranscriptionPrivacySettings() }
             }
-            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) {}
         } message: {
             if let error = transcriptionError {
                 Text(error.message)
             }
         }
         .alert(
-            TermindCopy.Assistant.attachmentError.swiftUIKey,
+            AppStrings.Assistant.attachmentError.swiftUIKey,
             isPresented: Binding(
                 get: { conversation.composer.attachmentImportError != nil },
                 set: { if !$0 { conversation.composer.attachmentImportError = nil } }
             )
         ) {
-            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) {}
+            Button(AppStrings.Common.ok.swiftUIKey, role: .cancel) {}
         } message: {
             Text(conversation.composer.attachmentImportError ?? "")
         }
@@ -797,7 +797,7 @@ struct ComposerView: View {
                 sendButton(
                     enabled: conversation.canSendDraft && conversation.composer.pendingAttachments.isEmpty,
                     help: conversation.isStreaming
-                        ? TermindCopy.Assistant.queueForTheRunningAgent : TermindCopy.Assistant.sendLabel,
+                        ? AppStrings.Assistant.queueForTheRunningAgent : AppStrings.Assistant.sendLabel,
                     action: sendDraft
                 )
             }
@@ -808,7 +808,7 @@ struct ComposerView: View {
 
     private var stopButton: some View {
         Button(action: conversation.stop) {
-            Label(TermindCopy.Common.stop.swiftUIKey, systemImage: "stop.circle.fill")
+            Label(AppStrings.Common.stop.swiftUIKey, systemImage: "stop.circle.fill")
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)
@@ -817,7 +817,7 @@ struct ComposerView: View {
         .foregroundStyle(.red)
         .frame(width: 32, height: 32)
         .contentShape(.circle)
-        .help(Text(TermindCopy.Assistant.stopCurrentRun))
+        .help(Text(AppStrings.Assistant.stopCurrentRun))
     }
 
     private var transcribeButton: some View {
@@ -837,8 +837,8 @@ struct ComposerView: View {
             !transcription.canStart(for: transcriptionOwnerID)
                 || (ownsTranscription && transcription.isRequestingAuthorization)
         )
-        .help(Text(TermindCopy.Assistant.transcribeWithAppleSpeech))
-        .accessibilityLabel(Text(TermindCopy.Assistant.transcribe))
+        .help(Text(AppStrings.Assistant.transcribeWithAppleSpeech))
+        .accessibilityLabel(Text(AppStrings.Assistant.transcribe))
     }
 
     @ViewBuilder
@@ -847,7 +847,7 @@ struct ComposerView: View {
         case .recording:
             HStack(spacing: Metrics.Space.m) {
                 circularControl(
-                    title: TermindCopy.Assistant.cancelTranscription,
+                    title: AppStrings.Assistant.cancelTranscription,
                     systemImage: "xmark",
                     action: cancelTranscription
                 )
@@ -857,10 +857,10 @@ struct ComposerView: View {
                     reduceMotion: reduceMotion
                 )
                 .frame(maxWidth: .infinity, minHeight: 32)
-                .accessibilityLabel(Text(TermindCopy.Assistant.recording))
+                .accessibilityLabel(Text(AppStrings.Assistant.recording))
 
                 circularControl(
-                    title: TermindCopy.Assistant.stopRecording,
+                    title: AppStrings.Assistant.stopRecording,
                     systemImage: "stop.fill",
                     action: { transcription.stop(ownerID: transcriptionOwnerID) }
                 )
@@ -879,13 +879,13 @@ struct ComposerView: View {
         case .transcribing:
             HStack(spacing: Metrics.Space.m) {
                 circularControl(
-                    title: TermindCopy.Assistant.cancelTranscription,
+                    title: AppStrings.Assistant.cancelTranscription,
                     systemImage: "xmark",
                     action: cancelTranscription
                 )
 
                 Spacer(minLength: Metrics.Space.s)
-                Text(TermindCopy.Assistant.transcribing)
+                Text(AppStrings.Assistant.transcribing)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .contentTransition(.opacity)
@@ -896,7 +896,7 @@ struct ComposerView: View {
                     .frame(width: 26, height: 26)
                     .background(.quaternary.opacity(0.55), in: .circle)
                     .frame(width: 32, height: 32)
-                    .accessibilityLabel(Text(TermindCopy.Assistant.transcribing))
+                    .accessibilityLabel(Text(AppStrings.Assistant.transcribing))
 
                 sendButton(enabled: false, action: {})
             }
@@ -908,11 +908,11 @@ struct ComposerView: View {
 
     private func sendButton(
         enabled: Bool,
-        help: LocalizedStringResource = TermindCopy.Assistant.sendLabel,
+        help: LocalizedStringResource = AppStrings.Assistant.sendLabel,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Label(TermindCopy.Assistant.send.swiftUIKey, systemImage: "arrow.up.circle.fill")
+            Label(AppStrings.Assistant.send.swiftUIKey, systemImage: "arrow.up.circle.fill")
         }
         .labelStyle(.iconOnly)
         .buttonStyle(.plain)
@@ -991,7 +991,7 @@ struct ComposerView: View {
             resolved?.model.isVision != true
         {
             conversation.composer.attachmentImportError = String(
-                localized: TermindCopy.Assistant.visionModelRequirement
+                localized: AppStrings.Assistant.visionModelRequirement
             )
             return
         }
@@ -1201,8 +1201,8 @@ struct ComposerView: View {
         }
         .buttonStyle(.plain)
         .contentShape(.circle)
-        .help(Text(TermindCopy.Assistant.addContext))
-        .accessibilityLabel(Text(TermindCopy.Assistant.addContext))
+        .help(Text(AppStrings.Assistant.addContext))
+        .accessibilityLabel(Text(AppStrings.Assistant.addContext))
     }
 
     private func chooseContextFiles() {
@@ -1230,7 +1230,7 @@ struct ComposerView: View {
         if let data = pasteboard.data(forType: .png) ?? pasteboard.data(forType: .tiff) {
             conversation.attachmentLoader = .live
             conversation.importAttachmentImages(
-                [data], label: String(localized: TermindCopy.Assistant.pastedImage)
+                [data], label: String(localized: AppStrings.Assistant.pastedImage)
             )
             return true
         }
@@ -1286,13 +1286,13 @@ struct ComposerView: View {
         .popover(isPresented: $isPermissionPickerPresented, arrowEdge: .bottom) {
             permissionPopover
         }
-        .help(Text(TermindCopy.Assistant.permissionNamed(resolvedPermissionMode.displayName)))
-        .accessibilityLabel(Text(TermindCopy.Assistant.permission(resolvedPermissionMode.displayName)))
+        .help(Text(AppStrings.Assistant.permissionNamed(resolvedPermissionMode.displayName)))
+        .accessibilityLabel(Text(AppStrings.Assistant.permission(resolvedPermissionMode.displayName)))
     }
 
     private var permissionPopover: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text(TermindCopy.Common.permission)
+            Text(AppStrings.Common.permission)
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .padding(.horizontal, Metrics.Space.l)
@@ -1361,9 +1361,9 @@ struct ComposerView: View {
 
     private func permissionDescription(_ mode: AgentPermissionMode) -> LocalizedStringResource {
         switch mode {
-        case .askForApproval: TermindCopy.Assistant.alwaysAskForApprovalBeforeProtectedActions
-        case .approveForMe: TermindCopy.Assistant.onlyAskForActionsDetectedAsPotentiallyUnsafe
-        case .fullAccess: TermindCopy.Assistant.unrestrictedToTheInternetAndAnyFilesOnYourHosts
+        case .askForApproval: AppStrings.Assistant.alwaysAskForApprovalBeforeProtectedActions
+        case .approveForMe: AppStrings.Assistant.onlyAskForActionsDetectedAsPotentiallyUnsafe
+        case .fullAccess: AppStrings.Assistant.unrestrictedToTheInternetAndAnyFilesOnYourHosts
         }
     }
 
@@ -1445,7 +1445,7 @@ struct ComposerView: View {
                     toggleModelPickerSection(.model)
                 } label: {
                     modelPickerRow(
-                        title: String(localized: TermindCopy.Assistant.model),
+                        title: String(localized: AppStrings.Assistant.model),
                         value: resolvedModelLabel,
                         isExpanded: expandedModelPickerSection == .model
                     )
@@ -1463,7 +1463,7 @@ struct ComposerView: View {
                         toggleModelPickerSection(.thinking)
                     } label: {
                         modelPickerRow(
-                            title: String(localized: TermindCopy.Assistant.effort),
+                            title: String(localized: AppStrings.Assistant.effort),
                             value: effectiveReasoningEffort.displayName,
                             isExpanded: expandedModelPickerSection == .thinking
                         )
@@ -1489,7 +1489,7 @@ struct ComposerView: View {
                 isModelPickerPresented = false
                 window.openSettings(route: .category(.ai))
             } label: {
-                Label(TermindCopy.Assistant.configureModelProviders.swiftUIKey, systemImage: "slider.horizontal.3")
+                Label(AppStrings.Assistant.configureModelProviders.swiftUIKey, systemImage: "slider.horizontal.3")
                     .font(.callout)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, Metrics.Space.l)
@@ -1533,7 +1533,7 @@ struct ComposerView: View {
                     Group {
                         switch item.content {
                         case .empty:
-                            Text(TermindCopy.Assistant.noModelsConfigured)
+                            Text(AppStrings.Assistant.noModelsConfigured)
                                 .font(.caption)
                                 .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -1648,20 +1648,20 @@ struct ComposerView: View {
     }
 
     private var modelAndThinkingLabel: String {
-        TermindCopy.Assistant.modelSummary(
+        AppStrings.Assistant.modelSummary(
             modelName: resolved?.model.label,
             effortName: supportsThinking ? effectiveReasoningEffort.displayName : nil,
             locale: locale)
     }
 
     private var modelAndThinkingAccessibilityLabel: LocalizedStringResource {
-        TermindCopy.Assistant.modelAccessibilityLabel(
+        AppStrings.Assistant.modelAccessibilityLabel(
             modelName: resolved?.model.label,
             effortName: supportsThinking ? effectiveReasoningEffort.displayName : nil)
     }
 
     private var modelAndThinkingHelp: LocalizedStringResource {
-        TermindCopy.Assistant.modelHelp(
+        AppStrings.Assistant.modelHelp(
             modelName: resolved?.model.label, providerName: resolved?.provider.name,
             effortName: supportsThinking ? effectiveReasoningEffort.displayName : nil)
     }

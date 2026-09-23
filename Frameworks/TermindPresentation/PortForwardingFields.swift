@@ -23,8 +23,8 @@ public struct PortForwardingFields: View {
             VaultNameField(text: $rule.label, prompt: namePrompt)
             VaultColorField(selection: $rule.colorTag)
         }
-        Section(TermindCopy.Navigation.portForwarding.swiftUIKey) {
-            Picker(TermindCopy.Vault.host.swiftUIKey, selection: hostSelection) {
+        Section(AppStrings.Navigation.portForwarding.swiftUIKey) {
+            Picker(AppStrings.Vault.host.swiftUIKey, selection: hostSelection) {
                 Text("Select Host").tag(UUID?.none)
                 ForEach(hosts) { host in
                     Text(PortForwardingFieldPresentation.hostTitle(for: host)).tag(Optional(host.id))
@@ -116,7 +116,7 @@ nonisolated enum PortForwardingFieldPresentation {
 private struct PortForwardingDirectionPicker: View {
     @Binding var kind: PortForwardingRule.Kind
     var body: some View {
-        Picker(TermindCopy.Forwarding.direction.swiftUIKey, selection: $kind) {
+        Picker(AppStrings.Forwarding.direction.swiftUIKey, selection: $kind) {
             Text("Local").tag(PortForwardingRule.Kind.local).accessibilityLabel("Local Forward")
             Text("Remote").tag(PortForwardingRule.Kind.remote).accessibilityLabel("Remote Forward")
             Text("Dynamic").tag(PortForwardingRule.Kind.dynamic).accessibilityLabel("Dynamic SOCKS5 Proxy")

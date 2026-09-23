@@ -84,7 +84,7 @@ final class MCPServerTools {
         approval = AgentApprovalBroker(
             reviewer: nil,
             manualApproval: { _ in
-                .deny(String(localized: TermindCopy.MCP.externalToolCallsAreNoLongerAuthorized))
+                .deny(String(localized: AppStrings.MCP.externalToolCallsAreNoLongerAuthorized))
             },
             event: channel.emit
         )
@@ -218,7 +218,7 @@ nonisolated enum MCPServerToolsError: LocalizedError, Sendable, Equatable {
 
     var errorDescription: String? {
         switch self {
-        case .unknownTool(let name): String(localized: TermindCopy.MCP.unknownOrDisabledTool(name))
+        case .unknownTool(let name): String(localized: AppStrings.MCP.unknownOrDisabledTool(name))
         }
     }
 }

@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum MCP {
         public static var secondsSuffix: LocalizedStringResource { "s" }
 

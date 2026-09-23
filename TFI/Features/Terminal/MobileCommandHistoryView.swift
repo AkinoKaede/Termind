@@ -35,7 +35,7 @@ struct MobileCommandHistoryView: View {
                 if entries.isEmpty {
                     if query.isEmpty {
                         ContentUnavailableView(
-                            TermindCopy.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath")
+                            AppStrings.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath")
                     } else {
                         ContentUnavailableView.search(text: query)
                     }
@@ -48,21 +48,21 @@ struct MobileCommandHistoryView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
+                            Button(AppStrings.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
                                 UIPasteboard.general.string = entry.command
                             }
-                            Button(TermindCopy.Common.insert.swiftUIKey, systemImage: "text.insert") { insert(entry) }
+                            Button(AppStrings.Common.insert.swiftUIKey, systemImage: "text.insert") { insert(entry) }
                                 .disabled(!workspace.connected)
-                            Button(TermindCopy.Snippets.saveAsSnippet.swiftUIKey, systemImage: "curlybraces") {
+                            Button(AppStrings.Snippets.saveAsSnippet.swiftUIKey, systemImage: "curlybraces") {
                                 beginSavingSnippet(entry)
                             }
                             Divider()
-                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 workspace.commandHistory.delete(entry.id)
                             }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 workspace.commandHistory.delete(entry.id)
                             }
                         }
@@ -83,39 +83,39 @@ struct MobileCommandHistoryView: View {
                 }
             }
             .searchable(text: $query.singleLineText)
-            .navigationTitle(TermindCopy.Common.history.swiftUIKey)
+            .navigationTitle(AppStrings.Common.history.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TermindCopy.Common.done.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
+                    Button(AppStrings.Common.done.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button(TermindCopy.Common.clear.swiftUIKey, systemImage: "trash", role: .destructive) {
+                    Button(AppStrings.Common.clear.swiftUIKey, systemImage: "trash", role: .destructive) {
                         clearing = true
                     }.labelStyle(.iconOnly)
                 }
             }
             .confirmationDialog(
-                TermindCopy.Terminal.clearHistoryConfirmation.swiftUIKey, isPresented: $clearing,
+                AppStrings.Terminal.clearHistoryConfirmation.swiftUIKey, isPresented: $clearing,
                 titleVisibility: .visible
             ) {
-                Button(TermindCopy.Common.clear.swiftUIKey, role: .destructive) {
+                Button(AppStrings.Common.clear.swiftUIKey, role: .destructive) {
                     workspace.commandHistory.clear(for: workspace.descriptor.hostID)
                 }
             }
             .alert(
-                TermindCopy.Snippets.saveAsSnippet.swiftUIKey,
+                AppStrings.Snippets.saveAsSnippet.swiftUIKey,
                 isPresented: Binding(
                     get: { snippetEntry != nil },
                     set: { if !$0 { cancelSavingSnippet() } }
                 )
             ) {
                 TextField(
-                    TermindCopy.Snippets.snippetName.swiftUIKey, text: $snippetName.singleLineText, axis: .horizontal
+                    AppStrings.Snippets.snippetName.swiftUIKey, text: $snippetName.singleLineText, axis: .horizontal
                 )
                 .singleLinePaste()
                 .lineLimit(1)
-                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel, action: cancelSavingSnippet)
-                Button(TermindCopy.Common.save.swiftUIKey, action: saveSnippet)
+                Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel, action: cancelSavingSnippet)
+                Button(AppStrings.Common.save.swiftUIKey, action: saveSnippet)
                     .disabled(snippetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             } message: {
                 if let snippetEntry {

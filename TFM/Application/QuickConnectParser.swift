@@ -61,7 +61,7 @@ private nonisolated struct TelnetInputParser {
                 index += 1
                 if option == "-l" {
                     guard index < tokens.count else {
-                        return .incomplete(message(TermindCopy.Connections.enterAValueForL))
+                        return .incomplete(message(AppStrings.Connections.enterAValueForL))
                     }
                     username = tokens[index]
                     index += 1
@@ -69,29 +69,29 @@ private nonisolated struct TelnetInputParser {
                     username = String(option.dropFirst(2))
                 }
                 guard username?.isEmpty == false else {
-                    return .invalid(message(TermindCopy.Connections.invalidTelnetDestination))
+                    return .invalid(message(AppStrings.Connections.invalidTelnetDestination))
                 }
             } else if index < tokens.count, tokens[index].hasPrefix("-") {
-                return .invalid(message(TermindCopy.Connections.unsupportedTelnetOption(tokens[index])))
+                return .invalid(message(AppStrings.Connections.unsupportedTelnetOption(tokens[index])))
             }
             guard index < tokens.count else {
-                return .incomplete(message(TermindCopy.Connections.enterATelnetDestination))
+                return .incomplete(message(AppStrings.Connections.enterATelnetDestination))
             }
             var host = tokens[index]
             index += 1
             if host.hasPrefix("["), host.hasSuffix("]") { host = String(host.dropFirst().dropLast()) }
-            guard validHost(host) else { return .invalid(message(TermindCopy.Connections.invalidTelnetDestination)) }
+            guard validHost(host) else { return .invalid(message(AppStrings.Connections.invalidTelnetDestination)) }
             var port: Int?
             if index < tokens.count {
                 let value = tokens[index]
                 index += 1
                 guard value.allSatisfy({ $0.isASCII && $0.isNumber }),
                     let parsed = Int(value), (1...65_535).contains(parsed)
-                else { return .invalid(message(TermindCopy.Connections.invalidTelnetPort)) }
+                else { return .invalid(message(AppStrings.Connections.invalidTelnetPort)) }
                 port = parsed
             }
             guard index == tokens.count else {
-                return .invalid(message(TermindCopy.Connections.remoteCommandsAreNotSupportedHere))
+                return .invalid(message(AppStrings.Connections.remoteCommandsAreNotSupportedHere))
             }
             return .connection(
                 QuickConnectInput(
@@ -135,14 +135,14 @@ private nonisolated struct TelnetInputParser {
                 token = ""
                 started = false
             } else if ";|&<>`$".contains(character) {
-                throw Failure.invalid(message(TermindCopy.Connections.shellExpressionsAreNotSupportedHere))
+                throw Failure.invalid(message(AppStrings.Connections.shellExpressionsAreNotSupportedHere))
             } else {
                 token.append(character)
                 started = true
             }
         }
         guard quote == nil, !escaping else {
-            throw Failure.incomplete(message(TermindCopy.Connections.finishTheQuotedOrEscapedArgument))
+            throw Failure.incomplete(message(AppStrings.Connections.finishTheQuotedOrEscapedArgument))
         }
         if started { tokens.append(token) }
         return tokens
@@ -197,7 +197,7 @@ private nonisolated struct SSHInputParser {
                         value = attached
                     } else {
                         guard index < tokens.count else {
-                            throw Failure.incomplete(message(TermindCopy.Connections.enterAValueFor(token)))
+                            throw Failure.incomplete(message(AppStrings.Connections.enterAValueFor(token)))
                         }
                         value = tokens[index]
                         index += 1
@@ -212,7 +212,7 @@ private nonisolated struct SSHInputParser {
                     case "J":
                         guard jumps == nil else {
                             throw Failure.invalid(
-                                message(TermindCopy.Connections.useOneJOptionWithCommaSeparatedJumpHosts))
+                                message(AppStrings.Connections.useOneJOptionWithCommaSeparatedJumpHosts))
                         }
                         jumps = try parseJumps(value)
                     default:
@@ -223,11 +223,11 @@ private nonisolated struct SSHInputParser {
                             throw Failure.invalid(unsupported("-o \(key)"))
                         }
                         guard pair.count == 2 else {
-                            throw Failure.incomplete(message(TermindCopy.Connections.enterAValueFor(String(key))))
+                            throw Failure.incomplete(message(AppStrings.Connections.enterAValueFor(String(key))))
                         }
                         let argument = pair[1].trimmingCharacters(in: .whitespaces)
                         guard !argument.isEmpty else {
-                            throw Failure.incomplete(message(TermindCopy.Connections.enterAValueFor(String(key))))
+                            throw Failure.incomplete(message(AppStrings.Connections.enterAValueFor(String(key))))
                         }
                         switch name {
                         case "hostname":
@@ -246,7 +246,7 @@ private nonisolated struct SSHInputParser {
                     }
                 } else {
                     guard destination == nil else {
-                        throw Failure.invalid(message(TermindCopy.Connections.remoteCommandsAreNotSupportedHere))
+                        throw Failure.invalid(message(AppStrings.Connections.remoteCommandsAreNotSupportedHere))
                     }
                     let parsed = try endpoint(token)
                     destination = parsed
@@ -254,7 +254,7 @@ private nonisolated struct SSHInputParser {
                 }
             }
             guard var destination else {
-                throw Failure.incomplete(message(TermindCopy.Connections.enterAnSshDestination))
+                throw Failure.incomplete(message(AppStrings.Connections.enterAnSshDestination))
             }
             destination.username = username
             destination.port = port ?? destination.port
@@ -276,7 +276,7 @@ private nonisolated struct SSHInputParser {
     }
 
     private func unsupported(_ option: String) -> String {
-        message(TermindCopy.Connections.unsupportedSshOption(option))
+        message(AppStrings.Connections.unsupportedSshOption(option))
     }
 
     private func tokenize(_ text: String) throws -> [String] {
@@ -305,14 +305,14 @@ private nonisolated struct SSHInputParser {
                 token = ""
                 started = false
             } else if ";|&<>`$".contains(character) {
-                throw Failure.invalid(message(TermindCopy.Connections.shellExpressionsAreNotSupportedHere))
+                throw Failure.invalid(message(AppStrings.Connections.shellExpressionsAreNotSupportedHere))
             } else {
                 token.append(character)
                 started = true
             }
         }
         guard quote == nil, !escaping else {
-            throw Failure.incomplete(message(TermindCopy.Connections.finishTheQuotedOrEscapedArgument))
+            throw Failure.incomplete(message(AppStrings.Connections.finishTheQuotedOrEscapedArgument))
         }
         if started { tokens.append(token) }
         return tokens
@@ -329,7 +329,7 @@ private nonisolated struct SSHInputParser {
         var port: Int?
         if remainder.hasPrefix("[") {
             guard let end = remainder.firstIndex(of: "]") else {
-                throw Failure.incomplete(message(TermindCopy.Connections.finishTheBracketedIPv6Address))
+                throw Failure.incomplete(message(AppStrings.Connections.finishTheBracketedIPv6Address))
             }
             let suffix = remainder[remainder.index(after: end)...]
             if !suffix.isEmpty {
@@ -348,7 +348,7 @@ private nonisolated struct SSHInputParser {
     private func parsePort(_ value: String) throws -> Int {
         guard !value.isEmpty, value.allSatisfy({ $0.isASCII && $0.isNumber }),
             let port = Int(value), (1...65_535).contains(port)
-        else { throw Failure.invalid(message(TermindCopy.Connections.invalidSshPort)) }
+        else { throw Failure.invalid(message(AppStrings.Connections.invalidSshPort)) }
         return port
     }
 
@@ -374,6 +374,6 @@ private nonisolated struct SSHInputParser {
     }
 
     private func invalidDestination() -> Failure {
-        .invalid(message(TermindCopy.Connections.invalidSshDestination))
+        .invalid(message(AppStrings.Connections.invalidSshDestination))
     }
 }

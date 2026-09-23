@@ -21,7 +21,7 @@ struct MobileKnownHostsView: View {
     var body: some View {
         MobileCardPage {
             if app.knownHosts.entries.isEmpty {
-                ContentUnavailableView(TermindCopy.KnownHosts.noKnownHosts.swiftUIKey, systemImage: "checkmark.shield")
+                ContentUnavailableView(AppStrings.KnownHosts.noKnownHosts.swiftUIKey, systemImage: "checkmark.shield")
             } else if entries.isEmpty {
                 ContentUnavailableView.search(text: query)
             }
@@ -52,12 +52,12 @@ struct MobileKnownHostsView: View {
                         }
                         .accessibilityElement(children: .combine)
                     } actions: {
-                        Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") { editing = entry }
-                        Button(TermindCopy.KnownHosts.copyFingerprint.swiftUIKey, systemImage: "doc.on.doc") {
+                        Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = entry }
+                        Button(AppStrings.KnownHosts.copyFingerprint.swiftUIKey, systemImage: "doc.on.doc") {
                             UIPasteboard.general.string = entry.fingerprint
                         }
                         Divider()
-                        Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                        Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                             removing = entry
                         }
                     }
@@ -65,10 +65,10 @@ struct MobileKnownHostsView: View {
             }
         }
         .searchable(text: $query.singleLineText)
-        .navigationTitle(TermindCopy.Navigation.knownHosts.swiftUIKey)
+        .navigationTitle(AppStrings.Navigation.knownHosts.swiftUIKey)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(TermindCopy.KnownHosts.addKnownHost.swiftUIKey, systemImage: "plus") {
+                Button(AppStrings.KnownHosts.addKnownHost.swiftUIKey, systemImage: "plus") {
                     editing = KnownHostEntry(hostname: "")
                 }
             }
@@ -77,11 +77,11 @@ struct MobileKnownHostsView: View {
             MobileKnownHostEditor(app: app, entry: entry, isNew: app.knownHosts.entry(entry.id) == nil)
         }
         .confirmationDialog(
-            TermindCopy.KnownHosts.deleteKnownHostConfirmation.swiftUIKey,
+            AppStrings.KnownHosts.deleteKnownHostConfirmation.swiftUIKey,
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
             titleVisibility: .visible
         ) {
-            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+            Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                 if let entry = removing { _ = app.knownHosts.delete([entry.id]) }
                 removing = nil
             }
@@ -104,8 +104,8 @@ struct MobileKnownHostEditor: View {
 
     var editorTitle: String {
         isNew
-            ? String(localized: TermindCopy.KnownHosts.addKnownHost)
-            : String(localized: TermindCopy.KnownHosts.editKnownHost)
+            ? String(localized: AppStrings.KnownHosts.addKnownHost)
+            : String(localized: AppStrings.KnownHosts.editKnownHost)
     }
 
     var body: some View {
@@ -115,14 +115,14 @@ struct MobileKnownHostEditor: View {
             save: {
                 guard app.knownHosts.save(draft) else {
                     throw MobileEditorError.message(
-                        app.knownHosts.storageError ?? String(localized: TermindCopy.Common.unableToSave))
+                        app.knownHosts.storageError ?? String(localized: AppStrings.Common.unableToSave))
                 }
             },
             content: {
-                Section(TermindCopy.Vault.host.swiftUIKey) {
-                    LabeledContent(TermindCopy.Vault.hostname.swiftUIKey) {
+                Section(AppStrings.Vault.host.swiftUIKey) {
+                    LabeledContent(AppStrings.Vault.hostname.swiftUIKey) {
                         TextField(
-                            TermindCopy.Vault.hostname.swiftUIKey, text: $draft.hostname.singleLineText,
+                            AppStrings.Vault.hostname.swiftUIKey, text: $draft.hostname.singleLineText,
                             axis: .horizontal
                         ).singleLinePaste()
                             .lineLimit(1)
@@ -131,27 +131,27 @@ struct MobileKnownHostEditor: View {
                             .autocorrectionDisabled()
                     }
                     if !draft.isHashed {
-                        LabeledContent(TermindCopy.Common.port.swiftUIKey) {
+                        LabeledContent(AppStrings.Common.port.swiftUIKey) {
                             TextField(
-                                TermindCopy.Common.port.swiftUIKey, value: $draft.port, format: .number.grouping(.never)
+                                AppStrings.Common.port.swiftUIKey, value: $draft.port, format: .number.grouping(.never)
                             ).lineLimit(1)
                                 .multilineTextAlignment(.trailing)
                                 .keyboardType(.numberPad)
                         }
                     }
                     if draft.isHashed {
-                        Text(TermindCopy.KnownHosts.hashedAddressExplanation)
+                        Text(AppStrings.KnownHosts.hashedAddressExplanation)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                Section(TermindCopy.KnownHosts.hostKey.swiftUIKey) {
-                    Picker(TermindCopy.KnownHosts.keyType.swiftUIKey, selection: $draft.algorithm) {
+                Section(AppStrings.KnownHosts.hostKey.swiftUIKey) {
+                    Picker(AppStrings.KnownHosts.keyType.swiftUIKey, selection: $draft.algorithm) {
                         ForEach(SSHKeyAlgorithm.allCases) { Text($0.displayName).tag($0) }
                     }
-                    LabeledContent(TermindCopy.KnownHosts.fingerprint.swiftUIKey) {
+                    LabeledContent(AppStrings.KnownHosts.fingerprint.swiftUIKey) {
                         TextField(
-                            TermindCopy.KnownHosts.fingerprint.swiftUIKey, text: $draft.fingerprint.singleLineText,
+                            AppStrings.KnownHosts.fingerprint.swiftUIKey, text: $draft.fingerprint.singleLineText,
                             axis: .horizontal
                         ).lineLimit(
                             1

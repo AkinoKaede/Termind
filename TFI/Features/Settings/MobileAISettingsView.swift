@@ -18,7 +18,7 @@ struct MobileAISettingsView: View {
                 }
             }
         }
-        .navigationTitle(TermindCopy.Settings.ai.swiftUIKey)
+        .navigationTitle(AppStrings.Settings.ai.swiftUIKey)
     }
 
     @ViewBuilder
@@ -28,7 +28,7 @@ struct MobileAISettingsView: View {
             MobileModelsSettingsView(ai: app.ai)
         case .memory:
             MemorySettingsSection(memory: app.memory, ai: app.ai, layout: .page).navigationTitle(
-                TermindCopy.Settings.hermesMemory.swiftUIKey)
+                AppStrings.Settings.hermesMemory.swiftUIKey)
         case .skills:
             MobileSkillSettings(skills: app.skills)
         case .mcp:
@@ -47,10 +47,10 @@ enum MobileAISettingsDestination: String, CaseIterable, Identifiable {
 
     var title: LocalizedStringResource {
         switch self {
-        case .models: TermindCopy.Settings.models
-        case .skills: TermindCopy.Settings.skills
-        case .memory: TermindCopy.Settings.hermesMemory
-        case .mcp: TermindCopy.Settings.mcp
+        case .models: AppStrings.Settings.models
+        case .skills: AppStrings.Settings.skills
+        case .memory: AppStrings.Settings.hermesMemory
+        case .mcp: AppStrings.Settings.mcp
         }
     }
 
@@ -72,13 +72,13 @@ struct MobileModelsSettingsView: View {
         List {
             if ai.modelProviders.isEmpty {
                 ContentUnavailableView(
-                    TermindCopy.Settings.noProviders.swiftUIKey, systemImage: "brain",
-                    description: Text(TermindCopy.Settings.addAProviderToConfigureAiModels)
+                    AppStrings.Settings.noProviders.swiftUIKey, systemImage: "brain",
+                    description: Text(AppStrings.Settings.addAProviderToConfigureAiModels)
                 )
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
             } else {
-                Section(TermindCopy.Settings.modelProviders.swiftUIKey) {
+                Section(AppStrings.Settings.modelProviders.swiftUIKey) {
                     ForEach(ai.modelProviders) { provider in
                         Button {
                             editing = provider
@@ -89,10 +89,10 @@ struct MobileModelsSettingsView: View {
                                     Text(provider.name).foregroundStyle(.primary)
                                     Text(provider.requestURL()).font(.caption).foregroundStyle(.secondary)
                                         .lineLimit(1).truncationMode(.middle)
-                                    Text(TermindCopy.Settings.modelsNamed(provider.models.count)).font(.caption)
+                                    Text(AppStrings.Settings.modelsNamed(provider.models.count)).font(.caption)
                                         .foregroundStyle(.secondary)
                                     if !provider.isEnabled {
-                                        Text(TermindCopy.Settings.disabled).font(.caption).foregroundStyle(.secondary)
+                                        Text(AppStrings.Settings.disabled).font(.caption).foregroundStyle(.secondary)
                                     }
                                 }.frame(maxWidth: .infinity, alignment: .leading)
                                 Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(
@@ -101,13 +101,13 @@ struct MobileModelsSettingsView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") { editing = provider }
-                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                            Button(AppStrings.Common.edit.swiftUIKey, systemImage: "pencil") { editing = provider }
+                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 ai.delete(modelProviderID: provider.id)
                             }
                         }
                         .swipeActions {
-                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                            Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 ai.delete(modelProviderID: provider.id)
                             }
                         }
@@ -117,10 +117,10 @@ struct MobileModelsSettingsView: View {
             ModelRoleSettings(ai: ai)
             if let error = ai.storageError ?? ai.secretStorageError { Text(error).foregroundStyle(.red) }
         }
-        .navigationTitle(TermindCopy.Settings.models.swiftUIKey)
+        .navigationTitle(AppStrings.Settings.models.swiftUIKey)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button(TermindCopy.Settings.addProvider.swiftUIKey, systemImage: "plus") {
+                Button(AppStrings.Settings.addProvider.swiftUIKey, systemImage: "plus") {
                     editing = ModelProvider(name: "")
                 }
                 .labelStyle(.iconOnly)
@@ -137,26 +137,26 @@ struct MobileSecretFields: View {
     var requiresCredential = false
 
     var body: some View {
-        Section(isToken ? TermindCopy.Settings.bearerToken.swiftUIKey : TermindCopy.Settings.apiKey.swiftUIKey) {
+        Section(isToken ? AppStrings.Settings.bearerToken.swiftUIKey : AppStrings.Settings.apiKey.swiftUIKey) {
             if hasExistingCredential {
-                Picker(TermindCopy.Settings.credential.swiftUIKey, selection: $key.action) {
-                    Text(isToken ? TermindCopy.Settings.keepExistingToken : TermindCopy.Settings.keepExistingKey).tag(
+                Picker(AppStrings.Settings.credential.swiftUIKey, selection: $key.action) {
+                    Text(isToken ? AppStrings.Settings.keepExistingToken : AppStrings.Settings.keepExistingKey).tag(
                         MobileSecretDraft.Action.preserve)
-                    Text(isToken ? TermindCopy.Settings.replaceToken : TermindCopy.Settings.replaceKey).tag(
+                    Text(isToken ? AppStrings.Settings.replaceToken : AppStrings.Settings.replaceKey).tag(
                         MobileSecretDraft.Action.replace)
-                    Text(isToken ? TermindCopy.Settings.clearToken : TermindCopy.Settings.clearKey).tag(
+                    Text(isToken ? AppStrings.Settings.clearToken : AppStrings.Settings.clearKey).tag(
                         MobileSecretDraft.Action.clear)
                 }
                 if key.action == .replace {
                     RevealableSecretField(
-                        isToken ? TermindCopy.Settings.bearerToken : TermindCopy.Settings.apiKey, text: $key.text
+                        isToken ? AppStrings.Settings.bearerToken : AppStrings.Settings.apiKey, text: $key.text
                     )
                     .textInputAutocapitalization(.never).autocorrectionDisabled()
                     .multilineTextAlignment(.leading)
                 }
             } else {
                 RevealableSecretField(
-                    isToken ? TermindCopy.Settings.bearerToken : TermindCopy.Settings.apiKey,
+                    isToken ? AppStrings.Settings.bearerToken : AppStrings.Settings.apiKey,
                     text: Binding(
                         get: { key.text },
                         set: { value in
@@ -164,7 +164,7 @@ struct MobileSecretFields: View {
                             key.action = value.isEmpty && !requiresCredential ? .preserve : .replace
                         }
                     ),
-                    prompt: Text(requiresCredential ? TermindCopy.Vault.required : TermindCopy.Common.optional)
+                    prompt: Text(requiresCredential ? AppStrings.Vault.required : AppStrings.Common.optional)
                 )
                 .textInputAutocapitalization(.never).autocorrectionDisabled()
                 .multilineTextAlignment(.leading)
@@ -202,7 +202,7 @@ struct MobileProviderEditor: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: TermindCopy.Settings.modelProvider), isDirty: model.isDirty,
+            title: String(localized: AppStrings.Settings.modelProvider), isDirty: model.isDirty,
             canSave: model.canSave,
             onCancel: { model.discardPlaintext() },
             save: { try model.save() },
@@ -256,8 +256,8 @@ struct MobileProviderEditor: View {
     }
 
     private var modelSection: some View {
-        Section(TermindCopy.Settings.models.swiftUIKey) {
-            TextField(TermindCopy.Common.filter.swiftUIKey, text: $query.singleLineText, axis: .horizontal)
+        Section(AppStrings.Settings.models.swiftUIKey) {
+            TextField(AppStrings.Common.filter.swiftUIKey, text: $query.singleLineText, axis: .horizontal)
                 .singleLinePaste().lineLimit(1)
                 .textFieldStyle(.plain)
                 .multilineTextAlignment(.leading)
@@ -285,9 +285,9 @@ struct MobileProviderEditor: View {
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
-                        Button(TermindCopy.Common.test.swiftUIKey, systemImage: "play") { test([value]) }.disabled(
+                        Button(AppStrings.Common.test.swiftUIKey, systemImage: "play") { test([value]) }.disabled(
                             probes.running)
-                        Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                        Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                             remove([value.id])
                         }
                     }
@@ -295,19 +295,19 @@ struct MobileProviderEditor: View {
                 }
             }
             if model.draft.models.isEmpty {
-                Text(TermindCopy.Settings.noModelsAvailable).foregroundStyle(.secondary)
+                Text(AppStrings.Settings.noModelsAvailable).foregroundStyle(.secondary)
             }
             HStack(spacing: 12) {
                 Button {
                     presentedSheet = .fetch
                 } label: {
-                    Label(TermindCopy.Settings.fetch.swiftUIKey, systemImage: "arrow.down.circle").frame(
+                    Label(AppStrings.Settings.fetch.swiftUIKey, systemImage: "arrow.down.circle").frame(
                         maxWidth: .infinity, minHeight: 44)
                 }.disabled(!model.canSave || !model.requestProvider.canFetchModels)
                 Button {
                     presentedSheet = .add
                 } label: {
-                    Label(TermindCopy.Common.add.swiftUIKey, systemImage: "plus").frame(
+                    Label(AppStrings.Common.add.swiftUIKey, systemImage: "plus").frame(
                         maxWidth: .infinity, minHeight: 44)
                 }
             }.buttonStyle(.bordered)
@@ -350,7 +350,7 @@ struct MobileModelEditorSheet: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: TermindCopy.Assistant.model), isDirty: draft != original,
+            title: String(localized: AppStrings.Assistant.model), isDirty: draft != original,
             save: { save(draft) },
             content: { MobileModelFields(model: $draft, provider: provider) }
         )
@@ -382,36 +382,36 @@ struct MobileModelFetchSheet: View {
                 } else if let error = discovery.error {
                     Spacer()
                     Text(error).foregroundStyle(.secondary).multilineTextAlignment(.center).padding()
-                    Button(TermindCopy.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
+                    Button(AppStrings.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
                         selected = []
                         fetch()
                     }.buttonStyle(.bordered)
                     Spacer()
                 } else {
                     HStack {
-                        Text(TermindCopy.Settings.modelsOffered(discovery.candidates.count)).font(.caption)
+                        Text(AppStrings.Settings.modelsOffered(discovery.candidates.count)).font(.caption)
                             .foregroundStyle(.secondary)
                         Spacer()
                         Menu {
-                            Button(TermindCopy.Common.selectAll.swiftUIKey, systemImage: "checkmark.circle") {
+                            Button(AppStrings.Common.selectAll.swiftUIKey, systemImage: "checkmark.circle") {
                                 selected.formUnion(filtered.map(\.id).filter { !existing.contains($0) })
                             }
-                            Button(TermindCopy.Common.selectNone.swiftUIKey, systemImage: "circle") {
+                            Button(AppStrings.Common.selectNone.swiftUIKey, systemImage: "circle") {
                                 selected.subtract(filtered.map(\.id))
                             }
-                            Button(TermindCopy.Settings.fetch.swiftUIKey, systemImage: "arrow.down.circle") {
+                            Button(AppStrings.Settings.fetch.swiftUIKey, systemImage: "arrow.down.circle") {
                                 selected = []
                                 fetch()
                             }
                         } label: {
-                            MobileOverflowMenuLabel(TermindCopy.Settings.availableModels).frame(
+                            MobileOverflowMenuLabel(AppStrings.Settings.availableModels).frame(
                                 minWidth: 44, minHeight: 44
                             )
                             .contentShape(.rect)
                         }
                     }.padding(.horizontal)
                     if filtered.isEmpty {
-                        ContentUnavailableView(TermindCopy.Settings.noModelsAvailable.swiftUIKey, systemImage: "cube")
+                        ContentUnavailableView(AppStrings.Settings.noModelsAvailable.swiftUIKey, systemImage: "cube")
                     } else {
                         List(filtered) { candidate in
                             Button {
@@ -426,7 +426,7 @@ struct MobileModelFetchSheet: View {
                                         }
                                     }.frame(maxWidth: .infinity, alignment: .leading)
                                     if existing.contains(candidate.id) {
-                                        Text(TermindCopy.Settings.added).font(.caption).foregroundStyle(.secondary)
+                                        Text(AppStrings.Settings.added).font(.caption).foregroundStyle(.secondary)
                                     } else if selected.contains(candidate.id) {
                                         Image(systemName: "checkmark").font(.body.weight(.semibold))
                                             .accessibilityHidden(true)
@@ -440,25 +440,25 @@ struct MobileModelFetchSheet: View {
                     }
                 }
             }
-            .searchable(text: $query.singleLineText, prompt: TermindCopy.Common.filter.swiftUIKey)
+            .searchable(text: $query.singleLineText, prompt: AppStrings.Common.filter.swiftUIKey)
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()
             .background(Color(uiColor: .systemBackground))
             .toolbarBackground(Color(uiColor: .systemBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .navigationTitle(TermindCopy.Settings.availableModels.swiftUIKey).navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(AppStrings.Settings.availableModels.swiftUIKey).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(
+                    Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(
                         .iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(TermindCopy.Common.add.swiftUIKey, systemImage: "plus") {
+                    Button(AppStrings.Common.add.swiftUIKey, systemImage: "plus") {
                         add(discovery.candidates.filter { selected.contains($0.id) })
                         dismiss()
                     }
                     .labelStyle(.iconOnly).disabled(selected.isEmpty || discovery.running)
-                    .accessibilityLabel(Text(TermindCopy.Settings.addSelected))
+                    .accessibilityLabel(Text(AppStrings.Settings.addSelected))
                 }
             }
         }
@@ -480,29 +480,29 @@ struct MobileAddModelSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section(TermindCopy.Settings.modelId.swiftUIKey) {
-                    TextField(TermindCopy.Settings.modelId.swiftUIKey, text: $modelID.singleLineText, axis: .horizontal)
+                Section(AppStrings.Settings.modelId.swiftUIKey) {
+                    TextField(AppStrings.Settings.modelId.swiftUIKey, text: $modelID.singleLineText, axis: .horizontal)
                         .singleLinePaste().lineLimit(
                             1
                         )
                         .textFieldStyle(.plain).multilineTextAlignment(.leading)
                         .textInputAutocapitalization(.never).autocorrectionDisabled()
                         .focused($focused).onSubmit(submit)
-                    if existing.contains(trimmedID) { Text(TermindCopy.Settings.added).foregroundStyle(.secondary) }
+                    if existing.contains(trimmedID) { Text(AppStrings.Settings.added).foregroundStyle(.secondary) }
                 }
             }
             .scrollContentBackground(.hidden)
             .background(Color(uiColor: .systemGroupedBackground))
             .toolbarBackground(Color(uiColor: .systemGroupedBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .navigationTitle(TermindCopy.Settings.addModel.swiftUIKey).navigationBarTitleDisplayMode(.inline)
+            .navigationTitle(AppStrings.Settings.addModel.swiftUIKey).navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(
+                    Button(AppStrings.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(
                         .iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(TermindCopy.Common.add.swiftUIKey, systemImage: "plus", action: submit).labelStyle(.iconOnly)
+                    Button(AppStrings.Common.add.swiftUIKey, systemImage: "plus", action: submit).labelStyle(.iconOnly)
                         .disabled(
                             trimmedID.isEmpty || existing.contains(trimmedID))
                 }

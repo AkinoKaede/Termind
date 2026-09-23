@@ -1,6 +1,6 @@
 import Foundation
 
-extension TermindCopy {
+extension AppStrings {
     public nonisolated enum Onboarding {
         public static var waitingForWindow: LocalizedStringResource { "Waiting for an active window." }
 

@@ -100,7 +100,7 @@ struct ModelListEditor: View {
     private var toolbar: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             HStack(spacing: Metrics.Space.s) {
-                Text(TermindCopy.Settings.models)
+                Text(AppStrings.Settings.models)
                     .font(.headline)
                 if let count = provider?.models.count, count > 0 {
                     Text(count, format: .number)
@@ -116,21 +116,21 @@ struct ModelListEditor: View {
             filterField
 
             HStack(spacing: Metrics.Space.s) {
-                Button(TermindCopy.Settings.fetch.swiftUIKey, action: fetchModels)
+                Button(AppStrings.Settings.fetch.swiftUIKey, action: fetchModels)
                     .disabled(provider?.canFetchModels != true || state.fetch == .running)
                     .help(fetchHelp)
 
-                Button(TermindCopy.Common.add.swiftUIKey) { state.isAdding = true }
+                Button(AppStrings.Common.add.swiftUIKey) { state.isAdding = true }
 
-                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive, action: deleteChecked)
+                Button(AppStrings.Common.delete.swiftUIKey, role: .destructive, action: deleteChecked)
                     .disabled(state.checked.isEmpty)
                     .help(deleteHelp)
 
-                Button(TermindCopy.Common.test.swiftUIKey, action: testChecked)
+                Button(AppStrings.Common.test.swiftUIKey, action: testChecked)
                     .disabled(
                         state.checked.isEmpty || state.isTesting
                     )
-                    .help(Text(TermindCopy.Settings.modelTestExplanation))
+                    .help(Text(AppStrings.Settings.modelTestExplanation))
 
                 Spacer(minLength: 0)
 
@@ -143,18 +143,18 @@ struct ModelListEditor: View {
             if state.isAdding {
                 HStack(spacing: Metrics.Space.s) {
                     TextField(
-                        TermindCopy.Settings.exactModelIdSuchAsGpt54.swiftUIKey,
+                        AppStrings.Settings.exactModelIdSuchAsGpt54.swiftUIKey,
                         text: Binding(get: { state.newModelID }, set: { state.newModelID = $0 }).singleLineText,
                         axis: .horizontal
                     ).singleLinePaste().lineLimit(1)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit(addModel)
 
-                    Button(TermindCopy.Common.cancel.swiftUIKey) {
+                    Button(AppStrings.Common.cancel.swiftUIKey) {
                         state.newModelID = ""
                         state.isAdding = false
                     }
-                    Button(TermindCopy.Common.add.swiftUIKey, action: addModel)
+                    Button(AppStrings.Common.add.swiftUIKey, action: addModel)
                         .disabled(state.newModelID.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 .controlSize(.small)
@@ -169,7 +169,7 @@ struct ModelListEditor: View {
         HStack(spacing: Metrics.Space.xs) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
             TextField(
-                TermindCopy.Common.filter.swiftUIKey,
+                AppStrings.Common.filter.swiftUIKey,
                 text: Binding(get: { state.query }, set: { state.query = $0 }).singleLineText,
                 axis: .horizontal
             ).singleLinePaste().lineLimit(1).textFieldStyle(.plain)
@@ -180,7 +180,7 @@ struct ModelListEditor: View {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text(TermindCopy.Settings.clearFilter))
+                .accessibilityLabel(Text(AppStrings.Settings.clearFilter))
             }
         }
         .padding(.horizontal, Metrics.Space.s)
@@ -197,11 +197,11 @@ struct ModelListEditor: View {
                 .lineLimit(4)
                 .fixedSize(horizontal: false, vertical: true)
         } else if !state.checked.isEmpty {
-            Text(TermindCopy.Common.selected(state.checked.count))
+            Text(AppStrings.Common.selected(state.checked.count))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         } else if let fetched = provider?.modelsFetchedAt {
-            Text(TermindCopy.Settings.fetched(fetched.formatted(.relative(presentation: .named).locale(locale))))
+            Text(AppStrings.Settings.fetched(fetched.formatted(.relative(presentation: .named).locale(locale))))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -216,10 +216,10 @@ struct ModelListEditor: View {
     private var deleteHelp: Text {
         let broken = brokenRoles
         guard !broken.isEmpty else {
-            return Text(TermindCopy.Settings.removesTheSelectedModelsYouCanFetchThemAgain)
+            return Text(AppStrings.Settings.removesTheSelectedModelsYouCanFetchThemAgain)
         }
         let names = broken.map(\.displayName).formatted(.list(type: .and).locale(locale))
-        return Text(TermindCopy.Settings.removesTheSelectedModelsWouldReturnToAutomatic(names))
+        return Text(AppStrings.Settings.removesTheSelectedModelsWouldReturnToAutomatic(names))
     }
 
     /// Roles whose model is among the ticked ones.
@@ -236,9 +236,9 @@ struct ModelListEditor: View {
     private var fetchHelp: Text {
         guard let provider else { return Text("") }
         if provider.resolvedModelsURL == nil {
-            return Text(TermindCopy.Settings.modelDiscoveryRequiresURL)
+            return Text(AppStrings.Settings.modelDiscoveryRequiresURL)
         }
-        return Text(TermindCopy.Settings.fetchAvailableModelsFromTheEndpoint)
+        return Text(AppStrings.Settings.fetchAvailableModelsFromTheEndpoint)
     }
 
     // MARK: - Candidate picker
@@ -274,7 +274,7 @@ struct ModelListEditor: View {
         if models.isEmpty {
             VStack(spacing: Metrics.Space.s) {
                 Spacer()
-                Text(provider?.models.isEmpty == true ? TermindCopy.Settings.noModelsYet : TermindCopy.Settings.noMatch)
+                Text(provider?.models.isEmpty == true ? AppStrings.Settings.noModelsYet : AppStrings.Settings.noMatch)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 if provider?.models.isEmpty == true, let emptyHint {
@@ -313,7 +313,7 @@ struct ModelListEditor: View {
 
     private var emptyHint: LocalizedStringResource? {
         guard provider?.resolvedModelsURL == nil else { return nil }
-        return TermindCopy.Settings.addAUrlThenPressFetch
+        return AppStrings.Settings.addAUrlThenPressFetch
     }
 
     // MARK: - Detail
@@ -349,8 +349,8 @@ struct ModelListEditor: View {
                                 .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
-                        .help(TermindCopy.Settings.closeModelDetails.swiftUIKey)
-                        .accessibilityLabel(Text(TermindCopy.Settings.closeModelDetails))
+                        .help(AppStrings.Settings.closeModelDetails.swiftUIKey)
+                        .accessibilityLabel(Text(AppStrings.Settings.closeModelDetails))
                     }
                     .frame(maxWidth: .infinity)
 
@@ -362,7 +362,7 @@ struct ModelListEditor: View {
                     }
 
                     TextField(
-                        TermindCopy.Common.name.swiftUIKey,
+                        AppStrings.Common.name.swiftUIKey,
                         text: Binding(
                             get: { nameSession.modelID == model.id ? nameSession.name : model.displayName },
                             set: {
@@ -373,29 +373,29 @@ struct ModelListEditor: View {
                     ).singleLinePaste().lineLimit(1)
                         .textFieldStyle(.roundedBorder)
 
-                    Picker(TermindCopy.Common.type.swiftUIKey, selection: field(model, \.kind)) {
+                    Picker(AppStrings.Common.type.swiftUIKey, selection: field(model, \.kind)) {
                         ForEach(AIModel.Kind.allCases) { Text($0.displayName).tag($0) }
                     }
 
                     Toggle(
-                        TermindCopy.Settings.showInAssistant.swiftUIKey,
+                        AppStrings.Settings.showInAssistant.swiftUIKey,
                         isOn: field(model, \AIModel.isShownInAssistant)
                     )
-                    .help(TermindCopy.Settings.modelPickerVisibilityExplanation.swiftUIKey)
+                    .help(AppStrings.Settings.modelPickerVisibilityExplanation.swiftUIKey)
 
-                    modalityToggles(TermindCopy.Settings.input, model: model, keyPath: \.input)
+                    modalityToggles(AppStrings.Settings.input, model: model, keyPath: \.input)
                     abilityToggles(model)
                     if model.abilities.contains(.reasoning), let provider {
                         reasoningSection(model, provider: provider)
                     }
 
                     HStack(spacing: Metrics.Space.m) {
-                        limitField(TermindCopy.Settings.contextWindow, model: model, keyPath: \.contextLength)
-                        limitField(TermindCopy.Settings.maxOutput, model: model, keyPath: \.maxOutputTokens)
+                        limitField(AppStrings.Settings.contextWindow, model: model, keyPath: \.contextLength)
+                        limitField(AppStrings.Settings.maxOutput, model: model, keyPath: \.maxOutputTokens)
                     }
 
                     if model.origin == .manual {
-                        Text(TermindCopy.Settings.addedManually)
+                        Text(AppStrings.Settings.addedManually)
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -406,7 +406,7 @@ struct ModelListEditor: View {
             .frame(height: 320)
             .controlSize(.small)
         } else {
-            Text(TermindCopy.Settings.modelSelectionExplanation)
+            Text(AppStrings.Settings.modelSelectionExplanation)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -455,7 +455,7 @@ struct ModelListEditor: View {
 
     private func abilityToggles(_ model: AIModel) -> some View {
         VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-            Text(TermindCopy.Settings.can)
+            Text(AppStrings.Settings.can)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
             FlowLayout(spacing: Metrics.Space.xs) {
@@ -488,18 +488,18 @@ struct ModelListEditor: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(TermindCopy.Settings.reasoningEffort)
+                    Text(AppStrings.Settings.reasoningEffort)
                         .font(.caption.weight(.medium))
                     Text(
                         model.reasoningProfile == nil
-                            ? TermindCopy.Settings.automaticFromModelCatalog : TermindCopy.Settings.customMapping
+                            ? AppStrings.Settings.automaticFromModelCatalog : AppStrings.Settings.customMapping
                     )
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
                 }
                 Spacer()
                 if model.reasoningProfile == nil {
-                    Button(TermindCopy.Common.customize.swiftUIKey) {
+                    Button(AppStrings.Common.customize.swiftUIKey) {
                         var updated = model
                         updated.reasoningProfile = ModelCapabilityResolver.customProfile(
                             from: automatic
@@ -507,7 +507,7 @@ struct ModelListEditor: View {
                         app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                 } else {
-                    Button(TermindCopy.Settings.resetToAutomatic.swiftUIKey) {
+                    Button(AppStrings.Settings.resetToAutomatic.swiftUIKey) {
                         var updated = model
                         updated.reasoningProfile = nil
                         app.aiConfiguration.updateModel(updated, in: modelProviderID)
@@ -554,7 +554,7 @@ struct ModelListEditor: View {
             .frame(width: 100, alignment: .leading)
 
             TextField(
-                TermindCopy.Settings.providerDefault.swiftUIKey,
+                AppStrings.Settings.providerDefault.swiftUIKey,
                 text: Binding(
                     get: { mapping.wireValue ?? "" },
                     set: { value in
@@ -567,7 +567,7 @@ struct ModelListEditor: View {
             ).singleLinePaste().lineLimit(1)
                 .textFieldStyle(.roundedBorder)
                 .disabled(!mapping.isSupported)
-                .accessibilityLabel(Text(TermindCopy.Settings.reasoningProviderValue(effort.displayName)))
+                .accessibilityLabel(Text(AppStrings.Settings.reasoningProviderValue(effort.displayName)))
         }
     }
 
@@ -622,7 +622,7 @@ struct ModelListEditor: View {
         guard let secret = app.aiConfiguration.modelSecret(for: provider) else {
             state.fetch = .failed(
                 app.aiConfiguration.secretStorageError
-                    ?? String(localized: TermindCopy.Settings.providerCredentialUnavailable)
+                    ?? String(localized: AppStrings.Settings.providerCredentialUnavailable)
             )
             return
         }
@@ -657,7 +657,7 @@ struct ModelListEditor: View {
             for model in targets {
                 state.results[model.id] = .failed(
                     app.aiConfiguration.secretStorageError
-                        ?? String(localized: TermindCopy.Settings.providerCredentialUnavailable))
+                        ?? String(localized: AppStrings.Settings.providerCredentialUnavailable))
             }
             return
         }
@@ -746,8 +746,8 @@ struct ModelListEditor: View {
 
         var message: String {
             switch self {
-            case .queued: String(localized: TermindCopy.Settings.waitingProgress)
-            case .running: String(localized: TermindCopy.Settings.testingProgress)
+            case .queued: String(localized: AppStrings.Settings.waitingProgress)
+            case .running: String(localized: AppStrings.Settings.testingProgress)
             case .passed(let summary): summary
             case .failed(let reason): reason
             }
@@ -817,18 +817,18 @@ private struct CandidatePicker: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            Text(TermindCopy.Settings.modelsOffered(candidates.count))
+            Text(AppStrings.Settings.modelsOffered(candidates.count))
                 .font(.headline)
 
-            TermindSearchField(text: queryBinding, prompt: TermindCopy.Common.filter, density: .compact)
+            TermindSearchField(text: queryBinding, prompt: AppStrings.Common.filter, density: .compact)
 
             HStack(spacing: Metrics.Space.m) {
-                Button(TermindCopy.Common.selectAll.swiftUIKey) {
+                Button(AppStrings.Common.selectAll.swiftUIKey) {
                     let ids = filtered.map(\.id)
                     chooser.toggleAll(visible: ids, enabled: Set(selectable.map(\.id)))
                 }
                 .disabled(selectable.isEmpty)
-                Button(TermindCopy.Common.selectNone.swiftUIKey) { chooser.selected.subtract(filtered.map(\.id)) }
+                Button(AppStrings.Common.selectNone.swiftUIKey) { chooser.selected.subtract(filtered.map(\.id)) }
                     .disabled(chooser.selected.isEmpty)
                 Spacer(minLength: 0)
             }
@@ -868,12 +868,12 @@ private struct CandidatePicker: View {
 
     private var footer: some View {
         HStack(spacing: Metrics.Space.m) {
-            Button(TermindCopy.Common.cancel.swiftUIKey, action: cancel)
+            Button(AppStrings.Common.cancel.swiftUIKey, action: cancel)
                 .keyboardShortcut(.cancelAction)
             Spacer(minLength: 0)
             Button(
                 chooser.selected.isEmpty
-                    ? TermindCopy.Common.add.swiftUIKey : TermindCopy.Settings.add(chooser.selected.count).swiftUIKey
+                    ? AppStrings.Common.add.swiftUIKey : AppStrings.Settings.add(chooser.selected.count).swiftUIKey
             ) { add(chooser.selected) }
             .keyboardShortcut(.defaultAction)
             .disabled(chooser.selected.isEmpty)
@@ -926,7 +926,7 @@ private struct CandidateRow: View {
             }
         } trailing: {
             if isAlreadyAdded {
-                CardChip(text: String(localized: TermindCopy.Settings.added))
+                CardChip(text: String(localized: AppStrings.Settings.added))
             } else {
                 ModelBadges(model: model)
             }
@@ -960,7 +960,7 @@ private struct ModelRow: View {
                     .foregroundStyle(isChecked ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(TermindCopy.Settings.selectForBatchActions(model.label)))
+            .accessibilityLabel(Text(AppStrings.Settings.selectForBatchActions(model.label)))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: Metrics.Space.xs) {
@@ -994,11 +994,11 @@ private struct ModelRow: View {
         .onTapGesture(perform: select)
         .onHover { isHovering = $0 }
         .contextMenu {
-            Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
-            Button(TermindCopy.Common.test.swiftUIKey, systemImage: MenuSymbol.test, action: test)
+            Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
+            Button(AppStrings.Common.test.swiftUIKey, systemImage: MenuSymbol.test, action: test)
                 .disabled(!canTest)
             Divider()
-            DestructiveMenuButton(TermindCopy.Common.delete, action: delete)
+            DestructiveMenuButton(AppStrings.Common.delete, action: delete)
         }
         .help(Text(result?.message ?? model.id))
         .accessibilityElement(children: .combine)

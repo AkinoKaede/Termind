@@ -9,9 +9,9 @@ nonisolated enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .system: String(localized: TermindCopy.Settings.followSystem)
-        case .light: String(localized: TermindCopy.Settings.light)
-        case .dark: String(localized: TermindCopy.Settings.dark)
+        case .system: String(localized: AppStrings.Settings.followSystem)
+        case .light: String(localized: AppStrings.Settings.light)
+        case .dark: String(localized: AppStrings.Settings.dark)
         }
     }
 

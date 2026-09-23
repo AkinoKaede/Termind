@@ -145,15 +145,15 @@ struct HostsPageView: ManagedCardPage {
                 isDropTarget: isDropTarget
             )
             .contextMenu {
-                Button(TermindCopy.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
+                Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
                     openHostEditor(nil, groupID: group.id)
                 }
-                Button(TermindCopy.Vault.newSubgroup.swiftUIKey, systemImage: MenuSymbol.newGroup) {
+                Button(AppStrings.Vault.newSubgroup.swiftUIKey, systemImage: MenuSymbol.newGroup) {
                     openWork(.hostGroupEditor(groupID: nil, parentID: group.id))
                 }
-                Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) { editGroup(group) }
+                Button(AppStrings.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) { editGroup(group) }
                 Divider()
-                DestructiveMenuButton(TermindCopy.Vault.deleteGroup) { requestDelete(group) }
+                DestructiveMenuButton(AppStrings.Vault.deleteGroup) { requestDelete(group) }
             }
         } else if case .ungrouped = section.id {
             let isExpanded = section.isExpanded ?? true
@@ -166,10 +166,10 @@ struct HostsPageView: ManagedCardPage {
                 isDropTarget: isDropTarget
             )
             .contextMenu {
-                Button(TermindCopy.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
+                Button(AppStrings.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
                     openHostEditor(nil)
                 }
-                Button(TermindCopy.Vault.newGroup.swiftUIKey, systemImage: MenuSymbol.newGroup) {
+                Button(AppStrings.Vault.newGroup.swiftUIKey, systemImage: MenuSymbol.newGroup) {
                     openWork(.hostGroupEditor(groupID: nil, parentID: nil))
                 }
             }
@@ -207,16 +207,16 @@ struct HostsPageView: ManagedCardPage {
     func managedBlankAreaMenu(for section: HostLibrarySection.ID?) -> [NativeMenuEntry] {
         let groupID = section?.groupID
         return [
-            NativeMenuEntry(title: TermindCopy.Vault.newHost, symbol: MenuSymbol.newHost) {
+            NativeMenuEntry(title: AppStrings.Vault.newHost, symbol: MenuSymbol.newHost) {
                 openHostEditor(nil, groupID: groupID)
             },
-            NativeMenuEntry(title: TermindCopy.Vault.newGroup, symbol: MenuSymbol.newGroup) {
+            NativeMenuEntry(title: AppStrings.Vault.newGroup, symbol: MenuSymbol.newGroup) {
                 openWork(.hostGroupEditor(groupID: nil, parentID: groupID))
             },
             .separator,
             tagFilterMenu,
             .separator,
-            NativeMenuEntry(title: TermindCopy.Vault.importSshFolder, symbol: MenuSymbol.importItem) {
+            NativeMenuEntry(title: AppStrings.Vault.importSshFolder, symbol: MenuSymbol.importItem) {
                 openWork(.sshImport(knownHostsOnly: false))
             },
         ]
@@ -247,7 +247,7 @@ struct HostsPageView: ManagedCardPage {
             children.append(.separator)
             children.append(
                 NativeMenuEntry(
-                    title: TermindCopy.Vault.clearFilter,
+                    title: AppStrings.Vault.clearFilter,
                     symbol: MenuSymbol.clearFilter,
                     isEnabled: !state.selectedTags.isEmpty
                 ) { state.selectedTags.removeAll() }
@@ -256,7 +256,7 @@ struct HostsPageView: ManagedCardPage {
         // The tags themselves stay bare: they are data rather than verbs, and
         // `isOn` already claims the column beside them.
         return NativeMenuEntry(
-            title: TermindCopy.Vault.filterByTag,
+            title: AppStrings.Vault.filterByTag,
             symbol: MenuSymbol.filterByTag,
             isEnabled: !tags.isEmpty,
             children: children
@@ -291,7 +291,7 @@ struct HostsPageView: ManagedCardPage {
     private func deletionMessage(for group: HostGroup) -> String {
         let hosts = app.hostLibrary.hosts(inTreeOf: group.id).count
         let nested = app.hostLibrary.descendantGroups(of: group.id).count
-        return TermindCopy.Vault.groupDeletionMessage(
+        return AppStrings.Vault.groupDeletionMessage(
             hostCount: hosts, nestedGroupCount: nested, locale: locale)
     }
 
@@ -315,11 +315,11 @@ struct HostsPageView: ManagedCardPage {
 
     func managedEmptyState() -> some View {
         ContentUnavailableView {
-            Label(TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
+            Label(AppStrings.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
         } description: {
-            Text(TermindCopy.Vault.emptyHostsExplanation)
+            Text(AppStrings.Vault.emptyHostsExplanation)
         } actions: {
-            Button(TermindCopy.Vault.newHost.swiftUIKey) { openHostEditor(nil) }
+            Button(AppStrings.Vault.newHost.swiftUIKey) { openHostEditor(nil) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -328,11 +328,11 @@ struct HostsPageView: ManagedCardPage {
     func managedNoResultsState() -> some View {
         if state.query.isEmpty {
             ContentUnavailableView {
-                Label(TermindCopy.Vault.noMatchingHosts.swiftUIKey, systemImage: "tag")
+                Label(AppStrings.Vault.noMatchingHosts.swiftUIKey, systemImage: "tag")
             } description: {
-                Text(TermindCopy.Vault.noHostsHaveAllSelectedTags)
+                Text(AppStrings.Vault.noHostsHaveAllSelectedTags)
             } actions: {
-                Button(TermindCopy.Vault.clearFilter.swiftUIKey) { state.selectedTags.removeAll() }
+                Button(AppStrings.Vault.clearFilter.swiftUIKey) { state.selectedTags.removeAll() }
             }
         } else {
             ContentUnavailableView.search(text: state.query)
@@ -406,18 +406,18 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
             ) {
                 switch state.confirmation {
                 case .deleteGroup(let group):
-                    Button(TermindCopy.Vault.deleteGroupAndHosts.swiftUIKey, role: .destructive) {
+                    Button(AppStrings.Vault.deleteGroupAndHosts.swiftUIKey, role: .destructive) {
                         actions.deleteGroup(group, false)
                     }
-                    Button(TermindCopy.Vault.keepHosts.swiftUIKey) { actions.deleteGroup(group, true) }
+                    Button(AppStrings.Vault.keepHosts.swiftUIKey) { actions.deleteGroup(group, true) }
                 case .deleteHosts(let hosts):
-                    Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
+                    Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {
                         actions.deleteHosts(hosts)
                     }
                 case nil:
                     EmptyView()
                 }
-                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { state.confirmation = nil }
+                Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) { state.confirmation = nil }
             } message: {
                 confirmationMessage
             }
@@ -425,10 +425,10 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
 
     private var confirmationTitle: Text {
         switch state.confirmation {
-        case .deleteGroup(let group): Text(TermindCopy.Common.deleteNamedConfirmation(group.name))
+        case .deleteGroup(let group): Text(AppStrings.Common.deleteNamedConfirmation(group.name))
         case .deleteHosts(let hosts):
             hosts.count == 1
-                ? Text(TermindCopy.Vault.deleteHostConfirmation) : Text(TermindCopy.Vault.deleteHostsConfirmation)
+                ? Text(AppStrings.Vault.deleteHostConfirmation) : Text(AppStrings.Vault.deleteHostsConfirmation)
         case nil: Text("")
         }
     }
@@ -437,7 +437,7 @@ struct HostsPagePresentation: ManagedCardPresentationModifier {
         switch state.confirmation {
         case .deleteGroup(let group): Text(actions.deletionMessage(group))
         case .deleteHosts:
-            Text(TermindCopy.Vault.deleteHostsWarning)
+            Text(AppStrings.Vault.deleteHostsWarning)
         case nil: Text("")
         }
     }
@@ -484,8 +484,8 @@ private struct HostCard: View {
         }
         .help(Text("\(app.hostLibrary.preferredTerminalLoginAddress(for: host)) — \(status.label)"))
         .accessibilityLabel(host.name)
-        .accessibilityHint(TermindCopy.Vault.quickConnect.swiftUIKey)
-        .accessibilityAction(named: Text(TermindCopy.Vault.quickConnect), quickConnect)
+        .accessibilityHint(AppStrings.Vault.quickConnect.swiftUIKey)
+        .accessibilityAction(named: Text(AppStrings.Vault.quickConnect), quickConnect)
     }
 
     private func quickConnect() {
@@ -524,7 +524,7 @@ private struct HostCard: View {
             Text(
                 app.lastConnectedAt(for: host.id)
                     .map { $0.formatted(.relative(presentation: .numeric).locale(locale)) }
-                    ?? String(localized: TermindCopy.Vault.never)
+                    ?? String(localized: AppStrings.Vault.never)
             )
             .font(.caption2)
             .foregroundStyle(.tertiary)

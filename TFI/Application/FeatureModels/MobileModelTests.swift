@@ -20,12 +20,12 @@ final class MobileModelTests {
         cancel()
         let token = generation
         running = true
-        for model in models { results[model.id] = String(localized: TermindCopy.Settings.waitingProgress) }
+        for model in models { results[model.id] = String(localized: AppStrings.Settings.waitingProgress) }
         task = Task { [weak self, probe] in
             defer { if self?.generation == token { self?.running = false } }
             for model in models {
                 guard let self, generation == token, !Task.isCancelled else { return }
-                results[model.id] = String(localized: TermindCopy.Settings.testingProgress)
+                results[model.id] = String(localized: AppStrings.Settings.testingProgress)
                 do {
                     let result = try await probe(model, provider, secret)
                     guard generation == token, !Task.isCancelled else { return }

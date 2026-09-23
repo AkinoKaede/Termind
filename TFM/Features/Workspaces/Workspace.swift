@@ -134,7 +134,7 @@ final class Workspace: Identifiable {
     /// the group's `customTitle` or "Workspace" instead.
     func title(in store: HostLibraryModel, locale: Locale = .current) -> String {
         if isSplit {
-            return customTitle ?? AppLocalization.resolve(TermindCopy.Workspace.workspace, locale: locale)
+            return customTitle ?? AppLocalization.resolve(AppStrings.Workspace.workspace, locale: locale)
         }
         if let customTitle = focusedPane.customTitle { return customTitle }
         return automaticTitle ?? focusedPane.derivedTitle(in: store, locale: locale)
@@ -143,7 +143,7 @@ final class Workspace: Identifiable {
     func subtitle(in store: HostLibraryModel) -> String? {
         if isSplit {
             let count = panes.count
-            return String(localized: TermindCopy.Workspace.panes(count))
+            return String(localized: AppStrings.Workspace.panes(count))
         }
         return focusedPane.subtitle(in: store)
     }
@@ -265,7 +265,7 @@ final class Workspace: Identifiable {
             showCommandGenerationFailure(
                 String(
                     localized:
-                        TermindCopy.Workspace.batchCommandGeneratorShellRequirement
+                        AppStrings.Workspace.batchCommandGeneratorShellRequirement
                 )
             )
             return
@@ -274,7 +274,7 @@ final class Workspace: Identifiable {
             let shell = origin.integratedShell
         else {
             showCommandGenerationFailure(
-                String(localized: TermindCopy.Workspace.theFocusedShellHasNotReportedItsCurrentDirectory)
+                String(localized: AppStrings.Workspace.theFocusedShellHasNotReportedItsCurrentDirectory)
             )
             return
         }

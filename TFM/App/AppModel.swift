@@ -274,16 +274,16 @@ final class AppModel {
             guard let self else { return }
             let message =
                 self.hosts.host(hostID)?.sshEnabled == true
-                ? String(localized: TermindCopy.Connections.theHostConfigurationChangedReconnectToApplyIt)
-                : String(localized: TermindCopy.Connections.sshIsDisabledForThisHost)
+                ? String(localized: AppStrings.Connections.theHostConfigurationChangedReconnectToApplyIt)
+                : String(localized: AppStrings.Connections.sshIsDisabledForThisHost)
             self.disconnectWorkspaces(for: hostID, protocol: .ssh, message: message)
         }
         hosts.didChangeTelnetConnection = { [weak self] hostID in
             guard let self else { return }
             let message =
                 self.hosts.host(hostID)?.telnetEnabled == true
-                ? String(localized: TermindCopy.Connections.theHostConfigurationChangedReconnectToApplyIt)
-                : String(localized: TermindCopy.Connections.telnetIsDisabledForThisHost)
+                ? String(localized: AppStrings.Connections.theHostConfigurationChangedReconnectToApplyIt)
+                : String(localized: AppStrings.Connections.telnetIsDisabledForThisHost)
             self.disconnectWorkspaces(for: hostID, protocol: .telnet, message: message)
         }
         hosts.didPersistCore = { [weak repository = dependencies.hostRepository] in
@@ -827,7 +827,7 @@ final class AppModel {
             host.telnetEnabled = true
             guard hosts.saveHost(host) else {
                 throw TermindSSHError.library(
-                    hosts.storageError ?? String(localized: TermindCopy.Vault.theHostCouldNotBeSaved))
+                    hosts.storageError ?? String(localized: AppStrings.Vault.theHostCouldNotBeSaved))
             }
             return hosts.host(host.id) ?? host
         }
@@ -891,7 +891,7 @@ final class AppModel {
                 channel.revealExternalFile(file)
                 guard Self.canAutomaticallyOpenExternalSFTPFile(file) else {
                     channel.operationError = String(
-                        localized: TermindCopy.SFTP.executableFileWarning)
+                        localized: AppStrings.SFTP.executableFileWarning)
                     return
                 }
                 channel.open(file, coordinator: self.sftpTransfers, edits: self.sftpEdits) { localURL in

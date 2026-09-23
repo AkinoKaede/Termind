@@ -29,7 +29,7 @@ struct SFTPFileContextMenu {
         let single = targets.count == 1
         var result: [NativeMenuEntry] = []
         if single {
-            result.append(entry(TermindCopy.Common.open, symbol: MenuSymbol.open) { perform(.open) })
+            result.append(entry(AppStrings.Common.open, symbol: MenuSymbol.open) { perform(.open) })
             if !file.isDirectory {
                 var openWith = SFTPOpenWithMenu(filename: file.name, locale: locale) {
                     perform(.openWith($0))
@@ -40,35 +40,36 @@ struct SFTPFileContextMenu {
         }
         result.append(
             entry(
-                single ? TermindCopy.SFTP.download : TermindCopy.SFTP.downloadItems(targets.count),
+                single ? AppStrings.SFTP.download : AppStrings.SFTP.downloadItems(targets.count),
                 symbol: MenuSymbol.download
             ) {
                 perform(.download)
             })
         result.append(.separator)
         result.append(
-            entry(single ? TermindCopy.Common.copy : TermindCopy.SFTP.copyItems(targets.count), symbol: MenuSymbol.copy)
-            { perform(.copy) })
+            entry(single ? AppStrings.Common.copy : AppStrings.SFTP.copyItems(targets.count), symbol: MenuSymbol.copy) {
+                perform(.copy)
+            })
         result.append(
             NativeMenuEntry(
-                title: localized(TermindCopy.SFTP.copyAs), symbol: MenuSymbol.copy,
+                title: localized(AppStrings.SFTP.copyAs), symbol: MenuSymbol.copy,
                 children: [
-                    entry(single ? TermindCopy.Common.name : TermindCopy.SFTP.names) { perform(.copyNames) },
-                    entry(single ? TermindCopy.SFTP.path : TermindCopy.SFTP.paths) { perform(.copyPaths) },
+                    entry(single ? AppStrings.Common.name : AppStrings.SFTP.names) { perform(.copyNames) },
+                    entry(single ? AppStrings.SFTP.path : AppStrings.SFTP.paths) { perform(.copyPaths) },
                 ]))
         result.append(
-            entry(TermindCopy.Common.paste, symbol: MenuSymbol.paste, enabled: connected && canPaste) {
+            entry(AppStrings.Common.paste, symbol: MenuSymbol.paste, enabled: connected && canPaste) {
                 perform(.paste)
             })
         if single {
             result.append(
-                entry(TermindCopy.Common.rename, symbol: MenuSymbol.rename, enabled: allowsRemoteMutations) {
+                entry(AppStrings.Common.rename, symbol: MenuSymbol.rename, enabled: allowsRemoteMutations) {
                     perform(.rename)
                 })
             if file.kind == .file || file.kind == .directory {
                 result.append(
                     entry(
-                        TermindCopy.SFTP.editPermissions, symbol: MenuSymbol.editPermissions,
+                        AppStrings.SFTP.editPermissions, symbol: MenuSymbol.editPermissions,
                         enabled: allowsRemoteMutations
                     ) {
                         perform(.editPermissions)
@@ -77,17 +78,17 @@ struct SFTPFileContextMenu {
         }
         result.append(
             entry(
-                single ? TermindCopy.Common.delete : TermindCopy.SFTP.deleteItems(targets.count),
+                single ? AppStrings.Common.delete : AppStrings.SFTP.deleteItems(targets.count),
                 symbol: MenuSymbol.delete,
                 imageVisibility: .visible, enabled: allowsRemoteMutations
             ) { perform(.delete) })
         result.append(.separator)
         result.append(
-            entry(TermindCopy.SFTP.newFolder, symbol: MenuSymbol.newFolder, enabled: connected) { perform(.newFolder) })
+            entry(AppStrings.SFTP.newFolder, symbol: MenuSymbol.newFolder, enabled: connected) { perform(.newFolder) })
         result.append(
-            entry(TermindCopy.SFTP.upload, symbol: MenuSymbol.upload, enabled: connected) { perform(.upload) })
+            entry(AppStrings.SFTP.upload, symbol: MenuSymbol.upload, enabled: connected) { perform(.upload) })
         result.append(
-            entry(TermindCopy.Common.refresh, symbol: MenuSymbol.refresh, enabled: connected && !isLoading) {
+            entry(AppStrings.Common.refresh, symbol: MenuSymbol.refresh, enabled: connected && !isLoading) {
                 perform(.refresh)
             })
         return result

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:8f362367e688c959989324ed232ec7a4516727fe39a97d68b5927fe8f30f2e5e",
+  "pageVersion": "sha256:58e007a6d6a030d89a576783693867cef333da17416c8617a992a133ad8221b5",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/HostConnectionFields.swift",
-          "version": "repo-file-v1:sha256:bb9245bcbfc3ea5dcfb136c816635cf8d4257e9eca6f7518fa59b4cec7e0ef74"
+          "version": "repo-file-v1:sha256:754128b2305c0dcf9efb215562f4680d98bcb7b9a9f46a9c3b7d8d26e91881d1"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:7909f5be1f0742e4dae9989a00e7801c7ddc9e6cf72be4d24bc1108e2c393cfd"
+          "version": "repo-file-v1:sha256:cba31c98549c0bb9eee68a82b0924fa9c6433e6d9a37e82b549af9432e2f2757"
         }
       ]
     },
@@ -94,15 +94,15 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/HostConnectionFields.swift",
-          "version": "repo-file-v1:sha256:bb9245bcbfc3ea5dcfb136c816635cf8d4257e9eca6f7518fa59b4cec7e0ef74"
+          "version": "repo-file-v1:sha256:754128b2305c0dcf9efb215562f4680d98bcb7b9a9f46a9c3b7d8d26e91881d1"
         },
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:0ca046969bd969fa4d4f4d245220726eb709fe97d4df67d7969b19807a8aae32"
+          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
         },
         {
           "resource": "repo://TFM/Features/HostEditor/HostEditorView.swift",
-          "version": "repo-file-v1:sha256:f41c78c72a142dce4b642c6e9a9a9efd93f550d9e040e15cbd2993ab0cf2f08a"
+          "version": "repo-file-v1:sha256:9b5dc3dd4ef4cd90592646f84ccd7a4cd771fd8a8aa38a915d6ed5941529413f"
         }
       ]
     },
@@ -204,7 +204,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalFontFields.swift",
-          "version": "repo-file-v1:sha256:fe42abfe804da005ade77a8873f0196fc7c539b34d6397fcc1f1b71766d11749"
+          "version": "repo-file-v1:sha256:908d05c90f50d8a308dfc2c8d6d494adffb31eba75c40aee60299e5258529e25"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalFontPicker.swift",
@@ -212,7 +212,7 @@
         },
         {
           "resource": "repo://TFI/Features/Settings/MobileTerminalSettingsView.swift",
-          "version": "repo-file-v1:sha256:cfb01c8d066071c9afa9d47891ed093923acb2a0217b29755e356ec701663546"
+          "version": "repo-file-v1:sha256:ba531c9a35fdf60535cf00558e79400ead0337bc4ebe639da167854e4d233e2f"
         },
         {
           "resource": "repo://TFI/Platform/TerminalFontCatalog.swift",
@@ -220,7 +220,7 @@
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:302951c6d2364dacb597c0374f419d44acd4952eb20ba1b313e31a4b9c059cf8"
+          "version": "repo-file-v1:sha256:241630ccbe213a2cc448dcf534a36eff0d093f8c529b8e34c2757a59d3d14c10"
         },
         {
           "resource": "repo://TFM/Platform/TerminalFontCatalog.swift",
@@ -256,19 +256,19 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalThemePicker.swift",
-          "version": "repo-file-v1:sha256:5f480c53b4436421893d8973b28150d18a61262d3ce85e0ecf278ea06f901b0e"
+          "version": "repo-file-v1:sha256:e43316f896b07a3104340bf1c7b20577ae3e80e3f56c51de53708c01ca9fe956"
         },
         {
           "resource": "repo://TFI/Features/Settings/MobileTerminalSettingsView.swift",
-          "version": "repo-file-v1:sha256:cfb01c8d066071c9afa9d47891ed093923acb2a0217b29755e356ec701663546"
+          "version": "repo-file-v1:sha256:ba531c9a35fdf60535cf00558e79400ead0337bc4ebe639da167854e4d233e2f"
         },
         {
           "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
-          "version": "repo-file-v1:sha256:302951c6d2364dacb597c0374f419d44acd4952eb20ba1b313e31a4b9c059cf8"
+          "version": "repo-file-v1:sha256:241630ccbe213a2cc448dcf534a36eff0d093f8c529b8e34c2757a59d3d14c10"
         },
         {
           "resource": "repo://TFM/Features/Settings/TerminalCustomConfigurationEditorSheet.swift",
-          "version": "repo-file-v1:sha256:997f839f7997ef70dcaec824b727553f8df7aa8ad6fdf5bb0ecd6c396f6397b3"
+          "version": "repo-file-v1:sha256:27010e8ec2d223ddd7e843340cfc808f6ee7e9c7ce48815546007d656538dc22"
         }
       ]
     },
@@ -296,11 +296,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift",
-          "version": "repo-file-v1:sha256:8afffffbb974da8b4c7e4629ccac060f2b0cae5164ffa4f932dee2e083cbc15f"
+          "version": "repo-file-v1:sha256:9904a3837a3361c3c293771cc6b7567874d9ee6fcb61b1c53a69d42e0177d548"
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
-          "version": "repo-file-v1:sha256:e2f23f2dff6d1fba8ec85ae36c7e68960694da2a669507bdeb6e4f57ff3e5463"
+          "version": "repo-file-v1:sha256:91510dbf6f46eb486bd93ee6755e0ca97667e41f52baf0136c4590d99ebf66ab"
         }
       ]
     },
@@ -310,11 +310,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Ports/MobileForwardingView.swift",
-          "version": "repo-file-v1:sha256:13b6986ee3423852474b8ada4b92d132e5bdf505445570be2d2c0ca156e5e533"
+          "version": "repo-file-v1:sha256:3260c66c991c3e7c1544d9b98e8edb9ae61750d03b7c0b9e5a1593c70c1e481b"
         },
         {
           "resource": "repo://TFM/Features/Ports/PortForwardingView.swift",
-          "version": "repo-file-v1:sha256:1db68464c1095b5915eb9c2b3bb6bfa09d4339a35180ac72009021b75963d4cb"
+          "version": "repo-file-v1:sha256:2f371b9ecb8a90bdc1db251a058d437282094045c7487c86af28c542db35e963"
         }
       ]
     },
@@ -324,11 +324,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Snippets/MobileSnippetsView.swift",
-          "version": "repo-file-v1:sha256:1ba5269491357e2fc2677b2c69d987d9a144ff0d26589f481ff7161aceb27032"
+          "version": "repo-file-v1:sha256:57caab3fc7e74b38a5e9efa11df8de834c2a05a01f9e4900502e4feed5cb919b"
         },
         {
           "resource": "repo://TFM/Features/Snippets/SnippetsPageView.swift",
-          "version": "repo-file-v1:sha256:5791561607e1b423d46cb1eb986f3faeb72c036ab4035bdfe22fbb2b45b83ae7"
+          "version": "repo-file-v1:sha256:e8fa8476cde899cf7e177eebdf68c09a0d8dfd997338bebc3344b07cab05e02e"
         }
       ]
     },
@@ -338,11 +338,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:4d6cb5a6d8fa8731e3c787f44930a19e846a92aeeb8ff4b732f2e9190d40d31c"
+          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
         },
         {
           "resource": "repo://TFITests/MobileVaultFeatureTests.swift",
-          "version": "repo-file-v1:sha256:0288f63f82aaa2fb09baff8ab6bcb8cfcb1a3c6cf6f119777e26380c2723620d"
+          "version": "repo-file-v1:sha256:c457249cfdd4c61cb7aaf2f4ed4403548096c31b3ff3de5f4e17b8ce0ee08217"
         }
       ]
     },
@@ -352,15 +352,15 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:4d6cb5a6d8fa8731e3c787f44930a19e846a92aeeb8ff4b732f2e9190d40d31c"
+          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
         },
         {
           "resource": "repo://TFM/Features/Hosts/HostActions.swift",
-          "version": "repo-file-v1:sha256:38924a7fa91cdc9577edccd4e0b09cc167e15cdc951b027d56919d5db8dc906c"
+          "version": "repo-file-v1:sha256:fd93459d4653bd4ec393a7ebdbc6732bc4a7fbf183255bc28a49c817053b3abf"
         }
       ]
     },
@@ -370,7 +370,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
-          "version": "repo-file-v1:sha256:b2e3a927ec2eeb48b6bcf9b186a3c5541d86848d10425a29d6cb9383ecd900d0"
+          "version": "repo-file-v1:sha256:ea39a7339e46a612edf4d5be9370614aeb8598ed53927cb88041b2efeee760d7"
         },
         {
           "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift",
@@ -424,7 +424,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
+          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
         },
         {
           "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift",
@@ -476,7 +476,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift",
-          "version": "repo-file-v1:sha256:d313a5cd993d79e7820782ec1317c58bf4bd5483e03f9019245667f260b210f4"
+          "version": "repo-file-v1:sha256:e8d96ef3f766a15b53ca2e4e14074834a565b815eb7e41256dcf4f637d215f15"
         },
         {
           "resource": "repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift",
@@ -490,15 +490,15 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/HostConnectionFields.swift",
-          "version": "repo-file-v1:sha256:bb9245bcbfc3ea5dcfb136c816635cf8d4257e9eca6f7518fa59b4cec7e0ef74"
+          "version": "repo-file-v1:sha256:754128b2305c0dcf9efb215562f4680d98bcb7b9a9f46a9c3b7d8d26e91881d1"
         },
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:0ca046969bd969fa4d4f4d245220726eb709fe97d4df67d7969b19807a8aae32"
+          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
-          "version": "repo-file-v1:sha256:4d6cb5a6d8fa8731e3c787f44930a19e846a92aeeb8ff4b732f2e9190d40d31c"
+          "version": "repo-file-v1:sha256:769142afc4f1c7dd01a6953a0a906fffebedd8e877b8c2b66ff352d9df249e21"
         }
       ]
     },
@@ -512,11 +512,11 @@
         },
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:0ca046969bd969fa4d4f4d245220726eb709fe97d4df67d7969b19807a8aae32"
+          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
         },
         {
           "resource": "repo://TFM/Features/HostEditor/HostEditorView.swift",
-          "version": "repo-file-v1:sha256:f41c78c72a142dce4b642c6e9a9a9efd93f550d9e040e15cbd2993ab0cf2f08a"
+          "version": "repo-file-v1:sha256:9b5dc3dd4ef4cd90592646f84ccd7a4cd771fd8a8aa38a915d6ed5941529413f"
         }
       ]
     },
@@ -530,7 +530,7 @@
         },
         {
           "resource": "repo://TFI/Features/HostEditor/MobileHostEditor.swift",
-          "version": "repo-file-v1:sha256:0ca046969bd969fa4d4f4d245220726eb709fe97d4df67d7969b19807a8aae32"
+          "version": "repo-file-v1:sha256:483c9ede1465c4b88d1cf5135eec9d28e3befb5d5c0e31b97cf82bf9ef3d499a"
         }
       ]
     },
@@ -540,7 +540,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/UI/Components/MobileEditorSheet.swift",
-          "version": "repo-file-v1:sha256:1ac73af36fbba10f888b4b6d14c6ae03505f9033159e218888aeb7f4954a1e4b"
+          "version": "repo-file-v1:sha256:6783c68868b6ed4493bbe20b8ed539d85e369c7c0f5a005a6dd6b25a84a185ff"
         },
         {
           "resource": "repo://TFITests/MobileEditorToolbarTests.swift",
@@ -554,7 +554,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/UI/Components/WindowToolbar.swift",
-          "version": "repo-file-v1:sha256:8ede24734501a15d123f6d1578103ea2386d2a44c797e4723b1dcdfa15455944"
+          "version": "repo-file-v1:sha256:ff88ccfd8a2de0d12938592728425de238fee9f1c3ce7b01bf68c986e6333152"
         }
       ]
     },
@@ -564,7 +564,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/UI/Components/WindowToolbar.swift",
-          "version": "repo-file-v1:sha256:8ede24734501a15d123f6d1578103ea2386d2a44c797e4723b1dcdfa15455944"
+          "version": "repo-file-v1:sha256:ff88ccfd8a2de0d12938592728425de238fee9f1c3ce7b01bf68c986e6333152"
         }
       ]
     },
@@ -574,7 +574,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPresentation/AgentToolPresentation.swift",
-          "version": "repo-file-v1:sha256:9065cd3b8a95a963dd472af0623de9ae5241b3c8ca8768ba5dd71817ee1c0767"
+          "version": "repo-file-v1:sha256:aa42fcad098fc3a2287168335c849a4052a8da040f25da196f22ea279f92da09"
         }
       ]
     },
@@ -584,7 +584,7 @@
       "evidence": [
         {
           "resource": "repo://TFITests/MobileCardTests.swift",
-          "version": "repo-file-v1:sha256:667200b9f2a179409df921dc6d6471f4ff081a98c462dfc0dda8fe9a08d35f24"
+          "version": "repo-file-v1:sha256:939145e6d44815a490719611e084759af0b697d128342d64d522ff842f4c3f3b"
         },
         {
           "resource": "repo://TFITests/MobileEditorToolbarTests.swift",
@@ -595,6 +595,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:05:10.244Z"
+    "at": "2026-09-23T14:32:50.942Z"
   }
 }

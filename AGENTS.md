@@ -48,7 +48,7 @@ Mobile key-window integration suites are skipped by default because they share U
 ## Localization Guidelines
 
 Define app-facing copy as `LocalizedStringResource` entries in
-`Frameworks/TermindPresentation/Copy`, including copy used by only one platform.
+`Frameworks/TermindPresentation/Strings`, including copy used by only one platform.
 Reuse semantic entries and shared formatting functions from TFM and TFI; keep
 protocol values, identifiers, and diagnostic codes with their existing owners.
 Run `Scripts/check-presentation-copy.sh` alongside the Chinese localization check.
