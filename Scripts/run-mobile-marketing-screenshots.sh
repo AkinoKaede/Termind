@@ -53,9 +53,12 @@ run_capture() {
     xcrun simctl bootstatus "$device_id" -b
     if [[ "$name" == iPad* ]]; then
         xcrun devicectl device orientation set --device "$device_id" landscapeLeft >/dev/null
+        # The orientation command returns before SpringBoard finishes rotating.
+        # Let the system chrome settle before the test presents its capture window.
+        sleep 2
     fi
     xcrun simctl status_bar "$device_id" override \
-        --time '9:41' --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4
+        --time '9:41' --batteryState discharging --batteryLevel 80 --wifiBars 3 --cellularBars 4
     local region apple_locale
     case "$language" in
         en) region=US; apple_locale=en_US ;;

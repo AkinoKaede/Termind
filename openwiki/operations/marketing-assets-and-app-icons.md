@@ -40,14 +40,20 @@ sources:
     resource: repo://TFI/Resources/AppIcon.icon/icon.json
   - id: openwiki-source-8c7b256852880c8ff72e5882
     resource: repo://TFITests/MobileMarketingScreenshotTests.swift
+  - id: openwiki-source-2b65afedbf9d80b1d387f50a
+    resource: repo://TFM/App/ScreenshotDemo.swift
+  - id: openwiki-source-a93c339a06b550013d027e29
+    resource: repo://TFM/Features/SFTP/SFTPChannelModel.swift
   - id: openwiki-source-6477f7482bee83060dc1667d
     resource: repo://TFM/Resources/AppIcon.icon/icon.json
   - id: openwiki-source-e2813ac17589f2155998862e
     resource: repo://TFMTests/MacMarketingScreenshotTests.swift
-generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+  - id: openwiki-source-d32f5321ec392c768391e314
+    resource: repo://TFMTests/ScreenshotDemoTests.swift
+generated: { by: "codex", at: "2026-09-23T15:54:40.903Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:05:10.244Z
+    at: 2026-09-23T15:54:40.903Z
 ---
 
 # Marketing Assets, Screenshot Production, Figma Exports, and App Icons
@@ -78,7 +84,7 @@ TERMIND_MARKETING_SCENES=assistant TERMIND_MARKETING_DEVICES=ipad \
 | iPhone 17 Pro Max | Portrait, 1320×2868 | vault, sftp, ssh, metrics, assistant |
 | iPad Pro 13-inch (M5) | Landscape, 2752×2064 | vault, sftp, ssh, metrics, assistant |
 
-Three locales produce 30 captures. The runner requires iOS/iPadOS 27 and defaults to the 27.0 runtime. `TERMIND_MARKETING_RUNTIME` may select another 27.x runtime, but never a different major version or a silently newer same-name device. iPad-only runs do not require an iPhone. Each locale uses a separate process with matching Apple language, region, locale, and fixture language. Status is deterministic at 9:41 with charged, Wi-Fi, and cellular indicators. iPhone uses scene-requested portrait plus `simctl` capture; iPad uses `devicectl` landscape capture and dimension validation without rotation.
+Three locales produce 30 captures. The runner requires iOS/iPadOS 27 and defaults to the 27.0 runtime. `TERMIND_MARKETING_RUNTIME` may select another 27.x runtime, but never a different major version or a silently newer same-name device. iPad-only runs do not require an iPhone. Each locale uses a separate process with matching Apple language, region, locale, and fixture language. Status is deterministic at 9:41 with 80% battery in the discharging state, plus fixed Wi-Fi and cellular indicators. iPhone uses scene-requested portrait plus `simctl` capture; iPad uses `devicectl` landscape capture and dimension validation without rotation.
 
 Fixtures preserve the production Vault/Metrics/Workspaces/Assistant/Settings order. iPad Metrics uses top tabs, Vault and Assistant use an expanded sidebar, and SSH/SFTP use `MobileRootView` plus production Workspace pages with in-memory connection services, Workspaces selected, and the sidebar collapsed. Do not use legacy iPhone wrappers for iPad. The approved baseline command is:
 
@@ -102,6 +108,8 @@ TERMIND_MAC_MARKETING_SCENES=agent TERMIND_MAC_MARKETING_LOCALES=zh-Hant \
 ```
 
 Scene mapping is hosts → vault/mac, workspace → workspace/mac, agent → assistant/mac, command → command-generator/mac, and metrics → metrics/mac-overview. Metrics detail is a development demo, not a marketing export. Locale selectors are `en`, `zh-Hans`, and `zh-Hant`. The pipeline is pinned build → serial locale launch → stdout key-window marker → system capture by window number → removal of only an optional two-pixel transparent edge → completion and dimension validation. Raw size is 2360×1480, except Command Generator at 2044×1280. SFTP chrome and file metadata localize; terminal transcripts do not.
+
+The Workspace fixture keeps the navigation sidebar visible. Its content area is a 50/50 horizontal split: the left half stacks two equal-height SSH terminals, while the right half is one full-height SFTP browser. The top-left terminal remains the focused pane through capture. The SFTP browser uses eleven deterministic `/etc/nginx` entries and keeps `nginx.conf` selected, so every locale has a populated full-height file list without contacting a remote Host.
 
 ## Device frames and website
 

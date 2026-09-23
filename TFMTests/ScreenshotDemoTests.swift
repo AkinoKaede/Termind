@@ -105,7 +105,7 @@ import TermindRemoteInfrastructure
         }
 
         @Test
-        func workspaceScenesBuildExpectedWindowState() {
+        func workspaceScenesBuildExpectedWindowState() throws {
             let hosts = HostLibraryModel.demo()
             let workspace = ScreenshotDemoConfiguration(
                 scene: .workspace, language: .english
@@ -118,13 +118,44 @@ import TermindRemoteInfrastructure
             ).makeWindow(hosts: hosts)
 
             #expect(workspace.selectedWorkspace != nil)
-            #expect(!workspace.showsSidebar)
+            #expect(workspace.showsSidebar)
+            #expect(workspace.sidebarMode == .navigation)
             #expect(command.selectedWorkspace != nil)
             #expect(command.showsSidebar)
             #expect(command.sidebarMode == .navigation)
             #expect(agent.selectedWorkspace != nil)
             #expect(agent.showsSidebar)
             #expect(agent.sidebarMode == .assistant)
+
+            let workspaceModel = try #require(workspace.selectedWorkspace)
+            #expect(workspaceModel.focusedPane === workspaceModel.panes[0])
+            #expect(workspaceModel.panes.map(\.kind) == [.sshSession, .sshSession, .sftpChannel])
+
+            guard case .split(let root) = workspaceModel.layout else {
+                Issue.record("Workspace marketing demo should use a horizontal root split")
+                return
+            }
+            #expect(root.axis == .horizontal)
+            #expect(root.fraction == 0.5)
+            guard case .split(let terminals) = root.first else {
+                Issue.record("Workspace marketing demo should stack two terminals on the left")
+                return
+            }
+            #expect(terminals.axis == .vertical)
+            #expect(terminals.fraction == 0.5)
+            #expect(terminals.first.panes.first?.kind == .sshSession)
+            #expect(terminals.second.panes.first?.kind == .sshSession)
+            #expect(root.second.panes.first?.kind == .sftpChannel)
+
+            let sftp = try #require(root.second.panes.first?.sftpChannel)
+            #expect(sftp.files.count == 11)
+            #expect(
+                Set(sftp.files.map(\.name)) == [
+                    "conf.d", "modules-enabled", "sites-available", "sites-enabled", "snippets",
+                    "fastcgi.conf", "fastcgi_params", "mime.types", "nginx.conf", "proxy_params",
+                    "uwsgi_params",
+                ])
+            #expect(sftp.selection == ["/etc/nginx/nginx.conf"])
         }
 
         @Test

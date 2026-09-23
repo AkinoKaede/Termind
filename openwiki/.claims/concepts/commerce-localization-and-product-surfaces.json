@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d4ea1f6621651b52c52fb50371d69e2c37aea12155fa6e2b787df714caaaf14c",
+  "pageVersion": "sha256:bb21601c288214da31955a506ba7cb757abfc505636705d00cba968780dd2bcf",
   "claims": [
     {
       "id": "claim_70c5c3da992944188e719c65adc9b06c",
@@ -214,7 +214,7 @@
         },
         {
           "resource": "repo://Marketing/README.md",
-          "version": "repo-file-v1:sha256:97866af84c8b01df60e0e125b61a85836eaa9156052aeac3c3ddb0c234cad81f"
+          "version": "repo-file-v1:sha256:122a68c026af8b0bcd6276998800238c2643b0d8552e430d0bab4aa759067366"
         }
       ]
     },
@@ -467,6 +467,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:32:50.942Z"
+    "at": "2026-09-23T15:54:40.903Z"
   }
 }

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0f7fd98bc990723ebe70c11e31b97113af0dddb33d7acb03d6bb649aa8058f86",
+  "pageVersion": "sha256:82b22ed27a54e008721221cfed93d1c9f59664f852c4bcabf74d0fc116ca1e39",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -140,7 +140,7 @@
       "evidence": [
         {
           "resource": "repo://Marketing/README.md",
-          "version": "repo-file-v1:sha256:97866af84c8b01df60e0e125b61a85836eaa9156052aeac3c3ddb0c234cad81f"
+          "version": "repo-file-v1:sha256:122a68c026af8b0bcd6276998800238c2643b0d8552e430d0bab4aa759067366"
         },
         {
           "resource": "repo://Scripts/Tests/test_bump_version.py",
@@ -212,7 +212,7 @@
         },
         {
           "resource": "repo://Marketing/README.md",
-          "version": "repo-file-v1:sha256:97866af84c8b01df60e0e125b61a85836eaa9156052aeac3c3ddb0c234cad81f"
+          "version": "repo-file-v1:sha256:122a68c026af8b0bcd6276998800238c2643b0d8552e430d0bab4aa759067366"
         }
       ]
     },
@@ -313,6 +313,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:32:50.942Z"
+    "at": "2026-09-23T15:54:40.903Z"
   }
 }

@@ -1288,6 +1288,36 @@ extension SFTPChannelModel {
                 ownerUID: 0, ownerGID: 0
             ),
             RemoteFile(
+                path: "\(path)/modules-enabled", name: "modules-enabled", kind: .directory, size: 0,
+                modifiedAt: now.addingTimeInterval(-10_800), permissions: 0o755,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/sites-available", name: "sites-available", kind: .directory, size: 0,
+                modifiedAt: now.addingTimeInterval(-21_600), permissions: 0o755,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/sites-enabled", name: "sites-enabled", kind: .directory, size: 0,
+                modifiedAt: now.addingTimeInterval(-43_200), permissions: 0o755,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/snippets", name: "snippets", kind: .directory, size: 0,
+                modifiedAt: now.addingTimeInterval(-64_800), permissions: 0o755,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/fastcgi.conf", name: "fastcgi.conf", kind: .file, size: 1_127,
+                modifiedAt: now.addingTimeInterval(-82_800), permissions: 0o644,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/fastcgi_params", name: "fastcgi_params", kind: .file, size: 1_005,
+                modifiedAt: now.addingTimeInterval(-84_600), permissions: 0o644,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
                 path: "\(path)/nginx.conf", name: "nginx.conf", kind: .file, size: 1_842,
                 modifiedAt: now.addingTimeInterval(-7_200), permissions: 0o644,
                 ownerUID: 0, ownerGID: 0
@@ -1300,6 +1330,11 @@ extension SFTPChannelModel {
             RemoteFile(
                 path: "\(path)/proxy_params", name: "proxy_params", kind: .file, size: 636,
                 modifiedAt: now.addingTimeInterval(-172_800), permissions: 0o644,
+                ownerUID: 0, ownerGID: 0
+            ),
+            RemoteFile(
+                path: "\(path)/uwsgi_params", name: "uwsgi_params", kind: .file, size: 664,
+                modifiedAt: now.addingTimeInterval(-259_200), permissions: 0o644,
                 ownerUID: 0, ownerGID: 0
             ),
         ])

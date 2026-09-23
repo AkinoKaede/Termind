@@ -205,15 +205,15 @@ import TermindApplication
                     .init(
                         axis: .horizontal,
                         fraction: 0.5,
-                        first: .leaf(first),
-                        second: .split(
+                        first: .split(
                             .init(
                                 axis: .vertical,
                                 fraction: 0.5,
-                                first: .leaf(sftp),
+                                first: .leaf(first),
                                 second: .leaf(second)
                             )
-                        )
+                        ),
+                        second: .leaf(sftp)
                     )
                 )
             }
@@ -228,10 +228,8 @@ import TermindApplication
             }
 
             let window = WindowModel(workspaces: [workspace])
-            window.showsSidebar = showsCommandResult
-            if showsCommandResult {
-                window.sidebarMode = .navigation
-            }
+            window.showsSidebar = true
+            window.sidebarMode = .navigation
             return window
         }
 

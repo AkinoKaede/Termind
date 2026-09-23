@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:c888af748fedf1b3bb6c77aec9cbb46ff10d9b838e412cd4b69eeff363e79aa4",
+  "pageVersion": "sha256:7b3ce9c4cc12de4717776e682cd9dce9ad9f8d5b85c86d2d7973020a96f41900",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -22,11 +22,11 @@
       "evidence": [
         {
           "resource": "repo://Marketing/README.md",
-          "version": "repo-file-v1:sha256:97866af84c8b01df60e0e125b61a85836eaa9156052aeac3c3ddb0c234cad81f"
+          "version": "repo-file-v1:sha256:122a68c026af8b0bcd6276998800238c2643b0d8552e430d0bab4aa759067366"
         },
         {
           "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
-          "version": "repo-file-v1:sha256:2ac10d61a82f9df7c6b62de9a3ed0b4efb4f62827fe53d69dc783432a1221a39"
+          "version": "repo-file-v1:sha256:21313b339a8c961deb9b6535e9c3953e0d0d6be1ead4fc74ae6d0d155b40739e"
         },
         {
           "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift",
@@ -36,19 +36,19 @@
     },
     {
       "id": "claim_2d0f8761e1444da29b488ffc330eabb9",
-      "statement": "The Mac screenshot runner uses resolved packages on macOS 27, captures production-window scenes serially by locale, requires a key window, validates output dimensions, and backs up replaced captures.",
+      "statement": "The Mac screenshot runner uses resolved packages on macOS 27, captures production-window scenes serially by locale, requires the app and window to remain active/key through the 2× system capture, validates output dimensions, and backs up replaced captures.",
       "evidence": [
         {
-          "resource": "repo://Marketing/README.md#L14-L48",
-          "version": "repo-lines-v1:sha256:14443f6764d44ce29817ccd4f7d2083a64a9fef3a1aba87d02c19be27da5400f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMWY1YzVlZWVlOTQ1NjZhZGFkOTQ5YmQ1ODhmY2IyN2YxMzkzMDVhNTFlZDk4ZjBmMmY3MmQwOTBlYjVjYmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkZjI4NTlmYjAyYWVlMjI5NGVkNjljZTJkOWZjMjE1NTcwNGU1ZTUzZjg4YWZjYTcxNmQ5MjZhODE2NTBmNzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViNDFiYmQ1MmFjOWEwMDUxMjRjNWM4ZmZkNTM5NGQzY2ViNjZmMGY2OGVjZjlkZTljOTA1NWYxNWNlZTVjMzgifQ"
+          "resource": "repo://Marketing/README.md#L15-L54",
+          "version": "repo-lines-v1:sha256:94d69ea908376630bb0dd5b5a6ce88abab7958d51434ef8cf73a7e9563ef6a48:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY1ZGZmNDIxOTMxNDE2ZWQ2MjcyYzhiMmEwZDVlZTgyMDAwYjFlYmNiZTAyNzNmZWVkZmM2MDhkMTdhNjZkMDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMxNzQxMDZhNjMxMzJjOWVlNjQ5YzI2ZjJhZjhhNmQ1ODk1NmQ4Y2ZlZGY5Y2NjNTk0MTI0M2E4YmUwYThiNTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYxMzc1ZDE4ZDVhNjU2NzMxNzE1ZTlkMzc5MjZhYjIyOGQ2YjIyN2M0MzI1YzFkNDk5ZmYyNjM0MTUzMWFlNWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjkyMTA0OWU3ZWFkNjEwOGU1YThmY2ViYmQwZGFiM2QyN2UzM2VmYmExYjkyZmZiZmZmYjZiMzFiNDI3MzE1NWMifQ"
         },
         {
-          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh",
-          "version": "repo-file-v1:sha256:2ada0e1cbf1bb7aafd3156e6b449749de147dcf270fa304c9a1bca12d4c88728"
+          "resource": "repo://Scripts/run-mac-marketing-screenshots.sh#L10-L159",
+          "version": "repo-lines-v1:sha256:2fa8b7fcac545d04fde5ed1929f526fba40d8cabc9f4d4723f63f6234388a879:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUwLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiJiNjljMzAzNjMwNzQ4ZmYxZDQ4ZWI3MjRmYjkwMTk0MzRjY2ZkMDRiMDMxZmY3ZWNlZjM1YTc0NGE1MWU4NzE0IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIxNjIyNWU1MDNiYWY1MDlhZjc4OGExNTVkMDFiODFmNTU4OTlkYzE2MDVmODdhZDBiNWI3NWFkMzAwMmFhMmUxIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjMTE2ZTIyMTdmZWQyOWU5YzM5MTFjYzM1OWQzYjljMjc5ZWE0MzA0ZjExZTNhYzc3YzE3YTljNzliOGI5NWVhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MCwiZm9sbG93aW5nQ29udGV4dEhhc2giOiJlM2IwYzQ0Mjk4ZmMxYzE0OWFmYmY0Yzg5OTZmYjkyNDI3YWU0MWU0NjQ5YjkzNGNhNDk1OTkxYjc4NTJiODU1In0"
         },
         {
-          "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:3a22e5ac4937d078cbebf86a59fa8fb1d70d54af75d4b2c9c5f09f37c79ac697"
+          "resource": "repo://TFMTests/MacMarketingScreenshotTests.swift#L11-L69",
+          "version": "repo-lines-v1:sha256:862c972a69e73b4d217e56604330c2d5f1e693c945debadb212feee2a68b14d9:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM1OTI5Njk2NDllYmI0N2QyODcxYTQ2ZDU3MWY5OWE4YmVhNTk3NjJiZWY2MGU5OWFiZmViODRkYjFkNzRiZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImNiMDVhY2M0MTMyYzAwYWNmYmNjNGVlY2NkOWY5ODljYmJhNTQ0Y2UxMTNkNWY5NWZlMmMyNGU1OGIxYjE1ZmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhNzI3ODYyMTFjN2MzMjliNWViNGQ4ZmQ5Y2NiMmNkMDc5MzNmYTFiNGRjMWRjNTc5OThkNmE1OTBhYTMyMmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdlMjAyMDc0MmMzM2IxYjkxZWIyMjYxNmJmYTg4NWMxNjQ2NThlM2Y5YzAzZDNkODZhYzllMjgwMGRkYmNhMzcifQ"
         }
       ]
     },
@@ -72,43 +72,43 @@
       "evidence": [
         {
           "resource": "repo://Marketing/AppStore/en/ipad-13/06-vault.jpg",
-          "version": "repo-file-v1:sha256:ae1b550674945fc291ded4d247a5c03c5992c093a320d0d4d53e03cc56ce37a5"
+          "version": "repo-file-v1:sha256:73b5850f586ae06246498d955ffae9eefac2439d90ecfb19114e55dbcc198767"
         },
         {
           "resource": "repo://Marketing/AppStore/en/iphone-6.5/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:f53039d7128eaf4d2462a31e06878cdfd81444bbfe28932a7f500f42b2c38e57"
+          "version": "repo-file-v1:sha256:4aae65c8a4c965a99d6fc95a74b6a3e9eab72b25848134255627a1a4b4e5ce93"
         },
         {
           "resource": "repo://Marketing/AppStore/en/mac/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:b75fd8ca0e8c158fbdca23f478a9b01f96351a36215883ca60c45f4c360d6ce6"
+          "version": "repo-file-v1:sha256:4bb52a843824a43e8d19a4930c59a3ec37fae381e806bd4c02b0aed614a980ff"
         },
         {
           "resource": "repo://Marketing/AppStore/en/mac/06-command-generator.jpg",
-          "version": "repo-file-v1:sha256:f5a798495f0a6cc1b007273452d3d2c543665ad52388ed67eb2376043c14346c"
+          "version": "repo-file-v1:sha256:ddba1429eaa70c7dcbbfa4607a353c9af93ee31ea3d2b073ab0c9d1ee0dba7fb"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/ipad-13/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:766b3a49db418bf387dc03ee744edc4df91840f17b4ee238dd6b1fb0d0d9e940"
+          "version": "repo-file-v1:sha256:cf24516e56651e18753b28ae691eec93af1bf9635cff10e150f25a077bc2a062"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/iphone-6.5/06-vault.jpg",
-          "version": "repo-file-v1:sha256:d833e8a85cd6ad12d3d3656930af0a1318cf9fc33f73218940754d779b8d108b"
+          "version": "repo-file-v1:sha256:01b2ec95f0e134c358c73b6f121c8e5856e78c0c9362831fed6e2d2591a35700"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/mac/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:c87c2bb745f4c778782f79ae8820d0d1a69c72eecf6fa79a53e92f10319afbf4"
+          "version": "repo-file-v1:sha256:3874a7438bfad6bf3a2e971e6d4cf0a49ee70943bd321319e0c4134fe1e0e4af"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/ipad-13/06-vault.jpg",
-          "version": "repo-file-v1:sha256:816fc389dbbb2b2be9f641123352a8bf7cd6935f82d802dfc178c8c339cf75df"
+          "version": "repo-file-v1:sha256:536ccf9e8449b92ea3ff55b30280d51cfcc7415ffacc36b26ea545110fa9c15a"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/iphone-6.5/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:ace8c3fb03084e3282b6812da076d36cdc2bc32f28afa5fd4a91a51e2f36eee9"
+          "version": "repo-file-v1:sha256:f169ca3fa2eb75a0ae1cbd60a6070251571c7e62de0b2425efe61688a53d90d4"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/mac/06-command-generator.jpg",
-          "version": "repo-file-v1:sha256:1458ac95f459b1a1bb5f8270f858e0680f0e699d77e0c00ad9a5bfac5648df80"
+          "version": "repo-file-v1:sha256:b7ad12e3cea76b4decf922671e49979f4448144e5b02ef014ec3449ab45765f9"
         }
       ]
     },
@@ -158,13 +158,45 @@
         },
         {
           "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
-          "version": "repo-file-v1:sha256:2ac10d61a82f9df7c6b62de9a3ed0b4efb4f62827fe53d69dc783432a1221a39"
+          "version": "repo-file-v1:sha256:21313b339a8c961deb9b6535e9c3953e0d0d6be1ead4fc74ae6d0d155b40739e"
+        }
+      ]
+    },
+    {
+      "id": "claim_e55bafc8e43848d78a0bc46da13f642a",
+      "statement": "Mobile marketing captures use a deterministic 9:41 status bar with 80% battery in the discharging state and fixed Wi-Fi and cellular signal levels.",
+      "evidence": [
+        {
+          "resource": "repo://Marketing/README.md#L43-L51",
+          "version": "repo-lines-v1:sha256:f92d51456e45df6b063af175df7f0a8246cf946240a076deb9c834fe192077da:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjAwYjE2ZTE0Y2E2OWM4NDUxOTAxYzM2MDhkNTAwMDI1OGIxMGQyYjg5ODFlMzlhMDFkYWQ3Y2Y4MzNmMmNlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDgxOWUyZTNkYzY0MTViMjRhMDhhODQ1MDJiYTFhNjFkY2FiNjhkMDg4ZmM1NjlhZGVlNDI4ZGFjNGQ0MDNiYSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNDE4YWQ4YTM1YjAyZTMxOTM5MzE1YmIzYjk0M2UwN2U5YjA5OWFlZWEyOWNlNjM1ODhhMmE5MjY2ZjE1ZmE3MyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZGRlODM0MGM5MjNlZjIwMjY0NWY0NjlmZjBhMmExYTFkNGQ5OTlmYTgwZWRmZjJlMDZiZDU4NThlM2JhODJmYyJ9"
+        },
+        {
+          "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh#L52-L61",
+          "version": "repo-lines-v1:sha256:06693b57256643e759640076fbb3d93cd9f3f5ecf813c3ed5f5543415491d377:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNjZTkyMDRiZWMyMzE2MDg2YmRhMmYwMGQ0MmNlNjdhODhlYjA2OGI2NDk2ZTA1YTkwYzk4ZGVhMjgxMzVlMmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEzYmVmOGYwMjZjMDlhYTlhNTBlNTRmMTliODllNWE5Mzg5YzE4NmEyNTYxODRmNmQ4NDI5YmYxNDdhY2NjYjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY3NzlmY2Y4Y2U1YTdkMWE1ZGM1YWRjODBiMzFiNGJjMWU4MzAwZjBmZjAyOWEyM2I0OWZjZGNjYjU4NTc5MmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhlZTg4ZjM1MmFkZjU1ZGM5NWVhODlmZDM2ZWFkZDg2ZmQ4ODlhYzU5YjgxZDZiMjhlYjhhNGEwYzY0ZGExZWMifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7d8f34b11f8b414f946292a73c9d6ea6",
+      "statement": "The Mac Workspace marketing fixture keeps the navigation sidebar visible, splits the content 50/50 between two vertically stacked terminals and one full-height SFTP browser, focuses the top-left terminal, and populates the selected nginx configuration view with eleven deterministic entries without a live client.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/App/ScreenshotDemo.swift#L156-L231",
+          "version": "repo-lines-v1:sha256:fb2d459aa0f006a28537db3976e138da0a891738bdfc559c53501faa07f56332:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjViNWE4MjA1OWU2YTc1MDIwOWI3N2FlYzA5NDY5YWQzNDg2OTZkMjZkYzFjNzBkOWI3MmQ4MDI0MGNlYzVjZmUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTNhOTEyMzk5NDFjMDQzYzEyZmJlM2JhNzZkMTcyMGNkNjM2MWJhOGY5Y2JlNzk2ZGZlY2I2NzRiN2Q4NDciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzZGEzMTVlN2EyOTJkMjIwZGY1NmVjZWYzZGI1OWQ4NzQ3ZTI0MjA5ODliM2FjYzM3NDk2NWRhYTcyOGYzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4YjdkYzQyYTNhZDk2YzE2MzVjN2QyOGJhNmNkZDhlZmQzZjA5NWMwMDhhMDlkYWY1ZGZmYzNiMGNhZmFiMDAifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/SFTP/SFTPChannelModel.swift#L1275-L1342",
+          "version": "repo-lines-v1:sha256:13db123ccb6ca8bc3527b3ecd2af4bebf60e101e45b63e102a6d244741308806:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5NDhjMzVhZDJhMGUzMTM1Y2U5MDkwMDA4MzkyMGZlMjU0ZjdmNTA5NzAyNWMwZTMyZmY0ZWMwOTMxZWEyYTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        },
+        {
+          "resource": "repo://TFMTests/ScreenshotDemoTests.swift#L108-L159",
+          "version": "repo-lines-v1:sha256:4671d9078217d05cd31d816db64336338463b15a907acf4ed5afbaff64ca141a:eyJzZWxlY3RlZExpbmVDb3VudCI6NTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhkNDBhOTAwNmVlZjIwNzFhYjExMjY4ZjI4YTlmNjA2NGYzMmU3NzEwZDhiM2U0OTFlMGYxYTdiNTA2MTQwNjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjIyNzRjYmVjNDNkMmM0ZmNkMDFlMDMzZGMzMWQ4MjdjYmFiODViY2MyMmNjMjc0YTkxODllYjhhMjdmM2EzMTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjAzY2ZiZmQ4OTZkOTViNmViYjQyMzMwZTQxZTQyMmQ0ZmQ5ZmYyYTFlMzUwNzdjMmQ3NzBlMDQyYzljNWQ4OGYifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:05:10.244Z"
+    "at": "2026-09-23T15:54:40.903Z"
   }
 }
