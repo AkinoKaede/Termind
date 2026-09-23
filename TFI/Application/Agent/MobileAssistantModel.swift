@@ -11,6 +11,8 @@ import TermindRemoteInfrastructure
 @MainActor
 @Observable
 final class MobileAssistantModel {
+    static let terminalSuggestionsAvailable = false
+
     let store = AssistantConversationStore()
     let speech: SpeechTranscriptionCoordinator
     let configuration: AIConfigurationModel
@@ -63,7 +65,7 @@ final class MobileAssistantModel {
         execution = AssistantExecutionController(
             ai: configuration, skills: skills, repository: repository, memory: memory,
             authorize: authorize,
-            makeRegistry: { conversation, model, provider, catalog, channel, _ in
+            makeRegistry: { conversation, model, provider, catalog, channel in
                 AssistantToolRegistry.make(
                     conversation: conversation, model: model, provider: provider,
                     skills: catalog, channel: channel, ai: configuration, hosts: resolver, metrics: metrics,
@@ -116,16 +118,19 @@ final class MobileAssistantModel {
             !conversation.isCompacting, conversation.composer.pendingAttachments.isEmpty, authorize()
         else { return }
         if conversation.isStreaming {
-            conversation.submitSteeringDraft()
+            conversation.submitSteeringDraft(
+                terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
             return
         }
         guard conversation.canSendDraft else { return }
         if library.selectedConversation == nil {
             guard let started = library.startDraftConversation() else { return }
             configure(library.draftConversation)
-            execution.startAgentRun(started)
+            execution.startAgentRun(
+                started, terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
         } else {
-            execution.sendAgentDraft(conversation)
+            execution.sendAgentDraft(
+                conversation, terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
         }
     }
 
@@ -211,12 +216,14 @@ final class MobileAssistantModel {
                 let prompt = try await operations.edit(
                     conversation, messageID: messageID, text: text,
                     contextSnapshot: execution.contextSnapshot(
-                        for: conversation, context: .none, includesTerminalSuggestion: false))
+                        for: conversation, context: .none,
+                        terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable))
             else { return }
             execution.startAgentRun(
                 conversation, promptID: prompt.id, prompt: prompt.text,
                 authoredPrompt: prompt.authoredText, promptImages: prompt.images,
-                promptContextAttachments: prompt.contextAttachments)
+                promptContextAttachments: prompt.contextAttachments,
+                terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
         }
     }
 

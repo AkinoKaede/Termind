@@ -506,8 +506,9 @@ struct ComposerView: View {
     /// Defaulting to `.none` is what makes a composer outside a Workspace — the
     /// Assistant destination — session-free by construction rather than by remembering.
     var sessionContext: SessionContext = .none
-    /// Only the Workspace sidebar gives its agent a command-card tool.
-    var includesTerminalSuggestion = false
+    /// The registry stays stable across surfaces; the Workspace sidebar permits
+    /// command-card execution while standalone Assistant surfaces do not.
+    var terminalSuggestionsAvailable = false
     var onNewChat: (() -> Void)?
     var onSend: (() -> Void)?
 
@@ -992,7 +993,7 @@ struct ComposerView: View {
         }
         if conversation.isStreaming {
             conversation.submitSteeringDraft(
-                context: sessionContext, includesTerminalSuggestion: includesTerminalSuggestion)
+                context: sessionContext, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
             return
         }
         if let onSend {
@@ -1000,7 +1001,7 @@ struct ComposerView: View {
         } else {
             app.sendAgentDraft(
                 conversation, context: sessionContext,
-                includesTerminalSuggestion: includesTerminalSuggestion
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable
             )
         }
     }

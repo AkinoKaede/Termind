@@ -7,7 +7,7 @@ import TermindDomain
 @MainActor
 public final class AssistantExecutionController {
     public typealias RegistryFactory =
-        @MainActor (ConversationModel, AIModel, ModelProvider, AgentSkillCatalog, AgentEventChannel, Bool) ->
+        @MainActor (ConversationModel, AIModel, ModelProvider, AgentSkillCatalog, AgentEventChannel) ->
         AgentToolRegistry
     private let ai: AIConfigurationModel
     private let skills: SkillLibraryModel
@@ -46,7 +46,7 @@ public final class AssistantExecutionController {
     public func sendAgentDraft(
         _ conversation: ConversationModel,
         context: SessionContext = .none,
-        includesTerminalSuggestion: Bool = false
+        terminalSuggestionsAvailable: Bool = false
     ) {
         guard authorize() else { return }
         let draft = conversation.composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -62,7 +62,7 @@ public final class AssistantExecutionController {
         let prompt = conversation.appendUserTurnContent(
             draft,
             contextSnapshot: contextSnapshot(
-                for: conversation, context: context, includesTerminalSuggestion: includesTerminalSuggestion))
+                for: conversation, context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable))
         conversation.composer.draft = ""
         // Compaction happens *after* the turn is recorded and before the run,
         // so the message the user just typed is inside the kept window rather
@@ -90,7 +90,7 @@ public final class AssistantExecutionController {
                 conversation, promptID: prompt.id, prompt: prompt.text,
                 authoredPrompt: prompt.authoredText, promptImages: prompt.images,
                 promptContextAttachments: prompt.contextAttachments, context: context,
-                includesTerminalSuggestion: includesTerminalSuggestion
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable
             )
         }
     }
@@ -103,7 +103,7 @@ public final class AssistantExecutionController {
         promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
         context: SessionContext? = nil,
-        includesTerminalSuggestion: Bool = false
+        terminalSuggestionsAvailable: Bool = false
     ) {
         guard authorize(), !conversation.isStreaming, !conversation.isArchived else { return }
         guard preparingMemory.insert(conversation.id).inserted else { return }
@@ -120,14 +120,15 @@ public final class AssistantExecutionController {
                 performStartAgentRun(
                     conversation, promptID: promptID, prompt: prompt, authoredPrompt: authoredPrompt,
                     promptImages: promptImages, promptContextAttachments: promptContextAttachments,
-                    context: context, includesTerminalSuggestion: includesTerminalSuggestion, memorySession: session)
+                    context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable, memorySession: session
+                )
             }
         } else {
             preparingMemory.remove(conversation.id)
             performStartAgentRun(
                 conversation, promptID: promptID, prompt: prompt, authoredPrompt: authoredPrompt,
                 promptImages: promptImages, promptContextAttachments: promptContextAttachments,
-                context: context, includesTerminalSuggestion: includesTerminalSuggestion)
+                context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
         }
     }
 
@@ -139,7 +140,7 @@ public final class AssistantExecutionController {
         promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
         context: SessionContext? = nil,
-        includesTerminalSuggestion: Bool = false,
+        terminalSuggestionsAvailable: Bool = false,
         memorySession: (context: AgentMemoryContext, access: any AgentMemoryAccessing)? = nil
     ) {
         guard authorize() else { return }
@@ -225,7 +226,7 @@ public final class AssistantExecutionController {
             ? skills.catalog : AgentSkillCatalog()
 
         let baseRegistry = makeRegistry(
-            conversation, chat.model, chat.provider, skillCatalog, channel, includesTerminalSuggestion)
+            conversation, chat.model, chat.provider, skillCatalog, channel)
         let skillRegistry = AgentToolCatalog.registry(
             builtIn: .init(
                 groups: [.skills, .memory], skills: skillCatalog, skillInventory: skills.inventory,
@@ -288,7 +289,8 @@ public final class AssistantExecutionController {
         let frozenContext =
             lastUserTurn?.contextSnapshot
             ?? contextSnapshot(
-                for: conversation, context: context ?? .none, includesTerminalSuggestion: includesTerminalSuggestion)
+                for: conversation, context: context ?? .none,
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
         let isPlanning = frozenContext.planContract != nil
         // The catalog reaches the model boundary through the pipeline rather
         // than through the system prompt, so the prompt stays byte-identical for
@@ -384,7 +386,7 @@ public final class AssistantExecutionController {
     }
 
     public func contextSnapshot(
-        for conversation: ConversationModel, context: SessionContext, includesTerminalSuggestion: Bool
+        for conversation: ConversationModel, context: SessionContext, terminalSuggestionsAvailable: Bool
     ) -> AgentTurnContextSnapshot {
         let catalog =
             ai.resolve(conversation: conversation.model)?.model.abilities.contains(.toolCall) == true
@@ -393,7 +395,7 @@ public final class AssistantExecutionController {
             sessionContext: context.modelContext,
             skillCatalog: catalog.isEmpty ? nil : catalog.catalogBlock,
             planContract: conversation.isPlanning ? TermindAgentPolicy.planContract : nil,
-            toolAvailability: ["terminal_suggest": includesTerminalSuggestion],
+            toolAvailability: ["terminal_suggest": terminalSuggestionsAvailable],
             memorySessionID: memory?.isEnabled == true
                 ? (conversation.transcript.first(where: { $0.contextSnapshot?.memorySessionID != nil })?
                     .contextSnapshot?.memorySessionID ?? conversation.id) : nil

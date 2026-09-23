@@ -15,7 +15,6 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
     public var connections: AgentConnectionPool
     public var authentication: AgentSSHAuthenticationRegistry
     public var background: AgentBackgroundCommands
-    public var includesTerminalSuggestion: Bool
     /// Shared with the runtime's scratch group. `scratch_pull` and
     /// `scratch_push` are ours rather than the runtime's precisely because they
     /// are the two ends that touch a host, and they must stage into the same
@@ -28,7 +27,6 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
         connections: AgentConnectionPool,
         authentication suppliedAuthentication: AgentSSHAuthenticationRegistry? = nil,
         background: AgentBackgroundCommands = AgentBackgroundCommands(),
-        includesTerminalSuggestion: Bool = false,
         workspace: AgentScratchWorkspace? = nil
     ) {
         self.metrics = metrics
@@ -37,7 +35,6 @@ nonisolated public struct TermindAgentToolEnvironment: Sendable {
         authentication =
             suppliedAuthentication ?? AgentSSHAuthenticationRegistry(resolver: hosts)
         self.background = background
-        self.includesTerminalSuggestion = includesTerminalSuggestion
         self.workspace = workspace
     }
 }

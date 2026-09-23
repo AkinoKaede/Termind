@@ -213,12 +213,12 @@ struct AssistantPanelView: View {
                 conversation: window.sidebar.assistantDraft,
                 prompt: "Ask anything…",
                 sessionContext: window.sidebar.sessionContext,
-                includesTerminalSuggestion: true,
+                terminalSuggestionsAvailable: true,
                 onSend: {
                     if let conversation = window.sendAssistantSidebarDraft() {
                         app.startAgentRun(
                             conversation, context: window.sidebar.sessionContext,
-                            includesTerminalSuggestion: true
+                            terminalSuggestionsAvailable: true
                         )
                     }
                 }

@@ -743,9 +743,9 @@ final class WindowModel {
     }
     func editAssistantUserMessage(
         _ id: ConversationModel.ID, messageID: UUID, text: String,
-        context: SessionContext = .none, includesTerminalSuggestion: Bool = false
+        context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false
     ) {
-        assistantCommands?.edit(id, messageID, text, context, includesTerminalSuggestion)
+        assistantCommands?.edit(id, messageID, text, context, terminalSuggestionsAvailable)
     }
 
     @discardableResult

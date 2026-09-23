@@ -13,9 +13,10 @@ nonisolated public struct ListHostsTool: AgentToolDefinition, AgentToolSchemaBui
         Self.descriptor(
             "list_hosts",
             """
-            List Vault Hosts and temporary terminal targets without credentials, including each target's enabled \
-            protocol list. SSH and SFTP tools require a returned protocol entry named ssh; Telnet targets are \
-            discoverable but no Agent Telnet execution tool is currently available.
+            List Vault Hosts and temporary terminal targets without credentials, even when no session context \
+            is available, including each target's enabled protocol list. SSH and SFTP tools require a returned \
+            protocol entry named ssh; Telnet targets are discoverable but no Agent Telnet execution tool is currently \
+            available.
             """,
             properties: [:], required: [], target: .host, approvalPolicy: .approve,
             concurrency: .parallel,
@@ -132,7 +133,8 @@ nonisolated public struct TerminalSuggestTool: AgentToolDefinition, AgentToolSch
             """
             Create a command card when the user wants a suggestion or needs to interact with a PTY. \
             Only the user can insert or run the card. This tool does not execute commands or return \
-            execution output. To run a remote command yourself, use ssh_exec.
+            execution output, and the sending surface may mark it unavailable at execution time. To run a remote \
+            command yourself, use ssh_exec.
             """,
             properties: [
                 "command": Self.string(max: 32_768),
