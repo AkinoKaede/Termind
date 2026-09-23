@@ -38,8 +38,8 @@ public nonisolated struct RemoteCharsetConversionError: LocalizedError, Sendable
     }
 }
 
-/// A stateful, strict iconv adapter. Callers choose whether malformed source
-/// bytes fail the operation or are discarded so an interactive stream can stay open.
+/// A stateful iconv adapter. Encoding is strict. Decoding preserves malformed
+/// source bytes verbatim so receiving text never interrupts a byte stream.
 public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable {
     public enum Direction: Sendable { case encoding, decoding }
 
@@ -57,7 +57,7 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
     public let charset: RemoteCharset
     public let direction: Direction
 
-    private let descriptor: iconv_t
+    private let descriptor: iconv_t?
     private let lock = NSLock()
     private var pending = Data()
 
@@ -66,17 +66,24 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         self.direction = direction
         let source = direction == .encoding ? RemoteCharset.utf8.iconvName : charset.iconvName
         let destination = direction == .encoding ? charset.iconvName : RemoteCharset.utf8.iconvName
-        descriptor = iconv_open(destination, source)
+        let descriptor = iconv_open(destination, source)
         guard descriptor != iconv_t(bitPattern: -1) else {
-            throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
+            if direction == .decoding {
+                self.descriptor = nil
+                return
+            }
+            throw RemoteCharsetConversionError(charset: charset, direction: .encoding)
         }
+        self.descriptor = descriptor
     }
 
-    deinit { iconv_close(descriptor) }
+    deinit {
+        if let descriptor { iconv_close(descriptor) }
+    }
 
     /// Converts one stream fragment. Incomplete source characters are retained.
-    /// With recovery enabled, invalid source bytes are discarded without emitting
-    /// replacement characters and `rejectedInput` is set.
+    /// Decoding bypasses malformed source bytes verbatim. Encoding can optionally
+    /// discard invalid UTF-8 input with `recoveringInvalidInput`.
     public func convert(_ data: Data, recoveringInvalidInput: Bool = false) throws -> Output {
         try lock.withLock {
             try convertLocked(data, recoveringInvalidInput: recoveringInvalidInput)
@@ -87,6 +94,9 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         var source = pending
         source.append(data)
         pending.removeAll(keepingCapacity: true)
+        if direction == .decoding, charset == .utf8 || descriptor == nil {
+            return Output(data: source, rejectedInput: false)
+        }
         do {
             let converted = try convert(source, final: false, recoveringInvalidInput: recoveringInvalidInput)
             pending = converted.remainder
@@ -125,10 +135,7 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         let converter = try RemoteCharsetStreamConverter(charset: charset, direction: .decoding)
         var output = try converter.convert(data).data
         output.append(try converter.finish().data)
-        guard let value = String(data: output, encoding: .utf8) else {
-            throw RemoteCharsetConversionError(charset: charset, direction: .decoding)
-        }
-        return value
+        return String(decoding: output, as: UTF8.self)
     }
 
     private var errorDirection: RemoteCharsetConversionError.Direction {
@@ -153,7 +160,7 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
                 let result: Int = chunk.withUnsafeMutableBufferPointer { buffer in
                     var destination = buffer.baseAddress
                     var destinationCount = buffer.count
-                    let result = iconv(descriptor, &input, &inputCount, &destination, &destinationCount)
+                    let result = iconv(descriptor!, &input, &inputCount, &destination, &destinationCount)
                     output.append(
                         Data(bytes: buffer.baseAddress!, count: buffer.count - destinationCount)
                     )
@@ -169,22 +176,37 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
                     }
                     inputCount = 0
                 case EINVAL, EILSEQ:
-                    guard recoveringInvalidInput, input != nil, inputCount > 0 else {
+                    guard input != nil, inputCount > 0 else {
                         throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
                     }
-                    rejectedInput = true
+                    if direction == .decoding {
+                        output.append(UInt8(bitPattern: input!.pointee))
+                    } else {
+                        guard recoveringInvalidInput else {
+                            throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
+                        }
+                        rejectedInput = true
+                    }
                     self.reset()
                     inputCount -= 1
-                    // iconv updates `input`; advance past the rejected source byte.
+                    // iconv updates `input`; advance past the bypassed source byte.
                     input = input?.advanced(by: 1)
                 default:
-                    throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
+                    guard direction == .decoding, input != nil, inputCount > 0 else {
+                        throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
+                    }
+                    output.append(Data(bytes: input!, count: inputCount))
+                    self.reset()
+                    inputCount = 0
                 }
             }
         }
 
         if final, !remainder.isEmpty {
-            if recoveringInvalidInput {
+            if direction == .decoding {
+                output.append(remainder)
+                remainder.removeAll()
+            } else if recoveringInvalidInput {
                 rejectedInput = true
                 remainder.removeAll()
             } else {
@@ -195,6 +217,7 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
     }
 
     private func reset() {
+        guard let descriptor else { return }
         _ = iconv(descriptor, nil, nil, nil, nil)
     }
 }
@@ -205,7 +228,6 @@ nonisolated struct RemoteOSC7CharsetFilter: Sendable {
     private static let maximumPayloadBytes = 64 * 1024
     struct Output: Sendable {
         var data = Data()
-        var rejectedInput = false
     }
 
     private static let prefix = Data("\u{1B}]7;file://localhost".utf8)
@@ -223,21 +245,17 @@ nonisolated struct RemoteOSC7CharsetFilter: Sendable {
             }
             guard let end = buffer[range.upperBound...].firstIndex(of: 0x07) else {
                 if buffer.distance(from: range.upperBound, to: buffer.endIndex) > Self.maximumPayloadBytes {
+                    output.data.append(buffer)
                     buffer.removeAll(keepingCapacity: false)
-                    output.rejectedInput = true
                 } else {
                     buffer = Data(buffer[range.lowerBound...])
                 }
                 return output
             }
             let payload = Data(buffer[range.upperBound..<end])
-            if let rewritten = rewrite(payload) {
-                output.data.append(Self.prefix)
-                output.data.append(rewritten)
-                output.data.append(0x07)
-            } else {
-                output.rejectedInput = true
-            }
+            output.data.append(Self.prefix)
+            output.data.append(rewrite(payload))
+            output.data.append(0x07)
             buffer = Data(buffer[buffer.index(after: end)...])
         }
 
@@ -253,7 +271,7 @@ nonisolated struct RemoteOSC7CharsetFilter: Sendable {
         return buffer
     }
 
-    private func rewrite(_ payload: Data) -> Data? {
+    private func rewrite(_ payload: Data) -> Data {
         let bytes = Array(payload)
         var decoded = Data()
         var index = 0
@@ -268,7 +286,9 @@ nonisolated struct RemoteOSC7CharsetFilter: Sendable {
                 index += 1
             }
         }
-        guard let path = try? RemoteCharsetStreamConverter.decode(decoded, charset: charset) else { return nil }
+        let path =
+            (try? RemoteCharsetStreamConverter.decode(decoded, charset: charset))
+            ?? String(decoding: decoded, as: UTF8.self)
         var encoded = Data()
         for byte in path.utf8 {
             switch byte {

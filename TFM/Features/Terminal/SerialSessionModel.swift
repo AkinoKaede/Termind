@@ -104,24 +104,10 @@ final class SerialSessionModel: Identifiable {
                     configuration,
                     receive: { data in
                         do {
-                            let converted = try decoder.convert(data, recoveringInvalidInput: true)
+                            let converted = try decoder.convert(data)
                             if !converted.data.isEmpty { terminalSurface.receive(converted.data) }
-                            if converted.rejectedInput {
-                                let message = RemoteCharsetConversionError(
-                                    charset: configuration.charset, direction: .decoding
-                                ).localizedDescription
-                                Task { @MainActor in
-                                    if reference.owner?.charsetError == nil {
-                                        reference.owner?.charsetError = message
-                                    }
-                                }
-                            }
                         } catch {
-                            Task { @MainActor in
-                                if reference.owner?.charsetError == nil {
-                                    reference.owner?.charsetError = error.localizedDescription
-                                }
-                            }
+                            terminalSurface.receive(data)
                         }
                         Task { @MainActor in reference.owner?.hasUnreadOutput = true }
                     },
@@ -196,17 +182,9 @@ final class SerialSessionModel: Identifiable {
 
     private func finishCharsetOutput() {
         do {
-            let converted = try outputConverter.finish(recoveringInvalidInput: true)
+            let converted = try outputConverter.finish()
             if !converted.data.isEmpty { terminalSurface.receive(converted.data) }
-            if converted.rejectedInput, charsetError == nil {
-                charsetError =
-                    RemoteCharsetConversionError(
-                        charset: configuration.charset, direction: .decoding
-                    ).localizedDescription
-            }
-        } catch {
-            if charsetError == nil { charsetError = error.localizedDescription }
-        }
+        } catch {}
     }
 
     func requestTerminalFocus() {

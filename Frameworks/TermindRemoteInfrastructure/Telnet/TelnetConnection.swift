@@ -304,20 +304,14 @@ private nonisolated final class TelnetConnectionWorker: @unchecked Sendable {
         guard !result.applicationData.isEmpty else { return }
         do {
             let converted =
-                try outputConverter?.convert(
-                    result.applicationData, recoveringInvalidInput: true)
+                try outputConverter?.convert(result.applicationData)
                 ?? .init(data: result.applicationData, rejectedInput: false)
-            if converted.rejectedInput {
-                charsetError(
-                    RemoteCharsetConversionError(
-                        charset: configuration?.charset ?? .utf8, direction: .decoding
-                    ).localizedDescription)
-            }
             guard !converted.data.isEmpty else { return }
             output(converted.data)
             inspectPrompts(in: converted.data)
         } catch {
-            charsetError(error.localizedDescription)
+            output(result.applicationData)
+            inspectPrompts(in: result.applicationData)
         }
     }
 
@@ -456,17 +450,9 @@ private nonisolated final class TelnetConnectionWorker: @unchecked Sendable {
     private func cleanup(notify: Bool) {
         if let outputConverter {
             do {
-                let tail = try outputConverter.finish(recoveringInvalidInput: true)
+                let tail = try outputConverter.finish()
                 if !tail.data.isEmpty { output(tail.data) }
-                if tail.rejectedInput {
-                    charsetError(
-                        RemoteCharsetConversionError(
-                            charset: outputConverter.charset, direction: .decoding
-                        ).localizedDescription)
-                }
-            } catch {
-                charsetError(error.localizedDescription)
-            }
+            } catch {}
         }
         configuration?.clearSecret()
         connection?.stateUpdateHandler = nil

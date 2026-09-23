@@ -456,15 +456,8 @@ nonisolated final class SSHConnectionWorker: @unchecked Sendable {
             if let error = command.terminalError {
                 finish(command, throwing: error)
             } else {
-                guard let stdout = String(data: command.stdout, encoding: .utf8),
-                    let stderr = String(data: command.stderr, encoding: .utf8)
-                else {
-                    finish(
-                        command,
-                        throwing: RemoteCharsetConversionError(
-                            charset: command.charset, direction: .decoding))
-                    return true
-                }
+                let stdout = String(decoding: command.stdout, as: UTF8.self)
+                let stderr = String(decoding: command.stderr, as: UTF8.self)
                 finish(
                     command,
                     returning: SSHExecResult(

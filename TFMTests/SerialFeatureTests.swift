@@ -29,6 +29,24 @@ nonisolated private struct InertSerialService: SerialPortServing {
     }
 }
 
+nonisolated private struct EmittingSerialService: SerialPortServing {
+    let data: Data
+
+    func availablePorts() async -> [SerialPortDescriptor] { [] }
+    func portUpdates() -> AsyncStream<[SerialPortDescriptor]> {
+        AsyncStream { $0.finish() }
+    }
+    func open(
+        _: SerialConnectionConfiguration,
+        receive: @escaping @Sendable (Data) -> Void,
+        disconnected _: @escaping @Sendable (String) -> Void,
+        progress _: @escaping @Sendable (SerialPortOpenStage) -> Void
+    ) async throws -> any SerialPortConnection {
+        receive(data)
+        return InertSerialConnection()
+    }
+}
+
 @Suite
 struct SerialFeatureTests {
     @Test
@@ -106,6 +124,24 @@ struct SerialFeatureTests {
 
         journey.fail("Device busy")
         #expect(journey.phase == .failed("Device busy"))
+    }
+
+    @MainActor
+    @Test
+    func serialReceiveBypassesInvalidUTF8WithoutReportingACharsetError() async {
+        let configuration = SerialConnectionConfiguration(devicePath: "/dev/ttyUSB0", charset: .utf8)
+        let session = SerialSessionModel(
+            configuration: configuration,
+            service: EmittingSerialService(data: Data([0x41, 0xFF, 0x42]))
+        )
+
+        session.prepareForReopen()
+        session.connectIfNeeded()
+        for _ in 0..<10 { await Task.yield() }
+
+        #expect(session.status == .connected)
+        #expect(session.charsetError == nil)
+        session.disconnect()
     }
 
     @MainActor

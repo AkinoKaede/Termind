@@ -38,8 +38,6 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         public var homeDirectory: String?
         public var homeResolutionUnavailable = false
         var diagnostic: Diagnostic?
-        var rejectedCharsetInput = false
-
     }
 
     private enum Phase: Sendable {
@@ -65,7 +63,6 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
     private var installationStartedLate = false
     private var detectedShell: String?
     private var detectedSystemInfo: RemoteSystemInfo?
-    private var rejectedCharsetInput = false
 
     private var probeEchoMarker: Data {
         Data("__TRMD_\(token)_PROBE__".utf8)
@@ -198,13 +195,9 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             )
         }
         let shellBytes = Data(buffer[shellStart..<terminatorRange.lowerBound])
-        let shellPath: String
-        if let decoded = try? RemoteCharsetStreamConverter.decode(shellBytes, charset: charset) {
-            shellPath = decoded
-        } else {
-            rejectedCharsetInput = true
-            shellPath = ""
-        }
+        let shellPath =
+            (try? RemoteCharsetStreamConverter.decode(shellBytes, charset: charset))
+            ?? String(decoding: shellBytes, as: UTF8.self)
         let shell = shellPath.split(separator: "/").last.map(String.init)?.lowercased()
         detectedShell = shell
         detectedSystemInfo = parseSystemInfo(in: buffer)
@@ -218,8 +211,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             return Update(
                 visibleOutput: visible, isComplete: true, shell: detectedShell,
                 systemInfo: detectedSystemInfo,
-                diagnostic: .skipped(.unsupportedShell),
-                rejectedCharsetInput: rejectedCharsetInput
+                diagnostic: .skipped(.unsupportedShell)
             )
         }
         guard !(isLate && userDidWrite) else {
@@ -229,8 +221,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             return Update(
                 visibleOutput: visible, isComplete: true, shell: detectedShell,
                 systemInfo: detectedSystemInfo,
-                diagnostic: .skipped(.userInput),
-                rejectedCharsetInput: rejectedCharsetInput
+                diagnostic: .skipped(.userInput)
             )
         }
         phase = .installing
@@ -258,8 +249,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
             diagnostic: .installed(
                 late: installationStartedLate, homeResolved: homeDirectory != nil,
                 systemInfoAvailable: detectedSystemInfo != nil
-            ),
-            rejectedCharsetInput: rejectedCharsetInput
+            )
         )
     }
 
@@ -270,10 +260,7 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         else { return nil }
         var payload = Data(data[prefixRange.upperBound..<lineEnd])
         if payload.last == 0x0D { payload.removeLast() }
-        guard let decoded = RemoteCommandEventFilter.decodePercentEncoded(payload, charset: charset) else {
-            rejectedCharsetInput = true
-            return nil
-        }
+        let decoded = RemoteCommandEventFilter.decodePercentEncoded(payload, charset: charset)
         guard
             decoded.hasPrefix("/"),
             !decoded.unicodeScalars.contains(where: {
@@ -295,10 +282,9 @@ public nonisolated struct RemoteShellIntegrationBootstrap: Sendable {
         guard payload.count >= 2, payload.suffix(2).elementsEqual(Data("__".utf8))
         else { return nil }
         payload.removeLast(2)
-        guard let fields = try? RemoteCharsetStreamConverter.decode(payload, charset: charset) else {
-            rejectedCharsetInput = true
-            return nil
-        }
+        let fields =
+            (try? RemoteCharsetStreamConverter.decode(payload, charset: charset))
+            ?? String(decoding: payload, as: UTF8.self)
         return RemoteSystemInfo(probeFields: fields)
     }
 
@@ -511,8 +497,6 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
     public nonisolated struct Update: Sendable {
         public var visibleOutput = Data()
         public var events: [Event] = []
-        public var rejectedCharsetInput = false
-
     }
 
     private let commandPrefix: Data
@@ -558,10 +542,9 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
             }
             switch match.kind {
             case .command:
-                if let command = Self.decodePercentEncoded(payload, charset: charset), !command.isEmpty {
+                let command = Self.decodePercentEncoded(payload, charset: charset)
+                if !command.isEmpty {
                     update.events.append(.commandStarted(command))
-                } else {
-                    update.rejectedCharsetInput = true
                 }
             case .commandFinished:
                 let fields = String(decoding: payload, as: UTF8.self)
@@ -579,11 +562,7 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
                 guard payload.isEmpty else { break }
                 update.events.append(.promptReady)
             case .draft:
-                if let draft = Self.decodePercentEncoded(payload, charset: charset) {
-                    update.events.append(.draft(draft))
-                } else {
-                    update.rejectedCharsetInput = true
-                }
+                update.events.append(.draft(Self.decodePercentEncoded(payload, charset: charset)))
             }
             buffer = Data(buffer[buffer.index(after: end)...])
         }
@@ -622,7 +601,7 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
         return candidates.min { $0.0.lowerBound < $1.0.lowerBound }
     }
 
-    public static func decodePercentEncoded(_ data: Data, charset: RemoteCharset = .utf8) -> String? {
+    public static func decodePercentEncoded(_ data: Data, charset: RemoteCharset = .utf8) -> String {
         let bytes = Array(data)
         var decoded: [UInt8] = []
         decoded.reserveCapacity(bytes.count)
@@ -638,7 +617,9 @@ public nonisolated struct RemoteCommandEventFilter: Sendable {
                 index += 1
             }
         }
-        return try? RemoteCharsetStreamConverter.decode(Data(decoded), charset: charset)
+        let decodedData = Data(decoded)
+        return (try? RemoteCharsetStreamConverter.decode(decodedData, charset: charset))
+            ?? String(decoding: decodedData, as: UTF8.self)
     }
 
     private static func hex(_ byte: UInt8) -> UInt8? {
@@ -1577,13 +1558,6 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private func applyShellIntegrationUpdate(
         _ update: RemoteShellIntegrationBootstrap.Update
     ) {
-        if update.rejectedCharsetInput {
-            charsetErrorHandler(
-                RemoteCharsetConversionError(
-                    charset: outputConverter?.charset ?? .utf8, direction: .decoding
-                ).localizedDescription
-            )
-        }
         if let diagnostic = update.diagnostic, let hostID {
             shellIntegrationLifecycleLogger.record(diagnostic, hostID: hostID)
         }
@@ -1618,13 +1592,6 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
         let update = commandEventFilter.receive(data)
         self.commandEventFilter = commandEventFilter
         if !update.visibleOutput.isEmpty { emitConvertedOutput(update.visibleOutput) }
-        if update.rejectedCharsetInput {
-            charsetErrorHandler(
-                RemoteCharsetConversionError(
-                    charset: outputConverter?.charset ?? .utf8, direction: .decoding
-                ).localizedDescription
-            )
-        }
         for event in update.events {
             switch event {
             case .commandStarted(let command):
@@ -1646,27 +1613,13 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 let filtered = filter.receive(data)
                 workingDirectoryFilter = filter
                 filteredData = filtered.data
-                if filtered.rejectedInput {
-                    charsetErrorHandler(
-                        RemoteCharsetConversionError(
-                            charset: outputConverter?.charset ?? .utf8, direction: .decoding
-                        ).localizedDescription
-                    )
-                }
             }
             let converted =
-                try outputConverter?.convert(filteredData, recoveringInvalidInput: true)
+                try outputConverter?.convert(filteredData)
                 ?? .init(data: filteredData, rejectedInput: false)
             if !converted.data.isEmpty { output(converted.data) }
-            if converted.rejectedInput {
-                charsetErrorHandler(
-                    RemoteCharsetConversionError(
-                        charset: outputConverter?.charset ?? .utf8, direction: .decoding
-                    ).localizedDescription
-                )
-            }
         } catch {
-            charsetErrorHandler(error.localizedDescription)
+            output(data)
         }
     }
 
@@ -1677,29 +1630,13 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 let remainder = filter.finish()
                 workingDirectoryFilter = filter
                 if !remainder.isEmpty {
-                    let prefix = try outputConverter.convert(remainder, recoveringInvalidInput: true)
+                    let prefix = try outputConverter.convert(remainder)
                     if !prefix.data.isEmpty { output(prefix.data) }
-                    if prefix.rejectedInput {
-                        charsetErrorHandler(
-                            RemoteCharsetConversionError(
-                                charset: outputConverter.charset, direction: .decoding
-                            ).localizedDescription
-                        )
-                    }
                 }
             }
-            let converted = try outputConverter.finish(recoveringInvalidInput: true)
+            let converted = try outputConverter.finish()
             if !converted.data.isEmpty { output(converted.data) }
-            if converted.rejectedInput {
-                charsetErrorHandler(
-                    RemoteCharsetConversionError(
-                        charset: outputConverter.charset, direction: .decoding
-                    ).localizedDescription
-                )
-            }
-        } catch {
-            charsetErrorHandler(error.localizedDescription)
-        }
+        } catch {}
     }
 
     private func closeTerminalSession() {

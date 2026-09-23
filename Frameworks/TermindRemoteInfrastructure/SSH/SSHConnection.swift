@@ -96,7 +96,8 @@ nonisolated extension SSHConnectionProtocol {
     }
 }
 
-/// Called on the connection's serial libssh2 owner with valid UTF-8 output. It must return promptly.
+/// Called on the connection's serial libssh2 owner with charset-converted output.
+/// Malformed source bytes are passed through verbatim. The handler must return promptly.
 public typealias SSHExecOutputHandler = @Sendable (Data, Bool) -> Void
 
 public actor SSHConnection: SSHConnectionProtocol {
