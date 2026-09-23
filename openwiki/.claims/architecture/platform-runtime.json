@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f6b1eae907640a27121b4c2f41cc040490003e2944d38858bc7a4719581bd0b3",
+  "pageVersion": "sha256:0e61cbe711eed5c27ef6466c5ce521193641c61d25abf03298b9098834235f2f",
   "claims": [
     {
       "id": "claim_bd9f5ddda6b6466eb79c622b02fd73f2",
@@ -40,7 +40,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:ba89018766f45b430033efc2969c0307ba30c0d298bd8b55a51e17a08915c767"
+          "version": "repo-file-v1:sha256:8efd1aa2da741e633993416bf4f88eff4df978ee3768a13788a1ac0419bdf837"
         },
         {
           "resource": "repo://TFM/App/RootView.swift",
@@ -48,7 +48,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:4c153bf5b7d97bf82683269527c35e76d9666ce459b681af16e7eed4a586e837"
+          "version": "repo-file-v1:sha256:42182779b1c8b55a350b4f77b4237e05c87338d040f72530f919cbd13a474823"
         }
       ]
     },
@@ -224,7 +224,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:4c153bf5b7d97bf82683269527c35e76d9666ce459b681af16e7eed4a586e837"
+          "version": "repo-file-v1:sha256:42182779b1c8b55a350b4f77b4237e05c87338d040f72530f919cbd13a474823"
         }
       ]
     },
@@ -257,6 +257,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T01:34:03.251Z"
+    "at": "2026-09-23T02:40:53.789Z"
   }
 }

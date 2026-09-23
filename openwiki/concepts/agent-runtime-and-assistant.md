@@ -8,10 +8,16 @@ sources:
     resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-160f180df5d3cb1457febfee
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
+  - id: openwiki-source-b62626c07828480fcd2b71b7
+    resource: repo://Frameworks/TermindApplication/Agent/ConversationTitleController.swift
   - id: openwiki-source-76220f10b4e23e3c61a811be
     resource: repo://Frameworks/TermindApplication/Agent/TermindAgentPolicy.swift
   - id: openwiki-source-7397a04f40a393c81b0ca52d
@@ -34,14 +40,22 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-6d759b4cb61f68a067dae42c
     resource: repo://FrameworkTests/AgentSteeringTests.swift
+  - id: openwiki-source-247755d873c5d94b0a364217
+    resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
+  - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
+    resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-a62bfbbc7de13a894444718b
     resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-d44869be46c03fbd0ce9c64c
     resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
+  - id: openwiki-source-3dfad0e95bb7d66f292c20c9
+    resource: repo://TFI/Features/AI/MobileAssistantConversation.swift
   - id: openwiki-source-a154b5d36ec59496392d45e4
     resource: repo://TFITests/MobileAssistantTests.swift
+  - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
+    resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
   - id: openwiki-source-16db5d5459897d40fe080701
@@ -62,10 +76,10 @@ sources:
     resource: repo://TFMTests/AgentSkillTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "codex", at: "2026-09-23T01:34:03.251Z" }
+generated: { by: "codex", at: "2026-09-23T02:40:53.789Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T01:34:03.251Z
+    at: 2026-09-23T02:40:53.789Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory
@@ -76,11 +90,11 @@ This split is a security boundary as well as a modularity boundary. A model prop
 
 ## Responsibilities and assembly
 
-`AssistantExecutionController` is the application entry point for a draft. It prevents overlapping starts, archived/history-changing conversations, unfinished attachments, and unauthorized use before it records the user turn. It compacts first when needed, resolves the chat provider and its credential, freezes run-level choices, assembles the tool registry, and starts a fresh `AgentRuntime` through the `ConversationModel`.
+`AssistantExecutionController` is the application entry point for a submitted turn. Before recording a new turn it rejects overlapping starts, archived/history-changing conversations, active compaction, unfinished attachments, and unauthorized use. Accepted submission synchronously captures the composed prompt, images and context attachments; session, plan and surface context; chat model/provider/credential; reasoning and permission mode; search choice; skills and base registry; Guardian configuration; and memory/compaction preparation settings. Only then can asynchronous compaction or memory loading begin. Runtime assembly consumes this capture instead of re-reading mutable composer or configuration state after an await. A missing model or credential remains a captured failure even if Settings changes during preparation.
 
 A runtime is deliberately single-run. It owns one event stream and one event consumer. `ConversationModel` owns the live runtime and projects its events into visible messages, tool cards, approval and input queues, run summaries, and the authoritative model transcript. The visible message list is not replay history: tool calls and results are separately rendered as cards, so replay must use `transcript`.
 
-The registered tool catalog and run mode are resolved at run start. A tool-capable model receives the resolved skill catalog, AgentKit built-ins, and Termind tools; a model without tool-call capability does not receive the skill/tool catalog. Session facts, plan posture, surface availability, and the memory-session identity are captured in an `AgentTurnContextSnapshot`. Surface availability follows the latest delivered user snapshot rather than mutable UI focus.
+The tool catalog and plan posture are captured at submission; AgentKit selects that captured catalog's executable mode-specific subset when the runtime starts. A tool-capable model receives the captured skill catalog, AgentKit built-ins, and Termind tools; a model without tool-call capability does not receive the skill/tool catalog. `AgentTurnContextSnapshot` is the persistable context portion of the capture: session facts, skill catalog text, plan posture, surface availability, and memory-session identity. It is not a durable copy of provider credentials or all runtime configuration. Surface availability follows the latest delivered user snapshot rather than mutable UI focus.
 
 Termind composes the registry in this order:
 
@@ -107,7 +121,11 @@ This snapshot dictionary is a partial override: disabling terminal suggestions d
 
 ## Turn lifecycle
 
-A submitted prompt is persisted as part of the run snapshot before model work begins. AgentKit streams a provider turn, emits ordered UI and durable events through a shared `AgentEventChannel`, validates any complete tool call, then schedules execution. Tool results are appended to the model transcript and persisted before the following model round. This preserves a grammatically answerable transcript even for refusal, cancellation, or failure paths.
+Desktop sidebar, standalone Assistant, and mobile first sends use the same controller-owned capture path as subsequent sends. A first conversation is promoted into the library only after capture and local turn append succeed. Refused sends leave the draft, attachments, armed skill and ephemeral conversation unconsumed. Accepted composer sends fold attachments and an armed skill directive into the model-facing turn once, clear those composer payloads, and clear the submitted draft. Direct text sends and plan implementation also fold those payloads once but leave unrelated ordinary draft text alone.
+
+Edits have a separate two-stage entry point: desktop and mobile UI call `prepareAgentEdit` synchronously before creating their UI `Task`. It preserves the original attachment payload and model-facing suffix while capturing fresh context and configuration for the replacement submission. `performAgentEdit` checks the capture identity before starting a tracked history task; persistence succeeds before the live edit is applied, and another identity check precedes runtime preparation. A cancelled or superseded prepared edit cannot later enter truncation or start a runtime.
+
+Once the runtime begins, the submitted prompt is persisted as part of its running snapshot before model work. AgentKit streams a provider turn, emits ordered UI and durable events through a shared `AgentEventChannel`, validates any complete tool call, then schedules execution. Tool results are appended to the model transcript and persisted before the following model round. This preserves a grammatically answerable transcript even for refusal, cancellation, or failure paths.
 
 ```mermaid
 sequenceDiagram
@@ -120,9 +138,15 @@ sequenceDiagram
     participant Store as SwiftData Repository
 
     User->>Controller: submit draft
-    Controller->>Conversation: record user turn
-    Controller->>Controller: compact and freeze context
-    Controller->>Runtime: start request and registry
+    Controller->>Controller: validate and capture turn/configuration
+    Controller->>Conversation: mark preparing and append captured turn
+    opt first send
+        Controller->>Conversation: promote captured conversation
+    end
+    Controller->>Controller: await needed compaction and memory
+    Controller->>Controller: verify capture is still current
+    Controller->>Conversation: start with captured request and registry
+    Conversation->>Runtime: start through event consumer
     Runtime->>Store: save running snapshot
     Runtime->>Runtime: stream provider turn
     Runtime->>Runtime: validate tool schema
@@ -142,7 +166,15 @@ sequenceDiagram
     Conversation-->>User: messages and tool cards
 ```
 
-This sequence shows one assistant turn, including the persistence points around tool execution.
+This sequence shows an accepted draft submission and the persistence points after runtime handoff; edits first commit their history replacement before runtime preparation.
+
+### Preparation and cancellation ownership
+
+`ConversationModel.isPreparingAgentRun` is distinct from `isStreaming`; `isAgentRunActive` combines them for activity guards. Preparation has no runtime that can accept steering, so it must not masquerade as streaming. When neither compaction nor memory loading is needed, preparation can hand off synchronously without an asynchronous preparation task.
+
+Stop, controller-wide cancellation and mobile background expiration invalidate preparation identity synchronously. Cancellation cancels and joins tracked edit-history/preparation work before finishing its interrupted save; completion rechecks identity after the save so an older cancellation cannot retire a replacement capture. The concrete SwiftData truncation method checks cancellation before entering its synchronous transaction. These boundaries prevent a stopped or superseded preparation from later editing history or starting a runtime; they do not roll back a history transaction that already committed.
+
+Archive/delete operations cancel and await pending preparation before their existing activity guards and persistence work. Manual compaction refuses preparation, while selecting another conversation leaves its preparation running. Automatic compaction uses the captured model/settings and the valid transcript available during preparation, with persistence preceding the live projection change.
 
 ### Streaming, steering, and cancellation
 
@@ -150,7 +182,9 @@ While a run is live, a further user message is queued as steering rather than st
 
 Steering captures the sending session context and updates only the `terminal_suggest` availability entry. It preserves other tool overrides, the fixed skill catalog and plan contract, and the memory-session identity. Queuing does not change `ConversationModel.activeContextSnapshot`; delivery does. If the conversation has no legacy snapshot, steering keeps that context unknown instead of filling it from current UI state. The persisted availability key remains `terminal_suggest`.
 
-Stopping a conversation cancels the runtime and its tool work, discards run-scoped secrets, marks running cards interrupted in the presentation, and returns undelivered steering text. `stopAndWait()` waits for the runtime's cancellation/persistence path before clearing live ownership. Termind also invalidates pending preparation when its controller is cancelled, recording an interrupted snapshot rather than launching a stale run.
+For an already-started runtime, stopping requests cancellation of runtime/tool work, discards run-scoped secrets, marks running cards interrupted in the presentation, and returns undelivered steering text. `stopAndWait()` joins preparation cancellation first, then requests runtime cancellation and waits for the event consumer before clearing live ownership.
+
+The preparation guarantees do not eliminate the separate runtime handoff edge case: `ConversationModel.start` schedules its event consumer, and an immediate stop before that task calls `AgentRuntime.start` can prevent runtime startup without persisting a runtime snapshot. The ordering between `stopAndWait()` and this queued start remains a distinct boundary; do not infer universal cancellation durability from preparation tests.
 
 ## Approval, secrets, and trust boundaries
 
@@ -172,6 +206,8 @@ Termind tools operate through noninteractive per-command SSH channels and exclus
 
 Plan mode freezes at submission. It permits investigation, reads, and policy-allowed commands, but host-specific planning registrations refuse direct remote writes, deletes, and scratch pushes. A plan is drafted in scratch space and presented as the final action; presenting it does not itself suspend a run awaiting a decision.
 
+Implementing a pending plan is a new captured submission. The controller clears the captured `planContract` before capturing the run so implementation is acting work, then appends the composed implementation prompt and resolves the plan as implemented. Refusal leaves the pending plan, planning state, attachments and armed skill untouched.
+
 ## Scratch workspace containment
 
 Each tool-capable conversation has an `AgentScratchWorkspace` keyed by its conversation ID under Termind application support. It survives later runs in that conversation, but one conversation cannot read another's scope. Scratch paths are normalized and bounded; escapes, absolute paths, parent traversal, control characters, excessive depth, and symlinks are refused. Entry and byte quotas are enforced before mutation.
@@ -184,11 +220,15 @@ A fork copies its scratch scope before creating the forked conversation and remo
 
 `SwiftDataAgentRunRepository` stores conversations, runs, messages, replay backing, attachments, tool invocations/results, reviews, ordering metadata, and compaction records. It writes messages by message ID rather than run ID, so replaying prior conversation history into later run snapshots does not duplicate historical rows. Tool event persistence is restricted to durable lifecycle events rather than streamed token deltas.
 
-A saved context snapshot preserves the original session and policy baseline for replay, retry, edit, and fork behavior; legacy absent context remains unknown rather than being replaced by current UI state. Persisted text, tool arguments, titles, reasoning, and attachments go through redaction. In particular, secret handles are replaced with expired lifecycle content on restore, and sensitive header values are redacted.
+A saved context snapshot preserves historical session, skill-catalog text, plan and surface facts for replay and fork history. Explicit `startAgentRun` uses the last user turn's stored snapshot, or a neutral `AgentTurnContextSnapshot()` for legacy absent context rather than inventing facts from current UI state. This is context replay, not reconstruction of historical model/provider settings, credentials or skill-package bytes: the controller still captures the current runtime configuration. An edited submission deliberately captures fresh context instead of inheriting the historical snapshot. There is no manual Retry/Resume UI or automatic recovery execution; provider retry remains AgentKit-owned.
+
+Persisted text, tool arguments, titles, reasoning, and attachments go through redaction. In particular, secret handles are replaced with expired lifecycle content on restore, and sensitive header values are redacted.
 
 Tool cards resolve their persisted presenter ID through the immutable presenter registry. Cards predating those IDs use the closed legacy tool-name list and its `builtin.` IDs. Registration and surface-availability changes preserve those identities and the persisted context key; they do not require a SwiftData schema change.
 
 Compaction changes the **model-facing** transcript, not the scrollable display history. Its summary record is persisted before the live conversation applies it; after recovery the model receives a synthetic compaction summary plus recent messages while the user can still read the full original conversation. Editing a user message truncates the target run and later runs atomically, creates the replacement turn, and removes compactions whose boundary was removed.
+
+That durable edit boundary is still run-level, whereas the live model truncates from the target message. Editing a steering user message within a run can therefore leave earlier messages from that same run in the live model after persistence removed them. This existing durable/live mismatch is separate from stale-preparation cancellation and is not repaired by synchronous capture.
 
 At repository initialization, every nonterminal persisted run becomes `interrupted`; Termind never replays unfinished execution automatically. Restore reconstructs completed tool cards and can recover a durable tool result that was recorded before its next transcript snapshot. If an outcome remains unknown, repair records an explicit unknown/refusal result rather than assuming a call was never dispatched.
 
@@ -199,7 +239,10 @@ stateDiagram-v2
     Restored --> Interrupted: nonterminal run on launch
     Interrupted --> Ready: history and cards restored
     Completed --> Ready: history and cards restored
-    Ready --> Running: new submitted turn
+    Ready --> Preparing: accepted capture
+    Preparing --> Running: current capture handed to runtime
+    Preparing --> Interrupted: cancellation saved
+    Preparing --> Failed: captured configuration unavailable
     Running --> WaitingApproval: Ask action pending
     WaitingApproval --> Running: allow
     WaitingApproval --> Running: denial result recorded
@@ -213,11 +256,13 @@ stateDiagram-v2
 
 This state diagram distinguishes recovery from automatic resumption: interrupted work is visible and recoverable as history, never silently rerun.
 
-Conversation metadata mutations are persistence-first. Archive clears pinning and prevents editing; archive/delete are guarded while a run or compaction is active. Reordering commits the whole ordering update before changing the in-memory library. These rules avoid UI state claiming a history mutation that failed to save.
+Conversation metadata mutations are persistence-first. Archive clears pinning and prevents editing; after cancelling pending preparation, archive/delete remain guarded while streaming or compaction is active. Reordering commits the whole ordering update before changing the in-memory library. These rules avoid UI state claiming a history mutation that failed to save.
+
+Automatic titles require a real nonempty assistant reply in the authoritative transcript, not a visible failure message. A completed reply can qualify even if the run is later stopped. Title generation resolves its configuration when it runs, independently of the submitted turn's frozen configuration. Automatic post-run memory review is stricter: it requires a `.completed`, non-planning run; preparation cancellation does not trigger it.
 
 ## Skills
 
-Skills are global app-managed packages, not per-conversation data. A run snapshots its enabled catalog at startup, so enabling or changing a skill does not alter a run already in progress. Reserved skill names cannot be shadowed, and collisions remain visible but paused.
+Skills are global app-managed packages, not per-conversation data. Submission snapshots the enabled catalog and inventory before preparation, so subsequent Settings changes do not replace that run's captured catalog. This is not archival replay of package bytes. Reserved skill names cannot be shadowed, and collisions remain visible but paused.
 
 A skill is procedure-bearing only when read through `skill_read_file` from its `SKILL.md`. Supporting files, package frontmatter, tool output, remote files, web pages, and MCP responses are untrusted reference data—not instructions or authorization. Skill installation is acting-only, revision-bound, and subject to normal tool approval; a skill cannot grant permission to execute a command, write a file, transfer data, or bypass other policy.
 
@@ -229,16 +274,19 @@ The GRDB store opens lazily, so disabled memory does not create or open its data
 
 A memory session receives a frozen snapshot for its conversation. Memory reviews use a compare-and-apply base state, so a stale review cannot overwrite newer memory. Disabling memory invalidates sessions, cancels indexing and reviews, and closes the database while preserving stored data. Destroying memory first persists disabled/destroy-pending state, revokes contexts and joins ongoing work, then closes and removes the owned directory; failure remains disabled and is retried on a later launch. Memory and credentials are device-local and are not synced.
 
+New submissions capture whether they have a memory-session identity before preparation awaits. Enabling memory afterward does not add a session to that captured turn. Disabling it remains a revocation boundary: `MemoryModel` invalidates existing contexts and rejects a late snapshot load from the old generation, so capture does not override a later disable.
+
 ## Focused verification
 
 The focused tests establish behavior that is important when changing this area:
 
 - `TFMTests/AgentRuntimeTests.swift` covers schema-before-approval/execution, approval mode routing, Guardian timeout/failure fail-closed behavior, single-use secret handles, steering delivery, tool cancellation, registry shadowing, and durable-event filtering.
 - `TFMTests/AgentPersistenceTests.swift` covers redaction, interrupted-run recovery, replay deduplication, tool-result repair, deletion of the persistent graph, edit truncation, fork persistence, and compaction restoration.
-- `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first archive/rename/order mutations, activity guards, and immediate stop before a queued runtime can begin.
+- `FrameworkTests/AssistantExecutionControllerTests.swift` covers capture across a memory barrier, missing credentials, first-send guards and payload folding, plan implementation, edit persistence/cancellation barriers, superseded captures, navigation, compaction refusal, memory revocation, and neutral legacy context.
+- `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first archive/rename/order mutations, activity guards, and that immediate stop prevents a queued runtime's model call. That last test does not establish snapshot persistence for the runtime handoff gap.
 - `TFMTests/AgentScratchTests.swift` verifies workspace containment, symlink refusal, inter-conversation isolation, quotas, and bounded reads.
 - `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions.
-- `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, and tool-incapable models.
+- `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, acting-mode plan implementation, and tool-incapable models.
 - `TFMTests/MCPServerToolsTests.swift` checks the exported acting subset against shared descriptors, transfer tools and disabled calls; `AgentHostProtocolListingTests.swift` checks protocol-neutral discovery, and `AgentToolPresentationTests.swift` retains legacy presentation coverage alongside the persistence suite.
 
 ## Change guidance
