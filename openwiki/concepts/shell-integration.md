@@ -3,9 +3,6 @@ type: implementation guide
 title: "Shell Integration: Bootstrap, OSC Events, and Terminal State"
 description: "How SSH PTY shell hooks bootstrap and decode command and cwd events, and how remote charset conversion differs between SSH PTY and Telnet terminal data paths."
 tags: [ssh, telnet, terminal, shell-integration, osc, command-history, charset, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-209392b5f97bd72d0bd87a15
     resource: repo://Frameworks/TermindApplication/Agent/TerminalCommandDraftController.swift
@@ -30,6 +27,9 @@ sources:
   - id: openwiki-source-b1446950c4c60caef12aa43a
     resource: repo://TFMTests/ShellIntegrationBootstrapTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Shell Integration: Bootstrap, OSC Events, and Terminal State

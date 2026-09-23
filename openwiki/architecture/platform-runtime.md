@@ -3,9 +3,6 @@ type: architecture
 title: Platform Runtime, App Composition, and Lifetimes
 description: How Termind composes shared services and persistence on macOS and iOS, and where app-wide, window-local, scene-local, and session state begin and end.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-875da2c4f1040409e53757af
     resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
@@ -70,6 +67,9 @@ sources:
   - id: openwiki-source-32c251eb2f83ec0be2f1a0e8
     resource: repo://TFMTests/RepositoryOutboxTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes

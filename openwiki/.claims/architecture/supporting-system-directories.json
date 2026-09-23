@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:28aa0deba6ac872df151035ac04d0aba9eb9619b16b76c706ecd36c2dbe08425",
+  "pageVersion": "sha256:4d74f05a7122684c6b96ed5356b6f6195a539e57beb0e540084accada9d032af",
   "claims": [
     {
       "id": "claim_8809151c43594803b83cf0451d849112",
@@ -70,7 +70,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
-          "version": "repo-file-v1:sha256:7fb10e9423fc06bfc8c45a3b189ffd03cc3b8f588915c1e9afa3cc33b91d6020"
+          "version": "repo-file-v1:sha256:11a618b54c8c7c8cf212423feb11ef58ee507f58a852a9fa4a7e5fd06bdf2800"
         },
         {
           "resource": "repo://TFM/Infrastructure/MCP/MCPServerSession.swift",
@@ -81,8 +81,8 @@
           "version": "repo-file-v1:sha256:5a91a4b29083f71858834b4b1adee9fb64551de704e850ebe8026926ff9a6b9b"
         },
         {
-          "resource": "repo://TermindMCPBridge/main.swift#L4-L87",
-          "version": "repo-lines-v1:sha256:ecccf30acbd284a663e31c1aa7f40e224b2264fb038003a81dceaa30c6449866:eyJzZWxlY3RlZExpbmVDb3VudCI6ODQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVjZmJkYmI1MDE2YWM3ZGVlYTU2ZTg5MGFlOTNhZDc3MzY1Y2I0ZDhhMGQ4NjhiMmU2YzliZTNjYzExYzQ2NGQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE3M2Y1YTY5MGEwZjAwODY0Y2RmNDU3MjY3OTAxZjNkNzg5ZmRjYzgwNzQ5NzlmNWUzMDQ2ODVlMjFiMzNlNTUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE0ODcxYWY5NDg1Yzg3ZThjMGM0ZGNhN2IyYTI3MThiOWY5YTJmN2QxM2RlYWM1Y2MyYTY5YzgyNWVhY2ViZmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+          "resource": "repo://TermindMCPBridge/main.swift",
+          "version": "repo-file-v1:sha256:5d7d2a463303294a57a5c633c4a10a9c2f773434d97eb0f91f64be8ff1a93572"
         }
       ]
     },
@@ -152,7 +152,7 @@
         },
         {
           "resource": "repo://Scripts/check-zh-localization.sh",
-          "version": "repo-file-v1:sha256:065d662aa579090c80e0fe93ab13ecb447c112ceebbc8a1ec29a1c39b9b8e3ef"
+          "version": "repo-file-v1:sha256:305b4c1458a71783b51720861f2a4a1452bd28a8b9478ddae38b4c775f52eb97"
         },
         {
           "resource": "repo://Scripts/update-linux-distribution-icons.sh",
@@ -313,6 +313,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:36:38.039Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }

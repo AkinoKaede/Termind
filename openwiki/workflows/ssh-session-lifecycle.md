@@ -3,9 +3,6 @@ type: workflow
 title: SSH, Telnet, Trust, and Workspace Session Lifecycle
 description: Traces how Termind prepares SSH and Telnet connections, routes them through proxies and jump hosts, authorizes server identity, consumes credentials, and retires or restores live workspace sessions.
 tags: [ssh, telnet, connection-lifecycle, host-keys, proxy, workspace, security]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-cb178f0d078ab3218679c80e
     resource: repo://Frameworks/TermindApplication/Connections/RemoteSessionConnectionController.swift
@@ -54,6 +51,9 @@ sources:
   - id: openwiki-source-85c3f954351f96433cb1fb4b
     resource: repo://TFMTests/ConnectionJourneyTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # SSH, Telnet, Trust, and Workspace Session Lifecycle

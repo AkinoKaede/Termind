@@ -3,9 +3,6 @@ type: architecture boundaries
 title: System Boundaries and Dependency Ownership
 description: Static framework layers, platform composition roots, persistence ownership, and the external AgentKit boundary that keep Termind changes dependency-safe.
 tags: [architecture, modularity, dependencies, persistence, agentkit, swift]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -44,6 +41,9 @@ sources:
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # System Boundaries and Dependency Ownership

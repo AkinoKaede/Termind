@@ -3,9 +3,6 @@ type: integration guide
 title: MCP Server, Transfer APIs, and Stdio Bridge
 description: How the desktop MCP listener and stdio bridge expose local host tools and scoped HTTP SFTP transfers, including ticket states and failure recovery. Distinguishes macOS server ownership from the iOS remote MCP client.
 tags: [mcp, macos, loopback, authentication, sftp, bridge]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
@@ -48,6 +45,9 @@ sources:
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # MCP Server, Transfer APIs, and Stdio Bridge

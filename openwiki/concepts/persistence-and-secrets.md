@@ -3,9 +3,6 @@ type: persistence and security concept
 title: Persistent Data, Migrations, and Secret Boundaries
 description: How Termind owns SwiftData and GRDB durable data, evolves compatible schemas, projects records through repositories, and keeps credentials in Keychain-backed and runtime-only boundaries.
 tags: [persistence, swiftdata, grdb, migrations, keychain, secrets, security]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
@@ -94,6 +91,9 @@ sources:
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Persistent Data, Migrations, and Secret Boundaries

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:40b2afc40830a574689fa94f4912436c70b25c0f10741b865ad55d6364fe7f1d",
+  "pageVersion": "sha256:c888af748fedf1b3bb6c77aec9cbb46ff10d9b838e412cd4b69eeff363e79aa4",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -21,8 +21,8 @@
       "statement": "The mobile screenshot runner uses iOS/iPadOS 27, captures English, Simplified Chinese, and Traditional Chinese through `MobileMarketingScreenshotTests`, validates expected counts, and supports scoped device/scene runs without requiring an iPhone for iPad-only capture.",
       "evidence": [
         {
-          "resource": "repo://Marketing/README.md#L14-L48",
-          "version": "repo-lines-v1:sha256:14443f6764d44ce29817ccd4f7d2083a64a9fef3a1aba87d02c19be27da5400f:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJmMWY1YzVlZWVlOTQ1NjZhZGFkOTQ5YmQ1ODhmY2IyN2YxMzkzMDVhNTFlZDk4ZjBmMmY3MmQwOTBlYjVjYmMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkZjI4NTlmYjAyYWVlMjI5NGVkNjljZTJkOWZjMjE1NTcwNGU1ZTUzZjg4YWZjYTcxNmQ5MjZhODE2NTBmNzQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImViNDFiYmQ1MmFjOWEwMDUxMjRjNWM4ZmZkNTM5NGQzY2ViNjZmMGY2OGVjZjlkZTljOTA1NWYxNWNlZTVjMzgifQ"
+          "resource": "repo://Marketing/README.md",
+          "version": "repo-file-v1:sha256:97866af84c8b01df60e0e125b61a85836eaa9156052aeac3c3ddb0c234cad81f"
         },
         {
           "resource": "repo://Scripts/run-mobile-marketing-screenshots.sh",
@@ -30,7 +30,7 @@
         },
         {
           "resource": "repo://TFITests/MobileMarketingScreenshotTests.swift",
-          "version": "repo-file-v1:sha256:e6d64ebc5a15d70f6184596ceba3d177f624ba0de28b2eaf66b129db499ca629"
+          "version": "repo-file-v1:sha256:0f8ab7edddd7f46eff7dd9243f22784bf17088e42b5d014ec07f21a30afce0f3"
         }
       ]
     },
@@ -165,6 +165,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }

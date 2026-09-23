@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1d94baed34a4a63a7a933c51f451945882a2778972ab6bd10350dbd195285613",
+  "pageVersion": "sha256:75e670dfa0509344b9ab0328cbe127991d80d0198d1c7aeeaae2d502ee71c83b",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -206,7 +206,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift",
-          "version": "repo-file-v1:sha256:cf79dd9ebcaa4d4ce76e340aa5b6585322619c5e04ed35aa8fe5208a895106f9"
+          "version": "repo-file-v1:sha256:669be133495ace7709a537d328d7ba5e31fa8159dbd50a7f3e193cc91f807d74"
         }
       ]
     },
@@ -220,11 +220,11 @@
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/IdentityFormSections.swift",
-          "version": "repo-file-v1:sha256:93de372e215799eb224092fa676a7e7716a646f5545127504c3dfe7d94a2516e"
+          "version": "repo-file-v1:sha256:eb1f12eb2abdbd61fee03068366f3d00672bbe2388c7fde34af1210ade6d95f8"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/SFTP/RemoteFile%2BPresentation.swift",
-          "version": "repo-file-v1:sha256:e27e838481f8b11824eb5d37bce36d22b5c66cbb14464fae3785f77ecd058aa5"
+          "version": "repo-file-v1:sha256:c33baaf4af7e82f3626448c95af37b10034595812e7dbfb83aa30e85305bef72"
         },
         {
           "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift",
@@ -232,7 +232,7 @@
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:ca356c025f911101bbaf63a9a34b72736291043ed0fc0daa8dbedec972eac6b1"
+          "version": "repo-file-v1:sha256:7909f5be1f0742e4dae9989a00e7801c7ddc9e6cf72be4d24bc1108e2c393cfd"
         }
       ]
     },
@@ -417,16 +417,12 @@
       "statement": "RemoteCharsetStreamConverter performs strict outgoing iconv encoding and stateful streaming decoding, buffering incomplete multibyte input while passing malformed received bytes through rather than failing the stream; normal encoding throws on unrepresentable text and optional invalid-input recovery reports rejection.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift#L26-L67",
-          "version": "repo-lines-v1:sha256:e26eabcaac0395551641ec9be367ea064eff06db917c89c2ac5dcf5011273d8a:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI2MmYxZjhlNzYyMmY5NjRjMDE0ZTU3YmM0NzQ0NDRjZGQ5YzI4OTcyZTcxMmNiYTJkZGI5ZWZlMmJjODIzNTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgwYTg5ZTQ0Yjk3NTMzNThhNzRkZjI3ZjgxNjE5Y2RhY2YzNmVjNTJiOTNlNzcxOGUyNDE3YzYxYTQzNGI4OTEifQ"
+          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift",
+          "version": "repo-file-v1:sha256:5078e65bb98f232433bcd599cdc4d36335ccbc4e0d4633f28ce40c3611b14857"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L145-L223",
-          "version": "repo-lines-v1:sha256:f8892502d88bbe21dd53f7d2f5feb868e83104b38e739700e675dd7cf2a539d2:eyJzZWxlY3RlZExpbmVDb3VudCI6NzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjcyOWQwZGQ3Njg3MTU3NzZkZDE5NTU1ZmI3MzU1ZDZmOTE1ZjI4NDM2ZjhmYmIxMTQ3Y2Y5MTUwMThkMjgwM2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjVlMmY4NzI4MWVkYjU0NmViNTIzNGRiNjk4ZWYyZGJkM2Y1NWM3YjNmZjgxMDQ0YzVhZWJlMTdmMTdiODhiNjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjMzOGRkMWQ4Zjk2ZGNhNzFiZWE3ZTUyMmU0NDgxNDBhNjc5ODRmYTRlY2Y5ZTJiMzgzYmRmYTNhYmYxZGJmM2YifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L41-L139",
-          "version": "repo-lines-v1:sha256:fb2a42a6ccccf45a6ea6fb302bc378c0e36219610401cfc86b3ef3ac773934ab:eyJzZWxlY3RlZExpbmVDb3VudCI6OTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ4MGQ2NzYyOGE1ZDQyMmQzMzNkMDY0MjNlNDRiNDQ5NWRjZjIwODZiMjQ0NzZmZjY4MjZhNGExZmQwMTM1NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE1M2M1MTkzMmRhMWMyNmI0NDkzMTIxNmUyMDRhYjZjYzUwNzE4OTE1MzEwZDZjYmUwNGJhNWY0ZDRlYTVhYTcifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift",
+          "version": "repo-file-v1:sha256:34692935f03154b8b9108663fb4666eaca689d24ab4b8468610495ed49f9d15d"
         }
       ]
     },
@@ -435,32 +431,32 @@
       "statement": "The remote charset adapter is applied at SSH exec, PTY and SFTP boundaries and also in Telnet; the SSH PTY OSC 7 filter rewrites charset-encoded working-directory paths into percent-encoded UTF-8 for Ghostty, buffering fragmented frames and bounding incomplete payloads.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift#L88-L105",
-          "version": "repo-lines-v1:sha256:d993b57e4ee07fe64963235749b3d1da91c896eb37a806687ec3a4924fae8690:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBjYzBiNjNlMjc4YjhiYWZjNThhZjEyZWU1NDUxOGMxZTEzZjEzYThkNmY4N2JmNDlhNzJiYjEzYjc5MTQ3ZGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://FrameworkTests/RemoteCharsetTests.swift",
+          "version": "repo-file-v1:sha256:5078e65bb98f232433bcd599cdc4d36335ccbc4e0d4633f28ce40c3611b14857"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift#L225-L272",
-          "version": "repo-lines-v1:sha256:097eb2230f29b0b7ba234ed63cc74a0020b8455dd74b27ae1372400534c80237:eyJzZWxlY3RlZExpbmVDb3VudCI6NDgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImM0NGY1M2U3ODIwY2I2ZGVlMjBjYzI3YzUzNzI1NzQxNTVhMjUyNzZhOGZmNjI3ODViYzcyZTBmYzM5N2ZjZWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NDE0NWZjOGQ2NDEyNjYzYzIzNTA5MDgxOTIwOTcwNzViNmI4N2JlY2Q1NTMxZDk3MzZjZmI3MmNkNGUxZWIifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/RemoteCharsetConverter.swift",
+          "version": "repo-file-v1:sha256:34692935f03154b8b9108663fb4666eaca689d24ab4b8468610495ed49f9d15d"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift#L1050-L1059",
-          "version": "repo-lines-v1:sha256:1658b6df3d87086511f52ca5558ba653833f3c8661c53141329dbcc7b1dcfbdf:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg3MTQ1YjAxZjU4OGNhYjg3MzZiNzcxNDJlNjMwNGM3YmQwMmFhOTY5ZWU4ZjJkYjA0ZmQ4ZDNhZmMzODI2ZGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNhZTk2NmQ4YzVmOWI5MmMxMGRjYTQ2MDRkMGQ4OTAwOTIwZTNkYmNmODY3ZTUxNjZmNGU1ZmM1NzJjYTRmODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg3MGIyM2M1ZWE2MTUwNDFjMWM1NmE4NWFmYzNiYTNmM2M2YjBhNjFhZGY0ZmRkOTQ4M2M3Mjg3NzY1Y2IzOTQifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SFTPChannel.swift",
+          "version": "repo-file-v1:sha256:508b0f166c37050bca2ebd5b50e778d90abcd6426dca20422be86f442027684f"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnection.swift#L28-L60",
-          "version": "repo-lines-v1:sha256:22a22a2b497829248ab3e5880daf830512f03dd4a317771d2541f86155b98c15:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImEyYmU2NzBmYzQyNzBiMzQzOTg5M2I1Y2Q3MDMyODQ0MDZmYmZlNjRhNzg4MmUwMzVjOTE4MTRlYjBkZjRkNzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnection.swift",
+          "version": "repo-file-v1:sha256:f4c451cea09acceef83466764034d182db354ed99364616ddcd18388d2bbd8ed"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift#L60-L85",
-          "version": "repo-lines-v1:sha256:9fb1b85b1ac40b091bec6ae0b36debc5978c2c029f69f90944402912907d2a75:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1YmEzZWNhZDAwNzM4MGU4ZGI2NjcwNDhkNmFjOTA5YjRiMTcxNjIyNzBmYTU1ZjQ1MDEzNTViMmMwMDhiZTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjllN2NkODRiNzY3MWNiOWFlZmQ1NzkyOTZiNzYzODA1NjM2YzllOWYwZWQ4ZDRlMjU0MTMyMTI0OWMxZTgxYmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjExZmE0OGJmNmI0MTZiYmVkOTA0YmRmMTk2ODZmN2I5OTViOTcyNjRkNTlkMDVkZTEwYWQzYTkxMjY5OGM3ZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM2Nzg4MjlhNTVkNTI4NGQ1MjQ2N2I3MjcxM2VlN2E0MjYxM2UzOTdjODRkNzE4YmJhM2I5N2IwOTY3NDExODIifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHConnectionWorker.swift",
+          "version": "repo-file-v1:sha256:83bd91c7b4c8130770b7d66248513245e3a5dc341380b5285703b32e707bb6f4"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift#L1097-L1125",
-          "version": "repo-lines-v1:sha256:18b6ec795aa4c05d1e4b820fa966bdcd93eac5d15b1643bf22c9159acd84a950:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUxMDI0YTNlZDg5OGNiZTliOTI3MDY1OTc4NjFmMjBjZmFkMTY4MTY2OTY5Y2FjNjQzNjI2OWE2MzRmOWU1ODAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAzNGYyOTRiYzljYWNmMTVjZjM2Y2I1NDIwYmVjOThmNTBmY2Q2ZWIyNmJhYjc1ZmU2NjMwMzMxYjc5ZGFmYmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIwYzFhMDM5NmZhNTI4ODRjN2JkNTAyMGI0YjMyN2IxMzc3NjNkYmQ0NWE5NjFmZDI5ZTczZGEzYzU4MGY5OWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY2MzkwMzNmODAyZDEwMDE1YmFkZDExMDc4YzFiZjg5YjljODhhMzc2ZjhjMzlkN2Q0MTZkODk1OTc1MWUyZGEifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
+          "version": "repo-file-v1:sha256:d107fbe196c9df5e7b49acb4301fe0a5f819fc5b411815083966f073b491f237"
         },
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L100-L110",
-          "version": "repo-lines-v1:sha256:5ec85b0929ba0a2bfd2b1302882875ba5d00ca0589bb2c9c1b17ff05f5cdd9ec:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFlMzE4Y2U5MDUyNmI0NDBlMGQ2YTJjNzAxZjNiNzA5MzIzNzk2ZTE2ZDcxYmQzNjY0ZWE2OTFmMGRlNjhjZjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE0MDQwNzcyMjI1MTA4MGEyNWE4Zjk3OTczZmRjZjY3MTBkYTY3YmM1MGUyNjhmNDYxZGFmMjFiODk2MmJiMzgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlODliZWQ5YjAxNWE5MzY2NDk3MjgxN2EwM2Q4MDMwMjZmOGYwMzY0NDNiODYwYjc4ODljMjM1MzU4ZWE3NjAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1ODgwYzBiN2JmNWVjZWM3MTcxNmM2NDhmNDM3NWJiMmU2MTZiZjIzNDE5YjAzOWE4MmQ4ODQ5Yjk3NGRjOWYifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift",
+          "version": "repo-file-v1:sha256:669be133495ace7709a537d328d7ba5e31fa8159dbd50a7f3e193cc91f807d74"
         }
       ]
     },
@@ -487,26 +483,26 @@
       "statement": "Shared application strings and bundle metadata have separate string catalogs from AgentKit text, and the repository localization check requires completed zh-Hans and zh-Hant translations; Linux distribution assets, catalog and licensing are regenerated together from a pinned Simple Icons version rather than fetched during app use.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L48-L50",
-          "version": "repo-lines-v1:sha256:5e69d5ddf8b0181f834edfe8f463b1ddc71ce0c0c26beaa6f4dc0cb63b7f1c67:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNmVkNjM3YmU2ODNjNzYxMmY2NzdlYTllMWE1NmI5NjU5OWU3NzJmNmQ3NjkwYjQyMzc0MGNkMTRhZmZmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTg2ZjBmYzI2Yzg1ZWJjYjA4ODA0ODE3YmIwZDNkYmQ3YTA5YTYxYTU3ZGE5YTA1OTdhYWM5ZTc1ZDBkNzQ5MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:d7c3eef4470b008b0c7d11eca7bf62d8d73533fa170f82d085e3d45376adec6b"
         },
         {
-          "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift#L14-L25",
-          "version": "repo-lines-v1:sha256:46220a6c0c2862ec48861323b92cc21d9e565259e819e8ffe2ba105ebe7b0e83:eyJzZWxlY3RlZExpbmVDb3VudCI6MTIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkwNWQ3NGUyZmQzYTU0ZWQ2OWIyZTlkNGFjNjQ5MGQzNmZhNmQ1YjlkZTM1NWIyZjdkMDdlZTMzNTVjM2UwNjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1ZDUyOTJkOWFiYWZmMDkzNjg4NjdlZDJjZTZlYmQxZTBhYmZlZDBiMzIzY2M0NDVhNjJkOTY3OGU2YTM4ZmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNlYWNmMmU1NWZhZTY3MzJhMzgxNmUzMWRkYWM5MTNjNjY5NDk0YjYzNGVhYmJmMjJhOTc1NWI1YjgyMWJiM2EiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRhOGI1ZDNiNGU0ZmFlNTYzM2NjMjY2MmU4NWI4ZjM0YzNlYWU0MzVlMjBiMzM2Y2VmMWZmYzI5YmRmZGQwYTMifQ"
+          "resource": "repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift",
+          "version": "repo-file-v1:sha256:a129d782efe875c18706468fc0aaf8d5191c71287e0ac1f1559027f1fcc13821"
         },
         {
-          "resource": "repo://Scripts/check-zh-localization.sh#L5-L38",
-          "version": "repo-lines-v1:sha256:b0e73658713e0bef0ac9fac43dd6d0773ad289fc23ff261a3048e2b0c041518b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRiM2ZjMjU5YmQyZWU2NDYyYzExYjZkOGUxNjZkMjU4MTVlMjNjNjkzZTA0ODRjOGZiZWQ3OTRmOTJmODI3ZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxY2M5NTJiNzdlY2RhOWVjMDJhODQxMDRjMDZhOWI3YjBlM2YyM2UzMjczMmQ0ZjIwNmU0NTYxYWI4Nzk0OTIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImExOTg0ZjI4NTg4NzhjMzQwMjJjYzU0NDQ0NjVjNGY1NjczYTE0ZGVhNGE1N2E1NmRiZTdmOTA2M2E2ODQwYzgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk4M2RmNGEzNjk4MThjNzczM2Q2ZWJmOTdmNTg3YWIyMzg1M2ExMTc1YzA0YzUxODYxNjg4MTljZmEwYjMxMmUifQ"
+          "resource": "repo://Scripts/check-zh-localization.sh",
+          "version": "repo-file-v1:sha256:305b4c1458a71783b51720861f2a4a1452bd28a8b9478ddae38b4c775f52eb97"
         },
         {
-          "resource": "repo://Scripts/update-linux-distribution-icons.sh#L4-L27",
-          "version": "repo-lines-v1:sha256:e49bb42925da6bf075fa72a0630d566b825cb7bb54f427a17350ff9475ae4f9b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI5N2RhYmY0NzI0YThlZTU1ZjY3MDIzZjRiZmQ4MjI1YzE3NDEzNDQ4ZjBmZmM0ZDk5MjI2NGVlZjU1MmQzYTgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiMzk3NDE3YWZhZmJmZDk3NWNiNzE2ZjkwNDM1NDc3MDVjMjkwM2NjMTc5NDRhM2U4NTcyNTgwNTYwZmMzZDAiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjMyNzE5ZjUyMDk2ZmMwMTY1NzlhZWE0OTY5NmVmYTgyOWNmYzg4N2E5YzI5YWY1ODQyYTVlNGIxYjVhOGNhN2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyZjMzYjM5MGE0NmE1YzJkZjkwOGIwOGM4NjNlMGEyNmJiY2M1YzQ4MDJkZGUxNjA2ZWNlZGIzNjBmM2EyNzAifQ"
+          "resource": "repo://Scripts/update-linux-distribution-icons.sh",
+          "version": "repo-file-v1:sha256:6554e0ab2064d73f9aedf5c5334a7b113a5e78f2964f95812ebadaefba0b23b1"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:36:38.039Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }

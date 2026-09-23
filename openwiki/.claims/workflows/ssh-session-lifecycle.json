@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:557605f4c9e89cf5b14379eef061940a994954d683d87ed5f0e24b963c46f493",
+  "pageVersion": "sha256:503379f21394a5ffaf194d839a1d25373ac2362438ec7b26230e68367bc3c414",
   "claims": [
     {
       "id": "claim_69a9de4ce918417c8a44c6c87c9f6564",
@@ -122,11 +122,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:b24747ff9dedd849a5aabeba6b978fa6c7e3b61954033dcee5163d5ed8064123"
+          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
         },
         {
           "resource": "repo://TFI/Features/Workspaces/MobileWorkspace.swift",
-          "version": "repo-file-v1:sha256:3d05ec07c3ea60a68e5a292a2c934ae7f24cc1fd674b1b76dc1003b84fed0059"
+          "version": "repo-file-v1:sha256:c2f5bd4b56b1c901b8f139b34372452037e6c95315e1dc3e50b08f3215f5d748"
         },
         {
           "resource": "repo://TFI/Infrastructure/MobileWorkspaceStore.swift",
@@ -134,11 +134,11 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
+          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:4bd147972cb9d30bebe48592542710683383b5deaa2e3d1a49ac0dbbcce44644"
+          "version": "repo-file-v1:sha256:ad326c25de97ff0db512504dc76b0a54803262a431d22b354c91044dd55b9cd0"
         }
       ]
     },
@@ -147,20 +147,8 @@
       "statement": "Telnet uses an independent direct-or-proxied TCP transport with generation-guarded callbacks, incremental Telnet negotiation and charset conversion, and consumes an automated password once; it is not an SSH trust, jump-host, or SFTP transport.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L151-L233",
-          "version": "repo-lines-v1:sha256:9b13be41cf88cf1e5213f4db60fbd614dae3df88b619b0434559fe7e8ad24548:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI1NzA0M2EzYmQxMzJiYzI1MGJlMmZhMzZiODg4NzQyYTkxYWJlMzg1ZGQ2NjdlYmE0ZGJlN2U0Yjc3YTlkZTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijg0YjdkMWExNGNjOTYxYjRiYmZmZjVjZDc2NGM3MmJjYWI3MGNiNGIyYTJkODgxOTlkYTFlZjkzZjNjYjJlYjYifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L318-L405",
-          "version": "repo-lines-v1:sha256:307f9a8afc7e3e83c78636303370bebf741309df69f1208f98d6877953d43159:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM2MWQxODI3ZTg0Zjg4MTFjMGJjNWJmNGRjZTcxNTIyZDhiOGQzNDA1NTI1NjE3YTRmMWNmYTcyOGE5MzdiODMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhlYWZhZDVkYjRkNmZiMjYxNjIyMTdiYjE5N2Y5NmRkOTMyZWUxNTY0NzIxMDEwNDUwYjYzNDhhMzExODNmYTcifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L450-L474",
-          "version": "repo-lines-v1:sha256:4c6b3a1f973a949680625cbe83559a1107ebdaa8482afd87b6b5e3f4e0b4df16:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4MTVhZjQ0Y2NjYmY3M2ZiOGFlYTRkMmE1ZWUwNTFkMTllMmUyMDMzMWQ3ODVlY2MzOThmMjBlMzgwZDk5ZDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJiOTg0MmMxZjExMTk5ZmUyZDVhZjJmNzhkOTdiZjQ2NDc5ZjA0NTQ0NzQ5ZmZhNGJjMWQxMGUxMDhjMTUyMTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjgyMWVhZDE2YTdlMjJmMzJkNWNhOWM2NzRmOGUzNWY0YmNkN2RmZWZhNmQ4MjViYjQwOTc3YTJjMzdiNzViY2UifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift#L77-L149",
-          "version": "repo-lines-v1:sha256:28ad85483155b381f658e4828ea80953cc7a916b4bd99ad962ba6fd23a75db0b:eyJzZWxlY3RlZExpbmVDb3VudCI6NzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdiMGE4OWZhY2U5NDE1ODFiNTg4NDc4OTU5Y2YzMTJkNTEwMzdmZWViZTgzMjFmN2MzNDNjMmM1M2QzMTg2YmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQzNDU2OWJiNmExNjBkOTQxMzM3ZmVkMDI5N2ZmZGU4YTUyMDdiZGVmNTZkZTFmNWYyZjRmOTYzMDk1ODExYTYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFlNDczYWE3ODczOTlhYzQyMzgyZjdiYWUzZWU3ZmI2ZWU5MTc2OTczOTdlOGVmMGNiZjI5MjU1N2EzNWExYjMifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/Telnet/TelnetConnection.swift",
+          "version": "repo-file-v1:sha256:669be133495ace7709a537d328d7ba5e31fa8159dbd50a7f3e193cc91f807d74"
         }
       ]
     },
@@ -174,11 +162,11 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+          "version": "repo-file-v1:sha256:e9aef4633beb47f5d7db513235051e9a8375646b70a2dbd93da8fb13554d47c2"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
+          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
         }
       ]
     },
@@ -192,7 +180,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+          "version": "repo-file-v1:sha256:e9aef4633beb47f5d7db513235051e9a8375646b70a2dbd93da8fb13554d47c2"
         }
       ]
     },
@@ -240,7 +228,7 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+          "version": "repo-file-v1:sha256:e9aef4633beb47f5d7db513235051e9a8375646b70a2dbd93da8fb13554d47c2"
         }
       ]
     },
@@ -260,11 +248,11 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:197fa5f7cbf890923e277a7e68154263c39a7c6751f07f399bf960ab016ebb41"
+          "version": "repo-file-v1:sha256:e9aef4633beb47f5d7db513235051e9a8375646b70a2dbd93da8fb13554d47c2"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:fcf66bc2cd5aa8569f2f1a7074d91ede68b5509b387d5c14508affb8f79ba8a0"
+          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
         }
       ]
     },
@@ -274,7 +262,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:b24747ff9dedd849a5aabeba6b978fa6c7e3b61954033dcee5163d5ed8064123"
+          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
         },
         {
           "resource": "repo://TFI/Application/Agent/MobileAssistantModel.swift",
@@ -289,6 +277,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:36:38.039Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }

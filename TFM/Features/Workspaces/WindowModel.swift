@@ -577,8 +577,7 @@ final class WindowModel {
     }
 
     func selectAssistant(_ id: ConversationModel.ID) {
-        isAssistantArchivePresented = false
-        assistantLibrary.select(id)
+        guard openAssistantConversation(id) else { return }
         selectedDestination = .assistant
     }
 
@@ -632,33 +631,46 @@ final class WindowModel {
     }
 
     func showAssistantArchive() {
-        isAssistantArchivePresented = true
-        sidebar.assistantConversationID = nil
+        presentAssistantArchive()
         selectedDestination = .assistant
     }
 
     var sidebarAssistantConversation: ConversationModel? {
-        guard let id = sidebar.assistantConversationID else { return nil }
-        return assistantLibrary.conversation(id: id)
+        guard !isAssistantArchivePresented else { return nil }
+        return assistantLibrary.selectedConversation
     }
 
     func openAssistantInSidebar(_ id: ConversationModel.ID) {
-        guard assistantLibrary.conversation(id: id) != nil else { return }
-        isAssistantArchivePresented = false
-        sidebar.assistantConversationID = id
+        guard openAssistantConversation(id) else { return }
         refreshSessionContext()
     }
 
     func closeAssistantInSidebar() {
-        isAssistantArchivePresented = false
-        sidebar.assistantConversationID = nil
+        presentAssistantHome()
         refreshSessionContext()
     }
 
     func showAssistantArchiveInSidebar() {
-        sidebar.assistantConversationID = nil
-        isAssistantArchivePresented = true
+        presentAssistantArchive()
         refreshSessionContext()
+    }
+
+    @discardableResult
+    private func openAssistantConversation(_ id: ConversationModel.ID) -> Bool {
+        guard assistantLibrary.conversation(id: id) != nil else { return false }
+        isAssistantArchivePresented = false
+        assistantLibrary.select(id)
+        return true
+    }
+
+    private func presentAssistantHome() {
+        isAssistantArchivePresented = false
+        assistantLibrary.selectNewConversation()
+    }
+
+    func presentAssistantArchive() {
+        assistantLibrary.selectNewConversation()
+        isAssistantArchivePresented = true
     }
 
     func deleteAssistantConversation(_ id: ConversationModel.ID) {
@@ -670,11 +682,7 @@ final class WindowModel {
         let wasArchived = assistantLibrary.conversation(id: id)?.isArchived == true
         let wasSelected = assistantLibrary.selectedConversationID == id
         assistantLibrary.delete(id)
-        if wasArchived, wasSelected { isAssistantArchivePresented = true }
-        if sidebar.assistantConversationID == id {
-            sidebar.assistantConversationID = nil
-            if wasArchived { isAssistantArchivePresented = true }
-        }
+        if wasArchived, wasSelected { presentAssistantArchive() }
     }
 
     func toggleAssistantPin(_ id: ConversationModel.ID) {
@@ -732,9 +740,6 @@ final class WindowModel {
     func assistantConversationWasArchived(_ id: ConversationModel.ID) {
         if assistantLibrary.selectedConversationID == id {
             assistantLibrary.selectNewConversation()
-        }
-        if sidebar.assistantConversationID == id {
-            sidebar.assistantConversationID = nil
             isAssistantArchivePresented = false
         }
     }
@@ -754,13 +759,14 @@ final class WindowModel {
     func sendAssistantSidebarDraft() -> ConversationModel? {
         let draft = sidebar.assistantDraft
         guard let conversation = assistantLibrary.startConversation(draft) else { return nil }
-        sidebar.assistantConversationID = conversation.id
+        isAssistantArchivePresented = false
         sidebar.assistantDraft = ConversationModel()
         return conversation
     }
 
     func assistantSidebarConversationDidStart(_ conversation: ConversationModel) {
-        sidebar.assistantConversationID = conversation.id
+        isAssistantArchivePresented = false
+        assistantLibrary.select(conversation.id)
         sidebar.assistantDraft = ConversationModel()
     }
 
@@ -970,10 +976,9 @@ final class WindowModel {
 
     @discardableResult
     func openNewAssistantChat() -> ConversationModel {
-        isAssistantArchivePresented = false
-        let conversation = assistantLibrary.selectNewConversation()
+        presentAssistantHome()
         selectedDestination = .assistant
-        return conversation
+        return assistantLibrary.draftConversation
     }
 
     /// One machine's SFTP browser, listed in the sidebar under "Sessions".
@@ -1417,14 +1422,19 @@ final class WindowModel {
     }
 
     private func promoteVisibleSidebarConversationOrSelectVault() {
-        guard sidebarMode == .assistant,
-            let conversationID = sidebar.assistantConversationID,
-            assistantLibrary.conversation(id: conversationID) != nil
-        else {
+        guard sidebarMode == .assistant else {
             selectedDestination = .vault
             return
         }
-        openAssistantFullScreen(conversationID)
+        if isAssistantArchivePresented {
+            selectedDestination = .assistant
+        } else if let conversationID = assistantLibrary.selectedConversationID,
+            assistantLibrary.conversation(id: conversationID) != nil
+        {
+            openAssistantFullScreen(conversationID)
+        } else {
+            selectedDestination = .vault
+        }
     }
 
     /// Closes one pane, and the Workspace with it when that was the last one.

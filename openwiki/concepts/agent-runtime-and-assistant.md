@@ -3,9 +3,6 @@ type: agent runtime concept
 title: Assistant, Agent Runtime, Skills, and Memory
 description: How Termind assembles AgentKit into durable assistant conversations, applies approval and host-security boundaries, and manages skills, scratch workspaces, and device-local Hermes memory.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-0e8cfe7d74554d8a17af60b7
     resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
@@ -92,6 +89,9 @@ sources:
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory

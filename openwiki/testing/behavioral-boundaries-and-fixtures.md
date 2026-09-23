@@ -3,9 +3,6 @@ type: testing strategy
 title: Testing Strategy and Behavioral Boundaries
 description: Focused regression strategy for Termind's shared frameworks and macOS and mobile targets, with fixtures that protect persistence, security, lifecycle, architecture, and UI contracts.
 tags: [testing, regression, fixtures, architecture, persistence, security, lifecycle, ui]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -72,6 +69,9 @@ sources:
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Testing Strategy and Behavioral Boundaries

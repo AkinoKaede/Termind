@@ -3,9 +3,6 @@ type: workflow
 title: SFTP Transfer, Scheduling, and External Edit Workflow
 description: How browser SFTP jobs are scheduled and resumed, how Agent SFTP leases reuse authenticated SSH connections, and how MCP uploads and external edits remain separate workflows.
 tags: [sftp, file-transfer, ssh, scheduling, external-editing, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-46ef2fcd9e3aba751015021b
     resource: repo://Frameworks/TermindDomain/Transfers/SFTPPreferences.swift
@@ -52,6 +49,9 @@ sources:
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 ## Scope and operating model

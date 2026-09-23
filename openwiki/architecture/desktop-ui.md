@@ -5,7 +5,7 @@ description: "How the macOS app composes its native window shell, persistent wor
 tags: [macos, tfm, ui, navigation, workspaces, swiftui, appkit, design]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
+    at: 2026-09-23T14:05:10.244Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -49,13 +49,15 @@ sources:
     resource: repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
+  - id: openwiki-source-578f30372fe67f8688f44b76
+    resource: repo://TFMTests/WindowStateTests.swift
   - id: openwiki-source-91826a88f242f001f33fff89
     resource: repo://TFMTests/WindowToolbarFindTests.swift
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-05f0aeba12df8388b97b3c76
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "codex", at: "2026-09-23T14:05:10.244Z" }
 ---
 
 # TFM Desktop UI Architecture
@@ -242,7 +244,7 @@ The renderer resolves a pointer to a section and insertion slot; it does not nee
 
 The full Assistant destination and the workspace's compact Assistant are different presentation surfaces. Opening a conversation in the compact sidebar does not replace the foreground terminal. Its transcript region and interaction/composer region can be composed separately, and terminal context/actions are passed deliberately.
 
-Archive presentation is one `WindowModel.isAssistantArchivePresented` flag shared by these two surfaces within the window, not a second flag on `WindowSidebarState` and not app-wide navigation state. Conversation selection remains surface-specific. `AssistantConversationMenuSurface` reads the current shared flag when constructing the native blank-area menu, so both **Show Archive** checkmarks agree. Its action still respects the invoking surface: the sidebar route clears the compact conversation and shows the archive without replacing the foreground workspace; the full-screen route clears compact selection and selects the Assistant destination. Opening or closing a compact conversation clears the shared archive flag, and the compact archive's **Open Full Screen** control explicitly promotes the archive to the main destination.
+The compact Sidebar and full Assistant share one window-local Chat/Archive route. `AssistantLibraryModel.selectedConversationID` identifies the open chat, while `WindowModel.isAssistantArchivePresented` overrides it for Archive; entering Archive or returning to the chat landing state clears the selected conversation so the two surfaces cannot diverge. Surface actions still differ in navigation effect: a Sidebar action updates the shared route while leaving the workspace in front, whereas its full-screen counterpart also selects the Assistant destination. Closing the last workspace promotes a visible compact chat or Archive into that destination. The contextual Sidebar draft and focused-session context remain Sidebar-owned, and transcript owners remain keyed by conversation plus surface, so navigation is shared without merging draft or native-rendering lifetimes.
 
 Native transcript ownership adds another boundary:
 

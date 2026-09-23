@@ -48,9 +48,8 @@ final class WindowSidebarState {
 
     var isPresented = true
 
-    /// Global Assistant panel navigation is independent from the selected
-    /// top-level destination. `nil` is the history + composer landing screen.
-    var assistantConversationID: ConversationModel.ID?
+    /// The contextual Sidebar keeps its own draft, but its open Chat/Archive
+    /// route is shared with the full Assistant through `WindowModel`.
     var assistantDraft = ConversationModel()
 
     /// What the focused pane is, for whichever composer this column is showing.

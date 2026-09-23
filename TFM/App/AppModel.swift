@@ -557,13 +557,7 @@ final class AppModel {
                     let wasSelected = window.assistantLibrary.selectedConversationID == id
                     window.assistantLibrary.delete(id)
                     if wasArchived, wasSelected {
-                        window.isAssistantArchivePresented = true
-                    }
-                    if window.sidebar.assistantConversationID == id {
-                        window.sidebar.assistantConversationID = nil
-                        if wasArchived {
-                            window.isAssistantArchivePresented = true
-                        }
+                        window.presentAssistantArchive()
                     }
                 }
                 if let error = result.cleanupError {

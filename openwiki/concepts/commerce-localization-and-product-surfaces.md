@@ -3,9 +3,6 @@ type: product-surface-concept
 title: Commerce, Localization, and Product Surfaces
 description: Explains StoreKit-derived Pro access, native paywall and review ownership, localization completion rules, and the app, widget, screenshot, and marketing-site surfaces that present the product.
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -80,6 +77,9 @@ sources:
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 ## Scope and ownership

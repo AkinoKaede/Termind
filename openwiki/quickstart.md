@@ -3,9 +3,6 @@ type: engineering quickstart
 title: Termind Engineering Quickstart
 description: Task-oriented routes to Termind's owning layer, startup and shutdown lifetimes, focused tests, and build gates.
 tags: [engineering, architecture, routing, testing, macos, ios]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -36,6 +33,9 @@ sources:
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Termind Engineering Quickstart

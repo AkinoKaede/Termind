@@ -3,9 +3,6 @@ type: architecture map
 title: Module and Directory Architecture Map
 description: A concise map of Termind's modules, second-level functional directories, build dependencies, and responsibility boundaries, with links to the detailed directory guides.
 tags: [architecture, modules, directories, dependencies, ownership]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -56,6 +53,9 @@ sources:
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Module and Directory Architecture Map

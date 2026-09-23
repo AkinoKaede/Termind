@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Shared Framework Directory Responsibilities
 description: Responsibilities and boundaries of Termind's shared frameworks and bundle resources, including agent execution, durable replay, SSH charset handling, and synchronized Xcode target membership.
 tags: [architecture, directories, frameworks, domain, persistence, presentation, ssh]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-cd70c531c7abdbbdcb0ea290
     resource: repo://AgentKit/Sources/AgentKit/Providers/ModelCapabilityResolver.swift
@@ -130,6 +127,9 @@ sources:
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Shared Framework Directory Responsibilities

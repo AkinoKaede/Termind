@@ -33,7 +33,7 @@ struct AppTerminationTests {
         app.registerWindow(window)
         #expect(window.assistantLibrary.conversation(id: first.id) === first)
         window.openAssistantInSidebar(second.id)
-        #expect(window.sidebar.assistantConversationID == second.id)
+        #expect(window.assistantLibrary.selectedConversationID == second.id)
         app.unregisterWindow(window)
 
         let cleanup = app.shutdownForTermination()

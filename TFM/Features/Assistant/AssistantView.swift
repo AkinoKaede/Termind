@@ -134,8 +134,8 @@ struct AssistantSidebarView: View {
 
 /// The global Assistant contained entirely in a Workspace sidebar.
 ///
-/// Its route is deliberately separate from the fixed Assistant destination's selection:
-/// opening a chat here never takes the user's terminal out of the foreground.
+/// It shares the fixed Assistant destination's Chat/Archive route, while opening
+/// a chat here still leaves the user's terminal in the foreground.
 struct AssistantPanelView: View {
     @Environment(WindowModel.self) private var window
     @Environment(AppModel.self) private var app
@@ -217,7 +217,7 @@ struct AssistantPanelView: View {
             .opacity(isFocusedOnWorkspace || exitsAsWhole ? 1 : 0)
             .animation(
                 Motion.panel(reduceMotion: reduceMotion),
-                value: window.sidebar.assistantConversationID
+                value: window.assistantLibrary.selectedConversationID
             )
 
             interactionSurface
@@ -225,7 +225,7 @@ struct AssistantPanelView: View {
                     y: !isFocusedOnWorkspace && !exitsAsWhole ? Metrics.Space.xxl : 0
                 )
                 .opacity(isFocusedOnWorkspace || exitsAsWhole ? 1 : 0)
-                .animation(nil, value: window.sidebar.assistantConversationID)
+                .animation(nil, value: window.assistantLibrary.selectedConversationID)
         }
         .offset(x: !isFocusedOnWorkspace && exitsAsWhole ? Metrics.Space.xxl : 0)
         .opacity(isFocusedOnWorkspace || !exitsAsWhole ? 1 : 0)
@@ -236,7 +236,7 @@ struct AssistantPanelView: View {
         .onKeyPress(.escape, phases: .down) { _ in
             guard
                 AssistantSidebarEscapePolicy.shouldCloseConversation(
-                    hasConversation: window.sidebar.assistantConversationID != nil,
+                    hasConversation: window.assistantLibrary.selectedConversationID != nil,
                     hasBlockingInteraction: blocksSidebarEscape
                 )
             else { return .ignored }
@@ -276,7 +276,7 @@ struct AssistantPanelView: View {
 
     private var conversationList: some View {
         AssistantConversationList(
-            selectedID: window.sidebar.assistantConversationID,
+            selectedID: window.assistantLibrary.selectedConversationID,
             isInteractive: isFocusedOnWorkspace,
             menuSurface: .sidebar,
             onOpen: { window.openAssistantInSidebar($0) }

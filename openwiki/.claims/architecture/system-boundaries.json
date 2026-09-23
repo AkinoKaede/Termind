@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a6f8d86c38688d119e171586b5b7c1c46a68416470c47cda9fbe3cbee3d02f9a",
+  "pageVersion": "sha256:248082c1704843420a73915262422310cbc8c586ce590a5808d2052a4a65f23a",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -70,15 +70,15 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:fc361c911553c831e066539b9f2c0df902eb588f71f3bac8606c0a48048a196e"
+          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift",
-          "version": "repo-file-v1:sha256:9daf1c0933fdbcff826165a8edc171876c54faa343a184348284e63f736e86bf"
+          "version": "repo-file-v1:sha256:62d2846629487dc148a1113d7d21298d7389693debd1c2f51b61ed640ada69fa"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:721bea277227a69f102c1b505cf41245ddf5d568b96d6ff229cb440e53106ac0"
+          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
         }
       ]
     },
@@ -180,15 +180,15 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:fc361c911553c831e066539b9f2c0df902eb588f71f3bac8606c0a48048a196e"
+          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:721bea277227a69f102c1b505cf41245ddf5d568b96d6ff229cb440e53106ac0"
+          "version": "repo-file-v1:sha256:764b75fc1f9a5603ab0b5365bf1630477ec4fd4bea524c347f1e3746fe12961d"
         },
         {
-          "resource": "repo://TFM/Platform/MacDeviceName.swift#L5-L29",
-          "version": "repo-lines-v1:sha256:2e3a802d84fd2b017f0074f76c3ef896d3127453e0142f3a054521e823ba686f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzZWIyNmFmMDY4MGI1ZTY3MGVmYjZkZGRhNjRmNGEyMzVmNDhmNTE2N2NlMWY4OTYwMDQ0MDU0MGE1OWRkMzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlNGQzYWNkOTllYjdjOGNhNzFkNzZjODJjMTIxOTcxNzU5YjBlOTFmODVlNzhhNWQ1NDJlOWUzNWQ4ODFhODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://TFM/Platform/MacDeviceName.swift",
+          "version": "repo-file-v1:sha256:d884719f29fe1d5e7a8e980adcc5205737202a72bcb9e839ba39c34f0dcb414b"
         }
       ]
     },
@@ -229,12 +229,8 @@
       "statement": "The architecture tests' @Model guard only scans the desktop and mobile app roots plus Domain, Application, and Infrastructure; import scans are exact import-line checks and concrete-symbol checks only look for a fixed list, so tests do not prove all intended ownership boundaries exhaustively.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L221-L236",
-          "version": "repo-lines-v1:sha256:f8c236519e8486d9e23370a1125780885a560563104317d8b0667fde12b5c048:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcyMzk2YTZjMGFlNGEyMDI0YjE2OWE0NWY3MjdmZjYwNWE4NDI4NjdkODJlYjJjOTNkYmNkNmVlNDg4YmExYWEifQ"
-        },
-        {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L245-L300",
-          "version": "repo-lines-v1:sha256:97554b0b6762f85b0f292940aa809315e0f8c641560cdb8ca2cdf8fbec334748:eyJzZWxlY3RlZExpbmVDb3VudCI6NTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQwODJlYzhiMDRiNTlhNjdhZWFhYmYxOTVkNWE5Y2I4YWJkMGE3NjBjZDc4YjE1MTNhNzg3MTA0MGE3N2Y0Y2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM0ODVjOTkxNGE0ZTFmMmY4YzUzZGM1MzYyODQ3NjI5MGQwZDAxYmFkZTA0NzQzYjVlNjczOGYyNTk4Y2M0YTQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:7909f5be1f0742e4dae9989a00e7801c7ddc9e6cf72be4d24bc1108e2c393cfd"
         }
       ]
     },
@@ -255,6 +251,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:36:38.039Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }

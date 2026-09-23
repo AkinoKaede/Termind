@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:18c4ab0086670df59a492485fb84903a16daf0e41e8c32cff217d1330fd49d7d",
+  "pageVersion": "sha256:29aa2f5bf72e8583c20c85dcea07ef8830297cf0f9ced9fa799a8490fd45c01a",
   "claims": [
     {
       "id": "claim_d34d7b16495a44a4a946d3dc9e0456f4",
@@ -73,8 +73,8 @@
       "statement": "`Scripts/check-zh-localization.sh` validates the target catalog JSON and, for both `zh-Hans` and `zh-Hant`, rejects missing locale entries, unfinished or empty translated string units, and specified Chinese/Latin or punctuation spacing violations.",
       "evidence": [
         {
-          "resource": "repo://Scripts/check-zh-localization.sh#L3-L63",
-          "version": "repo-lines-v1:sha256:b37758f253f9959a2d7753b617b2cbeabf5d669ea6e0a24b89b4deaa44fb6e82:eyJzZWxlY3RlZExpbmVDb3VudCI6NjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4ZmM2MzM2NjdkMDMwMDczMWJkZDg0NDcyZGM0MjRlMWY5YzY0MTc1ZWEyYmFkYjY2NjQ3MmQ5MWFlYjRlZmMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQxMTdmYTAwNmJhOTIwODUwMGIyOTMwY2U2OWNiZGU0MzZjNjQ3YWZhOTE3Y2I3Mzk2YTliYzkxMTFhNDZkZDIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjoyLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ5NjIyZmFlMmFiMDJmZTM1OWVkMTUwOTY0YTkyNjUzNjk3YmZiMjM1ZTIwOTQ3YWEzYzNmMzg1NDg0ZTk3YmYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc4OTQ2ODJhNmM3OGFiNDA4MTM1NDJjNWNhZjRhYTFiYTAzNTc4YzUxY2Y3YTI4ZTU0MDVlZDJhMDUyMzBhNWEifQ"
+          "resource": "repo://Scripts/check-zh-localization.sh",
+          "version": "repo-file-v1:sha256:305b4c1458a71783b51720861f2a4a1452bd28a8b9478ddae38b4c775f52eb97"
         }
       ]
     },
@@ -83,8 +83,8 @@
       "statement": "App-facing text belongs in `Frameworks/Resources/Localizable.xcstrings` and metadata in `InfoPlist.xcstrings`; changed English strings require finished Simplified and Traditional Chinese translations in the same commit, while AgentKit’s catalog must be built with `../AgentKit/Scripts/build-localizations.sh`.",
       "evidence": [
         {
-          "resource": "repo://AGENTS.md#L46-L48",
-          "version": "repo-lines-v1:sha256:5e69d5ddf8b0181f834edfe8f463b1ddc71ce0c0c26beaa6f4dc0cb63b7f1c67:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNmVkNjM3YmU2ODNjNzYxMmY2NzdlYTllMWE1NmI5NjU5OWU3NzJmNmQ3NjkwYjQyMzc0MGNkMTRhZmZmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNjZhNzFhZDgxY2FlOGI3MGJiZDYwMzkxNzllYTExZmU0OGExODY0YzdmMDcwNzU2MDQwYWJlOTYxNmVhNmMyYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+          "resource": "repo://AGENTS.md",
+          "version": "repo-file-v1:sha256:d7c3eef4470b008b0c7d11eca7bf62d8d73533fa170f82d085e3d45376adec6b"
         }
       ]
     },
@@ -293,6 +293,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:36:38.039Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }

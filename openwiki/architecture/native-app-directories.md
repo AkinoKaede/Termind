@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Native App Directory Responsibilities
 description: Directory ownership in the macOS and iOS apps, including desktop window composition, MCP transfer policy, and mobile scene, sync, and background lifetimes.
 tags: [architecture, directories, macos, ios, ipados, navigation, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -73,8 +70,6 @@ sources:
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
   - id: openwiki-source-396f97a332870d48c065d7e9
     resource: repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift
-  - id: openwiki-source-1d68a7282b3e48afbfe75c6f
-    resource: repo://TFM/Application/Repositories/ToolAuditRepository.swift
   - id: openwiki-source-1bc9e5a8d0e790c70a371d60
     resource: repo://TFM/Application/Serial/SerialPortService.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
@@ -93,8 +88,6 @@ sources:
     resource: repo://TFM/Features/Vault/VaultView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
-  - id: openwiki-source-261f22416c57a70890569544
-    resource: repo://TFM/Infrastructure/Database/SwiftDataToolAuditRepository.swift
   - id: openwiki-source-3cccceaeda63a663e84b5bfa
     resource: repo://TFM/Infrastructure/MCP/MCPServerSession.swift
   - id: openwiki-source-9d465cf017037915bf209e49
@@ -118,6 +111,9 @@ sources:
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Native App Directory Responsibilities

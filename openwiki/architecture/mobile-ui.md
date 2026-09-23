@@ -3,9 +3,6 @@ type: architecture guide
 title: TFI Mobile UI Architecture
 description: "How the iPhone/iPad app composes registered feature stacks, scene-local navigation, shared runtimes, adaptive content regions, native terminal/transcript surfaces and mobile interaction policies."
 tags: [ios, ipados, tfi, ui, navigation, adaptive-layout, swiftui, uikit]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-d1d534769c300d5fb8dbe9d7
     resource: repo://Frameworks/TermindApplication/FeatureModels/HostCustomIdentityDraft.swift
@@ -66,6 +63,9 @@ sources:
   - id: openwiki-source-11c91698354a4f95be3c4654
     resource: repo://TFITests/MobileWorkspaceMenuTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # TFI Mobile UI Architecture

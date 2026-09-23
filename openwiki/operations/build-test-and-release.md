@@ -3,9 +3,6 @@ type: release operations
 title: Build, Test, and Release
 description: Targeted validation gates for Termind's resolved-package Xcode builds, opt-in UI and StoreKit tests, localization, screenshots, website, and AgentKit releases.
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -48,6 +45,9 @@ sources:
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Build, Test, and Release

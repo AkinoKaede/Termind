@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9e0486ea1b4ef480f9b2de430e2beed9fdef98ddab424b93f4369fdc0b05748f",
+  "pageVersion": "sha256:f145a23828c8bc1bc62a776d07d4f5245ebcf376c7f06c8b902eb1d64c18d9c0",
   "claims": [
     {
       "id": "claim_7c677489fd8b4a4fadd006a4da4e9937",
@@ -20,7 +20,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift",
-          "version": "repo-file-v1:sha256:91e4721c1929dbe719c47bbe18cea7c8dabea4fe54089a66894a2a5c7ad2c736"
+          "version": "repo-file-v1:sha256:d107fbe196c9df5e7b49acb4301fe0a5f819fc5b411815083966f073b491f237"
         }
       ]
     },
@@ -143,16 +143,12 @@
       "statement": "Forwarding auxiliary connections are filled with no more than four concurrent opens, install existing shared rules before publication, retry transient loss at 1/2/5/10/30-second delays, and do not automatically retry failures requiring interaction, trust, credentials, or cancellation.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L167-L249",
-          "version": "repo-lines-v1:sha256:c5dd7326f52fabc5c5932978402f481a8f4e495d6677058072cdc77b7d0c89ac:eyJzZWxlY3RlZExpbmVDb3VudCI6ODMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ0NTE3MzFlYzZhYWEyMmQwNDk1MjczYjdlOWIyMmVlNjY4YjFhODgyZjAwZDRmNmY3MDQzZTkxNzNkZDcwM2UiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM0ZGMzNTE2YjZmYjY4ODUxOGIyZmRiZDVmYWFhODJiNzk2NjE1MDNhYjI5NDAzNjU2NTViMDU0NzUzZTM0NzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjFjNjAzMzU2NjQ0NjJlNzliNWZmY2M3NWViMDJlM2YzYjIxMDk0MDlkZTU4YzU3MmQ1MmQ3ZDZlM2QyMjQ4OGMifQ"
-        },
-        {
-          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift#L340-L350",
-          "version": "repo-lines-v1:sha256:f5d72fe1ee78b73df5b04fe4227feb201146437df69aca1e2f89cf41e21664bd:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFkOGUzZThjMzA0YTFkNWQwZWRkYjljODc5OTM1NjYzZDk2YTA1YmU0ZDFiZDI1OGJlM2NhMTNkMzU4MDcwNGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU2ODQwZTVjNGYzYzQ0ZmEzMmFkYTFiNmUzOGViYjZhNjE1Y2Y1MzYyYWZjZmFkZjQ0YzQ2NWZkMzM3ZTE5M2YifQ"
+          "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHForwardingConnectionPool.swift",
+          "version": "repo-file-v1:sha256:99d09623ca00c9b9408718518264aeaa794d3875aa39928ad321ff9b7e6b1ae2"
         },
         {
           "resource": "repo://TFMTests/PortForwardingReconnectTests.swift",
-          "version": "repo-file-v1:sha256:ff128bcb12caf831b9ebf2b6dc68add5815cf73766f421d1b2d178b162f1c5d8"
+          "version": "repo-file-v1:sha256:331fd75adb4b8a205b7dcb798c94f97ce4f1595485b531cabdd0618982e43160"
         }
       ]
     },
@@ -195,6 +191,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:08:51.776Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }

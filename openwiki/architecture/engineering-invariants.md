@@ -3,9 +3,6 @@ type: architecture-contract
 title: Cross-Cutting Engineering Invariants
 description: Cross-platform safety boundaries for durable Host deletion, Assistant preparation and run persistence, workspace restoration, and app-scoped services. Use this page to check ordering and lifecycle assumptions before changing shared behavior.
 tags: [architecture, invariants, lifecycle, security, persistence, remote-sessions, agent, mobile]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-23T10:36:38.039Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -138,6 +135,9 @@ sources:
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T14:05:10.244Z
 ---
 
 # Cross-Cutting Engineering Invariants

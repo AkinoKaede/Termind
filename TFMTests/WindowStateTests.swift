@@ -134,6 +134,23 @@ struct WindowStateTests {
     }
 
     @Test
+    func closingTheLastWorkspacePromotesTheVisibleSidebarArchiveFullScreen() {
+        let workspace = Workspace.sshSession(
+            host: Host(name: "Server", host: "server.example")
+        )
+        let window = WindowModel(workspaces: [workspace])
+        window.sidebarMode = .assistant
+        window.showAssistantArchiveInSidebar()
+
+        window.close(workspace.id)
+
+        #expect(window.workspaces.isEmpty)
+        #expect(window.selectedDestination == .assistant)
+        #expect(window.isAssistantArchivePresented)
+        #expect(window.assistantLibrary.selectedConversation == nil)
+    }
+
+    @Test
     func assistantFeatureOwnsConversationLifecycleOutsideWorkspaces() {
         let window = WindowModel()
         let first = window.assistantLibrary.createConversation()
@@ -201,7 +218,7 @@ struct WindowStateTests {
 
         #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.selectedConversation == nil)
-        #expect(window.sidebar.assistantConversationID == nil)
+        #expect(window.sidebarAssistantConversation == nil)
         #expect(!window.isAssistantArchivePresented)
     }
 
@@ -218,6 +235,7 @@ struct WindowStateTests {
         window.showAssistantArchive()
         #expect(window.isAssistantArchivePresented)
         #expect(window.selectedDestination == .assistant)
+        #expect(window.assistantLibrary.selectedConversation == nil)
 
         window.selectAssistant(conversation.id)
         #expect(!window.isAssistantArchivePresented)
@@ -233,7 +251,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func openingSidebarConversationFullScreenKeepsAssistantSidebarSelected() {
+    func openingConversationFullScreenKeepsAssistantSidebarSelected() {
         let conversation = ConversationModel()
         let library = AssistantLibraryModel(
             store: AssistantConversationStore(
@@ -246,6 +264,7 @@ struct WindowStateTests {
         #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.selectedConversation === conversation)
         #expect(window.sidebarMode == .assistant)
+        #expect(window.sidebarAssistantConversation === conversation)
     }
 
     @Test
@@ -445,6 +464,7 @@ struct WindowStateTests {
 
         #expect(window.sidebarMode == .navigation)
         #expect(window.selectedDestination == .workspace(workspace.id))
+        #expect(window.sidebarAssistantConversation === conversation)
     }
 
     @Test
@@ -518,7 +538,7 @@ struct WindowStateTests {
         window.activateSidebarMode(.assistant)
 
         #expect(window.isAssistantArchivePresented)
-        #expect(window.assistantLibrary.selectedConversation === conversation)
+        #expect(window.assistantLibrary.selectedConversation == nil)
     }
 
     @Test
@@ -579,7 +599,7 @@ struct WindowStateTests {
     }
 
     @Test
-    func sidebarConversationNavigationIsIndependentAndDeletionReturnsHome() {
+    func sidebarConversationNavigationSharesSelectionAndDeletionReturnsHome() {
         let workspace = Workspace.sshSession(host: Host(name: "Server", host: "server.example"))
         let conversation = ConversationModel()
         conversation.composer.draft = "Hello"
@@ -589,10 +609,12 @@ struct WindowStateTests {
 
         window.openAssistantInSidebar(conversation.id)
         #expect(window.sidebarAssistantConversation?.id == conversation.id)
+        #expect(window.assistantLibrary.selectedConversation === conversation)
         #expect(window.selectedDestination == .workspace(workspace.id))
 
         window.closeAssistantInSidebar()
         #expect(window.sidebarAssistantConversation == nil)
+        #expect(window.assistantLibrary.selectedConversation == nil)
 
         window.openAssistantInSidebar(conversation.id)
         window.deleteAssistantConversation(conversation.id)

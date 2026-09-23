@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:15029cc4d76549f995f92d10b81402f0764575eeb49c402d9577fa1bc5c8756d",
+  "pageVersion": "sha256:bfbd13a0e66214bc1898aa094fae604d76fbba1105f9b57fee0124dfe0d5ad5b",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -21,12 +21,8 @@
       "statement": "ArchitectureBoundaryTests protects import and model ownership, rejects local AgentKit type redefinitions, and checks that all three CloudKit coordinators retain the shared safety gates while the lifecycle stays independent of SwiftData and Persistence imports.",
       "evidence": [
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L223",
-          "version": "repo-lines-v1:sha256:46de22dba5c1a56c0f11f63a5dc40aca60e3e250d1e6327a2ae912dc2bd4330c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAxLCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwYzliZjYxNmRjZjUzOWEwZDU0YTEzNmM2NjRjNTNhMjU5ZWZhZDljZjVhZmE2OTA2OWZhMzhiNTMxOTk0NGM1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwMWJhNDcxOWM4MGI2ZmU5MTFiMDkxYTdjMDUxMjRiNjRlZWVjZTk2NGUwOWMwNThlZjhmOTgwNWRhY2E1NDZiIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhNDdjYWI2Nzc1MTJkY2VkNGEyMjBlZGRkODYzZWQxZTQzNTkzNDZkYmE5OGQ5Y2I5MGQwZmY5NjI4YzNiMzRhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwMzllYTJhOTc0NjI1OTdjMDZlNzgxMmQ2ZmFkZDcyZDEzZjE2MTA5YmEwZGU4MDlkNzI0ZTNhNzU0NWY2YTc5In0"
-        },
-        {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L64-L106",
-          "version": "repo-lines-v1:sha256:08c476cc632f29ebd0f9b7221558d60dc77bb9ac8d88d819e4d8841a8372d835:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4NWJlNTRjNmM2MGZmZjQ5ZTllOTU1Mzg1YjMzZTc4ZTRkNGQ4ZDJkNmUwMWQzMzJkNjhiNjg3MTA0OTkxYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjNiZDllMTYwYTMyNWIzNzgxZTQ5M2JlYjYxM2EzZjhjZWMyZTNkZDQ1OTVjODgzMDg2MTQzMTVkODZhYjdjYTgifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:7909f5be1f0742e4dae9989a00e7801c7ddc9e6cf72be4d24bc1108e2c393cfd"
         }
       ]
     },
@@ -224,7 +220,7 @@
         },
         {
           "resource": "repo://TFMTests/ConnectionHistoryTests.swift",
-          "version": "repo-file-v1:sha256:a7e161c0b2e3a5b47a1b33440a679238d66ae75666621b4fa529b79d860de0d2"
+          "version": "repo-file-v1:sha256:f3b747511e6cffcb8b8117b78bff299e9f17e98dd2b0161ccd9c4cd82aa1e8a2"
         },
         {
           "resource": "repo://TFMTests/VaultSyncTests.swift",
@@ -439,6 +435,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:36:38.039Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }

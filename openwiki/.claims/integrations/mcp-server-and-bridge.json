@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:d346d4ae2b393ff1fa231f3fdb05e737eded8665a2627acc44df7c382333a96c",
+  "pageVersion": "sha256:462d6503cb6b0ad2bd0a90ca359bc490fec86311945bb735c8dfd20e4b83ed5b",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,11 +8,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:846cccb0bc643b8f8c6c54dc70c1928a29218a885598274f1ef689e239b1aa80"
+          "version": "repo-file-v1:sha256:225a23bf523aaefea05aa7d4b4e0a361dff1fc5dce78a4241bc5b38fc7d169da"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
-          "version": "repo-file-v1:sha256:7374829e1807503b67c654c88edc8dba34bbd50a8499c6beec23170a73745c99"
+          "version": "repo-file-v1:sha256:c5176c9083a21a9f97844730e93608df4897b24b4cadbc328e81dfb46f88641a"
         },
         {
           "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift",
@@ -47,20 +47,16 @@
       "statement": "The server token is generated from 32 secure random bytes, stored in this-device Keychain, and migration from a legacy iCloud value verifies the local copy before removing the cloud copy.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/MCPServerController.swift#L129-L152",
-          "version": "repo-lines-v1:sha256:ab4b08773d9d8a61cc5c04655ea8f810639d3bd7ab78278d08394f677647eb32:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiNmIxYzBkZDkwZjExYjQ2ZWVkMDlkMTUwZjA2N2UyZTYzY2RkNmY4N2NjZGVmZTg1MTRlOTRkZGRkOGVlNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllNjc4ZmFlYWE5YmQxNTRlYmUxOTU1NjMwMDIyYzM1MGI5Mjc3MWUyYTRiNDdjNzkwMzJlNDk5NzY0ZjRkNWEifQ"
+          "resource": "repo://TFM/App/MCPServerController.swift",
+          "version": "repo-file-v1:sha256:c5176c9083a21a9f97844730e93608df4897b24b4cadbc328e81dfb46f88641a"
         },
         {
-          "resource": "repo://TFM/App/MCPServerController.swift#L233-L242",
-          "version": "repo-lines-v1:sha256:520a64029cab5c469abb1bde7c8c95300edd2cef0e0a8ddfd43159a7e4a5da9a:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ1ZjZjYTcyNzNiYThjNTMwMTZhNTM3ZjcwMzhkOWQ3OGYzOWRmZjQwOGM0NjRlYWVmODhhZmZmMmNiZjQyYTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRlODJhY2NlMzljN2VkNmY1NDNlZDc3MTFlY2ViNjM5ZmQyNTBhMWUzYTlmYzJmZTY2MDg2OTM4NGE3NjNiYWYifQ"
+          "resource": "repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift",
+          "version": "repo-file-v1:sha256:c9e2fd8b5799e2600c1579b442843811d577872115102655a406fced6468a6e7"
         },
         {
-          "resource": "repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift#L5-L53",
-          "version": "repo-lines-v1:sha256:f66f4dcd12dae6f36149c831148c27a30308219521c8d4559dc0fe0ed2d51866:eyJzZWxlY3RlZExpbmVDb3VudCI6NDksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVhNTVlNThlNTkxODdlOTY4YWJmZGQ3YTA4ZTYzYmExNGQ4MWM3Zjg4ZDNkYzMwMjNlZWE2YWQwMjc1MzAzZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkZGI4NTc4MDBhNWQ3MjQ3ZmYyM2M1Y2Q1ZTUyYzU0N2JiZjRiYzM2NWI5YTc0MjY5OWVlMzNkYmIyODkyYzAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
-        },
-        {
-          "resource": "repo://TFMTests/MCPServerTokenStoreTests.swift#L10-L66",
-          "version": "repo-lines-v1:sha256:9eaa24bc68f6e54b118f88a95b778b036a9796deb0ddae0e3b59ad724a652610:eyJzZWxlY3RlZExpbmVDb3VudCI6NTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlNWQ2MmM2MjE0NTk1MzVlNmE4MGJmOTJjMTA2MDZlNzY4ZDFiYjZlNGZlNjFmZWQxYWJjMjMyYTFiNjVjODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJlZGFjMjZiMzJhOTI3NjVhOGFhODNhNDk4MTFiY2RlYzNhMWMzYjMyNmJhMjhlNjU2M2Y1MGU0Zjg4YWU5ZDQifQ"
+          "resource": "repo://TFMTests/MCPServerTokenStoreTests.swift",
+          "version": "repo-file-v1:sha256:5c60f36c92325f7cbcc52f3ee817c478207b8ff366242fa15858f9a6c36e3e62"
         }
       ]
     },
@@ -69,16 +65,16 @@
       "statement": "Rotating the server token stops transfers and MCP sessions, replaces the HTTP token, disconnects active HTTP connections, and requires clients to use updated configuration.",
       "evidence": [
         {
-          "resource": "repo://TFM/App/MCPServerController.swift#L129-L152",
-          "version": "repo-lines-v1:sha256:ab4b08773d9d8a61cc5c04655ea8f810639d3bd7ab78278d08394f677647eb32:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiNmIxYzBkZDkwZjExYjQ2ZWVkMDlkMTUwZjA2N2UyZTYzY2RkNmY4N2NjZGVmZTg1MTRlOTRkZGRkOGVlNjkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjllNjc4ZmFlYWE5YmQxNTRlYmUxOTU1NjMwMDIyYzM1MGI5Mjc3MWUyYTRiNDdjNzkwMzJlNDk5NzY0ZjRkNWEifQ"
+          "resource": "repo://TFM/App/MCPServerController.swift",
+          "version": "repo-file-v1:sha256:c5176c9083a21a9f97844730e93608df4897b24b4cadbc328e81dfb46f88641a"
         },
         {
-          "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift#L148-L152",
-          "version": "repo-lines-v1:sha256:86543ac0371093fc5a685ec526cd2647bbe8532141e51f837d23557ab6542ab3:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmM5ZWRjZTdmMDVhNjVmNGMwODA4ZTEyYjBiODJjZWZjMjlmMTQ1MDFmZjZlZDE5ZDJjNmRjZmRkMGYxYWZkYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTk5YmRlZmVlYWNhNjM0MGUwMjkwZGM4NmU4ODljODlkNWUxODlhYTViYTQ0YjU4NWIzYjcwNzM0ZjRhNjJkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiNDdlMWY4ZWE3MTgyZTZmYTMyMGU0YjAzN2MxOGIzYzk0MDk1NzhmNjVjMTYxZjhhOTlmNzA2NjBlOTliNzY0OCJ9"
+          "resource": "repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift",
+          "version": "repo-file-v1:sha256:5a91a4b29083f71858834b4b1adee9fb64551de704e850ebe8026926ff9a6b9b"
         },
         {
-          "resource": "repo://TFMTests/MCPClientSetupCommandTests.swift#L64-L82",
-          "version": "repo-lines-v1:sha256:023204a2c6d366443d1203918643935a10d0404b36cef8c7ce1c6521a982a527:eyJzZWxlY3RlZExpbmVDb3VudCI6MTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI4YzY3YjYwMGU3NzcxMzRhZGFjNDEzNjMwNTZiNzc5ZDczMmE5MjUwN2FhYmM2NDdiOGY2YmMxMzkwMzRhODIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkZGNmZTI4ZDdlYTUxZmY4NzRiYTM4OTExMjA5NWY3Y2M4ZTg1MDgxZmVlMDkyOTY0MGJhMWUxMTViZWY4NTgifQ"
+          "resource": "repo://TFMTests/MCPClientSetupCommandTests.swift",
+          "version": "repo-file-v1:sha256:1d55562948bf055111339f081871ee9095a9daae5b806d648e7583615fc496ef"
         }
       ]
     },
@@ -135,24 +131,12 @@
       "statement": "The external registry is an allowlist of Termind host tools plus request_user_secret and transfer tools; disabled tools are omitted from discovery and cannot be called, while disabling upload or download revokes that direction's coordinator.",
       "evidence": [
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L183-L211",
-          "version": "repo-lines-v1:sha256:e65acffc19af44a25ec55b13ae180d24988b848bf32107c1dc55fdbb203c10dd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5OGU0MzcyYjgwNTM0ZmI5NjNmYzVlNGFmZDlhY2JlZGQ0NTNhZWEzYjU0ODAzMThmMWE2MWZmZTQzNGMyMTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlYTYxNGM5ZTJkZjc0NWU4Y2ZkZTdiNGIwZThiMmE5OWYxYTNjMTM3YmEzMmE5YjE4YzQ4MzBkMDg1NTY0M2IiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:11a618b54c8c7c8cf212423feb11ef58ee507f58a852a9fa4a7e5fd06bdf2800"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L7-L13",
-          "version": "repo-lines-v1:sha256:37e1cc2fd471a7feaba49f4edbfcbc40f04e035bbf4b08b3f68416aa598e3d88:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMGI0NjVkOWExMDQwNDZiYTI3NTgwNTQ3ZjNlZDgwMmEyNWExYWUxZjhjZWYxODYyNjMyZTY0ZGQwYjUwN2U3OCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYWRkMjQ0NTgyYjZmYjAzZDIzYjg0MTVhYmVjZDM0NmIwYzlmNDY2YjZmNzUyYjA2ODE4OWNlN2U5YTJkYzM1MCIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmE0ZDY1ODhmOWI3YWQwODA5MzgyODExMDk1NTQ3ZTJjZDE4OGEzYTM0ZDMzM2E0OGQ4YmM5NzgxZDY0NTM5NyIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGY0ZWNlYzhkOWUyZDdhM2I4MjVjMTVlOTc2MjQwMmExZDZlZDIxMGI1YzVhNTQ5NWEwMjBjYmJiZDU1MzA1ZiJ9"
-        },
-        {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L81-L118",
-          "version": "repo-lines-v1:sha256:7f52edfeccd8a684b8b897873405fa21702498b14be32417802dd124eaa3b2ae:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE4ZWM0MWMzYmVkYjQ5MGE1MzIyZDJkZWRmNGYzZDYyY2U0NjE5YzIwOWNlNmY5ODk2NWM5ZjgzMzRlMDVmYTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmNTYyYzdmNzMzNjJhZTBlYzk1MmM4M2ViMGJjYjIxYmE2YjBjNTM4MzY0YjExYzAwMGNlM2ZkZWU2NjNhZDUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQwOWQxYTBlZGQxY2RmNzllMjI1Yzg3ZDFlODMxYmMwMTU0ZGExNzA1NTZhZTFkMzBlMzZkNDg2ZjhkZTg3OTIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE3ZmZjZjA0MWQ2MGRmODliNjFiYTQ4MDFmZGUxMmE0ZDI0MTBiZjJiZmJiZjRiZjc3YTcxOWQ4MTNhYzg4NWIifQ"
-        },
-        {
-          "resource": "repo://TFMTests/MCPServerToolsTests.swift#L100-L140",
-          "version": "repo-lines-v1:sha256:bbe609256f29f5d3f57df07fd079fd2175c599b92d24faf60060b97a17b592d7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0MWJjMzU3ZWE2YzA2MmNiNjE1MGRiZmIwY2Q3YTBhZTM4ZTA3MTllYzU1Y2QwOWY0OGY3Y2U4MGVjOTcyZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjYzgwYmFjZGQ0ZWUwOTdkYmRlMzFjZTEzNGIzM2YyODlhMzVhMWM1ZTBmZjNhYmFhZWI3YTVhNmY5ZmVmNDEifQ"
-        },
-        {
-          "resource": "repo://TFMTests/MCPServerToolsTests.swift#L163-L175",
-          "version": "repo-lines-v1:sha256:bdac8ae222cc6ca064fa19fd6dff53d846496c96a833df866044e6f194e139c4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE5MTFhNjcyMTJjNDdjOGU2Zjc3YzQyOWVmM2YyYmIzMTQ3MDY3OWVhNjEzMDc1OWJkZDZkZWUyYzVhY2MwNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImJkZDA4NDk0MjZmMmNmMDE4MTZiNTkwMzQ0YTBkZTI0NDUzNTVkZjliNDdmNjYyMGY4YjA0ZTI1OWYyMDg0YzgifQ"
+          "resource": "repo://TFMTests/MCPServerToolsTests.swift",
+          "version": "repo-file-v1:sha256:81652bfa7ed8a9fcce7ddb2e714c8b13bdb94006619b036a5e614ff613088433"
         }
       ]
     },
@@ -345,6 +329,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T10:36:38.039Z"
+    "at": "2026-09-23T14:05:10.244Z"
   }
 }
