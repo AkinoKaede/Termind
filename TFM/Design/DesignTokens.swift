@@ -444,24 +444,6 @@ private struct TermindGlassBar: ViewModifier {
     }
 }
 
-/// The Liquid Glass surface shared by every mode of the left column.
-///
-/// `NavigationSplitView` supplies the column geometry, but the custom AppKit
-/// lists inside it do not inherit SwiftUI's source-list background. Hosting one
-/// system glass surface behind the complete column keeps list rows and empty
-/// space on one coherent material, including behind the window titlebar.
-struct SidebarGlassBackground: View {
-    @ViewBuilder
-    var body: some View {
-        if #available(macOS 26.0, *) {
-            Color.clear
-                .glassEffect(.regular, in: .rect)
-        } else {
-            LegacySidebarMaterialBackground()
-        }
-    }
-}
-
 /// Native material fallback for systems before Liquid Glass.
 struct LegacySidebarMaterialBackground: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
