@@ -64,7 +64,7 @@ struct MCPServerEditorPage: View {
                     headersSection(server)
                     toolsSection(server)
                     Section {
-                        Button("Delete Server", role: .destructive) {
+                        Button(TermindCopy.Settings.deleteServer.swiftUIKey, role: .destructive) {
                             app.aiConfiguration.delete(serverID: serverID)
                             deleted()
                         }
@@ -73,7 +73,7 @@ struct MCPServerEditorPage: View {
                 .formStyle(.grouped)
                 .frame(maxWidth: .infinity)
             } else {
-                ContentUnavailableView("Server Deleted", systemImage: "trash")
+                ContentUnavailableView(TermindCopy.Settings.serverDeleted.swiftUIKey, systemImage: "trash")
             }
         }
         .onAppear {
@@ -87,9 +87,10 @@ struct MCPServerEditorPage: View {
     @ViewBuilder
     private func connectionSection(_ server: MCPServer) -> some View {
         Section {
-            TextField("Name", text: binding(\.name).singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+            TextField(TermindCopy.Common.name.swiftUIKey, text: binding(\.name).singleLineText, axis: .horizontal)
+                .singleLinePaste().lineLimit(1)
             Toggle(
-                "Enabled",
+                TermindCopy.Common.enabled.swiftUIKey,
                 isOn: Binding(
                     get: { app.aiConfiguration.mcpServer(serverID)?.isEnabled ?? false },
                     set: {
@@ -97,7 +98,7 @@ struct MCPServerEditorPage: View {
                         app.aiConfiguration.setServerEnabled($0, for: serverID)
                     }))
 
-            LabeledContent("ID") {
+            LabeledContent(TermindCopy.Settings.id.swiftUIKey) {
                 Text(namespaceID)
                     .font(.callout.monospaced())
                     .foregroundStyle(namespaceID.isEmpty ? .secondary : .primary)
@@ -105,40 +106,46 @@ struct MCPServerEditorPage: View {
             }
 
             if isNameEmpty {
-                Label("Name is required.", systemImage: "exclamationmark.triangle.fill")
+                Label(TermindCopy.Settings.nameIsRequired.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
                     .font(.caption)
                     .foregroundStyle(.orange)
             } else if namespaceID.isEmpty {
                 Label(
-                    "Name must produce an ID containing ASCII letters or numbers.",
+                    TermindCopy.Settings.namespaceNameRequirement.swiftUIKey,
                     systemImage: "exclamationmark.triangle.fill"
                 )
                 .font(.caption)
                 .foregroundStyle(.orange)
             } else if hasNamespaceConflict {
-                Label("Another MCP server already uses this ID.", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                Label(
+                    TermindCopy.Settings.anotherMcpServerAlreadyUsesThisId.swiftUIKey,
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
             }
 
-            Picker("Transport", selection: binding(\.transport)) {
+            Picker(TermindCopy.Settings.transport.swiftUIKey, selection: binding(\.transport)) {
                 ForEach(MCPServer.Transport.allCases) { Text($0.displayName).tag($0) }
             }
 
-            TextField("URL", text: binding(\.url).singleLineText, prompt: Text("MCP endpoint URL"), axis: .horizontal)
-                .singleLinePaste()
-                .lineLimit(1)
+            TextField(
+                TermindCopy.Settings.url.swiftUIKey, text: binding(\.url).singleLineText,
+                prompt: Text(TermindCopy.Settings.mcpEndpointUrl), axis: .horizontal
+            )
+            .singleLinePaste()
+            .lineLimit(1)
 
             connectRow(server)
         } header: {
-            Text("Connection")
+            Text(TermindCopy.Settings.connection)
         }
     }
 
     @ViewBuilder
     private func connectRow(_ server: MCPServer) -> some View {
         HStack(spacing: Metrics.Space.m) {
-            Button("Connect") { connect(server) }
+            Button(TermindCopy.Common.connect.swiftUIKey) { connect(server) }
                 .disabled(
                     !server.isReachable || namespaceID.isEmpty || hasNamespaceConflict
                         || session.connection == .running
@@ -147,9 +154,12 @@ struct MCPServerEditorPage: View {
             switch session.connection {
             case .idle:
                 if let connected = server.lastConnectedAt {
-                    Text("Last connected \(connected.formatted(.relative(presentation: .named).locale(locale)))")
-                        .font(.caption)
-                        .foregroundStyle(.tertiary)
+                    Text(
+                        TermindCopy.Settings.lastConnected(
+                            connected.formatted(.relative(presentation: .named).locale(locale)))
+                    )
+                    .font(.caption)
+                    .foregroundStyle(.tertiary)
                 }
             case .running:
                 ProgressView().controlSize(.small)
@@ -174,20 +184,20 @@ struct MCPServerEditorPage: View {
     private var credentialSection: some View {
         Section {
             RevealableSecretField(
-                "Bearer Token",
+                TermindCopy.Settings.bearerToken,
                 text: Binding(get: { session.token }, set: { session.token = $0 }),
-                prompt: Text("Optional")
+                prompt: Text(TermindCopy.Common.optional)
             )
             .onChange(of: session.token) { _, value in store(token: value) }
 
             Text(
-                "Sent in the Authorization header. Custom headers below are stored as plain text."
+                TermindCopy.Settings.bearerTokenExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text("Credential")
+            Text(TermindCopy.Settings.credential)
         }
     }
 
@@ -197,11 +207,13 @@ struct MCPServerEditorPage: View {
             ForEach(server.headers) { header in
                 HStack(spacing: Metrics.Space.s) {
                     TextField(
-                        "Name", text: headerBinding(header.id, \.name).singleLineText, prompt: Text("Header name"),
+                        TermindCopy.Common.name.swiftUIKey, text: headerBinding(header.id, \.name).singleLineText,
+                        prompt: Text(TermindCopy.Settings.headerName),
                         axis: .horizontal
                     ).singleLinePaste().lineLimit(1)
                     TextField(
-                        "Value", text: headerBinding(header.id, \.value).singleLineText, prompt: Text("Header value"),
+                        TermindCopy.Common.value.swiftUIKey, text: headerBinding(header.id, \.value).singleLineText,
+                        prompt: Text(TermindCopy.Settings.headerValue),
                         axis: .horizontal
                     ).singleLinePaste().lineLimit(1)
                     Button {
@@ -211,14 +223,14 @@ struct MCPServerEditorPage: View {
                     }
                     .buttonStyle(.plain)
                     .foregroundStyle(.secondary)
-                    .accessibilityLabel(Text("Remove header"))
+                    .accessibilityLabel(Text(TermindCopy.Settings.removeHeader))
                 }
                 .labelsHidden()
             }
 
-            FormNavigationAction(title: "Add Header", action: addHeader)
+            FormNavigationAction(title: TermindCopy.Settings.addHeader, action: addHeader)
         } header: {
-            Text("Custom Headers")
+            Text(TermindCopy.Settings.customHeaders)
         }
     }
 
@@ -226,7 +238,7 @@ struct MCPServerEditorPage: View {
     private func toolsSection(_ server: MCPServer) -> some View {
         Section {
             if server.tools.isEmpty {
-                Text("Connect to see what this server offers.")
+                Text(TermindCopy.Settings.connectToSeeWhatThisServerOffers)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             } else {
@@ -235,11 +247,11 @@ struct MCPServerEditorPage: View {
                 }
             }
         } header: {
-            Text("Tools")
+            Text(TermindCopy.Settings.tools)
         } footer: {
             if !server.tools.isEmpty {
                 Text(
-                    "Deny refuses the call. Ask uses the conversation's manual or automatic approval. Approve runs without approval."
+                    TermindCopy.Settings.toolApprovalExplanation
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -264,7 +276,9 @@ struct MCPServerEditorPage: View {
                 app.aiConfiguration.setTools(discovery.tools, version: discovery.protocolVersion, for: serverID)
                 app.aiConfiguration.setMCPStatus(.connected, for: serverID)
                 session.connection = .succeeded(
-                    String(localized: "\(discovery.serverName) — \(discovery.tools.count) tools")
+                    String(
+                        localized: TermindCopy.Settings.discoveredTools(
+                            server: discovery.serverName, count: discovery.tools.count))
                 )
             } catch {
                 app.aiConfiguration.setMCPStatus(.failed(error.localizedDescription), for: serverID)
@@ -365,7 +379,7 @@ private struct ToolRow: View {
             }
             .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
 
-            Picker("Permission", selection: permission) {
+            Picker(TermindCopy.Common.permission.swiftUIKey, selection: permission) {
                 ForEach(AgentToolDescriptor.ApprovalPolicy.allCases) { option in
                     Text(option.displayName)
                         .tag(option)
@@ -374,7 +388,7 @@ private struct ToolRow: View {
             .labelsHidden()
             .pickerStyle(.menu)
             .fixedSize()
-            .accessibilityLabel(Text("Permission"))
+            .accessibilityLabel(Text(TermindCopy.Common.permission))
         }
         .frame(maxWidth: .infinity)
         .font(.caption)
@@ -392,11 +406,11 @@ private struct ToolRow: View {
 }
 
 extension AgentToolDescriptor.ApprovalPolicy {
-    fileprivate var displayName: LocalizedStringKey {
+    fileprivate var displayName: LocalizedStringResource {
         switch self {
-        case .deny: "Deny"
-        case .ask: "Ask"
-        case .approve: "Approve"
+        case .deny: TermindCopy.Common.deny
+        case .ask: TermindCopy.Settings.ask
+        case .approve: TermindCopy.Settings.approve
         }
     }
 }

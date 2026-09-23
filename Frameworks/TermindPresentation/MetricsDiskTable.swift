@@ -31,7 +31,7 @@ public struct MetricsDiskTable: View {
         .frame(maxWidth: .infinity)
     }
 
-    private func column(_ title: LocalizedStringKey, read: String, write: String, width: CGFloat) -> some View {
+    private func column(_ title: LocalizedStringResource, read: String, write: String, width: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.system(size: 9)).foregroundStyle(.secondary)
                 .frame(width: width, height: 12, alignment: .leading)

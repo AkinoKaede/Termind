@@ -9,24 +9,25 @@ struct MobileModelFields: View {
 
     var body: some View {
         Section {
-            LabeledContent("Name") {
+            LabeledContent(TermindCopy.Common.name.swiftUIKey) {
                 TextField(
-                    "Name", text: $model.displayName.singleLineText, prompt: Text(verbatim: model.id), axis: .horizontal
+                    TermindCopy.Common.name.swiftUIKey, text: $model.displayName.singleLineText,
+                    prompt: Text(verbatim: model.id), axis: .horizontal
                 ).singleLinePaste()
                     .lineLimit(1)
                     .multilineTextAlignment(.trailing)
             }
-            Picker("Type", selection: $model.kind) {
+            Picker(TermindCopy.Common.type.swiftUIKey, selection: $model.kind) {
                 ForEach(AIModel.Kind.allCases) { Text($0.displayName).tag($0) }
             }
-            Toggle("Show in Assistant", isOn: $model.isShownInAssistant)
+            Toggle(TermindCopy.Settings.showInAssistant.swiftUIKey, isOn: $model.isShownInAssistant)
         } header: {
-            Text("Basics")
+            Text(TermindCopy.Settings.basics)
         } footer: {
-            if model.origin == .manual { Text("Added Manually") }
+            if model.origin == .manual { Text(TermindCopy.Settings.addedManually) }
         }
 
-        Section("Input") {
+        Section(TermindCopy.Settings.input.swiftUIKey) {
             ForEach(AIModel.Modality.allCases) { modality in
                 Toggle(
                     modality.displayName,
@@ -43,7 +44,7 @@ struct MobileModelFields: View {
             }
         }
 
-        Section("Abilities") {
+        Section(TermindCopy.Settings.abilities.swiftUIKey) {
             ForEach(AIModel.Ability.allCases) { ability in
                 Toggle(
                     ability.displayName,
@@ -57,13 +58,15 @@ struct MobileModelFields: View {
 
         if model.abilities.contains(.reasoning) { reasoning }
 
-        Section("Limits") {
-            LabeledContent("Context Window") {
-                TextField("Context Window", value: $model.contextLength, format: .number).lineLimit(1)
+        Section(TermindCopy.Settings.limits.swiftUIKey) {
+            LabeledContent(TermindCopy.Settings.contextWindow.swiftUIKey) {
+                TextField(TermindCopy.Settings.contextWindow.swiftUIKey, value: $model.contextLength, format: .number)
+                    .lineLimit(1)
                     .multilineTextAlignment(.trailing).keyboardType(.numberPad)
             }
-            LabeledContent("Max Output") {
-                TextField("Max Output", value: $model.maxOutputTokens, format: .number).lineLimit(1)
+            LabeledContent(TermindCopy.Settings.maxOutput.swiftUIKey) {
+                TextField(TermindCopy.Settings.maxOutput.swiftUIKey, value: $model.maxOutputTokens, format: .number)
+                    .lineLimit(1)
                     .multilineTextAlignment(.trailing).keyboardType(.numberPad)
             }
         }
@@ -76,20 +79,23 @@ struct MobileModelFields: View {
     }
 
     private var reasoning: some View {
-        Section("Reasoning Effort") {
+        Section(TermindCopy.Settings.reasoningEffort.swiftUIKey) {
             if model.reasoningProfile == nil {
-                Text("Automatic from model catalog").font(.caption)
-                Button("Customize", systemImage: "slider.horizontal.3") {
+                Text(TermindCopy.Settings.automaticFromModelCatalog).font(.caption)
+                Button(TermindCopy.Common.customize.swiftUIKey, systemImage: "slider.horizontal.3") {
                     model.reasoningProfile = ModelCapabilityResolver.customProfile(from: automatic)
                 }
                 ForEach(automatic.supported) { effort in
                     LabeledContent(
                         effort.displayName,
-                        value: automatic.wireValue(for: effort) ?? String(localized: "Provider default"))
+                        value: automatic.wireValue(for: effort)
+                            ?? String(localized: TermindCopy.Settings.providerDefault))
                 }
             } else {
-                Text("Custom mapping").font(.caption)
-                Button("Reset to Automatic", systemImage: "arrow.counterclockwise") { model.reasoningProfile = nil }
+                Text(TermindCopy.Settings.customMapping).font(.caption)
+                Button(TermindCopy.Settings.resetToAutomatic.swiftUIKey, systemImage: "arrow.counterclockwise") {
+                    model.reasoningProfile = nil
+                }
                 ForEach(ReasoningEffort.allCases) { effort in
                     reasoningLevelRow(effort)
                 }
@@ -114,7 +120,7 @@ struct MobileModelFields: View {
             .frame(width: 120, alignment: .leading)
 
             TextField(
-                "Provider default",
+                TermindCopy.Settings.providerDefault.swiftUIKey,
                 text: Binding(
                     get: { model.reasoningProfile?.mapping(for: effort).wireValue ?? "" },
                     set: { value in
@@ -130,7 +136,7 @@ struct MobileModelFields: View {
                 .autocorrectionDisabled()
                 .disabled(!mapping.isSupported)
                 .opacity(mapping.isSupported ? 1 : 0.55)
-                .accessibilityLabel(Text("\(effort.displayName) provider value"))
+                .accessibilityLabel(Text(TermindCopy.Settings.reasoningProviderValue(effort.displayName)))
         }
     }
 

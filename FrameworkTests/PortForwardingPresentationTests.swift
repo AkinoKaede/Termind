@@ -14,26 +14,26 @@ struct PortForwardingPresentationTests {
 
     @Test(arguments: [PortForwardingRule.Kind.local, .dynamic])
     func localAndDynamicForwardingUseLocalPort(_ kind: PortForwardingRule.Kind) {
-        #expect(PortForwardingFieldPresentation.portLabel(for: kind) == "Local Port")
+        #expect(PortForwardingFieldPresentation.portLabel(for: kind).key == "Local Port")
     }
 
     @Test func remoteForwardingUsesRemotePort() {
-        #expect(PortForwardingFieldPresentation.portLabel(for: .remote) == "Remote Port")
+        #expect(PortForwardingFieldPresentation.portLabel(for: .remote).key == "Remote Port")
     }
 
     @Test(arguments: [PortForwardingRule.Kind.local, .remote])
     func fixedDestinationsAreShownForLocalAndRemoteForwarding(_ kind: PortForwardingRule.Kind) {
         #expect(PortForwardingFieldPresentation.showsDestination(for: kind))
-        #expect(PortForwardingFieldPresentation.directionDescription(for: kind).contains("Destination"))
-        #expect(!PortForwardingFieldPresentation.directionDescription(for: kind).contains("Target"))
-        #expect(PortForwardingFieldPresentation.directionDescription(for: kind).contains(localDeviceName))
-        #expect(!PortForwardingFieldPresentation.directionDescription(for: kind).contains(otherDeviceName))
+        #expect(PortForwardingFieldPresentation.directionDescription(for: kind).key.contains("Destination"))
+        #expect(!PortForwardingFieldPresentation.directionDescription(for: kind).key.contains("Target"))
+        #expect(PortForwardingFieldPresentation.directionDescription(for: kind).key.contains(localDeviceName))
+        #expect(!PortForwardingFieldPresentation.directionDescription(for: kind).key.contains(otherDeviceName))
     }
 
     @Test func dynamicForwardingUsesARequestedDestinationWithoutFixedDestinationFields() {
         #expect(!PortForwardingFieldPresentation.showsDestination(for: .dynamic))
         #expect(
-            PortForwardingFieldPresentation.directionDescription(for: .dynamic)
+            PortForwardingFieldPresentation.directionDescription(for: .dynamic).key
                 == "SOCKS5 on \(localDeviceName) → SSH Host → Requested Destination")
     }
 

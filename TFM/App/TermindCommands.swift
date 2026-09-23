@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -20,13 +21,15 @@ struct TermindCommands: Commands {
     @Environment(\.openWindow) private var openWindow
     @FocusedValue(\.window) private var window
 
-    private var closeTitle: LocalizedStringKey {
-        guard let workspace = window?.selectedWorkspace else { return "Close Window" }
-        return workspace.isSplit ? "Close Pane" : "Close Workspace"
+    private var closeTitle: LocalizedStringResource {
+        guard let workspace = window?.selectedWorkspace else { return TermindCopy.Workspace.closeWindow }
+        return workspace.isSplit ? TermindCopy.Workspace.closePaneAction : TermindCopy.Workspace.closeWorkspace
     }
 
     private var newWindowConnects: Bool { app.mainWindows.isFullScreen(window) }
-    private var newWindowTitle: LocalizedStringKey { newWindowConnects ? "Connect" : "New Window" }
+    private var newWindowTitle: LocalizedStringResource {
+        newWindowConnects ? TermindCopy.Common.connect : TermindCopy.Workspace.newWindow
+    }
 
     var body: some Commands {
         let _ = app.mainWindows.registerWindowCreation { [openWindow] id in
@@ -34,9 +37,11 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(replacing: .appSettings) {
-            Button("Settings", systemImage: MenuSymbol.settings) { window?.openSettings() }
-                .termindShortcut(",")
-                .disabled(window == nil)
+            Button(TermindCopy.Navigation.settings.swiftUIKey, systemImage: MenuSymbol.settings) {
+                window?.openSettings()
+            }
+            .termindShortcut(",")
+            .disabled(window == nil)
         }
 
         CommandGroup(replacing: .newItem) {
@@ -54,7 +59,7 @@ struct TermindCommands: Commands {
             // separate group after `.newItem` makes SwiftUI discard it when
             // this replacement is merged into the final File menu, leaving
             // no menu item (and therefore no working Command-P shortcut).
-            Button("Quick Open", systemImage: MenuSymbol.quickOpen) {
+            Button(TermindCopy.Navigation.quickOpen.swiftUIKey, systemImage: MenuSymbol.quickOpen) {
                 app.onboarding.recordUse(of: .quickOpen)
                 window?.isQuickOpenPresented = true
             }
@@ -63,21 +68,25 @@ struct TermindCommands: Commands {
 
             Divider()
 
-            Button("Connect", systemImage: MenuSymbol.ssh) {
+            Button(TermindCopy.Common.connect.swiftUIKey, systemImage: MenuSymbol.ssh) {
                 guard let window else { return }
                 app.connect(in: window)
             }
             .termindShortcut("t")
-            Button("Batch Startup", systemImage: MenuSymbol.batchStartup) {
+            Button(TermindCopy.Vault.batchStartup.swiftUIKey, systemImage: MenuSymbol.batchStartup) {
                 guard let window else { return }
                 app.batchStartup(in: window)
             }
             .termindShortcut("b", modifiers: [.command, .shift])
             .disabled(window == nil)
-            Button("New Chat", systemImage: MenuSymbol.newChat) { window?.openNewAssistantChat() }
-                .termindShortcut("t", modifiers: [.command, .option])
-            Button("New Host", systemImage: MenuSymbol.newHost) { window?.openHostEditor(host: nil) }
-                .termindShortcut("n", modifiers: [.command, .shift])
+            Button(TermindCopy.Assistant.newChat.swiftUIKey, systemImage: MenuSymbol.newChat) {
+                window?.openNewAssistantChat()
+            }
+            .termindShortcut("t", modifiers: [.command, .option])
+            Button(TermindCopy.Vault.newHost.swiftUIKey, systemImage: MenuSymbol.newHost) {
+                window?.openHostEditor(host: nil)
+            }
+            .termindShortcut("n", modifiers: [.command, .shift])
 
             Divider()
 
@@ -85,18 +94,20 @@ struct TermindCommands: Commands {
             // copies that whole arrangement into one new Workspace. A single pane can
             // instead choose whether its fresh copy belongs beside it or apart.
             if window?.selectedWorkspace?.isSplit == true {
-                Button("Duplicate", systemImage: MenuSymbol.duplicate) {
+                Button(TermindCopy.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
                     window?.duplicateSelectedInNewWorkspace()
                 }
                 .termindShortcut("d")
                 .disabled(!(window?.canDuplicateSelected ?? false))
             } else {
-                Menu("Duplicate", systemImage: MenuSymbol.duplicate) {
-                    Button("in Current Workspace", systemImage: MenuSymbol.currentWorkspace) {
+                Menu(TermindCopy.Common.duplicate.swiftUIKey, systemImage: MenuSymbol.duplicate) {
+                    Button(
+                        TermindCopy.Workspace.inCurrentWorkspace.swiftUIKey, systemImage: MenuSymbol.currentWorkspace
+                    ) {
                         window?.duplicateSelected(axis: .horizontal)
                     }
                     .termindShortcut("d")
-                    Button("in New Workspace", systemImage: MenuSymbol.newWorkspace) {
+                    Button(TermindCopy.Workspace.inNewWorkspace.swiftUIKey, systemImage: MenuSymbol.newWorkspace) {
                         window?.duplicatePaneInNewWorkspace()
                     }
                     .termindShortcut("d", modifiers: [.command, .shift])
@@ -106,7 +117,7 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(after: .pasteboard) {
-            Button("Generate Command", systemImage: MenuSymbol.generateCommand) {
+            Button(TermindCopy.Workspace.generateCommand.swiftUIKey, systemImage: MenuSymbol.generateCommand) {
                 app.onboarding.recordUse(of: .commandGenerator)
                 window?.generateTerminalCommand(using: app.commandGenerator)
             }
@@ -122,20 +133,20 @@ struct TermindCommands: Commands {
             // Find Next and Find Previous below carry no icon of their own: they
             // are the same verb as the item above them, and a menu's icon column
             // reads as a group.
-            Button("Find", systemImage: MenuSymbol.find) { window?.focusToolbarFind() }
+            Button(TermindCopy.Workspace.find.swiftUIKey, systemImage: MenuSymbol.find) { window?.focusToolbarFind() }
                 .termindShortcut("f")
                 .disabled(!(window?.canFindInMainContent ?? false))
 
             // `.previous` walks toward older output, which is where the matches
             // are when a search starts at the bottom of the buffer — so it is
             // what "next" means to a reader. Return in the Find field agrees.
-            Button("Find Next in Terminal") {
+            Button(TermindCopy.Terminal.findNextInTerminal.swiftUIKey) {
                 window?.navigateTerminalFind(.previous)
             }
             .termindShortcut("g")
             .disabled(!(window?.canFindInTerminal ?? false))
 
-            Button("Find Previous in Terminal") {
+            Button(TermindCopy.Terminal.findPreviousInTerminal.swiftUIKey) {
                 window?.navigateTerminalFind(.next)
             }
             .termindShortcut("g", modifiers: [.command, .shift])
@@ -145,7 +156,8 @@ struct TermindCommands: Commands {
         CommandGroup(replacing: .saveItem) {
             Button(
                 window?.selectedWorkspace?.sourceTemplateID == nil
-                    ? "Save Workspace Template" : "Update Workspace Template",
+                    ? TermindCopy.Workspace.saveWorkspaceTemplate.swiftUIKey
+                    : TermindCopy.Workspace.updateWorkspaceTemplate.swiftUIKey,
                 systemImage: "square.and.arrow.down"
             ) {
                 window?.requestSaveWorkspaceTemplate()
@@ -163,19 +175,19 @@ struct TermindCommands: Commands {
             }
             .termindShortcut("w")
             .disabled(window == nil)
-            Button("Close Window") {
+            Button(TermindCopy.Workspace.closeWindow.swiftUIKey) {
                 guard let window else { return }
                 app.mainWindows.closeWindow(in: window)
             }
             .termindShortcut("w", modifiers: [.command, .shift])
             .disabled(window == nil)
-            Button("Close Other Workspaces") {
+            Button(TermindCopy.Workspace.closeOtherWorkspaces.swiftUIKey) {
                 guard let window, let id = window.selectedWorkspaceID else { return }
                 window.closeOthers(than: id)
             }
             .termindShortcut("w", modifiers: [.command, .option])
             .disabled(window?.selectedWorkspace == nil)
-            Button("Reopen Closed Workspace", systemImage: MenuSymbol.reopenWorkspace) {
+            Button(TermindCopy.Workspace.reopenClosedWorkspace.swiftUIKey, systemImage: MenuSymbol.reopenWorkspace) {
                 window?.reopenLastClosed()
             }
             .termindShortcut("t", modifiers: [.command, .shift])
@@ -191,7 +203,7 @@ struct TermindCommands: Commands {
         // shortcuts for P2/P4, and P2 can put them wherever the real commands
         // end up.
         CommandGroup(after: .sidebar) {
-            Button("Show Assistant in Sidebar", systemImage: MenuSymbol.showAssistant) {
+            Button(TermindCopy.Assistant.showAssistantInSidebar.swiftUIKey, systemImage: MenuSymbol.showAssistant) {
                 guard let window else { return }
                 withAnimation(Motion.panel(reduceMotion: reduceMotion)) {
                     window.showAssistant()
@@ -206,12 +218,12 @@ struct TermindCommands: Commands {
             // Duplicate's ⌘D, which opens a connection. The keys are the
             // directions themselves rather than ⌥⌘D: macOS owns that one for
             // Turn Dock Hiding On/Off, so pressing it here only hid the Dock.
-            Button("Split Right", systemImage: MenuSymbol.splitRight) {
+            Button(TermindCopy.Workspace.splitRight.swiftUIKey, systemImage: MenuSymbol.splitRight) {
                 window?.splitSelected(axis: .horizontal)
             }
             .termindShortcut(.rightArrow, modifiers: [.command, .option])
             .disabled(!(window?.canSplitSelected ?? false))
-            Button("Split Down", systemImage: MenuSymbol.splitDown) {
+            Button(TermindCopy.Workspace.splitDown.swiftUIKey, systemImage: MenuSymbol.splitDown) {
                 window?.splitSelected(axis: .vertical)
             }
             .termindShortcut(.downArrow, modifiers: [.command, .option])
@@ -219,7 +231,7 @@ struct TermindCommands: Commands {
         }
 
         CommandGroup(before: .windowList) {
-            Button("Move Workspace to New Window", systemImage: MenuSymbol.moveToNewWindow) {
+            Button(TermindCopy.Workspace.moveWorkspaceToNewWindow.swiftUIKey, systemImage: MenuSymbol.moveToNewWindow) {
                 guard let window, let id = window.selectedWorkspaceID else { return }
                 app.mainWindows.moveWorkspace(id, from: window)
             }
@@ -232,12 +244,12 @@ struct TermindCommands: Commands {
             // Show Next Tab — so the app's copy was both shadowed and a second
             // name for what ⇧⌘] does. ⇧⌘] is what Safari, Terminal and Finder
             // use, so it is the pair that stays.
-            Button("Next Workspace", systemImage: MenuSymbol.nextWorkspace) {
+            Button(TermindCopy.Workspace.nextWorkspace.swiftUIKey, systemImage: MenuSymbol.nextWorkspace) {
                 window?.selectNext()
             }
             .termindShortcut("]", modifiers: [.command, .shift])
             .disabled(window?.workspaces.isEmpty != false)
-            Button("Previous Workspace", systemImage: MenuSymbol.previousWorkspace) {
+            Button(TermindCopy.Workspace.previousWorkspace.swiftUIKey, systemImage: MenuSymbol.previousWorkspace) {
                 window?.selectPrevious()
             }
             .termindShortcut("[", modifiers: [.command, .shift])
@@ -253,13 +265,13 @@ struct TermindCommands: Commands {
             // entry the symbol of what it holds would be readable one line at a
             // time and noise read down the column.
             ForEach(1...8, id: \.self) { index in
-                Button("Workspace \(index)", systemImage: MenuSymbol.workspace) {
+                Button(TermindCopy.Workspace.numberedWorkspace(index).swiftUIKey, systemImage: MenuSymbol.workspace) {
                     window?.select(index: index - 1)
                 }
                 .termindShortcut(AppShortcutKey.character(Character("\(index)")))
                 .disabled((window?.workspaces.count ?? 0) < index)
             }
-            Button("Last Workspace", systemImage: MenuSymbol.workspace) {
+            Button(TermindCopy.Workspace.lastWorkspace.swiftUIKey, systemImage: MenuSymbol.workspace) {
                 guard let window else { return }
                 window.select(index: window.workspaces.count - 1)
             }
@@ -271,7 +283,7 @@ struct TermindCommands: Commands {
 
         CommandGroup(replacing: .help) {
             Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
-                Label("Support", systemImage: MenuSymbol.support)
+                Label(TermindCopy.Settings.support.swiftUIKey, systemImage: MenuSymbol.support)
             }
         }
     }

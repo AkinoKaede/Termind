@@ -19,7 +19,7 @@ public struct MetricsInstrumentBody: View {
     private var showsMetrics: Bool {
         !server.isConnecting && server.point != nil && !server.needsAttention
             && server.selection.enabled && !sleeping
-            && (server.status.isEmpty || server.status == String(localized: "Live"))
+            && (server.status.isEmpty || server.status == String(localized: TermindCopy.Metrics.live))
     }
 
     public var body: some View {
@@ -58,13 +58,13 @@ public struct MetricsInstrumentBody: View {
     private var adaptiveInstruments: some View {
         VStack(alignment: .leading, spacing: 12) {
             if typeSize.isAccessibilitySize {
-                capacity("CPU", value: server.point?.cpu)
-                capacity("Memory", value: server.point?.memory)
+                capacity(TermindCopy.Metrics.cpu, value: server.point?.cpu)
+                capacity(TermindCopy.Metrics.memory, value: server.point?.memory)
                 adaptiveRates
             } else {
                 HStack(alignment: .top, spacing: 12) {
-                    capacity("CPU", value: server.point?.cpu)
-                    capacity("Memory", value: server.point?.memory)
+                    capacity(TermindCopy.Metrics.cpu, value: server.point?.cpu)
+                    capacity(TermindCopy.Metrics.memory, value: server.point?.memory)
                 }
                 ViewThatFits(in: .horizontal) {
                     HStack(alignment: .top, spacing: 12) {
@@ -98,7 +98,7 @@ public struct MetricsInstrumentBody: View {
         }
     }
 
-    private func capacity(_ title: LocalizedStringKey, value: Double?) -> some View {
+    private func capacity(_ title: LocalizedStringResource, value: Double?) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title).font(.caption).foregroundStyle(.secondary)
             Text(MetricsFormat.percent(value)).font(.headline.monospacedDigit())
@@ -110,7 +110,7 @@ public struct MetricsInstrumentBody: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func adaptiveRate(_ title: LocalizedStringKey, symbol: String, value: Double?) -> some View {
+    private func adaptiveRate(_ title: LocalizedStringResource, symbol: String, value: Double?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Label(title, systemImage: symbol).font(.caption).foregroundStyle(.secondary)
             Text(MetricsFormat.rate(value)).font(.subheadline.monospacedDigit())
@@ -125,8 +125,8 @@ public struct MetricsInstrumentBody: View {
 
     private var instruments: some View {
         HStack(alignment: .center, spacing: 12) {
-            MetricsRing(title: "CPU", value: server.point?.cpu)
-            MetricsRing(title: "Memory", value: server.point?.memory)
+            MetricsRing(title: TermindCopy.Metrics.cpu, value: server.point?.cpu)
+            MetricsRing(title: TermindCopy.Metrics.memory, value: server.point?.memory)
                 .help(MetricsFormat.capacity(server.point?.memoryUsed, server.point?.memoryTotal))
             VStack(alignment: .leading, spacing: 6) {
                 rate("Network Send", symbol: "arrow.up", value: server.point?.networkSend)
@@ -141,7 +141,7 @@ public struct MetricsInstrumentBody: View {
         .contentShape(Rectangle())
     }
 
-    private func rate(_ title: LocalizedStringKey, symbol: String, value: Double?) -> some View {
+    private func rate(_ title: LocalizedStringResource, symbol: String, value: Double?) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(MetricsFormat.rate(value)).font(.system(size: 12, weight: .semibold, design: .monospaced))
                 .foregroundStyle((value ?? 0) > 0 ? Color.green : Color.secondary)

@@ -28,7 +28,7 @@ struct MobileRootView: View {
     var body: some View {
         TabView(selection: selection) {
             ForEach(features.registrations) { feature in
-                Tab(feature.title, systemImage: feature.symbol, value: feature.id) {
+                Tab(feature.title.swiftUIKey, systemImage: feature.symbol, value: feature.id) {
                     NavigationStack {
                         feature.makeView(app: app, scene: scene)
                     }
@@ -71,20 +71,21 @@ struct MobileRootView: View {
         .onOpenURL(perform: scene.open)
         .focusedSceneValue(\.mobileScene, scene)
         .alert(
-            "Open Telnet Connection?",
+            TermindCopy.Workspace.openTelnetConnectionConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { scene.pendingExternalConnection != nil },
                 set: { if !$0 { scene.pendingExternalConnection = nil } }
             )
         ) {
-            Button("Cancel", role: .cancel) { scene.pendingExternalConnection = nil }
-            Button("Continue") { scene.confirmExternalConnection() }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { scene.pendingExternalConnection = nil }
+            Button(TermindCopy.Common.continue.swiftUIKey) { scene.confirmExternalConnection() }
         } message: {
-            Text("This link includes an advisory Telnet password. It will be used once and will not be saved.")
+            Text(TermindCopy.Workspace.advisoryTelnetPassword)
         }
         .alert(
             scene.isWorkspaceUnavailable
-                ? String(localized: "Workspace Unavailable") : String(localized: "Operation Failed"),
+                ? String(localized: TermindCopy.Workspace.workspaceUnavailable)
+                : String(localized: TermindCopy.Common.operationFailed),
             isPresented: Binding(
                 get: { scene.isWorkspaceUnavailable || app.error != nil },
                 set: {
@@ -94,7 +95,7 @@ struct MobileRootView: View {
                     }
                 })
         ) {
-            Button("OK", role: .cancel) {
+            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) {
                 scene.isWorkspaceUnavailable = false
                 app.error = nil
             }
@@ -103,7 +104,7 @@ struct MobileRootView: View {
                 scene.isWorkspaceUnavailable
                     ? String(
                         localized:
-                            "This workspace is no longer available. It may have ended, its host may have been removed, or an earlier app version may not have saved it."
+                            TermindCopy.Workspace.unavailableWorkspaceExplanation
                     ) : app.error ?? "")
         }
         .modifier(MobileAppReviewPresenter(app: app, scene: scene, scenePhase: scenePhase))

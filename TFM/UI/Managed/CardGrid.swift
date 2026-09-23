@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 #if canImport(AppKit)
     import AppKit
@@ -395,7 +396,7 @@ struct CardSectionHeader: View {
                 Button(action: toggle) { paddedLabel }
                     .buttonStyle(.plain)
                     .accessibilityLabel(Text(title))
-                    .accessibilityHint(Text(isCollapsed ? "Expand" : "Collapse"))
+                    .accessibilityHint(Text(isCollapsed ? TermindCopy.Common.expand : TermindCopy.Common.collapse))
             } else {
                 paddedLabel.onTapGesture { select?() }
             }
@@ -428,7 +429,7 @@ struct CardSectionHeader: View {
                             .contentShape(.rect)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(Text(isCollapsed ? "Expand" : "Collapse"))
+                    .accessibilityLabel(Text(isCollapsed ? TermindCopy.Common.expand : TermindCopy.Common.collapse))
                 }
             }
 

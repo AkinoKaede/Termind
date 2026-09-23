@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 // MARK: - Copy
 
@@ -6,7 +7,7 @@ import SwiftUI
 /// produces no visible change still reads as having worked.
 struct CopyButton: View {
     let text: String
-    var title: LocalizedStringKey? = nil
+    var title: LocalizedStringResource? = nil
 
     @State private var hasCopied = false
 
@@ -20,10 +21,13 @@ struct CopyButton: View {
             }
         } label: {
             if let title {
-                Label(hasCopied ? "Copied" : title, systemImage: hasCopied ? "checkmark" : "doc.on.doc")
-                    .contentTransition(.symbolEffect(.replace))
-                    .frame(minHeight: 28)
-                    .contentShape(.rect)
+                Label(
+                    hasCopied ? TermindCopy.Common.copied.swiftUIKey : title.swiftUIKey,
+                    systemImage: hasCopied ? "checkmark" : "doc.on.doc"
+                )
+                .contentTransition(.symbolEffect(.replace))
+                .frame(minHeight: 28)
+                .contentShape(.rect)
             } else {
                 Image(systemName: hasCopied ? "checkmark" : "doc.on.doc")
                     .contentTransition(.symbolEffect(.replace))
@@ -34,7 +38,7 @@ struct CopyButton: View {
         .buttonStyle(.plain)
         .font(.caption)
         .foregroundStyle(.secondary)
-        .help(Text(title ?? "Copy"))
-        .accessibilityLabel(Text(title ?? "Copy"))
+        .help(Text(title ?? TermindCopy.Common.copy))
+        .accessibilityLabel(Text(title ?? TermindCopy.Common.copy))
     }
 }

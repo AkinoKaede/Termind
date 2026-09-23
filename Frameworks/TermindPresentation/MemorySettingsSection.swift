@@ -34,7 +34,7 @@ public struct MemorySettingsSection: View {
                                 }
                                 destroyButton
                             } label: {
-                                Image(systemName: "ellipsis").accessibilityLabel(Text("More"))
+                                Image(systemName: "ellipsis").accessibilityLabel(Text(TermindCopy.Common.more))
                             }
                         }
                     }
@@ -65,10 +65,10 @@ public struct MemorySettingsSection: View {
                 #endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel", systemImage: "xmark") { editing = nil }
+                        Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark") { editing = nil }
                     }
                     ToolbarItem(placement: .confirmationAction) {
-                        Button("Save", systemImage: "checkmark") {
+                        Button(TermindCopy.Common.save.swiftUIKey, systemImage: "checkmark") {
                             guard let target = editing else { return }
                             Task {
                                 await memory.edit(target, text: draft)
@@ -99,7 +99,7 @@ public struct MemorySettingsSection: View {
     private var section: some View {
         Section {
             Toggle(
-                "Enabled",
+                TermindCopy.Common.enabled.swiftUIKey,
                 isOn: Binding(
                     get: { memory.isEnabled },
                     set: { enabled in
@@ -155,7 +155,7 @@ public struct MemorySettingsSection: View {
             }
             if memory.isBusy { ProgressView() }
         } header: {
-            if layout == .section { Text("Hermes Memory") }
+            if layout == .section { Text(TermindCopy.Settings.hermesMemory) }
         }
     }
 
@@ -201,7 +201,7 @@ public struct MemorySettingsSection: View {
     }
 
     private var exportButton: some View {
-        Button("Export", systemImage: "square.and.arrow.up") {
+        Button(TermindCopy.Common.export.swiftUIKey, systemImage: "square.and.arrow.up") {
             exporting = true
         }
     }

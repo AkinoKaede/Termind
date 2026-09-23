@@ -2,6 +2,7 @@ import AgentKit
 import Foundation
 import Observation
 import TermindApplication
+import TermindPresentation
 
 @MainActor
 @Observable
@@ -23,7 +24,7 @@ final class MobileModelDiscovery {
         do {
             guard let secret = ai.modelSecret(for: provider) else {
                 throw MobileEditorError.message(
-                    ai.secretStorageError ?? String(localized: "The provider's credential is unavailable."))
+                    ai.secretStorageError ?? String(localized: TermindCopy.Settings.providerCredentialUnavailable))
             }
             start(provider: provider, secret: secret, isCurrent: { ai.modelProvider(provider.id) == provider })
         } catch { self.error = error.localizedDescription }

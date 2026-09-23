@@ -1,11 +1,11 @@
 import SwiftUI
 
 public struct MetricsRing: View {
-    public init(title: LocalizedStringKey, value: Double?) {
+    public init(title: LocalizedStringResource, value: Double?) {
         self.title = title
         self.value = value
     }
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let value: Double?
     private var color: Color {
         guard let value else { return Color.secondary }

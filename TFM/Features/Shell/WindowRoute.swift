@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -16,25 +17,25 @@ nonisolated enum VaultPage: String, Hashable, Sendable, CaseIterable, Identifiab
 
     nonisolated var id: String { rawValue }
 
-    var label: LocalizedStringKey {
+    var label: LocalizedStringResource {
         switch self {
-        case .welcome: "Welcome"
-        case .hosts: "Hosts"
-        case .keychain: "Keychain"
-        case .portForwarding: "Port Forwarding"
-        case .snippets: "Snippets"
-        case .knownHosts: "Known Hosts"
+        case .welcome: TermindCopy.Navigation.welcome
+        case .hosts: TermindCopy.Vault.hosts
+        case .keychain: TermindCopy.Navigation.keychain
+        case .portForwarding: TermindCopy.Navigation.portForwarding
+        case .snippets: TermindCopy.Navigation.snippets
+        case .knownHosts: TermindCopy.Navigation.knownHosts
         }
     }
 
     func title(locale: Locale = .current) -> String {
         switch self {
-        case .welcome: AppLocalization.string("Welcome", locale: locale)
-        case .hosts: AppLocalization.string("Hosts", locale: locale)
-        case .keychain: AppLocalization.string("Keychain", locale: locale)
-        case .portForwarding: AppLocalization.string("Port Forwarding", locale: locale)
-        case .snippets: AppLocalization.string("Snippets", locale: locale)
-        case .knownHosts: AppLocalization.string("Known Hosts", locale: locale)
+        case .welcome: AppLocalization.resolve(TermindCopy.Navigation.welcome, locale: locale)
+        case .hosts: AppLocalization.resolve(TermindCopy.Vault.hosts, locale: locale)
+        case .keychain: AppLocalization.resolve(TermindCopy.Navigation.keychain, locale: locale)
+        case .portForwarding: AppLocalization.resolve(TermindCopy.Navigation.portForwarding, locale: locale)
+        case .snippets: AppLocalization.resolve(TermindCopy.Navigation.snippets, locale: locale)
+        case .knownHosts: AppLocalization.resolve(TermindCopy.Navigation.knownHosts, locale: locale)
         }
     }
 

@@ -71,7 +71,7 @@ struct MobileSFTPBrowser: View {
                 if items.isEmpty {
                     Group {
                         if channel.query.isEmpty {
-                            ContentUnavailableView("Empty", systemImage: "folder")
+                            ContentUnavailableView(TermindCopy.Common.empty.swiftUIKey, systemImage: "folder")
                         } else {
                             ContentUnavailableView.search(text: channel.query)
                         }
@@ -96,7 +96,7 @@ struct MobileSFTPBrowser: View {
         .padding(.vertical, 14)
         .contentShape(.rect)
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Parent Directory")
+        .accessibilityLabel(TermindCopy.SFTP.parentDirectory.swiftUIKey)
     }
 
     private func fileRow(_ file: RemoteFile) -> some View {
@@ -134,28 +134,32 @@ struct MobileSFTPBrowser: View {
         .padding(.vertical, 11)
         .contentShape(.rect)
         .contextMenu {
-            Button("Open", systemImage: "arrow.up.right") { open(file) }
+            Button(TermindCopy.Common.open.swiftUIKey, systemImage: "arrow.up.right") { open(file) }
             if !file.isDirectory {
-                Button("Open With…", systemImage: "arrow.up.forward.app") { openWith(file) }
-                    .disabled(!connected)
+                Button(TermindCopy.SFTP.openWithProgress.swiftUIKey, systemImage: "arrow.up.forward.app") {
+                    openWith(file)
+                }
+                .disabled(!connected)
                 if canImportEditedCopy(file) {
-                    Button("Import Edited Copy…", systemImage: "square.and.arrow.down") { importEditedCopy(file) }
+                    Button(TermindCopy.SFTP.importEditedCopyProgress.swiftUIKey, systemImage: "square.and.arrow.down") {
+                        importEditedCopy(file)
+                    }
                 }
             }
-            Button("Download", systemImage: "square.and.arrow.down") { download(file) }
+            Button(TermindCopy.SFTP.download.swiftUIKey, systemImage: "square.and.arrow.down") { download(file) }
             Divider()
-            Button("Copy", systemImage: "doc.on.doc") { copy(file) }
-            Menu("Copy As", systemImage: "doc.on.doc") {
-                Button("Name") { UIPasteboard.general.string = file.name }
-                Button("Path") { UIPasteboard.general.string = file.path }
+            Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(file) }
+            Menu(TermindCopy.SFTP.copyAs.swiftUIKey, systemImage: "doc.on.doc") {
+                Button(TermindCopy.Common.name.swiftUIKey) { UIPasteboard.general.string = file.name }
+                Button(TermindCopy.SFTP.path.swiftUIKey) { UIPasteboard.general.string = file.path }
             }
-            Button("Paste", systemImage: "doc.on.clipboard") { paste() }
-            Button("Rename", systemImage: "pencil") { rename(file) }
-            Button("Edit Permissions", systemImage: "lock.shield") { editPermissions(file) }
+            Button(TermindCopy.Common.paste.swiftUIKey, systemImage: "doc.on.clipboard") { paste() }
+            Button(TermindCopy.Common.rename.swiftUIKey, systemImage: "pencil") { rename(file) }
+            Button(TermindCopy.SFTP.editPermissions.swiftUIKey, systemImage: "lock.shield") { editPermissions(file) }
             Divider()
-            Button("Delete", systemImage: "trash", role: .destructive) { delete(file) }
+            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) { delete(file) }
         }
-        .accessibilityHint(file.isDirectory ? Text("Open") : Text("Download"))
+        .accessibilityHint(file.isDirectory ? Text(TermindCopy.Common.open) : Text(TermindCopy.SFTP.download))
     }
 }
 
@@ -168,7 +172,9 @@ private struct MobileSFTPPathBar: View {
     var body: some View {
         Group {
             if editsPath {
-                TextField("Remote Path", text: $channel.pathText.singleLineText, axis: .horizontal).singleLinePaste()
+                TextField(
+                    TermindCopy.SFTP.remotePath.swiftUIKey, text: $channel.pathText.singleLineText, axis: .horizontal
+                ).singleLinePaste()
                     .lineLimit(1)
                     .font(.body.monospaced())
                     .textInputAutocapitalization(.never)
@@ -210,7 +216,7 @@ private struct MobileSFTPPathBar: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(channel.path))
-        .accessibilityHint(Text("Edit Path"))
+        .accessibilityHint(Text(TermindCopy.SFTP.editPath))
     }
 
     private func breadcrumbs(tailCount: Int) -> some View {

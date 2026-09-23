@@ -1,6 +1,7 @@
 import AgentKit
 import Foundation
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -155,7 +156,7 @@ final class ToolAuditModel {
         }
         let row = ExternalToolCall(
             runID: invocation.runID,
-            clientName: clients[invocation.runID] ?? String(localized: "Unknown MCP client"),
+            clientName: clients[invocation.runID] ?? String(localized: TermindCopy.MCP.unknownMcpClient),
             toolName: descriptor.qualifiedName,
             hostID: hostID,
             hostDisplayName: hostID.flatMap(hostName),
@@ -261,7 +262,7 @@ final class ToolAuditModel {
                 + (arguments["mode"]?.stringValue ?? "")
         case let name where name.hasPrefix("sftp_"):
             return oneLine(arguments["path"]?.stringValue ?? "")
-        case "list_hosts": return String(localized: "List saved hosts")
+        case "list_hosts": return String(localized: TermindCopy.MCP.listSavedHosts)
         default: return ""
         }
     }

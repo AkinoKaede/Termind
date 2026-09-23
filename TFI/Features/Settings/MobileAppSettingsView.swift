@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 struct MobileAppSettingsView: View {
     let workspaceSettings: WorkspaceSettingsModel
@@ -10,16 +11,16 @@ struct MobileAppSettingsView: View {
 
     var body: some View {
         Form {
-            Section("Appearance") {
-                Picker("Theme", selection: $appearance) {
-                    Text("Follow System").tag("system")
-                    Text("Light").tag("light")
-                    Text("Dark").tag("dark")
+            Section(TermindCopy.Settings.appearance.swiftUIKey) {
+                Picker(TermindCopy.Settings.theme.swiftUIKey, selection: $appearance) {
+                    Text(TermindCopy.Settings.followSystem).tag("system")
+                    Text(TermindCopy.Settings.light).tag("light")
+                    Text(TermindCopy.Settings.dark).tag("dark")
                 }
             }
             Section {
                 Toggle(
-                    "Automatically Rename Workspaces",
+                    TermindCopy.Settings.automaticallyRenameWorkspaces.swiftUIKey,
                     isOn: Binding(
                         get: { workspaceSettings.preferences.automaticallyRenamesWorkspaces },
                         set: { _ = workspaceSettings.setAutomaticRenaming($0) }
@@ -29,24 +30,24 @@ struct MobileAppSettingsView: View {
                     Text(error).foregroundStyle(.red)
                 }
             } header: {
-                Text("Workspaces")
+                Text(TermindCopy.Navigation.workspaces)
             } footer: {
-                Text("New Workspaces with the same Host name use the next number, regardless of protocol.")
+                Text(TermindCopy.Settings.workspaceNumberingExplanation)
             }
-            Section("Version") {
+            Section(TermindCopy.Settings.version.swiftUIKey) {
                 LabeledContent(
-                    "App",
+                    TermindCopy.Settings.app.swiftUIKey,
                     value: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
                 )
                 .contentShape(Rectangle())
                 .onTapGesture(count: 3) { debugSectionEnabled.toggle() }
-                LabeledContent("Ghostty", value: MobileRuntimeVersions.ghostty)
-                LabeledContent("libssh2", value: MobileRuntimeVersions.libssh2)
-                LabeledContent("OpenSSL", value: MobileRuntimeVersions.openSSL)
+                LabeledContent(TermindCopy.Settings.ghostty.swiftUIKey, value: MobileRuntimeVersions.ghostty)
+                LabeledContent(TermindCopy.Settings.libssh2.swiftUIKey, value: MobileRuntimeVersions.libssh2)
+                LabeledContent(TermindCopy.Settings.openSSL.swiftUIKey, value: MobileRuntimeVersions.openSSL)
             }
-            Section("Support") {
+            Section(TermindCopy.Settings.support.swiftUIKey) {
                 Link(destination: AppReviewController.reviewURL) {
-                    Label("Rate on the App Store", systemImage: "star")
+                    Label(TermindCopy.Settings.rateOnTheAppStore.swiftUIKey, systemImage: "star")
                 }
                 .environment(
                     \.openURL,
@@ -56,14 +57,14 @@ struct MobileAppSettingsView: View {
                     }
                 )
                 Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
-                    Label("Support", systemImage: "questionmark.circle")
+                    Label(TermindCopy.Settings.support.swiftUIKey, systemImage: "questionmark.circle")
                 }
                 Link(destination: URL(string: "https://termind.akinokaede.com/privacy/")!) {
-                    Label("Privacy Policy", systemImage: "hand.raised")
+                    Label(TermindCopy.Pro.privacyPolicy.swiftUIKey, systemImage: "hand.raised")
                 }
             }
         }
-        .navigationTitle("App")
+        .navigationTitle(TermindCopy.Settings.app.swiftUIKey)
         .mobileReviewPage("settings.app", scene: reviewScene)
     }
 }

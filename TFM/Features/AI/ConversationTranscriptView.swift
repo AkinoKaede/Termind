@@ -50,8 +50,8 @@ private struct ConversationAttachmentDropModifier: ViewModifier {
         if targetedKind != nil {
             DropTargetOverlay(
                 presentation: DropTargetPresentation(
-                    title: String(localized: "Attach to Chat"),
-                    detail: String(localized: "Files and images"),
+                    title: String(localized: TermindCopy.Assistant.attachToChat),
+                    detail: String(localized: TermindCopy.Assistant.filesAndImages),
                     systemImage: targetedKind == .images
                         ? "photo.badge.plus" : "paperclip"
                 ))
@@ -66,7 +66,7 @@ private struct ConversationAttachmentDropModifier: ViewModifier {
         }
         if !payload.images.isEmpty {
             conversation.importAttachmentImages(
-                payload.images, label: String(localized: "Dropped image")
+                payload.images, label: String(localized: TermindCopy.Assistant.droppedImage)
             )
             accepted = true
         }
@@ -196,11 +196,11 @@ struct ConversationView: View {
 
     private var archivedSurfaceContent: some View {
         HStack(spacing: Metrics.Space.m) {
-            Label("Archived conversations are read-only.", systemImage: "archivebox")
+            Label(TermindCopy.Assistant.archivedConversationsAreReadOnly.swiftUIKey, systemImage: "archivebox")
                 .font(.callout)
                 .foregroundStyle(.secondary)
             Spacer()
-            Button("Unarchive") {
+            Button(TermindCopy.Assistant.unarchive.swiftUIKey) {
                 window.setAssistantArchived(conversation.id, archived: false)
             }
             .transcriptProminentButtonStyle()
@@ -442,9 +442,12 @@ struct AgentTaskCapsuleView: View {
                     tint: isComplete ? .green : .accentColor,
                     diameter: 10, lineWidth: 1.7
                 )
-                Text("Step \(conversation.completedTaskCount) / \(conversation.tasks.count)")
-                    .font(.caption2.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                Text(
+                    TermindCopy.Assistant.step(
+                        completed: conversation.completedTaskCount, total: conversation.tasks.count)
+                )
+                .font(.caption2.monospacedDigit())
+                .foregroundStyle(.secondary)
             }
             .padding(.horizontal, Metrics.Space.m)
             .padding(.vertical, 3)
@@ -453,9 +456,15 @@ struct AgentTaskCapsuleView: View {
         }
         .buttonStyle(.plain)
         .onHover { isHoveringCapsule = $0 }
-        .help(Text("\(conversation.completedTaskCount) of \(conversation.tasks.count) tasks done"))
+        .help(
+            Text(
+                TermindCopy.Assistant.ofTasksDone(
+                    completedTaskCount: conversation.completedTaskCount, count: conversation.tasks.count))
+        )
         .accessibilityLabel(
-            Text("Tasks, \(conversation.completedTaskCount) of \(conversation.tasks.count) done")
+            Text(
+                TermindCopy.Assistant.tasksOfDone(
+                    completed: conversation.completedTaskCount, total: conversation.tasks.count))
         )
     }
 
@@ -482,7 +491,7 @@ struct AgentTaskCapsuleView: View {
         )
         .termindGlassSurface(cornerRadius: Metrics.Chat.composerRadius)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("Tasks"))
+        .accessibilityLabel(Text(TermindCopy.Assistant.tasks))
     }
 
     private func row(_ task: AgentTask) -> some View {
@@ -540,7 +549,8 @@ private struct AgentApprovalCard: View {
         )
         return VStack(alignment: .leading, spacing: Metrics.Space.m) {
             HStack {
-                Label("Approval required", systemImage: "hand.raised.fill").font(.headline)
+                Label(TermindCopy.Assistant.approvalRequired.swiftUIKey, systemImage: "hand.raised.fill").font(
+                    .headline)
                 Spacer()
                 QueueDepthLabel(remaining: conversation.pendingApprovals.count)
             }
@@ -566,12 +576,12 @@ private struct AgentApprovalCard: View {
             .frame(maxHeight: AgentToolPresentation.usesCompactDetails(for: request.descriptor) ? approvalHeight : nil)
 
             HStack {
-                Button("Deny", role: .destructive) {
+                Button(TermindCopy.Common.deny.swiftUIKey, role: .destructive) {
                     conversation.respondToApproval(request.id, allow: false)
                 }
                 .accessibilityIdentifier("AssistantApproval.Deny")
                 Spacer()
-                Button("Allow Once") {
+                Button(TermindCopy.Assistant.allowOnce.swiftUIKey) {
                     conversation.respondToApproval(request.id, allow: true)
                 }
                 .transcriptProminentButtonStyle()
@@ -612,7 +622,7 @@ private struct QueueDepthLabel: View {
 
     var body: some View {
         if remaining > 1 {
-            Text("1 of \(remaining)")
+            Text(TermindCopy.Assistant.firstQuestionOf(remaining))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }
@@ -757,10 +767,10 @@ private struct AgentUserInputCard: View {
     private var footer: some View {
         HStack(spacing: Metrics.Space.m) {
             HStack(spacing: Metrics.Space.s) {
-                Button("Cancel") { conversation.cancelUserInput() }
+                Button(TermindCopy.Common.cancel.swiftUIKey) { conversation.cancelUserInput() }
                     .keyboardShortcut(.cancelAction)
                 if conversation.currentUserInputQuestionIndex > 0 {
-                    Button("Back") { conversation.previousUserInputQuestion() }
+                    Button(TermindCopy.Common.back.swiftUIKey) { conversation.previousUserInputQuestion() }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -772,9 +782,9 @@ private struct AgentUserInputCard: View {
 
             HStack(spacing: Metrics.Space.s) {
                 if conversation.canSkipUserInputQuestion {
-                    Button("Skip") { conversation.skipUserInputQuestion() }
+                    Button(TermindCopy.Common.skip.swiftUIKey) { conversation.skipUserInputQuestion() }
                 }
-                Button(isLastQuestion ? "Submit" : "Next") {
+                Button(isLastQuestion ? TermindCopy.Common.submit.swiftUIKey : TermindCopy.Common.next.swiftUIKey) {
                     conversation.advanceUserInputQuestion()
                 }
                 .transcriptProminentButtonStyle()
@@ -791,7 +801,7 @@ private struct AgentUserInputCard: View {
         if isCompact {
             Text("\(current) / \(request.questions.count)")
         } else {
-            Text("Question \(current) of \(request.questions.count)")
+            Text(TermindCopy.Assistant.questionOf(current: current, total: request.questions.count))
         }
     }
 
@@ -810,12 +820,12 @@ private struct AgentUserInputCard: View {
 
             switch question.kind {
             case .secret:
-                RevealableSecretField("Secret", text: $conversation.secretInputDraft)
+                RevealableSecretField(TermindCopy.Keychain.secret, text: $conversation.secretInputDraft)
                     .textFieldStyle(.roundedBorder)
             case .choice(let choice):
                 choiceList(choice, in: question.id)
             case .text:
-                TextField("Answer", text: customBinding(for: question.id))
+                TextField(TermindCopy.Assistant.answer.swiftUIKey, text: customBinding(for: question.id))
                     .textFieldStyle(.roundedBorder)
             }
         }
@@ -848,7 +858,7 @@ private struct AgentUserInputCard: View {
                     HStack(spacing: Metrics.Space.s) {
                         Text(option.label).font(.callout)
                         if option.isRecommended {
-                            Text("Recommended")
+                            Text(TermindCopy.Assistant.recommended)
                                 .font(.caption2.weight(.medium))
                                 .padding(.horizontal, Metrics.Space.s)
                                 .padding(.vertical, 1)
@@ -884,7 +894,7 @@ private struct AgentUserInputCard: View {
 
             TextField(
                 choice.customPlaceholder.isEmpty
-                    ? String(localized: "Something else…") : choice.customPlaceholder,
+                    ? String(localized: TermindCopy.Assistant.otherAnswer) : choice.customPlaceholder,
                 text: customBinding(for: questionID)
             )
             .textFieldStyle(.roundedBorder)
@@ -929,7 +939,7 @@ struct SteeringQueueView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Label("Steering", systemImage: "arrow.turn.down.right")
+            Label(TermindCopy.Assistant.steering.swiftUIKey, systemImage: "arrow.turn.down.right")
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
 
@@ -958,7 +968,7 @@ struct SteeringQueueView: View {
         .padding(.horizontal, isEmbedded ? 0 : Metrics.Space.l)
         .padding(.top, Metrics.Space.s)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("Queued messages"))
+        .accessibilityLabel(Text(TermindCopy.Assistant.queuedMessages))
     }
 
     /// What was typed, not what will be sent: `message.text` carries the
@@ -1009,7 +1019,7 @@ struct SteeringQueueView: View {
                 hoveredMessageID = nil
             }
         }
-        .help(Text("Take this back and edit it"))
-        .accessibilityLabel(Text("Unqueue message"))
+        .help(Text(TermindCopy.Assistant.takeThisBackAndEditIt))
+        .accessibilityLabel(Text(TermindCopy.Assistant.unqueueMessage))
     }
 }

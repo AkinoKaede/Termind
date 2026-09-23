@@ -108,13 +108,13 @@ struct MobileAssistantComposer: View {
                 }
             }
             .alert(
-                "Attachment Error",
+                TermindCopy.Assistant.attachmentError.swiftUIKey,
                 isPresented: Binding(
                     get: { composer.attachmentImportError != nil },
                     set: { if !$0 { composer.attachmentImportError = nil } }
                 )
             ) {
-                Button("OK", role: .cancel) {}
+                Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) {}
             } message: {
                 Text(composer.attachmentImportError ?? "")
             }
@@ -130,21 +130,24 @@ struct MobileAssistantComposer: View {
             .fullScreenCover(isPresented: $camera) {
                 MobileAssistantCamera { data in
                     camera = false
-                    if let data { conversation.importAttachmentImages([data], label: String(localized: "Photo")) }
+                    if let data {
+                        conversation.importAttachmentImages(
+                            [data], label: String(localized: TermindCopy.Assistant.photo))
+                    }
                 }.ignoresSafeArea()
             }
             .alert(
-                model.speech.error?.title ?? "Transcription Failed",
+                model.speech.error?.title ?? localized(TermindCopy.Assistant.transcriptionFailed),
                 isPresented: Binding(
                     get: { model.speech.errorOwnerID == conversation.id },
                     set: { if !$0 { model.speech.dismissError(ownerID: conversation.id) } })
             ) {
                 if model.speech.error?.offersSystemSettings == true {
-                    Button("Settings") {
+                    Button(TermindCopy.Navigation.settings.swiftUIKey) {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
                 }
-                Button("OK") { model.speech.dismissError(ownerID: conversation.id) }
+                Button(TermindCopy.Common.ok.swiftUIKey) { model.speech.dismissError(ownerID: conversation.id) }
             } message: {
                 Text(model.speech.error?.message ?? "")
             }
@@ -166,10 +169,10 @@ struct MobileAssistantComposer: View {
 
     private var keyboardShortcuts: some View {
         Group {
-            Button("Send", action: submitFromKeyboard)
+            Button(TermindCopy.Assistant.send.swiftUIKey, action: submitFromKeyboard)
                 .keyboardShortcut(MobileShortcut.send)
                 .disabled(!canSend)
-            Button("Stop", action: conversation.stop)
+            Button(TermindCopy.Common.stop.swiftUIKey, action: conversation.stop)
                 .keyboardShortcut(MobileShortcut.stop)
                 .disabled(!conversation.isAgentRunActive)
         }
@@ -185,7 +188,8 @@ struct MobileAssistantComposer: View {
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
             TextField(
-                "Ask anything…", text: Binding(get: { composer.draft }, set: { composer.draft = $0 }),
+                TermindCopy.Assistant.prompt.swiftUIKey,
+                text: Binding(get: { composer.draft }, set: { composer.draft = $0 }),
                 axis: .vertical
             )
             .lineLimit(1...6)
@@ -262,13 +266,13 @@ struct MobileAssistantComposer: View {
                     reduceMotion: reduceMotion
                 )
                 .frame(maxWidth: .infinity, minHeight: 48)
-                .accessibilityLabel(Text("Recording"))
+                .accessibilityLabel(Text(TermindCopy.Assistant.recording))
             }
         case .transcribing:
             speechControls {
                 ProgressView()
                     .frame(maxWidth: .infinity)
-                    .accessibilityLabel(Text("Transcribing"))
+                    .accessibilityLabel(Text(TermindCopy.Assistant.transcribing))
             }
         case .idle:
             EmptyView()
@@ -282,7 +286,7 @@ struct MobileAssistantComposer: View {
                 model.speech.cancel(ownerID: conversation.id)
                 activeFocus.wrappedValue = true
             } label: {
-                Label("Cancel", systemImage: "xmark").labelStyle(.iconOnly)
+                Label(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark").labelStyle(.iconOnly)
                     .mobileComposerControlIcon()
             }
             .buttonStyle(.plain)
@@ -290,7 +294,7 @@ struct MobileAssistantComposer: View {
             Button {
                 model.speech.stop(ownerID: conversation.id)
             } label: {
-                Label("Done", systemImage: "stop.fill").labelStyle(.iconOnly)
+                Label(TermindCopy.Common.done.swiftUIKey, systemImage: "stop.fill").labelStyle(.iconOnly)
                     .mobileComposerControlIcon()
             }
             .buttonStyle(.plain)
@@ -301,16 +305,16 @@ struct MobileAssistantComposer: View {
 
     private var addMenu: some View {
         Menu {
-            Button("Camera", systemImage: "camera") { openCamera() }
+            Button(TermindCopy.Assistant.camera.swiftUIKey, systemImage: "camera") { openCamera() }
                 .disabled(!UIImagePickerController.isSourceTypeAvailable(.camera))
-            Button("Photos", systemImage: "photo") { photos = true }
-            Button("Files", systemImage: "doc") { files = true }
+            Button(TermindCopy.Assistant.photos.swiftUIKey, systemImage: "photo") { photos = true }
+            Button(TermindCopy.Assistant.files.swiftUIKey, systemImage: "doc") { files = true }
         } label: {
             Image(systemName: "plus")
                 .mobileComposerControlIcon()
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Add Attachment")
+        .accessibilityLabel(TermindCopy.Assistant.addAttachment.swiftUIKey)
     }
 
     private var permissionMenu: some View {
@@ -327,7 +331,7 @@ struct MobileAssistantComposer: View {
                 }
             }
         } label: {
-            Label("Permissions", systemImage: resolvedPermissionMode.symbol)
+            Label(TermindCopy.Assistant.permissions.swiftUIKey, systemImage: resolvedPermissionMode.symbol)
                 .labelStyle(.iconOnly)
                 .mobileComposerControlIcon(isDestructive: resolvedPermissionMode == .fullAccess)
         }
@@ -335,7 +339,7 @@ struct MobileAssistantComposer: View {
         .buttonStyle(.plain)
         .fixedSize()
         .layoutPriority(1)
-        .accessibilityLabel("Permissions")
+        .accessibilityLabel(TermindCopy.Assistant.permissions.swiftUIKey)
     }
 
     private var resolvedPermissionMode: AgentPermissionMode {
@@ -360,7 +364,7 @@ struct MobileAssistantComposer: View {
                 if ownsTranscription && model.speech.isRequestingAuthorization {
                     ProgressView().controlSize(.small)
                 } else {
-                    Label("Voice Input", systemImage: "mic").labelStyle(.iconOnly)
+                    Label(TermindCopy.Assistant.voiceInput.swiftUIKey, systemImage: "mic").labelStyle(.iconOnly)
                 }
             }
             .mobileComposerControlIcon()
@@ -370,19 +374,19 @@ struct MobileAssistantComposer: View {
             !model.speech.canStart(for: conversation.id)
                 || (ownsTranscription && model.speech.isRequestingAuthorization)
         )
-        .accessibilityLabel(Text("Voice Input"))
+        .accessibilityLabel(Text(TermindCopy.Assistant.voiceInput))
     }
 
     @ViewBuilder private var primaryButton: some View {
         if conversation.isPreparingAgentRun || (conversation.isStreaming && !canSend) {
             Button(action: conversation.stop) {
-                Label("Stop", systemImage: "stop.circle.fill").labelStyle(.iconOnly)
+                Label(TermindCopy.Common.stop.swiftUIKey, systemImage: "stop.circle.fill").labelStyle(.iconOnly)
                     .font(.system(size: 34, weight: .semibold)).foregroundStyle(.red)
                     .frame(width: 48, height: 48).contentShape(.circle)
             }
         } else {
             Button(action: send) {
-                Label("Send", systemImage: "arrow.up.circle.fill").labelStyle(.iconOnly)
+                Label(TermindCopy.Assistant.send.swiftUIKey, systemImage: "arrow.up.circle.fill").labelStyle(.iconOnly)
                     .font(.system(size: 34, weight: .semibold)).frame(width: 48, height: 48).contentShape(.circle)
             }
             .disabled(!canSend)
@@ -393,7 +397,7 @@ struct MobileAssistantComposer: View {
         NavigationStack {
             Form {
                 if conversation.contextEstimate.total > 0 {
-                    Section("Context") {
+                    Section(TermindCopy.Assistant.context.swiftUIKey) {
                         ContextBreakdownView(
                             estimate: conversation.contextEstimate,
                             contextWindow: resolved?.model.contextLength,
@@ -402,10 +406,10 @@ struct MobileAssistantComposer: View {
                         )
                     }
                 }
-                Section("Model") {
+                Section(TermindCopy.Assistant.model.swiftUIKey) {
                     assistantModelPicker
                     if supportsThinking, let reasoningResolution {
-                        Picker("Effort", selection: $conversation.reasoningEffort) {
+                        Picker(TermindCopy.Assistant.effort.swiftUIKey, selection: $conversation.reasoningEffort) {
                             ForEach(reasoningResolution.supported, id: \.self) { effort in
                                 Text(effort.displayName).tag(effort)
                             }
@@ -413,11 +417,11 @@ struct MobileAssistantComposer: View {
                     }
                 }
             }
-            .navigationTitle("Model")
+            .navigationTitle(TermindCopy.Assistant.model.swiftUIKey)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done", systemImage: "checkmark") { contextDetails = false }
+                    Button(TermindCopy.Common.done.swiftUIKey, systemImage: "checkmark") { contextDetails = false }
                         .labelStyle(.iconOnly)
                         .buttonStyle(.plain)
                         .foregroundStyle(.primary)
@@ -458,7 +462,7 @@ struct MobileAssistantComposer: View {
                         .contentShape(.capsule)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Remove \(chip.label)"))
+                    .accessibilityLabel(Text(TermindCopy.Common.removeNamed(chip.label)))
                 }
                 ForEach(composer.pendingAttachments) { pending in
                     Button {
@@ -477,7 +481,7 @@ struct MobileAssistantComposer: View {
                         .contentShape(.capsule)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Cancel importing \(pending.label)"))
+                    .accessibilityLabel(Text(TermindCopy.Assistant.cancelImporting(pending.label)))
                 }
             }
         }.scrollIndicators(.hidden).fixedSize(horizontal: false, vertical: true)
@@ -485,10 +489,10 @@ struct MobileAssistantComposer: View {
 
     @ViewBuilder private var assistantModelPicker: some View {
         if modelProviders.isEmpty {
-            Text("No models configured").foregroundStyle(.secondary)
+            Text(TermindCopy.Assistant.noModelsConfigured).foregroundStyle(.secondary)
         } else {
             Picker(
-                "Model",
+                TermindCopy.Assistant.model.swiftUIKey,
                 selection: Binding(
                     get: { resolvedModelRef },
                     set: { if let value = $0 { model.selectModel(value) } })
@@ -509,8 +513,8 @@ struct MobileAssistantComposer: View {
         if conversation.isPlanning {
             MobileDismissibleComposerBadge(
                 symbol: "lightbulb.max",
-                help: Text("Plan mode — click to turn off"),
-                accessibilityLabel: Text("Plan mode on, turn off")
+                help: Text(TermindCopy.Assistant.planModeClickToTurnOff),
+                accessibilityLabel: Text(TermindCopy.Assistant.planModeOnTurnOff)
             ) {
                 conversation.isPlanning = false
             }
@@ -518,8 +522,8 @@ struct MobileAssistantComposer: View {
         if let skill = composer.armedSkillName {
             MobileDismissibleComposerBadge(
                 symbol: "book.closed",
-                help: Text("\(skill) will be loaded for this message — click to remove"),
-                accessibilityLabel: Text("Skill \(skill) armed, remove")
+                help: Text(TermindCopy.Assistant.armedSkillHelp(skill)),
+                accessibilityLabel: Text(TermindCopy.Assistant.skillArmedRemove(skill))
             ) {
                 composer.armedSkillName = nil
             }
@@ -552,12 +556,10 @@ struct MobileAssistantComposer: View {
         reasoningResolution?.supported.contains(where: { $0 != .off }) == true
     }
 
-    private var modelAndEffortAccessibilityLabel: String {
-        guard let resolved else { return String(localized: "Model, no model configured") }
-        guard supportsThinking else { return String(localized: "Model \(resolved.model.label)") }
-        return String(
-            localized: "Model \(resolved.model.label), effort \(effectiveReasoningEffort.displayName)"
-        )
+    private var modelAndEffortAccessibilityLabel: LocalizedStringResource {
+        TermindCopy.Assistant.modelAccessibilityLabel(
+            modelName: resolved?.model.label,
+            effortName: supportsThinking ? effectiveReasoningEffort.displayName : nil)
     }
 
     var availableCommands: [ChatSlashCommand] {
@@ -585,13 +587,8 @@ struct MobileAssistantComposer: View {
         slashRegistry.isCurrent(row, in: slashContext)
     }
 
-    private func localized(_ resource: String.LocalizationValue) -> String {
-        let candidates = [locale.identifier, locale.language.languageCode?.identifier].compactMap { $0 }
-        let bundle =
-            candidates.lazy.compactMap { identifier in
-                Bundle.main.path(forResource: identifier, ofType: "lproj").flatMap(Bundle.init(path:))
-            }.first ?? .main
-        return String(localized: resource, bundle: bundle, locale: locale)
+    private func localized(_ resource: LocalizedStringResource) -> String {
+        AppLocalization.resolve(resource, locale: locale)
     }
 
     private func acceptSlashRow(_ row: ChatSlashCommandCompletion.Row) {
@@ -639,7 +636,7 @@ struct MobileAssistantComposer: View {
             },
             send: model.send,
             authorizeRemoteMCP: { pro.require(.remoteMCP) },
-            localized: localized
+            localized: { AppLocalization.string($0, locale: locale) }
         )
     }
 
@@ -652,7 +649,8 @@ struct MobileAssistantComposer: View {
 
     private func importPhotos(_ items: [PhotosPickerItem]) async {
         for item in items {
-            guard !Task.isCancelled, let pending = conversation.beginAttachmentImport(label: String(localized: "Photo"))
+            guard !Task.isCancelled,
+                let pending = conversation.beginAttachmentImport(label: String(localized: TermindCopy.Assistant.photo))
             else { break }
             do {
                 guard let data = try await item.loadTransferable(type: Data.self) else {
@@ -660,7 +658,7 @@ struct MobileAssistantComposer: View {
                 }
                 try Task.checkCancellation()
                 let chip = try await conversation.attachmentLoader.image(
-                    data, String(localized: "Photo"))
+                    data, String(localized: TermindCopy.Assistant.photo))
                 try Task.checkCancellation()
                 conversation.finishAttachmentImport(pending.id, with: chip)
             } catch is CancellationError { conversation.cancelAttachmentImport(pending.id) } catch {
@@ -686,7 +684,8 @@ struct MobileAssistantComposer: View {
             if granted {
                 camera = true
             } else {
-                composer.attachmentImportError = String(localized: "Allow camera access in Settings to take a photo.")
+                composer.attachmentImportError = String(
+                    localized: TermindCopy.Assistant.allowCameraAccessInSettingsToTakeAPhoto)
             }
         }
     }

@@ -1,6 +1,7 @@
 import SwiftData
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 @main
 struct TermindIOSApp: App {
@@ -25,8 +26,8 @@ struct TermindIOSApp: App {
                     .preferredColorScheme(appearance == "dark" ? .dark : appearance == "light" ? .light : nil)
             case .failure:
                 ContentUnavailableView(
-                    "Unable to Open Termind", systemImage: "exclamationmark.triangle",
-                    description: Text("The local data store could not be opened. Please restart the app."))
+                    TermindCopy.Common.unableToOpenTermind.swiftUIKey, systemImage: "exclamationmark.triangle",
+                    description: Text(TermindCopy.Common.openDataStoreFailure))
             }
         }
         .commands { MobileCommands() }

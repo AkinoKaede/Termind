@@ -3,6 +3,7 @@ import GhosttyTerminal
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -116,7 +117,7 @@ final class TelnetSessionModel: Identifiable {
         connection = nil
         let host = store.host(hostID) ?? transientHost
         guard host.telnetEnabled else {
-            fail(String(localized: "Telnet is disabled for this Host."))
+            fail(String(localized: TermindCopy.Connections.telnetIsDisabledForThisHost))
             return
         }
         let username = usernameHint ?? store.identity(for: host, protocol: .telnet)?.username
@@ -152,7 +153,7 @@ final class TelnetSessionModel: Identifiable {
                 Task { @MainActor in
                     guard let self, self.connection != nil else { return }
                     self.connection = nil
-                    self.fail(message ?? String(localized: "The Telnet connection closed."))
+                    self.fail(message ?? String(localized: TermindCopy.Terminal.theTelnetConnectionClosed))
                 }
             }
         )

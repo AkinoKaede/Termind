@@ -32,7 +32,7 @@ struct QuickOpenOverlay: View {
         }
         .onExitCommand(perform: close)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("Quick Open"))
+        .accessibilityLabel(Text(TermindCopy.Navigation.quickOpen))
     }
 
     private func close() {
@@ -121,7 +121,9 @@ struct QuickOpenView: View {
                 .accessibilityHidden(true)
 
             TextField(
-                "Search pages, chats, workspaces, hosts, and actions...", text: $query.singleLineText, axis: .horizontal
+                TermindCopy.Navigation.searchPagesChatsWorkspacesHostsAndActions.swiftUIKey,
+                text: $query.singleLineText,
+                axis: .horizontal
             )
             .singleLinePaste()
             .lineLimit(1)
@@ -138,7 +140,7 @@ struct QuickOpenView: View {
             .onKeyPress(.upArrow) { moveSelection(by: -1) }
             .onKeyPress(.downArrow) { moveSelection(by: 1) }
             .onExitCommand(perform: dismiss)
-            .accessibilityLabel(Text("Search Quick Open"))
+            .accessibilityLabel(Text(TermindCopy.Navigation.searchQuickOpen))
 
             if !query.isEmpty {
                 Button {
@@ -151,8 +153,8 @@ struct QuickOpenView: View {
                 }
                 .buttonStyle(.plain)
                 .focusable(false)
-                .help(Text("Clear search"))
-                .accessibilityLabel(Text("Clear search"))
+                .help(Text(TermindCopy.Common.clearSearch))
+                .accessibilityLabel(Text(TermindCopy.Common.clearSearch))
             }
 
             QuickOpenKeycap(keys: "esc")
@@ -170,9 +172,9 @@ struct QuickOpenView: View {
                     .font(.system(size: 25, weight: .medium))
                     .foregroundStyle(.tertiary)
                     .accessibilityHidden(true)
-                Text("No results")
+                Text(TermindCopy.Common.noResults)
                     .font(.headline)
-                Text("No results match “\(query)”")
+                Text(TermindCopy.Common.noResultsMatch(query))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -288,9 +290,9 @@ struct QuickOpenView: View {
 
     private var shortcutFooter: some View {
         HStack(spacing: Metrics.Space.xl) {
-            QuickOpenShortcutHint(keys: "↑↓", label: String(localized: "Navigate"))
-            QuickOpenShortcutHint(keys: "↩", label: String(localized: "Open"))
-            QuickOpenShortcutHint(keys: "esc", label: String(localized: "Close"))
+            QuickOpenShortcutHint(keys: "↑↓", label: String(localized: TermindCopy.Navigation.navigate))
+            QuickOpenShortcutHint(keys: "↩", label: String(localized: TermindCopy.Common.open))
+            QuickOpenShortcutHint(keys: "esc", label: String(localized: TermindCopy.Common.close))
             Spacer(minLength: 0)
         }
         .padding(.horizontal, Metrics.Space.xl)

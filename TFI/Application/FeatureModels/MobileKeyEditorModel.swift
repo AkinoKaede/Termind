@@ -2,6 +2,7 @@ import Foundation
 import Observation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 @MainActor
@@ -66,7 +67,7 @@ final class MobileKeyEditorModel: Identifiable {
             case .some(.failed(let message)):
                 privateKeyLoadError = message
             case .some(.missing), .some(.notConfigured), .none:
-                privateKeyLoadError = String(localized: "The private key is unavailable on this device.")
+                privateKeyLoadError = String(localized: TermindCopy.Keychain.thePrivateKeyIsUnavailableOnThisDevice)
             case .some(.available):
                 break
             }
@@ -148,7 +149,7 @@ final class MobileKeyEditorModel: Identifiable {
         do {
             guard case .software(let secret)? = try credentials.keyCredential(for: original) else {
                 throw TermindSSHError.library(
-                    String(localized: "The private key is unavailable on this device.")
+                    String(localized: TermindCopy.Keychain.thePrivateKeyIsUnavailableOnThisDevice)
                 )
             }
             privateKey = secret.privateKey

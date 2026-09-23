@@ -1,6 +1,7 @@
 import AgentKit
 import SwiftUI
 import TermindInfrastructure
+import TermindPresentation
 import UniformTypeIdentifiers
 
 /// The "Skills" section: procedures the assistant may load and follow.
@@ -21,7 +22,7 @@ struct SkillSettings: View {
         Section {
             if !app.skills.conflictingSkillIDs.isEmpty {
                 Label(
-                    "Some skills have duplicate names and are paused. Rename them to resolve the conflict.",
+                    TermindCopy.Settings.duplicateSkillNames.swiftUIKey,
                     systemImage: "exclamationmark.triangle"
                 )
                 .foregroundStyle(.orange)
@@ -30,16 +31,16 @@ struct SkillSettings: View {
                 SkillRow(skill: skill) { edit(skill.id, false) }
             }
 
-            FormNavigationAction(title: "Add Skill") {
+            FormNavigationAction(title: TermindCopy.Settings.addSkill) {
                 let skill = AgentSkill(name: "")
                 app.skills.upsert(skill)
                 edit(skill.id, true)
             }
 
-            Button("Import Skill") { importSkill() }
+            Button(TermindCopy.Settings.importSkill.swiftUIKey) { importSkill() }
 
             Text(
-                "A skill is a procedure the assistant loads when a task matches its description, and then follows. It never approves an action: commands, writes and transfers still ask exactly as they would otherwise."
+                TermindCopy.Settings.skillExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -66,7 +67,7 @@ struct SkillSettings: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
         } header: {
-            Text("Skills")
+            Text(TermindCopy.Settings.skills)
         }
     }
 
@@ -86,7 +87,7 @@ struct SkillSettings: View {
         panel.canChooseDirectories = true
         panel.canChooseFiles = true
         panel.allowedContentTypes = [UTType(filenameExtension: "md") ?? .plainText]
-        panel.message = String(localized: "Choose a SKILL.md file, or a folder that contains one.")
+        panel.message = String(localized: TermindCopy.Settings.chooseASkillMdFileOrAFolderThatContainsOne)
         guard panel.runModal() == .OK, let url = panel.url else { return }
 
         do {
@@ -117,7 +118,7 @@ private struct SkillRow: View {
                     .lineLimit(1)
                 Text(
                     skill.summary.isEmpty
-                        ? String(localized: "No description") : skill.summary
+                        ? String(localized: TermindCopy.Settings.noDescription) : skill.summary
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -128,7 +129,7 @@ private struct SkillRow: View {
             Spacer(minLength: Metrics.Space.m)
 
             if !skill.isComplete {
-                CardChip(text: String(localized: "Draft"), symbol: "pencil.line")
+                CardChip(text: String(localized: TermindCopy.Settings.draft), symbol: "pencil.line")
             }
 
             Toggle("", isOn: enabled)
@@ -136,7 +137,7 @@ private struct SkillRow: View {
                 .toggleStyle(.switch)
                 .controlSize(.mini)
                 .disabled(!skill.isComplete)
-                .accessibilityLabel(Text("Enable \(skill.displayTitle)"))
+                .accessibilityLabel(Text(TermindCopy.Settings.enableNamed(skill.displayTitle)))
 
             Button(action: edit) {
                 Image(systemName: "chevron.right")
@@ -144,7 +145,7 @@ private struct SkillRow: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Edit \(skill.displayTitle)"))
+            .accessibilityLabel(Text(TermindCopy.Settings.edit(skill.displayTitle)))
         }
         .contentShape(.rect)
         .onTapGesture(perform: edit)

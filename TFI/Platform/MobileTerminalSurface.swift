@@ -1,6 +1,7 @@
 import GhosttyTerminal
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import UIKit
 
 /// A workspace owns its native surface even while SwiftUI navigates away from it.
@@ -21,8 +22,8 @@ final class MobileTerminalView: TerminalView {
 
     override var keyCommands: [UIKeyCommand]? {
         var commands = super.keyCommands ?? []
-        commands.append(findCommand(title: "Find Next in Terminal", modifiers: []))
-        commands.append(findCommand(title: "Find Previous in Terminal", modifiers: .shift))
+        commands.append(findCommand(title: TermindCopy.Terminal.findNextInTerminal, modifiers: []))
+        commands.append(findCommand(title: TermindCopy.Terminal.findPreviousInTerminal, modifiers: .shift))
 
         guard findController?.isPresented == true else { return commands }
         commands.removeAll(where: isDismissFindEquivalent)
@@ -52,7 +53,7 @@ final class MobileTerminalView: TerminalView {
 
     private func dismissFindCommand(modifiers: UIKeyModifierFlags) -> UIKeyCommand {
         let command = UIKeyCommand(
-            title: String(localized: "Close Find"),
+            title: String(localized: TermindCopy.Terminal.closeFind),
             action: #selector(handleDismissFindCommand(_:)),
             input: UIKeyCommand.inputEscape,
             modifierFlags: modifiers

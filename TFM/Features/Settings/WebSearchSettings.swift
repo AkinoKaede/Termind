@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 struct WebSearchSettings: View {
     @Environment(AppModel.self) private var app
@@ -17,27 +18,27 @@ struct WebSearchSettings: View {
 
     var body: some View {
         Section {
-            Toggle("Enable Web Search", isOn: binding(\.isEnabled))
+            Toggle(TermindCopy.Settings.enableWebSearch.swiftUIKey, isOn: binding(\.isEnabled))
 
-            Toggle("Prefer Built-in Web Search", isOn: binding(\.prefersBuiltIn))
+            Toggle(TermindCopy.Settings.preferBuiltInWebSearch.swiftUIKey, isOn: binding(\.prefersBuiltIn))
                 .disabled(!isEnabled)
 
             Text(
                 usesBuiltIn
                     ? String(
                         localized:
-                            "Models with provider-native search use it directly. Other models search Google, Bing, DuckDuckGo, and Yahoo from this Mac and read result pages as Markdown."
+                            TermindCopy.Settings.nativeAndFallbackSearchExplanation
                     )
                     : String(
                         localized:
-                            "Every model searches Google, Bing, DuckDuckGo, and Yahoo from this Mac and reads result pages as Markdown."
+                            TermindCopy.Settings.webSearchExplanation
                     )
             )
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
         } header: {
-            Text("Web Search")
+            Text(TermindCopy.Settings.webSearch)
         }
 
     }

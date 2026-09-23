@@ -2,6 +2,7 @@ import AgentKit
 import Foundation
 import Observation
 import TermindApplication
+import TermindPresentation
 
 @MainActor @Observable
 final class MobileMCPEditorModel {
@@ -82,7 +83,9 @@ final class MobileMCPEditorModel {
                 }
                 draft.negotiatedVersion = outcome.protocolVersion
                 draft.lastConnectedAt = .now
-                connection = String(localized: "\(outcome.serverName) — \(draft.tools.count) tools")
+                connection = String(
+                    localized: TermindCopy.Settings.discoveredTools(
+                        server: outcome.serverName, count: draft.tools.count))
             } catch {
                 guard let self, generation == token, !Task.isCancelled,
                     ai.mcpServer(original.id) == persisted, draft.name == server.name,
@@ -129,7 +132,7 @@ final class MobileMCPEditorModel {
         var value = draft
         if wasPersisted {
             guard let current = ai.mcpServer(original.id) else {
-                throw MobileEditorError.message(String(localized: "Server Deleted"))
+                throw MobileEditorError.message(String(localized: TermindCopy.Settings.serverDeleted))
             }
             var fields = SettingsFields(original, draft, current)
             try fields.merge(\.name)
@@ -162,7 +165,7 @@ final class MobileMCPEditorModel {
         value.url = value.url.trimmingCharacters(in: .whitespacesAndNewlines)
         if value.namespaceID.isEmpty { value.namespaceID = value.effectiveNamespaceID }
         guard !ai.hasMCPNamespaceConflict(value.effectiveNamespaceID, excluding: value.id) else {
-            throw MobileEditorError.message(String(localized: "Another MCP server already uses this ID."))
+            throw MobileEditorError.message(String(localized: TermindCopy.Settings.anotherMcpServerAlreadyUsesThisId))
         }
         try key.commit(in: ai, reference: value.credentialRef, kind: "mcp") { reference in
             value.credentialRef = reference

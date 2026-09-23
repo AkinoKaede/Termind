@@ -159,33 +159,35 @@ struct RootView: View {
         )
         .animation(Motion.panel(reduceMotion: reduceMotion), value: presentations.route?.id)
         .alert(
-            "Conversation Operation Failed",
+            TermindCopy.Assistant.conversationOperationFailed.swiftUIKey,
             isPresented: Binding(
                 get: { window.assistantOperationError != nil },
                 set: { if !$0 { window.assistantOperationError = nil } }
             )
         ) {
-            Button("OK") { window.assistantOperationError = nil }
+            Button(TermindCopy.Common.ok.swiftUIKey) { window.assistantOperationError = nil }
         } message: {
             Text(window.assistantOperationError ?? "")
         }
         .alert(
-            "Workspace Template",
+            TermindCopy.Workspace.workspaceTemplate.swiftUIKey,
             isPresented: Binding(
                 get: { window.workspaceTemplateNotice != nil },
                 set: { if !$0 { window.workspaceTemplateNotice = nil } }
             )
         ) {
-            Button("OK") { window.workspaceTemplateNotice = nil }
+            Button(TermindCopy.Common.ok.swiftUIKey) { window.workspaceTemplateNotice = nil }
         } message: {
             Text(window.workspaceTemplateNotice ?? "")
         }
-        .dismissalConfirmationDialog("Close this window?", shouldPresent: !window.workspaces.isEmpty) {
-            Button("Cancel", role: .cancel) {}
+        .dismissalConfirmationDialog(
+            TermindCopy.Workspace.closeThisWindowConfirmation, shouldPresent: !window.workspaces.isEmpty
+        ) {
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
                 .keyboardShortcut(.defaultAction)
-            Button("Close Window", role: .destructive) {}
+            Button(TermindCopy.Workspace.closeWindow.swiftUIKey, role: .destructive) {}
         } message: {
-            Text("This window still has open Workspaces. Closing it will close them and disconnect their sessions.")
+            Text(TermindCopy.Workspace.closeWindowWarning)
         }
         // No ancestor drop target: pane and Navigator targets must own internal
         // layout drops without competing for the same text payload.
@@ -402,25 +404,25 @@ private struct ExternalConnectionURLPresenter: ViewModifier {
         content
             .onOpenURL { app.openExternalConnection($0, in: window) }
             .alert(
-                "Open Telnet Connection?",
+                TermindCopy.Workspace.openTelnetConnectionConfirmation.swiftUIKey,
                 isPresented: Binding(
                     get: { window.pendingExternalConnection != nil },
                     set: { if !$0 { window.pendingExternalConnection = nil } }
                 )
             ) {
-                Button("Cancel", role: .cancel) { window.pendingExternalConnection = nil }
-                Button("Continue") { app.confirmExternalConnection(in: window) }
+                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { window.pendingExternalConnection = nil }
+                Button(TermindCopy.Common.continue.swiftUIKey) { app.confirmExternalConnection(in: window) }
             } message: {
-                Text("This link includes an advisory Telnet password. It will be used once and will not be saved.")
+                Text(TermindCopy.Workspace.advisoryTelnetPassword)
             }
             .alert(
-                "Connection Link Failed",
+                TermindCopy.Workspace.connectionLinkFailed.swiftUIKey,
                 isPresented: Binding(
                     get: { window.externalConnectionError != nil },
                     set: { if !$0 { window.externalConnectionError = nil } }
                 )
             ) {
-                Button("OK") { window.externalConnectionError = nil }
+                Button(TermindCopy.Common.ok.swiftUIKey) { window.externalConnectionError = nil }
             } message: {
                 Text(window.externalConnectionError ?? "")
             }

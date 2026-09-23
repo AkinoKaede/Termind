@@ -1,6 +1,7 @@
 import AppKit
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 import UniformTypeIdentifiers
 
 struct LoggingFilesSettings: View {
@@ -45,13 +46,15 @@ struct LoggingFilesSettings: View {
         }
         .background(LoggingSharingService(url: $shareURL))
         .confirmationDialog(
-            "Delete all logging files?", isPresented: $showsDeleteAll,
+            TermindCopy.Settings.deleteAllLoggingFilesConfirmation.swiftUIKey, isPresented: $showsDeleteAll,
             titleVisibility: .visible
         ) {
-            Button("Delete All", role: .destructive) { perform { try app.logging.deleteAll() } }
+            Button(TermindCopy.Common.deleteAll.swiftUIKey, role: .destructive) {
+                perform { try app.logging.deleteAll() }
+            }
         }
-        .alert("Logging", isPresented: errorPresented) {
-            Button("OK", role: .cancel) { errorMessage = nil }
+        .alert(TermindCopy.Settings.logging.swiftUIKey, isPresented: errorPresented) {
+            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }
@@ -59,25 +62,25 @@ struct LoggingFilesSettings: View {
 
     private var loggingOptionsSection: some View {
         Section {
-            Toggle("Save", isOn: savingBinding)
+            Toggle(TermindCopy.Common.save.swiftUIKey, isOn: savingBinding)
                 .toggleStyle(.switch)
-            Picker("Level", selection: levelBinding) {
+            Picker(TermindCopy.Settings.level.swiftUIKey, selection: levelBinding) {
                 ForEach(ApplicationLogLevel.allCases) { level in
                     Text(verbatim: level.localizedName).tag(level.rawValue)
                 }
             }
         } header: {
-            Text("Logging")
+            Text(TermindCopy.Settings.logging)
         } footer: {
-            Text("Logs may contain private diagnostic information. Review them before sharing.")
+            Text(TermindCopy.Settings.logSharingWarning)
         }
     }
 
     @ViewBuilder
     private var logsSection: some View {
-        Section("Logs") {
+        Section(TermindCopy.Settings.logs.swiftUIKey) {
             if files.isEmpty {
-                Text("No saved logs.").foregroundStyle(.secondary)
+                Text(TermindCopy.Settings.noSavedLogsLabel).foregroundStyle(.secondary)
             } else {
                 ForEach(files) { file in
                     logRow(file)
@@ -90,7 +93,7 @@ struct LoggingFilesSettings: View {
     private var deleteAllSection: some View {
         if !files.isEmpty {
             Section {
-                Button("Delete All", role: .destructive) { showsDeleteAll = true }
+                Button(TermindCopy.Common.deleteAll.swiftUIKey, role: .destructive) { showsDeleteAll = true }
             }
         }
     }
@@ -106,7 +109,7 @@ struct LoggingFilesSettings: View {
                             file.createdAt,
                             format: .dateTime.year().month().day().hour().minute().second())
                         if file.isCurrent {
-                            Text("Current").font(.caption).foregroundStyle(.secondary)
+                            Text(TermindCopy.Common.current).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     Text(ByteCountFormatter.string(fromByteCount: file.byteCount, countStyle: .file))
@@ -120,14 +123,14 @@ struct LoggingFilesSettings: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button("Save", systemImage: "square.and.arrow.down") {
+            Button(TermindCopy.Common.save.swiftUIKey, systemImage: "square.and.arrow.down") {
                 prepare(file, action: .save)
             }
-            Button("Share", systemImage: "square.and.arrow.up") {
+            Button(TermindCopy.Common.share.swiftUIKey, systemImage: "square.and.arrow.up") {
                 prepare(file, action: .share)
             }
             Divider()
-            DestructiveMenuButton("Delete") {
+            DestructiveMenuButton(TermindCopy.Common.delete) {
                 perform { try app.logging.delete(file.id) }
             }
         }
@@ -201,17 +204,17 @@ private struct LoggingShareSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            Text("Share Logging").font(.title2.bold())
+            Text(TermindCopy.Settings.shareLogging).font(.title2.bold())
             Label(
-                "Logs may contain private diagnostic information. Review where you send or save them.",
+                TermindCopy.Settings.logExportWarning.swiftUIKey,
                 systemImage: "hand.raised.fill"
             )
             .foregroundStyle(.secondary)
             HStack {
-                Button("Cancel", role: .cancel) { dismiss() }
+                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { dismiss() }
                 Spacer()
-                Button("Save") { save() }
-                Button("Share") { share() }.keyboardShortcut(.defaultAction)
+                Button(TermindCopy.Common.save.swiftUIKey) { save() }
+                Button(TermindCopy.Common.share.swiftUIKey) { share() }.keyboardShortcut(.defaultAction)
             }
         }
         .padding(24)

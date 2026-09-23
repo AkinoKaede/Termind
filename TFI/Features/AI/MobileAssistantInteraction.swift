@@ -61,7 +61,7 @@ struct MobileAssistantInteraction: View {
         )
         return VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Label("Approval required", systemImage: "hand.raised.fill")
+                Label(TermindCopy.Assistant.approvalRequired.swiftUIKey, systemImage: "hand.raised.fill")
                     .font(.headline)
                 Spacer()
                 MobileAssistantQueueDepthLabel(remaining: conversation.pendingApprovals.count)
@@ -88,13 +88,13 @@ struct MobileAssistantInteraction: View {
             .frame(maxHeight: AgentToolPresentation.usesCompactDetails(for: approval.descriptor) ? approvalHeight : nil)
 
             HStack {
-                Button("Deny", systemImage: "xmark", role: .destructive) {
+                Button(TermindCopy.Common.deny.swiftUIKey, systemImage: "xmark", role: .destructive) {
                     conversation.respondToApproval(approval.id, allow: false)
                 }
                 .frame(minHeight: 44)
                 .accessibilityIdentifier("AssistantApproval.Deny")
                 Spacer()
-                Button("Allow Once", systemImage: "checkmark") {
+                Button(TermindCopy.Assistant.allowOnce.swiftUIKey, systemImage: "checkmark") {
                     conversation.respondToApproval(approval.id, allow: true)
                 }
                 .buttonStyle(.borderedProminent)
@@ -196,7 +196,7 @@ struct MobileAssistantInteraction: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
                 .accessibilityHidden(true)
-            RevealableSecretField("Secret", text: $conversation.secretInputDraft)
+            RevealableSecretField(TermindCopy.Keychain.secret, text: $conversation.secretInputDraft)
                 .textContentType(.password)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -215,7 +215,7 @@ struct MobileAssistantInteraction: View {
                 .foregroundStyle(.secondary)
                 .frame(width: 20)
                 .accessibilityHidden(true)
-            TextField("Answer", text: answer(question.id), axis: .vertical)
+            TextField(TermindCopy.Assistant.answer.swiftUIKey, text: answer(question.id), axis: .vertical)
                 .lineLimit(1...3)
                 .focused($focusedInput, equals: .text(question.id))
                 .submitLabel(isLastQuestion ? .done : .next)
@@ -257,7 +257,7 @@ struct MobileAssistantInteraction: View {
                         Text(option.label)
                             .font(.callout.weight(.medium))
                         if option.isRecommended {
-                            Text("Recommended")
+                            Text(TermindCopy.Assistant.recommended)
                                 .font(.caption2.weight(.semibold))
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 2)
@@ -312,7 +312,7 @@ struct MobileAssistantInteraction: View {
     @ViewBuilder
     private func customAnswerField(_ choice: AgentUserInputChoice, in questionID: String) -> some View {
         if choice.customPlaceholder.isEmpty {
-            TextField("Something else…", text: answer(questionID))
+            TextField(TermindCopy.Assistant.otherAnswer.swiftUIKey, text: answer(questionID))
         } else {
             TextField(choice.customPlaceholder, text: answer(questionID))
         }
@@ -357,10 +357,10 @@ struct MobileAssistantInteraction: View {
 
     private var leadingActions: some View {
         HStack(spacing: 10) {
-            Button("Cancel", role: .cancel) { conversation.cancelUserInput() }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { conversation.cancelUserInput() }
                 .keyboardShortcut(MobileShortcut.formCancel)
             if conversation.currentUserInputQuestionIndex > 0 {
-                Button("Back") { conversation.previousUserInputQuestion() }
+                Button(TermindCopy.Common.back.swiftUIKey) { conversation.previousUserInputQuestion() }
             }
         }
         .frame(minHeight: 44)
@@ -377,11 +377,11 @@ struct MobileAssistantInteraction: View {
     }
 
     private var skipButton: some View {
-        Button("Skip") { conversation.skipUserInputQuestion() }
+        Button(TermindCopy.Common.skip.swiftUIKey) { conversation.skipUserInputQuestion() }
     }
 
     private func primaryButton(for question: AgentUserQuestion) -> some View {
-        Button(isLastQuestion ? "Submit" : "Next") {
+        Button(isLastQuestion ? TermindCopy.Common.submit.swiftUIKey : TermindCopy.Common.next.swiftUIKey) {
             advanceFromKeyboard(question.id)
         }
         .buttonStyle(.borderedProminent)
@@ -392,7 +392,9 @@ struct MobileAssistantInteraction: View {
 
     private var questionProgress: some View {
         Text(
-            "Question \(conversation.currentUserInputQuestionIndex + 1) of \(conversation.pendingUserInput?.questions.count ?? 0)"
+            TermindCopy.Assistant.questionOf(
+                current: conversation.currentUserInputQuestionIndex + 1,
+                total: conversation.pendingUserInput?.questions.count ?? 0)
         )
         .font(.caption.monospacedDigit())
         .foregroundStyle(.secondary)
@@ -431,7 +433,7 @@ private struct MobileAssistantQueueDepthLabel: View {
 
     var body: some View {
         if remaining > 1 {
-            Text("1 of \(remaining)")
+            Text(TermindCopy.Assistant.firstQuestionOf(remaining))
                 .font(.caption.monospacedDigit())
                 .foregroundStyle(.secondary)
         }

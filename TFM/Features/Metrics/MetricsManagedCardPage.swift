@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 /// Uses the same native selection, hover, marquee and drag renderer as Hosts.
 struct MetricsManagedCardPage: ManagedCardPage {
@@ -63,8 +64,8 @@ struct MetricsManagedCardPage: ManagedCardPage {
     }
     func managedEmptyState() -> some View {
         ContentUnavailableView(
-            "No monitored servers", systemImage: "waveform.path.ecg",
-            description: Text("Add a saved Linux server to start monitoring.")
+            TermindCopy.Metrics.noMonitoredServers.swiftUIKey, systemImage: "waveform.path.ecg",
+            description: Text(TermindCopy.Metrics.addASavedLinuxServerToStartMonitoring)
         )
     }
     func managedNoResultsState() -> some View { ContentUnavailableView.search(text: window.metricsQuery) }

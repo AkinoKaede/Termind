@@ -1,5 +1,6 @@
 import GhosttyTerminal
 import SwiftUI
+import TermindPresentation
 import UIKit
 
 struct MobileTerminalTextSelection: Identifiable {
@@ -72,7 +73,7 @@ final class MobileTerminalTextSelectionViewController: UIViewController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = String(localized: "Select Text")
+        title = String(localized: TermindCopy.Terminal.selectText)
         view.backgroundColor = .clear
         textView.text = selection.text
         view.addSubview(textView)

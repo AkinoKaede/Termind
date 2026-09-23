@@ -189,6 +189,20 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func presentationCopyHasOneSharedOwner() throws {
+        let declaration = try Regex(#"\b(?:enum|struct|class)\s+TermindCopy\b"#)
+        for directory in ["", "../TFI"] {
+            for file in try swiftFiles(in: directory) {
+                let source = try String(contentsOf: file, encoding: .utf8)
+                #expect(source.firstMatch(of: declaration) == nil, "App-local copy owner in \(file.path)")
+            }
+        }
+        try assertNoImports(
+            in: "../Frameworks/TermindPresentation/Copy",
+            forbidden: ["Termind", "TermindIOS", "AppKit", "UIKit", "TermindInfrastructure", "TermindPersistence"])
+    }
+
+    @Test
     func cloudSyncCoordinatorsUseSharedUploadAndQuarantineGates() throws {
         let root = sourceRoot.appending(path: "../Frameworks/TermindInfrastructure/Cloud")
         let files = try FileManager.default.contentsOfDirectory(

@@ -364,7 +364,7 @@ class TranscriptNativeRow: ListRowView {
         let alert = NSAlert()
         alert.messageText = title
         alert.informativeText = message
-        alert.addButton(withTitle: String(localized: "OK"))
+        alert.addButton(withTitle: String(localized: TermindCopy.Common.ok))
         if let window { alert.beginSheetModal(for: window) } else { alert.runModal() }
     }
 }
@@ -456,14 +456,14 @@ private enum NativeTranscriptFactory {
                         AgentWorkPresentation.reconnectingTitle(
                             $0, locale: context.configuration.locale
                         )
-                    } ?? String(localized: "Working…")
+                    } ?? String(localized: TermindCopy.Assistant.workingProgress)
                 let activity = NativeActivityLabel(
                     text: title,
                     alternatives: retry == nil
                         ? [
-                            String(localized: "Working…"),
-                            String(localized: "Thinking…"),
-                            String(localized: "Reasoning…"),
+                            String(localized: TermindCopy.Assistant.workingProgress),
+                            String(localized: TermindCopy.Assistant.thinkingProgress),
+                            String(localized: TermindCopy.Assistant.reasoningProgress),
                         ] : [title],
                     color: retry == nil ? .secondaryLabelColor : .tertiaryLabelColor,
                     reduceMotion: context.configuration.reduceMotion,
@@ -480,7 +480,7 @@ private enum NativeTranscriptFactory {
                 if canFork {
                     let fork = NativeButton(
                         symbol: "arrow.triangle.branch",
-                        help: String(localized: "Fork")
+                        help: String(localized: TermindCopy.Assistant.fork)
                     )
                     fork.handler = { context.actions.forkAssistantMessage(message.id) }
                     actions.addArrangedSubview(fork)
@@ -526,7 +526,7 @@ private enum NativeTranscriptFactory {
         case .interrupted:
             return labelRow(
                 symbol: "pause.circle",
-                text: String(localized: "This run was interrupted and was not resumed."),
+                text: String(localized: TermindCopy.Assistant.thisRunWasInterruptedAndWasNotResumed),
                 color: .secondaryLabelColor
             )
         case .user(let message, let canEdit):
@@ -557,12 +557,12 @@ private enum NativeTranscriptFactory {
         )
         stack.addArrangedSubview(
             NativeLabel(
-                String(localized: "Start a Conversation"),
+                String(localized: TermindCopy.Assistant.startAConversation),
                 font: .boldSystemFont(ofSize: NSFont.systemFontSize)
             ))
         stack.addArrangedSubview(
             NativeLabel(
-                String(localized: "Ask a question or describe what you want to do."),
+                String(localized: TermindCopy.Assistant.askAQuestionOrDescribeWhatYouWantToDo),
                 color: .secondaryLabelColor
             ))
         return stack
@@ -598,7 +598,7 @@ private enum NativeTranscriptFactory {
                     Task {
                         do { try await ContextAttachmentOpener.open(attachment) } catch {
                             context.presentError(
-                                String(localized: "Couldn’t Open Attachment"),
+                                String(localized: TermindCopy.Assistant.couldnTOpenAttachment),
                                 error.localizedDescription
                             )
                         }
@@ -616,7 +616,7 @@ private enum NativeTranscriptFactory {
             chips.identifier = NSUserInterfaceItemIdentifier("Transcript.UserChips")
             for chip in message.contextChips {
                 let button = NativeChipButton(symbol: chip.kind.symbol, title: chip.label)
-                button.toolTip = String(localized: "Open \(chip.label)")
+                button.toolTip = String(localized: TermindCopy.Assistant.open(chip.label))
                 button.handler = {
                     Task {
                         do {
@@ -630,7 +630,7 @@ private enum NativeTranscriptFactory {
                             }
                         } catch {
                             context.presentError(
-                                String(localized: "Couldn’t Open Attachment"),
+                                String(localized: TermindCopy.Assistant.couldnTOpenAttachment),
                                 error.localizedDescription
                             )
                         }
@@ -720,7 +720,7 @@ private enum NativeTranscriptFactory {
                 color: .tertiaryLabelColor
             ))
         if canEdit {
-            let edit = NativeButton(symbol: "pencil", help: String(localized: "Edit"))
+            let edit = NativeButton(symbol: "pencil", help: String(localized: TermindCopy.Common.edit))
             edit.handler = {
                 context.presentation.beginEditingMessage(message.id, text: message.text)
                 context.invalidate(context.entryID, false)
@@ -799,7 +799,10 @@ private enum NativeTranscriptFactory {
             lineLimit: AgentToolPresentation.usesCompactDetails(for: card.descriptor) ? 1 : (expanded ? 0 : 1)
         )
         header.alphaValue = card.state == .interrupted ? 0.5 : 1
-        header.toolTip = expanded ? String(localized: "Hide details") : String(localized: "Show details")
+        header.toolTip =
+            expanded
+            ? String(localized: TermindCopy.Assistant.hideDetails)
+            : String(localized: TermindCopy.Assistant.showDetails)
         header.handler = {
             context.presentation.disclosures.toggleDisclosure(disclosureID, default: defaultExpanded)
             context.invalidate(context.entryID, false)
@@ -816,7 +819,9 @@ private enum NativeTranscriptFactory {
             if let review = card.review {
                 detail.addArrangedSubview(
                     NativeLabel(
-                        String(localized: "Auto-reviewing: \(review.risk.displayName) — \(review.reason)"),
+                        String(
+                            localized: TermindCopy.Assistant.automaticReview(
+                                risk: review.risk.displayName, reason: review.reason)),
                         font: .systemFont(ofSize: NSFont.smallSystemFontSize),
                         color: .secondaryLabelColor,
                         selectable: true
@@ -837,7 +842,7 @@ private enum NativeTranscriptFactory {
             if card.result?.isTruncated == true {
                 detail.addArrangedSubview(
                     NativeLabel(
-                        String(localized: "Output truncated"),
+                        String(localized: TermindCopy.Assistant.outputTruncated),
                         font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
                         color: .systemOrange
                     ))
@@ -879,7 +884,9 @@ private enum NativeTranscriptFactory {
             lineLimit: 1,
             titleProvider: group.run.state.isTerminal ? nil : titleProvider
         )
-        header.toolTip = expanded ? String(localized: "Hide work") : String(localized: "Show work")
+        header.toolTip =
+            expanded
+            ? String(localized: TermindCopy.Assistant.hideWork) : String(localized: TermindCopy.Assistant.showWork)
         header.handler = {
             context.presentation.disclosures.toggleDisclosure(.work(group.id), default: defaultExpanded)
             context.invalidate(context.entryID, false)
@@ -910,7 +917,7 @@ private enum NativeTranscriptFactory {
                                 AgentWorkPresentation.reconnectingTitle(
                                     $0, locale: context.configuration.locale
                                 )
-                            } ?? String(localized: "Working…")
+                            } ?? String(localized: TermindCopy.Assistant.workingProgress)
                         workItems.addArrangedSubview(
                             NativeActivityLabel(
                                 text: title,
@@ -991,7 +998,9 @@ private enum NativeTranscriptFactory {
             transientMarkdownTitle: transientReasoning?.markdown,
             transientUntil: reasoningDeadline
         )
-        header.toolTip = expanded ? String(localized: "Hide tools") : String(localized: "Show tools")
+        header.toolTip =
+            expanded
+            ? String(localized: TermindCopy.Assistant.hideTools) : String(localized: TermindCopy.Assistant.showTools)
         header.handler = {
             context.presentation.disclosures.toggleDisclosure(disclosureID)
             context.invalidate(context.entryID, false)
@@ -1036,11 +1045,11 @@ private enum NativeTranscriptFactory {
         case .implemented:
             symbol = "checkmark.circle.fill"
             tint = .systemGreen
-            outcome = String(localized: "Implemented")
+            outcome = String(localized: TermindCopy.Assistant.implemented)
         case .discarded:
             symbol = "xmark.circle"
             tint = .secondaryLabelColor
-            outcome = String(localized: "Discarded")
+            outcome = String(localized: TermindCopy.Assistant.discarded)
         }
         let header = NativeDisclosureHeader(
             symbol: symbol,
@@ -1054,7 +1063,10 @@ private enum NativeTranscriptFactory {
             trailingText: outcome,
             titleFont: .systemFont(ofSize: NSFont.systemFontSize, weight: .medium)
         )
-        header.toolTip = expanded ? String(localized: "Hide the plan") : String(localized: "Show the plan")
+        header.toolTip =
+            expanded
+            ? String(localized: TermindCopy.Assistant.hideThePlan)
+            : String(localized: TermindCopy.Assistant.showThePlan)
         header.handler = {
             context.presentation.disclosures.toggleDisclosure(.plan(card.id))
             context.invalidate(context.entryID, false)
@@ -1085,11 +1097,11 @@ private enum NativeTranscriptFactory {
         stack.addArrangedSubview(indented)
         if card.outcome == .pending {
             let actions = NativeStack.horizontal(spacing: Metrics.Space.m)
-            let discard = NativeButton(title: String(localized: "Discard"))
+            let discard = NativeButton(title: String(localized: TermindCopy.Common.discard))
             discard.contentTintColor = .systemRed
             discard.handler = { context.actions.resolvePlan(card.id, .discarded) }
             let implement = NativeButton(
-                title: String(localized: "Implement"),
+                title: String(localized: TermindCopy.Assistant.implement),
                 bordered: true,
                 prominent: true
             )
@@ -1100,7 +1112,7 @@ private enum NativeTranscriptFactory {
             actions.addArrangedSubview(NativeFlexibleSpacer())
             actions.addArrangedSubview(
                 NativeLabel(
-                    String(localized: "Reply to keep planning"),
+                    String(localized: TermindCopy.Assistant.replyToKeepPlanning),
                     font: .systemFont(ofSize: NSFont.smallSystemFontSize),
                     color: .secondaryLabelColor
                 ))
@@ -1118,13 +1130,15 @@ private enum NativeTranscriptFactory {
                 symbol: "doc.text",
                 text: String(
                     localized:
-                        "Compacted — \(ContextBreakdownView.compact(mark.summarizedTokens)) summarized to \(ContextBreakdownView.compact(mark.keptTokens))"
+                        TermindCopy.Assistant.compactionSummary(
+                            summarized: ContextBreakdownView.compact(mark.summarizedTokens),
+                            retained: ContextBreakdownView.compact(mark.keptTokens))
                 ),
                 color: .secondaryLabelColor
             ))
         row.addArrangedSubview(NativeRule())
         row.toolTip = String(
-            localized: "Earlier turns are summarized for the model. Nothing was deleted."
+            localized: TermindCopy.Assistant.compactionExplanation
         )
         return row
     }
@@ -1137,8 +1151,8 @@ private enum NativeTranscriptFactory {
         let failure: String? = if case .failed(let reason) = activity.state { reason } else { nil }
         let title =
             failure == nil
-            ? String(localized: "Compacting context")
-            : String(localized: "Couldn’t compact context")
+            ? String(localized: TermindCopy.Assistant.compactingContext)
+            : String(localized: TermindCopy.Assistant.compactionFailed)
         let expanded = context.presentation.disclosures.isExpanded(.compactionActivity(activity.id))
         let header = NativeDisclosureHeader(
             symbol: failure == nil ? "doc.text.magnifyingglass" : "exclamationmark.triangle",
@@ -1153,8 +1167,8 @@ private enum NativeTranscriptFactory {
         )
         header.toolTip =
             failure == nil
-            ? String(localized: "Compacting context")
-            : String(localized: "Show failure details")
+            ? String(localized: TermindCopy.Assistant.compactingContext)
+            : String(localized: TermindCopy.Assistant.showFailureDetails)
         header.handler = {
             guard failure != nil else { return }
             context.presentation.disclosures.toggleDisclosure(.compactionActivity(activity.id))
@@ -1194,7 +1208,7 @@ private enum NativeTranscriptFactory {
         let expanded = context.presentation.disclosures.isExpanded(disclosureID)
         let header = NativeDisclosureHeader(
             symbol: "exclamationmark.triangle",
-            title: String(localized: "Agent error"),
+            title: String(localized: TermindCopy.Assistant.agentError),
             iconColor: .systemRed,
             titleColor: .labelColor,
             expanded: expanded,
@@ -1202,7 +1216,7 @@ private enum NativeTranscriptFactory {
             measurement: context.measurement,
             lineLimit: 1
         )
-        header.toolTip = String(localized: "Show failure details")
+        header.toolTip = String(localized: TermindCopy.Assistant.showFailureDetails)
         header.handler = {
             context.presentation.disclosures.toggleDisclosure(disclosureID)
             context.invalidate(context.entryID, false)
@@ -1314,7 +1328,7 @@ private enum NativeTranscriptFactory {
         header.addArrangedSubview(
             labelRow(
                 symbol: "sparkles",
-                text: String(localized: "Suggested Command"),
+                text: String(localized: TermindCopy.Assistant.suggestedCommand),
                 color: .secondaryLabelColor,
                 font: .systemFont(
                     ofSize: NSFont.smallSystemFontSize,
@@ -1367,12 +1381,12 @@ private enum NativeTranscriptFactory {
         let actions = NativeStack.horizontal(spacing: Metrics.Space.s)
         actions.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardActions")
         if context.configuration.showsTerminalActions {
-            let insert = NativeButton(title: String(localized: "Insert"), bordered: true)
+            let insert = NativeButton(title: String(localized: TermindCopy.Common.insert), bordered: true)
             insert.identifier = NSUserInterfaceItemIdentifier("Transcript.CommandCardInsert")
             insert.isEnabled = context.actions.canDeliverCommand()
             insert.handler = { context.actions.deliverCommand(command.command, false) }
             let run = NativeButton(
-                title: String(localized: "Run"),
+                title: String(localized: TermindCopy.Common.run),
                 bordered: true,
                 prominent: true
             )
@@ -1429,8 +1443,9 @@ private enum NativeTranscriptFactory {
         if expanded || needsMore {
             let actions = NativeStack.horizontal()
             let more = NativeButton(
-                title: AppLocalization.string(
-                    expanded ? "Show less" : "Show more", locale: context.configuration.locale))
+                title: AppLocalization.resolve(
+                    expanded ? TermindCopy.Assistant.showLess : TermindCopy.Assistant.showMore,
+                    locale: context.configuration.locale))
             more.identifier = NSUserInterfaceItemIdentifier("AssistantTool.More")
             more.handler = toggle
             actions.addArrangedSubview(more)
@@ -1505,7 +1520,7 @@ private enum NativeTranscriptFactory {
                 let actions = NativeStack.horizontal(spacing: Metrics.Space.s)
                 actions.addArrangedSubview(
                     NativeLabel(
-                        String(localized: "Output shortened for display"),
+                        String(localized: TermindCopy.Assistant.outputShortenedForDisplay),
                         font: .systemFont(ofSize: NSFont.smallSystemFontSize - 1),
                         color: .secondaryLabelColor
                     ))
@@ -1652,10 +1667,10 @@ private func presentDestructiveCommandConfirmation(
 ) {
     let alert = NSAlert()
     alert.alertStyle = .critical
-    alert.messageText = String(localized: "Run a destructive command?")
+    alert.messageText = String(localized: TermindCopy.Assistant.runADestructiveCommandConfirmation)
     alert.informativeText = reasons.joined(separator: "\n")
-    alert.addButton(withTitle: String(localized: "Run \(command)"))
-    alert.addButton(withTitle: String(localized: "Cancel"))
+    alert.addButton(withTitle: String(localized: TermindCopy.Assistant.run(command)))
+    alert.addButton(withTitle: String(localized: TermindCopy.Common.cancel))
     if let window = view?.window {
         alert.beginSheetModal(for: window) { response in
             if response == .alertFirstButtonReturn { action() }
@@ -1803,11 +1818,11 @@ private final class NativeMarkdownView: NSView {
             ))
         let row = NativeStack.horizontal()
         if !command.contains("\n") {
-            let insert = NativeButton(title: String(localized: "Insert"))
+            let insert = NativeButton(title: String(localized: TermindCopy.Common.insert))
             insert.isEnabled = actions.enabled
             insert.handler = { actions.deliver(command, false) }
             let run = NativeButton(
-                title: String(localized: "Run"),
+                title: String(localized: TermindCopy.Common.run),
                 bordered: true,
                 prominent: true
             )
@@ -1832,7 +1847,7 @@ private final class NativeMarkdownView: NSView {
         } else {
             row.addArrangedSubview(
                 NativeLabel(
-                    String(localized: "Several commands — copy and review before running."),
+                    String(localized: TermindCopy.Assistant.severalCommandsCopyAndReviewBeforeRunning),
                     font: .systemFont(ofSize: NSFont.smallSystemFontSize),
                     color: .secondaryLabelColor
                 ))
@@ -2328,7 +2343,7 @@ private final class NativeDisclosureHeader: NSControl {
             let shield = NSImageView(
                 image: NSImage(
                     systemSymbolName: "checkmark.shield",
-                    accessibilityDescription: String(localized: "Auto-reviewing in progress")
+                    accessibilityDescription: String(localized: TermindCopy.Assistant.autoReviewingInProgress)
                 ) ?? NSImage()
             )
             shield.contentTintColor = .systemOrange
@@ -2658,7 +2673,7 @@ private final class NativeImageTile: NativeButton {
         tileSide = side
         super.init()
         identifier = NSUserInterfaceItemIdentifier("Transcript.UserImage")
-        toolTip = String(localized: "Open \(label)")
+        toolTip = String(localized: TermindCopy.Assistant.open(label))
         setAccessibilityLabel(label)
         preview.identifier = NSUserInterfaceItemIdentifier("Transcript.UserImagePreview")
         preview.wantsLayer = true
@@ -2837,10 +2852,10 @@ private final class NativeMessageEditor: NSView, NSTextViewDelegate {
 
         let actions = NativeStack.horizontal(spacing: Metrics.Space.s)
         actions.addArrangedSubview(NativeFlexibleSpacer())
-        let cancel = NativeButton(title: String(localized: "Cancel"))
+        let cancel = NativeButton(title: String(localized: TermindCopy.Common.cancel))
         cancel.contentTintColor = .secondaryLabelColor
         cancel.handler = { [weak self] in self?.onCancel() }
-        let send = NativeButton(title: String(localized: "Send"), bordered: true, prominent: true)
+        let send = NativeButton(title: String(localized: TermindCopy.Assistant.send), bordered: true, prominent: true)
         send.identifier = NSUserInterfaceItemIdentifier("Transcript.UserEditorSend")
         send.handler = { [weak self] in
             guard let self else { return }
@@ -3215,17 +3230,17 @@ private class NativeButton: NSButton {
 private final class NativeCopyButton: NativeButton {
     private let copiedImage = NSImage(
         systemSymbolName: "checkmark",
-        accessibilityDescription: String(localized: "Copied")
+        accessibilityDescription: String(localized: TermindCopy.Common.copied)
     )
     private let copyImage = NSImage(
         systemSymbolName: "doc.on.doc",
-        accessibilityDescription: String(localized: "Copy")
+        accessibilityDescription: String(localized: TermindCopy.Common.copy)
     )
     private var resetWorkItem: DispatchWorkItem?
 
     init(text: String) {
         super.init()
-        let help = String(localized: "Copy")
+        let help = String(localized: TermindCopy.Common.copy)
         image = copyImage
         imagePosition = .imageOnly
         toolTip = help
@@ -3234,11 +3249,11 @@ private final class NativeCopyButton: NativeButton {
         handler = { [weak self] in
             guard copyToPasteboard(text), let self else { return }
             image = copiedImage
-            toolTip = String(localized: "Copied")
+            toolTip = String(localized: TermindCopy.Common.copied)
             resetWorkItem?.cancel()
             let work = DispatchWorkItem { [weak self] in
                 self?.image = self?.copyImage
-                self?.toolTip = String(localized: "Copy")
+                self?.toolTip = String(localized: TermindCopy.Common.copy)
             }
             resetWorkItem = work
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.4, execute: work)

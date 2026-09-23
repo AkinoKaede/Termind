@@ -96,7 +96,7 @@ private struct MetricsGPUCard: View {
         }
     }
 
-    private func memoryRow(_ title: LocalizedStringKey, value: Double?) -> some View {
+    private func memoryRow(_ title: LocalizedStringResource, value: Double?) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 8) {
             Text(title).font(.system(size: 9)).foregroundStyle(.secondary)
             Text(MetricsFormat.bytes(value)).font(.system(size: 11, weight: .semibold, design: .monospaced))
@@ -105,7 +105,7 @@ private struct MetricsGPUCard: View {
         .lineLimit(1).minimumScaleFactor(0.7)
     }
 
-    private func meter(_ title: LocalizedStringKey, value: Double?, color: Color) -> some View {
+    private func meter(_ title: LocalizedStringResource, value: Double?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(title).font(.system(size: 9)).foregroundStyle(.secondary).lineLimit(1)
             Text(MetricsFormat.percent(value)).font(.system(size: 11, weight: .semibold, design: .monospaced))

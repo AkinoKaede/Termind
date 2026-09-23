@@ -1,4 +1,5 @@
 import Foundation
+import TermindPresentation
 
 /// An app-wide override; `system` leaves macOS in control of the appearance.
 nonisolated enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
@@ -8,9 +9,9 @@ nonisolated enum AppAppearance: String, CaseIterable, Identifiable, Sendable {
 
     var displayName: String {
         switch self {
-        case .system: String(localized: "Follow System")
-        case .light: String(localized: "Light")
-        case .dark: String(localized: "Dark")
+        case .system: String(localized: TermindCopy.Settings.followSystem)
+        case .light: String(localized: TermindCopy.Settings.light)
+        case .dark: String(localized: TermindCopy.Settings.dark)
         }
     }
 

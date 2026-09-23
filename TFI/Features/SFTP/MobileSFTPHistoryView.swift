@@ -24,8 +24,8 @@ struct MobileSFTPHistoryView: View {
                 if entries.isEmpty {
                     if query.isEmpty {
                         ContentUnavailableView(
-                            "No History", systemImage: "clock.arrow.circlepath",
-                            description: Text("Folders you visit and files you open appear here.")
+                            TermindCopy.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath",
+                            description: Text(TermindCopy.SFTP.foldersYouVisitAndFilesYouOpenAppearHere)
                         )
                     } else {
                         ContentUnavailableView.search(text: query)
@@ -39,16 +39,16 @@ struct MobileSFTPHistoryView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button("Open", systemImage: "arrow.up.forward.app") {
+                            Button(TermindCopy.Common.open.swiftUIKey, systemImage: "arrow.up.forward.app") {
                                 reopen(entry)
                             }
                             .disabled(!workspace.connected)
-                            Button("Delete", systemImage: "trash", role: .destructive) {
+                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 workspace.sftpHistory.delete(entry.id)
                             }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button("Delete", systemImage: "trash", role: .destructive) {
+                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 workspace.sftpHistory.delete(entry.id)
                             }
                         }
@@ -68,23 +68,25 @@ struct MobileSFTPHistoryView: View {
                         .background(.bar)
                 }
             }
-            .searchable(text: $query.singleLineText, prompt: "Search History")
-            .navigationTitle("History")
+            .searchable(text: $query.singleLineText, prompt: TermindCopy.Common.searchHistory.swiftUIKey)
+            .navigationTitle(TermindCopy.Common.history.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
+                    Button(TermindCopy.Common.done.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
                 }
                 ToolbarItem(placement: .primaryAction) {
-                    Button("Clear", systemImage: "trash", role: .destructive) { clearing = true }
-                        .labelStyle(.iconOnly)
-                        .disabled(entries.isEmpty)
+                    Button(TermindCopy.Common.clear.swiftUIKey, systemImage: "trash", role: .destructive) {
+                        clearing = true
+                    }
+                    .labelStyle(.iconOnly)
+                    .disabled(entries.isEmpty)
                 }
             }
             .confirmationDialog(
-                "Clear File History for this Host?", isPresented: $clearing,
+                TermindCopy.SFTP.clearFileHistoryForThisHostConfirmation.swiftUIKey, isPresented: $clearing,
                 titleVisibility: .visible
             ) {
-                Button("Clear History", role: .destructive) {
+                Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive) {
                     workspace.sftpHistory.clear(for: workspace.descriptor.hostID)
                 }
             }
@@ -110,7 +112,7 @@ struct MobileSFTPHistoryView: View {
                 .foregroundStyle(entry.kind == .directory ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
         }
         .contentShape(.rect)
-        .accessibilityHint(entry.kind == .directory ? Text("Open") : Text("Download"))
+        .accessibilityHint(entry.kind == .directory ? Text(TermindCopy.Common.open) : Text(TermindCopy.SFTP.download))
     }
 
     private func reopen(_ entry: SFTPHistoryEntry) {

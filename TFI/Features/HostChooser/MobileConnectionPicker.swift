@@ -12,12 +12,12 @@ struct MobileWorkspaceToolbar: ToolbarContent {
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
-            Button("Connect", systemImage: "network", action: connect)
+            Button(TermindCopy.Common.connect.swiftUIKey, systemImage: "network", action: connect)
                 .labelStyle(.iconOnly)
         }
         .mobileProminentAction()
         MobileToolbarOverflow {
-            Button("Close All", systemImage: "xmark", role: .destructive) {
+            Button(TermindCopy.Vault.closeAll.swiftUIKey, systemImage: "xmark", role: .destructive) {
                 closeAll()
             }
             .disabled(!hasWorkspaces)
@@ -43,16 +43,16 @@ struct MobileConnectionPicker: View {
     var body: some View {
         MobileHostPicker(
             library: library,
-            title: "Connect",
-            emptyDescription: "Add a host to connect to it.",
+            title: TermindCopy.Common.connect,
+            emptyDescription: TermindCopy.Vault.addAHostToConnectToIt,
             cancel: cancel,
             select: model.select,
             isEligible: { host in model.kind != .sftp || host.sshEnabled },
             header: {
                 Section {
-                    Picker("Connection Protocol", selection: $model.kind) {
-                        Text("SSH").tag(ConnectionHistoryEntry.Kind.ssh)
-                        Text("SFTP").tag(ConnectionHistoryEntry.Kind.sftp)
+                    Picker(TermindCopy.Vault.connectionProtocol.swiftUIKey, selection: $model.kind) {
+                        Text(TermindCopy.Vault.ssh).tag(ConnectionHistoryEntry.Kind.ssh)
+                        Text(TermindCopy.SFTP.sftp).tag(ConnectionHistoryEntry.Kind.sftp)
                     }
                     .pickerStyle(.segmented)
                 }
@@ -114,8 +114,8 @@ extension MobileHostPickerRow where Accessory == EmptyView {
 
 struct MobileHostPicker<Header: View>: View {
     @State private var model: MobileHostPickerModel
-    let title: LocalizedStringKey
-    let emptyDescription: LocalizedStringKey
+    let title: LocalizedStringResource
+    let emptyDescription: LocalizedStringResource
     let cancel: () -> Void
     let select: (Host) -> Void
     let isEligible: (Host) -> Bool
@@ -124,8 +124,8 @@ struct MobileHostPicker<Header: View>: View {
     init(
         library: HostLibraryModel,
         useCase: HostUseCase? = nil,
-        title: LocalizedStringKey,
-        emptyDescription: LocalizedStringKey,
+        title: LocalizedStringResource,
+        emptyDescription: LocalizedStringResource,
         cancel: @escaping () -> Void,
         select: @escaping (Host) -> Void,
         isEligible: @escaping (Host) -> Bool = { _ in true },
@@ -146,7 +146,7 @@ struct MobileHostPicker<Header: View>: View {
 
             if model.isLibraryEmpty {
                 ContentUnavailableView(
-                    "No Hosts", systemImage: "server.rack",
+                    TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack",
                     description: Text(emptyDescription)
                 )
                 .listRowBackground(Color.clear)
@@ -170,12 +170,12 @@ struct MobileHostPicker<Header: View>: View {
                 }
             }
         }
-        .searchable(text: $model.query.singleLineText, prompt: "Search hosts")
+        .searchable(text: $model.query.singleLineText, prompt: TermindCopy.Vault.searchHosts.swiftUIKey)
         .navigationTitle(Text(title))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Cancel", systemImage: "xmark", action: cancel)
+                Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark", action: cancel)
                     .labelStyle(.iconOnly)
             }
         }
@@ -188,8 +188,8 @@ extension MobileHostPicker where Header == EmptyView {
     init(
         library: HostLibraryModel,
         useCase: HostUseCase? = nil,
-        title: LocalizedStringKey,
-        emptyDescription: LocalizedStringKey,
+        title: LocalizedStringResource,
+        emptyDescription: LocalizedStringResource,
         cancel: @escaping () -> Void,
         select: @escaping (Host) -> Void,
         isEligible: @escaping (Host) -> Bool = { _ in true }

@@ -32,9 +32,11 @@ public struct AssistantCompactToolDetails: View {
                 .clipped()
             if expanded || preview.isShortened || contentHeight > previewHeight {
                 HStack(spacing: 16) {
-                    Button(expanded ? "Show less" : "Show more") { expanded.toggle() }
-                        .accessibilityIdentifier("AssistantTool.More")
-                    Button("Copy", systemImage: "doc.on.doc") { copy(preview.fullText) }
+                    Button(
+                        expanded ? TermindCopy.Assistant.showLess.swiftUIKey : TermindCopy.Assistant.showMore.swiftUIKey
+                    ) { expanded.toggle() }
+                    .accessibilityIdentifier("AssistantTool.More")
+                    Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") { copy(preview.fullText) }
                         .accessibilityIdentifier("AssistantTool.Copy")
                 }
                 .font(.caption)

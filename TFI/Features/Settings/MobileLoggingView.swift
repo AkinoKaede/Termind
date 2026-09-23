@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 import UIKit
 import UniformTypeIdentifiers
 
@@ -21,11 +22,11 @@ struct MobileLoggingView: View {
             loggingOptionsSection
             logsSection
         }
-        .navigationTitle("Logging")
+        .navigationTitle(TermindCopy.Settings.logging.swiftUIKey)
         .toolbar {
             if !files.isEmpty {
                 MobileToolbarOverflow {
-                    Button("Delete All", systemImage: "trash", role: .destructive) {
+                    Button(TermindCopy.Common.deleteAll.swiftUIKey, systemImage: "trash", role: .destructive) {
                         showsDeleteAll = true
                     }
                 }
@@ -56,13 +57,13 @@ struct MobileLoggingView: View {
             if case .failure(let error) = result { errorMessage = error.localizedDescription }
         }
         .confirmationDialog(
-            "Delete all logging files?", isPresented: $showsDeleteAll,
+            TermindCopy.Settings.deleteAllLoggingFilesConfirmation.swiftUIKey, isPresented: $showsDeleteAll,
             titleVisibility: .visible
         ) {
-            Button("Delete All", role: .destructive) { perform { try logging.deleteAll() } }
+            Button(TermindCopy.Common.deleteAll.swiftUIKey, role: .destructive) { perform { try logging.deleteAll() } }
         }
-        .alert("Logging", isPresented: errorPresented) {
-            Button("OK", role: .cancel) { errorMessage = nil }
+        .alert(TermindCopy.Settings.logging.swiftUIKey, isPresented: errorPresented) {
+            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { errorMessage = nil }
         } message: {
             Text(errorMessage ?? "")
         }
@@ -70,24 +71,24 @@ struct MobileLoggingView: View {
 
     private var loggingOptionsSection: some View {
         Section {
-            Toggle("Save", isOn: savingBinding)
-            Picker("Level", selection: levelBinding) {
+            Toggle(TermindCopy.Common.save.swiftUIKey, isOn: savingBinding)
+            Picker(TermindCopy.Settings.level.swiftUIKey, selection: levelBinding) {
                 ForEach(ApplicationLogLevel.allCases) { level in
                     Text(verbatim: level.localizedName).tag(level.rawValue)
                 }
             }
         } header: {
-            Text("Logging")
+            Text(TermindCopy.Settings.logging)
         } footer: {
-            Text("Logs may contain private diagnostic information. Review them before sharing.")
+            Text(TermindCopy.Settings.logSharingWarning)
         }
     }
 
     @ViewBuilder
     private var logsSection: some View {
-        Section("Logs") {
+        Section(TermindCopy.Settings.logs.swiftUIKey) {
             if files.isEmpty {
-                ContentUnavailableView("No Saved Logs", systemImage: "doc.text")
+                ContentUnavailableView(TermindCopy.Settings.noSavedLogs.swiftUIKey, systemImage: "doc.text")
             } else {
                 ForEach(files) { file in
                     logRow(file)
@@ -105,7 +106,7 @@ struct MobileLoggingView: View {
                     HStack(spacing: 6) {
                         Text(file.createdAt, format: .dateTime.year().month().day().hour().minute())
                         if file.isCurrent {
-                            Text("Current").font(.caption).foregroundStyle(.secondary)
+                            Text(TermindCopy.Common.current).font(.caption).foregroundStyle(.secondary)
                         }
                     }
                     Text(ByteCountFormatter.string(fromByteCount: file.byteCount, countStyle: .file))
@@ -117,19 +118,19 @@ struct MobileLoggingView: View {
         }
         .buttonStyle(.plain)
         .contextMenu {
-            Button("Save", systemImage: "square.and.arrow.down") {
+            Button(TermindCopy.Common.save.swiftUIKey, systemImage: "square.and.arrow.down") {
                 prepare(file, action: .save)
             }
-            Button("Share", systemImage: "square.and.arrow.up") {
+            Button(TermindCopy.Common.share.swiftUIKey, systemImage: "square.and.arrow.up") {
                 prepare(file, action: .share)
             }
             Divider()
-            Button("Delete", systemImage: "trash", role: .destructive) {
+            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                 perform { try logging.delete(file.id) }
             }
         }
         .swipeActions {
-            Button("Delete", role: .destructive) { perform { try logging.delete(file.id) } }
+            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) { perform { try logging.delete(file.id) } }
         }
     }
 
@@ -209,19 +210,19 @@ private struct MobileLoggingShareSheet: View {
             Form {
                 Section {
                     Label(
-                        "Logs may contain private diagnostic information. Review where you send or save them.",
+                        TermindCopy.Settings.logExportWarning.swiftUIKey,
                         systemImage: "hand.raised.fill"
                     )
                 }
                 Section {
-                    Button("Save", systemImage: "square.and.arrow.down", action: save)
-                    Button("Share", systemImage: "square.and.arrow.up", action: share)
+                    Button(TermindCopy.Common.save.swiftUIKey, systemImage: "square.and.arrow.down", action: save)
+                    Button(TermindCopy.Common.share.swiftUIKey, systemImage: "square.and.arrow.up", action: share)
                 }
             }
-            .navigationTitle("Share Logging")
+            .navigationTitle(TermindCopy.Settings.shareLogging.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close", systemImage: "xmark") { dismiss() }
+                    Button(TermindCopy.Common.close.swiftUIKey, systemImage: "xmark") { dismiss() }
                         .labelStyle(.iconOnly)
                 }
             }

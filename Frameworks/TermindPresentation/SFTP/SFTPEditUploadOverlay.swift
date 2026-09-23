@@ -47,16 +47,16 @@ public struct SFTPEditUploadOverlay: View {
                     if let id = conflictID {
                         Button("Overwrite Remote File", role: .destructive) { send(id, replacing: true) }
                     }
-                    Button("Cancel", role: .cancel) { conflictID = nil }
+                    Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { conflictID = nil }
                 } message: {
                     Text("The remote file changed or could not be verified. Replace it with your saved local changes?")
                 }
                 .alert(
-                    "SFTP Error",
+                    TermindCopy.SFTP.sftpError.swiftUIKey,
                     isPresented: Binding(
                         get: { errorDetails != nil }, set: { if !$0 { errorDetails = nil } })
                 ) {
-                    Button("OK", role: .cancel) { errorDetails = nil }
+                    Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { errorDetails = nil }
                 } message: {
                     Text(errorDetails ?? "")
                 }
@@ -75,7 +75,9 @@ public struct SFTPEditUploadOverlay: View {
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                         if canDiscard(file) {
-                            Button("Discard", role: .destructive) { Task { await discard(file.id) } }
+                            Button(TermindCopy.Common.discard.swiftUIKey, role: .destructive) {
+                                Task { await discard(file.id) }
+                            }
                         }
                     }
             }
@@ -138,7 +140,7 @@ public struct SFTPEditUploadOverlay: View {
                 .menuStyle(.borderlessButton)
                 .menuIndicator(.hidden)
                 .fixedSize()
-                .accessibilityLabel("More")
+                .accessibilityLabel(TermindCopy.Common.more.swiftUIKey)
             #endif
         }
         .padding(.horizontal, 12)
@@ -155,14 +157,20 @@ public struct SFTPEditUploadOverlay: View {
         #if os(macOS)
             // ShareLink installs a hosted sharing control in NSMenu. Mixing it with ordinary
             // menu items can offset the native selection highlight on subsequent items.
-            Button("Keep Local Copy", systemImage: "square.and.arrow.up") { keepLocalCopy?(file.localURL) }
-                .disabled(keepLocalCopy == nil)
+            Button(TermindCopy.SFTP.keepLocalCopy.swiftUIKey, systemImage: "square.and.arrow.up") {
+                keepLocalCopy?(file.localURL)
+            }
+            .disabled(keepLocalCopy == nil)
         #else
-            ShareLink(item: file.localURL) { Label("Keep Local Copy", systemImage: "square.and.arrow.up") }
+            ShareLink(item: file.localURL) {
+                Label(TermindCopy.SFTP.keepLocalCopy.swiftUIKey, systemImage: "square.and.arrow.up")
+            }
         #endif
         Divider()
-        Button("Discard", systemImage: "xmark", role: .destructive) { Task { await discard(file.id) } }
-            .disabled(!canDiscard(file))
+        Button(TermindCopy.Common.discard.swiftUIKey, systemImage: "xmark", role: .destructive) {
+            Task { await discard(file.id) }
+        }
+        .disabled(!canDiscard(file))
     }
 
     @ViewBuilder
@@ -171,7 +179,7 @@ public struct SFTPEditUploadOverlay: View {
             ProgressView().controlSize(.small)
         } else if let transfer {
             if transfer.state == .paused {
-                Button("Resume", systemImage: "play.fill") { resume(transfer.id) }
+                Button(TermindCopy.Metrics.resume.swiftUIKey, systemImage: "play.fill") { resume(transfer.id) }
                     .disabled(!connected || file.isInvalidated)
             } else {
                 ProgressView().controlSize(.small)
@@ -180,12 +188,14 @@ public struct SFTPEditUploadOverlay: View {
             Button {
                 send(file.id, replacing: false)
             } label: {
-                Text(file.displayedError == nil ? "Upload" : "Retry")
+                Text(file.displayedError == nil ? TermindCopy.SFTP.upload : TermindCopy.Common.retry)
                     .font(.caption.weight(.semibold))
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
             }
-            .accessibilityLabel(file.displayedError == nil ? Text("Upload") : Text("Retry"))
+            .accessibilityLabel(
+                file.displayedError == nil ? Text(TermindCopy.SFTP.upload) : Text(TermindCopy.Common.retry)
+            )
             .buttonStyle(.borderedProminent)
             .disabled(!connected || file.isInvalidated)
         }

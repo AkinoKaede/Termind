@@ -17,7 +17,7 @@ struct MobileSkillSettings: View {
         List {
             Section {
                 if !skills.conflictingSkillIDs.isEmpty {
-                    Text("Some skills have duplicate names and are paused. Rename them to resolve the conflict.")
+                    Text(TermindCopy.Settings.duplicateSkillNames)
                         .foregroundStyle(.orange)
                 }
                 ForEach(skills.skills) { skill in
@@ -29,12 +29,15 @@ struct MobileSkillSettings: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(skill.displayTitle)
                                 Text(skill.effectiveName).font(.caption.monospaced()).foregroundStyle(.secondary)
-                                Text(skill.summary.isEmpty ? String(localized: "No description") : skill.summary)
-                                    .font(.caption).foregroundStyle(.secondary).lineLimit(2)
+                                Text(
+                                    skill.summary.isEmpty
+                                        ? String(localized: TermindCopy.Settings.noDescription) : skill.summary
+                                )
+                                .font(.caption).foregroundStyle(.secondary).lineLimit(2)
                                 if !skill.isComplete {
-                                    Text("Draft").font(.caption)
+                                    Text(TermindCopy.Settings.draft).font(.caption)
                                 } else if !skill.isEnabled {
-                                    Text("Disabled").font(.caption).foregroundStyle(.secondary)
+                                    Text(TermindCopy.Settings.disabled).font(.caption).foregroundStyle(.secondary)
                                 }
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -44,34 +47,36 @@ struct MobileSkillSettings: View {
                     }
                     .buttonStyle(.plain)
                     .contextMenu {
-                        Button("Edit", systemImage: "pencil") { editing = skill }
-                        Button("Delete", systemImage: "trash", role: .destructive) {
+                        Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") { editing = skill }
+                        Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                             skills.delete(id: skill.id)
                         }
                     }
                     .swipeActions(edge: .trailing) {
-                        Button("Delete", systemImage: "trash", role: .destructive) {
+                        Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                             skills.delete(id: skill.id)
                         }
                     }
                 }
             } footer: {
                 Text(
-                    "A skill is a procedure the assistant loads when a task matches its description, and then follows. It never approves an action: commands, writes and transfers still ask exactly as they would otherwise."
+                    TermindCopy.Settings.skillExplanation
                 )
             }
             ForEach(warnings, id: \.self) { Text($0).font(.caption).foregroundStyle(.orange) }
             if let error = error ?? skills.storageError { Text(error).foregroundStyle(.red) }
         }
-        .navigationTitle("Skills")
+        .navigationTitle(TermindCopy.Settings.skills.swiftUIKey)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Add Skill", systemImage: "plus") { editing = AgentSkill(name: "") }
+                Button(TermindCopy.Settings.addSkill.swiftUIKey, systemImage: "plus") { editing = AgentSkill(name: "") }
                     .labelStyle(.iconOnly)
             }
             .mobileProminentAction()
             MobileToolbarOverflow {
-                Button("Import Skill", systemImage: "square.and.arrow.down") { importing = true }
+                Button(TermindCopy.Settings.importSkill.swiftUIKey, systemImage: "square.and.arrow.down") {
+                    importing = true
+                }
             }
         }
         .sheet(item: $editing) { MobileSkillEditor(library: skills, skill: $0) }
@@ -103,29 +108,34 @@ struct MobileSkillEditor: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: "Skill"), isDirty: model.isDirty, canSave: model.canSave,
+            title: String(localized: TermindCopy.Settings.skill), isDirty: model.isDirty, canSave: model.canSave,
             actions: toolbarActions,
             save: { try model.save() },
             content: {
-                Section("Skill") {
-                    LabeledContent("Title") {
-                        TextField("Title", text: $model.draft.title.singleLineText, axis: .horizontal).singleLinePaste()
+                Section(TermindCopy.Settings.skill.swiftUIKey) {
+                    LabeledContent(TermindCopy.Common.title.swiftUIKey) {
+                        TextField(
+                            TermindCopy.Common.title.swiftUIKey, text: $model.draft.title.singleLineText,
+                            axis: .horizontal
+                        ).singleLinePaste()
                             .lineLimit(1)
                             .multilineTextAlignment(.trailing)
                     }
                     if library.conflictingSkillIDs.contains(model.original.id) {
-                        TextField("Name", text: $model.draft.name.singleLineText).singleLinePaste()
+                        TextField(TermindCopy.Common.name.swiftUIKey, text: $model.draft.name.singleLineText)
+                            .singleLinePaste()
                             .textInputAutocapitalization(.never).autocorrectionDisabled()
                     }
-                    LabeledContent("Name") {
+                    LabeledContent(TermindCopy.Common.name.swiftUIKey) {
                         Text(
                             model.draft.effectiveName.isEmpty
-                                ? String(localized: "Derived from the title") : model.draft.effectiveName
+                                ? String(localized: TermindCopy.Settings.derivedFromTheTitle)
+                                : model.draft.effectiveName
                         )
                         .font(.caption.monospaced()).textSelection(.enabled)
                     }
                     Toggle(
-                        "Enabled",
+                        TermindCopy.Common.enabled.swiftUIKey,
                         isOn: Binding(
                             get: { model.draft.isEnabled && model.draft.isComplete },
                             set: { model.draft.isEnabled = $0 }
@@ -136,26 +146,26 @@ struct MobileSkillEditor: View {
                     {
                         Text(problem.message).font(.caption).foregroundStyle(.orange)
                     } else if library.hasNameConflict(model.draft.effectiveName, excluding: model.draft.id) {
-                        Text("Another skill already uses this name.").foregroundStyle(.orange)
+                        Text(TermindCopy.Settings.anotherSkillAlreadyUsesThisName).foregroundStyle(.orange)
                     }
                     if !model.draft.importedFrom.isEmpty {
-                        LabeledContent("Imported From", value: model.draft.importedFrom)
+                        LabeledContent(TermindCopy.Settings.importedFrom.swiftUIKey, value: model.draft.importedFrom)
                     }
                 }
-                Section("Description") {
+                Section(TermindCopy.Settings.description.swiftUIKey) {
                     TextEditor(text: $model.draft.summary).frame(minHeight: 90)
                     Text(
-                        "What this does and when to use it. This is the only part the assistant sees until it loads the skill, so it decides whether the skill is used at all."
+                        TermindCopy.Settings.skillDescriptionExplanation
                     )
                     .font(.caption).foregroundStyle(.secondary)
                     Text("\(model.draft.summary.count)/\(AgentSkill.maximumSummaryCharacters)").font(.caption)
                 }
-                Section("Instructions") {
+                Section(TermindCopy.Settings.instructions.swiftUIKey) {
                     TextEditor(text: $model.draft.body).font(.body.monospaced()).frame(minHeight: 240)
-                    Text("Markdown. Returned whole when the assistant loads this skill.").font(.caption)
+                    Text(TermindCopy.Settings.skillBodyExplanation).font(.caption)
                         .foregroundStyle(.secondary)
                     if model.draft.body.utf8.count > AgentSkill.maximumBodyBytes {
-                        Text("Longer than \(DataSizeFormat.bytes(AgentSkill.maximumBodyBytes)).")
+                        Text(TermindCopy.Settings.longerThan(DataSizeFormat.bytes(AgentSkill.maximumBodyBytes)))
                             .foregroundStyle(.orange)
                     }
                 }
@@ -174,13 +184,13 @@ struct MobileSkillEditor: View {
     private var toolbarActions: [MobileEditorToolbarAction] {
         var actions = [
             MobileEditorToolbarAction(
-                id: "export", title: "Export", systemImage: "square.and.arrow.up",
+                id: "export", title: TermindCopy.Common.export, systemImage: "square.and.arrow.up",
                 perform: { exporting = true })
         ]
         if library.skill(model.original.id) != nil {
             actions.append(
                 MobileEditorToolbarAction(
-                    id: "delete", title: "Delete", systemImage: "trash", role: .destructive,
+                    id: "delete", title: TermindCopy.Common.delete, systemImage: "trash", role: .destructive,
                     startsGroup: true, perform: delete))
         }
         return actions

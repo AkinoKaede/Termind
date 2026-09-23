@@ -6,6 +6,7 @@ import TermindApplication
 import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -273,16 +274,16 @@ final class AppModel {
             guard let self else { return }
             let message =
                 self.hosts.host(hostID)?.sshEnabled == true
-                ? String(localized: "The Host configuration changed. Reconnect to apply it.")
-                : String(localized: "SSH is disabled for this Host.")
+                ? String(localized: TermindCopy.Connections.theHostConfigurationChangedReconnectToApplyIt)
+                : String(localized: TermindCopy.Connections.sshIsDisabledForThisHost)
             self.disconnectWorkspaces(for: hostID, protocol: .ssh, message: message)
         }
         hosts.didChangeTelnetConnection = { [weak self] hostID in
             guard let self else { return }
             let message =
                 self.hosts.host(hostID)?.telnetEnabled == true
-                ? String(localized: "The Host configuration changed. Reconnect to apply it.")
-                : String(localized: "Telnet is disabled for this Host.")
+                ? String(localized: TermindCopy.Connections.theHostConfigurationChangedReconnectToApplyIt)
+                : String(localized: TermindCopy.Connections.telnetIsDisabledForThisHost)
             self.disconnectWorkspaces(for: hostID, protocol: .telnet, message: message)
         }
         hosts.didPersistCore = { [weak repository = dependencies.hostRepository] in
@@ -831,7 +832,8 @@ final class AppModel {
             host.sshEnabled = false
             host.telnetEnabled = true
             guard hosts.saveHost(host) else {
-                throw TermindSSHError.library(hosts.storageError ?? String(localized: "The host could not be saved."))
+                throw TermindSSHError.library(
+                    hosts.storageError ?? String(localized: TermindCopy.Vault.theHostCouldNotBeSaved))
             }
             return hosts.host(host.id) ?? host
         }
@@ -895,7 +897,7 @@ final class AppModel {
                 channel.revealExternalFile(file)
                 guard Self.canAutomaticallyOpenExternalSFTPFile(file) else {
                     channel.operationError = String(
-                        localized: "This remote file may contain executable content. Review it before opening.")
+                        localized: TermindCopy.SFTP.executableFileWarning)
                     return
                 }
                 channel.open(file, coordinator: self.sftpTransfers, edits: self.sftpEdits) { localURL in

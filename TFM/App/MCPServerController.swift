@@ -1,6 +1,7 @@
 import Foundation
 import Security
 import TermindApplication
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 @MainActor
@@ -13,10 +14,10 @@ final class MCPServerController {
 
         var label: String {
             switch self {
-            case .stopped: String(localized: "Off")
-            case .starting: String(localized: "Starting…")
+            case .stopped: String(localized: TermindCopy.MCP.off)
+            case .starting: String(localized: TermindCopy.MCP.startingProgress)
             case .ready(let port):
-                String(localized: "Listening on localhost:\(String(port))")
+                String(localized: TermindCopy.MCP.listeningOnLocalhost(String(port)))
             case .failed(let reason): reason
             }
         }
@@ -129,7 +130,7 @@ final class MCPServerController {
     func rotateToken() {
         guard requestPro() else { return }
         guard let generated = try? Self.makeToken() else {
-            status = .failed(String(localized: "Unable to generate a secure token."))
+            status = .failed(String(localized: TermindCopy.MCP.unableToGenerateASecureToken))
             return
         }
         do {

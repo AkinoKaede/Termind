@@ -12,9 +12,9 @@ struct SyncSettings: View {
     private var isActive: Bool { isEnabled && app.proAccess.canUse(.vaultSync) }
 
     var body: some View {
-        Section("iCloud") {
+        Section(TermindCopy.Keychain.iCloud.swiftUIKey) {
             Toggle(
-                "iCloud Sync",
+                TermindCopy.Settings.iCloudSync.swiftUIKey,
                 isOn: Binding(
                     get: { isActive },
                     set: { enabled in
@@ -32,7 +32,7 @@ struct SyncSettings: View {
 
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
                 SyncSelectionRow(
-                    title: "Vault",
+                    title: TermindCopy.Navigation.vault,
                     isSelected: Binding(
                         get: { includesVault },
                         set: { value in
@@ -47,7 +47,7 @@ struct SyncSettings: View {
                     retry: { app.vaultSync?.retry() },
                     merge: { app.vaultSync?.confirmAccountSwitchMerge() })
                 SyncSelectionRow(
-                    title: "Metrics",
+                    title: TermindCopy.Navigation.metrics,
                     isSelected: Binding(
                         get: { includesMetrics },
                         set: { value in
@@ -57,7 +57,7 @@ struct SyncSettings: View {
                     retry: { app.metricsSync?.retry() },
                     merge: { app.metricsSync?.confirmAccountSwitchMerge() })
                 SyncSelectionRow(
-                    title: "Settings",
+                    title: TermindCopy.Navigation.settings,
                     isSelected: Binding(
                         get: { includesSettings },
                         set: { value in
@@ -73,7 +73,7 @@ struct SyncSettings: View {
 }
 
 private struct SyncSelectionRow: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     @Binding var isSelected: Bool
     let status: VaultSyncStatus?
     let retry: () -> Void
@@ -95,10 +95,10 @@ private struct SyncSelectionRow: View {
             if isSelected, let status {
                 switch status {
                 case .accountChangeConfirmationRequired:
-                    Button("Merge with This iCloud Account", action: merge)
+                    Button(TermindCopy.Settings.mergeWithThisICloudAccount.swiftUIKey, action: merge)
                 case .failed, .partiallyBlocked:
                     // Retry fetches again; it never dismisses a persisted upload restriction.
-                    Button("Retry", action: retry)
+                    Button(TermindCopy.Common.retry.swiftUIKey, action: retry)
                 default: EmptyView()
                 }
             }

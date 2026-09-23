@@ -1,5 +1,6 @@
 import AgentKit
 import SwiftUI
+import TermindPresentation
 
 /// The "MCP" section: servers whose tools the assistant may call.
 ///
@@ -16,7 +17,7 @@ struct MCPSettings: View {
         Section {
             if !app.aiConfiguration.conflictingMCPServerIDs.isEmpty {
                 Label(
-                    "Some MCP servers have duplicate namespaces and are paused. Edit their namespace IDs to resolve the conflict.",
+                    TermindCopy.Settings.duplicateMCPNamespaces.swiftUIKey,
                     systemImage: "exclamationmark.triangle"
                 )
                 .foregroundStyle(.orange)
@@ -25,14 +26,14 @@ struct MCPSettings: View {
                 MCPServerRow(server: server) { edit(server.id, false) }
             }
 
-            FormNavigationAction(title: "Add Server") {
+            FormNavigationAction(title: TermindCopy.MCP.addServer) {
                 guard app.proAccess.require(.remoteMCP) else { return }
                 let server = MCPServer(name: "", namespaceID: "")
                 app.aiConfiguration.upsert(server)
                 edit(server.id, true)
             }
 
-            Text("Termind connects directly from this Mac over HTTP.")
+            Text(TermindCopy.Settings.termindConnectsDirectlyFromThisMacOverHttp)
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
@@ -44,9 +45,9 @@ struct MCPSettings: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
 
-            FormNavigationAction(title: "Server", action: openServer)
+            FormNavigationAction(title: TermindCopy.Settings.server, action: openServer)
         } header: {
-            Text("MCP")
+            Text(TermindCopy.Settings.mcp)
         }
     }
 }
@@ -71,7 +72,7 @@ private struct MCPServerRow: View {
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                 }
-                Text(server.url.isEmpty ? String(localized: "No URL") : server.url)
+                Text(server.url.isEmpty ? String(localized: TermindCopy.Settings.noUrl) : server.url)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -83,7 +84,7 @@ private struct MCPServerRow: View {
             CardChip(text: server.transport.displayName)
 
             if server.tools.isEmpty {
-                CardChip(text: String(localized: "Not Connected"), symbol: "questionmark.circle")
+                CardChip(text: String(localized: TermindCopy.Settings.notConnected), symbol: "questionmark.circle")
             } else {
                 CardChip(text: "\(server.tools.count)", symbol: "wrench.and.screwdriver")
             }
@@ -92,7 +93,7 @@ private struct MCPServerRow: View {
                 .labelsHidden()
                 .toggleStyle(.switch)
                 .controlSize(.mini)
-                .accessibilityLabel(Text("Enable \(server.name)"))
+                .accessibilityLabel(Text(TermindCopy.Settings.enableNamed(server.name)))
 
             Button {
                 guard app.proAccess.require(.remoteMCP) else { return }
@@ -103,7 +104,7 @@ private struct MCPServerRow: View {
                     .foregroundStyle(.tertiary)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Edit \(server.name)"))
+            .accessibilityLabel(Text(TermindCopy.Settings.edit(server.name)))
         }
         .contentShape(.rect)
         .onTapGesture {

@@ -1,8 +1,9 @@
 import SwiftUI
+import TermindPresentation
 
 struct MobileEditorToolbarAction: Identifiable {
     let id: String
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let systemImage: String
     var role: ButtonRole? = nil
     var startsGroup = false
@@ -48,7 +49,7 @@ struct MobileEditorSheet<Content: View>: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", systemImage: "xmark") {
+                    Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark") {
                         if isDirty {
                             discard = true
                         } else {
@@ -82,16 +83,23 @@ struct MobileEditorSheet<Content: View>: View {
                             } catch { self.error = error.localizedDescription }
                         }
                     } label: {
-                        Label("Save", systemImage: "checkmark")
-                    }.labelStyle(.iconOnly).accessibilityLabel(Text("Save")).disabled(!canSave || isSaving)
+                        Label(TermindCopy.Common.save.swiftUIKey, systemImage: "checkmark")
+                    }.labelStyle(.iconOnly).accessibilityLabel(Text(TermindCopy.Common.save)).disabled(
+                        !canSave || isSaving)
                 }
                 .mobileProminentAction()
             }
-            .confirmationDialog("Discard Changes?", isPresented: $discard, titleVisibility: .visible) {
-                Button("Discard Changes", role: .destructive, action: cancel)
+            .confirmationDialog(
+                TermindCopy.Common.discardChangesConfirmation.swiftUIKey, isPresented: $discard,
+                titleVisibility: .visible
+            ) {
+                Button(TermindCopy.Common.discardChanges.swiftUIKey, role: .destructive, action: cancel)
             }
-            .alert("Unable to Save", isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })) {
-                Button("OK", role: .cancel, action: { error = nil })
+            .alert(
+                TermindCopy.Common.unableToSave.swiftUIKey,
+                isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
+            ) {
+                Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel, action: { error = nil })
             } message: {
                 Text(error ?? "")
             }

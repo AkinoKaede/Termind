@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -334,11 +335,11 @@ final class Pane: Identifiable {
             telnetSession.title
         case .sftpChannel(let sftpChannel):
             store.host(sftpChannel.hostID)?.name
-                ?? AppLocalization.string("SFTP", locale: locale)
+                ?? AppLocalization.resolve(TermindCopy.SFTP.sftp, locale: locale)
         case .serialSession(let serialSession):
             serialSession.title
         case .empty:
-            AppLocalization.string("Empty", locale: locale)
+            AppLocalization.resolve(TermindCopy.Common.empty, locale: locale)
         }
     }
 

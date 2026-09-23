@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 /// Coordinates draft commits when pointer navigation leaves one of Vault's
 /// inline editors. The registration is view-owned and tokened so a disappearing
@@ -123,16 +124,16 @@ struct VaultWorkspaceContent: View {
         }
         .environment(editingSession)
         .confirmationDialog(
-            "Save Changes?",
+            TermindCopy.Vault.saveChangesConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { editingSession.confirmationID != nil },
                 set: { if !$0 { editingSession.cancelTransition() } }
             ),
             titleVisibility: .visible
         ) {
-            Button("Save", action: editingSession.saveAndProceed)
-            Button("Discard", role: .destructive, action: editingSession.discardAndProceed)
-            Button("Cancel", role: .cancel, action: editingSession.cancelTransition)
+            Button(TermindCopy.Common.save.swiftUIKey, action: editingSession.saveAndProceed)
+            Button(TermindCopy.Common.discard.swiftUIKey, role: .destructive, action: editingSession.discardAndProceed)
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel, action: editingSession.cancelTransition)
         }
     }
 }

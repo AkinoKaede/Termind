@@ -1,5 +1,6 @@
 import AppKit
 import TermindApplication
+import TermindPresentation
 
 @MainActor
 struct SFTPOpenWithMenu {
@@ -18,24 +19,25 @@ struct SFTPOpenWithMenu {
         if !otherApplications.isEmpty { children.append(.separator) }
         children.append(
             NativeMenuEntry(
-                title: AppLocalization.string("App Store…", locale: locale),
+                title: AppLocalization.resolve(TermindCopy.SFTP.appStoreProgress, locale: locale),
                 isEnabled: SFTPApplicationOpener.appStoreSearchURL(for: filename) != nil,
                 action: { SFTPApplicationOpener.openAppStore(for: filename) }
             ))
         children.append(
-            NativeMenuEntry(title: AppLocalization.string("Other…", locale: locale)) {
+            NativeMenuEntry(title: AppLocalization.resolve(TermindCopy.SFTP.otherProgress, locale: locale)) {
                 Task {
                     if let application = await SFTPApplicationOpener.chooseApplication() { open(application) }
                 }
             })
-        return NativeMenuEntry(title: AppLocalization.string("Open With", locale: locale), children: children)
+        return NativeMenuEntry(
+            title: AppLocalization.resolve(TermindCopy.SFTP.openWith, locale: locale), children: children)
     }
 
     private func applicationEntry(_ application: SFTPFileApplication) -> NativeMenuEntry {
         let title =
             application.isDefault
             ? String(
-                format: AppLocalization.string("%@ (default)", locale: locale),
+                format: AppLocalization.resolve("%@ (default)", locale: locale),
                 locale: locale, application.name)
             : application.name
         return NativeMenuEntry(title: title, image: application.icon) { open(application.url) }

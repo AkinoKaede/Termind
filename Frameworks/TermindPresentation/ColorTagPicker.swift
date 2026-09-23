@@ -23,7 +23,7 @@ public struct ColorTagPicker: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Color")
+        .accessibilityLabel(TermindCopy.Vault.color.swiftUIKey)
     }
 
     private var swatches: some View {

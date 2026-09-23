@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 /// A split that has been carved but not filled.
 ///
@@ -25,10 +26,10 @@ struct EmptyPaneView: View {
                 .foregroundStyle(.tertiary)
 
             VStack(spacing: Metrics.Space.xs) {
-                Text("Empty Pane")
+                Text(TermindCopy.Workspace.emptyPane)
                     .font(.headline)
                     .foregroundStyle(.secondary)
-                Text("Drag an SSH terminal or SFTP browser here.")
+                Text(TermindCopy.Workspace.dragAnSshTerminalOrSftpBrowserHere)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }

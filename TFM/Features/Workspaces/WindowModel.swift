@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -1484,7 +1485,7 @@ final class WindowModel {
             if let cleaned {
                 workspace.customTitle = cleaned
             } else {
-                let prefix = AppLocalization.string("Workspace", locale: .current)
+                let prefix = AppLocalization.resolve(TermindCopy.Workspace.workspace, locale: .current)
                 let automatic = WorkspaceNameAllocator.nextName(
                     prefix: prefix,
                     occupiedNames: occupiedWorkspaceNames(excluding: workspace.id),

@@ -40,10 +40,10 @@ public struct SSHKeyboardInteractiveForm: View {
                 .autocorrectionDisabled()
             #endif
             HStack {
-                Button("Cancel", action: cancel).keyboardShortcut(.cancelAction)
+                Button(TermindCopy.Common.cancel.swiftUIKey, action: cancel).keyboardShortcut(.cancelAction)
                 Spacer()
                 if !challenge.prompts.isEmpty {
-                    Button("Continue", action: commit)
+                    Button(TermindCopy.Common.continue.swiftUIKey, action: commit)
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut(.defaultAction)
                         .disabled(submitted)

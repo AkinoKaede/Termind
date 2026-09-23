@@ -89,10 +89,10 @@ public struct ConnectionJourneyHeader: View {
     private var detail: String {
         let protocolName: String =
             switch journey.purpose {
-            case .sshSession, .metrics, .portForwarding: "SSH"
-            case .telnetSession: "Telnet"
-            case .sftpChannel: "SFTP"
-            case .serialSession: String(localized: "Serial")
+            case .sshSession, .metrics, .portForwarding: String(localized: TermindCopy.Vault.ssh)
+            case .telnetSession: String(localized: TermindCopy.Vault.telnet)
+            case .sftpChannel: String(localized: TermindCopy.SFTP.sftp)
+            case .serialSession: String(localized: TermindCopy.Vault.serial)
             }
         let address = journey.destination?.address ?? ""
         if journey.mode == .reconnection {

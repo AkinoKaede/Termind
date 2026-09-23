@@ -78,18 +78,18 @@ struct MobileSnippetsView: View {
             }
         }
         .searchable(text: $query.singleLineText)
-        .navigationTitle("Snippets")
+        .navigationTitle(TermindCopy.Navigation.snippets.swiftUIKey)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button("New Snippet", systemImage: "curlybraces") {
+                    Button(TermindCopy.Snippets.newSnippet.swiftUIKey, systemImage: "curlybraces") {
                         editorRequest = SnippetEditorRequest(snippetID: nil, packageID: nil)
                     }
-                    Button("New Package", systemImage: "folder.badge.plus") {
+                    Button(TermindCopy.Snippets.newPackage.swiftUIKey, systemImage: "folder.badge.plus") {
                         packageEditorRequest = PackageEditorRequest(packageID: nil, parentID: nil)
                     }
                 } label: {
-                    Label("Add", systemImage: "plus").labelStyle(.iconOnly)
+                    Label(TermindCopy.Common.add.swiftUIKey, systemImage: "plus").labelStyle(.iconOnly)
                 }
             }
         }
@@ -120,23 +120,23 @@ struct MobileSnippetsView: View {
         }
         .sheet(item: $targetRequest, onDismiss: completeTargetSelection) { request in
             MobileSnippetHostPicker(
-                app: app, selected: [], title: "Run", actionTitle: "Run",
+                app: app, selected: [], title: TermindCopy.Common.run, actionTitle: TermindCopy.Common.run,
                 requiresSelection: true
             ) { ids in
                 pendingTargetExecution = ExecutionRequest(snippetID: request.snippetID, hostIDs: ids)
             }
         }
         .confirmationDialog(
-            "Delete Snippet?",
+            TermindCopy.Snippets.deleteSnippetConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { deletingSnippetID != nil },
                 set: { if !$0 { deletingSnippetID = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete Snippet", role: .destructive, action: deleteSnippet)
-            Button("Cancel", role: .cancel) { deletingSnippetID = nil }
+            Button(TermindCopy.Snippets.deleteSnippet.swiftUIKey, role: .destructive, action: deleteSnippet)
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { deletingSnippetID = nil }
         } message: {
-            Text("This action cannot be undone.")
+            Text(TermindCopy.Snippets.thisActionCannotBeUndone)
         }
         .confirmationDialog(
             packageDeletionTitle,
@@ -145,16 +145,16 @@ struct MobileSnippetsView: View {
                 set: { if !$0 { deletingPackage = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete Package and Snippets", role: .destructive) {
+            Button(TermindCopy.Snippets.deletePackageAndSnippets.swiftUIKey, role: .destructive) {
                 deletePackage(keepingSnippets: false)
             }
-            Button("Keep Snippets") { deletePackage(keepingSnippets: true) }
-            Button("Cancel", role: .cancel) { deletingPackage = nil }
+            Button(TermindCopy.Snippets.keepSnippets.swiftUIKey) { deletePackage(keepingSnippets: true) }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { deletingPackage = nil }
         } message: {
             Text(packageDeletionMessage)
         }
         .confirmationDialog(
-            "Run a destructive script?",
+            TermindCopy.Snippets.runADestructiveScriptConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { destructiveRequest != nil },
                 set: { if !$0 { destructiveRequest = nil } }),
@@ -165,7 +165,7 @@ struct MobileSnippetsView: View {
                 destructiveRequest = nil
                 performExecution(request)
             }
-            Button("Cancel", role: .cancel) { destructiveRequest = nil }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { destructiveRequest = nil }
         } message: {
             Text(destructiveMessage)
         }
@@ -179,15 +179,15 @@ struct MobileSnippetsView: View {
 
     private var emptyState: some View {
         ContentUnavailableView {
-            Label("No Snippets", systemImage: "curlybraces")
+            Label(TermindCopy.Snippets.noSnippets.swiftUIKey, systemImage: "curlybraces")
         } description: {
-            Text("Save a script and optionally choose its default hosts.")
+            Text(TermindCopy.Snippets.emptyDescription)
         } actions: {
             HStack {
-                Button("New Package") {
+                Button(TermindCopy.Snippets.newPackage.swiftUIKey) {
                     packageEditorRequest = PackageEditorRequest(packageID: nil, parentID: nil)
                 }
-                Button("New Snippet") {
+                Button(TermindCopy.Snippets.newSnippet.swiftUIKey) {
                     editorRequest = SnippetEditorRequest(snippetID: nil, packageID: nil)
                 }
                 .buttonStyle(.borderedProminent)
@@ -220,38 +220,38 @@ struct MobileSnippetsView: View {
                 let package = app.snippets.snippetPackage(id)
             {
                 Menu {
-                    Button("New Snippet", systemImage: "curlybraces") {
+                    Button(TermindCopy.Snippets.newSnippet.swiftUIKey, systemImage: "curlybraces") {
                         editorRequest = SnippetEditorRequest(snippetID: nil, packageID: package.id)
                     }
-                    Button("New Subpackage", systemImage: "folder.badge.plus") {
+                    Button(TermindCopy.Snippets.newSubpackage.swiftUIKey, systemImage: "folder.badge.plus") {
                         packageEditorRequest = PackageEditorRequest(packageID: nil, parentID: package.id)
                     }
-                    Button("Edit", systemImage: "pencil") {
+                    Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") {
                         packageEditorRequest = PackageEditorRequest(
                             packageID: package.id, parentID: package.parentID)
                     }
                     Divider()
-                    Button("Delete Package", systemImage: "trash", role: .destructive) {
+                    Button(TermindCopy.Snippets.deletePackage.swiftUIKey, systemImage: "trash", role: .destructive) {
                         deletingPackage = package
                     }
                 } label: {
                     Image(systemName: "ellipsis")
                         .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel("More")
+                .accessibilityLabel(TermindCopy.Common.more.swiftUIKey)
             } else if case .ungrouped = section.id {
                 Menu {
-                    Button("New Snippet", systemImage: "curlybraces") {
+                    Button(TermindCopy.Snippets.newSnippet.swiftUIKey, systemImage: "curlybraces") {
                         editorRequest = SnippetEditorRequest(snippetID: nil, packageID: nil)
                     }
-                    Button("New Package", systemImage: "folder.badge.plus") {
+                    Button(TermindCopy.Snippets.newPackage.swiftUIKey, systemImage: "folder.badge.plus") {
                         packageEditorRequest = PackageEditorRequest(packageID: nil, parentID: nil)
                     }
                 } label: {
                     Image(systemName: "ellipsis")
                         .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel("More")
+                .accessibilityLabel(TermindCopy.Common.more.swiftUIKey)
             }
         }
         .accessibilityElement(children: .contain)
@@ -290,17 +290,19 @@ struct MobileSnippetsView: View {
                 }
             }
         } actions: {
-            Button("Run", systemImage: "play.fill") {
+            Button(TermindCopy.Common.run.swiftUIKey, systemImage: "play.fill") {
                 requestExecution(snippet.id, overrideTargets: false)
             }
             .disabled(app.snippets.hosts.isEmpty)
             Divider()
-            Button("Edit", systemImage: "pencil") {
+            Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") {
                 editorRequest = SnippetEditorRequest(snippetID: snippet.id, packageID: nil)
             }
-            Button("Duplicate", systemImage: "plus.square.on.square") { duplicate(snippet.id) }
+            Button(TermindCopy.Common.duplicate.swiftUIKey, systemImage: "plus.square.on.square") {
+                duplicate(snippet.id)
+            }
             Divider()
-            Button("Delete", systemImage: "trash", role: .destructive) {
+            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                 deletingSnippetID = snippet.id
             }
         }
@@ -335,7 +337,7 @@ struct MobileSnippetsView: View {
     }
 
     private var packageDeletionTitle: String {
-        deletingPackage.map { String(localized: "Delete “\($0.name)”?") } ?? ""
+        deletingPackage.map { String(localized: TermindCopy.Common.deleteNamedConfirmation($0.name)) } ?? ""
     }
 
     private var packageDeletionMessage: String {
@@ -343,9 +345,7 @@ struct MobileSnippetsView: View {
         let packageIDs = Set(
             [package.id] + app.snippets.descendantSnippetPackages(of: package.id).map(\.id))
         let count = app.snippets.snippets.filter { $0.packageID.map(packageIDs.contains) == true }.count
-        return count == 1
-            ? String(localized: "This package contains 1 snippet.")
-            : String(localized: "This package tree contains \(count) snippets.")
+        return AppLocalization.resolve(TermindCopy.Snippets.packageDeletionMessage(snippetCount: count), locale: locale)
     }
 
     private func deletePackage(keepingSnippets: Bool) {
@@ -402,10 +402,10 @@ struct MobileSnippetsView: View {
     }
 
     private var destructiveExecuteTitle: String {
-        guard let request = destructiveRequest else { return String(localized: "Run") }
+        guard let request = destructiveRequest else { return String(localized: TermindCopy.Common.run) }
         return request.hostIDs.count == 1
-            ? String(localized: "Run on 1 Host")
-            : String(localized: "Run on \(request.hostIDs.count) Hosts")
+            ? String(localized: TermindCopy.Snippets.runOn1Host)
+            : String(localized: TermindCopy.Snippets.runOnHosts(request.hostIDs.count))
     }
 
     private var destructiveMessage: String {
@@ -417,11 +417,8 @@ struct MobileSnippetsView: View {
     }
 
     private func targetSummary(_ snippet: Snippet) -> String {
-        switch validTargets(for: snippet).count {
-        case 0: String(localized: "No targets")
-        case 1: String(localized: "1 target")
-        case let count: String(localized: "\(count) targets")
-        }
+        AppLocalization.resolve(
+            TermindCopy.Snippets.targetSummary(count: validTargets(for: snippet).count), locale: locale)
     }
 
     private func reportStorageError() {
@@ -445,7 +442,7 @@ struct MobileSnippetDetailView: View {
             if let snippet {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 16) {
-                        MobileSnippetDetailPanel(title: String(localized: "Script")) {
+                        MobileSnippetDetailPanel(title: String(localized: TermindCopy.Snippets.script)) {
                             Text(snippet.body).font(.body.monospaced()).textSelection(.enabled)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                         }
@@ -455,7 +452,7 @@ struct MobileSnippetDetailView: View {
                         Button {
                             execute(snippet.id)
                         } label: {
-                            Label("Run", systemImage: "play.fill")
+                            Label(TermindCopy.Common.run.swiftUIKey, systemImage: "play.fill")
                                 .frame(maxWidth: .infinity).padding(.vertical, 6)
                         }
                         .buttonStyle(.borderedProminent)
@@ -469,19 +466,22 @@ struct MobileSnippetDetailView: View {
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .primaryAction) {
-                        Button("Edit", systemImage: "pencil", action: edit).labelStyle(.iconOnly)
+                        Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil", action: edit).labelStyle(
+                            .iconOnly)
                     }
                     .mobileProminentAction()
                     MobileToolbarOverflow {
-                        Button("Duplicate", systemImage: "plus.square.on.square") {
+                        Button(TermindCopy.Common.duplicate.swiftUIKey, systemImage: "plus.square.on.square") {
                             duplicate(snippet.id)
                         }
                         Divider()
-                        Button("Delete", systemImage: "trash", role: .destructive, action: delete)
+                        Button(
+                            TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive,
+                            action: delete)
                     }
                 }
             } else {
-                ContentUnavailableView("No Snippets", systemImage: "curlybraces")
+                ContentUnavailableView(TermindCopy.Snippets.noSnippets.swiftUIKey, systemImage: "curlybraces")
             }
         }
         .onChange(of: app.snippets.snippets.map(\.id)) {
@@ -491,7 +491,7 @@ struct MobileSnippetDetailView: View {
 
     private func riskPanel(_ snippet: Snippet) -> some View {
         let assessment = CommandRiskClassifier.assess(snippet.body)
-        return MobileSnippetDetailPanel(title: String(localized: "Risk")) {
+        return MobileSnippetDetailPanel(title: String(localized: TermindCopy.Snippets.risk)) {
             MobileSnippetRiskChip(assessment: assessment)
             ForEach(assessment.reasons, id: \.self) { reason in
                 Text(reason).font(.caption).foregroundStyle(.secondary)
@@ -500,9 +500,9 @@ struct MobileSnippetDetailView: View {
     }
 
     private func packagePanel(_ snippet: Snippet) -> some View {
-        MobileSnippetDetailPanel(title: String(localized: "Package")) {
+        MobileSnippetDetailPanel(title: String(localized: TermindCopy.Snippets.package)) {
             Label(
-                app.snippets.snippetPackagePath(snippet.packageID) ?? String(localized: "Ungrouped"),
+                app.snippets.snippetPackagePath(snippet.packageID) ?? String(localized: TermindCopy.Common.ungrouped),
                 systemImage: "folder")
         }
     }
@@ -510,9 +510,9 @@ struct MobileSnippetDetailView: View {
     private func targetPanel(_ snippet: Snippet) -> some View {
         let wanted = Set(snippet.targetHostIDs)
         let hosts = app.snippets.searchHosts("").filter { wanted.contains($0.id) }
-        return MobileSnippetDetailPanel(title: String(localized: "Targets")) {
+        return MobileSnippetDetailPanel(title: String(localized: TermindCopy.Snippets.targets)) {
             if hosts.isEmpty {
-                Text("No targets selected").foregroundStyle(.secondary)
+                Text(TermindCopy.Snippets.noTargetsSelected).foregroundStyle(.secondary)
             } else {
                 ForEach(hosts) { host in
                     Label {
@@ -620,19 +620,21 @@ struct MobileSnippetEditor: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: existing ? String(localized: "Edit Snippet") : String(localized: "New Snippet"),
+            title: existing
+                ? String(localized: TermindCopy.Snippets.editSnippet)
+                : String(localized: TermindCopy.Snippets.newSnippet),
             isDirty: draft != original,
             canSave: !trimmedTitle.isEmpty && !trimmedBody.isEmpty,
             save: save
         ) {
             SnippetOrganizationSection(name: $draft.title) {
-                Picker("Package", selection: packageChoice) {
-                    Text("Ungrouped").tag(PackageChoice.ungrouped)
+                Picker(TermindCopy.Snippets.package.swiftUIKey, selection: packageChoice) {
+                    Text(TermindCopy.Common.ungrouped).tag(PackageChoice.ungrouped)
                     ForEach(packageChoices, id: \.package.id) { choice in
                         Text(choice.path).tag(PackageChoice.existing(choice.package.id))
                     }
                     Divider()
-                    Text("New Package").tag(PackageChoice.new)
+                    Text(TermindCopy.Snippets.newPackage).tag(PackageChoice.new)
                 }
             }
             SnippetScriptSection(script: $draft.body, minHeight: 220) {
@@ -642,18 +644,18 @@ struct MobileSnippetEditor: View {
                     Text(reason).font(.caption).foregroundStyle(.secondary)
                 }
             }
-            Section("Targets") {
+            Section(TermindCopy.Snippets.targets.swiftUIKey) {
                 Button {
                     choosingTargets = true
                 } label: {
-                    Label("Add Hosts", systemImage: "server.rack")
+                    Label(TermindCopy.Snippets.addHosts.swiftUIKey, systemImage: "server.rack")
                 }
                 .disabled(app.snippets.hosts.isEmpty)
                 if selectedHosts.isEmpty {
                     Text(
                         app.snippets.hosts.isEmpty
-                            ? String(localized: "No saved hosts")
-                            : String(localized: "No targets selected")
+                            ? String(localized: TermindCopy.Snippets.noSavedHosts)
+                            : String(localized: TermindCopy.Snippets.noTargetsSelected)
                     )
                     .foregroundStyle(.secondary)
                 } else {
@@ -671,7 +673,7 @@ struct MobileSnippetEditor: View {
                                 Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityLabel(Text("Remove \(host.name)"))
+                            .accessibilityLabel(Text(TermindCopy.Common.removeNamed(host.name)))
                         }
                     }
                 }
@@ -679,8 +681,8 @@ struct MobileSnippetEditor: View {
         }
         .sheet(isPresented: $choosingTargets) {
             MobileSnippetHostPicker(
-                app: app, selected: Set(draft.targetHostIDs), title: "Add Hosts",
-                actionTitle: "Done", requiresSelection: false
+                app: app, selected: Set(draft.targetHostIDs), title: TermindCopy.Snippets.addHosts,
+                actionTitle: TermindCopy.Common.done, requiresSelection: false
             ) { ids in
                 draft.targetHostIDs = ids
                 choosingTargets = false
@@ -755,15 +757,18 @@ struct MobileSnippetPackageEditor: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: existing ? String(localized: "Edit Package") : String(localized: "New Package"),
+            title: existing
+                ? String(localized: TermindCopy.Snippets.editPackage)
+                : String(localized: TermindCopy.Snippets.newPackage),
             isDirty: draft != original, canSave: !trimmedName.isEmpty, compact: true,
             save: save
         ) {
-            TextField("Name", text: $draft.name.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+            TextField(TermindCopy.Common.name.swiftUIKey, text: $draft.name.singleLineText, axis: .horizontal)
+                .singleLinePaste().lineLimit(1)
                 .multilineTextAlignment(
                     .leading)
-            Picker("Inside", selection: $draft.parentID) {
-                Text("Top Level").tag(SnippetPackage.ID?.none)
+            Picker(TermindCopy.Common.inside.swiftUIKey, selection: $draft.parentID) {
+                Text(TermindCopy.Common.topLevel).tag(SnippetPackage.ID?.none)
                 ForEach(parentChoices, id: \.package.id) { choice in
                     Text(choice.path).tag(SnippetPackage.ID?.some(choice.package.id))
                 }
@@ -796,8 +801,8 @@ struct MobileSnippetPackageEditor: View {
 
 struct MobileSnippetHostPicker: View {
     let app: MobileAppModel
-    let title: LocalizedStringKey
-    let actionTitle: LocalizedStringKey
+    let title: LocalizedStringResource
+    let actionTitle: LocalizedStringResource
     let requiresSelection: Bool
     let save: ([Host.ID]) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -805,8 +810,8 @@ struct MobileSnippetHostPicker: View {
     @State private var selected: Set<Host.ID>
 
     init(
-        app: MobileAppModel, selected: Set<Host.ID>, title: LocalizedStringKey,
-        actionTitle: LocalizedStringKey, requiresSelection: Bool,
+        app: MobileAppModel, selected: Set<Host.ID>, title: LocalizedStringResource,
+        actionTitle: LocalizedStringResource, requiresSelection: Bool,
         save: @escaping ([Host.ID]) -> Void
     ) {
         self.app = app
@@ -827,9 +832,9 @@ struct MobileSnippetHostPicker: View {
             List {
                 if app.snippets.hosts.isEmpty {
                     ContentUnavailableView(
-                        "No Hosts", systemImage: "server.rack",
+                        TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack",
                         description: Text(
-                            "Add a host before choosing default targets."
+                            TermindCopy.Snippets.addAHostBeforeChoosingDefaultTargets
                         )
                     )
                     .listRowBackground(Color.clear)
@@ -842,7 +847,8 @@ struct MobileSnippetHostPicker: View {
                     Section {
                         Button(
                             allResultsSelected
-                                ? String(localized: "Deselect All") : String(localized: "Select All")
+                                ? String(localized: TermindCopy.Common.deselectAll)
+                                : String(localized: TermindCopy.Common.selectAll)
                         ) {
                             toggleAllResults()
                         }
@@ -870,12 +876,13 @@ struct MobileSnippetHostPicker: View {
                     }
                 }
             }
-            .searchable(text: $query.singleLineText, prompt: "Search hosts")
+            .searchable(text: $query.singleLineText, prompt: TermindCopy.Vault.searchHosts.swiftUIKey)
             .navigationTitle(Text(title))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
+                    Button(TermindCopy.Common.cancel.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(
+                        .iconOnly)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(actionTitle, systemImage: "checkmark") {

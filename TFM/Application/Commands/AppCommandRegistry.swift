@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -15,11 +16,11 @@ nonisolated enum AppCommandSection: String, CaseIterable, Hashable, Sendable, Id
 
     var title: String {
         switch self {
-        case .navigation: String(localized: "Navigation")
-        case .conversations: String(localized: "Chats")
-        case .workspaces: String(localized: "Workspaces")
-        case .hosts: String(localized: "Hosts")
-        case .actions: String(localized: "Actions")
+        case .navigation: String(localized: TermindCopy.Navigation.navigation)
+        case .conversations: String(localized: TermindCopy.Assistant.chats)
+        case .workspaces: String(localized: TermindCopy.Navigation.workspaces)
+        case .hosts: String(localized: TermindCopy.Vault.hosts)
+        case .actions: String(localized: TermindCopy.Common.actions)
         }
     }
 }
@@ -109,20 +110,20 @@ final class AppCommandRegistry {
     private var fixedCommands: [AppCommandDescriptor] {
         [
             AppCommandDescriptor(
-                id: "fixed.vault", title: String(localized: "Vault"),
-                subtitle: String(localized: "Navigator"), symbol: "lock.square.stack",
+                id: "fixed.vault", title: String(localized: TermindCopy.Navigation.vault),
+                subtitle: String(localized: TermindCopy.Workspace.navigator), symbol: "lock.square.stack",
                 section: .navigation,
                 keywords: ["hosts", "keys", "snippets"], target: .vault
             ),
             AppCommandDescriptor(
-                id: "fixed.assistant", title: String(localized: "Assistant"),
-                subtitle: String(localized: "Chats"), symbol: "sparkles",
+                id: "fixed.assistant", title: String(localized: TermindCopy.Navigation.assistant),
+                subtitle: String(localized: TermindCopy.Assistant.chats), symbol: "sparkles",
                 section: .navigation,
                 keywords: ["chat", "conversations"], target: .assistant
             ),
             AppCommandDescriptor(
-                id: "fixed.settings", title: String(localized: "Settings"),
-                subtitle: String(localized: "Navigator"), symbol: "gearshape",
+                id: "fixed.settings", title: String(localized: TermindCopy.Navigation.settings),
+                subtitle: String(localized: TermindCopy.Workspace.navigator), symbol: "gearshape",
                 section: .navigation,
                 keywords: ["preferences"], target: .settings
             ),
@@ -134,7 +135,7 @@ final class AppCommandRegistry {
             AppCommandDescriptor(
                 id: "vault.\(page.rawValue)",
                 title: page.title(),
-                subtitle: String(localized: "Vault"),
+                subtitle: String(localized: TermindCopy.Navigation.vault),
                 symbol: page.symbol,
                 section: .navigation,
                 keywords: [page.rawValue],
@@ -150,7 +151,7 @@ final class AppCommandRegistry {
             AppCommandDescriptor(
                 id: "conversation.\(conversation.id.uuidString)",
                 title: conversation.derivedTitle,
-                subtitle: String(localized: "Chat"),
+                subtitle: String(localized: TermindCopy.Assistant.chat),
                 symbol: "sparkles",
                 section: .conversations,
                 // Search only what the conversation UI exposes. Hidden reasoning,
@@ -167,7 +168,7 @@ final class AppCommandRegistry {
         AppCommandDescriptor(
             id: "workspace.\(workspace.id.uuidString)",
             title: workspace.title(in: store),
-            subtitle: String(localized: "Open Workspace"),
+            subtitle: String(localized: TermindCopy.Vault.openWorkspace),
             symbol: workspace.symbol,
             section: .workspaces,
             keywords: workspace.panes.map { $0.sidebarTitle(in: store) },
@@ -181,7 +182,7 @@ final class AppCommandRegistry {
         AppCommandDescriptor(
             id: "workspace-template.\(template.id.uuidString)",
             title: template.name,
-            subtitle: String(localized: "Workspace Template"),
+            subtitle: String(localized: TermindCopy.Workspace.workspaceTemplate),
             symbol: "rectangle.split.2x1",
             section: .workspaces,
             keywords: template.layout.hostIDs.compactMap { store.host($0)?.name },
@@ -197,7 +198,7 @@ final class AppCommandRegistry {
                 AppCommandDescriptor(
                     id: "host.ssh.\(host.id.uuidString)",
                     title: host.name,
-                    subtitle: String(localized: "Connect with SSH · \(host.displayAddress(for: .ssh))"),
+                    subtitle: String(localized: TermindCopy.Connections.connectWithSsh(host.displayAddress(for: .ssh))),
                     symbol: "apple.terminal",
                     section: .hosts,
                     keywords: keywords + ["ssh"],
@@ -207,7 +208,7 @@ final class AppCommandRegistry {
                 AppCommandDescriptor(
                     id: "host.sftp.\(host.id.uuidString)",
                     title: host.name,
-                    subtitle: String(localized: "Browse with SFTP · \(host.displayAddress(for: .ssh))"),
+                    subtitle: String(localized: TermindCopy.SFTP.browseWithSftp(host.displayAddress(for: .ssh))),
                     symbol: "folder",
                     section: .hosts,
                     keywords: keywords + ["sftp", "files"],
@@ -218,7 +219,8 @@ final class AppCommandRegistry {
             commands.append(
                 AppCommandDescriptor(
                     id: "host.telnet.\(host.id.uuidString)", title: host.name,
-                    subtitle: String(localized: "Connect with Telnet · \(host.displayAddress(for: .telnet))"),
+                    subtitle: String(
+                        localized: TermindCopy.Connections.connectWithTelnet(host.displayAddress(for: .telnet))),
                     symbol: MenuSymbol.telnet, section: .hosts, keywords: keywords + ["telnet"],
                     target: .connectHost(host.id, .telnetSession)))
         }
@@ -228,19 +230,19 @@ final class AppCommandRegistry {
     private func actionCommands(workspaceID: UUID?) -> [AppCommandDescriptor] {
         var commands = [
             AppCommandDescriptor(
-                id: "action.new-window", title: String(localized: "New Window"),
-                subtitle: String(localized: "Action"), symbol: MenuSymbol.newWindow,
+                id: "action.new-window", title: String(localized: TermindCopy.Workspace.newWindow),
+                subtitle: String(localized: TermindCopy.Common.action), symbol: MenuSymbol.newWindow,
                 section: .actions, keywords: ["window"], target: .newWindow
             ),
             AppCommandDescriptor(
-                id: "action.new-chat", title: String(localized: "New Chat"),
-                subtitle: String(localized: "Action"), symbol: "plus.bubble",
+                id: "action.new-chat", title: String(localized: TermindCopy.Assistant.newChat),
+                subtitle: String(localized: TermindCopy.Common.action), symbol: "plus.bubble",
                 section: .actions,
                 keywords: ["assistant", "conversation"], target: .newChat
             ),
             AppCommandDescriptor(
-                id: "action.new-host", title: String(localized: "New Host"),
-                subtitle: String(localized: "Action"), symbol: "plus.rectangle",
+                id: "action.new-host", title: String(localized: TermindCopy.Vault.newHost),
+                subtitle: String(localized: TermindCopy.Common.action), symbol: "plus.rectangle",
                 section: .actions,
                 keywords: ["server", "add"], target: .newHost
             ),
@@ -248,14 +250,15 @@ final class AppCommandRegistry {
         if let workspaceID {
             commands.append(
                 AppCommandDescriptor(
-                    id: "action.move-workspace-window", title: String(localized: "Move Workspace to New Window"),
-                    subtitle: String(localized: "Action"), symbol: MenuSymbol.moveToNewWindow,
+                    id: "action.move-workspace-window",
+                    title: String(localized: TermindCopy.Workspace.moveWorkspaceToNewWindow),
+                    subtitle: String(localized: TermindCopy.Common.action), symbol: MenuSymbol.moveToNewWindow,
                     section: .actions, keywords: ["window", "move"], target: .moveWorkspaceToNewWindow(workspaceID)
                 ))
             commands.append(
                 AppCommandDescriptor(
-                    id: "action.show-assistant", title: String(localized: "Show Assistant in Sidebar"),
-                    subtitle: String(localized: "Action"), symbol: "sidebar.left",
+                    id: "action.show-assistant", title: String(localized: TermindCopy.Assistant.showAssistantInSidebar),
+                    subtitle: String(localized: TermindCopy.Common.action), symbol: "sidebar.left",
                     section: .actions,
                     keywords: ["sidebar", "assistant", "context", "details"], target: .showAssistant
                 ))

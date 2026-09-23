@@ -6,14 +6,14 @@ import SwiftUI
 /// always returns to its masked state when it leaves the hierarchy or the app stops
 /// being active.
 public struct RevealableSecretField: View {
-    private let title: LocalizedStringKey
+    private let title: LocalizedStringResource
     @Binding private var text: String
     private let prompt: Text?
 
     @Environment(\.scenePhase) private var scenePhase
     @State private var isRevealed = false
 
-    public init(_ title: LocalizedStringKey, text: Binding<String>, prompt: Text? = nil) {
+    public init(_ title: LocalizedStringResource, text: Binding<String>, prompt: Text? = nil) {
         self.title = title
         _text = text
         self.prompt = prompt
@@ -37,7 +37,8 @@ public struct RevealableSecretField: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(isRevealed ? Text("Hide Secret") : Text("Show Secret"))
+            .accessibilityLabel(
+                isRevealed ? Text(TermindCopy.Settings.hideSecret) : Text(TermindCopy.Settings.showSecret))
         }
         .onDisappear { isRevealed = false }
         .onChange(of: scenePhase) { _, phase in

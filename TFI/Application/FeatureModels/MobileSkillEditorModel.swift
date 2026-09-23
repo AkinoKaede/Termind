@@ -2,6 +2,7 @@ import AgentKit
 import Foundation
 import Observation
 import TermindApplication
+import TermindPresentation
 
 @MainActor @Observable
 final class MobileSkillEditorModel {
@@ -25,14 +26,15 @@ final class MobileSkillEditorModel {
         var value = draft
         if wasPersisted {
             guard let current = library.skill(original.id) else {
-                throw MobileEditorError.message(String(localized: "Skill Deleted"))
+                throw MobileEditorError.message(String(localized: TermindCopy.Settings.skillDeleted))
             }
             var fields = SettingsFields(original, draft, current)
             if draft.name != original.name {
                 guard library.conflictingSkillIDs.contains(original.id), AgentSkillNaming.isValid(draft.name),
                     !library.hasNameConflict(draft.name, excluding: draft.id)
                 else {
-                    throw MobileEditorError.message(String(localized: "Another skill already uses this name."))
+                    throw MobileEditorError.message(
+                        String(localized: TermindCopy.Settings.anotherSkillAlreadyUsesThisName))
                 }
                 try fields.merge(\.name)
             }

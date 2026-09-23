@@ -136,7 +136,7 @@ struct MobileWorkspaceView: View {
                     Menu {
                         workspaceSwitchActions
                     } label: {
-                        Label("Workspaces", systemImage: "rectangle.stack")
+                        Label(TermindCopy.Navigation.workspaces.swiftUIKey, systemImage: "rectangle.stack")
                     }
                     .labelStyle(.iconOnly)
                     .accessibilityValue(workspace.descriptor.title)
@@ -165,17 +165,19 @@ struct MobileWorkspaceView: View {
     private var workspaceToolbar: some ToolbarContent {
         if workspace.descriptor.kind == .ssh {
             MobileToolbarOverflow(placement: .topBarTrailing) {
-                Button("Generate Command", systemImage: "sparkles") {
+                Button(TermindCopy.Workspace.generateCommand.swiftUIKey, systemImage: "sparkles") {
                     workspace.generateCommand(using: commandGenerator)
                 }
                 Divider()
-                Button("Snippets", systemImage: "curlybraces") { terminalSheet = .snippets }
-                Button("History", systemImage: "clock") { terminalSheet = .commandHistory }
+                Button(TermindCopy.Navigation.snippets.swiftUIKey, systemImage: "curlybraces") {
+                    terminalSheet = .snippets
+                }
+                Button(TermindCopy.Common.history.swiftUIKey, systemImage: "clock") { terminalSheet = .commandHistory }
                 Divider()
-                Button("Next Match", systemImage: "chevron.down") {
+                Button(TermindCopy.Workspace.nextMatch.swiftUIKey, systemImage: "chevron.down") {
                     workspace.find.presentAndNavigate(.previous)
                 }
-                Button("Previous Match", systemImage: "chevron.up") {
+                Button(TermindCopy.Workspace.previousMatch.swiftUIKey, systemImage: "chevron.up") {
                     workspace.find.presentAndNavigate(.next)
                 }
                 Divider()
@@ -185,12 +187,14 @@ struct MobileWorkspaceView: View {
         }
         if workspace.descriptor.kind == .telnet {
             MobileToolbarOverflow(placement: .topBarTrailing) {
-                Button("Snippets", systemImage: "curlybraces") { terminalSheet = .snippets }
+                Button(TermindCopy.Navigation.snippets.swiftUIKey, systemImage: "curlybraces") {
+                    terminalSheet = .snippets
+                }
                 Divider()
-                Button("Next Match", systemImage: "chevron.down") {
+                Button(TermindCopy.Workspace.nextMatch.swiftUIKey, systemImage: "chevron.down") {
                     workspace.find.presentAndNavigate(.previous)
                 }
-                Button("Previous Match", systemImage: "chevron.up") {
+                Button(TermindCopy.Workspace.previousMatch.swiftUIKey, systemImage: "chevron.up") {
                     workspace.find.presentAndNavigate(.next)
                 }
                 Divider()
@@ -199,35 +203,39 @@ struct MobileWorkspaceView: View {
         }
         if isSFTP {
             MobileToolbarOverflow(placement: .topBarTrailing) {
-                Button("Previous Location", systemImage: "chevron.left") {
+                Button(TermindCopy.Workspace.previousLocation.swiftUIKey, systemImage: "chevron.left") {
                     Task { await workspace.sftpChannel.goBack() }
                 }
                 .disabled(!workspace.connected || !workspace.sftpChannel.canGoBack)
-                Button("Next Location", systemImage: "chevron.right") {
+                Button(TermindCopy.Workspace.nextLocation.swiftUIKey, systemImage: "chevron.right") {
                     Task { await workspace.sftpChannel.goForward() }
                 }
                 .disabled(!workspace.connected || !workspace.sftpChannel.canGoForward)
                 Divider()
-                Button("Transfers", systemImage: "arrow.up.arrow.down") { showingTransfers = true }
-                Button("History", systemImage: "clock") { terminalSheet = .sftpHistory }
+                Button(TermindCopy.SFTP.transfers.swiftUIKey, systemImage: "arrow.up.arrow.down") {
+                    showingTransfers = true
+                }
+                Button(TermindCopy.Common.history.swiftUIKey, systemImage: "clock") { terminalSheet = .sftpHistory }
                 Divider()
-                Button("Upload", systemImage: "square.and.arrow.up") { importing = true }
+                Button(TermindCopy.SFTP.upload.swiftUIKey, systemImage: "square.and.arrow.up") { importing = true }
                     .disabled(!workspace.connected)
-                Button("New Folder", systemImage: "folder.badge.plus") { creatingDirectory = true }
-                    .disabled(!workspace.connected)
-                Button("Paste", systemImage: "doc.on.clipboard", action: pasteRemoteItems)
+                Button(TermindCopy.SFTP.newFolder.swiftUIKey, systemImage: "folder.badge.plus") {
+                    creatingDirectory = true
+                }
+                .disabled(!workspace.connected)
+                Button(TermindCopy.Common.paste.swiftUIKey, systemImage: "doc.on.clipboard", action: pasteRemoteItems)
                     .disabled(!workspace.connected)
                 sortMenu
                 if workspace.sftpChannel.showsHiddenFiles {
-                    Button("Hide Hidden Files", systemImage: "eye.slash") {
+                    Button(TermindCopy.SFTP.hideHiddenFiles.swiftUIKey, systemImage: "eye.slash") {
                         workspace.sftpChannel.showsHiddenFiles = false
                     }
                 } else {
-                    Button("Show Hidden Files", systemImage: "eye") {
+                    Button(TermindCopy.SFTP.showHiddenFiles.swiftUIKey, systemImage: "eye") {
                         workspace.sftpChannel.showsHiddenFiles = true
                     }
                 }
-                Button("Refresh", systemImage: "arrow.clockwise") {
+                Button(TermindCopy.Common.refresh.swiftUIKey, systemImage: "arrow.clockwise") {
                     Task { await workspace.sftpChannel.reload() }
                 }
                 .disabled(!workspace.connected || workspace.sftpChannel.isRefreshing)
@@ -302,10 +310,10 @@ struct MobileWorkspaceView: View {
             .sheet(isPresented: $showsExportedEdit) {
                 if let exportedEditURL {
                     VStack(spacing: 20) {
-                        Text("The edited copy uses a different format").font(.headline)
-                        Text("Save this copy separately to keep the original remote file format.")
+                        Text(TermindCopy.Workspace.theEditedCopyUsesADifferentFormat).font(.headline)
+                        Text(TermindCopy.SFTP.editedCopyFormatExplanation)
                         ShareLink(item: exportedEditURL) {
-                            Label("Keep Local Copy", systemImage: "square.and.arrow.up")
+                            Label(TermindCopy.SFTP.keepLocalCopy.swiftUIKey, systemImage: "square.and.arrow.up")
                         }
                     }
                     .padding()
@@ -376,28 +384,29 @@ struct MobileWorkspaceView: View {
                 isPresented: $uploadConflictPresented,
                 titleVisibility: .visible
             ) {
-                Button("Replace") { enqueuePendingUpload(.replace) }
-                Button("Skip Existing") { enqueuePendingUpload(.skip) }
-                Button("Keep Both") { enqueuePendingUpload(.keepBoth) }
-                Button("Cancel", role: .cancel) { workspace.cancelPendingUpload() }
+                Button(TermindCopy.SFTP.replace.swiftUIKey) { enqueuePendingUpload(.replace) }
+                Button(TermindCopy.SFTP.skipExisting.swiftUIKey) { enqueuePendingUpload(.skip) }
+                Button(TermindCopy.SFTP.keepBoth.swiftUIKey) { enqueuePendingUpload(.keepBoth) }
+                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { workspace.cancelPendingUpload() }
             } message: {
-                Text("Use this choice for all conflicts in this batch.")
+                Text(TermindCopy.SFTP.applyToAllConflicts)
             }
-            .alert("New Folder", isPresented: $creatingDirectory) {
-                TextField("Name", text: $directoryName.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
-                Button("Create") {
+            .alert(TermindCopy.SFTP.newFolder.swiftUIKey, isPresented: $creatingDirectory) {
+                TextField(TermindCopy.Common.name.swiftUIKey, text: $directoryName.singleLineText, axis: .horizontal)
+                    .singleLinePaste().lineLimit(1)
+                Button(TermindCopy.Common.create.swiftUIKey) {
                     Task {
                         await workspace.sftpChannel.createDirectory(directoryName)
                         directoryName = ""
                     }
                 }
-                Button("Cancel", role: .cancel) {}
+                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
             }
             .confirmationDialog(
-                "Delete File?", isPresented: deletingPresented,
+                TermindCopy.Workspace.deleteFileConfirmation.swiftUIKey, isPresented: deletingPresented,
                 titleVisibility: .visible
             ) {
-                Button("Delete", role: .destructive) {
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                     if let file = deleting { Task { await workspace.sftpChannel.delete(file) } }
                     deleting = nil
                 }
@@ -410,7 +419,7 @@ struct MobileWorkspaceView: View {
                 operationAlertTitle,
                 isPresented: operationErrorPresented
             ) {
-                Button("OK", role: .cancel) {
+                Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) {
                     workspace.operationError = nil
                     workspace.sftpChannel.operationError = nil
                 }
@@ -527,15 +536,13 @@ struct MobileWorkspaceView: View {
     }
 
     private var uploadConflictTitle: String {
-        workspace.transferConflictCount == 1
-            ? String(localized: "1 item already exists")
-            : String(localized: "\(workspace.transferConflictCount) items already exist")
+        String(localized: TermindCopy.SFTP.existingItemsMessage(count: workspace.transferConflictCount))
     }
 
     private var uploadDropPresentation: DropTargetPresentation {
         if let problem = workspace.uploadTargetProblem {
             return DropTargetPresentation(
-                title: String(localized: "Can't Upload Here"),
+                title: String(localized: TermindCopy.SFTP.uploadUnavailable),
                 detail: problem,
                 systemImage: "exclamationmark.triangle.fill",
                 tone: .unavailable
@@ -543,9 +550,9 @@ struct MobileWorkspaceView: View {
         }
         let hostName = library.host(workspace.descriptor.hostID)?.name ?? workspace.descriptor.title
         return DropTargetPresentation(
-            title: String(localized: "Upload to \(hostName)"),
+            title: String(localized: TermindCopy.Workspace.uploadTo(hostName)),
             detail: workspace.uploadDestination
-                ?? String(localized: "The upload destination is unavailable."),
+                ?? String(localized: TermindCopy.SFTP.theUploadDestinationIsUnavailable),
             systemImage: "arrow.up.doc.fill"
         )
     }
@@ -600,14 +607,14 @@ struct MobileWorkspaceView: View {
     @ViewBuilder
     private var sortMenu: some View {
         Menu {
-            sortButton("Name", field: .name, symbol: "textformat")
-            sortButton("Date", field: .modified, symbol: "calendar")
-            sortButton("Size", field: .size, symbol: "externaldrive")
-            sortButton("Kind", field: .kind, symbol: "doc")
+            sortButton(TermindCopy.Common.name, field: .name, symbol: "textformat")
+            sortButton(TermindCopy.SFTP.modifiedDate, field: .modified, symbol: "calendar")
+            sortButton(TermindCopy.Common.size, field: .size, symbol: "externaldrive")
+            sortButton(TermindCopy.Common.kind, field: .kind, symbol: "doc")
         } label: {
             Label {
                 VStack(alignment: .leading) {
-                    Text("Sort By")
+                    Text(TermindCopy.Common.sortBy)
                     Text(sortFieldTitle).font(.caption).foregroundStyle(.secondary)
                 }
             } icon: {
@@ -617,7 +624,7 @@ struct MobileWorkspaceView: View {
     }
 
     private func sortButton(
-        _ title: LocalizedStringKey, field: RemoteFileSortField, symbol: String
+        _ title: LocalizedStringResource, field: RemoteFileSortField, symbol: String
     ) -> some View {
         Button {
             workspace.sftpChannel.sort(by: field)
@@ -633,10 +640,10 @@ struct MobileWorkspaceView: View {
 
     private var sortFieldTitle: String {
         switch workspace.sftpChannel.sortField {
-        case .name: String(localized: "Name")
-        case .modified: String(localized: "Date")
-        case .size: String(localized: "Size")
-        case .kind: String(localized: "Kind")
+        case .name: String(localized: TermindCopy.Common.name)
+        case .modified: String(localized: TermindCopy.SFTP.modifiedDate)
+        case .size: String(localized: TermindCopy.Common.size)
+        case .kind: String(localized: TermindCopy.Common.kind)
         }
     }
 
@@ -660,7 +667,7 @@ struct MobileWorkspaceView: View {
             ), let payload = try? JSONDecoder().decode(SFTPRemoteItemsPayload.self, from: data),
             workspace.transfers?.remoteCopySource(for: payload) != nil
         else {
-            workspace.operationError = String(localized: "The copied SFTP items are invalid.")
+            workspace.operationError = String(localized: TermindCopy.SFTP.theCopiedSftpItemsAreInvalid)
             return
         }
         workspace.prepareRemoteCopy(payload)
@@ -672,8 +679,8 @@ struct MobileWorkspaceView: View {
 
     private var operationAlertTitle: String {
         workspace.descriptor.kind == .ssh
-            ? String(localized: "Upload Failed")
-            : String(localized: "SFTP Error")
+            ? String(localized: TermindCopy.Workspace.uploadFailed)
+            : String(localized: TermindCopy.SFTP.sftpError)
     }
 
     private var operationErrorPresented: Binding<Bool> {
@@ -709,11 +716,13 @@ struct MobileWorkspaceView: View {
         if let launch = workspace.sameDirectoryLaunch {
             switch launch.kind {
             case .ssh:
-                Button("Open with SSH", systemImage: "terminal") { openSameDirectory(launch) }
+                Button(TermindCopy.Connections.openWithSsh.swiftUIKey, systemImage: "terminal") {
+                    openSameDirectory(launch)
+                }
             case .telnet:
                 EmptyView()
             case .sftp:
-                Button("Open with SFTP", systemImage: "folder") { openSameDirectory(launch) }
+                Button(TermindCopy.SFTP.openWithSftp.swiftUIKey, systemImage: "folder") { openSameDirectory(launch) }
             }
         }
     }
@@ -751,11 +760,13 @@ struct MobileWorkspaceLifecycleMenuActions: View {
     let closeOthers: () -> Void
 
     var body: some View {
-        Button("Rename", systemImage: "pencil", action: rename)
-        Button("Close", systemImage: "xmark", role: .destructive, action: close)
+        Button(TermindCopy.Common.rename.swiftUIKey, systemImage: "pencil", action: rename)
+        Button(TermindCopy.Common.close.swiftUIKey, systemImage: "xmark", role: .destructive, action: close)
         if canCloseMultipleWorkspaces {
             Divider()
-            Button("Close Other", systemImage: "xmark", role: .destructive, action: closeOthers)
+            Button(
+                TermindCopy.Workspace.closeOther.swiftUIKey, systemImage: "xmark", role: .destructive,
+                action: closeOthers)
         }
     }
 }
@@ -793,17 +804,17 @@ private struct MobileCommandGeneratorOverlay: View {
     private var title: String {
         switch state {
         case .idle: ""
-        case .readingDraft, .generating: String(localized: "Generating Command")
-        case .inserted: String(localized: "Command Inserted")
-        case .failed: String(localized: "Couldn't generate command")
+        case .readingDraft, .generating: String(localized: TermindCopy.Workspace.generatingCommand)
+        case .inserted: String(localized: TermindCopy.Workspace.commandInserted)
+        case .failed: String(localized: TermindCopy.Workspace.commandGenerationFailed)
         }
     }
 
     private var detail: String? {
         switch state {
         case .idle: nil
-        case .readingDraft, .generating: String(localized: "This May Take a Moment")
-        case .inserted: String(localized: "Press Return to Run")
+        case .readingDraft, .generating: String(localized: TermindCopy.Workspace.thisMayTakeAMoment)
+        case .inserted: String(localized: TermindCopy.Workspace.pressReturnToRun)
         case .failed(let message): message
         }
     }
@@ -871,7 +882,7 @@ private struct MobileWorkspaceSearchModifier: ViewModifier {
                         get: { workspace.sftpChannel.query },
                         set: { workspace.sftpChannel.query = $0 }
                     ),
-                    prompt: Text("Search")
+                    prompt: Text(TermindCopy.Common.search)
                 )
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
@@ -883,7 +894,7 @@ private struct MobileWorkspaceSearchModifier: ViewModifier {
             .mobileToolbarSearch(
                 text: query,
                 isPresented: presentation,
-                prompt: Text("Find")
+                prompt: Text(TermindCopy.Workspace.find)
             )
             .textInputAutocapitalization(.never)
             .autocorrectionDisabled()

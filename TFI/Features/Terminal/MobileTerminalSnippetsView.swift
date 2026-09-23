@@ -17,7 +17,7 @@ struct MobileTerminalSnippetsView: View {
             Group {
                 if snippets.isEmpty {
                     if query.isEmpty {
-                        ContentUnavailableView("No Snippets", systemImage: "curlybraces")
+                        ContentUnavailableView(TermindCopy.Snippets.noSnippets.swiftUIKey, systemImage: "curlybraces")
                     } else {
                         ContentUnavailableView.search(text: query)
                     }
@@ -30,10 +30,10 @@ struct MobileTerminalSnippetsView: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button("Copy", systemImage: "doc.on.doc") {
+                            Button(TermindCopy.Common.copy.swiftUIKey, systemImage: "doc.on.doc") {
                                 UIPasteboard.general.string = snippet.body
                             }
-                            Button("Insert", systemImage: "text.insert") { insert(snippet) }
+                            Button(TermindCopy.Common.insert.swiftUIKey, systemImage: "text.insert") { insert(snippet) }
                                 .disabled(!workspace.connected)
                         }
                     }
@@ -42,10 +42,10 @@ struct MobileTerminalSnippetsView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .searchable(text: $query.singleLineText)
-            .navigationTitle("Snippets")
+            .navigationTitle(TermindCopy.Navigation.snippets.swiftUIKey)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done", systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
+                    Button(TermindCopy.Common.done.swiftUIKey, systemImage: "xmark") { dismiss() }.labelStyle(.iconOnly)
                 }
             }
         }

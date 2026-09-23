@@ -20,7 +20,7 @@ public struct HostOrganizationSection<GroupField: View, TagsField: View>: View {
     }
 
     public var body: some View {
-        Section("Host") {
+        Section(TermindCopy.Vault.host.swiftUIKey) {
             VaultNameField(text: $host.name, prompt: Text(verbatim: host.defaultName))
             groupField
             tagsField
@@ -67,10 +67,11 @@ public struct HostConnectionFields: View {
     }
 
     public var body: some View {
-        Section("Connection") {
-            LabeledContent("Host") {
+        Section(TermindCopy.Settings.connection.swiftUIKey) {
+            LabeledContent(TermindCopy.Vault.host.swiftUIKey) {
                 TextField(
-                    "Host", text: $host.host.singleLineText, prompt: Text("IP address or hostname"), axis: .horizontal
+                    TermindCopy.Vault.host.swiftUIKey, text: $host.host.singleLineText,
+                    prompt: Text("IP address or hostname"), axis: .horizontal
                 ).singleLinePaste().lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)
                     #if os(iOS)
@@ -79,11 +80,12 @@ public struct HostConnectionFields: View {
                         .keyboardType(.URL)
                     #endif
             }
-            Toggle("Enabled", isOn: enabled)
+            Toggle(TermindCopy.Common.enabled.swiftUIKey, isOn: enabled)
                 .toggleStyle(.switch)
             if host.isEnabled(connectionProtocol) {
-                LabeledContent("Port") {
-                    TextField("Port", value: port, format: .number.grouping(.never)).lineLimit(1)
+                LabeledContent(TermindCopy.Common.port.swiftUIKey) {
+                    TextField(TermindCopy.Common.port.swiftUIKey, value: port, format: .number.grouping(.never))
+                        .lineLimit(1)
                         .labelsHidden().multilineTextAlignment(.trailing)
                         #if os(iOS)
                             .keyboardType(.numberPad)

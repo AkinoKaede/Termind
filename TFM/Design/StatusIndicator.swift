@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 /// The shared visual vocabulary for connection state.
 ///
@@ -17,10 +18,10 @@ extension ConnectionStatus {
 
     var label: String {
         switch self {
-        case .disconnected: String(localized: "Not connected")
-        case .connecting: String(localized: "Connecting")
-        case .connected: String(localized: "Connected")
-        case .reconnecting: String(localized: "Reconnecting")
+        case .disconnected: String(localized: TermindCopy.Connections.notConnected)
+        case .connecting: String(localized: TermindCopy.Connections.connecting)
+        case .connected: String(localized: TermindCopy.Connections.connected)
+        case .reconnecting: String(localized: TermindCopy.Connections.reconnecting)
         case .failed(let message): message
         }
     }

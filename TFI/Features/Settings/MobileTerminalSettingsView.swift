@@ -14,13 +14,15 @@ struct MobileTerminalSettingsView: View {
         Form {
             themeSection(dark: false)
             themeSection(dark: true)
-            Section("Font") {
+            Section(TermindCopy.Settings.font.swiftUIKey) {
                 TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
             }
-            Section("Integration") { Toggle("Shell Integration", isOn: binding(\.shellIntegration)) }
+            Section(TermindCopy.Settings.integration.swiftUIKey) {
+                Toggle(TermindCopy.Settings.shellIntegration.swiftUIKey, isOn: binding(\.shellIntegration))
+            }
             if let error = model.storageError { Text(error).foregroundStyle(.red) }
         }
-        .navigationTitle("Terminal")
+        .navigationTitle(TermindCopy.Settings.terminal.swiftUIKey)
         .onAppear { TerminalFontCatalog.shared.refresh() }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { TerminalFontCatalog.shared.refresh() }
@@ -30,7 +32,7 @@ struct MobileTerminalSettingsView: View {
                 let original =
                     dark ? model.preferences.darkCustomConfiguration : model.preferences.lightCustomConfiguration
                 MobileEditorSheet(
-                    title: String(localized: "Custom Configuration"), isDirty: customText != original,
+                    title: String(localized: TermindCopy.Settings.customConfiguration), isDirty: customText != original,
                     save: {
                         guard model.set(customText, for: dark ? \.darkCustomConfiguration : \.lightCustomConfiguration)
                         else {
@@ -42,7 +44,7 @@ struct MobileTerminalSettingsView: View {
                             .system(.body, design: .monospaced)
                         )
                         .textInputAutocapitalization(.never).autocorrectionDisabled().frame(minHeight: 280)
-                        .accessibilityLabel("Custom Configuration")
+                        .accessibilityLabel(TermindCopy.Settings.customConfiguration.swiftUIKey)
                     })
             }
         }
@@ -51,18 +53,20 @@ struct MobileTerminalSettingsView: View {
     private func themeSection(dark: Bool) -> some View {
         Section {
             TerminalThemePicker(selection: binding(dark ? \.darkTheme : \.lightTheme), isDark: dark)
-            Toggle("Custom Configuration", isOn: binding(dark ? \.darkCustomEnabled : \.lightCustomEnabled))
-            Button("Edit Configuration", systemImage: "pencil") {
+            Toggle(
+                TermindCopy.Settings.customConfiguration.swiftUIKey,
+                isOn: binding(dark ? \.darkCustomEnabled : \.lightCustomEnabled))
+            Button(TermindCopy.Settings.editConfiguration.swiftUIKey, systemImage: "pencil") {
                 customText =
                     dark ? model.preferences.darkCustomConfiguration : model.preferences.lightCustomConfiguration
                 editingDark = dark
             }
         } header: {
-            Text(dark ? String(localized: "Dark") : String(localized: "Light"))
+            Text(dark ? String(localized: TermindCopy.Settings.dark) : String(localized: TermindCopy.Settings.light))
         } footer: {
             if dark {
                 Text(
-                    "Termind uses [Ghostty](https://ghostty.org) as its terminal engine. Custom configuration uses [Ghostty's configuration format](https://ghostty.org/docs/config/reference)."
+                    TermindCopy.Settings.terminalConfigurationExplanation
                 )
             }
         }

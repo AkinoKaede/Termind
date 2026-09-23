@@ -11,7 +11,7 @@ nonisolated struct SerialComboOption: Identifiable, Hashable, Sendable {
 /// baud rates both need this shape: discovery is helpful, but must never make a
 /// driver-specific value impossible to type.
 struct SerialEditableComboField: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     @Binding var value: String
     let options: [SerialComboOption]
     var monospaced = true
@@ -85,7 +85,7 @@ struct SerialEditableComboField: View {
         ScrollView {
             LazyVStack(spacing: Metrics.Space.xxs) {
                 if options.isEmpty {
-                    Text("No detected serial devices")
+                    Text(TermindCopy.Terminal.noDetectedSerialDevices)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(Metrics.Space.m)

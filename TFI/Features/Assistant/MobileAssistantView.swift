@@ -9,10 +9,10 @@ enum MobileAssistantLibraryRoute: String, Identifiable, Hashable {
 
     var id: String { rawValue }
 
-    var title: LocalizedStringKey {
+    var title: LocalizedStringResource {
         switch self {
-        case .conversations: "Conversations"
-        case .archived: "Archived"
+        case .conversations: TermindCopy.Assistant.conversations
+        case .archived: TermindCopy.Assistant.archived
         }
     }
 }
@@ -51,7 +51,7 @@ struct MobileAssistantView: View {
                         Menu {
                             conversationTitleMenu
                         } label: {
-                            Label("Conversations", systemImage: "rectangle.stack")
+                            Label(TermindCopy.Assistant.conversations.swiftUIKey, systemImage: "rectangle.stack")
                         }
                         .labelStyle(.iconOnly)
                         .accessibilityValue(conversationTitle)
@@ -64,36 +64,48 @@ struct MobileAssistantView: View {
             }
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
-                    Button("New Conversation", systemImage: "plus.bubble", action: newConversation)
-                        .labelStyle(.iconOnly)
+                    Button(
+                        TermindCopy.Assistant.newConversation.swiftUIKey, systemImage: "plus.bubble",
+                        action: newConversation
+                    )
+                    .labelStyle(.iconOnly)
                 }
                 .mobileProminentAction()
                 MobileToolbarOverflow {
-                    Button("Conversations", systemImage: "clock") { showLibrary(.conversations) }
-                    Button("Archived", systemImage: "archivebox") { showLibrary(.archived) }
+                    Button(TermindCopy.Assistant.conversations.swiftUIKey, systemImage: "clock") {
+                        showLibrary(.conversations)
+                    }
+                    Button(TermindCopy.Assistant.archived.swiftUIKey, systemImage: "archivebox") {
+                        showLibrary(.archived)
+                    }
                     Divider()
-                    Button("Rename", systemImage: "pencil") {
+                    Button(TermindCopy.Common.rename.swiftUIKey, systemImage: "pencil") {
                         title = model.conversation.derivedTitle
                         renaming = model.conversation
                     }
                     .disabled(model.conversation.isEmpty)
-                    Button(model.conversation.isPinned ? "Unpin" : "Pin", systemImage: "pin") {
+                    Button(
+                        model.conversation.isPinned
+                            ? TermindCopy.Assistant.unpin.swiftUIKey : TermindCopy.Assistant.pin.swiftUIKey,
+                        systemImage: "pin"
+                    ) {
                         let conversation = model.conversation
                         Task { await model.move(conversation, pinned: !conversation.isPinned) }
                     }
                     .disabled(model.conversation.isEmpty || model.conversation.isArchived)
                     if model.conversation.isArchived {
-                        Button("Unarchive", systemImage: "arrow.uturn.backward") {
+                        Button(TermindCopy.Assistant.unarchive.swiftUIKey, systemImage: "arrow.uturn.backward") {
                             let conversation = model.conversation
                             Task { await model.archive(conversation, archived: false) }
                         }
                         .disabled(!canChangeHistory)
-                        Button("Delete", systemImage: "trash", role: .destructive) {
+                        Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                             deleting = model.conversation
                         }
                         .disabled(!canChangeHistory)
                     } else {
-                        Button("Archive", systemImage: "archivebox", role: .destructive) {
+                        Button(TermindCopy.Assistant.archive.swiftUIKey, systemImage: "archivebox", role: .destructive)
+                        {
                             let conversation = model.conversation
                             Task { await model.archive(conversation, archived: true) }
                         }
@@ -116,42 +128,45 @@ struct MobileAssistantView: View {
                 restoreComposerFocusAfterLibrary = false
             }
             .alert(
-                "Rename",
+                TermindCopy.Common.rename.swiftUIKey,
                 isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
             ) {
-                TextField("Conversation Name", text: $title.singleLineText, axis: .horizontal).singleLinePaste()
+                TextField(
+                    TermindCopy.Assistant.conversationName.swiftUIKey, text: $title.singleLineText, axis: .horizontal
+                ).singleLinePaste()
                     .lineLimit(1)
-                Button("Cancel", role: .cancel) { renaming = nil }
-                Button("Save") {
+                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { renaming = nil }
+                Button(TermindCopy.Common.save.swiftUIKey) {
                     if let renaming { Task { await model.rename(renaming, title: title) } }
                     renaming = nil
                 }
             }
             .confirmationDialog(
-                "Delete Conversation",
+                TermindCopy.Assistant.deleteConversation.swiftUIKey,
                 isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                 titleVisibility: .visible
             ) {
-                Button("Delete", role: .destructive) {
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                     if let deleting { Task { await model.delete(deleting) } }
                     deleting = nil
                 }
             } message: {
-                Text("Permanently delete this conversation and its staged files?")
+                Text(TermindCopy.Assistant.deleteStagedConversationWarning)
             }
             .task { await model.load() }
             .alert(
-                "Operation Failed",
+                TermindCopy.Common.operationFailed.swiftUIKey,
                 isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })
             ) {
-                Button("OK") { model.error = nil }
+                Button(TermindCopy.Common.ok.swiftUIKey) { model.error = nil }
             } message: {
                 Text(model.error ?? "")
             }
     }
 
     private var conversationTitle: String {
-        model.conversation.isEmpty ? String(localized: "Assistant") : model.conversation.derivedTitle
+        model.conversation.isEmpty
+            ? String(localized: TermindCopy.Navigation.assistant) : model.conversation.derivedTitle
     }
 
     private var usesConversationIcon: Bool {
@@ -176,12 +191,12 @@ struct MobileAssistantView: View {
 
     @ViewBuilder private var conversationTitleMenu: some View {
         if !model.library.pinnedConversations.isEmpty {
-            Section("Pinned") {
+            Section(TermindCopy.Assistant.pinned.swiftUIKey) {
                 ForEach(model.library.pinnedConversations) { conversation in titleMenuButton(conversation) }
             }
         }
         if !model.library.activeConversations.isEmpty {
-            Section("Conversations") {
+            Section(TermindCopy.Assistant.conversations.swiftUIKey) {
                 ForEach(model.library.activeConversations) { conversation in titleMenuButton(conversation) }
             }
         }
@@ -279,7 +294,7 @@ struct MobileAssistantLibrary: View {
                         model.newConversation()
                         selected()
                     } label: {
-                        Label("New Conversation", systemImage: "plus.bubble")
+                        Label(TermindCopy.Assistant.newConversation.swiftUIKey, systemImage: "plus.bubble")
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .foregroundStyle(.primary)
@@ -288,7 +303,7 @@ struct MobileAssistantLibrary: View {
                         showArchived()
                     } label: {
                         HStack {
-                            Label("Archived", systemImage: "archivebox")
+                            Label(TermindCopy.Assistant.archived.swiftUIKey, systemImage: "archivebox")
                             Spacer()
                             Text(model.library.archivedConversations.count, format: .number)
                                 .foregroundStyle(.secondary)
@@ -303,7 +318,7 @@ struct MobileAssistantLibrary: View {
             }
 
             if !pinnedConversations.isEmpty {
-                Section("Pinned") {
+                Section(TermindCopy.Assistant.pinned.swiftUIKey) {
                     ForEach(pinnedConversations) { conversationRow($0) }
                 }
             }
@@ -311,14 +326,16 @@ struct MobileAssistantLibrary: View {
             if archived {
                 ForEach(ordinaryConversations) { conversationRow($0) }
             } else if !ordinaryConversations.isEmpty {
-                Section(String(localized: "Conversations")) {
+                Section(String(localized: TermindCopy.Assistant.conversations)) {
                     ForEach(ordinaryConversations) { conversationRow($0) }
                 }
             }
 
             if values.isEmpty {
                 ContentUnavailableView(
-                    archived ? "No Archived Chats" : "No Conversations",
+                    archived
+                        ? TermindCopy.Assistant.noArchivedChats.swiftUIKey
+                        : TermindCopy.Assistant.noConversations.swiftUIKey,
                     systemImage: archived ? "archivebox" : "sparkles"
                 )
                 .listRowBackground(Color.clear)
@@ -326,26 +343,31 @@ struct MobileAssistantLibrary: View {
             }
         }
         .navigationBarTitleDisplayMode(.inline)
-        .searchable(text: $query.singleLineText, prompt: "Search")
-        .alert("Rename", isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })) {
-            TextField("Conversation Name", text: $title.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(
-                1)
-            Button("Cancel", role: .cancel) { renaming = nil }
-            Button("Save") {
+        .searchable(text: $query.singleLineText, prompt: TermindCopy.Common.search.swiftUIKey)
+        .alert(
+            TermindCopy.Common.rename.swiftUIKey,
+            isPresented: Binding(get: { renaming != nil }, set: { if !$0 { renaming = nil } })
+        ) {
+            TextField(TermindCopy.Assistant.conversationName.swiftUIKey, text: $title.singleLineText, axis: .horizontal)
+                .singleLinePaste().lineLimit(
+                    1)
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { renaming = nil }
+            Button(TermindCopy.Common.save.swiftUIKey) {
                 if let renaming { Task { await model.rename(renaming, title: title) } }
                 renaming = nil
             }
         }
         .confirmationDialog(
-            "Delete Conversation", isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+            TermindCopy.Assistant.deleteConversation.swiftUIKey,
+            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                 if let deleting { Task { await model.delete(deleting) } }
                 deleting = nil
             }
         } message: {
-            Text("Permanently delete this conversation and its staged files?")
+            Text(TermindCopy.Assistant.deleteStagedConversationWarning)
         }
     }
 
@@ -365,7 +387,7 @@ struct MobileAssistantLibrary: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(conversation.derivedTitle).foregroundStyle(.primary).lineLimit(1)
                     if conversation.isStreaming {
-                        Text("Working…").font(.caption).foregroundStyle(.secondary)
+                        Text(TermindCopy.Assistant.workingProgress).font(.caption).foregroundStyle(.secondary)
                     }
                 }
                 Spacer(minLength: 0)
@@ -379,13 +401,13 @@ struct MobileAssistantLibrary: View {
         .buttonStyle(.plain)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             if conversation.isArchived {
-                Button("Unarchive", systemImage: "arrow.uturn.backward") {
+                Button(TermindCopy.Assistant.unarchive.swiftUIKey, systemImage: "arrow.uturn.backward") {
                     Task { await model.archive(conversation, archived: false) }
                 }
                 .tint(.accentColor)
                 .disabled(!canChangeHistory(conversation))
             } else {
-                Button("Archive", systemImage: "archivebox", role: .destructive) {
+                Button(TermindCopy.Assistant.archive.swiftUIKey, systemImage: "archivebox", role: .destructive) {
                     Task { await model.archive(conversation, archived: true) }
                 }
                 .disabled(!canChangeHistory(conversation))
@@ -401,24 +423,29 @@ struct MobileAssistantLibrary: View {
     }
 
     @ViewBuilder private func actions(_ conversation: ConversationModel) -> some View {
-        Button("Rename", systemImage: "pencil") {
+        Button(TermindCopy.Common.rename.swiftUIKey, systemImage: "pencil") {
             title = conversation.derivedTitle
             renaming = conversation
         }
         if !conversation.isArchived {
-            Button(conversation.isPinned ? "Unpin" : "Pin", systemImage: conversation.isPinned ? "pin.slash" : "pin") {
+            Button(
+                conversation.isPinned ? TermindCopy.Assistant.unpin.swiftUIKey : TermindCopy.Assistant.pin.swiftUIKey,
+                systemImage: conversation.isPinned ? "pin.slash" : "pin"
+            ) {
                 Task { await model.move(conversation, pinned: !conversation.isPinned) }
             }.disabled(conversation.isStreaming || conversation.isCompacting || conversation.isHistoryChanging)
         }
         if conversation.isArchived {
-            Button("Unarchive", systemImage: "arrow.uturn.backward") {
+            Button(TermindCopy.Assistant.unarchive.swiftUIKey, systemImage: "arrow.uturn.backward") {
                 Task { await model.archive(conversation, archived: false) }
             }
             .disabled(!canChangeHistory(conversation))
-            Button("Delete", systemImage: "trash", role: .destructive) { deleting = conversation }
-                .disabled(!canChangeHistory(conversation))
+            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                deleting = conversation
+            }
+            .disabled(!canChangeHistory(conversation))
         } else {
-            Button("Archive", systemImage: "archivebox", role: .destructive) {
+            Button(TermindCopy.Assistant.archive.swiftUIKey, systemImage: "archivebox", role: .destructive) {
                 Task { await model.archive(conversation, archived: true) }
             }
             .disabled(!canChangeHistory(conversation))

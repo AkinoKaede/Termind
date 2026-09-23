@@ -100,7 +100,7 @@ struct ModelListEditor: View {
     private var toolbar: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             HStack(spacing: Metrics.Space.s) {
-                Text("Models")
+                Text(TermindCopy.Settings.models)
                     .font(.headline)
                 if let count = provider?.models.count, count > 0 {
                     Text(count, format: .number)
@@ -116,21 +116,21 @@ struct ModelListEditor: View {
             filterField
 
             HStack(spacing: Metrics.Space.s) {
-                Button("Fetch", action: fetchModels)
+                Button(TermindCopy.Settings.fetch.swiftUIKey, action: fetchModels)
                     .disabled(provider?.canFetchModels != true || state.fetch == .running)
                     .help(fetchHelp)
 
-                Button("Add") { state.isAdding = true }
+                Button(TermindCopy.Common.add.swiftUIKey) { state.isAdding = true }
 
-                Button("Delete", role: .destructive, action: deleteChecked)
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive, action: deleteChecked)
                     .disabled(state.checked.isEmpty)
                     .help(deleteHelp)
 
-                Button("Test", action: testChecked)
+                Button(TermindCopy.Common.test.swiftUIKey, action: testChecked)
                     .disabled(
                         state.checked.isEmpty || state.isTesting
                     )
-                    .help(Text("Sends each selected model a short prompt and shows the response."))
+                    .help(Text(TermindCopy.Settings.modelTestExplanation))
 
                 Spacer(minLength: 0)
 
@@ -143,18 +143,18 @@ struct ModelListEditor: View {
             if state.isAdding {
                 HStack(spacing: Metrics.Space.s) {
                     TextField(
-                        "Exact model ID, such as gpt-5.4",
+                        TermindCopy.Settings.exactModelIdSuchAsGpt54.swiftUIKey,
                         text: Binding(get: { state.newModelID }, set: { state.newModelID = $0 }).singleLineText,
                         axis: .horizontal
                     ).singleLinePaste().lineLimit(1)
                         .textFieldStyle(.roundedBorder)
                         .onSubmit(addModel)
 
-                    Button("Cancel") {
+                    Button(TermindCopy.Common.cancel.swiftUIKey) {
                         state.newModelID = ""
                         state.isAdding = false
                     }
-                    Button("Add", action: addModel)
+                    Button(TermindCopy.Common.add.swiftUIKey, action: addModel)
                         .disabled(state.newModelID.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
                 .controlSize(.small)
@@ -169,7 +169,8 @@ struct ModelListEditor: View {
         HStack(spacing: Metrics.Space.xs) {
             Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
             TextField(
-                "Filter", text: Binding(get: { state.query }, set: { state.query = $0 }).singleLineText,
+                TermindCopy.Common.filter.swiftUIKey,
+                text: Binding(get: { state.query }, set: { state.query = $0 }).singleLineText,
                 axis: .horizontal
             ).singleLinePaste().lineLimit(1).textFieldStyle(.plain)
             if !state.query.isEmpty {
@@ -179,7 +180,7 @@ struct ModelListEditor: View {
                     Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text("Clear filter"))
+                .accessibilityLabel(Text(TermindCopy.Settings.clearFilter))
             }
         }
         .padding(.horizontal, Metrics.Space.s)
@@ -196,11 +197,11 @@ struct ModelListEditor: View {
                 .lineLimit(4)
                 .fixedSize(horizontal: false, vertical: true)
         } else if !state.checked.isEmpty {
-            Text("\(state.checked.count) selected")
+            Text(TermindCopy.Common.selected(state.checked.count))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         } else if let fetched = provider?.modelsFetchedAt {
-            Text("Fetched \(fetched.formatted(.relative(presentation: .named).locale(locale)))")
+            Text(TermindCopy.Settings.fetched(fetched.formatted(.relative(presentation: .named).locale(locale))))
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
         }
@@ -215,10 +216,10 @@ struct ModelListEditor: View {
     private var deleteHelp: Text {
         let broken = brokenRoles
         guard !broken.isEmpty else {
-            return Text("Removes the selected models. You can fetch them again.")
+            return Text(TermindCopy.Settings.removesTheSelectedModelsYouCanFetchThemAgain)
         }
         let names = broken.map(\.displayName).formatted(.list(type: .and).locale(locale))
-        return Text("Removes the selected models. \(names) would return to Automatic.")
+        return Text(TermindCopy.Settings.removesTheSelectedModelsWouldReturnToAutomatic(names))
     }
 
     /// Roles whose model is among the ticked ones.
@@ -235,9 +236,9 @@ struct ModelListEditor: View {
     private var fetchHelp: Text {
         guard let provider else { return Text("") }
         if provider.resolvedModelsURL == nil {
-            return Text("Add a URL first. Models are listed from the endpoint's own address.")
+            return Text(TermindCopy.Settings.modelDiscoveryRequiresURL)
         }
-        return Text("Fetch available models from the endpoint.")
+        return Text(TermindCopy.Settings.fetchAvailableModelsFromTheEndpoint)
     }
 
     // MARK: - Candidate picker
@@ -273,7 +274,7 @@ struct ModelListEditor: View {
         if models.isEmpty {
             VStack(spacing: Metrics.Space.s) {
                 Spacer()
-                Text(provider?.models.isEmpty == true ? "No Models Yet" : "No Match")
+                Text(provider?.models.isEmpty == true ? TermindCopy.Settings.noModelsYet : TermindCopy.Settings.noMatch)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 if provider?.models.isEmpty == true, let emptyHint {
@@ -310,9 +311,9 @@ struct ModelListEditor: View {
         }
     }
 
-    private var emptyHint: LocalizedStringKey? {
+    private var emptyHint: LocalizedStringResource? {
         guard provider?.resolvedModelsURL == nil else { return nil }
-        return "Add a URL, then press Fetch"
+        return TermindCopy.Settings.addAUrlThenPressFetch
     }
 
     // MARK: - Detail
@@ -348,8 +349,8 @@ struct ModelListEditor: View {
                                 .contentShape(.rect)
                         }
                         .buttonStyle(.plain)
-                        .help("Close model details")
-                        .accessibilityLabel(Text("Close model details"))
+                        .help(TermindCopy.Settings.closeModelDetails.swiftUIKey)
+                        .accessibilityLabel(Text(TermindCopy.Settings.closeModelDetails))
                     }
                     .frame(maxWidth: .infinity)
 
@@ -361,7 +362,7 @@ struct ModelListEditor: View {
                     }
 
                     TextField(
-                        "Name",
+                        TermindCopy.Common.name.swiftUIKey,
                         text: Binding(
                             get: { nameSession.modelID == model.id ? nameSession.name : model.displayName },
                             set: {
@@ -372,29 +373,29 @@ struct ModelListEditor: View {
                     ).singleLinePaste().lineLimit(1)
                         .textFieldStyle(.roundedBorder)
 
-                    Picker("Type", selection: field(model, \.kind)) {
+                    Picker(TermindCopy.Common.type.swiftUIKey, selection: field(model, \.kind)) {
                         ForEach(AIModel.Kind.allCases) { Text($0.displayName).tag($0) }
                     }
 
                     Toggle(
-                        "Show in Assistant",
+                        TermindCopy.Settings.showInAssistant.swiftUIKey,
                         isOn: field(model, \AIModel.isShownInAssistant)
                     )
-                    .help("Offer this model in the Assistant model picker and /model command.")
+                    .help(TermindCopy.Settings.modelPickerVisibilityExplanation.swiftUIKey)
 
-                    modalityToggles("Input", model: model, keyPath: \.input)
+                    modalityToggles(TermindCopy.Settings.input, model: model, keyPath: \.input)
                     abilityToggles(model)
                     if model.abilities.contains(.reasoning), let provider {
                         reasoningSection(model, provider: provider)
                     }
 
                     HStack(spacing: Metrics.Space.m) {
-                        limitField("Context Window", model: model, keyPath: \.contextLength)
-                        limitField("Max Output", model: model, keyPath: \.maxOutputTokens)
+                        limitField(TermindCopy.Settings.contextWindow, model: model, keyPath: \.contextLength)
+                        limitField(TermindCopy.Settings.maxOutput, model: model, keyPath: \.maxOutputTokens)
                     }
 
                     if model.origin == .manual {
-                        Text("Added Manually")
+                        Text(TermindCopy.Settings.addedManually)
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                     }
@@ -405,7 +406,7 @@ struct ModelListEditor: View {
             .frame(height: 320)
             .controlSize(.small)
         } else {
-            Text("Select a model to edit it. Use the checkboxes to test or delete models.")
+            Text(TermindCopy.Settings.modelSelectionExplanation)
                 .font(.caption)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
@@ -420,7 +421,7 @@ struct ModelListEditor: View {
     /// implied by its type, and a toggle for a value with one plausible setting
     /// is a row of noise in a pane that already has eight.
     private func modalityToggles(
-        _ label: LocalizedStringKey,
+        _ label: LocalizedStringResource,
         model: AIModel,
         keyPath: WritableKeyPath<AIModel, Set<AIModel.Modality>>
     ) -> some View {
@@ -454,7 +455,7 @@ struct ModelListEditor: View {
 
     private func abilityToggles(_ model: AIModel) -> some View {
         VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-            Text("Can")
+            Text(TermindCopy.Settings.can)
                 .font(.caption.weight(.medium))
                 .foregroundStyle(.secondary)
             FlowLayout(spacing: Metrics.Space.xs) {
@@ -487,15 +488,18 @@ struct ModelListEditor: View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
             HStack {
                 VStack(alignment: .leading, spacing: 1) {
-                    Text("Reasoning Effort")
+                    Text(TermindCopy.Settings.reasoningEffort)
                         .font(.caption.weight(.medium))
-                    Text(model.reasoningProfile == nil ? "Automatic from model catalog" : "Custom mapping")
-                        .font(.caption2)
-                        .foregroundStyle(.tertiary)
+                    Text(
+                        model.reasoningProfile == nil
+                            ? TermindCopy.Settings.automaticFromModelCatalog : TermindCopy.Settings.customMapping
+                    )
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
                 }
                 Spacer()
                 if model.reasoningProfile == nil {
-                    Button("Customize") {
+                    Button(TermindCopy.Common.customize.swiftUIKey) {
                         var updated = model
                         updated.reasoningProfile = ModelCapabilityResolver.customProfile(
                             from: automatic
@@ -503,7 +507,7 @@ struct ModelListEditor: View {
                         app.aiConfiguration.updateModel(updated, in: modelProviderID)
                     }
                 } else {
-                    Button("Reset to Automatic") {
+                    Button(TermindCopy.Settings.resetToAutomatic.swiftUIKey) {
                         var updated = model
                         updated.reasoningProfile = nil
                         app.aiConfiguration.updateModel(updated, in: modelProviderID)
@@ -550,7 +554,7 @@ struct ModelListEditor: View {
             .frame(width: 100, alignment: .leading)
 
             TextField(
-                "Provider default",
+                TermindCopy.Settings.providerDefault.swiftUIKey,
                 text: Binding(
                     get: { mapping.wireValue ?? "" },
                     set: { value in
@@ -563,12 +567,12 @@ struct ModelListEditor: View {
             ).singleLinePaste().lineLimit(1)
                 .textFieldStyle(.roundedBorder)
                 .disabled(!mapping.isSupported)
-                .accessibilityLabel(Text("\(effort.displayName) provider value"))
+                .accessibilityLabel(Text(TermindCopy.Settings.reasoningProviderValue(effort.displayName)))
         }
     }
 
     private func limitField(
-        _ label: LocalizedStringKey,
+        _ label: LocalizedStringResource,
         model: AIModel,
         keyPath: WritableKeyPath<AIModel, Int?>
     ) -> some View {
@@ -617,7 +621,8 @@ struct ModelListEditor: View {
         state.fetch = .running
         guard let secret = app.aiConfiguration.modelSecret(for: provider) else {
             state.fetch = .failed(
-                app.aiConfiguration.secretStorageError ?? String(localized: "The provider's credential is unavailable.")
+                app.aiConfiguration.secretStorageError
+                    ?? String(localized: TermindCopy.Settings.providerCredentialUnavailable)
             )
             return
         }
@@ -652,7 +657,7 @@ struct ModelListEditor: View {
             for model in targets {
                 state.results[model.id] = .failed(
                     app.aiConfiguration.secretStorageError
-                        ?? String(localized: "The provider's credential is unavailable."))
+                        ?? String(localized: TermindCopy.Settings.providerCredentialUnavailable))
             }
             return
         }
@@ -741,8 +746,8 @@ struct ModelListEditor: View {
 
         var message: String {
             switch self {
-            case .queued: String(localized: "Waiting…")
-            case .running: String(localized: "Testing…")
+            case .queued: String(localized: TermindCopy.Settings.waitingProgress)
+            case .running: String(localized: TermindCopy.Settings.testingProgress)
             case .passed(let summary): summary
             case .failed(let reason): reason
             }
@@ -812,18 +817,18 @@ private struct CandidatePicker: View {
 
     private var header: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
-            Text("\(candidates.count) Models Offered")
+            Text(TermindCopy.Settings.modelsOffered(candidates.count))
                 .font(.headline)
 
-            TermindSearchField(text: queryBinding, prompt: "Filter", density: .compact)
+            TermindSearchField(text: queryBinding, prompt: TermindCopy.Common.filter, density: .compact)
 
             HStack(spacing: Metrics.Space.m) {
-                Button("Select All") {
+                Button(TermindCopy.Common.selectAll.swiftUIKey) {
                     let ids = filtered.map(\.id)
                     chooser.toggleAll(visible: ids, enabled: Set(selectable.map(\.id)))
                 }
                 .disabled(selectable.isEmpty)
-                Button("Select None") { chooser.selected.subtract(filtered.map(\.id)) }
+                Button(TermindCopy.Common.selectNone.swiftUIKey) { chooser.selected.subtract(filtered.map(\.id)) }
                     .disabled(chooser.selected.isEmpty)
                 Spacer(minLength: 0)
             }
@@ -863,11 +868,12 @@ private struct CandidatePicker: View {
 
     private var footer: some View {
         HStack(spacing: Metrics.Space.m) {
-            Button("Cancel", action: cancel)
+            Button(TermindCopy.Common.cancel.swiftUIKey, action: cancel)
                 .keyboardShortcut(.cancelAction)
             Spacer(minLength: 0)
             Button(
-                chooser.selected.isEmpty ? "Add" : "Add \(chooser.selected.count)"
+                chooser.selected.isEmpty
+                    ? TermindCopy.Common.add.swiftUIKey : TermindCopy.Settings.add(chooser.selected.count).swiftUIKey
             ) { add(chooser.selected) }
             .keyboardShortcut(.defaultAction)
             .disabled(chooser.selected.isEmpty)
@@ -920,7 +926,7 @@ private struct CandidateRow: View {
             }
         } trailing: {
             if isAlreadyAdded {
-                CardChip(text: String(localized: "Added"))
+                CardChip(text: String(localized: TermindCopy.Settings.added))
             } else {
                 ModelBadges(model: model)
             }
@@ -954,7 +960,7 @@ private struct ModelRow: View {
                     .foregroundStyle(isChecked ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Select \(model.label) for batch actions"))
+            .accessibilityLabel(Text(TermindCopy.Settings.selectForBatchActions(model.label)))
 
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: Metrics.Space.xs) {
@@ -988,11 +994,11 @@ private struct ModelRow: View {
         .onTapGesture(perform: select)
         .onHover { isHovering = $0 }
         .contextMenu {
-            Button("Edit", systemImage: MenuSymbol.edit, action: edit)
-            Button("Test", systemImage: MenuSymbol.test, action: test)
+            Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
+            Button(TermindCopy.Common.test.swiftUIKey, systemImage: MenuSymbol.test, action: test)
                 .disabled(!canTest)
             Divider()
-            DestructiveMenuButton("Delete", action: delete)
+            DestructiveMenuButton(TermindCopy.Common.delete, action: delete)
         }
         .help(Text(result?.message ?? model.id))
         .accessibilityElement(children: .combine)

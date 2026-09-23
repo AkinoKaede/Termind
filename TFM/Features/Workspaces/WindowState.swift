@@ -1,6 +1,7 @@
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 /// Window-scoped ownership for the dynamic workspace collection and its
 /// recoverable close history. Navigation remains in `WindowModel`; workspace
@@ -26,12 +27,12 @@ final class WindowSidebarState {
 
         nonisolated var id: String { rawValue }
 
-        var label: LocalizedStringKey {
+        var label: LocalizedStringResource {
             switch self {
-            case .navigation: "Navigator"
-            case .assistant: "Assistant"
-            case .snippets: "Snippets"
-            case .history: "History"
+            case .navigation: TermindCopy.Workspace.navigator
+            case .assistant: TermindCopy.Navigation.assistant
+            case .snippets: TermindCopy.Navigation.snippets
+            case .history: TermindCopy.Common.history
             }
         }
 

@@ -33,7 +33,7 @@ public struct SFTPSettingsFields: View {
     }
 
     @ViewBuilder
-    private func label(_ title: LocalizedStringKey, value: Int) -> some View {
+    private func label(_ title: LocalizedStringResource, value: Int) -> some View {
         #if os(macOS)
             HStack {
                 Text(title)
@@ -41,7 +41,7 @@ public struct SFTPSettingsFields: View {
                 Text(value, format: .number).monospacedDigit()
             }
         #else
-            LabeledContent(title) {
+            LabeledContent(title.swiftUIKey) {
                 Text(value, format: .number).monospacedDigit()
             }
         #endif

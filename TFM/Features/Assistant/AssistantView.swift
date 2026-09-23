@@ -25,13 +25,13 @@ enum AssistantConversationMenuSurface {
     ) -> [NativeMenuEntry] {
         [
             NativeMenuEntry(
-                title: AppLocalization.string("New Chat", locale: locale),
+                title: AppLocalization.resolve(TermindCopy.Assistant.newChat, locale: locale),
                 symbol: MenuSymbol.newChat
             ) {
                 window.openNewAssistantChat()
             },
             NativeMenuEntry(
-                title: AppLocalization.string("Show Archive", locale: locale),
+                title: AppLocalization.resolve(TermindCopy.Assistant.showArchive, locale: locale),
                 symbol: MenuSymbol.archive,
                 isOn: isArchivePresented(in: window)
             ) { showArchive(in: window) },
@@ -94,7 +94,7 @@ struct AssistantSidebarView: View {
             Button {
                 window.openNewAssistantChat()
             } label: {
-                Label("New Chat", systemImage: "plus.bubble")
+                Label(TermindCopy.Assistant.newChat.swiftUIKey, systemImage: "plus.bubble")
                     .foregroundStyle(.primary)
                     .frame(
                         maxWidth: .infinity,
@@ -125,8 +125,8 @@ struct AssistantSidebarView: View {
             }
             .buttonStyle(.plain)
             .termindGlassCircle(isInteractive: true)
-            .help(Text("Archived"))
-            .accessibilityLabel(Text("Archived"))
+            .help(Text(TermindCopy.Assistant.archived))
+            .accessibilityLabel(Text(TermindCopy.Assistant.archived))
             .accessibilityAddTraits(window.isAssistantArchivePresented ? .isSelected : [])
         }
     }
@@ -258,7 +258,7 @@ struct AssistantPanelView: View {
             Divider()
             ComposerView(
                 conversation: window.sidebar.assistantDraft,
-                prompt: "Ask anything…",
+                prompt: TermindCopy.Assistant.prompt,
                 sessionContext: window.sidebar.sessionContext,
                 terminalSuggestionsAvailable: true,
                 onSend: {
@@ -286,9 +286,9 @@ struct AssistantPanelView: View {
                 window.assistantLibrary.activeConversations.isEmpty
             {
                 ContentUnavailableView(
-                    "No Conversations",
+                    TermindCopy.Assistant.noConversations.swiftUIKey,
                     systemImage: "bubble.left.and.bubble.right",
-                    description: Text("Send a message below to start one.")
+                    description: Text(TermindCopy.Assistant.sendAMessageBelowToStartOne)
                 )
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
@@ -301,11 +301,11 @@ struct AssistantPanelView: View {
                 Button {
                     window.closeAssistantInSidebar()
                 } label: {
-                    Label("Back to Chats", systemImage: "arrow.left")
+                    Label(TermindCopy.Assistant.backToChats.swiftUIKey, systemImage: "arrow.left")
                         .labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
-                .help(Text("Back to Chats"))
+                .help(Text(TermindCopy.Assistant.backToChats))
 
                 Text(conversation.derivedTitle)
                     .font(.headline)
@@ -317,7 +317,7 @@ struct AssistantPanelView: View {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                 }
                 .buttonStyle(.borderless)
-                .help(Text("Open Full Screen"))
+                .help(Text(TermindCopy.Assistant.openFullScreen))
             }
             .compactAssistantHeader()
             ConversationView(
@@ -368,19 +368,19 @@ private struct AssistantConversationList: View {
                 setExpanded(true, for: conversation.isPinned ? .pinned : .chats)
             }
             .alert(
-                "Delete Conversation?",
+                TermindCopy.Assistant.deleteConversationConfirmation.swiftUIKey,
                 isPresented: Binding(
                     get: { deleteTarget != nil },
                     set: { if !$0 { deleteTarget = nil } }
                 ), presenting: deleteTarget
             ) { conversation in
-                Button("Cancel", role: .cancel) { deleteTarget = nil }
-                Button("Delete", role: .destructive) {
+                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { deleteTarget = nil }
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                     window.deleteAssistantConversation(conversation.id)
                     deleteTarget = nil
                 }
             } message: { _ in
-                Text("This permanently removes the conversation and its scratch files.")
+                Text(TermindCopy.Assistant.deleteConversationWarning)
             }
     }
 
@@ -604,10 +604,10 @@ nonisolated struct AssistantConversationListItem: Identifiable, Hashable, Sendab
         case pinned
         case chats
 
-        var title: LocalizedStringKey {
+        var title: LocalizedStringResource {
             switch self {
-            case .pinned: "Pinned"
-            case .chats: "Chats"
+            case .pinned: TermindCopy.Assistant.pinned
+            case .chats: TermindCopy.Assistant.chats
             }
         }
 
@@ -822,6 +822,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
         container.onMove = onMove
         container.blankAreaMenu = blankAreaMenu
         container.isInteractive = isInteractive
+        container.locale = locale
         context.coordinator.update(
             listView: container.listView,
             items: items,
@@ -908,6 +909,7 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
 
 @MainActor
 final class AssistantConversationListContainer: NSView {
+    var locale = Locale.current
     let listView: ListView<AssistantConversationListItem>
     var draggedID: () -> UUID? = { nil }
     var onMove: ((UUID, AssistantConversationDropTarget) -> Void)?
@@ -988,7 +990,7 @@ final class AssistantConversationListContainer: NSView {
         guard let entries = blankAreaMenu?(), !entries.isEmpty else {
             return super.menu(for: event)
         }
-        return NativeMenuEntry.menu(entries)
+        return NativeMenuEntry.menu(entries, locale: locale)
     }
 
     override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
@@ -1155,9 +1157,9 @@ private struct AssistantArchiveView: View {
             .overlay {
                 if window.assistantLibrary.archivedConversations.isEmpty {
                     ContentUnavailableView(
-                        "No Archived Chats",
+                        TermindCopy.Assistant.noArchivedChats.swiftUIKey,
                         systemImage: "archivebox",
-                        description: Text("Chats you archive will appear here.")
+                        description: Text(TermindCopy.Assistant.chatsYouArchiveWillAppearHere)
                     )
                 } else if window.assistantLibrary.search(query, scope: .archived).isEmpty {
                     ContentUnavailableView.search(text: query)
@@ -1194,12 +1196,12 @@ private struct AssistantArchiveView: View {
                 }
                 .buttonStyle(.borderless)
                 .keyboardShortcut(.cancelAction)
-                .help(Text("Back to Chats"))
+                .help(Text(TermindCopy.Assistant.backToChats))
             }
 
             Image(systemName: "archivebox")
                 .foregroundStyle(.secondary)
-            Text("Archived")
+            Text(TermindCopy.Assistant.archived)
                 .font(isCompact ? .headline : .title2.weight(.semibold))
             Text(window.assistantLibrary.archivedConversations.count, format: .number)
                 .font(.caption.monospacedDigit())
@@ -1215,7 +1217,7 @@ private struct AssistantArchiveView: View {
                     Image(systemName: "arrow.up.left.and.arrow.down.right")
                 }
                 .buttonStyle(.borderless)
-                .help(Text("Open Full Screen"))
+                .help(Text(TermindCopy.Assistant.openFullScreen))
             }
         }
     }
@@ -1292,7 +1294,7 @@ struct AssistantConversationRow: View {
         let managementDisabled = conversation.isStreaming || conversation.isCompacting
         var entries: [NativeMenuEntry] = [
             NativeMenuEntry(
-                title: localized("Open Full Screen"), symbol: MenuSymbol.openFullScreen
+                title: localized(TermindCopy.Assistant.openFullScreen), symbol: MenuSymbol.openFullScreen
             ) {
                 window.openAssistantFullScreen(conversation.id)
             },
@@ -1302,14 +1304,14 @@ struct AssistantConversationRow: View {
             entries.append(
                 NativeMenuEntry(
                     title: conversation.isPinned
-                        ? localized("Unpin") : localized("Pin"),
+                        ? localized(TermindCopy.Assistant.unpin) : localized(TermindCopy.Assistant.pin),
                     symbol: conversation.isPinned ? MenuSymbol.unpin : MenuSymbol.pin
                 ) { window.toggleAssistantPin(conversation.id) }
             )
         }
         entries.append(
             NativeMenuEntry(
-                title: localized("Rename"),
+                title: localized(TermindCopy.Common.rename),
                 symbol: MenuSymbol.rename,
                 action: onBeginRename
             )
@@ -1320,7 +1322,7 @@ struct AssistantConversationRow: View {
         entries.append(
             NativeMenuEntry(
                 title: conversation.isArchived
-                    ? localized("Unarchive") : localized("Archive"),
+                    ? localized(TermindCopy.Assistant.unarchive) : localized(TermindCopy.Assistant.archive),
                 symbol: conversation.isArchived ? MenuSymbol.unarchive : MenuSymbol.archive,
                 isEnabled: conversation.isArchived || !managementDisabled
             ) {
@@ -1332,7 +1334,7 @@ struct AssistantConversationRow: View {
         if conversation.isArchived {
             entries.append(
                 NativeMenuEntry(
-                    title: localized("Delete"), symbol: MenuSymbol.delete,
+                    title: localized(TermindCopy.Common.delete), symbol: MenuSymbol.delete,
                     imageVisibility: .visible
                 ) {
                     onDelete()
@@ -1357,7 +1359,7 @@ struct AssistantConversationRow: View {
             if isRenaming {
                 SidebarInlineRenameField(
                     text: $renameTitle,
-                    prompt: String(localized: "Conversation Name"),
+                    prompt: String(localized: TermindCopy.Assistant.conversationName),
                     isSelected: isSelected,
                     controlActiveState: controlActiveState,
                     onSubmit: onCommitRename,
@@ -1389,14 +1391,14 @@ struct AssistantConversationRow: View {
                 .help(
                     Text(
                         conversation.isArchived
-                            ? localized("Unarchive") : localized("Archive")
+                            ? localized(TermindCopy.Assistant.unarchive) : localized(TermindCopy.Assistant.archive)
                     ))
             }
         }
     }
 
-    private func localized(_ key: String.LocalizationValue) -> String {
-        AppLocalization.string(key, locale: locale)
+    private func localized(_ key: LocalizedStringResource) -> String {
+        AppLocalization.resolve(key, locale: locale)
     }
 }
 

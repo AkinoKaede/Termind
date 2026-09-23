@@ -36,7 +36,7 @@ struct MobileCardGrid<Content: View>: View {
 }
 
 struct MobileCardSection<Content: View>: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     var count: Int? = nil
     @ViewBuilder var content: Content
 
@@ -179,7 +179,7 @@ struct MobileCardChip: View {
         self.tint = tint
     }
 
-    init(title: LocalizedStringKey, symbol: String? = nil, tint: Color = .secondary) {
+    init(title: LocalizedStringResource, symbol: String? = nil, tint: Color = .secondary) {
         text = Text(title)
         self.symbol = symbol
         self.tint = tint

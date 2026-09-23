@@ -22,7 +22,7 @@ struct KnownHostsPageView: ManagedCardPage {
     var managedSections: [ManagedCardSection<String, KnownHostEntry>] {
         [
             ManagedCardSection(
-                id: "knownHosts", title: String(localized: "Known Hosts"),
+                id: "knownHosts", title: String(localized: TermindCopy.Navigation.knownHosts),
                 items: app.knownHosts.search(state.query), canAcceptDrop: false, showsWhenEmpty: false)
         ]
     }
@@ -47,13 +47,15 @@ struct KnownHostsPageView: ManagedCardPage {
         )
         .contextMenu {
             if context.actionItems.count == 1 {
-                Button("Edit", systemImage: MenuSymbol.edit) {
+                Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit) {
                     window.openVaultWork(.knownHostEditor(item.id), on: .knownHosts)
                 }
-                Button("Copy Fingerprint", systemImage: MenuSymbol.copy) { copyToPasteboard(item.fingerprint) }
+                Button(TermindCopy.KnownHosts.copyFingerprint.swiftUIKey, systemImage: MenuSymbol.copy) {
+                    copyToPasteboard(item.fingerprint)
+                }
                 Divider()
             }
-            DestructiveMenuButton("Delete") {
+            DestructiveMenuButton(TermindCopy.Common.delete) {
                 state.deleting = Set(context.actionItems.map(\.id))
             }
         }
@@ -71,20 +73,24 @@ struct KnownHostsPageView: ManagedCardPage {
     }
     func managedEmptyState() -> some View {
         ContentUnavailableView {
-            Label("No Known Hosts", systemImage: "touchid")
+            Label(TermindCopy.KnownHosts.noKnownHosts.swiftUIKey, systemImage: "touchid")
         } description: {
-            Text("Import trusted server keys or add a fingerprint manually.")
+            Text(TermindCopy.KnownHosts.importTrustedServerKeysOrAddAFingerprintManually)
         } actions: {
-            Button("Import Known Hosts") { window.openVaultWork(.sshImport(knownHostsOnly: true), on: .knownHosts) }
-            Button("Add Known Host") { window.openVaultWork(.knownHostEditor(nil), on: .knownHosts) }
+            Button(TermindCopy.KnownHosts.importKnownHosts.swiftUIKey) {
+                window.openVaultWork(.sshImport(knownHostsOnly: true), on: .knownHosts)
+            }
+            Button(TermindCopy.KnownHosts.addKnownHost.swiftUIKey) {
+                window.openVaultWork(.knownHostEditor(nil), on: .knownHosts)
+            }
         }
     }
     func managedNoResultsState() -> some View { ContentUnavailableView.search(text: state.query) }
     var managedPresentation: ManagedCardDeletionPresentation<UUID> {
         ManagedCardDeletionPresentation(
             deleting: $state.deleting, error: $state.error, ids: app.knownHosts.entries.map(\.id),
-            confirmationTitle: deletionTitle, errorTitle: "Known Hosts Operation Failed",
-            explanation: Text("The next connection will ask you to verify the server key again."),
+            confirmationTitle: deletionTitle, errorTitle: TermindCopy.KnownHosts.knownHostsOperationFailed,
+            explanation: Text(TermindCopy.KnownHosts.deleteKnownHostWarning),
             prune: { window.pruneVaultSelections(in: app.hostLibrary) },
             delete: {
                 if !app.knownHosts.delete(state.deleting) { state.error = app.knownHosts.storageError }
@@ -93,10 +99,10 @@ struct KnownHostsPageView: ManagedCardPage {
             })
     }
 
-    private var deletionTitle: LocalizedStringKey {
+    private var deletionTitle: LocalizedStringResource {
         state.deleting.count == 1
-            ? "Delete Known Host?"
-            : "Delete \(state.deleting.count) Known Hosts?"
+            ? TermindCopy.KnownHosts.deleteKnownHostConfirmation
+            : TermindCopy.KnownHosts.deleteKnownHostsConfirmation(state.deleting.count)
     }
 
     private func select(_ entry: KnownHostEntry, action: @escaping () -> Void) {
@@ -188,40 +194,48 @@ struct KnownHostEditorView: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: entryID == nil ? "Add Known Host" : "Edit Known Host", symbol: "touchid",
-            close: cancelEditing, closeLabel: "Cancel"
+            title: entryID == nil ? TermindCopy.KnownHosts.addKnownHost : TermindCopy.KnownHosts.editKnownHost,
+            symbol: "touchid",
+            close: cancelEditing, closeLabel: TermindCopy.Common.cancel
         ) {
             Form {
-                Section("Host") {
-                    TextField("Hostname", text: $draft.hostname.singleLineText, axis: .horizontal).singleLinePaste()
+                Section(TermindCopy.Vault.host.swiftUIKey) {
+                    TextField(
+                        TermindCopy.Vault.hostname.swiftUIKey, text: $draft.hostname.singleLineText, axis: .horizontal
+                    ).singleLinePaste()
                         .lineLimit(1)
                     if !draft.isHashed {
-                        TextField("Port", value: $draft.port, format: .number.grouping(.never)).lineLimit(1)
+                        TextField(
+                            TermindCopy.Common.port.swiftUIKey, value: $draft.port, format: .number.grouping(.never)
+                        ).lineLimit(1)
                     }
                     if draft.isHashed {
-                        Text("The original address and port cannot be recovered from this hash.").font(.caption)
+                        Text(TermindCopy.KnownHosts.hashedAddressExplanation).font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
-                Section("Host Key") {
-                    Picker("Key Type", selection: $draft.algorithm) {
+                Section(TermindCopy.KnownHosts.hostKey.swiftUIKey) {
+                    Picker(TermindCopy.KnownHosts.keyType.swiftUIKey, selection: $draft.algorithm) {
                         ForEach(SSHKeyAlgorithm.allCases) { Text($0.displayName).tag($0) }
                     }
-                    TextField("Fingerprint", text: $draft.fingerprint.singleLineText, axis: .horizontal)
-                        .singleLinePaste()
-                        .lineLimit(1)
-                        .font(.body.monospaced())
+                    TextField(
+                        TermindCopy.KnownHosts.fingerprint.swiftUIKey, text: $draft.fingerprint.singleLineText,
+                        axis: .horizontal
+                    )
+                    .singleLinePaste()
+                    .lineLimit(1)
+                    .font(.body.monospaced())
                 }
                 if let error { Text(error).foregroundStyle(.red) }
             }.formStyle(.grouped)
         } footer: {
             HStack(spacing: Metrics.Space.m) {
                 if entryID != nil {
-                    Button("Delete", role: .destructive) { confirmsDeletion = true }
+                    Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
                 }
                 Spacer()
-                Button("Cancel", action: cancelEditing)
-                Button("Save", action: saveAndClose).buttonStyle(.borderedProminent)
+                Button(TermindCopy.Common.cancel.swiftUIKey, action: cancelEditing)
+                Button(TermindCopy.Common.save.swiftUIKey, action: saveAndClose).buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction).disabled(!draft.isValid)
             }.padding(Metrics.Space.l)
         }
@@ -240,17 +254,20 @@ struct KnownHostEditorView: View {
             guard let editingToken else { return }
             editingSession.unregister(editingToken)
         }
-        .confirmationDialog("Delete Known Host?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
-            Button("Delete", role: .destructive, action: delete)
-            Button("Cancel", role: .cancel) {}
+        .confirmationDialog(
+            TermindCopy.KnownHosts.deleteKnownHostConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            titleVisibility: .visible
+        ) {
+            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive, action: delete)
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text("The next connection will ask you to verify the server key again.")
+            Text(TermindCopy.KnownHosts.deleteKnownHostWarning)
         }
         .alert(
-            "Known Hosts Operation Failed",
+            TermindCopy.KnownHosts.knownHostsOperationFailed.swiftUIKey,
             isPresented: Binding(get: { deletionError != nil }, set: { if !$0 { deletionError = nil } })
         ) {
-            Button("OK") { deletionError = nil }
+            Button(TermindCopy.Common.ok.swiftUIKey) { deletionError = nil }
         } message: {
             Text(deletionError ?? "")
         }
@@ -263,11 +280,11 @@ struct KnownHostEditorView: View {
     private func commitChanges() -> Bool {
         guard isDirty else { return true }
         guard draft.isValid else {
-            error = String(localized: "Complete all required fields before saving.")
+            error = String(localized: TermindCopy.Common.completeAllRequiredFieldsBeforeSaving)
             return false
         }
         guard app.knownHosts.save(draft) else {
-            error = app.knownHosts.storageError ?? String(localized: "Unable to Save")
+            error = app.knownHosts.storageError ?? String(localized: TermindCopy.Common.unableToSave)
             return false
         }
         original = draft
@@ -285,7 +302,7 @@ struct KnownHostEditorView: View {
     private func delete() {
         guard let entryID else { return }
         guard app.knownHosts.delete([entryID]) else {
-            deletionError = app.knownHosts.storageError ?? String(localized: "Unable to Save")
+            deletionError = app.knownHosts.storageError ?? String(localized: TermindCopy.Common.unableToSave)
             return
         }
         window.pruneVaultSelections(in: app.hostLibrary)

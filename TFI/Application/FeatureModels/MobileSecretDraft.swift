@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import TermindApplication
+import TermindPresentation
 
 /// Plaintext lives only in an editor or a request. Previewing never writes the Keychain.
 @MainActor @Observable
@@ -68,7 +69,7 @@ final class MobileSecretDraft {
         }
         let next = action == .preserve ? reference : action == .clear ? "" : ref
         guard save(next) else {
-            var message = ai.storageError ?? String(localized: "Unable to Save")
+            var message = ai.storageError ?? String(localized: TermindCopy.Common.unableToSave)
             if action != .preserve {
                 ai.setSecret(previous, for: ref)
                 if let error = ai.secretStorageError { message += "\n" + error }

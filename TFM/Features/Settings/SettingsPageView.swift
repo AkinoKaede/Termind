@@ -15,30 +15,30 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 
     var id: String { rawValue }
 
-    var title: LocalizedStringKey {
+    var title: LocalizedStringResource {
         switch self {
-        case .pro: "Termind Pro"
-        case .app: "App"
-        case .terminal: "Terminal"
-        case .connections: "Connections"
-        case .ai: "AI"
-        case .sync: "Sync"
+        case .pro: TermindCopy.Pro.termindPro
+        case .app: TermindCopy.Settings.app
+        case .terminal: TermindCopy.Settings.terminal
+        case .connections: TermindCopy.Settings.connections
+        case .ai: TermindCopy.Settings.ai
+        case .sync: TermindCopy.Settings.sync
         #if DEBUG
-            case .developer: "Developer"
+            case .developer: TermindCopy.Settings.developer
         #endif
         }
     }
 
     func title(locale: Locale = .current) -> String {
         switch self {
-        case .pro: AppLocalization.string("Termind Pro", locale: locale)
-        case .app: AppLocalization.string("App", locale: locale)
-        case .terminal: AppLocalization.string("Terminal", locale: locale)
-        case .connections: AppLocalization.string("Connections", locale: locale)
-        case .ai: AppLocalization.string("AI", locale: locale)
-        case .sync: AppLocalization.string("Sync", locale: locale)
+        case .pro: AppLocalization.resolve(TermindCopy.Pro.termindPro, locale: locale)
+        case .app: AppLocalization.resolve(TermindCopy.Settings.app, locale: locale)
+        case .terminal: AppLocalization.resolve(TermindCopy.Settings.terminal, locale: locale)
+        case .connections: AppLocalization.resolve(TermindCopy.Settings.connections, locale: locale)
+        case .ai: AppLocalization.resolve(TermindCopy.Settings.ai, locale: locale)
+        case .sync: AppLocalization.resolve(TermindCopy.Settings.sync, locale: locale)
         #if DEBUG
-            case .developer: AppLocalization.string("Developer", locale: locale)
+            case .developer: AppLocalization.resolve("Developer", locale: locale)
         #endif
         }
     }
@@ -137,7 +137,7 @@ struct SettingsPageView: View {
                     deleted: { navigate(to: .category(.ai)) }
                 )
             } else {
-                ProLockedSettingsPage(title: "MCP", feature: .remoteMCP)
+                ProLockedSettingsPage(title: TermindCopy.Settings.mcp, feature: .remoteMCP)
             }
         case .localMCPServer:
             SettingsFormPage { MCPServerSettings() }
@@ -256,16 +256,16 @@ private struct SettingsIndexPage: View {
                 Section {
                     Button(action: openLogging) {
                         HStack {
-                            Label("Logging", systemImage: "doc.text")
+                            Label(TermindCopy.Settings.logging.swiftUIKey, systemImage: "doc.text")
                             Spacer()
                             Image(systemName: "chevron.right").foregroundStyle(.tertiary)
                         }
                     }
                     .buttonStyle(.plain)
                     LabeledContent {
-                        Text(verbatim: DeviceCensorship.canDisplayTaiwanFlag ? "true" : "false")
+                        Text(verbatim: String(DeviceCensorship.canDisplayTaiwanFlag))
                     } label: {
-                        Label("Taiwan Flag Available", systemImage: "touchid")
+                        Label(TermindCopy.Settings.taiwanFlagAvailable.swiftUIKey, systemImage: "touchid")
                     }
                 }
             }
@@ -350,7 +350,7 @@ enum SettingsDraftPolicy {
 
 private struct ProLockedSettingsPage: View {
     @Environment(AppModel.self) private var app
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let feature: ProFeature
 
     var body: some View {
@@ -360,9 +360,9 @@ private struct ProLockedSettingsPage: View {
                 .font(.system(size: 34))
                 .foregroundStyle(.tint)
             Text(title).font(.title2.bold())
-            Text("This configuration is available with Termind Pro.")
+            Text(TermindCopy.Settings.thisConfigurationIsAvailableWithTermindPro)
                 .foregroundStyle(.secondary)
-            Button("View Termind Pro") { app.proAccess.presentPaywall(for: feature) }
+            Button(TermindCopy.Settings.viewTermindPro.swiftUIKey) { app.proAccess.presentPaywall(for: feature) }
                 .buttonStyle(.borderedProminent)
             Spacer()
         }
@@ -401,10 +401,10 @@ private struct AppSettings: View {
     }
 
     var body: some View {
-        Section("Appearance") {
-            Toggle("Show in Menu Bar", isOn: $showMetricsInMenuBar)
+        Section(TermindCopy.Settings.appearance.swiftUIKey) {
+            Toggle(TermindCopy.Settings.showInMenuBar.swiftUIKey, isOn: $showMetricsInMenuBar)
             Picker(
-                "Theme",
+                TermindCopy.Settings.theme.swiftUIKey,
                 selection: Binding(
                     get: { AppAppearance(rawValue: appearanceID) ?? .system },
                     set: { appearanceID = $0.rawValue }
@@ -415,7 +415,7 @@ private struct AppSettings: View {
                 }
             }
 
-            Picker("Language", selection: languageSelection) {
+            Picker(TermindCopy.Settings.language.swiftUIKey, selection: languageSelection) {
                 ForEach(AppLanguage.allCases) { language in
                     Text(
                         language.displayName(
@@ -428,9 +428,9 @@ private struct AppSettings: View {
 
             if selectedLanguage != launchLanguage {
                 LabeledContent {
-                    Button("Relaunch Now") { AppRelauncher.relaunch() }
+                    Button(TermindCopy.Settings.relaunchNow.swiftUIKey) { AppRelauncher.relaunch() }
                 } label: {
-                    Text("The new language will be used after Termind relaunches.")
+                    Text(TermindCopy.Settings.theNewLanguageWillBeUsedAfterTermindRelaunches)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -438,7 +438,7 @@ private struct AppSettings: View {
 
         Section {
             Toggle(
-                "Automatically Rename Workspaces",
+                TermindCopy.Settings.automaticallyRenameWorkspaces.swiftUIKey,
                 isOn: Binding(
                     get: { app.workspaceSettings.preferences.automaticallyRenamesWorkspaces },
                     set: { _ = app.workspaceSettings.setAutomaticRenaming($0) }
@@ -448,9 +448,9 @@ private struct AppSettings: View {
                 Text(error).foregroundStyle(.orange)
             }
         } header: {
-            Text("Workspaces")
+            Text(TermindCopy.Navigation.workspaces)
         } footer: {
-            Text("New Workspaces with the same Host name use the next number, regardless of protocol.")
+            Text(TermindCopy.Settings.workspaceNumberingExplanation)
         }
     }
 }
@@ -460,33 +460,33 @@ private struct AppInfoSettings: View {
     @AppStorage(SettingsKey.debugSectionEnabled) private var debugSectionEnabled = false
 
     var body: some View {
-        Section("Version") {
+        Section(TermindCopy.Settings.version.swiftUIKey) {
             LabeledContent {
                 Text(Bundle.termindDisplayVersion)
                     .foregroundStyle(.secondary)
                     .textSelection(.enabled)
             } label: {
-                Text(verbatim: "App")
+                Text(TermindCopy.Settings.app)
             }
             .contentShape(.rect)
             .simultaneousGesture(
                 TapGesture(count: 3)
                     .onEnded { debugSectionEnabled.toggle() }
             )
-            LabeledContent("Ghostty") {
+            LabeledContent(TermindCopy.Settings.ghostty.swiftUIKey) {
                 Text(RuntimeVersions.ghostty).foregroundStyle(.secondary).textSelection(.enabled)
             }
-            LabeledContent("libssh2") {
+            LabeledContent(TermindCopy.Settings.libssh2.swiftUIKey) {
                 Text(RuntimeVersions.libssh2).foregroundStyle(.secondary).textSelection(.enabled)
             }
-            LabeledContent("OpenSSL") {
+            LabeledContent(TermindCopy.Settings.openSSL.swiftUIKey) {
                 Text(RuntimeVersions.openSSL).foregroundStyle(.secondary).textSelection(.enabled)
             }
         }
 
-        Section("Support") {
+        Section(TermindCopy.Settings.support.swiftUIKey) {
             Link(destination: AppReviewController.reviewURL) {
-                Label("Rate on the App Store", systemImage: "star")
+                Label(TermindCopy.Settings.rateOnTheAppStore.swiftUIKey, systemImage: "star")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .environment(
@@ -497,11 +497,11 @@ private struct AppInfoSettings: View {
                 }
             )
             Link(destination: URL(string: "https://termind.akinokaede.com/support/")!) {
-                Label("Support", systemImage: "questionmark.circle")
+                Label(TermindCopy.Settings.support.swiftUIKey, systemImage: "questionmark.circle")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             Link(destination: URL(string: "https://termind.akinokaede.com/privacy/")!) {
-                Label("Privacy Policy", systemImage: "hand.raised")
+                Label(TermindCopy.Pro.privacyPolicy.swiftUIKey, systemImage: "hand.raised")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
@@ -513,41 +513,41 @@ private struct ProSettings: View {
 
     var body: some View {
         Group {
-            Section("Access") {
-                LabeledContent("Status") { statusLabel }
+            Section(TermindCopy.Settings.access.swiftUIKey) {
+                LabeledContent(TermindCopy.Common.status.swiftUIKey) { statusLabel }
                 if let expirationLabel, let expirationDate {
-                    LabeledContent(expirationLabel) {
+                    LabeledContent(expirationLabel.swiftUIKey) {
                         Text(expirationDate, format: .dateTime.year().month().day().hour().minute())
                     }
                 }
             }
 
-            Section("Termind Pro") {
+            Section(TermindCopy.Pro.termindPro.swiftUIKey) {
                 Text(
-                    "Choose annual access or a permanent unlock for the AI Assistant, terminal uploads, MCP, and iCloud sync."
+                    TermindCopy.Settings.proPlanExplanation
                 )
                 .foregroundStyle(.secondary)
                 if app.proAccess.status.canPurchase {
-                    Button("View Termind Pro") { app.proAccess.presentPaywall() }
+                    Button(TermindCopy.Settings.viewTermindPro.swiftUIKey) { app.proAccess.presentPaywall() }
                         .buttonStyle(.borderedProminent)
                 }
                 if canManageSubscription {
                     Link(
-                        "Manage Subscription",
+                        TermindCopy.Pro.manageSubscription.swiftUIKey,
                         destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
                 }
-                Button("Restore Purchase") { Task { await app.proAccess.restorePurchases() } }
+                Button(TermindCopy.Pro.restorePurchase.swiftUIKey) { Task { await app.proAccess.restorePurchases() } }
                     .disabled(app.proAccess.isProcessing)
                 if let message = app.proAccess.message {
                     Text(message).font(.caption).foregroundStyle(.orange)
                 }
             }
 
-            Section("Options") {
-                includedFeature("Annual Subscription", systemImage: "calendar")
-                includedFeature("Permanent lifetime unlock", systemImage: "infinity")
-                includedFeature("Apple Family Sharing", systemImage: "person.3")
-                Text("AI provider usage and charges are separate from Termind Pro.")
+            Section(TermindCopy.Settings.options.swiftUIKey) {
+                includedFeature(TermindCopy.Pro.annualSubscription, systemImage: "calendar")
+                includedFeature(TermindCopy.Settings.permanentLifetimeUnlock, systemImage: "infinity")
+                includedFeature(TermindCopy.Settings.appleFamilySharing, systemImage: "person.3")
+                Text(TermindCopy.Settings.aiProviderUsageAndChargesAreSeparateFromTermindPro)
                     .font(.caption).foregroundStyle(.secondary)
             }
         }
@@ -565,14 +565,15 @@ private struct ProSettings: View {
         }
     }
 
-    private var expirationLabel: LocalizedStringKey? {
+    private var expirationLabel: LocalizedStringResource? {
         switch app.proAccess.status {
         case .subscription(let subscription):
             switch subscription.phase {
-            case .introductoryTrial: "Trial Ends"
-            case .subscribed: subscription.willAutoRenew == false ? "Access Ends" : "Renews"
-            case .gracePeriod: "Grace Period Ends"
-            case .billingRetry, .expired, .revoked: "Expired"
+            case .introductoryTrial: TermindCopy.Settings.trialEnds
+            case .subscribed:
+                subscription.willAutoRenew == false ? TermindCopy.Settings.accessEnds : TermindCopy.Settings.renews
+            case .gracePeriod: TermindCopy.Settings.gracePeriodEnds
+            case .billingRetry, .expired, .revoked: TermindCopy.Settings.expired
             }
         default:
             nil
@@ -580,7 +581,7 @@ private struct ProSettings: View {
     }
 
     private func includedFeature(
-        _ title: LocalizedStringKey,
+        _ title: LocalizedStringResource,
         systemImage: String
     ) -> some View {
         HStack(spacing: Metrics.Space.s) {
@@ -593,28 +594,35 @@ private struct ProSettings: View {
     @ViewBuilder
     private var statusLabel: some View {
         switch app.proAccess.status {
-        case .loading: Label("Checking…", systemImage: "arrow.triangle.2.circlepath")
-        case .free: Label("Free", systemImage: "person.crop.circle")
+        case .loading: Label(TermindCopy.Pro.checkingProgress.swiftUIKey, systemImage: "arrow.triangle.2.circlepath")
+        case .free: Label(TermindCopy.Pro.free.swiftUIKey, systemImage: "person.crop.circle")
         case .subscription(let subscription): subscriptionStatusLabel(subscription)
-        case .purchased(.purchased): Label("Lifetime", systemImage: "infinity")
-        case .purchased(.familyShared): Label("Lifetime · Family Shared", systemImage: "person.3.fill")
-        case .verificationFailed: Label("Verification Required", systemImage: "exclamationmark.shield")
-        case .unrestrictedForTesting: Label("Development Access", systemImage: "hammer")
+        case .purchased(.purchased): Label(TermindCopy.Pro.lifetime.swiftUIKey, systemImage: "infinity")
+        case .purchased(.familyShared):
+            Label(TermindCopy.Settings.lifetimeFamilyShared.swiftUIKey, systemImage: "person.3.fill")
+        case .verificationFailed:
+            Label(TermindCopy.Settings.verificationRequired.swiftUIKey, systemImage: "exclamationmark.shield")
+        case .unrestrictedForTesting: Label(TermindCopy.Settings.developmentAccess.swiftUIKey, systemImage: "hammer")
         }
     }
 
     @ViewBuilder
     private func subscriptionStatusLabel(_ subscription: ProSubscriptionStatus) -> some View {
         switch subscription.phase {
-        case .introductoryTrial: Label("Free Trial", systemImage: "clock")
+        case .introductoryTrial: Label(TermindCopy.Pro.freeTrial.swiftUIKey, systemImage: "clock")
         case .subscribed:
             Label(
-                subscription.ownership == .familyShared ? "Annual · Family Shared" : "Annual Subscription",
+                subscription.ownership == .familyShared
+                    ? TermindCopy.Settings.annualFamilyShared.swiftUIKey
+                    : TermindCopy.Pro.annualSubscription.swiftUIKey,
                 systemImage: subscription.ownership == .familyShared ? "person.3.fill" : "checkmark.seal.fill")
-        case .gracePeriod: Label("Billing Grace Period", systemImage: "clock.badge.exclamationmark")
-        case .billingRetry: Label("Billing Issue", systemImage: "creditcard.trianglebadge.exclamationmark")
-        case .expired: Label("Subscription Expired", systemImage: "calendar.badge.exclamationmark")
-        case .revoked: Label("Subscription Revoked", systemImage: "xmark.seal")
+        case .gracePeriod:
+            Label(TermindCopy.Pro.billingGracePeriod.swiftUIKey, systemImage: "clock.badge.exclamationmark")
+        case .billingRetry:
+            Label(TermindCopy.Pro.billingIssue.swiftUIKey, systemImage: "creditcard.trianglebadge.exclamationmark")
+        case .expired:
+            Label(TermindCopy.Pro.subscriptionExpired.swiftUIKey, systemImage: "calendar.badge.exclamationmark")
+        case .revoked: Label(TermindCopy.Pro.subscriptionRevoked.swiftUIKey, systemImage: "xmark.seal")
         }
     }
 }
@@ -626,7 +634,7 @@ private struct StartupSettings: View {
         DesktopSettingsKey.defaultOpenAtLoginQuietly
 
     var body: some View {
-        Section("Startup") {
+        Section(TermindCopy.Settings.startup.swiftUIKey) {
             Toggle(
                 isOn: Binding(
                     get: { loginItem.isEnabled },
@@ -634,23 +642,23 @@ private struct StartupSettings: View {
                 )
             ) {
                 VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                    Text("Open at Login")
+                    Text(TermindCopy.Settings.openAtLogin)
                     Text(
-                        "macOS opens Termind when you log in, which also starts the local MCP server if you have it enabled."
+                        TermindCopy.Settings.loginItemExplanation
                     )
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 }
             }
 
-            Toggle("Open Hidden at Login", isOn: $opensQuietly)
+            Toggle(TermindCopy.Settings.openHiddenAtLogin.swiftUIKey, isOn: $opensQuietly)
                 .disabled(!loginItem.isEnabled)
 
             if loginItem.requiresApproval {
                 LabeledContent {
-                    Button("Open Login Items Settings") { loginItem.openSystemSettings() }
+                    Button(TermindCopy.Settings.openLoginItemsSettings.swiftUIKey) { loginItem.openSystemSettings() }
                 } label: {
-                    Text("macOS is waiting for you to allow Termind in Login Items.")
+                    Text(TermindCopy.Settings.macOSIsWaitingForYouToAllowTermindInLoginItems)
                         .foregroundStyle(.secondary)
                 }
             }
@@ -672,8 +680,8 @@ private struct ConnectionSettings: View {
     @Environment(AppModel.self) private var app
 
     var body: some View {
-        Section("SSH") { SSHSettingsFields(model: app.sshSettings) }
-        Section("SFTP") { SFTPSettingsFields(model: app.sftpSettings) }
+        Section(TermindCopy.Vault.ssh.swiftUIKey) { SSHSettingsFields(model: app.sshSettings) }
+        Section(TermindCopy.SFTP.sftp.swiftUIKey) { SFTPSettingsFields(model: app.sftpSettings) }
     }
 }
 
@@ -694,55 +702,57 @@ private struct TerminalSettings: View {
             if let error = app.terminalSettings.storageError {
                 Text(error).foregroundStyle(.orange)
             }
-            Section("Light") {
+            Section(TermindCopy.Settings.light.swiftUIKey) {
                 TerminalThemePicker(selection: binding(\.lightTheme), isDark: false)
-                Toggle("Custom Configuration", isOn: binding(\.lightCustomEnabled))
-                FormNavigationAction(title: "Edit Custom Configuration") {
+                Toggle(TermindCopy.Settings.customConfiguration.swiftUIKey, isOn: binding(\.lightCustomEnabled))
+                FormNavigationAction(title: TermindCopy.Settings.editCustomConfiguration) {
                     editConfiguration(.light)
                 }
             }
             Section {
                 TerminalThemePicker(selection: binding(\.darkTheme), isDark: true)
-                Toggle("Custom Configuration", isOn: binding(\.darkCustomEnabled))
-                FormNavigationAction(title: "Edit Custom Configuration") {
+                Toggle(TermindCopy.Settings.customConfiguration.swiftUIKey, isOn: binding(\.darkCustomEnabled))
+                FormNavigationAction(title: TermindCopy.Settings.editCustomConfiguration) {
                     editConfiguration(.dark)
                 }
             } header: {
-                Text("Dark")
+                Text(TermindCopy.Settings.dark)
             } footer: {
                 Text(
-                    "Termind uses [Ghostty](https://ghostty.org) as its terminal engine. Custom configuration uses [Ghostty's configuration format](https://ghostty.org/docs/config/reference)."
+                    TermindCopy.Settings.terminalConfigurationExplanation
                 )
             }
-            Section("Font") {
+            Section(TermindCopy.Settings.font.swiftUIKey) {
                 TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
             }
-            Section("Mouse") {
-                Toggle("Copy on Selection", isOn: binding(\.copyOnSelect))
+            Section(TermindCopy.Settings.mouse.swiftUIKey) {
+                Toggle(TermindCopy.Settings.copyOnSelection.swiftUIKey, isOn: binding(\.copyOnSelect))
                 Toggle(isOn: binding(\.pasteOnRightClick)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                        Text("Paste on Right-Click")
+                        Text(TermindCopy.Settings.pasteOnRightClick)
                         Text(
-                            "Right-click to paste. Hold Option to keep the usual right-click behavior. Applications that capture the mouse keep their mouse controls."
+                            TermindCopy.Settings.rightClickPasteExplanation
                         )
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     }
                 }
             }
-            Section("Integration") {
+            Section(TermindCopy.Settings.integration.swiftUIKey) {
                 Toggle(isOn: binding(\.shellIntegration)) {
                     VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                        Text("Shell Integration")
+                        Text(TermindCopy.Settings.shellIntegration)
                         Text(
-                            "Keeps the remote working directory current, records confirmed commands, and provides detected distribution, kernel, and architecture details to AI features."
+                            TermindCopy.Settings.shellIntegrationExplanation
                         )
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     }
                 }
 
-                Toggle("Show Terminal Title in Menu Bar", isOn: binding(\.remoteWindowTitleInMenuBar))
+                Toggle(
+                    TermindCopy.Settings.showTerminalTitleInMenuBar.swiftUIKey,
+                    isOn: binding(\.remoteWindowTitleInMenuBar))
             }
         }
         .onAppear {

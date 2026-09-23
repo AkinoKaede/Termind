@@ -1,6 +1,7 @@
 import AgentKit
 import Foundation
 import TermindApplication
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 nonisolated struct MCPUploadRequest: Sendable {
@@ -438,10 +439,10 @@ nonisolated enum MCPUploadError: LocalizedError {
     case invalidRequest, unavailable, capacity, unknown
     var errorDescription: String? {
         switch self {
-        case .invalidRequest: String(localized: "The upload request is invalid.")
-        case .unavailable: String(localized: "HTTP uploads are not available.")
-        case .capacity: String(localized: "Too many uploads are waiting.")
-        case .unknown: String(localized: "The upload is unknown or expired.")
+        case .invalidRequest: String(localized: TermindCopy.MCP.theUploadRequestIsInvalid)
+        case .unavailable: String(localized: TermindCopy.MCP.httpUploadsAreNotAvailable)
+        case .capacity: String(localized: TermindCopy.MCP.tooManyUploadsAreWaiting)
+        case .unknown: String(localized: TermindCopy.MCP.theUploadIsUnknownOrExpired)
         }
     }
 }

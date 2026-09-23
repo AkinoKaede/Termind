@@ -22,23 +22,25 @@ public struct ModelProviderConnectionFields: View {
 
     public var body: some View {
         Section {
-            LabeledContent("Name") {
+            LabeledContent(TermindCopy.Common.name.swiftUIKey) {
                 TextField(
-                    "Name", text: $name.singleLineText, prompt: Text(verbatim: endpoint.apiType.defaultProviderName),
+                    TermindCopy.Common.name.swiftUIKey, text: $name.singleLineText,
+                    prompt: Text(verbatim: endpoint.apiType.defaultProviderName),
                     axis: .horizontal
                 )
                 .singleLinePaste().lineLimit(1).labelsHidden().multilineTextAlignment(.trailing)
             }
-            Toggle("Enabled", isOn: $isEnabled)
+            Toggle(TermindCopy.Common.enabled.swiftUIKey, isOn: $isEnabled)
             Picker("API Type", selection: $endpoint.apiType) {
                 ForEach(ModelAPIType.allCases) { Text($0.displayName).tag($0) }
             }
         }
         if showsEndpoint {
             Section("Endpoint") {
-                LabeledContent("URL") {
+                LabeledContent(TermindCopy.Settings.url.swiftUIKey) {
                     TextField(
-                        "URL", text: $endpoint.url.singleLineText, prompt: Text(verbatim: endpoint.apiType.defaultURL),
+                        TermindCopy.Settings.url.swiftUIKey, text: $endpoint.url.singleLineText,
+                        prompt: Text(verbatim: endpoint.apiType.defaultURL),
                         axis: .horizontal
                     ).singleLinePaste().lineLimit(1)
                         .labelsHidden()
@@ -46,7 +48,7 @@ public struct ModelProviderConnectionFields: View {
                         .multilineTextAlignment(.trailing)
                 }
                 if !ModelProviderForm.isValidURL(preview.requestURL) {
-                    Text("Enter a valid provider URL, or a Vertex project and location.")
+                    Text(TermindCopy.Settings.enterAValidProviderUrlOrAVertexProjectAndLocation)
                         .font(.caption).foregroundStyle(.red)
                 }
                 if preview.isConfigured {

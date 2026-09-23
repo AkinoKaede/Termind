@@ -1,5 +1,6 @@
 import AppKit
 import SwiftUI
+import TermindApplication
 
 /// A destructive action inside a SwiftUI menu.
 ///
@@ -8,12 +9,12 @@ import SwiftUI
 /// request `.visible` without guessing from a localized title. The role still
 /// lets macOS own the destructive presentation.
 struct DestructiveMenuButton: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let systemImage: String
     let action: () -> Void
 
     init(
-        _ title: LocalizedStringKey,
+        _ title: LocalizedStringResource,
         systemImage: String = MenuSymbol.delete,
         action: @escaping () -> Void
     ) {
@@ -111,7 +112,15 @@ final class MenuImageVisibilityController: NSObject {
 /// search field's magnifier menu and by the blank-area menus in the sidebar and
 /// on the manager pages.
 struct NativeMenuEntry {
-    var title: String
+    private var literalTitle: String
+    private var titleResource: LocalizedStringResource?
+    var title: String {
+        get { resolvedTitle(locale: .current) }
+        set {
+            literalTitle = newValue
+            titleResource = nil
+        }
+    }
     /// The SF Symbol beside the title, from `MenuSymbol`. AppKit fills this in
     /// for standard actions and leaves ours empty, so every verb names its own.
     var symbol: String?
@@ -122,31 +131,61 @@ struct NativeMenuEntry {
     var children: [NativeMenuEntry] = []
     var action: () -> Void = {}
 
+    init(
+        title: String, symbol: String? = nil, image: NSImage? = nil,
+        imageVisibility: MenuImageVisibility = .automatic, isOn: Bool = false,
+        isEnabled: Bool = true, children: [NativeMenuEntry] = [], action: @escaping () -> Void = {}
+    ) {
+        literalTitle = title
+        self.symbol = symbol
+        self.image = image
+        self.imageVisibility = imageVisibility
+        self.isOn = isOn
+        self.isEnabled = isEnabled
+        self.children = children
+        self.action = action
+    }
+
+    init(
+        title: LocalizedStringResource, symbol: String? = nil, image: NSImage? = nil,
+        imageVisibility: MenuImageVisibility = .automatic, isOn: Bool = false,
+        isEnabled: Bool = true, children: [NativeMenuEntry] = [], action: @escaping () -> Void = {}
+    ) {
+        self.init(
+            title: "", symbol: symbol, image: image, imageVisibility: imageVisibility,
+            isOn: isOn, isEnabled: isEnabled, children: children, action: action)
+        titleResource = title
+    }
+
     static let separator = NativeMenuEntry(title: "", isEnabled: false)
 
-    var isSeparator: Bool { title.isEmpty }
+    var isSeparator: Bool { titleResource == nil && literalTitle.isEmpty }
 
-    static func menu(_ entries: [NativeMenuEntry]) -> NSMenu {
+    private func resolvedTitle(locale: Locale) -> String {
+        titleResource.map { AppLocalization.resolve($0, locale: locale) } ?? literalTitle
+    }
+
+    static func menu(_ entries: [NativeMenuEntry], locale: Locale = .current) -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
-        fill(menu, with: entries)
+        fill(menu, with: entries, locale: locale)
         return menu
     }
 
     /// Replaces a long-lived menu's contents. `NSSearchField.searchMenuTemplate`
     /// is assigned once and refreshed in place — swapping the menu object while
     /// it is open takes it out from under itself.
-    static func fill(_ menu: NSMenu, with entries: [NativeMenuEntry]) {
+    static func fill(_ menu: NSMenu, with entries: [NativeMenuEntry], locale: Locale = .current) {
         menu.removeAllItems()
         menu.autoenablesItems = false
         for entry in entries {
-            menu.addItem(entry.menuItem())
+            menu.addItem(entry.menuItem(locale: locale))
         }
     }
 
-    func menuItem() -> NSMenuItem {
+    func menuItem(locale: Locale = .current) -> NSMenuItem {
         guard !isSeparator else { return .separator() }
-        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        let item = NSMenuItem(title: resolvedTitle(locale: locale), action: nil, keyEquivalent: "")
         item.image =
             image
             ?? symbol.flatMap {
@@ -163,7 +202,7 @@ struct NativeMenuEntry {
             item.state = isOn ? .on : .off
             item.isEnabled = isEnabled
         } else {
-            item.submenu = NativeMenuEntry.menu(children)
+            item.submenu = NativeMenuEntry.menu(children, locale: locale)
             item.isEnabled = isEnabled
         }
         return item
@@ -203,11 +242,13 @@ struct NativeRowContextMenu: NSViewRepresentable {
 
     func updateNSView(_ view: RowMenuView, context: Context) {
         view.entries = entries
+        view.locale = context.environment.locale
         view.setPresented = { isPresented = $0 }
     }
 
     @MainActor
     final class RowMenuView: NSView, NSMenuDelegate {
+        var locale = Locale.current
         var entries: () -> [NativeMenuEntry] = { [] }
         var setPresented: (Bool) -> Void = { _ in }
 
@@ -242,7 +283,7 @@ struct NativeRowContextMenu: NSViewRepresentable {
         func makeMenu() -> NSMenu? {
             let items = entries()
             guard !items.isEmpty else { return nil }
-            let menu = NativeMenuEntry.menu(items)
+            let menu = NativeMenuEntry.menu(items, locale: locale)
             menu.delegate = self
             return menu
         }
@@ -277,10 +318,12 @@ struct NativeBlankAreaMenu: NSViewRepresentable {
     func updateNSView(_ view: BlankAreaMenuView, context: Context) {
         view.claims = claims
         view.entries = entries
+        view.locale = context.environment.locale
     }
 
     @MainActor
     final class BlankAreaMenuView: NSView {
+        var locale = Locale.current
         var claims: (CGPoint) -> Bool = { _ in true }
         var entries: (CGPoint) -> [NativeMenuEntry] = { _ in [] }
 
@@ -299,7 +342,7 @@ struct NativeBlankAreaMenu: NSViewRepresentable {
             let local = convert(event.locationInWindow, from: nil)
             let items = entries(local)
             guard !items.isEmpty else { return }
-            NSMenu.popUpContextMenu(NativeMenuEntry.menu(items), with: event, for: self)
+            NSMenu.popUpContextMenu(NativeMenuEntry.menu(items, locale: locale), with: event, for: self)
         }
     }
 }

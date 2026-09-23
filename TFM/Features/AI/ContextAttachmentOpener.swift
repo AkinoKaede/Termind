@@ -1,6 +1,7 @@
 import AgentKit
 import AppKit
 import Foundation
+import TermindPresentation
 import UniformTypeIdentifiers
 
 nonisolated enum ContextAttachmentOpener {
@@ -90,7 +91,7 @@ nonisolated enum ContextAttachmentOpener {
         var errorDescription: String? {
             switch self {
             case .noDefaultApplication:
-                String(localized: "No application is available to open this attachment.")
+                String(localized: TermindCopy.Assistant.noApplicationIsAvailableToOpenThisAttachment)
             }
         }
     }

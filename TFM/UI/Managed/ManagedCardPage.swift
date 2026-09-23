@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 import UniformTypeIdentifiers
 
 nonisolated private let managedCardDragSpace = "termind.managedCardPage.drag"
@@ -71,8 +72,8 @@ struct ManagedCardDeletionPresentation<ID: Hashable>: ManagedCardPresentationMod
     @Binding var deleting: Set<ID>
     @Binding var error: String?
     let ids: [ID]
-    let confirmationTitle: LocalizedStringKey
-    let errorTitle: LocalizedStringKey
+    let confirmationTitle: LocalizedStringResource
+    let errorTitle: LocalizedStringResource
     var explanation: Text? = nil
     let prune: () -> Void
     let delete: () -> Void
@@ -85,7 +86,7 @@ struct ManagedCardDeletionPresentation<ID: Hashable>: ManagedCardPresentationMod
                 confirmationTitle,
                 isPresented: Binding(get: { !deleting.isEmpty }, set: { if !$0 { deleting = [] } })
             ) {
-                Button("Delete", role: .destructive, action: delete)
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive, action: delete)
             } message: {
                 if let explanation { explanation }
             }
@@ -93,7 +94,7 @@ struct ManagedCardDeletionPresentation<ID: Hashable>: ManagedCardPresentationMod
                 errorTitle,
                 isPresented: Binding(get: { error != nil }, set: { if !$0 { error = nil } })
             ) {
-                Button("OK") { error = nil }
+                Button(TermindCopy.Common.ok.swiftUIKey) { error = nil }
             } message: {
                 Text(error ?? "")
             }

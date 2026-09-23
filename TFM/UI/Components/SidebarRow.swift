@@ -216,7 +216,7 @@ struct SidebarInlineRenameField: NSViewRepresentable {
 /// destinations above it and never lit up under the pointer; the fix is not a
 /// correction padding but using the same container.
 struct SidebarNavigatorRow<Trailing: View>: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let symbol: String
     var isSelected = false
     var isEnabled = true
@@ -284,7 +284,7 @@ private struct SidebarRowChrome: ViewModifier {
 extension SidebarNavigatorRow where Trailing == SidebarRowCount {
     /// The common form: a destination with how many things are behind it.
     init(
-        title: LocalizedStringKey,
+        title: LocalizedStringResource,
         symbol: String,
         count: Int,
         isSelected: Bool = false,
@@ -300,7 +300,7 @@ extension SidebarNavigatorRow where Trailing == SidebarRowCount {
 
 extension SidebarNavigatorRow where Trailing == EmptyView {
     init(
-        title: LocalizedStringKey,
+        title: LocalizedStringResource,
         symbol: String,
         isSelected: Bool = false,
         menu: (() -> [NativeMenuEntry])? = nil,
@@ -335,7 +335,7 @@ struct SidebarSectionHeader: View {
     @Binding var isExpanded: Bool
 
     init(
-        title: LocalizedStringKey, count: Int? = nil, height: CGFloat = 32,
+        title: LocalizedStringResource, count: Int? = nil, height: CGFloat = 32,
         isExpanded: Binding<Bool>
     ) {
         self.title = Text(title)
@@ -381,8 +381,8 @@ struct SidebarSectionHeader: View {
         }
         .buttonStyle(.plain)
         .termindSidebarSectionLabel()
-        .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed"))
-        .accessibilityAction(named: Text(isExpanded ? "Collapse" : "Expand")) {
+        .accessibilityValue(Text(isExpanded ? TermindCopy.Assistant.expanded : TermindCopy.Assistant.collapsed))
+        .accessibilityAction(named: Text(isExpanded ? TermindCopy.Common.collapse : TermindCopy.Common.expand)) {
             isExpanded.toggle()
         }
     }

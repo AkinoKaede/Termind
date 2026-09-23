@@ -50,7 +50,7 @@ public struct MetricsSystemPanels: View {
                     figure("Free Memory", value: MetricsFormat.bytes(point?.memoryFree))
                     figure("Used", value: MetricsFormat.bytes(point?.memoryUsed))
                     figure("Page Cache", value: MetricsFormat.bytes(point?.memoryCached))
-                    MetricsRing(title: "Memory", value: point?.memory)
+                    MetricsRing(title: TermindCopy.Metrics.memory, value: point?.memory)
                 }
             }
             if let swapTotal = point?.swapTotal, swapTotal > 0 {
@@ -206,7 +206,7 @@ public struct MetricsSystemPanels: View {
             }
     }
 
-    private func figure(_ title: LocalizedStringKey, value: String, color: Color = Color.primary)
+    private func figure(_ title: LocalizedStringResource, value: String, color: Color = Color.primary)
         -> some View
     {
         VStack(alignment: .leading, spacing: 3) {
@@ -216,7 +216,7 @@ public struct MetricsSystemPanels: View {
         }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    private func legend(_ title: LocalizedStringKey, value: Double?, color: Color) -> some View {
+    private func legend(_ title: LocalizedStringResource, value: Double?, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             HStack(spacing: 3) {
                 Rectangle().fill(color).frame(width: 3, height: 6)

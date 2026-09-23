@@ -1,4 +1,5 @@
 import Foundation
+import TermindPresentation
 import UniformTypeIdentifiers
 
 /// A receiving app may edit its own copy. Bring an explicitly selected copy back
@@ -8,7 +9,7 @@ actor MobileSFTPEditedCopyImporter {
         case differentFormat
 
         var errorDescription: String? {
-            String(localized: "Choose an edited copy with the same file format as the original.")
+            String(localized: TermindCopy.SFTP.editedCopyFormatRequirement)
         }
     }
 

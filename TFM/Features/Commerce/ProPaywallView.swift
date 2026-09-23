@@ -19,8 +19,8 @@ struct ProPaywallView: View {
                     .font(.system(size: 40, weight: .medium))
                     .foregroundStyle(.tint)
                 VStack(spacing: Metrics.Space.s) {
-                    Text("Termind Pro").font(.largeTitle.bold())
-                    Text("Choose annual access or unlock Pro permanently.")
+                    Text(TermindCopy.Pro.termindPro).font(.largeTitle.bold())
+                    Text(TermindCopy.Pro.planExplanation)
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
@@ -28,22 +28,24 @@ struct ProPaywallView: View {
             .padding(.top, 24)
 
             VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                feature("Use the AI Assistant", "sparkles")
-                feature("Monitor more than 3 servers", "waveform.path.ecg")
-                feature("Upload files by dropping them on a terminal", "arrow.up.doc")
-                feature("Connect MCP tools and run the built-in MCP Server", "server.rack")
-                feature("Sync Vault, Metrics, and Settings across devices", "icloud")
+                feature(TermindCopy.Pro.assistantFeature, "sparkles")
+                feature(TermindCopy.Pro.metricsFeature, "waveform.path.ecg")
+                feature(TermindCopy.Pro.terminalUploadFeature, "arrow.up.doc")
+                feature(TermindCopy.Pro.connectMcpToolsAndRunTheBuiltInMcpServer, "server.rack")
+                feature(TermindCopy.Pro.syncFeature, "icloud")
             }
             .frame(maxWidth: 460)
             .padding(.vertical, 20)
 
             if pro.requestedFeature == .unlimitedMetrics {
-                Text("Free includes up to 3 monitoring cards. Upgrade to Pro for more.")
+                Text(TermindCopy.Pro.freeMetricsLimit)
                     .font(.callout).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center).padding(.horizontal, 24).padding(.bottom, 12)
             }
 
-            if pro.isProcessing { ProgressView("Contacting the App Store…").padding(.bottom, 12) }
+            if pro.isProcessing {
+                ProgressView(TermindCopy.Pro.contactingTheAppStoreProgress.swiftUIKey).padding(.bottom, 12)
+            }
             if let message = pro.message {
                 Text(message).font(.caption).foregroundStyle(.orange)
                     .multilineTextAlignment(.center).padding(.bottom, 12)
@@ -75,28 +77,30 @@ struct ProPaywallView: View {
                 }
                 if canManageSubscription {
                     Link(
-                        "Manage Subscription",
+                        TermindCopy.Pro.manageSubscription.swiftUIKey,
                         destination: URL(string: "https://apps.apple.com/account/subscriptions")!
                     )
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
                 }
-                Button("Restore Purchase") { Task { await pro.restorePurchases() } }
+                Button(TermindCopy.Pro.restorePurchase.swiftUIKey) { Task { await pro.restorePurchases() } }
                     .buttonStyle(.link)
                     .disabled(pro.isProcessing)
                 if pro.annualProduct == nil || pro.product == nil {
-                    Button("Reload App Store Prices") { Task { await pro.reloadProducts() } }
+                    Button(TermindCopy.Pro.reloadAppStorePrices.swiftUIKey) { Task { await pro.reloadProducts() } }
                         .buttonStyle(.link)
                         .disabled(pro.isProcessing)
                 }
                 HStack(spacing: Metrics.Space.m) {
-                    Link("Privacy Policy", destination: URL(string: "https://termind.akinokaede.com/privacy/")!)
                     Link(
-                        "Terms of Use",
+                        TermindCopy.Pro.privacyPolicy.swiftUIKey,
+                        destination: URL(string: "https://termind.akinokaede.com/privacy/")!)
+                    Link(
+                        TermindCopy.Pro.termsOfUse.swiftUIKey,
                         destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
                 }
                 .font(.caption2)
-                Text("Apple Family Sharing supported · AI provider charges are separate")
+                Text(TermindCopy.Pro.familySharingDisclosure)
                     .font(.caption2).foregroundStyle(.tertiary)
             }
             .padding(.bottom, 20)
@@ -109,7 +113,7 @@ struct ProPaywallView: View {
         }
         .toolbar {
             ToolbarItem(placement: .cancellationAction) {
-                Button("Close") { dismiss() }
+                Button(TermindCopy.Common.close.swiftUIKey) { dismiss() }
             }
         }
     }
@@ -118,15 +122,17 @@ struct ProPaywallView: View {
         HStack(spacing: Metrics.Space.s) {
             planCard(
                 .annual,
-                title: "Annual",
+                title: TermindCopy.Pro.annual,
                 price: pro.annualDisplayPrice,
-                detail: offer.annualBillingUnit.map { AppLocalization.string("per \($0)", locale: locale) },
+                detail: offer.annualBillingUnit.map {
+                    AppLocalization.resolve(TermindCopy.Pro.billingPeriod($0), locale: locale)
+                },
                 badge: offer.trialBadge)
             planCard(
                 .lifetime,
-                title: "Lifetime",
+                title: TermindCopy.Pro.lifetime,
                 price: pro.displayPrice,
-                detail: AppLocalization.string("One-time purchase", locale: locale),
+                detail: AppLocalization.resolve(TermindCopy.Pro.oneTimePurchase, locale: locale),
                 badge: nil)
         }
         .frame(maxWidth: 420)
@@ -134,7 +140,7 @@ struct ProPaywallView: View {
 
     private func planCard(
         _ plan: ProPurchasePlan,
-        title: LocalizedStringKey,
+        title: LocalizedStringResource,
         price: String?,
         detail: String?,
         badge: String?
@@ -199,7 +205,7 @@ struct ProPaywallView: View {
         return subscription.ownership == .purchased
     }
 
-    private func feature(_ title: LocalizedStringKey, _ symbol: String) -> some View {
+    private func feature(_ title: LocalizedStringResource, _ symbol: String) -> some View {
         Label(title, systemImage: symbol).font(.body)
     }
 }

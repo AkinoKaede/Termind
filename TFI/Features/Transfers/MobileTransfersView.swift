@@ -27,7 +27,7 @@ struct MobileTransfersView: View {
     var body: some View {
         MobileCardPage {
             if items.isEmpty {
-                ContentUnavailableView("No Transfers", systemImage: "arrow.up.arrow.down")
+                ContentUnavailableView(TermindCopy.SFTP.noTransfers.swiftUIKey, systemImage: "arrow.up.arrow.down")
             }
             MobileCardGrid {
                 ForEach(items) { transfer in
@@ -35,20 +35,20 @@ struct MobileTransfersView: View {
                 }
             }
         }
-        .navigationTitle("Transfers")
+        .navigationTitle(TermindCopy.SFTP.transfers.swiftUIKey)
         .quickLookPreview($previewURL)
         .toolbar {
             if hasFinished {
-                Button("Clear Finished", systemImage: "trash") { confirmsClearFinished = true }
+                Button(TermindCopy.SFTP.clearFinished.swiftUIKey, systemImage: "trash") { confirmsClearFinished = true }
                     .labelStyle(.iconOnly)
             }
         }
         .confirmationDialog(
-            "Clear Finished Transfers?", isPresented: $confirmsClearFinished,
+            TermindCopy.SFTP.clearFinishedTransfersConfirmation.swiftUIKey, isPresented: $confirmsClearFinished,
             titleVisibility: .visible
         ) {
-            Button("Clear Finished", role: .destructive) { transfers.clearFinished() }
-            Button("Cancel", role: .cancel) {}
+            Button(TermindCopy.SFTP.clearFinished.swiftUIKey, role: .destructive) { transfers.clearFinished() }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
         }
     }
 
@@ -63,14 +63,18 @@ struct MobileTransfersView: View {
                 }
                 Spacer(minLength: 8)
                 if transfers.canPause(transfer.id) {
-                    Button("Pause transfer", systemImage: "pause.circle") { transfers.pause(transfer.id) }
-                        .labelStyle(.iconOnly).font(.title3)
+                    Button(TermindCopy.SFTP.pauseTransfer.swiftUIKey, systemImage: "pause.circle") {
+                        transfers.pause(transfer.id)
+                    }
+                    .labelStyle(.iconOnly).font(.title3)
                 } else if transfer.state == .paused {
-                    Button("Resume transfer", systemImage: "play.circle") { transfers.resume(transfer.id) }
-                        .labelStyle(.iconOnly).font(.title3)
+                    Button(TermindCopy.SFTP.resumeTransfer.swiftUIKey, systemImage: "play.circle") {
+                        transfers.resume(transfer.id)
+                    }
+                    .labelStyle(.iconOnly).font(.title3)
                 }
                 if active || transfer.state == .paused {
-                    Button("Cancel transfer", systemImage: "xmark.circle.fill") {
+                    Button(TermindCopy.SFTP.cancelTransfer.swiftUIKey, systemImage: "xmark.circle.fill") {
                         transfers.cancel(transfer.id)
                     }
                     .labelStyle(.iconOnly)
@@ -96,9 +100,9 @@ struct MobileTransfersView: View {
                 let url = URL(fileURLWithPath: transfer.localPath)
                 if FileManager.default.fileExists(atPath: url.path) {
                     HStack {
-                        Button("Open", systemImage: "eye") { previewURL = url }
+                        Button(TermindCopy.Common.open.swiftUIKey, systemImage: "eye") { previewURL = url }
                         ShareLink(item: url) {
-                            Label("Share", systemImage: "square.and.arrow.up")
+                            Label(TermindCopy.Common.share.swiftUIKey, systemImage: "square.and.arrow.up")
                         }
                     }
                     .frame(minHeight: 44)

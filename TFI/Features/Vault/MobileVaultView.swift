@@ -71,7 +71,8 @@ struct MobileConnectionHistoryView: View {
             if rows.isEmpty {
                 Group {
                     if query.isEmpty {
-                        ContentUnavailableView("No History", systemImage: "clock.arrow.circlepath")
+                        ContentUnavailableView(
+                            TermindCopy.Common.noHistory.swiftUIKey, systemImage: "clock.arrow.circlepath")
                     } else {
                         ContentUnavailableView.search(text: query)
                     }
@@ -87,12 +88,12 @@ struct MobileConnectionHistoryView: View {
                                 connectionButton(kind, host: row.host)
                             }
                             if !kinds.isEmpty { Divider() }
-                            Button("Delete", systemImage: "trash", role: .destructive) {
+                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 app.connectionHistory.delete(row.entry.id)
                             }
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button("Delete", systemImage: "trash", role: .destructive) {
+                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 app.connectionHistory.delete(row.entry.id)
                             }
                             ForEach(MobileConnectionHistoryActionPolicy.swipeKinds, id: \.self) { kind in
@@ -103,26 +104,26 @@ struct MobileConnectionHistoryView: View {
                 }
             }
         }
-        .searchable(text: $query.singleLineText, prompt: "Search History")
-        .navigationTitle("History")
+        .searchable(text: $query.singleLineText, prompt: TermindCopy.Common.searchHistory.swiftUIKey)
+        .navigationTitle(TermindCopy.Common.history.swiftUIKey)
         .toolbar {
             MobileToolbarOverflow {
-                Button("Clear All", systemImage: "trash", role: .destructive) {
+                Button(TermindCopy.Common.clearAll.swiftUIKey, systemImage: "trash", role: .destructive) {
                     clearingHistory = true
                 }
                 .disabled(app.connectionHistory.entries().isEmpty)
             }
         }
         .confirmationDialog(
-            "Clear connection history?", isPresented: $clearingHistory,
+            TermindCopy.Connections.clearConnectionHistoryConfirmation.swiftUIKey, isPresented: $clearingHistory,
             titleVisibility: .visible
         ) {
-            Button("Clear History", role: .destructive) {
+            Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive) {
                 app.connectionHistory.clearAll()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text("This permanently removes all connection history.")
+            Text(TermindCopy.Workspace.clearHistoryWarning)
         }
     }
 
@@ -319,11 +320,21 @@ struct MobileVaultView: View {
     private var matchingMetricServers: [ServerMetric] {
         app.metrics.servers.filter { $0.name.localizedCaseInsensitiveContains(query) }
     }
-    private var matchesMetricsPage: Bool { pageTitle("Metrics").localizedCaseInsensitiveContains(query) }
-    private var matchesKeychainPage: Bool { pageTitle("Keychain").localizedCaseInsensitiveContains(query) }
-    private var matchesSnippetsPage: Bool { pageTitle("Snippets").localizedCaseInsensitiveContains(query) }
-    private var matchesKnownHostsPage: Bool { pageTitle("Known Hosts").localizedCaseInsensitiveContains(query) }
-    private var matchesHistoryPage: Bool { pageTitle("History").localizedCaseInsensitiveContains(query) }
+    private var matchesMetricsPage: Bool {
+        pageTitle(TermindCopy.Navigation.metrics).localizedCaseInsensitiveContains(query)
+    }
+    private var matchesKeychainPage: Bool {
+        pageTitle(TermindCopy.Navigation.keychain).localizedCaseInsensitiveContains(query)
+    }
+    private var matchesSnippetsPage: Bool {
+        pageTitle(TermindCopy.Navigation.snippets).localizedCaseInsensitiveContains(query)
+    }
+    private var matchesKnownHostsPage: Bool {
+        pageTitle(TermindCopy.Navigation.knownHosts).localizedCaseInsensitiveContains(query)
+    }
+    private var matchesHistoryPage: Bool {
+        pageTitle(TermindCopy.Common.history).localizedCaseInsensitiveContains(query)
+    }
     private var hostSections: [HostLibrarySection] { HostLibrarySectionLayout.sections(library: app.library) }
 
     private var keychainSearchLinks: [SearchLink] {
@@ -331,7 +342,7 @@ struct MobileVaultView: View {
         if matchesKeychainPage {
             result.append(
                 SearchLink(
-                    id: "keychain-page", title: pageTitle("Keychain"), detail: nil,
+                    id: "keychain-page", title: pageTitle(TermindCopy.Navigation.keychain), detail: nil,
                     symbol: "key", destination: .keychain(useQuery: false)))
         }
         result += matchingKeys.map {
@@ -349,10 +360,10 @@ struct MobileVaultView: View {
 
     private var forwardingSearchLinks: [SearchLink] {
         var result: [SearchLink] = []
-        if pageTitle("Port Forwarding").localizedCaseInsensitiveContains(query) {
+        if pageTitle(TermindCopy.Navigation.portForwarding).localizedCaseInsensitiveContains(query) {
             result.append(
                 SearchLink(
-                    id: "forwarding-page", title: pageTitle("Port Forwarding"), detail: nil,
+                    id: "forwarding-page", title: pageTitle(TermindCopy.Navigation.portForwarding), detail: nil,
                     symbol: "arrow.left.arrow.right", destination: .portForwarding(useQuery: false)))
         }
         result += app.forwardingLibrary.search(query).map { rule in
@@ -368,7 +379,7 @@ struct MobileVaultView: View {
         if matchesSnippetsPage {
             result.append(
                 SearchLink(
-                    id: "snippets-page", title: pageTitle("Snippets"), detail: nil,
+                    id: "snippets-page", title: pageTitle(TermindCopy.Navigation.snippets), detail: nil,
                     symbol: "curlybraces", destination: .snippets(useQuery: false)))
         }
         result += matchingSnippets.map {
@@ -384,7 +395,7 @@ struct MobileVaultView: View {
         if matchesKnownHostsPage {
             result.append(
                 SearchLink(
-                    id: "known-hosts-page", title: pageTitle("Known Hosts"), detail: nil,
+                    id: "known-hosts-page", title: pageTitle(TermindCopy.Navigation.knownHosts), detail: nil,
                     symbol: "touchid", destination: .knownHosts(useQuery: false)))
         }
         result += matchingKnownHosts.map {
@@ -400,7 +411,7 @@ struct MobileVaultView: View {
         if matchesHistoryPage {
             result.append(
                 SearchLink(
-                    id: "history-page", title: pageTitle("History"), detail: nil,
+                    id: "history-page", title: pageTitle(TermindCopy.Common.history), detail: nil,
                     symbol: "clock.arrow.circlepath", destination: .history(useQuery: false)))
         }
         result += MobileConnectionHistory.eventRows(
@@ -421,7 +432,7 @@ struct MobileVaultView: View {
         if matchesMetricsPage {
             result.append(
                 SearchLink(
-                    id: "metrics-page", title: pageTitle("Metrics"), detail: nil,
+                    id: "metrics-page", title: pageTitle(TermindCopy.Navigation.metrics), detail: nil,
                     symbol: "waveform.path.ecg", destination: .metrics))
         }
         result += matchingMetricServers.map {
@@ -444,8 +455,8 @@ struct MobileVaultView: View {
                 vaultLinks
                 if app.library.hosts.isEmpty && app.library.groups.isEmpty {
                     ContentUnavailableView(
-                        "No Hosts", systemImage: "server.rack",
-                        description: Text("Add a host to connect with SSH or SFTP.")
+                        TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack",
+                        description: Text(TermindCopy.Vault.addAHostToConnectWithSshOrSftp)
                     )
                     .frame(maxWidth: .infinity, minHeight: 280)
                 }
@@ -464,16 +475,18 @@ struct MobileVaultView: View {
             }
         }
         .searchable(text: $query.singleLineText)
-        .navigationTitle("Vault")
+        .navigationTitle(TermindCopy.Navigation.vault.swiftUIKey)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button("New Host", systemImage: "server.rack") { editingHost = Host(name: "", host: "") }
-                    Button("New Group", systemImage: "folder.badge.plus") {
+                    Button(TermindCopy.Vault.newHost.swiftUIKey, systemImage: "server.rack") {
+                        editingHost = Host(name: "", host: "")
+                    }
+                    Button(TermindCopy.Vault.newGroup.swiftUIKey, systemImage: "folder.badge.plus") {
                         groupEditorRequest = GroupEditorRequest(groupID: nil, parentID: nil)
                     }
                 } label: {
-                    Label("Add", systemImage: "plus").labelStyle(.iconOnly)
+                    Label(TermindCopy.Common.add.swiftUIKey, systemImage: "plus").labelStyle(.iconOnly)
                 }
             }
         }
@@ -485,15 +498,16 @@ struct MobileVaultView: View {
                 parentID: request.parentID)
         }
         .confirmationDialog(
-            "Delete Host?", isPresented: Binding(get: { deletingHost != nil }, set: { if !$0 { deletingHost = nil } }),
+            TermindCopy.Vault.deleteHostConfirmation.swiftUIKey,
+            isPresented: Binding(get: { deletingHost != nil }, set: { if !$0 { deletingHost = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                 if let host = deletingHost { app.deleteHost(host.id) }
                 deletingHost = nil
             }
         } message: {
-            Text("Open connections and references to this host will be removed.")
+            Text(TermindCopy.Vault.deleteHostWarning)
         }
         .confirmationDialog(
             groupDeletionTitle,
@@ -502,11 +516,11 @@ struct MobileVaultView: View {
                 set: { if !$0 { deletingGroup = nil } }),
             titleVisibility: .visible
         ) {
-            Button("Delete Group and Hosts", role: .destructive) {
+            Button(TermindCopy.Vault.deleteGroupAndHosts.swiftUIKey, role: .destructive) {
                 deleteGroup(keepingHosts: false)
             }
-            Button("Keep Hosts") { deleteGroup(keepingHosts: true) }
-            Button("Cancel", role: .cancel) { deletingGroup = nil }
+            Button(TermindCopy.Vault.keepHosts.swiftUIKey) { deleteGroup(keepingHosts: true) }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { deletingGroup = nil }
         } message: {
             Text(groupDeletionMessage)
         }
@@ -519,45 +533,45 @@ struct MobileVaultView: View {
             ContentUnavailableView.search(text: query)
         }
         if !matchingHosts.isEmpty {
-            MobileCardSection(title: "Hosts", count: matchingHosts.count) {
+            MobileCardSection(title: TermindCopy.Vault.hosts, count: matchingHosts.count) {
                 MobileCardGrid { ForEach(matchingHosts) { row($0) } }
             }
         }
         if !keychainSearchLinks.isEmpty {
-            MobileCardSection(title: "Keychain") {
+            MobileCardSection(title: TermindCopy.Navigation.keychain) {
                 MobileVaultLinkGroup {
                     searchLinkRows(keychainSearchLinks)
                 }
             }
         }
         if !forwardingSearchLinks.isEmpty {
-            MobileCardSection(title: "Port Forwarding") {
+            MobileCardSection(title: TermindCopy.Navigation.portForwarding) {
                 MobileVaultLinkGroup { searchLinkRows(forwardingSearchLinks) }
             }
         }
         if !snippetSearchLinks.isEmpty {
-            MobileCardSection(title: "Snippets") {
+            MobileCardSection(title: TermindCopy.Navigation.snippets) {
                 MobileVaultLinkGroup {
                     searchLinkRows(snippetSearchLinks)
                 }
             }
         }
         if !knownHostSearchLinks.isEmpty {
-            MobileCardSection(title: "Known Hosts") {
+            MobileCardSection(title: TermindCopy.Navigation.knownHosts) {
                 MobileVaultLinkGroup {
                     searchLinkRows(knownHostSearchLinks)
                 }
             }
         }
         if !historySearchLinks.isEmpty {
-            MobileCardSection(title: "History") {
+            MobileCardSection(title: TermindCopy.Common.history) {
                 MobileVaultLinkGroup {
                     searchLinkRows(historySearchLinks)
                 }
             }
         }
         if !metricSearchLinks.isEmpty {
-            MobileCardSection(title: "Metrics") {
+            MobileCardSection(title: TermindCopy.Navigation.metrics) {
                 MobileVaultLinkGroup {
                     searchLinkRows(metricSearchLinks)
                 }
@@ -568,27 +582,27 @@ struct MobileVaultView: View {
     @ViewBuilder
     private var vaultLinks: some View {
         MobileVaultLinkGroup {
-            vaultLink("Keychain", symbol: "key") {
+            vaultLink(TermindCopy.Navigation.keychain, symbol: "key") {
                 MobileCredentialsView(app: app)
                     .mobileReviewPage("vault.keychain", scene: reviewScene)
             }
             MobileVaultLinkDivider()
-            vaultLink("Port Forwarding", symbol: "arrow.left.arrow.right") {
+            vaultLink(TermindCopy.Navigation.portForwarding, symbol: "arrow.left.arrow.right") {
                 MobileForwardingView(app: app, reviewScene: reviewScene)
                     .mobileReviewPage("vault.portForwarding", scene: reviewScene)
             }
             MobileVaultLinkDivider()
-            vaultLink("Snippets", symbol: "curlybraces") {
+            vaultLink(TermindCopy.Navigation.snippets, symbol: "curlybraces") {
                 MobileSnippetsView(app: app, execute: executeSnippet)
                     .mobileReviewPage("vault.snippets", scene: reviewScene)
             }
             MobileVaultLinkDivider()
-            vaultLink("Known Hosts", symbol: "touchid") {
+            vaultLink(TermindCopy.Navigation.knownHosts, symbol: "touchid") {
                 MobileKnownHostsView(app: app)
                     .mobileReviewPage("vault.knownHosts", scene: reviewScene)
             }
             MobileVaultLinkDivider()
-            vaultLink("History", symbol: "clock.arrow.circlepath") {
+            vaultLink(TermindCopy.Common.history, symbol: "clock.arrow.circlepath") {
                 MobileConnectionHistoryView(app: app, open: open)
                     .mobileReviewPage("vault.history", scene: reviewScene)
             }
@@ -596,7 +610,7 @@ struct MobileVaultView: View {
     }
 
     private func vaultLink<Destination: View>(
-        _ title: LocalizedStringKey, symbol: String,
+        _ title: LocalizedStringResource, symbol: String,
         @ViewBuilder destination: () -> Destination
     ) -> some View {
         NavigationLink(destination: destination) {
@@ -679,37 +693,37 @@ struct MobileVaultView: View {
             Spacer()
             if case .group(let id) = section.id, let group = app.library.group(id) {
                 Menu {
-                    Button("New Host", systemImage: "server.rack") {
+                    Button(TermindCopy.Vault.newHost.swiftUIKey, systemImage: "server.rack") {
                         editingHost = Host(name: "", host: "", groupID: group.id)
                     }
-                    Button("New Subgroup", systemImage: "folder.badge.plus") {
+                    Button(TermindCopy.Vault.newSubgroup.swiftUIKey, systemImage: "folder.badge.plus") {
                         groupEditorRequest = GroupEditorRequest(groupID: nil, parentID: group.id)
                     }
-                    Button("Edit", systemImage: "pencil") {
+                    Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") {
                         groupEditorRequest = GroupEditorRequest(groupID: group.id, parentID: group.parentID)
                     }
                     Divider()
-                    Button("Delete Group", systemImage: "trash", role: .destructive) {
+                    Button(TermindCopy.Vault.deleteGroup.swiftUIKey, systemImage: "trash", role: .destructive) {
                         requestDelete(group)
                     }
                 } label: {
                     Image(systemName: "ellipsis")
                         .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel("More")
+                .accessibilityLabel(TermindCopy.Common.more.swiftUIKey)
             } else if case .ungrouped = section.id {
                 Menu {
-                    Button("New Host", systemImage: "server.rack") {
+                    Button(TermindCopy.Vault.newHost.swiftUIKey, systemImage: "server.rack") {
                         editingHost = Host(name: "", host: "")
                     }
-                    Button("New Group", systemImage: "folder.badge.plus") {
+                    Button(TermindCopy.Vault.newGroup.swiftUIKey, systemImage: "folder.badge.plus") {
                         groupEditorRequest = GroupEditorRequest(groupID: nil, parentID: nil)
                     }
                 } label: {
                     Image(systemName: "ellipsis")
                         .frame(width: 44, height: 44)
                 }
-                .accessibilityLabel("More")
+                .accessibilityLabel(TermindCopy.Common.more.swiftUIKey)
             }
         }
         .accessibilityElement(children: .contain)
@@ -726,7 +740,7 @@ struct MobileVaultView: View {
     private var groupDeletionTitle: String {
         guard let group = deletingGroup else { return "" }
         return String(
-            localized: "Delete “\(group.name)”?"
+            localized: TermindCopy.Common.deleteNamedConfirmation(group.name)
         )
     }
 
@@ -734,15 +748,8 @@ struct MobileVaultView: View {
         guard let group = deletingGroup else { return "" }
         let hosts = app.library.hosts(inTreeOf: group.id).count
         let nested = app.library.descendantGroups(of: group.id).count
-        let hostCount = String(localized: "\(hosts) hosts")
-        if nested == 0 {
-            return String(localized: "This group contains \(hostCount).")
-        }
-        let groupCount =
-            nested == 1
-            ? String(localized: "1 nested group")
-            : String(localized: "\(nested) nested groups")
-        return String(localized: "This group contains \(hostCount) and \(groupCount). Nested groups will be deleted.")
+        return TermindCopy.Vault.groupDeletionMessage(
+            hostCount: hosts, nestedGroupCount: nested, locale: locale)
     }
 
     private func deleteGroup(keepingHosts: Bool) {
@@ -760,7 +767,7 @@ struct MobileVaultView: View {
         }
     }
 
-    private func pageTitle(_ value: String.LocalizationValue) -> String {
+    private func pageTitle(_ value: LocalizedStringResource) -> String {
         String(localized: value)
     }
 
@@ -792,7 +799,7 @@ struct MobileVaultView: View {
                     Text(
                         app.lastConnectedAt(for: host.id)
                             .map { $0.formatted(.relative(presentation: .numeric).locale(locale)) }
-                            ?? String(localized: "Never")
+                            ?? String(localized: TermindCopy.Vault.never)
                     )
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -801,7 +808,7 @@ struct MobileVaultView: View {
                 }
             }
             .accessibilityElement(children: .combine)
-            .accessibilityHint("Open Workspace")
+            .accessibilityHint(TermindCopy.Vault.openWorkspace.swiftUIKey)
         } actions: {
             let sections = MobileHostMenuPolicy.sections(for: host)
             ForEach(sections.indices, id: \.self) { section in
@@ -819,17 +826,27 @@ struct MobileVaultView: View {
     private func hostMenuButton(_ action: MobileHostMenuAction, host: Host) -> some View {
         switch action {
         case .ssh:
-            Button("SSH", systemImage: ConnectionHistoryEntry.Kind.ssh.symbol) { open(host.id, .ssh) }
+            Button(TermindCopy.Vault.ssh.swiftUIKey, systemImage: ConnectionHistoryEntry.Kind.ssh.symbol) {
+                open(host.id, .ssh)
+            }
         case .telnet:
-            Button("Telnet", systemImage: ConnectionHistoryEntry.Kind.telnet.symbol) { open(host.id, .telnet) }
+            Button(TermindCopy.Vault.telnet.swiftUIKey, systemImage: ConnectionHistoryEntry.Kind.telnet.symbol) {
+                open(host.id, .telnet)
+            }
         case .sftp:
-            Button("SFTP", systemImage: ConnectionHistoryEntry.Kind.sftp.symbol) { open(host.id, .sftp) }
+            Button(TermindCopy.SFTP.sftp.swiftUIKey, systemImage: ConnectionHistoryEntry.Kind.sftp.symbol) {
+                open(host.id, .sftp)
+            }
         case .edit:
-            Button("Edit", systemImage: "pencil") { editingHost = host }
+            Button(TermindCopy.Common.edit.swiftUIKey, systemImage: "pencil") { editingHost = host }
         case .duplicate:
-            Button("Duplicate", systemImage: "plus.square.on.square") { app.duplicateHost(host) }
+            Button(TermindCopy.Common.duplicate.swiftUIKey, systemImage: "plus.square.on.square") {
+                app.duplicateHost(host)
+            }
         case .delete:
-            Button("Delete", systemImage: "trash", role: .destructive) { deletingHost = host }
+            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
+                deletingHost = host
+            }
         }
     }
 }
@@ -860,15 +877,16 @@ struct MobileHostGroupEditor: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: existing ? String(localized: "Edit Group") : String(localized: "New Group"),
+            title: existing
+                ? String(localized: TermindCopy.Vault.editGroup) : String(localized: TermindCopy.Vault.newGroup),
             isDirty: draft != original, canSave: !trimmedName.isEmpty, compact: true,
             save: save
         ) {
-            TextField("Name", text: $draft.name.singleLineText, axis: .horizontal)
+            TextField(TermindCopy.Common.name.swiftUIKey, text: $draft.name.singleLineText, axis: .horizontal)
                 .singleLinePaste()
                 .lineLimit(1)
-            Picker("Inside", selection: $draft.parentID) {
-                Text("Top Level").tag(HostGroup.ID?.none)
+            Picker(TermindCopy.Common.inside.swiftUIKey, selection: $draft.parentID) {
+                Text(TermindCopy.Common.topLevel).tag(HostGroup.ID?.none)
                 ForEach(parentChoices, id: \.group.id) { choice in
                     Text(choice.path).tag(HostGroup.ID?.some(choice.group.id))
                 }

@@ -1,8 +1,9 @@
 import SwiftUI
+import TermindPresentation
 
 /// Shares actions between the system overflow and the pre-iOS 27 menu.
 struct MobileToolbarOverflow<Content: View>: ToolbarContent {
-    var title: LocalizedStringKey = "More"
+    var title: LocalizedStringResource = TermindCopy.Common.more
     var placement: ToolbarItemPlacement = .primaryAction
     @ViewBuilder let content: () -> Content
 

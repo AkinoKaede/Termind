@@ -37,7 +37,7 @@ struct ExternalAuthWindow: View {
         Group {
             if let visiblePending {
                 VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                    Text("Requested by \(visiblePending.clientName)")
+                    Text(TermindCopy.MCP.requestedBy(visiblePending.clientName))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                     requestView(visiblePending)
@@ -189,7 +189,7 @@ enum ExternalAuthWindowChrome {
         window.styleMask.insert([
             .titled, .closable, .miniaturizable, .fullSizeContentView,
         ])
-        window.title = String(localized: "Authentication Request")
+        window.title = String(localized: TermindCopy.Connections.authenticationRequest)
         window.titleVisibility = .visible
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
@@ -261,7 +261,7 @@ private struct ExternalSecretRequestForm: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Label("Secret input", systemImage: "key.fill")
+            Label(TermindCopy.MCP.secretInput.swiftUIKey, systemImage: "key.fill")
                 .font(.headline)
             if let question {
                 Text(question.prompt)
@@ -269,24 +269,24 @@ private struct ExternalSecretRequestForm: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             if let hostName {
-                LabeledContent("Destination", value: hostName)
+                LabeledContent(TermindCopy.MCP.destination.swiftUIKey, value: hostName)
             }
             if !request.purpose.isEmpty {
-                LabeledContent("Purpose", value: request.purpose)
+                LabeledContent(TermindCopy.MCP.purpose.swiftUIKey, value: request.purpose)
             }
-            RevealableSecretField("Secret", text: $secret)
+            RevealableSecretField(TermindCopy.Keychain.secret, text: $secret)
                 .textFieldStyle(.roundedBorder)
                 .focused($isFocused)
             Text(
-                "Termind returns only a one-shot handle to the MCP client. The value is bound to this session, destination, ssh_exec, and purpose."
+                TermindCopy.MCP.secretHandleExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)
             HStack {
-                Button("Cancel") { cancel() }
+                Button(TermindCopy.Common.cancel.swiftUIKey) { cancel() }
                     .keyboardShortcut(.cancelAction)
                 Spacer()
-                Button("Continue") { submitSecret() }
+                Button(TermindCopy.Common.continue.swiftUIKey) { submitSecret() }
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(secret.isEmpty || question == nil)

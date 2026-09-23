@@ -38,7 +38,7 @@ struct MobileSlashCommandPanel: View {
         }
         .shadow(color: .black.opacity(0.16), radius: 18, y: 7)
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("Commands"))
+        .accessibilityLabel(Text(TermindCopy.Assistant.commands))
     }
 
     private var panelHeight: CGFloat {
@@ -59,7 +59,7 @@ struct MobileSlashCommandPanel: View {
                 if isCurrent(row) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.tint)
-                        .accessibilityLabel(Text("Current"))
+                        .accessibilityLabel(Text(TermindCopy.Common.current))
                         .fixedSize()
                 } else if let trailing = trailingText(row) {
                     Text(trailing)

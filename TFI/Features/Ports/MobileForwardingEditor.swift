@@ -24,7 +24,9 @@ struct MobileForwardingEditor: View {
 
     var body: some View {
         MobileEditorSheet(
-            title: isNew ? String(localized: "New Forwarding") : String(localized: "Edit Forwarding"),
+            title: isNew
+                ? String(localized: TermindCopy.Forwarding.newForwarding)
+                : String(localized: TermindCopy.Forwarding.editForwarding),
             isDirty: draft != original, canSave: canSave,
             save: {
                 guard canSave, let rule = PortForwardingEditorPolicy.normalized(draft) else { return }

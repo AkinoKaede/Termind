@@ -7,10 +7,10 @@ public struct HostIntegrationSection: View {
     public init(mode: Binding<HostShellIntegrationMode>) { _mode = mode }
 
     public var body: some View {
-        Section("Integration") {
-            Picker("Shell Integration", selection: $mode) {
+        Section(TermindCopy.Settings.integration.swiftUIKey) {
+            Picker(TermindCopy.Settings.shellIntegration.swiftUIKey, selection: $mode) {
                 Text("Default").tag(HostShellIntegrationMode.followGlobalSettings)
-                Text("Enable").tag(HostShellIntegrationMode.enabled)
+                Text(TermindCopy.Settings.enable).tag(HostShellIntegrationMode.enabled)
                 Text("Disable").tag(HostShellIntegrationMode.disabled)
             }
             .pickerStyle(.menu)
@@ -47,8 +47,8 @@ public struct HostSessionSection: View {
     }
 
     public var body: some View {
-        Section("Session") {
-            Picker("Charset", selection: $charset) {
+        Section(TermindCopy.Vault.session.swiftUIKey) {
+            Picker(TermindCopy.Vault.charset.swiftUIKey, selection: $charset) {
                 ForEach(RemoteCharset.allCases) { charset in
                     Text(charset.displayName).tag(charset)
                 }
@@ -56,7 +56,7 @@ public struct HostSessionSection: View {
             .pickerStyle(.menu)
             .menuOrder(.fixed)
             Picker("Startup Snippet", selection: $startupSnippetID) {
-                Text("None").tag(Snippet.ID?.none)
+                Text(TermindCopy.Common.none).tag(Snippet.ID?.none)
                 if !snippets.isEmpty {
                     Divider()
                     ForEach(snippets) { snippet in
@@ -113,7 +113,7 @@ public struct HostSessionSection: View {
             }
             .buttonStyle(.plain)
             .swipeActions {
-                Button("Delete", role: .destructive) {
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                     environmentVariables.remove(at: index)
                 }
             }
@@ -125,7 +125,7 @@ public struct HostSessionSection: View {
                     environmentVariableLabel(at: index)
                 }
                 .buttonStyle(.plain)
-                Button("Delete", systemImage: "xmark", role: .destructive) {
+                Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "xmark", role: .destructive) {
                     environmentVariables.remove(at: index)
                 }
                 .labelStyle(.iconOnly)

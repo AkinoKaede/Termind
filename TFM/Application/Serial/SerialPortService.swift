@@ -1,5 +1,6 @@
 import Foundation
 import TermindDomain
+import TermindPresentation
 
 nonisolated enum SerialPortError: LocalizedError, Sendable {
     case invalidConfiguration(String)
@@ -12,8 +13,8 @@ nonisolated enum SerialPortError: LocalizedError, Sendable {
         case .invalidConfiguration(let message): message
         case .system(let operation, let code):
             "\(operation): \(String(cString: strerror(code)))"
-        case .closed: String(localized: "The serial port is closed.")
-        case .openTimedOut: String(localized: "Opening the serial port timed out.")
+        case .closed: String(localized: TermindCopy.Terminal.theSerialPortIsClosed)
+        case .openTimedOut: String(localized: TermindCopy.Terminal.openingTheSerialPortTimedOut)
         }
     }
 }
@@ -25,9 +26,9 @@ nonisolated enum SerialPortOpenStage: Sendable {
 
     var message: String {
         switch self {
-        case .deviceOpened: String(localized: "Serial device opened")
-        case .settingsApplied: String(localized: "Serial settings applied")
-        case .monitoringStarted: String(localized: "Serial input monitoring started")
+        case .deviceOpened: String(localized: TermindCopy.Terminal.serialDeviceOpened)
+        case .settingsApplied: String(localized: TermindCopy.Terminal.serialSettingsApplied)
+        case .monitoringStarted: String(localized: TermindCopy.Terminal.serialInputMonitoringStarted)
         }
     }
 }

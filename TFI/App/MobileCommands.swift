@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindDomain
+import TermindPresentation
 
 private struct MobileSceneFocusedValueKey: FocusedValueKey {
     typealias Value = MobileSceneModel
@@ -41,67 +42,81 @@ struct MobileCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .appSettings) {
-            Button("Settings", systemImage: "gearshape") { scene?.openSettings() }
+            Button(TermindCopy.Navigation.settings.swiftUIKey, systemImage: "gearshape") { scene?.openSettings() }
                 .keyboardShortcut(MobileShortcut.settings)
                 .disabled(scene == nil)
         }
 
         CommandGroup(replacing: .newItem) {
-            Button("Connect", systemImage: "network") { scene?.openConnectionPicker() }
+            Button(TermindCopy.Common.connect.swiftUIKey, systemImage: "network") { scene?.openConnectionPicker() }
                 .keyboardShortcut(MobileShortcut.connect)
                 .disabled(scene == nil)
-            Button("New Chat", systemImage: "plus.bubble") { scene?.openNewConversation() }
-                .keyboardShortcut(MobileShortcut.newChat)
-                .disabled(scene == nil)
-            Button("New Host", systemImage: "server.rack") { scene?.openNewHost() }
+            Button(TermindCopy.Assistant.newChat.swiftUIKey, systemImage: "plus.bubble") {
+                scene?.openNewConversation()
+            }
+            .keyboardShortcut(MobileShortcut.newChat)
+            .disabled(scene == nil)
+            Button(TermindCopy.Vault.newHost.swiftUIKey, systemImage: "server.rack") { scene?.openNewHost() }
                 .keyboardShortcut(MobileShortcut.newHost)
                 .disabled(scene == nil)
         }
 
         CommandGroup(after: .pasteboard) {
-            Button("Generate Command", systemImage: "sparkles") { scene?.generateTerminalCommand() }
-                .keyboardShortcut(MobileShortcut.generateCommand)
-                .disabled(scene?.canUseTerminalCommands != true)
+            Button(TermindCopy.Workspace.generateCommand.swiftUIKey, systemImage: "sparkles") {
+                scene?.generateTerminalCommand()
+            }
+            .keyboardShortcut(MobileShortcut.generateCommand)
+            .disabled(scene?.canUseTerminalCommands != true)
 
             Divider()
 
-            Button("Find", systemImage: "magnifyingglass") { scene?.presentTerminalFind() }
-                .keyboardShortcut(MobileShortcut.find)
-                .disabled(scene?.canUseTerminalCommands != true)
-            Button("Find Next in Terminal") { scene?.navigateTerminalFind(.previous) }
+            Button(TermindCopy.Workspace.find.swiftUIKey, systemImage: "magnifyingglass") {
+                scene?.presentTerminalFind()
+            }
+            .keyboardShortcut(MobileShortcut.find)
+            .disabled(scene?.canUseTerminalCommands != true)
+            Button(TermindCopy.Terminal.findNextInTerminal.swiftUIKey) { scene?.navigateTerminalFind(.previous) }
                 .keyboardShortcut(MobileShortcut.findNext)
                 .disabled(scene?.canUseTerminalCommands != true)
-            Button("Find Previous in Terminal") { scene?.navigateTerminalFind(.next) }
+            Button(TermindCopy.Terminal.findPreviousInTerminal.swiftUIKey) { scene?.navigateTerminalFind(.next) }
                 .keyboardShortcut(MobileShortcut.findPrevious)
                 .disabled(scene?.canUseTerminalCommands != true)
         }
 
         CommandGroup(replacing: .saveItem) {
-            Button("Close Workspace", systemImage: "xmark") { scene?.closeActiveWorkspace() }
-                .keyboardShortcut(MobileShortcut.closeWorkspace)
-                .disabled(scene?.canCloseWorkspace != true)
+            Button(TermindCopy.Workspace.closeWorkspace.swiftUIKey, systemImage: "xmark") {
+                scene?.closeActiveWorkspace()
+            }
+            .keyboardShortcut(MobileShortcut.closeWorkspace)
+            .disabled(scene?.canCloseWorkspace != true)
         }
 
-        CommandMenu("Workspaces") {
-            Button("Next Workspace", systemImage: "chevron.forward") { scene?.selectNextWorkspace() }
-                .keyboardShortcut(MobileShortcut.nextWorkspace)
-                .disabled(scene?.hasWorkspaces != true)
-            Button("Previous Workspace", systemImage: "chevron.backward") { scene?.selectPreviousWorkspace() }
-                .keyboardShortcut(MobileShortcut.previousWorkspace)
-                .disabled(scene?.hasWorkspaces != true)
+        CommandMenu(TermindCopy.Navigation.workspaces.swiftUIKey) {
+            Button(TermindCopy.Workspace.nextWorkspace.swiftUIKey, systemImage: "chevron.forward") {
+                scene?.selectNextWorkspace()
+            }
+            .keyboardShortcut(MobileShortcut.nextWorkspace)
+            .disabled(scene?.hasWorkspaces != true)
+            Button(TermindCopy.Workspace.previousWorkspace.swiftUIKey, systemImage: "chevron.backward") {
+                scene?.selectPreviousWorkspace()
+            }
+            .keyboardShortcut(MobileShortcut.previousWorkspace)
+            .disabled(scene?.hasWorkspaces != true)
 
             Divider()
 
             ForEach(1...8, id: \.self) { index in
-                Button("Workspace \(index)", systemImage: "terminal") {
+                Button(TermindCopy.Workspace.numberedWorkspace(index).swiftUIKey, systemImage: "terminal") {
                     scene?.selectWorkspace(at: index - 1)
                 }
                 .keyboardShortcut(MobileShortcut.workspace(index))
                 .disabled((scene?.workspaceCount ?? 0) < index)
             }
-            Button("Last Workspace", systemImage: "terminal") { scene?.selectLastWorkspace() }
-                .keyboardShortcut(MobileShortcut.workspace(9))
-                .disabled(scene?.hasWorkspaces != true)
+            Button(TermindCopy.Workspace.lastWorkspace.swiftUIKey, systemImage: "terminal") {
+                scene?.selectLastWorkspace()
+            }
+            .keyboardShortcut(MobileShortcut.workspace(9))
+            .disabled(scene?.hasWorkspaces != true)
         }
     }
 }

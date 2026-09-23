@@ -2,9 +2,9 @@ import SwiftUI
 
 /// Keeps every mobile overflow menu on the same symbol while preserving a contextual accessible name.
 struct MobileOverflowMenuLabel: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
 
-    init(_ title: LocalizedStringKey) {
+    init(_ title: LocalizedStringResource) {
         self.title = title
     }
 

@@ -13,8 +13,8 @@ struct MobileMetricsView: View {
         MobileCardPage {
             if app.metrics.servers.isEmpty {
                 ContentUnavailableView(
-                    "No monitored servers", systemImage: "waveform.path.ecg",
-                    description: Text("Add a saved Linux server to start monitoring."))
+                    TermindCopy.Metrics.noMonitoredServers.swiftUIKey, systemImage: "waveform.path.ecg",
+                    description: Text(TermindCopy.Metrics.addASavedLinuxServerToStartMonitoring))
             }
             MobileCardGrid {
                 ForEach(app.metrics.servers) { server in
@@ -29,20 +29,28 @@ struct MobileMetricsView: View {
                         }
                     } actions: {
                         Button(
-                            server.selection.enabled ? "Pause" : "Resume",
+                            server.selection.enabled
+                                ? TermindCopy.Metrics.pause.swiftUIKey : TermindCopy.Metrics.resume.swiftUIKey,
                             systemImage: server.selection.enabled ? "pause" : "play"
                         ) {
                             app.metrics.core.setEnabled(!server.selection.enabled, for: server)
                         }
-                        Button("Retry", systemImage: "arrow.clockwise") { app.metrics.core.retry(server) }
+                        Button(TermindCopy.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
+                            app.metrics.core.retry(server)
+                        }
                         Divider()
-                        Button("Remove", systemImage: "trash", role: .destructive) { app.metrics.remove(server.id) }
+                        Button(TermindCopy.Common.remove.swiftUIKey, systemImage: "trash", role: .destructive) {
+                            app.metrics.remove(server.id)
+                        }
                     }
                 }
             }
         }
-        .navigationTitle("Metrics")
-        .toolbar { Button("Add Server", systemImage: "plus") { selecting = true }.labelStyle(.iconOnly) }
+        .navigationTitle(TermindCopy.Navigation.metrics.swiftUIKey)
+        .toolbar {
+            Button(TermindCopy.Metrics.addServer.swiftUIKey, systemImage: "plus") { selecting = true }.labelStyle(
+                .iconOnly)
+        }
         .navigationDestination(item: $selectedID) { id in
             if let server = app.metrics.servers.first(where: { $0.id == id }) {
                 MobileMetricsDetailView(app: app, server: server)
@@ -53,8 +61,8 @@ struct MobileMetricsView: View {
                 MobileHostPicker(
                     library: app.library,
                     useCase: .metrics,
-                    title: "Add Server",
-                    emptyDescription: "Add a saved Linux server to start monitoring.",
+                    title: TermindCopy.Metrics.addServer,
+                    emptyDescription: TermindCopy.Metrics.addASavedLinuxServerToStartMonitoring,
                     cancel: { selecting = false },
                     select: { host in
                         selecting = false
@@ -131,7 +139,7 @@ struct MobileMetricsDetailView: View {
                         Menu {
                             pagePicker
                         } label: {
-                            Label("Details", systemImage: page.systemImage)
+                            Label(TermindCopy.Metrics.details.swiftUIKey, systemImage: page.systemImage)
                         }
                         .labelStyle(.iconOnly)
                     }
@@ -142,14 +150,17 @@ struct MobileMetricsDetailView: View {
                     }
                 }
             }
-            MobileToolbarOverflow(title: "Metrics") {
+            MobileToolbarOverflow(title: TermindCopy.Navigation.metrics) {
                 Button(
-                    server.selection.enabled ? "Pause" : "Resume",
+                    server.selection.enabled
+                        ? TermindCopy.Metrics.pause.swiftUIKey : TermindCopy.Metrics.resume.swiftUIKey,
                     systemImage: server.selection.enabled ? "pause" : "play"
                 ) {
                     app.metrics.core.setEnabled(!server.selection.enabled, for: server)
                 }
-                Button("Retry", systemImage: "arrow.clockwise") { app.metrics.core.retry(server) }
+                Button(TermindCopy.Common.retry.swiftUIKey, systemImage: "arrow.clockwise") {
+                    app.metrics.core.retry(server)
+                }
             }
         }
         .onAppear { observe() }
@@ -158,10 +169,12 @@ struct MobileMetricsDetailView: View {
     }
 
     private var pagePicker: some View {
-        Picker("Details", selection: $page) {
-            Label("Status", systemImage: MobileMetricsDetailPage.status.systemImage).tag(MobileMetricsDetailPage.status)
-            Label("Processes", systemImage: MobileMetricsDetailPage.processes.systemImage).tag(
-                MobileMetricsDetailPage.processes)
+        Picker(TermindCopy.Metrics.details.swiftUIKey, selection: $page) {
+            Label(TermindCopy.Common.status.swiftUIKey, systemImage: MobileMetricsDetailPage.status.systemImage).tag(
+                MobileMetricsDetailPage.status)
+            Label(TermindCopy.Metrics.processes.swiftUIKey, systemImage: MobileMetricsDetailPage.processes.systemImage)
+                .tag(
+                    MobileMetricsDetailPage.processes)
         }
     }
 
@@ -230,12 +243,14 @@ private struct MobileMetricsProcessesView: View {
     }
     var body: some View {
         List {
-            Picker("Sort By", selection: $sort) {
-                Text("CPU").tag(ProcessSort.cpu)
-                Text("Memory").tag(ProcessSort.memory)
-                Text("PID").tag(ProcessSort.pid)
+            Picker(TermindCopy.Common.sortBy.swiftUIKey, selection: $sort) {
+                Text(TermindCopy.Metrics.cpu).tag(ProcessSort.cpu)
+                Text(TermindCopy.Metrics.memory).tag(ProcessSort.memory)
+                Text(TermindCopy.Metrics.pid).tag(ProcessSort.pid)
             }
-            if server.processesFailed { Text("Process metrics unavailable").foregroundStyle(.secondary) }
+            if server.processesFailed {
+                Text(TermindCopy.Metrics.processMetricsUnavailable).foregroundStyle(.secondary)
+            }
             ForEach(rows) { process in
                 HStack {
                     Text(String(process.pid))

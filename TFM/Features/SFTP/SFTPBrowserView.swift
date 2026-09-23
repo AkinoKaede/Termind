@@ -237,15 +237,12 @@ struct SFTPBrowserView: View {
         let paths = deleteTargets.prefix(6).map { sftpChannel.displayPath($0.path) }
             .joined(separator: "\n")
         let remainder = max(0, deleteTargets.count - 6)
-        let suffix = remainder > 0 ? "\nand \(remainder) more" : ""
-        return "\(paths)\(suffix)\n\nDirectories are deleted recursively. This cannot be undone."
+        return TermindCopy.SFTP.deletionMessage(paths: paths, remainingCount: remainder, locale: locale)
     }
 
     private var conflictTitle: String {
         let count = sftpChannel.conflictCount
-        return count == 1
-            ? String(localized: "1 item already exists")
-            : String(localized: "\(count) items already exist")
+        return String(localized: TermindCopy.SFTP.existingItemsMessage(count: count))
     }
 
     /// The density is read from the *proposal* rather than from the browser's
@@ -339,26 +336,28 @@ struct SFTPBrowserView: View {
             sftpChannel.connectIfNeeded(using: app.transfers)
             sftpChannel.startAutomaticRefresh()
         }
-        .alert("New Folder", isPresented: $newFolderPresented) {
-            TextField("Folder Name", text: $newFolderName.singleLineText, axis: .horizontal).singleLinePaste()
+        .alert(TermindCopy.SFTP.newFolder.swiftUIKey, isPresented: $newFolderPresented) {
+            TextField(TermindCopy.SFTP.folderName.swiftUIKey, text: $newFolderName.singleLineText, axis: .horizontal)
+                .singleLinePaste()
                 .lineLimit(1)
-            Button("Cancel", role: .cancel) {}
-            Button("Create") {
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
+            Button(TermindCopy.Common.create.swiftUIKey) {
                 let name = newFolderName
                 newFolderName = ""
                 Task { await sftpChannel.createFolder(named: name) }
             }
         }
         .alert(
-            "Rename",
+            TermindCopy.Common.rename.swiftUIKey,
             isPresented: Binding(
                 get: { renameTarget != nil },
                 set: { if !$0 { renameTarget = nil } }
             )
         ) {
-            TextField("Name", text: $renameName.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
-            Button("Cancel", role: .cancel) { renameTarget = nil }
-            Button("Rename") {
+            TextField(TermindCopy.Common.name.swiftUIKey, text: $renameName.singleLineText, axis: .horizontal)
+                .singleLinePaste().lineLimit(1)
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { renameTarget = nil }
+            Button(TermindCopy.Common.rename.swiftUIKey) {
                 guard let target = renameTarget else { return }
                 let name = renameName
                 renameTarget = nil
@@ -374,19 +373,21 @@ struct SFTPBrowserView: View {
         }
         .confirmationDialog(
             deleteTargets.count == 1
-                ? "Delete \(deleteTargets.first.map { sftpChannel.displayPath($0.path) } ?? "")?"
-                : "Delete \(deleteTargets.count) items?",
+                ? TermindCopy.SFTP.deleteConfirmation(
+                    deleteTargets.first.map { sftpChannel.displayPath($0.path) } ?? ""
+                ).swiftUIKey
+                : TermindCopy.SFTP.deleteItemsConfirmation(deleteTargets.count).swiftUIKey,
             isPresented: Binding(
                 get: { !deleteTargets.isEmpty },
                 set: { if !$0 { deleteTargets = [] } }
             ), titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                 let targets = deleteTargets
                 deleteTargets = []
                 Task { await sftpChannel.delete(targets) }
             }
-            Button("Cancel", role: .cancel) { deleteTargets = [] }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { deleteTargets = [] }
         } message: {
             Text(deleteConfirmationMessage)
         }
@@ -394,23 +395,23 @@ struct SFTPBrowserView: View {
             conflictTitle,
             isPresented: $conflictPresented, titleVisibility: .visible
         ) {
-            Button("Replace") { enqueue(.replace) }
-            Button("Skip Existing") { enqueue(.skip) }
-            Button("Keep Both") { enqueue(.keepBoth) }
-            Button("Cancel", role: .cancel) {
+            Button(TermindCopy.SFTP.replace.swiftUIKey) { enqueue(.replace) }
+            Button(TermindCopy.SFTP.skipExisting.swiftUIKey) { enqueue(.skip) }
+            Button(TermindCopy.SFTP.keepBoth.swiftUIKey) { enqueue(.keepBoth) }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {
                 sftpChannel.cancelPendingBatch()
             }
         } message: {
-            Text("Use this choice for all conflicts in this batch.")
+            Text(TermindCopy.SFTP.applyToAllConflicts)
         }
         .alert(
-            "SFTP Error",
+            TermindCopy.SFTP.sftpError.swiftUIKey,
             isPresented: Binding(
                 get: { sftpChannel.operationError != nil },
                 set: { if !$0 { sftpChannel.operationError = nil } }
             )
         ) {
-            Button("OK") { sftpChannel.operationError = nil }
+            Button(TermindCopy.Common.ok.swiftUIKey) { sftpChannel.operationError = nil }
         } message: {
             Text(sftpChannel.operationError ?? "")
         }
@@ -434,38 +435,42 @@ struct SFTPBrowserView: View {
         return VStack(spacing: 0) {
             HStack(spacing: Metrics.Space.m) {
                 HStack(spacing: Metrics.Space.xs) {
-                    navigationButton("chevron.left", help: "Back", enabled: sftpChannel.canGoBack) {
+                    navigationButton("chevron.left", help: TermindCopy.Common.back, enabled: sftpChannel.canGoBack) {
                         sftpChannel.goBack()
                     }
-                    navigationButton("chevron.right", help: "Forward", enabled: sftpChannel.canGoForward) {
+                    navigationButton("chevron.right", help: TermindCopy.SFTP.forward, enabled: sftpChannel.canGoForward)
+                    {
                         sftpChannel.goForward()
                     }
                 }
 
                 if editsPath {
-                    TextField("Remote Path", text: $sftpChannel.pathText.singleLineText, axis: .horizontal)
-                        .singleLinePaste().lineLimit(1)
-                        .textFieldStyle(.plain)
-                        .font(.body.monospaced())
-                        .focused($pathFocused)
-                        .onSubmit { commitPathEditing() }
-                        .onKeyPress(.escape) {
-                            cancelPathEditing()
-                            return .handled
-                        }
+                    TextField(
+                        TermindCopy.SFTP.remotePath.swiftUIKey, text: $sftpChannel.pathText.singleLineText,
+                        axis: .horizontal
+                    )
+                    .singleLinePaste().lineLimit(1)
+                    .textFieldStyle(.plain)
+                    .font(.body.monospaced())
+                    .focused($pathFocused)
+                    .onSubmit { commitPathEditing() }
+                    .onKeyPress(.escape) {
+                        cancelPathEditing()
+                        return .handled
+                    }
                 } else {
                     breadcrumbs(layout: layout)
                 }
 
                 Button(action: chooseUploadItems) {
                     if layout == .full {
-                        Label("Upload", systemImage: "arrow.up.doc")
+                        Label(TermindCopy.SFTP.upload.swiftUIKey, systemImage: "arrow.up.doc")
                     } else {
                         Image(systemName: "arrow.up.doc")
                     }
                 }
                 .disabled(sftpChannel.status != .connected)
-                .help("Upload")
+                .help(TermindCopy.SFTP.upload.swiftUIKey)
 
                 actionsMenu(layout: layout)
             }
@@ -480,7 +485,7 @@ struct SFTPBrowserView: View {
     }
 
     private func navigationButton(
-        _ symbol: String, help: LocalizedStringKey, enabled: Bool, action: @escaping () -> Void
+        _ symbol: String, help: LocalizedStringResource, enabled: Bool, action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
@@ -494,28 +499,30 @@ struct SFTPBrowserView: View {
 
     private func actionsMenu(layout: Layout) -> some View {
         Menu {
-            Button("New Folder", systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
-                .disabled(sftpChannel.status != .connected)
-            Button("Paste", systemImage: MenuSymbol.paste) { pasteRemoteItems() }
+            Button(TermindCopy.SFTP.newFolder.swiftUIKey, systemImage: MenuSymbol.newFolder) {
+                newFolderPresented = true
+            }
+            .disabled(sftpChannel.status != .connected)
+            Button(TermindCopy.Common.paste.swiftUIKey, systemImage: MenuSymbol.paste) { pasteRemoteItems() }
                 .disabled(sftpChannel.status != .connected || !canPasteRemoteItems)
             Divider()
             if sftpChannel.showsHiddenFiles {
-                Button("Hide Hidden Files", systemImage: MenuSymbol.hideHiddenFiles) {
+                Button(TermindCopy.SFTP.hideHiddenFiles.swiftUIKey, systemImage: MenuSymbol.hideHiddenFiles) {
                     sftpChannel.showsHiddenFiles = false
                 }
             } else {
-                Button("Show Hidden Files", systemImage: MenuSymbol.showHiddenFiles) {
+                Button(TermindCopy.SFTP.showHiddenFiles.swiftUIKey, systemImage: MenuSymbol.showHiddenFiles) {
                     sftpChannel.showsHiddenFiles = true
                 }
             }
-            Button("Edit Path", systemImage: MenuSymbol.editPath) { beginPathEditing() }
-            Button("Refresh", systemImage: MenuSymbol.refresh) { sftpChannel.reloadNow() }
+            Button(TermindCopy.SFTP.editPath.swiftUIKey, systemImage: MenuSymbol.editPath) { beginPathEditing() }
+            Button(TermindCopy.Common.refresh.swiftUIKey, systemImage: MenuSymbol.refresh) { sftpChannel.reloadNow() }
                 .disabled(sftpChannel.status != .connected || sftpChannel.isLoading)
         } label: {
             if layout == .full {
                 HStack(spacing: Metrics.Space.s) {
                     Image(systemName: MenuSymbol.actions)
-                    Text("Actions")
+                    Text(TermindCopy.Common.actions)
                     Image(systemName: "chevron.down")
                         .font(.caption.weight(.semibold))
                 }
@@ -523,7 +530,7 @@ struct SFTPBrowserView: View {
                 Image(systemName: "ellipsis.circle")
             }
         }
-        .help("Actions")
+        .help(TermindCopy.Common.actions.swiftUIKey)
     }
 
     private func breadcrumbs(layout: Layout) -> some View {
@@ -617,17 +624,17 @@ struct SFTPBrowserView: View {
                 VStack(spacing: Metrics.Space.l) {
                     Image(systemName: "folder.badge.questionmark")
                         .font(.largeTitle).foregroundStyle(.tertiary)
-                    Text("Not connected").foregroundStyle(.secondary)
-                    Button("Connect") { sftpChannel.connect(using: app.transfers) }
+                    Text(TermindCopy.Connections.notConnected).foregroundStyle(.secondary)
+                    Button(TermindCopy.Common.connect.swiftUIKey) { sftpChannel.connect(using: app.transfers) }
                         .buttonStyle(.borderedProminent)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .background(TermindColor.windowSurface)
             } else if sftpChannel.files.isEmpty, sftpChannel.isLoading {
-                centeredState("Loading", symbol: "arrow.triangle.2.circlepath", progress: true)
+                centeredState(TermindCopy.SFTP.loading, symbol: "arrow.triangle.2.circlepath", progress: true)
                     .background(TermindColor.windowSurface)
             } else if sftpChannel.files.isEmpty, sftpChannel.status == .connected {
-                centeredState("This folder is empty", symbol: "folder", progress: false)
+                centeredState(TermindCopy.SFTP.thisFolderIsEmpty, symbol: "folder", progress: false)
                     .background(TermindColor.windowSurface)
             } else if sftpChannel.visibleRows.isEmpty, !sftpChannel.query.isEmpty {
                 ContentUnavailableView.search(text: sftpChannel.query)
@@ -651,14 +658,14 @@ struct SFTPBrowserView: View {
 
     @ViewBuilder
     private var browserLocationMenu: some View {
-        Button("Paste", systemImage: MenuSymbol.paste) { pasteRemoteItems() }
+        Button(TermindCopy.Common.paste.swiftUIKey, systemImage: MenuSymbol.paste) { pasteRemoteItems() }
             .disabled(sftpChannel.status != .connected || !canPasteRemoteItems)
         Divider()
-        Button("New Folder", systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
+        Button(TermindCopy.SFTP.newFolder.swiftUIKey, systemImage: MenuSymbol.newFolder) { newFolderPresented = true }
             .disabled(sftpChannel.status != .connected)
-        Button("Upload", systemImage: MenuSymbol.upload) { chooseUploadItems() }
+        Button(TermindCopy.SFTP.upload.swiftUIKey, systemImage: MenuSymbol.upload) { chooseUploadItems() }
             .disabled(sftpChannel.status != .connected)
-        Button("Refresh", systemImage: MenuSymbol.refresh) { sftpChannel.reloadNow() }
+        Button(TermindCopy.Common.refresh.swiftUIKey, systemImage: MenuSymbol.refresh) { sftpChannel.reloadNow() }
             .disabled(sftpChannel.status != .connected || sftpChannel.isLoading)
     }
 
@@ -760,7 +767,7 @@ struct SFTPBrowserView: View {
             if NSApp.currentEvent?.clickCount == 2 { sftpChannel.navigate(to: path) }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("Parent Directory")
+        .accessibilityLabel(TermindCopy.SFTP.parentDirectory.swiftUIKey)
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { sftpChannel.navigate(to: path) }
     }
@@ -787,17 +794,17 @@ struct SFTPBrowserView: View {
 
     private func columnHeader(layout: Layout) -> some View {
         HStack(spacing: 0) {
-            sortHeader("Name", field: .name)
+            sortHeader(TermindCopy.Common.name, field: .name)
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             if layout != .compact {
-                sortHeader("Date Modified", field: .modified, separated: true)
+                sortHeader(TermindCopy.SFTP.dateModified, field: .modified, separated: true)
                     .frame(width: 220, alignment: .leading)
             }
             if layout == .full {
-                sortHeader("Size", field: .size, separated: true)
+                sortHeader(TermindCopy.Common.size, field: .size, separated: true)
                     .frame(width: 150, alignment: .leading)
-                sortHeader("Kind", field: .kind, separated: true)
+                sortHeader(TermindCopy.Common.kind, field: .kind, separated: true)
                     .frame(width: 150, alignment: .leading)
             }
         }
@@ -808,7 +815,7 @@ struct SFTPBrowserView: View {
     }
 
     private func sortHeader(
-        _ title: LocalizedStringKey, field: RemoteFileSortField, separated: Bool = false
+        _ title: LocalizedStringResource, field: RemoteFileSortField, separated: Bool = false
     ) -> some View {
         let isSorted = sftpChannel.sortField == field
         return Button {
@@ -1168,7 +1175,8 @@ struct SFTPBrowserView: View {
         provider.registerDataRepresentation(
             forTypeIdentifier: UTType.termindSFTPItems.identifier, visibility: .ownProcess
         ) { completion in
-            completion(data, data == nil ? SFTPError.operation("Unable to copy SFTP items.") : nil)
+            completion(
+                data, data == nil ? SFTPError.operation(String(localized: TermindCopy.SFTP.unableToCopyItems)) : nil)
             return nil
         }
     }
@@ -1210,7 +1218,7 @@ struct SFTPBrowserView: View {
         return provider
     }
 
-    private func centeredState(_ title: LocalizedStringKey, symbol: String, progress: Bool) -> some View {
+    private func centeredState(_ title: LocalizedStringResource, symbol: String, progress: Bool) -> some View {
         VStack(spacing: Metrics.Space.l) {
             if progress {
                 ProgressView()
@@ -1263,7 +1271,7 @@ struct SFTPBrowserView: View {
                         SFTPRemoteItemsPayload.self, from: data
                     )
                 else {
-                    sftpChannel.operationError = "The copied SFTP items are invalid."
+                    sftpChannel.operationError = String(localized: TermindCopy.SFTP.theCopiedSftpItemsAreInvalid)
                     return
                 }
                 prepareRemoteItems(payload)
@@ -1276,7 +1284,7 @@ struct SFTPBrowserView: View {
         guard sftpChannel.status == .connected else { return }
         guard let payload = try? JSONDecoder().decode(SFTPRemoteItemsPayload.self, from: data)
         else {
-            sftpChannel.operationError = "The copied SFTP items are invalid."
+            sftpChannel.operationError = String(localized: TermindCopy.SFTP.theCopiedSftpItemsAreInvalid)
             return
         }
         prepareRemoteItems(payload)
@@ -1342,7 +1350,7 @@ private struct SFTPEditPermissionsSheet: View {
     var body: some View {
         VStack(spacing: 0) {
             VStack(alignment: .leading, spacing: Metrics.Space.xxl) {
-                Label("Edit Permissions", systemImage: "lock.shield")
+                Label(TermindCopy.SFTP.editPermissions.swiftUIKey, systemImage: "lock.shield")
                     .font(.title2.weight(.semibold))
 
                 HStack(spacing: Metrics.Space.l) {
@@ -1352,23 +1360,24 @@ private struct SFTPEditPermissionsSheet: View {
                         .truncationMode(.middle)
                         .help(displayedPath)
                     Spacer(minLength: Metrics.Space.xl)
-                    TextField("Mode", text: modeText.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+                    TextField(TermindCopy.SFTP.mode.swiftUIKey, text: modeText.singleLineText, axis: .horizontal)
+                        .singleLinePaste().lineLimit(1)
                         .labelsHidden()
                         .font(.body.monospacedDigit())
                         .multilineTextAlignment(.trailing)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 68)
                         .focused($modeFieldFocused)
-                        .accessibilityLabel("Octal permissions")
+                        .accessibilityLabel(TermindCopy.SFTP.octalPermissions.swiftUIKey)
                 }
 
                 permissionGrid
 
                 VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                    Text("Ownership").font(.headline)
-                    ownershipRow("UID", value: file.ownerUID)
+                    Text(TermindCopy.SFTP.ownership).font(.headline)
+                    ownershipRow(TermindCopy.SFTP.uid, value: file.ownerUID)
                     Divider()
-                    ownershipRow("GID", value: file.ownerGID)
+                    ownershipRow(TermindCopy.SFTP.gid, value: file.ownerGID)
                 }
             }
             .padding(Metrics.Space.xxl)
@@ -1378,10 +1387,10 @@ private struct SFTPEditPermissionsSheet: View {
             HStack(spacing: Metrics.Space.m) {
                 Spacer()
                 if isSaving { ProgressView().controlSize(.small) }
-                Button("Cancel") { dismiss() }
+                Button(TermindCopy.Common.cancel.swiftUIKey) { dismiss() }
                     .keyboardShortcut(.cancelAction)
                     .disabled(isSaving)
-                Button("Save") { Task { await commit() } }
+                Button(TermindCopy.Common.save.swiftUIKey) { Task { await commit() } }
                     .keyboardShortcut(.defaultAction)
                     .disabled(!draft.canSave || isSaving)
             }
@@ -1405,14 +1414,14 @@ private struct SFTPEditPermissionsSheet: View {
 
     private var permissionGrid: some View {
         VStack(alignment: .leading, spacing: Metrics.Space.m) {
-            Text("File Access").font(.headline)
+            Text(TermindCopy.SFTP.fileAccess).font(.headline)
             UnixPermissionGrid(draft: $draft, horizontalSpacing: Metrics.Space.xxl, verticalSpacing: Metrics.Space.l)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, Metrics.Space.s)
         }
     }
 
-    private func ownershipRow(_ label: LocalizedStringKey, value: UInt32) -> some View {
+    private func ownershipRow(_ label: LocalizedStringResource, value: UInt32) -> some View {
         HStack {
             Text(label).foregroundStyle(.secondary)
             Spacer()

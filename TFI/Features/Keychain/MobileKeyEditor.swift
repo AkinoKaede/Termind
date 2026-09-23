@@ -20,61 +20,71 @@ struct MobileKeyEditor: View {
                     VaultColorField(selection: $model.colorTag)
                 }
                 if model.mode == .generate {
-                    Section(model.storage == .secureEnclave ? "Secure Enclave" : "Private Key") {
+                    Section(
+                        model.storage == .secureEnclave
+                            ? TermindCopy.Keychain.secureEnclave.swiftUIKey : TermindCopy.Keychain.privateKey.swiftUIKey
+                    ) {
                         storagePicker
                         if model.storage == .secureEnclave {
-                            Toggle("Require User Presence", isOn: $model.requiresUserPresence)
+                            Toggle(
+                                TermindCopy.Keychain.requireUserPresence.swiftUIKey, isOn: $model.requiresUserPresence)
                         } else {
-                            Picker("Algorithm", selection: $model.algorithm) {
+                            Picker(TermindCopy.Keychain.algorithm.swiftUIKey, selection: $model.algorithm) {
                                 ForEach(MobileKeyEditorModel.Algorithm.allCases) { Text($0.rawValue).tag($0) }
                             }
                             if model.algorithm == .ecdsa {
-                                Picker("Elliptic Curve", selection: $model.curveBits) {
-                                    Text("NIST P-256").tag(256)
-                                    Text("NIST P-384").tag(384)
-                                    Text("NIST P-521").tag(521)
+                                Picker(TermindCopy.Keychain.ellipticCurve.swiftUIKey, selection: $model.curveBits) {
+                                    Text(TermindCopy.Keychain.nistP256).tag(256)
+                                    Text(TermindCopy.Keychain.nistP384).tag(384)
+                                    Text(TermindCopy.Keychain.nistP521).tag(521)
                                 }
                             } else if model.algorithm == .rsa {
-                                Picker("Key Size", selection: $model.rsaBits) {
-                                    Text("2048 bit").tag(2048)
-                                    Text("3072 bit").tag(3072)
-                                    Text("4096 bit").tag(4096)
+                                Picker(TermindCopy.Keychain.keySize.swiftUIKey, selection: $model.rsaBits) {
+                                    Text(TermindCopy.Keychain.rsa2048Bits).tag(2048)
+                                    Text(TermindCopy.Keychain.rsa3072Bits).tag(3072)
+                                    Text(TermindCopy.Keychain.rsa4096Bits).tag(4096)
                                 }
                             }
-                            LabeledContent("Passphrase") {
-                                RevealableSecretField("Optional", text: $model.passphrase)
+                            LabeledContent(TermindCopy.Keychain.passphrase.swiftUIKey) {
+                                RevealableSecretField(TermindCopy.Common.optional, text: $model.passphrase)
                                     .multilineTextAlignment(.trailing)
                             }
-                            LabeledContent("Confirm Passphrase") {
-                                RevealableSecretField("Confirm Passphrase", text: $model.confirmation)
+                            LabeledContent(TermindCopy.Keychain.confirmPassphrase.swiftUIKey) {
+                                RevealableSecretField(TermindCopy.Keychain.confirmPassphrase, text: $model.confirmation)
                                     .multilineTextAlignment(.trailing).disabled(model.passphrase.isEmpty)
                             }
                             if !model.passphrase.isEmpty {
-                                Picker("Cipher", selection: $model.cipher) {
+                                Picker(TermindCopy.Keychain.cipher.swiftUIKey, selection: $model.cipher) {
                                     ForEach(SSHKeyMaterial.Cipher.allCases) { Text($0.displayName).tag($0) }
                                 }
-                                LabeledContent("Rounds") {
-                                    TextField("Rounds", value: $model.rounds, format: .number).lineLimit(1)
+                                LabeledContent(TermindCopy.Keychain.rounds.swiftUIKey) {
+                                    TextField(
+                                        TermindCopy.Keychain.rounds.swiftUIKey, value: $model.rounds, format: .number
+                                    ).lineLimit(1)
                                         .multilineTextAlignment(.trailing).keyboardType(.numberPad)
                                 }
                                 if model.passphrase != model.confirmation {
-                                    Text("Passphrases do not match.").foregroundStyle(.red)
+                                    Text(TermindCopy.Keychain.passphrasesDoNotMatch).foregroundStyle(.red)
                                 }
                             }
                         }
                     }
                 } else if model.storage != .secureEnclave {
-                    Section("Private Key") {
+                    Section(TermindCopy.Keychain.privateKey.swiftUIKey) {
                         storagePicker
                         if model.isLoadingPrivateKey {
-                            ProgressView("Loading private key…")
+                            ProgressView(TermindCopy.Keychain.loadingPrivateKeyProgress.swiftUIKey)
                         } else {
                             if let error = model.privateKeyLoadError {
                                 Label(error, systemImage: "exclamationmark.triangle.fill")
                                     .font(.caption)
                                     .foregroundStyle(.orange)
                             }
-                            Button(model.mode == .edit ? "Choose Replacement" : "Choose File", systemImage: "folder") {
+                            Button(
+                                model.mode == .edit
+                                    ? TermindCopy.Keychain.chooseReplacement.swiftUIKey
+                                    : TermindCopy.Keychain.chooseFile.swiftUIKey, systemImage: "folder"
+                            ) {
                                 choosingFile = true
                             }
                             .disabled(!model.canEditPrivateKey)
@@ -87,25 +97,29 @@ struct MobileKeyEditor: View {
                                 .disabled(!model.canEditPrivateKey)
                             if model.replacesPublicKey {
                                 Label(
-                                    "Replacing this private key changes its public key. Hosts using the old key may reject the next connection.",
+                                    TermindCopy.Keychain.replacePrivateKeyWarning.swiftUIKey,
                                     systemImage: "arrow.triangle.2.circlepath"
                                 )
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                             }
-                            RevealableSecretField("Passphrase", text: $model.passphrase)
+                            RevealableSecretField(TermindCopy.Keychain.passphrase, text: $model.passphrase)
                                 .multilineTextAlignment(.leading)
                                 .disabled(!model.canEditPrivateKey)
                         }
                     }
                 } else {
-                    Section("Secure Enclave") {
-                        LabeledContent("Store in", value: String(localized: "Secure Enclave"))
+                    Section(TermindCopy.Keychain.secureEnclave.swiftUIKey) {
+                        LabeledContent(
+                            TermindCopy.Keychain.storeIn.swiftUIKey,
+                            value: String(localized: TermindCopy.Keychain.secureEnclave))
                     }
                 }
                 if model.mode != .generate && model.storage != .secureEnclave {
-                    Section("SSH Certificate") {
-                        Button("Choose File", systemImage: "folder") { choosingCertificate = true }
+                    Section(TermindCopy.Keychain.sshCertificate.swiftUIKey) {
+                        Button(TermindCopy.Keychain.chooseFile.swiftUIKey, systemImage: "folder") {
+                            choosingCertificate = true
+                        }
                         TextEditor(text: $model.certificate).multilineTextAlignment(.leading).font(
                             .caption.monospaced()
                         ).frame(minHeight: 90)
@@ -114,10 +128,14 @@ struct MobileKeyEditor: View {
                 }
                 if let warning = model.certificateWarning { Text(warning).font(.caption).foregroundStyle(.orange) }
                 if let publicKey = model.publicKey {
-                    Section("Public Key") { Text(publicKey).font(.caption.monospaced()).textSelection(.enabled) }
+                    Section(TermindCopy.Keychain.publicKey.swiftUIKey) {
+                        Text(publicKey).font(.caption.monospaced()).textSelection(.enabled)
+                    }
                 }
                 if let fingerprint = model.fingerprint {
-                    Section("Fingerprint") { Text(fingerprint).font(.caption.monospaced()).textSelection(.enabled) }
+                    Section(TermindCopy.KnownHosts.fingerprint.swiftUIKey) {
+                        Text(fingerprint).font(.caption.monospaced()).textSelection(.enabled)
+                    }
                 }
             }
         )
@@ -134,9 +152,10 @@ struct MobileKeyEditor: View {
             }
         }
         .alert(
-            "Unable to Read File", isPresented: Binding(get: { fileError != nil }, set: { if !$0 { fileError = nil } })
+            TermindCopy.Keychain.unableToReadFile.swiftUIKey,
+            isPresented: Binding(get: { fileError != nil }, set: { if !$0 { fileError = nil } })
         ) {
-            Button("OK", role: .cancel) { fileError = nil }
+            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { fileError = nil }
         } message: {
             Text(fileError ?? "")
         }
@@ -146,18 +165,19 @@ struct MobileKeyEditor: View {
 
     private var title: String {
         switch model.mode {
-        case .generate: String(localized: "Generate Key")
-        case .importKey: String(localized: "Import Key")
-        case .edit: String(localized: "Edit Key")
+        case .generate: String(localized: TermindCopy.Keychain.generateKey)
+        case .importKey: String(localized: TermindCopy.Keychain.importKey)
+        case .edit: String(localized: TermindCopy.Keychain.editKey)
         }
     }
 
     private var storagePicker: some View {
-        Picker("Store in", selection: $model.storage) {
-            Label("This Device", systemImage: "ipad.and.iphone").tag(KeyStorage.thisDevice)
-            Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
+        Picker(TermindCopy.Keychain.storeIn.swiftUIKey, selection: $model.storage) {
+            Label(TermindCopy.Keychain.thisDevice.swiftUIKey, systemImage: "ipad.and.iphone").tag(KeyStorage.thisDevice)
+            Label(TermindCopy.Keychain.iCloud.swiftUIKey, systemImage: "icloud.fill").tag(KeyStorage.iCloud)
             if model.mode == .generate && model.canUseEnclave {
-                Label("Secure Enclave", systemImage: "checkmark.shield.fill").tag(KeyStorage.secureEnclave)
+                Label(TermindCopy.Keychain.secureEnclave.swiftUIKey, systemImage: "checkmark.shield.fill").tag(
+                    KeyStorage.secureEnclave)
             }
         }
         .disabled(!model.canEditPrivateKey || !model.canSelectThisDevice)

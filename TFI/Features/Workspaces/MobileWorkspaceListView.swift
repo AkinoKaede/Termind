@@ -42,17 +42,17 @@ struct MobileWorkspaceListView: View {
                 NavigationLink {
                     MobileTransfersView(transfers: app.transfers, hosts: app.library)
                 } label: {
-                    Label("Transfers", systemImage: "arrow.up.arrow.down")
+                    Label(TermindCopy.SFTP.transfers.swiftUIKey, systemImage: "arrow.up.arrow.down")
                 }
             }
             if !app.orderedWorkspaceItems.isEmpty || historyRows.isEmpty {
-                Section("Workspaces") { workspaceRows }
+                Section(TermindCopy.Navigation.workspaces.swiftUIKey) { workspaceRows }
             }
             if app.orderedWorkspaceItems.isEmpty, !historyRows.isEmpty {
-                Section("Recents") { historyRowsContent }
+                Section(TermindCopy.Workspace.recents.swiftUIKey) { historyRowsContent }
             }
         }
-        .navigationTitle("Workspaces")
+        .navigationTitle(TermindCopy.Navigation.workspaces.swiftUIKey)
         .toolbar {
             MobileWorkspaceToolbar(
                 hasWorkspaces: scene.canCloseAllWorkspaces,
@@ -96,22 +96,22 @@ struct MobileWorkspaceListView: View {
             scene.activatePendingWorkspace()
         }
         .confirmationDialog(
-            "Clear Recent Connections?",
+            TermindCopy.Workspace.clearRecentConnectionsConfirmation.swiftUIKey,
             isPresented: Binding(
                 get: { clearingRecentHost != nil },
                 set: { if !$0 { clearingRecentHost = nil } }
             ),
             titleVisibility: .visible
         ) {
-            Button("Clear History", role: .destructive) {
+            Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive) {
                 if let host = clearingRecentHost {
                     app.connectionHistory.clear(for: host.id)
                 }
                 clearingRecentHost = nil
             }
-            Button("Cancel", role: .cancel) { clearingRecentHost = nil }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { clearingRecentHost = nil }
         } message: {
-            Text("This removes all connection history for this Host.")
+            Text(TermindCopy.Workspace.clearHostHistoryWarning)
         }
     }
 
@@ -119,8 +119,8 @@ struct MobileWorkspaceListView: View {
     private var workspaceRows: some View {
         if app.orderedWorkspaceItems.isEmpty {
             ContentUnavailableView(
-                "No Workspaces", systemImage: "terminal",
-                description: Text("Use Connect to start a workspace.")
+                TermindCopy.Workspace.noWorkspaces.swiftUIKey, systemImage: "terminal",
+                description: Text(TermindCopy.Workspace.useConnectToStartAWorkspace)
             )
             .listRowBackground(Color.clear)
             .listRowSeparator(.hidden)
@@ -165,7 +165,7 @@ struct MobileWorkspaceListView: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("workspace-\(item.id)")
             .swipeActions {
-                Button("Close", systemImage: "xmark", role: .destructive) {
+                Button(TermindCopy.Common.close.swiftUIKey, systemImage: "xmark", role: .destructive) {
                     scene.closeWorkspace(item.id)
                 }
             }
@@ -199,12 +199,12 @@ struct MobileWorkspaceListView: View {
                         historyConnectionButton(kind, host: row.host)
                     }
                     if !kinds.isEmpty { Divider() }
-                    Button("Delete", systemImage: "trash", role: .destructive) {
+                    Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                         requestHistoryClear(for: row.host)
                     }
                 }
                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                    Button("Delete", systemImage: "trash", role: .destructive) {
+                    Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                         requestHistoryClear(for: row.host)
                     }
                     ForEach(

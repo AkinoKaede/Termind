@@ -108,7 +108,7 @@ public struct ContextBreakdownView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if showsTitle {
-                Text("Context")
+                Text(TermindCopy.Assistant.context)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(.secondary)
             }

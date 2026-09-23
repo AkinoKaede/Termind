@@ -4,6 +4,7 @@ import GhosttyTerminal
 import GhosttyTheme
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -375,8 +376,8 @@ final class SSHSessionModel: Identifiable {
         guard let host = connectionHost(hostID, using: store) else {
             connection.stopRecovery()
             connectionAttemptID = nil
-            status = .failed(String(localized: "The host is no longer available."))
-            connectionJourney.fail(String(localized: "The host is no longer available."))
+            status = .failed(String(localized: TermindCopy.Connections.theHostIsNoLongerAvailable))
+            connectionJourney.fail(String(localized: TermindCopy.Connections.theHostIsNoLongerAvailable))
             return
         }
         isShellIntegrationEnabled = host.shellIntegrationMode.isEnabled(
@@ -463,7 +464,7 @@ final class SSHSessionModel: Identifiable {
                             )
                         } else {
                             credentialFailures.append(
-                                String(localized: "The selected key has no saved private key.")
+                                String(localized: TermindCopy.Terminal.theSelectedKeyHasNoSavedPrivateKey)
                             )
                         }
                     } catch {
@@ -471,7 +472,7 @@ final class SSHSessionModel: Identifiable {
                     }
                 } else {
                     credentialFailures.append(
-                        String(localized: "The selected key is no longer available.")
+                        String(localized: TermindCopy.Terminal.theSelectedKeyIsNoLongerAvailable)
                     )
                 }
             }
@@ -485,7 +486,7 @@ final class SSHSessionModel: Identifiable {
                         credentials.append(.password(password))
                     } else {
                         credentialFailures.append(
-                            String(localized: "The saved password is no longer available.")
+                            String(localized: TermindCopy.Terminal.theSavedPasswordIsNoLongerAvailable)
                         )
                     }
                 } catch {
@@ -838,7 +839,7 @@ final class SSHSessionModel: Identifiable {
         do {
             await actor.configureEnvironment(host.environmentVariables) { variables in
                 let list = variables.joined(separator: ", ")
-                let warning = String(localized: "The server rejected these environment variables: \(list)")
+                let warning = String(localized: TermindCopy.Terminal.rejectedEnvironmentVariables(list))
                 terminalSurface.receive(Data("\r\n⚠︎ \(warning)\r\n".utf8))
             }
             try await actor.connect(
@@ -872,7 +873,7 @@ final class SSHSessionModel: Identifiable {
             }
             if wasReconnecting {
                 appendTerminalNotice(
-                    String(localized: "Reconnected; a new remote shell has started.")
+                    String(localized: TermindCopy.Terminal.reconnectedANewRemoteShellHasStarted)
                 )
             }
             if !isShellIntegrationEnabled {
@@ -928,7 +929,7 @@ final class SSHSessionModel: Identifiable {
             status = .failed(message)
             return
         }
-        appendTerminalNotice(String(localized: "Connection lost; reconnecting…"))
+        appendTerminalNotice(String(localized: TermindCopy.Connections.connectionLostReconnectingProgress))
         scheduleReconnect(after: message, using: store)
     }
 

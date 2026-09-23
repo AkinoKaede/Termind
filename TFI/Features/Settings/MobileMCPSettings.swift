@@ -14,14 +14,14 @@ struct MobileMCPSettings: View {
             Section {
                 if !ai.conflictingMCPServerIDs.isEmpty {
                     Text(
-                        "Some MCP servers have duplicate namespaces and are paused. Edit their namespace IDs to resolve the conflict."
+                        TermindCopy.Settings.duplicateMCPNamespaces
                     )
                     .foregroundStyle(.orange)
                 }
                 if ai.mcpServers.isEmpty {
                     ContentUnavailableView(
-                        "No MCP Servers", systemImage: "network",
-                        description: Text("Add an MCP server to connect remote tools.")
+                        TermindCopy.Settings.noMcpServers.swiftUIKey, systemImage: "network",
+                        description: Text(TermindCopy.Settings.addAnMcpServerToConnectRemoteTools)
                     )
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
@@ -29,24 +29,24 @@ struct MobileMCPSettings: View {
                 ForEach(ai.mcpServers) { server in
                     serverLink(server)
                         .contextMenu {
-                            Button("Delete", systemImage: "trash", role: .destructive) {
+                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 ai.delete(serverID: server.id)
                             }
                         }
                         .swipeActions(edge: .trailing) {
-                            Button("Delete", systemImage: "trash", role: .destructive) {
+                            Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 ai.delete(serverID: server.id)
                             }
                         }
                 }
             } footer: {
-                Text("Connect to remote MCP servers over HTTP.")
+                Text(TermindCopy.Settings.connectToRemoteMcpServersOverHttp)
             }
         }
-        .navigationTitle("MCP")
+        .navigationTitle(TermindCopy.Settings.mcp.swiftUIKey)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Add Server", systemImage: "plus") {
+                Button(TermindCopy.MCP.addServer.swiftUIKey, systemImage: "plus") {
                     if pro.require(.remoteMCP) { adding = MCPServer(name: "", namespaceID: "") }
                 }
                 .labelStyle(.iconOnly)
@@ -98,7 +98,7 @@ private struct MobileMCPServerRow: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 3) {
                 Text(server.name).foregroundStyle(.primary).lineLimit(1)
-                Text(server.url.isEmpty ? String(localized: "No URL") : server.url)
+                Text(server.url.isEmpty ? String(localized: TermindCopy.Settings.noUrl) : server.url)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
@@ -132,13 +132,13 @@ private struct MobileMCPStatusBadge: View {
     @ViewBuilder private var label: some View {
         switch status {
         case .conflict:
-            Text("Conflict")
+            Text(TermindCopy.Settings.conflict)
         case .disabled:
-            Text("Disabled")
+            Text(TermindCopy.Settings.disabled)
         case .notConnected:
-            Text("Not Connected")
+            Text(TermindCopy.Settings.notConnected)
         case .tools(let count):
-            Text("\(count) tools")
+            Text(TermindCopy.Settings.toolsNamed(count))
         }
     }
 
@@ -179,7 +179,7 @@ struct MobileMCPEditor: View {
     @Environment(\.dismiss) private var dismiss
 
     private struct EditorAlert {
-        let title: LocalizedStringKey
+        let title: LocalizedStringResource
         let message: String
     }
 
@@ -191,34 +191,39 @@ struct MobileMCPEditor: View {
 
     var body: some View {
         Form {
-            Section("Connection") {
-                LabeledContent("Name") {
-                    TextField("Name", text: $model.draft.name.singleLineText, axis: .horizontal).singleLinePaste()
+            Section(TermindCopy.Settings.connection.swiftUIKey) {
+                LabeledContent(TermindCopy.Common.name.swiftUIKey) {
+                    TextField(
+                        TermindCopy.Common.name.swiftUIKey, text: $model.draft.name.singleLineText, axis: .horizontal
+                    ).singleLinePaste()
                         .lineLimit(1)
                         .multilineTextAlignment(.trailing)
                 }
-                Toggle("Enabled", isOn: $model.draft.isEnabled)
-                LabeledContent("ID") {
+                Toggle(TermindCopy.Common.enabled.swiftUIKey, isOn: $model.draft.isEnabled)
+                LabeledContent(TermindCopy.Settings.id.swiftUIKey) {
                     Text(model.draft.effectiveNamespaceID).font(.caption.monospaced()).textSelection(.enabled)
                 }
                 if model.draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Text("Name is required.").foregroundStyle(.orange)
+                    Text(TermindCopy.Settings.nameIsRequired).foregroundStyle(.orange)
                 } else if model.draft.effectiveNamespaceID.isEmpty {
-                    Text("Name must produce an ID containing ASCII letters or numbers.").foregroundStyle(.orange)
+                    Text(TermindCopy.Settings.namespaceNameRequirement).foregroundStyle(.orange)
                 } else if ai.hasMCPNamespaceConflict(model.draft.effectiveNamespaceID, excluding: model.draft.id) {
-                    Text("Another MCP server already uses this ID.").foregroundStyle(.orange)
+                    Text(TermindCopy.Settings.anotherMcpServerAlreadyUsesThisId).foregroundStyle(.orange)
                 }
-                Picker("Transport", selection: $model.draft.transport) {
+                Picker(TermindCopy.Settings.transport.swiftUIKey, selection: $model.draft.transport) {
                     ForEach(MCPServer.Transport.allCases) { Text($0.displayName).tag($0) }
                 }
-                LabeledContent("URL") {
-                    TextField("MCP endpoint URL", text: $model.draft.url.singleLineText, axis: .horizontal)
-                        .singleLinePaste().lineLimit(1)
-                        .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
-                        .multilineTextAlignment(.trailing)
+                LabeledContent(TermindCopy.Settings.url.swiftUIKey) {
+                    TextField(
+                        TermindCopy.Settings.mcpEndpointUrl.swiftUIKey, text: $model.draft.url.singleLineText,
+                        axis: .horizontal
+                    )
+                    .singleLinePaste().lineLimit(1)
+                    .textInputAutocapitalization(.never).autocorrectionDisabled().keyboardType(.URL)
+                    .multilineTextAlignment(.trailing)
                 }
                 if !model.draft.url.isEmpty && !model.hasValidURL {
-                    Text("Enter an HTTP or HTTPS MCP URL.").font(.caption).foregroundStyle(.orange)
+                    Text(TermindCopy.Settings.enterAnHttpOrHttpsMcpUrl).font(.caption).foregroundStyle(.orange)
                 }
                 if model.running { ProgressView() }
                 if let connection = model.connection { Text(connection).font(.caption).textSelection(.enabled) }
@@ -232,59 +237,60 @@ struct MobileMCPEditor: View {
                         MobileMCPHeaderRow(header: header)
                     }
                     .contextMenu {
-                        Button("Delete", systemImage: "trash", role: .destructive) {
+                        Button(TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                             removeHeader(header.id)
                         }
                     }
                 }
                 .onDelete(perform: model.removeHeaders)
-                Button("Add Header", systemImage: "plus") { editingHeader = MCPHeader() }
+                Button(TermindCopy.Settings.addHeader.swiftUIKey, systemImage: "plus") { editingHeader = MCPHeader() }
             } header: {
-                Text("Custom Headers")
+                Text(TermindCopy.Settings.customHeaders)
             }
-            Section("Tools") {
-                if model.draft.tools.isEmpty { Text("Connect to see what this server offers.") }
+            Section(TermindCopy.Settings.tools.swiftUIKey) {
+                if model.draft.tools.isEmpty { Text(TermindCopy.Settings.connectToSeeWhatThisServerOffers) }
                 ForEach($model.draft.tools) { $tool in
                     VStack(alignment: .leading) {
                         Text(qualified(tool)).font(.caption.monospaced()).textSelection(.enabled)
                         if !tool.summary.isEmpty {
                             Text(tool.summary).font(.caption).foregroundStyle(.secondary).lineLimit(2)
                         }
-                        Picker("Permission", selection: $tool.accessPolicy) {
-                            Text("Deny").tag(AgentToolDescriptor.ApprovalPolicy.deny)
-                            Text("Ask").tag(AgentToolDescriptor.ApprovalPolicy.ask)
-                            Text("Approve")
+                        Picker(TermindCopy.Common.permission.swiftUIKey, selection: $tool.accessPolicy) {
+                            Text(TermindCopy.Common.deny).tag(AgentToolDescriptor.ApprovalPolicy.deny)
+                            Text(TermindCopy.Settings.ask).tag(AgentToolDescriptor.ApprovalPolicy.ask)
+                            Text(TermindCopy.Settings.approve)
                                 .tag(AgentToolDescriptor.ApprovalPolicy.approve)
                         }
                     }
                 }
                 Text(
-                    "Deny refuses the call. Ask uses the conversation's manual or automatic approval. Approve runs without approval."
+                    TermindCopy.Settings.toolApprovalExplanation
                 )
                 .font(.caption).foregroundStyle(.secondary)
             }
         }
-        .navigationTitle("MCP Server")
+        .navigationTitle(TermindCopy.MCP.mcpServer.swiftUIKey)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             MobileToolbarOverflow {
-                Button("Connect", systemImage: "bolt") {
+                Button(TermindCopy.Common.connect.swiftUIKey, systemImage: "bolt") {
                     if pro.require(.remoteMCP) { model.connect() }
                 }
                 .disabled(!model.canSave || model.running)
                 if ai.mcpServer(model.original.id) != nil {
                     Divider()
-                    Button("Delete", systemImage: "trash", role: .destructive, action: delete)
+                    Button(
+                        TermindCopy.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive, action: delete)
                 }
             }
             ToolbarItem(placement: .confirmationAction) {
                 Button {
                     save()
                 } label: {
-                    Label("Save", systemImage: "checkmark")
+                    Label(TermindCopy.Common.save.swiftUIKey, systemImage: "checkmark")
                 }
                 .labelStyle(.iconOnly)
-                .accessibilityLabel(Text("Save"))
+                .accessibilityLabel(Text(TermindCopy.Common.save))
                 .disabled(!model.canSave || !pro.canUse(.remoteMCP))
             }
             .mobileProminentAction()
@@ -301,10 +307,10 @@ struct MobileMCPEditor: View {
         .onChange(of: pro.hasProAccess) { _, granted in if !granted { model.cancel() } }
         .onDisappear { model.cancel() }
         .alert(
-            alert?.title ?? "Unable to Save",
+            (alert?.title ?? TermindCopy.Common.unableToSave).swiftUIKey,
             isPresented: Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })
         ) {
-            Button("OK", role: .cancel) { alert = nil }
+            Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { alert = nil }
         } message: {
             Text(alert?.message ?? "")
         }
@@ -313,7 +319,7 @@ struct MobileMCPEditor: View {
     private func delete() {
         ai.delete(serverID: model.original.id)
         if let error = ai.storageError ?? ai.secretStorageError {
-            alert = EditorAlert(title: "Unable to Delete", message: error)
+            alert = EditorAlert(title: TermindCopy.Common.unableToDelete, message: error)
         } else {
             dismiss()
         }
@@ -324,7 +330,7 @@ struct MobileMCPEditor: View {
             try model.save()
             dismiss()
         } catch {
-            alert = EditorAlert(title: "Unable to Save", message: error.localizedDescription)
+            alert = EditorAlert(title: TermindCopy.Common.unableToSave, message: error.localizedDescription)
         }
     }
 
@@ -345,7 +351,7 @@ private struct MobileMCPHeaderRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(header.isComplete ? header.name : String(localized: "Header name"))
+            Text(header.isComplete ? header.name : String(localized: TermindCopy.Settings.headerName))
                 .foregroundStyle(header.isComplete ? .primary : .secondary)
                 .lineLimit(1)
             if !header.value.isEmpty {
@@ -380,29 +386,34 @@ private struct MobileMCPHeaderEditor: View {
     var body: some View {
         Form {
             Section {
-                LabeledContent("Name") {
-                    TextField("Header name", text: $draft.name.singleLineText, axis: .horizontal).singleLinePaste()
+                LabeledContent(TermindCopy.Common.name.swiftUIKey) {
+                    TextField(
+                        TermindCopy.Settings.headerName.swiftUIKey, text: $draft.name.singleLineText, axis: .horizontal
+                    ).singleLinePaste()
                         .lineLimit(1)
                         .focused($focusedField, equals: .name)
                         .multilineTextAlignment(.trailing)
                 }
-                LabeledContent("Value") {
-                    TextField("Header value", text: $draft.value.singleLineText, axis: .horizontal).singleLinePaste()
+                LabeledContent(TermindCopy.Common.value.swiftUIKey) {
+                    TextField(
+                        TermindCopy.Settings.headerValue.swiftUIKey, text: $draft.value.singleLineText,
+                        axis: .horizontal
+                    ).singleLinePaste()
                         .lineLimit(1)
                         .focused($focusedField, equals: .value)
                         .multilineTextAlignment(.trailing)
                 }
             } footer: {
-                Text("Custom headers are stored as plain text. For secrets, use the bearer token field above.")
+                Text(TermindCopy.Settings.headerStorageWarning)
             }
         }
         .textInputAutocapitalization(.never)
         .autocorrectionDisabled()
-        .navigationTitle("Custom Header")
+        .navigationTitle(TermindCopy.Settings.customHeader.swiftUIKey)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Done", systemImage: "checkmark") {
+                Button(TermindCopy.Common.done.swiftUIKey, systemImage: "checkmark") {
                     save(draft)
                     dismiss()
                 }

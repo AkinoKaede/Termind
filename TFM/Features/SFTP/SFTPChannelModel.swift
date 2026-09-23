@@ -326,7 +326,7 @@ final class SFTPChannelModel: Identifiable {
         connection.clearHostKeyPrompt()
         guard let host = connectionHost(hostID, using: store) else {
             connection.stopRecovery()
-            let message = String(localized: "The host is no longer available.")
+            let message = String(localized: TermindCopy.Connections.theHostIsNoLongerAvailable)
             status = .failed(message)
             homeResolution = .unavailable
             connectionJourney.fail(message)
@@ -374,7 +374,8 @@ final class SFTPChannelModel: Identifiable {
         status = reconnecting ? .reconnecting : .connecting
         hint =
             reconnecting
-            ? String(localized: "Reconnecting") : String(localized: "Connecting")
+            ? String(localized: TermindCopy.Connections.reconnecting)
+            : String(localized: TermindCopy.Connections.connecting)
         connectionTask = Task { [weak self, weak store] in
             guard let self, let store else { return }
             do {
@@ -631,7 +632,7 @@ final class SFTPChannelModel: Identifiable {
         do {
             let proposed = try await client.homeDirectory()
             guard proposed.trimmingCharacters(in: .whitespacesAndNewlines).hasPrefix("/") else {
-                throw SFTPError.operation("The remote home directory is not absolute.")
+                throw SFTPError.operation(String(localized: TermindCopy.SFTP.homeDirectoryMustBeAbsolute))
             }
             let home = RemotePath.normalized(proposed)
             homeResolution = .resolved(home)
@@ -655,7 +656,7 @@ final class SFTPChannelModel: Identifiable {
         let resolved: String
         if requested == "/~" || requested.hasPrefix("/~/") {
             guard case .resolved(let home) = homeResolution else {
-                operationError = String(localized: "The remote home directory is unavailable.")
+                operationError = String(localized: TermindCopy.SFTP.theRemoteHomeDirectoryIsUnavailable)
                 return
             }
             resolved = requested == "/~" ? home : RemotePath.join(home, String(requested.dropFirst(3)))
@@ -664,7 +665,7 @@ final class SFTPChannelModel: Identifiable {
         }
         do {
             guard let resource = try await client.attributes(at: resolved) else {
-                operationError = String(localized: "The remote file is no longer available.")
+                operationError = String(localized: TermindCopy.SFTP.theRemoteFileIsNoLongerAvailable)
                 return
             }
             if resource.isDirectory {
@@ -675,7 +676,7 @@ final class SFTPChannelModel: Identifiable {
                 return
             }
             guard !externalResourceMustBeDirectory else {
-                operationError = String(localized: "The SFTP link requires a directory, but its path is a file.")
+                operationError = String(localized: TermindCopy.SFTP.theSftpLinkRequiresADirectoryButItsPathIsAFile)
                 path = RemotePath.parent(of: resource.path)
                 pathText = path
                 await reload()
@@ -816,7 +817,7 @@ final class SFTPChannelModel: Identifiable {
         let requestedPath = path
         if !silently {
             isLoading = true
-            hint = String(localized: "Loading")
+            hint = String(localized: TermindCopy.SFTP.loading)
         }
         defer { if !silently { isLoading = false } }
         do {
@@ -826,7 +827,7 @@ final class SFTPChannelModel: Identifiable {
             if !silently {
                 historyStore?.record(kind: .directory, path: requestedPath, for: hostID)
             }
-            hint = String(localized: "\(snapshot.count) items")
+            hint = String(localized: TermindCopy.SFTP.items(snapshot.count))
         } catch let error as SFTPError {
             if case .connectionLost(let message) = error {
                 handleConnectionFailure(message, attemptID: connectionAttemptID)
@@ -896,7 +897,7 @@ final class SFTPChannelModel: Identifiable {
     @discardableResult
     func updatePermissions(for file: RemoteFile, to permissions: UInt32) async -> Bool {
         guard status == .connected, let client else {
-            operationError = String(localized: "The SFTP connection is not available.")
+            operationError = String(localized: TermindCopy.SFTP.theSftpConnectionIsNotAvailable)
             return false
         }
         do {
@@ -922,7 +923,7 @@ final class SFTPChannelModel: Identifiable {
             selection.subtract(files.map(\.id))
             await reload()
         } catch SFTPError.cancelled {
-            hint = String(localized: "Deletion cancelled")
+            hint = String(localized: TermindCopy.SFTP.deletionCancelled)
             isLoading = false
         } catch {
             operationError = error.localizedDescription
@@ -1044,13 +1045,13 @@ final class SFTPChannelModel: Identifiable {
         edits: SFTPEditService? = nil, completion: @escaping (URL) -> Void
     ) {
         guard let client, status == .connected else {
-            operationError = String(localized: "The SFTP connection is not available.")
+            operationError = String(localized: TermindCopy.SFTP.theSftpConnectionIsNotAvailable)
             return
         }
         Task {
             do {
                 guard let file = try await client.attributes(at: path), !file.isDirectory else {
-                    operationError = String(localized: "The remote file is no longer available.")
+                    operationError = String(localized: TermindCopy.SFTP.theRemoteFileIsNoLongerAvailable)
                     return
                 }
                 open(file, coordinator: coordinator, edits: edits, completion: completion)
@@ -1085,7 +1086,7 @@ final class SFTPChannelModel: Identifiable {
             case .failed(let message):
                 completion(SFTPError.operation(message))
             case .queued, .running, .paused:
-                completion(SFTPError.operation("The promised download did not finish."))
+                completion(SFTPError.operation(String(localized: TermindCopy.SFTP.promisedDownloadIncomplete)))
             }
         }
     }
@@ -1233,7 +1234,7 @@ final class SFTPChannelModel: Identifiable {
         self.client = nil
         additionalSnapshot = nil
         status = .reconnecting
-        hint = String(localized: "Reconnecting")
+        hint = String(localized: TermindCopy.Connections.reconnecting)
         let host = connectionHost(hostID, using: store)
         connection.presentReconnectJourney(
             host: host, using: store, purpose: .sftpChannel,

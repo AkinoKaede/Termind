@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 import struct TermindDomain.Host
@@ -133,7 +134,7 @@ final class Workspace: Identifiable {
     /// the group's `customTitle` or "Workspace" instead.
     func title(in store: HostLibraryModel, locale: Locale = .current) -> String {
         if isSplit {
-            return customTitle ?? AppLocalization.string("Workspace", locale: locale)
+            return customTitle ?? AppLocalization.resolve(TermindCopy.Workspace.workspace, locale: locale)
         }
         if let customTitle = focusedPane.customTitle { return customTitle }
         return automaticTitle ?? focusedPane.derivedTitle(in: store, locale: locale)
@@ -142,7 +143,7 @@ final class Workspace: Identifiable {
     func subtitle(in store: HostLibraryModel) -> String? {
         if isSplit {
             let count = panes.count
-            return String(localized: "\(count) panes")
+            return String(localized: TermindCopy.Workspace.panes(count))
         }
         return focusedPane.subtitle(in: store)
     }
@@ -264,7 +265,7 @@ final class Workspace: Identifiable {
             showCommandGenerationFailure(
                 String(
                     localized:
-                        "Command Generator requires every target to be at a supported shell prompt with Shell Integration enabled."
+                        TermindCopy.Workspace.batchCommandGeneratorShellRequirement
                 )
             )
             return
@@ -273,7 +274,7 @@ final class Workspace: Identifiable {
             let shell = origin.integratedShell
         else {
             showCommandGenerationFailure(
-                String(localized: "The focused shell has not reported its current directory.")
+                String(localized: TermindCopy.Workspace.theFocusedShellHasNotReportedItsCurrentDirectory)
             )
             return
         }

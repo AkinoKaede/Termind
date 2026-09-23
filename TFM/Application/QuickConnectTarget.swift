@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -37,10 +38,12 @@ enum QuickConnectResolver {
             let matches = input.isCommand ? library.hosts.filter { $0.name == endpoint.host } : []
             guard matches.count <= 1 else {
                 throw TermindSSHError.route(
-                    AppLocalization.string("More than one saved host is named “\(endpoint.host)”.", locale: locale))
+                    AppLocalization.resolve(
+                        TermindCopy.Connections.moreThanOneSavedHostIsNamed(endpoint.host), locale: locale))
             }
             if matches.isEmpty, endpoint.host.contains(where: \.isWhitespace) {
-                throw TermindSSHError.route(AppLocalization.string("Invalid SSH destination.", locale: locale))
+                throw TermindSSHError.route(
+                    AppLocalization.resolve(TermindCopy.Connections.invalidSshDestination, locale: locale))
             }
             var host = matches.first ?? Host(name: endpoint.host, host: endpoint.host)
             if let original = matches.first { originals[host.id] = original }
@@ -69,7 +72,8 @@ enum QuickConnectResolver {
         var destination = try resolveEndpoint(input.destination)
         if let hostname = input.hostname {
             guard !hostname.contains(where: \.isWhitespace) else {
-                throw TermindSSHError.route(AppLocalization.string("Invalid SSH destination.", locale: locale))
+                throw TermindSSHError.route(
+                    AppLocalization.resolve(TermindCopy.Connections.invalidSshDestination, locale: locale))
             }
             destination.host = hostname
         }
@@ -123,8 +127,8 @@ enum QuickConnectResolver {
         let matches = library.hosts.filter { $0.name == input.destination.host }
         guard matches.count <= 1 else {
             throw TermindSSHError.route(
-                AppLocalization.string(
-                    "More than one saved host is named “\(input.destination.host)”.", locale: locale))
+                AppLocalization.resolve(
+                    TermindCopy.Connections.moreThanOneSavedHostIsNamed(input.destination.host), locale: locale))
         }
         var host =
             matches.first

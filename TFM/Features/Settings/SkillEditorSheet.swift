@@ -50,9 +50,9 @@ struct SkillEditorPage: View {
                         // equals and Delete sits directly under the pointer
                         // after an Export.
                         HStack {
-                            Button("Export") { export(skill) }
+                            Button(TermindCopy.Common.export.swiftUIKey) { export(skill) }
                             Spacer(minLength: Metrics.Space.m)
-                            Button("Delete", role: .destructive) {
+                            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                                 app.skills.delete(id: skillID)
                                 deleted()
                             }
@@ -64,7 +64,7 @@ struct SkillEditorPage: View {
                 .formStyle(.grouped)
                 .frame(maxWidth: .infinity)
             } else {
-                ContentUnavailableView("Skill Deleted", systemImage: "trash")
+                ContentUnavailableView(TermindCopy.Settings.skillDeleted.swiftUIKey, systemImage: "trash")
             }
         }
         .onDisappear { app.skills.lockName(for: skillID) }
@@ -75,25 +75,28 @@ struct SkillEditorPage: View {
     @ViewBuilder
     private func identitySection(_ skill: AgentSkill) -> some View {
         Section {
-            TextField("Title", text: binding(\.title).singleLineText, axis: .horizontal).singleLinePaste().lineLimit(1)
+            TextField(TermindCopy.Common.title.swiftUIKey, text: binding(\.title).singleLineText, axis: .horizontal)
+                .singleLinePaste().lineLimit(1)
 
             if isNameLocked {
-                LabeledContent("Name") {
+                LabeledContent(TermindCopy.Common.name.swiftUIKey) {
                     Text(skill.name)
                         .font(.callout.monospaced())
                         .textSelection(.enabled)
                 }
             } else {
-                LabeledContent("Name") {
-                    Text(derivedName.isEmpty ? String(localized: "Derived from the title") : derivedName)
-                        .font(.callout.monospaced())
-                        .foregroundStyle(derivedName.isEmpty ? .secondary : .primary)
-                        .textSelection(.enabled)
+                LabeledContent(TermindCopy.Common.name.swiftUIKey) {
+                    Text(
+                        derivedName.isEmpty ? String(localized: TermindCopy.Settings.derivedFromTheTitle) : derivedName
+                    )
+                    .font(.callout.monospaced())
+                    .foregroundStyle(derivedName.isEmpty ? .secondary : .primary)
+                    .textSelection(.enabled)
                 }
             }
 
             Toggle(
-                "Enabled",
+                TermindCopy.Common.enabled.swiftUIKey,
                 isOn: Binding(
                     get: { skill.isEnabled && skill.isComplete },
                     set: { app.skills.setEnabled($0, for: skillID) }
@@ -106,25 +109,30 @@ struct SkillEditorPage: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             } else if hasNameConflict {
-                TextField("Name", text: $replacementName.singleLineText).singleLinePaste()
-                Button("Rename") { app.skills.renameConflictingSkill(skillID, to: replacementName) }
-                    .disabled(
-                        !AgentSkillNaming.isValid(replacementName)
-                            || app.skills.hasNameConflict(replacementName, excluding: skillID))
-                Label("Another skill already uses this name.", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption)
-                    .foregroundStyle(.orange)
+                TextField(TermindCopy.Common.name.swiftUIKey, text: $replacementName.singleLineText).singleLinePaste()
+                Button(TermindCopy.Common.rename.swiftUIKey) {
+                    app.skills.renameConflictingSkill(skillID, to: replacementName)
+                }
+                .disabled(
+                    !AgentSkillNaming.isValid(replacementName)
+                        || app.skills.hasNameConflict(replacementName, excluding: skillID))
+                Label(
+                    TermindCopy.Settings.anotherSkillAlreadyUsesThisName.swiftUIKey,
+                    systemImage: "exclamationmark.triangle.fill"
+                )
+                .font(.caption)
+                .foregroundStyle(.orange)
             }
 
             if !skill.importedFrom.isEmpty {
-                LabeledContent("Imported From") {
+                LabeledContent(TermindCopy.Settings.importedFrom.swiftUIKey) {
                     Text(skill.importedFrom)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         } header: {
-            Text("Skill")
+            Text(TermindCopy.Settings.skill)
         }
     }
 
@@ -138,7 +146,7 @@ struct SkillEditorPage: View {
 
             HStack {
                 Text(
-                    "What this does and when to use it. This is the only part the assistant sees until it loads the skill, so it decides whether the skill is used at all."
+                    TermindCopy.Settings.skillDescriptionExplanation
                 )
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -154,7 +162,7 @@ struct SkillEditorPage: View {
                     )
             }
         } header: {
-            Text("Description")
+            Text(TermindCopy.Settings.description)
         }
     }
 
@@ -167,7 +175,7 @@ struct SkillEditorPage: View {
                 .scrollContentBackground(.hidden)
 
             HStack {
-                Text("Markdown. Returned whole when the assistant loads this skill.")
+                Text(TermindCopy.Settings.skillBodyExplanation)
                     .font(.caption)
                     .foregroundStyle(.secondary)
 
@@ -175,7 +183,7 @@ struct SkillEditorPage: View {
 
                 if skill.body.utf8.count > AgentSkill.maximumBodyBytes {
                     Label(
-                        "Longer than \(DataSizeFormat.bytes(AgentSkill.maximumBodyBytes)).",
+                        TermindCopy.Settings.longerThan(DataSizeFormat.bytes(AgentSkill.maximumBodyBytes)).swiftUIKey,
                         systemImage: "exclamationmark.triangle.fill"
                     )
                     .font(.caption)
@@ -183,7 +191,7 @@ struct SkillEditorPage: View {
                 }
             }
         } header: {
-            Text("Instructions")
+            Text(TermindCopy.Settings.instructions)
         }
     }
 

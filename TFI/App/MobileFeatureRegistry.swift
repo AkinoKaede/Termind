@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 /// One top-level mobile destination.
 @MainActor
@@ -6,13 +7,13 @@ struct MobileFeatureRegistration: Identifiable {
     typealias Builder = (MobileAppModel, MobileSceneModel) -> AnyView
 
     let id: MobileDestination
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let symbol: String
     private let builder: Builder
 
     init(
         id: MobileDestination,
-        title: LocalizedStringKey,
+        title: LocalizedStringResource,
         symbol: String,
         builder: @escaping Builder
     ) {
@@ -52,7 +53,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .vault,
-                title: "Vault",
+                title: TermindCopy.Navigation.vault,
                 symbol: "server.rack"
             ) { app, scene in
                 AnyView(
@@ -73,7 +74,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .metrics,
-                title: "Metrics",
+                title: TermindCopy.Navigation.metrics,
                 symbol: "waveform.path.ecg"
             ) { app, _ in
                 AnyView(MobileMetricsView(app: app))
@@ -82,7 +83,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .workspaces,
-                title: "Workspaces",
+                title: TermindCopy.Navigation.workspaces,
                 symbol: "terminal"
             ) { app, scene in
                 AnyView(MobileWorkspaceListView(app: app, scene: scene))
@@ -91,7 +92,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .assistant,
-                title: "Assistant",
+                title: TermindCopy.Navigation.assistant,
                 symbol: "sparkles"
             ) { app, scene in
                 AnyView(
@@ -108,7 +109,7 @@ struct MobileFeatureRegistry {
         registry.register(
             MobileFeatureRegistration(
                 id: .settings,
-                title: "Settings",
+                title: TermindCopy.Navigation.settings,
                 symbol: "gearshape"
             ) { app, scene in
                 AnyView(MobileSettingsView(app: app, reviewScene: scene))

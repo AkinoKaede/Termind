@@ -78,8 +78,8 @@ struct HostEditorView: View {
                     .transition(.move(edge: .trailing))
             } else {
                 VaultDetailScaffold(
-                    title: hostID == nil ? "New Host" : "Edit Host",
-                    symbol: "server.rack", close: cancel, closeLabel: "Cancel"
+                    title: hostID == nil ? TermindCopy.Vault.newHost : TermindCopy.Vault.editHost,
+                    symbol: "server.rack", close: cancel, closeLabel: TermindCopy.Common.cancel
                 ) {
                     VStack(spacing: 0) {
                         HostProtocolProfileControls(protocol: $selectedProtocol)
@@ -114,37 +114,37 @@ struct HostEditorView: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            "Delete Host?", isPresented: $confirmsDeletion,
+            TermindCopy.Vault.deleteHostConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
-            Button("Delete", role: .destructive) {
+            Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                 guard let hostID else { return }
                 app.requestHostDeletion(hostID)
                 closeTab()
             }
-            Button("Cancel", role: .cancel) {}
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text("Open connections and references to this host will be removed.")
+            Text(TermindCopy.Vault.deleteHostWarning)
         }
     }
 
     private var form: some View {
         Form {
             HostOrganizationSection(host: $draft) {
-                Picker("Group", selection: groupChoice) {
-                    Text("None").tag(Choice<HostGroup.ID>.unset)
+                Picker(TermindCopy.Vault.group.swiftUIKey, selection: groupChoice) {
+                    Text(TermindCopy.Common.none).tag(Choice<HostGroup.ID>.unset)
                     ForEach(app.hostLibrary.groups) { group in
                         Text(group.name).tag(Choice.existing(group.id))
                     }
                     Divider()
-                    Text("New Group").tag(Choice<HostGroup.ID>.new)
+                    Text(TermindCopy.Vault.newGroup).tag(Choice<HostGroup.ID>.new)
                 }
             } tagsField: {
                 // Full width rather than a `LabeledContent`, which would squeeze
                 // the chips, the field, and the dropdown into the trailing half
                 // of the row.
                 VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                    Text("Tags")
+                    Text(TermindCopy.Vault.tags)
                     TagField(tags: $draft.tags, suggestions: app.hostLibrary.allTags)
                 }
             }
@@ -152,7 +152,7 @@ struct HostEditorView: View {
             HostConnectionFields(host: $draft, protocol: $selectedProtocol)
 
             if selectedProtocol == .ssh && draft.sshEnabled {
-                Section("Authentication") {
+                Section(TermindCopy.Vault.authentication.swiftUIKey) {
                     // One control, because a host says *where* and an identity says
                     // *who*. The login name and the secret travel together — a
                     // fleet shares one `deploy` account, and typing that name into
@@ -163,26 +163,32 @@ struct HostEditorView: View {
                     // container, which the App Sandbox does not grant. Offering the
                     // mode and then failing at connect time would be worse than not
                     // offering it.
-                    Picker("Identity", selection: identityChoice) {
-                        Text("Custom").tag(Choice<Identity.ID>.unset)
+                    Picker(TermindCopy.Vault.identity.swiftUIKey, selection: identityChoice) {
+                        Text(TermindCopy.Vault.custom).tag(Choice<Identity.ID>.unset)
                         Divider()
                         ForEach(app.hostLibrary.reusableIdentities) { identity in
                             Text("\(identity.name) · \(identity.username)")
                                 .tag(Choice.existing(identity.id))
                         }
                         Divider()
-                        Text("New Identity").tag(Choice<Identity.ID>.new)
+                        Text(TermindCopy.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
                     }
 
                     if usesCustomIdentity {
-                        TextField("Username", text: $customIdentity.sshUsername.singleLineText, axis: .horizontal)
-                            .singleLinePaste().lineLimit(1)
-                            .padding(.leading, Metrics.Space.xxl)
-                        RevealableSecretField("Password", text: $customIdentity.sshPassword, prompt: Text("Optional"))
-                            .padding(.leading, Metrics.Space.xxl)
-                            .disabled(!customIdentity.sshPasswordIsEditable)
-                        Picker("Key", selection: $customIdentity.sshKeyID) {
-                            Text("None").tag(SSHKeyRef.ID?.none)
+                        TextField(
+                            TermindCopy.Vault.username.swiftUIKey, text: $customIdentity.sshUsername.singleLineText,
+                            axis: .horizontal
+                        )
+                        .singleLinePaste().lineLimit(1)
+                        .padding(.leading, Metrics.Space.xxl)
+                        RevealableSecretField(
+                            TermindCopy.Vault.password, text: $customIdentity.sshPassword,
+                            prompt: Text(TermindCopy.Common.optional)
+                        )
+                        .padding(.leading, Metrics.Space.xxl)
+                        .disabled(!customIdentity.sshPasswordIsEditable)
+                        Picker(TermindCopy.Vault.key.swiftUIKey, selection: $customIdentity.sshKeyID) {
+                            Text(TermindCopy.Common.none).tag(SSHKeyRef.ID?.none)
                             ForEach(app.hostLibrary.keys) { key in
                                 Text(key.label).tag(SSHKeyRef.ID?.some(key.id))
                             }
@@ -192,9 +198,9 @@ struct HostEditorView: View {
 
                 }
 
-                Section("Routing") {
-                    Picker("Jump Host", selection: $draft.jumpHostID) {
-                        Text("None").tag(Host.ID?.none)
+                Section(TermindCopy.Vault.routing.swiftUIKey) {
+                    Picker(TermindCopy.Vault.jumpHost.swiftUIKey, selection: $draft.jumpHostID) {
+                        Text(TermindCopy.Common.none).tag(Host.ID?.none)
                         Divider()
                         ForEach(jumpHostSections) { section in
                             Section(section.title) {
@@ -206,58 +212,68 @@ struct HostEditorView: View {
                         }
                     }
 
-                    Picker("Proxy", selection: proxyKind) {
-                        Text("None").tag(HostProxy.ProtocolKind?.none)
+                    Picker(TermindCopy.Vault.proxy.swiftUIKey, selection: proxyKind) {
+                        Text(TermindCopy.Common.none).tag(HostProxy.ProtocolKind?.none)
                         ForEach(HostProxy.ProtocolKind.allCases) { kind in
                             Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
                         }
                     }
 
                     if draft.proxy != nil {
-                        TextField("Hostname", text: proxyString(\.hostname).singleLineText, axis: .horizontal)
-                            .singleLinePaste().lineLimit(1)
-                            .padding(.leading, Metrics.Space.xxl)
-                            .accessibilityLabel("Proxy Hostname")
                         TextField(
-                            "Port", value: proxyInt(\.port),
+                            TermindCopy.Vault.hostname.swiftUIKey, text: proxyString(\.hostname).singleLineText,
+                            axis: .horizontal
+                        )
+                        .singleLinePaste().lineLimit(1)
+                        .padding(.leading, Metrics.Space.xxl)
+                        .accessibilityLabel(TermindCopy.Vault.proxyHostname.swiftUIKey)
+                        TextField(
+                            TermindCopy.Common.port.swiftUIKey, value: proxyInt(\.port),
                             format: .number.grouping(.never)
                         ).lineLimit(1)
                             .padding(.leading, Metrics.Space.xxl)
-                            .accessibilityLabel("Proxy Port")
-                        Picker("Identity", selection: proxyIdentityChoice) {
-                            Text("None").tag(Choice<Identity.ID>.unset)
-                            Text("Custom").tag(Choice<Identity.ID>.custom)
+                            .accessibilityLabel(TermindCopy.Vault.proxyPort.swiftUIKey)
+                        Picker(TermindCopy.Vault.identity.swiftUIKey, selection: proxyIdentityChoice) {
+                            Text(TermindCopy.Common.none).tag(Choice<Identity.ID>.unset)
+                            Text(TermindCopy.Vault.custom).tag(Choice<Identity.ID>.custom)
                             Divider()
                             ForEach(proxyIdentities) { identity in
                                 Text("\(identity.name) · \(identity.username)")
                                     .tag(Choice.existing(identity.id))
                             }
                             Divider()
-                            Text("New Identity").tag(Choice<Identity.ID>.new)
+                            Text(TermindCopy.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
                         }
                         .padding(.leading, Metrics.Space.xxl)
-                        .accessibilityLabel("Proxy Identity")
+                        .accessibilityLabel(TermindCopy.Vault.proxyIdentity.swiftUIKey)
                         if customIdentity.usesCustomProxy {
-                            TextField("Username", text: proxyString(\.username).singleLineText, axis: .horizontal)
-                                .singleLinePaste().lineLimit(1)
-                                .padding(.leading, Metrics.Space.xxl)
-                                .accessibilityLabel("Proxy Username")
+                            TextField(
+                                TermindCopy.Vault.username.swiftUIKey, text: proxyString(\.username).singleLineText,
+                                axis: .horizontal
+                            )
+                            .singleLinePaste().lineLimit(1)
+                            .padding(.leading, Metrics.Space.xxl)
+                            .accessibilityLabel(TermindCopy.Vault.proxyUsername.swiftUIKey)
                             RevealableSecretField(
-                                "Password", text: $customIdentity.proxyPassword, prompt: Text("Required")
+                                TermindCopy.Vault.password, text: $customIdentity.proxyPassword,
+                                prompt: Text(TermindCopy.Vault.required)
                             )
                             .padding(.leading, Metrics.Space.xxl)
                             .disabled(!customIdentity.proxyPasswordIsEditable)
                         } else if draft.proxy?.identityID != nil {
-                            TextField("Username", text: proxyString(\.username).singleLineText, axis: .horizontal)
-                                .singleLinePaste()
-                                .lineLimit(1)
-                                .padding(.leading, Metrics.Space.xxl)
-                                .accessibilityLabel("Proxy Username")
+                            TextField(
+                                TermindCopy.Vault.username.swiftUIKey, text: proxyString(\.username).singleLineText,
+                                axis: .horizontal
+                            )
+                            .singleLinePaste()
+                            .lineLimit(1)
+                            .padding(.leading, Metrics.Space.xxl)
+                            .accessibilityLabel(TermindCopy.Vault.proxyUsername.swiftUIKey)
                         }
                     }
 
                     if !draft.host.trimmingCharacters(in: .whitespaces).isEmpty {
-                        LabeledContent("Route") {
+                        LabeledContent(TermindCopy.Vault.route.swiftUIKey) {
                             Text(app.hostLibrary.routeSummary(for: draft))
                                 .font(.caption.monospaced())
                                 .foregroundStyle(.secondary)
@@ -276,18 +292,18 @@ struct HostEditorView: View {
                     editEnvironmentVariable: { route = .environmentVariable($0) }
                 )
 
-                Section("Port Forwarding") {
+                Section(TermindCopy.Navigation.portForwarding.swiftUIKey) {
                     Stepper(
                         value: $draft.portForwardingMaxConnections,
                         in: Host.portForwardingMaxConnectionsRange
                     ) {
                         HStack {
-                            Text("Max Connections")
+                            Text(TermindCopy.Vault.maxConnections)
                             Spacer()
                             Text(draft.portForwardingMaxConnections, format: .number).monospacedDigit()
                         }
                     }
-                    Text("Local and dynamic forwards share this connection pool. Changes apply after restart.")
+                    Text(TermindCopy.Vault.forwardingPoolExplanation)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -295,7 +311,7 @@ struct HostEditorView: View {
                 HostIntegrationSection(mode: $draft.shellIntegrationMode)
 
                 if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Section("SSH Command") {
+                    Section(TermindCopy.Vault.sshCommand.swiftUIKey) {
                         if let command = app.hostLibrary.sshCommand(for: draft) {
                             HStack(spacing: Metrics.Space.s) {
                                 Text(command)
@@ -310,11 +326,11 @@ struct HostEditorView: View {
                                     Image(systemName: "doc.on.doc")
                                 }
                                 .buttonStyle(.borderless)
-                                .accessibilityLabel("Copy SSH Command")
+                                .accessibilityLabel(TermindCopy.Vault.copySshCommand.swiftUIKey)
                             }
                         } else {
                             Label(
-                                "OpenSSH commands are unavailable for routes using an HTTP or SOCKS5 proxy.",
+                                TermindCopy.Vault.unsupportedProxyCommand.swiftUIKey,
                                 systemImage: "info.circle"
                             )
                             .font(.caption)
@@ -325,8 +341,8 @@ struct HostEditorView: View {
             } else if selectedProtocol == .telnet && draft.telnetEnabled {
                 telnetAuthenticationSection
                 telnetRoutingSection
-                Section("Session") {
-                    Picker("Charset", selection: $draft.telnetCharset) {
+                Section(TermindCopy.Vault.session.swiftUIKey) {
+                    Picker(TermindCopy.Vault.charset.swiftUIKey, selection: $draft.telnetCharset) {
                         ForEach(RemoteCharset.allCases) { charset in
                             Text(charset.displayName).tag(charset)
                         }
@@ -341,57 +357,66 @@ struct HostEditorView: View {
     }
 
     private var telnetAuthenticationSection: some View {
-        Section("Authentication") {
-            Picker("Identity", selection: telnetIdentityChoice) {
-                Text("None").tag(Choice<Identity.ID>.unset)
-                Text("Custom").tag(Choice<Identity.ID>.custom)
+        Section(TermindCopy.Vault.authentication.swiftUIKey) {
+            Picker(TermindCopy.Vault.identity.swiftUIKey, selection: telnetIdentityChoice) {
+                Text(TermindCopy.Common.none).tag(Choice<Identity.ID>.unset)
+                Text(TermindCopy.Vault.custom).tag(Choice<Identity.ID>.custom)
                 Divider()
                 ForEach(telnetIdentities) { identity in
                     Text("\(identity.name) · \(identity.username)").tag(Choice.existing(identity.id))
                 }
                 Divider()
-                Text("New Identity").tag(Choice<Identity.ID>.new)
+                Text(TermindCopy.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
             }
             if customIdentity.usesCustomTelnet(for: draft) {
-                TextField("Username", text: $customIdentity.telnetUsername.singleLineText, axis: .horizontal)
-                    .singleLinePaste().lineLimit(1).padding(.leading, Metrics.Space.xxl)
-                RevealableSecretField("Password", text: $customIdentity.telnetPassword, prompt: Text("Required"))
-                    .padding(.leading, Metrics.Space.xxl)
-                    .disabled(!customIdentity.telnetPasswordIsEditable)
+                TextField(
+                    TermindCopy.Vault.username.swiftUIKey, text: $customIdentity.telnetUsername.singleLineText,
+                    axis: .horizontal
+                )
+                .singleLinePaste().lineLimit(1).padding(.leading, Metrics.Space.xxl)
+                RevealableSecretField(
+                    TermindCopy.Vault.password, text: $customIdentity.telnetPassword,
+                    prompt: Text(TermindCopy.Vault.required)
+                )
+                .padding(.leading, Metrics.Space.xxl)
+                .disabled(!customIdentity.telnetPasswordIsEditable)
             }
         }
     }
 
     @ViewBuilder
     private var telnetRoutingSection: some View {
-        Section("Routing") {
-            Picker("Proxy", selection: telnetProxyKind) {
-                Text("None").tag(HostProxy.ProtocolKind?.none)
+        Section(TermindCopy.Vault.routing.swiftUIKey) {
+            Picker(TermindCopy.Vault.proxy.swiftUIKey, selection: telnetProxyKind) {
+                Text(TermindCopy.Common.none).tag(HostProxy.ProtocolKind?.none)
                 ForEach(HostProxy.ProtocolKind.allCases) { kind in
                     Text(kind.displayName).tag(HostProxy.ProtocolKind?.some(kind))
                 }
             }
             if draft.telnetProxy != nil {
-                TextField("Hostname", text: telnetProxyString(\.hostname).singleLineText)
+                TextField(TermindCopy.Vault.hostname.swiftUIKey, text: telnetProxyString(\.hostname).singleLineText)
                     .singleLinePaste().lineLimit(1).padding(.leading, Metrics.Space.xxl)
-                TextField("Port", value: telnetProxyInt(\.port), format: .number.grouping(.never))
-                    .lineLimit(1).padding(.leading, Metrics.Space.xxl)
-                Picker("Identity", selection: telnetProxyIdentityChoice) {
-                    Text("None").tag(Choice<Identity.ID>.unset)
-                    Text("Custom").tag(Choice<Identity.ID>.custom)
+                TextField(
+                    TermindCopy.Common.port.swiftUIKey, value: telnetProxyInt(\.port), format: .number.grouping(.never)
+                )
+                .lineLimit(1).padding(.leading, Metrics.Space.xxl)
+                Picker(TermindCopy.Vault.identity.swiftUIKey, selection: telnetProxyIdentityChoice) {
+                    Text(TermindCopy.Common.none).tag(Choice<Identity.ID>.unset)
+                    Text(TermindCopy.Vault.custom).tag(Choice<Identity.ID>.custom)
                     Divider()
                     ForEach(telnetIdentities) { identity in
                         Text("\(identity.name) · \(identity.username)").tag(Choice.existing(identity.id))
                     }
                     Divider()
-                    Text("New Identity").tag(Choice<Identity.ID>.new)
+                    Text(TermindCopy.Keychain.newIdentity).tag(Choice<Identity.ID>.new)
                 }
                 .padding(.leading, Metrics.Space.xxl)
                 if customIdentity.usesCustomTelnetProxy {
-                    TextField("Username", text: telnetProxyString(\.username).singleLineText)
+                    TextField(TermindCopy.Vault.username.swiftUIKey, text: telnetProxyString(\.username).singleLineText)
                         .singleLinePaste().lineLimit(1).padding(.leading, Metrics.Space.xxl)
                     RevealableSecretField(
-                        "Password", text: $customIdentity.telnetProxyPassword, prompt: Text("Required")
+                        TermindCopy.Vault.password, text: $customIdentity.telnetProxyPassword,
+                        prompt: Text(TermindCopy.Vault.required)
                     )
                     .padding(.leading, Metrics.Space.xxl)
                     .disabled(!customIdentity.telnetProxyPasswordIsEditable)
@@ -403,7 +428,7 @@ struct HostEditorView: View {
     @ViewBuilder
     private var telnetCommandSection: some View {
         if !draft.host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            Section("Telnet Command") {
+            Section(TermindCopy.Vault.telnetCommand.swiftUIKey) {
                 let command = app.hostLibrary.telnetCommand(for: draft)
                 HStack(spacing: Metrics.Space.s) {
                     Text(command)
@@ -414,7 +439,7 @@ struct HostEditorView: View {
                     } label: {
                         Image(systemName: "doc.on.doc")
                     }
-                    .buttonStyle(.borderless).accessibilityLabel("Copy Telnet Command")
+                    .buttonStyle(.borderless).accessibilityLabel(TermindCopy.Vault.copyTelnetCommand.swiftUIKey)
                 }
             }
         }
@@ -617,7 +642,7 @@ struct HostEditorView: View {
             result.append(
                 JumpHostSection(
                     id: .ungrouped,
-                    title: String(localized: "Ungrouped"),
+                    title: String(localized: TermindCopy.Common.ungrouped),
                     hosts: ungrouped
                 )
             )
@@ -737,7 +762,7 @@ struct HostEditorView: View {
     private var footer: some View {
         HStack(spacing: Metrics.Space.m) {
             if hostID != nil {
-                Button("Delete", role: .destructive) {
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                     confirmsDeletion = true
                 }
             }
@@ -748,8 +773,8 @@ struct HostEditorView: View {
                     .lineLimit(2)
             }
             Spacer()
-            Button("Cancel", action: cancel)
-            Button("Save") { saveAndClose() }
+            Button(TermindCopy.Common.cancel.swiftUIKey, action: cancel)
+            Button(TermindCopy.Common.save.swiftUIKey) { saveAndClose() }
                 .buttonStyle(.borderedProminent)
                 .keyboardShortcut(.defaultAction)
                 .disabled(!isValid)
@@ -799,7 +824,7 @@ struct HostEditorView: View {
     private func commitChanges() -> Bool {
         guard isDirty else { return true }
         guard isValid else {
-            saveError = String(localized: "Complete all required fields before saving.")
+            saveError = String(localized: TermindCopy.Common.completeAllRequiredFieldsBeforeSaving)
             return false
         }
         let initialPath = draft.sftpChannelInitialPath.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -854,22 +879,23 @@ private struct HostEnvironmentVariableEditor: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: original == nil ? "New Environment Variable" : "Edit Environment Variable",
+            title: original == nil
+                ? TermindCopy.Vault.newEnvironmentVariable : TermindCopy.Vault.editEnvironmentVariable,
             symbol: "text.line.first.and.arrowtriangle.forward", close: back,
-            closeLabel: "Back", closeSymbol: "chevron.backward"
+            closeLabel: TermindCopy.Common.back, closeSymbol: "chevron.backward"
         ) {
             Form {
                 Section {
-                    LabeledContent("Variable") {
-                        TextField("Variable", text: $draft.variable.singleLineText)
+                    LabeledContent(TermindCopy.Vault.variable.swiftUIKey) {
+                        TextField(TermindCopy.Vault.variable.swiftUIKey, text: $draft.variable.singleLineText)
                             .singleLinePaste()
                             .lineLimit(1)
                             .labelsHidden()
                             .multilineTextAlignment(.trailing)
                             .font(.body.monospaced())
                     }
-                    LabeledContent("Value") {
-                        TextField("Value", text: $draft.value.singleLineText)
+                    LabeledContent(TermindCopy.Common.value.swiftUIKey) {
+                        TextField(TermindCopy.Common.value.swiftUIKey, text: $draft.value.singleLineText)
                             .singleLinePaste()
                             .lineLimit(1)
                             .labelsHidden()
@@ -882,8 +908,8 @@ private struct HostEnvironmentVariableEditor: View {
         } footer: {
             HStack {
                 Spacer()
-                Button("Cancel", action: back).keyboardShortcut(.cancelAction)
-                Button(original == nil ? "Add" : "Save") {
+                Button(TermindCopy.Common.cancel.swiftUIKey, action: back).keyboardShortcut(.cancelAction)
+                Button(original == nil ? TermindCopy.Common.add.swiftUIKey : TermindCopy.Common.save.swiftUIKey) {
                     save(draft)
                     back()
                 }

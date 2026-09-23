@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 struct OnboardingCoachMark: View {
     let presentation: OnboardingPresentation
@@ -33,13 +34,13 @@ struct OnboardingCoachMark: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                .help(Text("Dismiss"))
-                .accessibilityLabel(Text("Dismiss onboarding tip"))
+                .help(Text(TermindCopy.Onboarding.dismiss))
+                .accessibilityLabel(Text(TermindCopy.Onboarding.dismissOnboardingTip))
             }
 
             HStack {
                 if presentation.mode == .preview {
-                    Text(verbatim: "Developer Preview")
+                    Text(TermindCopy.Onboarding.developerPreview)
                         .font(.caption.weight(.medium))
                         .foregroundStyle(.orange)
                 }
@@ -62,51 +63,51 @@ struct OnboardingCoachMark: View {
             reduceMotion ? .opacity : .opacity.combined(with: .scale(scale: 0.97))
         )
         .accessibilityElement(children: .contain)
-        .accessibilityLabel(Text("Onboarding: \(title)"))
+        .accessibilityLabel(Text(TermindCopy.Onboarding.onboarding(title)))
     }
 
     private var title: String {
         switch presentation.step {
-        case .quickOpen: String(localized: "Quickly open anything")
-        case .statusBarPath: String(localized: "Your current path is an action")
-        case .commandGenerator: String(localized: "Generate a command with AI")
+        case .quickOpen: String(localized: TermindCopy.Onboarding.quicklyOpenAnything)
+        case .statusBarPath: String(localized: TermindCopy.Onboarding.yourCurrentPathIsAnAction)
+        case .commandGenerator: String(localized: TermindCopy.Onboarding.generateACommandWithAi)
         }
     }
 
     private var detail: String {
         switch presentation.step {
         case .quickOpen:
-            String(localized: "Press ⌘P to search pages, workspaces, hosts, and commands.")
+            String(localized: TermindCopy.Onboarding.pressPToSearchPagesWorkspacesHostsAndCommands)
         case .statusBarPath:
             switch presentation.pathDirection {
             case .sshToSFTP:
                 String(
                     localized:
-                        "Click the path to open this directory with SFTP. Right-click to copy it or open it in a new workspace."
+                        TermindCopy.SFTP.sftpPathExplanation
                 )
             case .sftpToSSH:
                 String(
                     localized:
-                        "Click the path to open this directory with SSH. Right-click to copy it or open it in a new workspace."
+                        TermindCopy.Onboarding.sshPathExplanation
                 )
             case nil:
                 String(
                     localized:
-                        "Click the path to open the same directory in another session. Right-click for more options.")
+                        TermindCopy.Onboarding.pathNavigationExplanation)
             }
         case .commandGenerator:
             String(
                 localized:
-                    "Type what you want to do at the shell prompt, then press ⌘I. The generated command is inserted but never run automatically."
+                    TermindCopy.Onboarding.commandGeneratorExplanation
             )
         }
     }
 
     private var actionTitle: String {
         switch presentation.step {
-        case .quickOpen: String(localized: "Try It")
-        case .statusBarPath: String(localized: "Open It")
-        case .commandGenerator: String(localized: "Got It")
+        case .quickOpen: String(localized: TermindCopy.Onboarding.tryIt)
+        case .statusBarPath: String(localized: TermindCopy.Onboarding.openIt)
+        case .commandGenerator: String(localized: TermindCopy.Onboarding.gotIt)
         }
     }
 

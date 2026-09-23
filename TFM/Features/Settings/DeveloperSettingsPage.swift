@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 
 struct DeveloperSettingsPage: View {
     @Environment(AppModel.self) private var app
@@ -16,24 +17,21 @@ struct DeveloperSettingsPage: View {
                     Button {
                         app.onboarding.cancelPreview()
                     } label: {
-                        Text(verbatim: "Cancel Preview")
+                        Text(TermindCopy.Onboarding.cancelPreview)
                     }
                 }
 
                 Button(role: .destructive) {
                     app.onboarding.resetAll()
                 } label: {
-                    Text(verbatim: "Reset All Onboarding")
+                    Text(TermindCopy.Onboarding.resetAll)
                 }
 
-                Text(
-                    verbatim: "Preview bypasses completion and ordering but waits for a real "
-                        + "eligible context. Preview actions never change completion state."
-                )
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                Text(TermindCopy.Onboarding.previewExplanation)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             } header: {
-                Text(verbatim: "Onboarding")
+                Text(TermindCopy.Onboarding.title)
             }
         }
         .formStyle(.grouped)
@@ -45,8 +43,8 @@ struct DeveloperSettingsPage: View {
         return VStack(alignment: .leading, spacing: Metrics.Space.s) {
             HStack {
                 VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                    Text(verbatim: step.title)
-                    Text(verbatim: status.label)
+                    Text(step.title)
+                    Text(status.label)
                         .font(.caption)
                         .foregroundStyle(onboardingStatusColor(status))
                 }
@@ -54,17 +52,17 @@ struct DeveloperSettingsPage: View {
                 Button {
                     app.onboarding.preview(step)
                 } label: {
-                    Text(verbatim: "Preview")
+                    Text(TermindCopy.Onboarding.preview)
                 }
                 Button {
                     app.onboarding.reset(step)
                 } label: {
-                    Text(verbatim: "Reset")
+                    Text(TermindCopy.Onboarding.reset)
                 }
             }
 
             if case .waitingForContext(let reason) = status {
-                Text(verbatim: reason)
+                Text(reason)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }

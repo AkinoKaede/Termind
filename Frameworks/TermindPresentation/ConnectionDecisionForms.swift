@@ -89,7 +89,7 @@ public struct SSHAuthenticationForm: View {
         return library.passwordAvailability(for: selectedIdentity) != .available
     }
 
-    private var title: LocalizedStringKey {
+    private var title: LocalizedStringResource {
         if needsPassphrase { return "Passphrase required" }
         if prompt.isProxy { return "Proxy authentication required" }
         return prompt.mode == .localIdentity
@@ -143,19 +143,19 @@ public struct SSHAuthenticationForm: View {
             Grid(alignment: .leading, horizontalSpacing: 12, verticalSpacing: 10) {
                 if needsPassphrase {
                     GridRow {
-                        Text("Passphrase").foregroundStyle(.secondary)
+                        Text(TermindCopy.Keychain.passphrase).foregroundStyle(.secondary)
                         RevealableSecretField("Required for this connection", text: $passphrase)
                             .focused($focusedField, equals: .passphrase)
                     }
                 } else {
                     GridRow {
-                        Text("Identity").foregroundStyle(.secondary)
+                        Text(TermindCopy.Vault.identity).foregroundStyle(.secondary)
                         fullWidthMenu(title: identityLabel) {
                             Button {
                                 identitySelection.wrappedValue = nil
                             } label: {
                                 selectionMenuLabel(
-                                    String(localized: "Custom"), selected: identityID == nil
+                                    String(localized: TermindCopy.Vault.custom), selected: identityID == nil
                                 )
                             }
                             Divider()
@@ -172,25 +172,32 @@ public struct SSHAuthenticationForm: View {
                         }
                     }
                     GridRow {
-                        Text(prompt.isProxy ? "Proxy Username" : "Username").foregroundStyle(.secondary)
-                        TextField("Username", text: usernameInput.singleLineText, axis: .horizontal)
-                            .singleLinePaste().lineLimit(1)
-                            .focused($focusedField, equals: .username)
+                        Text(prompt.isProxy ? TermindCopy.Vault.proxyUsername : TermindCopy.Vault.username)
+                            .foregroundStyle(.secondary)
+                        TextField(
+                            TermindCopy.Vault.username.swiftUIKey, text: usernameInput.singleLineText, axis: .horizontal
+                        )
+                        .singleLinePaste().lineLimit(1)
+                        .focused($focusedField, equals: .username)
                     }
                     GridRow {
-                        Text("Password").foregroundStyle(.secondary)
-                        RevealableSecretField(prompt.isProxy ? "Required" : "Optional", text: passwordInput)
-                            .focused($focusedField, equals: .password)
-                            .disabled(selectedIdentityPasswordIsUnavailable)
+                        Text(TermindCopy.Vault.password).foregroundStyle(.secondary)
+                        RevealableSecretField(
+                            prompt.isProxy ? TermindCopy.Vault.required : TermindCopy.Common.optional,
+                            text: passwordInput
+                        )
+                        .focused($focusedField, equals: .password)
+                        .disabled(selectedIdentityPasswordIsUnavailable)
                     }
                     if !prompt.isProxy {
                         GridRow {
-                            Text("Key").foregroundStyle(.secondary)
+                            Text(TermindCopy.Vault.key).foregroundStyle(.secondary)
                             fullWidthMenu(title: keyLabel) {
                                 Button {
                                     keySelection.wrappedValue = nil
                                 } label: {
-                                    selectionMenuLabel(String(localized: "None"), selected: keyID == nil)
+                                    selectionMenuLabel(
+                                        String(localized: TermindCopy.Common.none), selected: keyID == nil)
                                 }
                                 if !library.keys.isEmpty { Divider() }
                                 ForEach(library.keys) { key in
@@ -261,7 +268,7 @@ public struct SSHAuthenticationForm: View {
     }
 
     private var cancelButton: some View {
-        Button(action: cancel) { ConnectionActionLabel(title: "Cancel", symbol: "xmark") }
+        Button(action: cancel) { ConnectionActionLabel(title: TermindCopy.Common.cancel, symbol: "xmark") }
             .keyboardShortcut(.cancelAction)
     }
 
@@ -269,7 +276,7 @@ public struct SSHAuthenticationForm: View {
         Button {
             commit(save: false)
         } label: {
-            ConnectionActionLabel(title: "Continue", symbol: "arrow.right")
+            ConnectionActionLabel(title: TermindCopy.Common.continue, symbol: "arrow.right")
         }
         .disabled(!canContinue)
     }
@@ -322,11 +329,11 @@ public struct SSHAuthenticationForm: View {
 
     private var identityLabel: String {
         selectedIdentity.map { "\($0.name) · \($0.username)" }
-            ?? String(localized: "Custom")
+            ?? String(localized: TermindCopy.Vault.custom)
     }
 
     private var keyLabel: String {
-        keyID.flatMap { library.key($0) }?.label ?? String(localized: "None")
+        keyID.flatMap { library.key($0) }?.label ?? String(localized: TermindCopy.Common.none)
     }
 
     private func fullWidthMenu<Content: View>(
@@ -546,8 +553,10 @@ public struct SSHHostKeyConfirmationForm: View {
     }
 
     private var denyButton: some View {
-        Button(role: .destructive, action: deny) { ConnectionActionLabel(title: "Deny", symbol: "xmark") }
-            .keyboardShortcut(.cancelAction)
+        Button(role: .destructive, action: deny) {
+            ConnectionActionLabel(title: TermindCopy.Common.deny, symbol: "xmark")
+        }
+        .keyboardShortcut(.cancelAction)
     }
 
     @ViewBuilder
@@ -563,7 +572,7 @@ public struct SSHHostKeyConfirmationForm: View {
     }
 
     private var baseContinueButton: some View {
-        Button(action: proceed) { ConnectionActionLabel(title: "Continue", symbol: "arrow.right") }
+        Button(action: proceed) { ConnectionActionLabel(title: TermindCopy.Common.continue, symbol: "arrow.right") }
     }
 
     private var trustButton: some View {
@@ -591,7 +600,7 @@ public struct SSHHostKeyConfirmationForm: View {
 }
 
 private struct ConnectionActionLabel: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let symbol: String
 
     var body: some View {

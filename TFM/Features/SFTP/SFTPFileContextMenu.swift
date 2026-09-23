@@ -1,6 +1,7 @@
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 
 /// A menu snapshot, built only in response to a context click, never during
 /// SwiftUI row rendering. Actions retain the caller's corresponding targets.
@@ -28,7 +29,7 @@ struct SFTPFileContextMenu {
         let single = targets.count == 1
         var result: [NativeMenuEntry] = []
         if single {
-            result.append(entry("Open", symbol: MenuSymbol.open) { perform(.open) })
+            result.append(entry(TermindCopy.Common.open, symbol: MenuSymbol.open) { perform(.open) })
             if !file.isDirectory {
                 var openWith = SFTPOpenWithMenu(filename: file.name, locale: locale) {
                     perform(.openWith($0))
@@ -38,49 +39,66 @@ struct SFTPFileContextMenu {
             }
         }
         result.append(
-            entry(single ? "Download" : "Download \(targets.count) Items", symbol: MenuSymbol.download) {
+            entry(
+                single ? TermindCopy.SFTP.download : TermindCopy.SFTP.downloadItems(targets.count),
+                symbol: MenuSymbol.download
+            ) {
                 perform(.download)
             })
         result.append(.separator)
         result.append(
-            entry(single ? "Copy" : "Copy \(targets.count) Items", symbol: MenuSymbol.copy) { perform(.copy) })
+            entry(single ? TermindCopy.Common.copy : TermindCopy.SFTP.copyItems(targets.count), symbol: MenuSymbol.copy)
+            { perform(.copy) })
         result.append(
             NativeMenuEntry(
-                title: localized("Copy As"), symbol: MenuSymbol.copy,
+                title: localized(TermindCopy.SFTP.copyAs), symbol: MenuSymbol.copy,
                 children: [
-                    entry(single ? "Name" : "Names") { perform(.copyNames) },
-                    entry(single ? "Path" : "Paths") { perform(.copyPaths) },
+                    entry(single ? TermindCopy.Common.name : TermindCopy.SFTP.names) { perform(.copyNames) },
+                    entry(single ? TermindCopy.SFTP.path : TermindCopy.SFTP.paths) { perform(.copyPaths) },
                 ]))
-        result.append(entry("Paste", symbol: MenuSymbol.paste, enabled: connected && canPaste) { perform(.paste) })
+        result.append(
+            entry(TermindCopy.Common.paste, symbol: MenuSymbol.paste, enabled: connected && canPaste) {
+                perform(.paste)
+            })
         if single {
             result.append(
-                entry("Rename", symbol: MenuSymbol.rename, enabled: allowsRemoteMutations) { perform(.rename) })
+                entry(TermindCopy.Common.rename, symbol: MenuSymbol.rename, enabled: allowsRemoteMutations) {
+                    perform(.rename)
+                })
             if file.kind == .file || file.kind == .directory {
                 result.append(
-                    entry("Edit Permissions", symbol: MenuSymbol.editPermissions, enabled: allowsRemoteMutations) {
+                    entry(
+                        TermindCopy.SFTP.editPermissions, symbol: MenuSymbol.editPermissions,
+                        enabled: allowsRemoteMutations
+                    ) {
                         perform(.editPermissions)
                     })
             }
         }
         result.append(
             entry(
-                single ? "Delete" : "Delete \(targets.count) Items", symbol: MenuSymbol.delete,
+                single ? TermindCopy.Common.delete : TermindCopy.SFTP.deleteItems(targets.count),
+                symbol: MenuSymbol.delete,
                 imageVisibility: .visible, enabled: allowsRemoteMutations
             ) { perform(.delete) })
         result.append(.separator)
-        result.append(entry("New Folder", symbol: MenuSymbol.newFolder, enabled: connected) { perform(.newFolder) })
-        result.append(entry("Upload", symbol: MenuSymbol.upload, enabled: connected) { perform(.upload) })
         result.append(
-            entry("Refresh", symbol: MenuSymbol.refresh, enabled: connected && !isLoading) { perform(.refresh) })
+            entry(TermindCopy.SFTP.newFolder, symbol: MenuSymbol.newFolder, enabled: connected) { perform(.newFolder) })
+        result.append(
+            entry(TermindCopy.SFTP.upload, symbol: MenuSymbol.upload, enabled: connected) { perform(.upload) })
+        result.append(
+            entry(TermindCopy.Common.refresh, symbol: MenuSymbol.refresh, enabled: connected && !isLoading) {
+                perform(.refresh)
+            })
         return result
     }
 
-    private func localized(_ title: String.LocalizationValue) -> String {
-        AppLocalization.string(title, locale: locale)
+    private func localized(_ title: LocalizedStringResource) -> String {
+        AppLocalization.resolve(title, locale: locale)
     }
 
     private func entry(
-        _ title: String.LocalizationValue, symbol: String? = nil,
+        _ title: LocalizedStringResource, symbol: String? = nil,
         imageVisibility: MenuImageVisibility = .automatic, enabled: Bool = true,
         action: @escaping () -> Void
     ) -> NativeMenuEntry {

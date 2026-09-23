@@ -20,7 +20,7 @@ public struct UnixPermissionGrid: View {
                     Text(title(row)).font(.headline)
                     toggle(row, bit: 4, label: String(localized: "Read"), hideLabel: false)
                     toggle(row, bit: 2, label: String(localized: "Write"), hideLabel: false)
-                    toggle(row, bit: 1, label: String(localized: "Execute"), hideLabel: false)
+                    toggle(row, bit: 1, label: String(localized: TermindCopy.Common.execute), hideLabel: false)
                 }
             }
         } else {
@@ -29,14 +29,14 @@ public struct UnixPermissionGrid: View {
                     Color.clear.frame(width: 72, height: 1)
                     permissionHeader("Read")
                     permissionHeader("Write")
-                    permissionHeader("Execute")
+                    permissionHeader(TermindCopy.Common.execute)
                 }.font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                 ForEach(0..<3) { row in
                     GridRow {
                         Text(title(row)).frame(width: 72, alignment: .leading).foregroundStyle(.secondary)
                         permissionCell(row, bit: 4, label: String(localized: "Read"))
                         permissionCell(row, bit: 2, label: String(localized: "Write"))
-                        permissionCell(row, bit: 1, label: String(localized: "Execute"))
+                        permissionCell(row, bit: 1, label: String(localized: TermindCopy.Common.execute))
                     }
                 }
             }
@@ -44,7 +44,7 @@ public struct UnixPermissionGrid: View {
         }
     }
 
-    private func permissionHeader(_ title: LocalizedStringKey) -> some View {
+    private func permissionHeader(_ title: LocalizedStringResource) -> some View {
         Text(title).frame(maxWidth: .infinity)
     }
 
@@ -64,7 +64,7 @@ public struct UnixPermissionGrid: View {
     private func title(_ index: Int) -> String {
         switch index {
         case 0: String(localized: "Owner")
-        case 1: String(localized: "Group")
+        case 1: String(localized: TermindCopy.SFTP.permissionGroup)
         default: String(localized: "Others")
         }
     }

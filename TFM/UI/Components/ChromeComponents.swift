@@ -18,7 +18,7 @@ extension View {
 /// The full row is the hit target; the chevron communicates that the action
 /// continues elsewhere rather than taking effect immediately.
 struct FormNavigationAction: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let action: () -> Void
 
     var body: some View {
@@ -44,7 +44,7 @@ enum TermindSearchFieldDensity {
 
 struct TermindSearchField: View {
     @Binding var text: String
-    let prompt: LocalizedStringKey
+    let prompt: LocalizedStringResource
     var density: TermindSearchFieldDensity = .regular
     var externalFocus: FocusState<Bool>.Binding?
 
@@ -75,7 +75,7 @@ struct TermindSearchField: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text("Clear search"))
+                .accessibilityLabel(Text(TermindCopy.Common.clearSearch))
             }
         }
         .padding(.horizontal, horizontalPadding)
@@ -120,10 +120,10 @@ struct SheetScaffold<Header: View, Content: View, Footer: View>: View {
 /// resembles the manager toolbars rather than a floating sheet: a clear close
 /// affordance, a quiet title, scrollable work, and actions anchored at the foot.
 struct VaultDetailScaffold<Content: View, Footer: View>: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let symbol: String
     let close: () -> Void
-    var closeLabel: LocalizedStringKey = "Close"
+    var closeLabel: LocalizedStringResource = TermindCopy.Common.close
     var closeSymbol = "xmark"
     @ViewBuilder let content: Content
     @ViewBuilder let footer: Footer
@@ -162,9 +162,9 @@ struct VaultDetailScaffold<Content: View, Footer: View>: View {
 }
 
 struct ManagedChooserHeader: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let symbol: String
-    let prompt: LocalizedStringKey
+    let prompt: LocalizedStringResource
     @Binding var query: String
     var aboveSearch: AnyView? = nil
     var showsSearch = true
@@ -226,7 +226,7 @@ struct ManagedChooserHeader: View {
                         .foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(Text("Clear search"))
+                .accessibilityLabel(Text(TermindCopy.Common.clearSearch))
             }
         }
         .padding(Metrics.Space.s)

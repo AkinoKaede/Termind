@@ -26,7 +26,9 @@ struct MobileTagField: View {
                         .foregroundStyle(.secondary)
                         .accessibilityHidden(true)
 
-                    TextField(text: $query.singleLineText, prompt: Text("Add a tag…"), axis: .horizontal) {
+                    TextField(
+                        text: $query.singleLineText, prompt: Text(TermindCopy.Vault.addATagProgress), axis: .horizontal
+                    ) {
                         EmptyView()
                     }
                     .singleLinePaste()
@@ -36,7 +38,7 @@ struct MobileTagField: View {
                     .submitLabel(.done)
                     .focused($isFocused)
                     .onSubmit(commitQuery)
-                    .accessibilityLabel(Text("Add a tag…"))
+                    .accessibilityLabel(Text(TermindCopy.Vault.addATagProgress))
                 }
                 .padding(.horizontal, 12)
                 .frame(minHeight: 44)
@@ -141,7 +143,7 @@ private struct MobileTagSuggestionRow: View {
             case .create(let tag):
                 Image(systemName: "plus.circle")
                     .foregroundStyle(.secondary)
-                Text("Create “\(tag)”")
+                Text(TermindCopy.Vault.createNamed(tag))
             }
             Spacer(minLength: 0)
         }
@@ -170,7 +172,7 @@ private struct MobileRemovableTagChip: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Remove tag \(tag)"))
+            .accessibilityLabel(Text(TermindCopy.Vault.removeTag(tag)))
         }
         .font(.caption)
         .foregroundStyle(.secondary)

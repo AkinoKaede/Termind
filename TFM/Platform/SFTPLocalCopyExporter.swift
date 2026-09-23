@@ -1,11 +1,12 @@
 import AppKit
 import Foundation
+import TermindPresentation
 
 @MainActor
 enum SFTPLocalCopyExporter {
     static func present(for source: URL, failed: @escaping (any Error) -> Void) {
         let panel = NSSavePanel()
-        panel.title = String(localized: "Keep Local Copy")
+        panel.title = String(localized: TermindCopy.SFTP.keepLocalCopy)
         panel.nameFieldStringValue = source.lastPathComponent
         panel.canCreateDirectories = true
         panel.begin { response in

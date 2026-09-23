@@ -2,6 +2,7 @@ import AgentKit
 import Foundation
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 nonisolated struct MCPDownloadRequest: Sendable {
@@ -447,10 +448,10 @@ nonisolated enum MCPDownloadError: LocalizedError {
     case invalidRequest, unavailable, capacity, unknown
     var errorDescription: String? {
         switch self {
-        case .invalidRequest: String(localized: "The download request is invalid.")
-        case .unavailable: String(localized: "HTTP downloads are not available.")
-        case .capacity: String(localized: "Too many downloads are waiting.")
-        case .unknown: String(localized: "The download is unknown or expired.")
+        case .invalidRequest: String(localized: TermindCopy.MCP.invalidDownloadRequest)
+        case .unavailable: String(localized: TermindCopy.MCP.downloadsUnavailable)
+        case .capacity: String(localized: TermindCopy.MCP.tooManyPendingDownloads)
+        case .unknown: String(localized: TermindCopy.MCP.unknownOrExpiredDownload)
         }
     }
 }

@@ -157,8 +157,8 @@ struct ConnectionJourneyView: View {
     var reconnectState: ReconnectState? = nil
     var retryReconnectNow: (() -> Void)? = nil
     var stopReconnecting: (() -> Void)? = nil
-    var failureCancelLabel: LocalizedStringKey = "Cancel"
-    var failureRetryLabel: LocalizedStringKey = "Retry"
+    var failureCancelLabel: LocalizedStringResource = TermindCopy.Common.cancel
+    var failureRetryLabel: LocalizedStringResource = TermindCopy.Common.retry
     var compactFailureActions = false
     var keyboardAuthentication: SSHKeyboardInteractiveQueue? = nil
     var cancelKeyboardAuthentication: (() -> Void)? = nil
@@ -266,9 +266,9 @@ struct ConnectionJourneyView: View {
     private var logs: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Connection Log").font(.headline)
+                Text(TermindCopy.Terminal.connectionLog).font(.headline)
                 Spacer()
-                Button("Copy", action: copyLogs).controlSize(.small)
+                Button(TermindCopy.Common.copy.swiftUIKey, action: copyLogs).controlSize(.small)
             }
             .padding(14)
             Divider()
@@ -376,14 +376,14 @@ private struct JourneyFailureCard: View {
     let cancel: () -> Void
     let copyLogs: () -> Void
     let askAssistant: (() -> Void)?
-    let cancelLabel: LocalizedStringKey
-    let retryLabel: LocalizedStringKey
+    let cancelLabel: LocalizedStringResource
+    let retryLabel: LocalizedStringResource
     let compactActions: Bool
     let adaptsActions: Bool
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Connection Failed", systemImage: "exclamationmark.triangle.fill")
+            Label(TermindCopy.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
                 .font(.headline).foregroundStyle(TermindColor.danger)
             Text(message).foregroundStyle(.secondary).textSelection(.enabled)
             if compactActions {
@@ -432,8 +432,8 @@ private struct JourneyFailureCard: View {
     @ViewBuilder
     private var secondaryActions: some View {
         Button(cancelLabel, action: cancel).keyboardShortcut(.cancelAction)
-        Button("Copy Logs", action: copyLogs)
-        if let askAssistant { Button("Ask Assistant", action: askAssistant) }
+        Button(TermindCopy.Terminal.copyLogs.swiftUIKey, action: copyLogs)
+        if let askAssistant { Button(TermindCopy.Assistant.askAssistant.swiftUIKey, action: askAssistant) }
     }
 
     private var retryButton: some View {

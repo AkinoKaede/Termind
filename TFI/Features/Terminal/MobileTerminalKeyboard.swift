@@ -1,5 +1,6 @@
 import GhosttyTerminal
 import SwiftUI
+import TermindPresentation
 
 struct MobileTerminalKeyboard: View {
     static let barHeight: CGFloat = 44
@@ -23,19 +24,19 @@ struct MobileTerminalKeyboard: View {
         HStack(spacing: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    key("Escape", systemImage: "escape", .escape)
-                    key("Tab", systemImage: "arrow.right.to.line", .tab)
-                    modifier("Control", systemImage: "control", .ctrl, activation: control)
-                    modifier("Option", systemImage: "option", .alt, activation: alt)
+                    key(TermindCopy.Terminal.escape, systemImage: "escape", .escape)
+                    key(TermindCopy.Terminal.tab, systemImage: "arrow.right.to.line", .tab)
+                    modifier(TermindCopy.Terminal.control, systemImage: "control", .ctrl, activation: control)
+                    modifier(TermindCopy.Terminal.option, systemImage: "option", .alt, activation: alt)
                     shiftModifier
-                    key("Left Arrow", systemImage: "arrowtriangle.left.fill", .arrowLeft)
-                    key("Down Arrow", systemImage: "arrowtriangle.down.fill", .arrowDown)
-                    key("Up Arrow", systemImage: "arrowtriangle.up.fill", .arrowUp)
-                    key("Right Arrow", systemImage: "arrowtriangle.right.fill", .arrowRight)
-                    key("Home", systemImage: "arrow.up.to.line.compact", .home)
-                    key("End", systemImage: "arrow.down.to.line.compact", .end)
-                    key("Page Up", systemImage: "arrowtriangle.up.square", .pageUp)
-                    key("Page Down", systemImage: "arrowtriangle.down.square", .pageDown)
+                    key(TermindCopy.Terminal.leftArrow, systemImage: "arrowtriangle.left.fill", .arrowLeft)
+                    key(TermindCopy.Terminal.downArrow, systemImage: "arrowtriangle.down.fill", .arrowDown)
+                    key(TermindCopy.Terminal.upArrow, systemImage: "arrowtriangle.up.fill", .arrowUp)
+                    key(TermindCopy.Terminal.rightArrow, systemImage: "arrowtriangle.right.fill", .arrowRight)
+                    key(TermindCopy.Terminal.home, systemImage: "arrow.up.to.line.compact", .home)
+                    key(TermindCopy.Terminal.end, systemImage: "arrow.down.to.line.compact", .end)
+                    key(TermindCopy.Terminal.pageUp, systemImage: "arrowtriangle.up.square", .pageUp)
+                    key(TermindCopy.Terminal.pageDown, systemImage: "arrowtriangle.down.square", .pageDown)
                     ForEach(MobileTerminalControlShortcut.allCases) { shortcut in
                         controlShortcut(shortcut)
                     }
@@ -68,7 +69,7 @@ struct MobileTerminalKeyboard: View {
         Button {
             shift.toggle()
         } label: {
-            modifierLabel("Shift", systemImage: "shift", activation: shift.activation)
+            modifierLabel(TermindCopy.Terminal.shift, systemImage: "shift", activation: shift.activation)
         }
         .accessibilityValue(accessibilityValue(for: shift.activation))
         .accessibilityAddTraits(shift.activation == .inactive ? [] : .isSelected)
@@ -76,7 +77,7 @@ struct MobileTerminalKeyboard: View {
 
     private var pasteButton: some View {
         Button(action: paste) {
-            Label("Paste", systemImage: "doc.on.clipboard")
+            Label(TermindCopy.Common.paste.swiftUIKey, systemImage: "doc.on.clipboard")
                 .labelStyle(.iconOnly)
                 .frame(width: 44, height: 44)
                 .contentShape(.rect)
@@ -92,7 +93,8 @@ struct MobileTerminalKeyboard: View {
             }
         } label: {
             Label(
-                state.isFocused ? "Hide Keyboard" : "Show Keyboard",
+                state.isFocused
+                    ? TermindCopy.Terminal.hideKeyboard.swiftUIKey : TermindCopy.Terminal.showKeyboard.swiftUIKey,
                 systemImage: state.isFocused ? "keyboard.chevron.compact.down" : "keyboard"
             )
             .labelStyle(.iconOnly)
@@ -107,7 +109,7 @@ struct MobileTerminalKeyboard: View {
     }
 
     private func modifier(
-        _ title: LocalizedStringKey, systemImage: String, _ modifier: TerminalPublicStickyModifier,
+        _ title: LocalizedStringResource, systemImage: String, _ modifier: TerminalPublicStickyModifier,
         activation: TerminalPublicStickyActivation
     ) -> some View {
         Button {
@@ -120,7 +122,7 @@ struct MobileTerminalKeyboard: View {
     }
 
     private func modifierLabel(
-        _ title: LocalizedStringKey, systemImage: String, activation: TerminalPublicStickyActivation
+        _ title: LocalizedStringResource, systemImage: String, activation: TerminalPublicStickyActivation
     ) -> some View {
         Label(title, systemImage: systemImage)
             .labelStyle(.iconOnly)
@@ -144,13 +146,13 @@ struct MobileTerminalKeyboard: View {
 
     private func accessibilityValue(for activation: TerminalPublicStickyActivation) -> Text {
         switch activation {
-        case .inactive: Text("Inactive")
-        case .armed: Text("Armed")
-        case .locked: Text("Locked")
+        case .inactive: Text(TermindCopy.Terminal.inactive)
+        case .armed: Text(TermindCopy.Terminal.armed)
+        case .locked: Text(TermindCopy.Terminal.locked)
         }
     }
 
-    private func key(_ title: LocalizedStringKey, systemImage: String, _ key: TerminalKey) -> some View {
+    private func key(_ title: LocalizedStringResource, systemImage: String, _ key: TerminalKey) -> some View {
         Button {
             var shiftState = shift
             let modifiers = shiftState.consumeForNextKey()
@@ -172,7 +174,7 @@ struct MobileTerminalKeyboard: View {
                 .frame(width: 44, height: 44)
                 .contentShape(.rect)
         }
-        .accessibilityLabel(Text("Control") + Text(verbatim: " \(shortcut.letter)"))
+        .accessibilityLabel(Text(TermindCopy.Terminal.control) + Text(verbatim: " \(shortcut.letter)"))
     }
 }
 

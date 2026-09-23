@@ -79,47 +79,49 @@ struct TagField: View {
             Image(systemName: "number")
                 .foregroundStyle(.secondary)
 
-            TextField(text: $query.singleLineText, prompt: Text("Add a tag…"), axis: .horizontal) { EmptyView() }
-                .singleLinePaste()
-                .lineLimit(1)
-                .textFieldStyle(.plain)
-                .labelsHidden()
-                .multilineTextAlignment(.leading)
-                .accessibilityLabel(Text("Add a tag…"))
-                .focused($isFocused)
-                // Return takes the highlighted row, so the whole interaction is
-                // type-then-Return without reaching for the arrow keys. A
-                // focused field's submit is handled before the Save button's
-                // `.defaultAction`, so this does not save the host by accident.
-                .onSubmit(commitHighlighted)
-                // And when the arrows are reached for, they move the highlight
-                // without the field giving up focus — correcting the query is
-                // always one keystroke away.
-                .onKeyPress(.upArrow) { move(-1) }
-                .onKeyPress(.downArrow) { move(1) }
-                // A comma commits, because that is what the field this replaces
-                // was made of and the habit outlives the control.
-                .onKeyPress(",") {
-                    commitHighlighted()
-                    return .handled
-                }
-                // Backspace on an empty query eats the last chip — the token
-                // field contract everywhere else on the platform.
-                .onKeyPress(.delete) {
-                    guard query.isEmpty, let last = tags.last else { return .ignored }
-                    remove(last)
-                    return .handled
-                }
-                // Escape puts the list away and drops what was typed. Handing
-                // the key back when there is nothing left to dismiss is what
-                // leaves the editor's Cancel button its `.cancelAction`, so a
-                // second Escape still closes the form.
-                .onKeyPress(.escape) {
-                    guard showsList || !query.isEmpty else { return .ignored }
-                    query = ""
-                    showsList = false
-                    return .handled
-                }
+            TextField(text: $query.singleLineText, prompt: Text(TermindCopy.Vault.addATagProgress), axis: .horizontal) {
+                EmptyView()
+            }
+            .singleLinePaste()
+            .lineLimit(1)
+            .textFieldStyle(.plain)
+            .labelsHidden()
+            .multilineTextAlignment(.leading)
+            .accessibilityLabel(Text(TermindCopy.Vault.addATagProgress))
+            .focused($isFocused)
+            // Return takes the highlighted row, so the whole interaction is
+            // type-then-Return without reaching for the arrow keys. A
+            // focused field's submit is handled before the Save button's
+            // `.defaultAction`, so this does not save the host by accident.
+            .onSubmit(commitHighlighted)
+            // And when the arrows are reached for, they move the highlight
+            // without the field giving up focus — correcting the query is
+            // always one keystroke away.
+            .onKeyPress(.upArrow) { move(-1) }
+            .onKeyPress(.downArrow) { move(1) }
+            // A comma commits, because that is what the field this replaces
+            // was made of and the habit outlives the control.
+            .onKeyPress(",") {
+                commitHighlighted()
+                return .handled
+            }
+            // Backspace on an empty query eats the last chip — the token
+            // field contract everywhere else on the platform.
+            .onKeyPress(.delete) {
+                guard query.isEmpty, let last = tags.last else { return .ignored }
+                remove(last)
+                return .handled
+            }
+            // Escape puts the list away and drops what was typed. Handing
+            // the key back when there is nothing left to dismiss is what
+            // leaves the editor's Cancel button its `.cancelAction`, so a
+            // second Escape still closes the form.
+            .onKeyPress(.escape) {
+                guard showsList || !query.isEmpty else { return .ignored }
+                query = ""
+                showsList = false
+                return .handled
+            }
 
             // The same dismissal for a hand on the mouse. Also the way back in
             // once the list has been closed without moving focus.
@@ -133,7 +135,8 @@ struct TagField: View {
                     .contentShape(.rect)
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text(isListOpen ? "Hide tag suggestions" : "Show tag suggestions"))
+            .accessibilityLabel(
+                Text(isListOpen ? TermindCopy.Vault.hideTagSuggestions : TermindCopy.Vault.showTagSuggestions))
         }
         .padding(Metrics.Space.s)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -281,7 +284,7 @@ private struct TagRowView: View {
             case .create(let tag):
                 Image(systemName: "plus.circle")
                     .foregroundStyle(.secondary)
-                Text("Create “\(tag)”")
+                Text(TermindCopy.Vault.createNamed(tag))
             }
 
             Spacer(minLength: 0)
@@ -324,7 +327,7 @@ private struct RemovableTagChip: View {
                     .foregroundStyle(isHovering ? AnyShapeStyle(.secondary) : AnyShapeStyle(.tertiary))
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(Text("Remove tag \(tag)"))
+            .accessibilityLabel(Text(TermindCopy.Vault.removeTag(tag)))
         }
         .font(.caption2)
         .foregroundStyle(.secondary)
@@ -404,9 +407,9 @@ private struct ChipFlow: Layout {
     @Previewable @State var tags = ["nginx", "prod"]
 
     Form {
-        Section("Grouping & Tags") {
+        Section(TermindCopy.Vault.groupingAndTags.swiftUIKey) {
             VStack(alignment: .leading, spacing: Metrics.Space.s) {
-                Text("Tags")
+                Text(TermindCopy.Vault.tags)
                 TagField(tags: $tags, suggestions: HostLibraryModel.demo().allTags)
             }
         }

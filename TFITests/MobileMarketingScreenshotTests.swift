@@ -358,7 +358,7 @@ private struct MarketingTabShell<Content: View>: View {
     var body: some View {
         TabView(selection: .constant(selected)) {
             ForEach(features.registrations) { feature in
-                Tab(feature.title, systemImage: feature.symbol, value: feature.id) {
+                Tab(feature.title.swiftUIKey, systemImage: feature.symbol, value: feature.id) {
                     if feature.id == selected {
                         content
                     } else {

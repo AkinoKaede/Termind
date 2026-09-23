@@ -161,11 +161,11 @@ private struct CommandGeneratorOverlay: View {
         switch state {
         case .idle: ""
         case .readingDraft, .generating:
-            AppLocalization.string("Generating Command", locale: locale)
+            AppLocalization.resolve(TermindCopy.Workspace.generatingCommand, locale: locale)
         case .inserted:
-            AppLocalization.string("Command Inserted", locale: locale)
+            AppLocalization.resolve(TermindCopy.Workspace.commandInserted, locale: locale)
         case .failed:
-            AppLocalization.string("Couldn't generate command", locale: locale)
+            AppLocalization.resolve(TermindCopy.Workspace.commandGenerationFailed, locale: locale)
         }
     }
 
@@ -173,9 +173,9 @@ private struct CommandGeneratorOverlay: View {
         switch state {
         case .idle: nil
         case .readingDraft, .generating:
-            AppLocalization.string("This May Take a Moment", locale: locale)
+            AppLocalization.resolve(TermindCopy.Workspace.thisMayTakeAMoment, locale: locale)
         case .inserted:
-            AppLocalization.string("Press Return to Run", locale: locale)
+            AppLocalization.resolve(TermindCopy.Workspace.pressReturnToRun, locale: locale)
         case .failed(let message): message
         }
     }
@@ -495,7 +495,7 @@ private struct PaneView: View {
                 workingDirectory: sshSession.workingDirectory
             ) {
                 return DropTargetPresentation(
-                    title: String(localized: "Can't Upload Here"),
+                    title: String(localized: TermindCopy.SFTP.uploadUnavailable),
                     detail: problem,
                     systemImage: "exclamationmark.triangle.fill",
                     tone: .unavailable
@@ -504,8 +504,8 @@ private struct PaneView: View {
             let hostName = app.hostLibrary.host(sshSession.hostID)?.name ?? sshSession.title
             return DropTargetPresentation(
                 title: nativeDropKind == .sftpItems
-                    ? String(localized: "Copy to \(hostName)")
-                    : String(localized: "Upload to \(hostName)"),
+                    ? String(localized: TermindCopy.Workspace.copyTo(hostName))
+                    : String(localized: TermindCopy.Workspace.uploadTo(hostName)),
                 detail: sshSession.displayPath(
                     RemotePath.normalized(sshSession.workingDirectory ?? "/")
                 ),
@@ -515,19 +515,19 @@ private struct PaneView: View {
         case .sftpChannel(let sftpChannel):
             guard sftpChannel.status == .connected else {
                 return DropTargetPresentation(
-                    title: String(localized: "Can't Upload Here"),
-                    detail: String(localized: "The SFTP channel is not connected."),
+                    title: String(localized: TermindCopy.SFTP.uploadUnavailable),
+                    detail: String(localized: TermindCopy.Workspace.theSftpChannelIsNotConnected),
                     systemImage: "exclamationmark.triangle.fill",
                     tone: .unavailable
                 )
             }
             let hostName =
                 app.hostLibrary.host(sftpChannel.hostID)?.name
-                ?? String(localized: "SFTP")
+                ?? String(localized: TermindCopy.SFTP.sftp)
             return DropTargetPresentation(
                 title: nativeDropKind == .sftpItems
-                    ? String(localized: "Copy to \(hostName)")
-                    : String(localized: "Upload to \(hostName)"),
+                    ? String(localized: TermindCopy.Workspace.copyTo(hostName))
+                    : String(localized: TermindCopy.Workspace.uploadTo(hostName)),
                 detail: sftpChannel.displayPath(sftpChannel.path),
                 systemImage: nativeDropKind == .sftpItems
                     ? "doc.on.doc.fill" : "arrow.up.doc.fill"
@@ -643,7 +643,9 @@ private struct PaneView: View {
                 .foregroundStyle(.secondary)
 
             if isRenaming {
-                TextField("Pane Name", text: $draftTitle.singleLineText, axis: .horizontal).singleLinePaste().lineLimit(
+                TextField(
+                    TermindCopy.Workspace.paneName.swiftUIKey, text: $draftTitle.singleLineText, axis: .horizontal
+                ).singleLinePaste().lineLimit(
                     1
                 )
                 .textFieldStyle(.plain)
@@ -673,7 +675,7 @@ private struct PaneView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
-                .help(Text("Close pane"))
+                .help(Text(TermindCopy.Workspace.closePane))
             }
         }
         .padding(.horizontal, Metrics.Space.m)
@@ -715,8 +717,8 @@ private struct PaneView: View {
                 }
                 .buttonStyle(.plain)
                 .foregroundStyle(isOn ? AnyShapeStyle(Color.accentColor) : AnyShapeStyle(.secondary))
-                .help(Text("Broadcast input to every SSH session in this workspace — ⌘B"))
-                .accessibilityLabel(Text("Broadcast input"))
+                .help(Text(TermindCopy.Workspace.broadcastInputToEverySshSessionInThisWorkspaceB))
+                .accessibilityLabel(Text(TermindCopy.Workspace.broadcastInput))
                 .accessibilityAddTraits(isOn ? [.isSelected, .isButton] : .isButton)
             }
         }
@@ -742,7 +744,7 @@ private struct PaneView: View {
         if pane.isCombinable {
             label
                 .pointerStyle(.grabIdle)
-                .help(Text("Drag to move this pane, double-click to rename"))
+                .help(Text(TermindCopy.Workspace.dragToMoveThisPaneDoubleClickToRename))
                 .onDrag {
                     window.dragging = .pane(pane.id)
                     return NSItemProvider(object: pane.id.uuidString as NSString)
@@ -752,7 +754,7 @@ private struct PaneView: View {
                 .modifier(PaneDragSession(window: window, paneID: pane.id))
         } else if pane.kind.isRenameable {
             label
-                .help(Text("Double-click to rename"))
+                .help(Text(TermindCopy.Workspace.doubleClickToRename))
         } else {
             // An unfilled slot is the only thing that reaches here, and it is
             // named after the state it is in — there is nothing to call it but
@@ -829,16 +831,16 @@ struct WelcomeView: View {
 
     private var welcomeGreetings: [String] {
         [
-            String(localized: "Hello, I'm Termind."),
-            String(localized: "Your terminal, with judgment."),
-            String(localized: "SSH and SFTP, with an assistant at hand."),
+            String(localized: TermindCopy.Workspace.helloIMTermind),
+            String(localized: TermindCopy.Workspace.yourTerminalWithJudgment),
+            String(localized: TermindCopy.Workspace.sshAndSftpWithAnAssistantAtHand),
         ]
     }
 
     private var welcomePrompts: [String] {
         [
-            String(localized: "What would you like to do?"),
-            String(localized: "What do you feel like doing?"),
+            String(localized: TermindCopy.Workspace.whatWouldYouLikeToDoConfirmation),
+            String(localized: TermindCopy.Workspace.whatDoYouFeelLikeDoingConfirmation),
         ]
     }
 
@@ -894,7 +896,7 @@ struct WelcomeView: View {
 
     private var searchField: some View {
         TermindSearchField(
-            text: $query, prompt: "Search hosts or templates, or type ssh user@host", density: .prominent
+            text: $query, prompt: TermindCopy.Workspace.searchHostsOrTemplatesOrTypeSshUserHost, density: .prominent
         )
         .focused($isSearchFocused)
         .onSubmit(submit)
@@ -902,7 +904,7 @@ struct WelcomeView: View {
             hasSubmitted = false
             actionError = nil
         }
-        .help("SSH options: -p port, -l user, -J jump; -o HostName, User, Port, ProxyJump.")
+        .help(TermindCopy.Workspace.supportedSSHOptions.swiftUIKey)
     }
 
     private var matches: [Host] {
@@ -987,13 +989,13 @@ struct WelcomeView: View {
 
     @ViewBuilder
     private var actionButtons: some View {
-        WelcomeActionButton(title: "Connect", symbol: MenuSymbol.connect) {
+        WelcomeActionButton(title: TermindCopy.Common.connect, symbol: MenuSymbol.connect) {
             app.connect(in: window)
         }
-        WelcomeActionButton(title: "Batch Startup", symbol: MenuSymbol.batchStartup) {
+        WelcomeActionButton(title: TermindCopy.Vault.batchStartup, symbol: MenuSymbol.batchStartup) {
             app.batchStartup(in: window)
         }
-        WelcomeActionButton(title: "New Chat", symbol: MenuSymbol.newChat) {
+        WelcomeActionButton(title: TermindCopy.Assistant.newChat, symbol: MenuSymbol.newChat) {
             window.openNewAssistantChat()
         }
     }
@@ -1008,7 +1010,7 @@ struct WelcomeView: View {
         if query.isEmpty {
             let templates = app.hostLibrary.sortedWorkspaceTemplates
             if !templates.isEmpty {
-                section("Workspace Templates") {
+                section(TermindCopy.Workspace.workspaceTemplates) {
                     ForEach(templates) { template in
                         WelcomeWorkspaceTemplateRow(template: template)
                     }
@@ -1016,7 +1018,7 @@ struct WelcomeView: View {
             }
             let hosts = app.recentHosts(limit: max(0, 6 - templates.count), localOnly: true)
             if !hosts.isEmpty {
-                section("Recents") {
+                section(TermindCopy.Workspace.recents) {
                     ForEach(hosts) { host in
                         WelcomeHostRow(host: host)
                     }
@@ -1024,21 +1026,21 @@ struct WelcomeView: View {
             }
         } else {
             if !matchingTemplates.isEmpty {
-                section("Workspace Templates") {
+                section(TermindCopy.Workspace.workspaceTemplates) {
                     ForEach(matchingTemplates) { template in
                         WelcomeWorkspaceTemplateRow(template: template)
                     }
                 }
             }
             if !matches.isEmpty {
-                section("Hosts") {
+                section(TermindCopy.Vault.hosts) {
                     ForEach(matches) { host in
                         WelcomeHostRow(host: host)
                     }
                 }
             }
             if let adHoc {
-                section(adHoc.isSaved ? "Hosts" : "Connect Once") {
+                section(adHoc.isSaved ? TermindCopy.Vault.hosts : TermindCopy.Workspace.connectOnce) {
                     WelcomeQuickConnectRow(target: adHoc, connect: connect, save: save)
                 }
             }
@@ -1046,14 +1048,14 @@ struct WelcomeView: View {
                 Text(connectionError)
                     .foregroundStyle(.secondary)
             } else if adHoc == nil, !isSSHCommand, matchingTemplates.isEmpty, matches.isEmpty {
-                Text("No hosts or Workspace templates match “\(query)”.")
+                Text(TermindCopy.Workspace.noHostsOrWorkspaceTemplatesMatch(query))
                     .foregroundStyle(.secondary)
             }
         }
     }
 
     private func section<Content: View>(
-        _ title: LocalizedStringKey,
+        _ title: LocalizedStringResource,
         @ViewBuilder content: () -> Content
     ) -> some View {
         VStack(alignment: .leading, spacing: Metrics.Space.s) {
@@ -1089,7 +1091,7 @@ private struct WelcomeGlassGroup<Content: View>: View {
 }
 
 private struct WelcomeActionButton: View {
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let symbol: String
     let action: () -> Void
 
@@ -1144,9 +1146,9 @@ private struct WelcomeWorkspaceTemplateRow: View {
                 isInteractive: !isRenaming
             )
             .contextMenu {
-                Button("Rename", systemImage: MenuSymbol.rename) { beginRename() }
+                Button(TermindCopy.Common.rename.swiftUIKey, systemImage: MenuSymbol.rename) { beginRename() }
                 Divider()
-                DestructiveMenuButton("Delete") {
+                DestructiveMenuButton(TermindCopy.Common.delete) {
                     if !app.hostLibrary.deleteWorkspaceTemplate(template.id) {
                         window.workspaceTemplateNotice = app.hostLibrary.storageError
                     }
@@ -1174,7 +1176,7 @@ private struct WelcomeWorkspaceTemplateRow: View {
             if isRenaming {
                 SidebarInlineRenameField(
                     text: $renameTitle,
-                    prompt: String(localized: "Workspace Name"),
+                    prompt: String(localized: TermindCopy.Workspace.workspaceName),
                     isSelected: false,
                     controlActiveState: controlActiveState,
                     onSubmit: commitRename,
@@ -1192,7 +1194,7 @@ private struct WelcomeWorkspaceTemplateRow: View {
                 }
             }
             Spacer(minLength: Metrics.Space.m)
-            Text("\(template.layout.paneCount) panes")
+            Text(TermindCopy.Workspace.panes(template.layout.paneCount))
                 .font(.caption)
                 .foregroundStyle(.tertiary)
         }
@@ -1229,13 +1231,13 @@ private struct WelcomeWorkspaceTemplateRow: View {
         template.layout.panes.map { pane in
             switch pane {
             case .ssh(let hostID):
-                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: "Unavailable Host")) · SSH"
+                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: TermindCopy.Workspace.unavailableHost)) · SSH"
             case .telnet(let hostID):
-                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: "Unavailable Host")) · Telnet"
+                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: TermindCopy.Workspace.unavailableHost)) · Telnet"
             case .sftp(let hostID):
-                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: "Unavailable Host")) · SFTP"
+                "\(app.hostLibrary.host(hostID)?.name ?? String(localized: TermindCopy.Workspace.unavailableHost)) · SFTP"
             case .empty:
-                String(localized: "Empty Pane")
+                String(localized: TermindCopy.Workspace.emptyPane)
             }
         }.joined(separator: ", ")
     }
@@ -1289,7 +1291,7 @@ private struct WelcomeHostRow: View {
                 host: host
             )
             Divider()
-            DestructiveMenuButton("Delete") {
+            DestructiveMenuButton(TermindCopy.Common.delete) {
                 if DeletionContentCategory.recordedContent.requiresConfirmation(for: .clearCollection) {
                     confirmsHistoryClear = true
                 } else {
@@ -1298,15 +1300,15 @@ private struct WelcomeHostRow: View {
             }
         }
         .confirmationDialog(
-            "Clear Recent Connections?", isPresented: $confirmsHistoryClear,
+            TermindCopy.Workspace.clearRecentConnectionsConfirmation.swiftUIKey, isPresented: $confirmsHistoryClear,
             titleVisibility: .visible
         ) {
-            Button("Clear History", role: .destructive) {
+            Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive) {
                 app.connectionHistory.clear(for: host.id)
             }
-            Button("Cancel", role: .cancel) {}
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text("This removes all connection history for this Host.")
+            Text(TermindCopy.Workspace.clearHostHistoryWarning)
         }
     }
 
@@ -1379,14 +1381,14 @@ private struct WelcomeQuickConnectRow: View {
                         .lineLimit(2)
                         .help(target.routeSummary)
                 }
-                Text(target.isSaved ? LocalizedStringKey("Saved") : LocalizedStringKey("Not saved"))
+                Text(target.isSaved ? TermindCopy.Workspace.saved : TermindCopy.Workspace.notSaved)
                     .font(.caption)
                     .foregroundStyle(.tertiary)
             }
             Spacer(minLength: Metrics.Space.m)
-            Button("Connect") { connect(target) }
+            Button(TermindCopy.Common.connect.swiftUIKey) { connect(target) }
             if !target.isSaved {
-                Button("Save") { save(target) }
+                Button(TermindCopy.Common.save.swiftUIKey) { save(target) }
                     .buttonStyle(.borderedProminent)
             }
         }

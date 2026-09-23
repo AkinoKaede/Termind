@@ -23,8 +23,8 @@ public struct PortForwardingFields: View {
             VaultNameField(text: $rule.label, prompt: namePrompt)
             VaultColorField(selection: $rule.colorTag)
         }
-        Section("Port Forwarding") {
-            Picker("Host", selection: hostSelection) {
+        Section(TermindCopy.Navigation.portForwarding.swiftUIKey) {
+            Picker(TermindCopy.Vault.host.swiftUIKey, selection: hostSelection) {
                 Text("Select Host").tag(UUID?.none)
                 ForEach(hosts) { host in
                     Text(PortForwardingFieldPresentation.hostTitle(for: host)).tag(Optional(host.id))
@@ -34,15 +34,15 @@ public struct PortForwardingFields: View {
                 Text("Add a host before creating a forwarding rule.").font(.caption).foregroundStyle(.secondary)
             }
             PortForwardingDirectionPicker(kind: $rule.kind)
-            Text(LocalizedStringKey(PortForwardingFieldPresentation.directionDescription(for: rule.kind)))
+            Text(PortForwardingFieldPresentation.directionDescription(for: rule.kind))
                 .font(.caption).foregroundStyle(.secondary)
             LabeledContent("Bind Address") {
                 TextField("Bind Address", text: $rule.bindHost.singleLineText, axis: .horizontal).singleLinePaste()
                     .lineLimit(1)
                     .labelsHidden().multilineTextAlignment(.trailing)
             }
-            let portLabel = LocalizedStringKey(PortForwardingFieldPresentation.portLabel(for: rule.kind))
-            LabeledContent(portLabel) {
+            let portLabel = PortForwardingFieldPresentation.portLabel(for: rule.kind)
+            LabeledContent(portLabel.swiftUIKey) {
                 TextField(portLabel, value: $rule.bindPort, format: .number.grouping(.never)).lineLimit(1)
                     .labelsHidden()
                     .multilineTextAlignment(.trailing)
@@ -51,8 +51,8 @@ public struct PortForwardingFields: View {
                     #endif
             }
             if PortForwardingFieldPresentation.showsDestination(for: rule.kind) {
-                let destinationHostLabel = LocalizedStringKey("Destination Host (Port Forwarding)")
-                LabeledContent(destinationHostLabel) {
+                let destinationHostLabel = LocalizedStringResource("Destination Host (Port Forwarding)")
+                LabeledContent(destinationHostLabel.swiftUIKey) {
                     TextField(
                         destinationHostLabel,
                         text: Binding(get: { rule.targetHost ?? "localhost" }, set: { rule.targetHost = $0 })
@@ -90,11 +90,11 @@ public struct PortForwardingFields: View {
 nonisolated enum PortForwardingFieldPresentation {
     static func hostTitle(for host: Host) -> String { host.name }
 
-    static func portLabel(for kind: PortForwardingRule.Kind) -> String {
+    static func portLabel(for kind: PortForwardingRule.Kind) -> LocalizedStringResource {
         kind == .remote ? "Remote Port" : "Local Port"
     }
 
-    static func directionDescription(for kind: PortForwardingRule.Kind) -> String {
+    static func directionDescription(for kind: PortForwardingRule.Kind) -> LocalizedStringResource {
         #if os(macOS)
             switch kind {
             case .local: "This Mac → SSH Host → Destination"
@@ -116,7 +116,7 @@ nonisolated enum PortForwardingFieldPresentation {
 private struct PortForwardingDirectionPicker: View {
     @Binding var kind: PortForwardingRule.Kind
     var body: some View {
-        Picker("Direction", selection: $kind) {
+        Picker(TermindCopy.Forwarding.direction.swiftUIKey, selection: $kind) {
             Text("Local").tag(PortForwardingRule.Kind.local).accessibilityLabel("Local Forward")
             Text("Remote").tag(PortForwardingRule.Kind.remote).accessibilityLabel("Remote Forward")
             Text("Dynamic").tag(PortForwardingRule.Kind.dynamic).accessibilityLabel("Dynamic SOCKS5 Proxy")

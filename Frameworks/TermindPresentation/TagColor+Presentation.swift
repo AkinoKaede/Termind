@@ -2,9 +2,9 @@ import SwiftUI
 import TermindDomain
 
 extension TagColor {
-    public var displayName: LocalizedStringKey {
+    public var displayName: LocalizedStringResource {
         switch self {
-        case .none: "None"
+        case .none: TermindCopy.Common.none
         case .red: "Red"
         case .orange: "Orange"
         case .yellow: "Yellow"

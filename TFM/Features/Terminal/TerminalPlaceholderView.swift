@@ -2,6 +2,7 @@ import GhosttyTerminal
 import SwiftUI
 import TermindApplication
 import TermindDomain
+import TermindPresentation
 import TermindRemoteInfrastructure
 
 struct TerminalUploadConnection {
@@ -154,12 +155,12 @@ struct TerminalPlaceholderView: View {
                 isPresented: $uploadConflictPresented,
                 titleVisibility: .visible
             ) {
-                Button("Replace") { enqueuePendingUpload(.replace) }
-                Button("Skip Existing") { enqueuePendingUpload(.skip) }
-                Button("Keep Both") { enqueuePendingUpload(.keepBoth) }
-                Button("Cancel", role: .cancel) { cancelPendingUpload() }
+                Button(TermindCopy.SFTP.replace.swiftUIKey) { enqueuePendingUpload(.replace) }
+                Button(TermindCopy.SFTP.skipExisting.swiftUIKey) { enqueuePendingUpload(.skip) }
+                Button(TermindCopy.SFTP.keepBoth.swiftUIKey) { enqueuePendingUpload(.keepBoth) }
+                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { cancelPendingUpload() }
             } message: {
-                Text("Use this choice for all conflicts in this batch.")
+                Text(TermindCopy.SFTP.applyToAllConflicts)
             }
     }
 
@@ -230,9 +231,7 @@ struct TerminalPlaceholderView: View {
 
     private var uploadConflictTitle: String {
         let count = pendingUploadChannel?.conflictCount ?? 0
-        return count == 1
-            ? String(localized: "1 item already exists")
-            : String(localized: "\(count) items already exist")
+        return String(localized: TermindCopy.SFTP.existingItemsMessage(count: count))
     }
 
     private func receiveDroppedURLs(_ urls: [URL]) -> Bool {
@@ -247,7 +246,7 @@ struct TerminalPlaceholderView: View {
     private func receiveRemoteDrop(_ data: Data) -> Bool {
         guard app.proAccess.require(.terminalFileUpload) else { return false }
         guard let request = TerminalTransferRequest.remote(data: data, coordinator: app.sftpTransfers) else {
-            showUploadNotice(.rejected(String(localized: "The copied SFTP items are invalid.")))
+            showUploadNotice(.rejected(String(localized: TermindCopy.SFTP.theCopiedSftpItemsAreInvalid)))
             return false
         }
         return prepareTerminalTransfer(request)
@@ -262,7 +261,7 @@ struct TerminalPlaceholderView: View {
             showUploadNotice(
                 .rejected(
                     uploadTargetProblem
-                        ?? String(localized: "The upload destination is unavailable.")
+                        ?? String(localized: TermindCopy.SFTP.theUploadDestinationIsUnavailable)
                 )
             )
             return false
@@ -318,7 +317,7 @@ struct TerminalPlaceholderView: View {
                 }
                 guard uploadChannel.hasPendingBatch else {
                     uploadChannel.disconnect()
-                    showUploadNotice(.rejected(String(localized: "No uploadable files were found.")))
+                    showUploadNotice(.rejected(String(localized: TermindCopy.SFTP.noUploadableFilesWereFound)))
                     return
                 }
                 pendingUploadChannel = uploadChannel
@@ -445,11 +444,11 @@ enum SSHFailureAssistantDraft {
         conversation.attach(
             ContextChip(
                 kind: .output,
-                label: String(localized: "Connection Log"),
+                label: String(localized: TermindCopy.Terminal.connectionLog),
                 content: String(log.suffix(4_000))
             ))
         conversation.composer.draft = String(
-            localized: "SSH connection failed: \(message). What should I check?"
+            localized: TermindCopy.Terminal.sshConnectionFailedWhatShouldICheckConfirmation(message)
         )
     }
 }

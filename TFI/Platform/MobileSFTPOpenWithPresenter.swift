@@ -1,4 +1,5 @@
 import SwiftUI
+import TermindPresentation
 import UIKit
 
 /// The workspace owns presentation intent; the edit service owns the local file.
@@ -43,7 +44,7 @@ final class MobileSFTPOpenWithPresenter: NSObject, UIDocumentInteractionControll
         self.controller = controller
         if !present(controller, sourceView) {
             self.controller = nil
-            failed(String(localized: "No installed app can open this file."))
+            failed(String(localized: TermindCopy.SFTP.noInstalledAppCanOpenThisFile))
         }
     }
 

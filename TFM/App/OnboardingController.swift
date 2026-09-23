@@ -1,5 +1,6 @@
 import Foundation
 import TermindDomain
+import TermindPresentation
 
 import struct TermindDomain.Host
 
@@ -10,11 +11,11 @@ nonisolated enum OnboardingStep: String, CaseIterable, Identifiable, Sendable {
 
     nonisolated var id: Self { self }
 
-    var title: String {
+    var title: LocalizedStringResource {
         switch self {
-        case .quickOpen: "Quick Open"
-        case .statusBarPath: "Status Bar Path"
-        case .commandGenerator: "Command Generator"
+        case .quickOpen: TermindCopy.Navigation.quickOpen
+        case .statusBarPath: TermindCopy.Onboarding.statusBarPath
+        case .commandGenerator: TermindCopy.Onboarding.commandGenerator
         }
     }
 
@@ -61,14 +62,14 @@ nonisolated enum OnboardingDeveloperStatus: Equatable, Sendable {
     case completed
     case pending
     case previewing
-    case waitingForContext(String)
+    case waitingForContext(LocalizedStringResource)
 
-    var label: String {
+    var label: LocalizedStringResource {
         switch self {
-        case .completed: "Completed"
-        case .pending: "Pending"
-        case .previewing: "Previewing"
-        case .waitingForContext: "Waiting for Context"
+        case .completed: TermindCopy.Onboarding.completed
+        case .pending: TermindCopy.Onboarding.pending
+        case .previewing: TermindCopy.Onboarding.previewing
+        case .waitingForContext: TermindCopy.Onboarding.waitingForContext
         }
     }
 }
@@ -85,7 +86,7 @@ final class OnboardingController {
 
     private(set) var presentation: OnboardingPresentation?
     private(set) var previewRequest: OnboardingStep?
-    private(set) var previewWaitingReason: String?
+    private(set) var previewWaitingReason: LocalizedStringResource?
     private(set) var revision: UInt64 = 0
 
     private var didAutomaticallyPresentThisLaunch = false
@@ -186,7 +187,7 @@ final class OnboardingController {
                 return .previewing
             }
             if previewRequest == step {
-                return .waitingForContext(previewWaitingReason ?? "Waiting for an active window.")
+                return .waitingForContext(previewWaitingReason ?? TermindCopy.Onboarding.waitingForWindow)
             }
             return isCompleted(step) ? .completed : .pending
         }
@@ -194,7 +195,7 @@ final class OnboardingController {
         func preview(_ step: OnboardingStep) {
             presentation = nil
             previewRequest = step
-            previewWaitingReason = "Waiting for an active window."
+            previewWaitingReason = TermindCopy.Onboarding.waitingForWindow
             revision &+= 1
         }
 
@@ -254,17 +255,17 @@ final class OnboardingController {
 
     private func updatePreviewWaitingReason(for context: OnboardingContext) {
         guard let previewRequest else { return }
-        let reason: String
+        let reason: LocalizedStringResource
         if !context.canPresentCoachMark {
-            reason = "Close the current sheet, popover, or command palette."
+            reason = TermindCopy.Onboarding.dismissCurrentPresentation
         } else {
             switch previewRequest {
             case .quickOpen:
-                reason = "Waiting for an active app window."
+                reason = TermindCopy.Onboarding.waitingForActiveWindow
             case .statusBarPath:
-                reason = "Open a connected SSH session or SFTP channel with an expanded Status Bar and a known path."
+                reason = TermindCopy.Onboarding.pathPreviewRequirement
             case .commandGenerator:
-                reason = "Focus a supported SSH shell prompt with Shell Integration and a configured Command Generator."
+                reason = TermindCopy.Onboarding.commandPreviewRequirement
             }
         }
         if previewWaitingReason != reason {

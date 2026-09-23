@@ -8,7 +8,7 @@ nonisolated extension SFTPTransfer {
         case (.download, .running): String(localized: "Downloading")
         case (.upload, .completed): String(localized: "Uploaded")
         case (.download, .completed): String(localized: "Downloaded")
-        case (.copy, .completed): String(localized: "Copied")
+        case (.copy, .completed): String(localized: TermindCopy.Common.copied)
         default: state.label
         }
     }

@@ -7,6 +7,7 @@ import TermindApplication
 import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
+import TermindPresentation
 import TermindRemoteInfrastructure
 import UIKit
 
@@ -544,7 +545,7 @@ final class MobileAppModel {
             copy.telnetProxy?.username = ""
         }
         copy.id = UUID()
-        copy.name = String(localized: "\(host.name) copy")
+        copy.name = String(localized: TermindCopy.Vault.duplicatedHostName(host.name))
         library.upsert(copy)
     }
 
@@ -691,7 +692,7 @@ final class MobileAppModel {
             workspaceDisplayOrder = savedWorkspaceDescriptors.map(\.id)
             if savedWorkspaceDescriptors.count != descriptors.count { saveWorkspaces() }
         } catch {
-            self.error = String(localized: "Saved workspaces could not be restored. The saved data has been kept.")
+            self.error = String(localized: TermindCopy.Workspace.restoreWorkspacesFailure)
         }
         // No sessions exist at cold launch. Old URLs still resolve through the saved descriptors.
         liveActivities.update([])
@@ -701,7 +702,7 @@ final class MobileAppModel {
         do {
             try workspaceStore.save(savedWorkspaceDescriptors)
         } catch {
-            self.error = String(localized: "Workspace changes could not be saved for the next launch.")
+            self.error = String(localized: TermindCopy.Workspace.workspaceChangesCouldNotBeSavedForTheNextLaunch)
         }
     }
 

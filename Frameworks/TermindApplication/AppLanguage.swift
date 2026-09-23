@@ -1,6 +1,17 @@
 import Foundation
 
 public nonisolated enum AppLocalization {
+    /// Resolves app copy, whose English default value is also its catalog key,
+    /// using the effective language, including the desktop language override.
+    public static func resolve(
+        _ resource: LocalizedStringResource, locale: Locale = .current
+    ) -> String {
+        String(
+            localized: resource.defaultValue, table: resource.table,
+            bundle: bundle(for: locale), locale: locale
+        )
+    }
+
     public static func string(
         _ key: String.LocalizationValue, locale: Locale = .current
     ) -> String {

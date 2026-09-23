@@ -2,6 +2,7 @@ import Foundation
 import GhosttyTerminal
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 /// Marks the synchronous part of an AppKit terminal interaction.
 ///
@@ -100,8 +101,8 @@ private struct DesktopTerminalChrome: ViewModifier {
             .onChange(of: appearance) { _, value in
                 state.applyPreferences(value.preferences, font: value.font)
             }
-            .alert("Charset Error", isPresented: charsetErrorPresented) {
-                Button("OK", role: .cancel) { charsetError = nil }
+            .alert(TermindCopy.Terminal.charsetError.swiftUIKey, isPresented: charsetErrorPresented) {
+                Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { charsetError = nil }
             } message: {
                 Text(charsetError ?? "")
             }
@@ -179,8 +180,8 @@ struct SimpleDesktopTerminalView: View {
                 denyHostKey: closePane,
                 retry: retry,
                 cancel: closePane,
-                failureCancelLabel: "Close",
-                failureRetryLabel: "Reconnect",
+                failureCancelLabel: TermindCopy.Common.close,
+                failureRetryLabel: TermindCopy.Terminal.reconnect,
                 compactFailureActions: true
             )
         }

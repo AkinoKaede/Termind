@@ -1,12 +1,13 @@
 import Foundation
 import TermindDomain
+import TermindPresentation
 
 extension KeyStorage {
     nonisolated var displayName: String {
         switch self {
-        case .thisDevice: String(localized: "This Mac")
-        case .iCloud: String(localized: "iCloud")
-        case .secureEnclave: String(localized: "Secure Enclave")
+        case .thisDevice: String(localized: TermindCopy.Keychain.thisMac)
+        case .iCloud: String(localized: TermindCopy.Keychain.iCloud)
+        case .secureEnclave: String(localized: TermindCopy.Keychain.secureEnclave)
         }
     }
 

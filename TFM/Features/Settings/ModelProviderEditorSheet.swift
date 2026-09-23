@@ -53,7 +53,7 @@ struct ModelProviderEditorPage: View {
             if let provider {
                 settings(provider)
             } else {
-                ContentUnavailableView("Provider Deleted", systemImage: "trash")
+                ContentUnavailableView(TermindCopy.Settings.providerDeleted.swiftUIKey, systemImage: "trash")
             }
         }
         .onAppear(perform: loadSecrets)
@@ -65,11 +65,11 @@ struct ModelProviderEditorPage: View {
 
     private var brokenRolesSummary: String {
         let names = brokenRoles.map(\.displayName).formatted(.list(type: .and).locale(locale))
-        return String(localized: "\(names) would go back to Automatic.")
+        return String(localized: TermindCopy.Settings.wouldGoBackToAutomatic(names))
     }
 
     private var deleteHelp: Text {
-        Text("Permanently deletes this provider, its key, and its models.")
+        Text(TermindCopy.Settings.permanentlyDeletesThisProviderItsKeyAndItsModels)
     }
 
     // MARK: - Settings column
@@ -87,10 +87,10 @@ struct ModelProviderEditorPage: View {
             if session.endpoint.apiType == .generateContent { vertexSection(provider) }
             if let error = session.error { Text(error).foregroundStyle(.red) }
 
-            Section("Models") {
+            Section(TermindCopy.Settings.models.swiftUIKey) {
                 Button(action: showModels) {
                     HStack {
-                        Label("Manage Models", systemImage: "cube")
+                        Label(TermindCopy.Settings.manageModels.swiftUIKey, systemImage: "cube")
                         Spacer()
                         Text(provider.models.count, format: .number)
                             .foregroundStyle(.secondary)
@@ -105,7 +105,7 @@ struct ModelProviderEditorPage: View {
             }
 
             Section {
-                Button("Delete", role: .destructive) {
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                     app.aiConfiguration.delete(modelProviderID: modelProviderID)
                     deleted()
                 }
@@ -126,7 +126,7 @@ struct ModelProviderEditorPage: View {
     private var credentialSection: some View {
         Section {
             RevealableSecretField(
-                "API Key",
+                TermindCopy.Settings.apiKey,
                 text: Binding(
                     get: { session.secret },
                     set: {
@@ -134,11 +134,11 @@ struct ModelProviderEditorPage: View {
                         store(secret: $0)
                     }
                 ),
-                prompt: Text("Optional")
+                prompt: Text(TermindCopy.Common.optional)
             )
 
             Text(
-                "The key is stored in this Mac's Data Protection Keychain."
+                TermindCopy.Settings.theKeyIsStoredInThisMacSDataProtectionKeychain
             )
             .font(.caption)
             .foregroundStyle(.secondary)

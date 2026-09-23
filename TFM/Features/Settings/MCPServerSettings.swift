@@ -15,15 +15,15 @@ struct MCPServerSettings: View {
     private var server: MCPServerController { app.mcpServer }
 
     var body: some View {
-        Section("Server") {
+        Section(TermindCopy.Settings.server.swiftUIKey) {
             Toggle(
-                "Enable",
+                TermindCopy.Settings.enable.swiftUIKey,
                 isOn: Binding(
                     get: { server.isEnabled && app.proAccess.canUse(.mcpServer) },
                     set: { server.setEnabled($0) }
                 ))
 
-            LabeledContent("Status") {
+            LabeledContent(TermindCopy.Common.status.swiftUIKey) {
                 HStack(spacing: Metrics.Space.s) {
                     Circle()
                         .fill(statusColor)
@@ -31,10 +31,10 @@ struct MCPServerSettings: View {
                     Text(server.status.label).foregroundStyle(.secondary)
                 }
             }
-            LabeledContent("Connected clients", value: "\(server.connectedClients)")
-            LabeledContent("Port") {
+            LabeledContent(TermindCopy.Settings.connectedClients.swiftUIKey, value: "\(server.connectedClients)")
+            LabeledContent(TermindCopy.Common.port.swiftUIKey) {
                 TextField(
-                    "Port",
+                    TermindCopy.Common.port.swiftUIKey,
                     value: Binding(
                         get: { server.port },
                         set: { server.setPort($0) }
@@ -44,14 +44,14 @@ struct MCPServerSettings: View {
                     .multilineTextAlignment(.trailing)
             }
             Text(
-                "The server listens only on 127.0.0.1 and ::1. It is off by default; when enabled, external calls execute without per-call approval."
+                TermindCopy.Settings.mcpServerAccessExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)
         }
 
-        Section("Bearer Token") {
-            LabeledContent("Token") {
+        Section(TermindCopy.Settings.bearerToken.swiftUIKey) {
+            LabeledContent(TermindCopy.Settings.token.swiftUIKey) {
                 HStack {
                     Text(showsToken ? displayToken : String(repeating: "•", count: 24))
                         .font(.system(.body, design: .monospaced))
@@ -63,17 +63,22 @@ struct MCPServerSettings: View {
                         Image(systemName: showsToken ? "eye.slash" : "eye")
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(showsToken ? "Hide Secret" : "Show Secret")
-                    Button("Copy") { copy(displayToken) }
+                    .accessibilityLabel(
+                        showsToken
+                            ? TermindCopy.Settings.hideSecret.swiftUIKey : TermindCopy.Settings.showSecret.swiftUIKey)
+                    Button(TermindCopy.Common.copy.swiftUIKey) { copy(displayToken) }
                 }
             }
             HStack {
-                Button(displayToken.isEmpty ? "Generate Token" : "Rotate Token") {
+                Button(
+                    displayToken.isEmpty
+                        ? TermindCopy.Settings.generateToken.swiftUIKey : TermindCopy.Settings.rotateToken.swiftUIKey
+                ) {
                     server.rotateToken()
                     showsToken = true
                 }
                 if !displayToken.isEmpty {
-                    Text("Rotating disconnects every active MCP session.")
+                    Text(TermindCopy.Settings.rotatingDisconnectsEveryActiveMcpSession)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
@@ -87,7 +92,7 @@ struct MCPServerSettings: View {
 
         clientSetupSection
 
-        Section("Exposed Tools") {
+        Section(TermindCopy.Settings.exposedTools.swiftUIKey) {
             ForEach(MCPServerTools.exportedNames.sorted(), id: \.self) { name in
                 Toggle(
                     name,
@@ -99,16 +104,16 @@ struct MCPServerSettings: View {
                 .font(.system(.body, design: .monospaced))
             }
             Text(
-                "Tool changes are enforced immediately. Existing clients see the new list when they reconnect or list tools again."
+                TermindCopy.Settings.mcpToolChangesExplanation
             )
             .font(.caption)
             .foregroundStyle(.secondary)
         }
 
-        Section("Call History") {
+        Section(TermindCopy.Settings.callHistory.swiftUIKey) {
             TextField(
-                "Filter by client, tool, host or argument", text: $historyQuery.singleLineText,
-                prompt: Text("Filter by client, tool, host or argument"), axis: .horizontal
+                TermindCopy.Settings.filterByClientToolHostOrArgument.swiftUIKey, text: $historyQuery.singleLineText,
+                prompt: Text(TermindCopy.Settings.filterByClientToolHostOrArgument), axis: .horizontal
             )
             .singleLinePaste()
             .lineLimit(1)
@@ -118,29 +123,29 @@ struct MCPServerSettings: View {
             let rows = app.toolAudit.entries(matching: historyQuery)
             if rows.isEmpty {
                 ContentUnavailableView(
-                    "No external calls", systemImage: "clock.arrow.circlepath",
-                    description: Text("Calls appear here after an MCP client invokes a tool.")
+                    TermindCopy.Settings.noExternalCalls.swiftUIKey, systemImage: "clock.arrow.circlepath",
+                    description: Text(TermindCopy.Settings.callsAppearHereAfterAnMcpClientInvokesATool)
                 )
                 .frame(maxWidth: .infinity, minHeight: 160, alignment: .center)
             } else {
                 ForEach(rows.prefix(200)) { row in ExternalToolCallRow(row: row) }
             }
             HStack {
-                Button("Clear History", role: .destructive) { confirmsHistoryClear = true }
+                Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive) { confirmsHistoryClear = true }
                 Spacer()
-                Text("Stores commands, paths and byte counts; never file bodies, stdin, stdout or stderr.")
+                Text(TermindCopy.Settings.toolAuditStorageExplanation)
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
         }
         .confirmationDialog(
-            "Clear Call History?", isPresented: $confirmsHistoryClear,
+            TermindCopy.Settings.clearCallHistoryConfirmation.swiftUIKey, isPresented: $confirmsHistoryClear,
             titleVisibility: .visible
         ) {
-            Button("Clear History", role: .destructive) { app.toolAudit.clear() }
-            Button("Cancel", role: .cancel) {}
+            Button(TermindCopy.Common.clearHistory.swiftUIKey, role: .destructive) { app.toolAudit.clear() }
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text("This permanently removes all saved MCP call records.")
+            Text(TermindCopy.Settings.thisPermanentlyRemovesAllSavedMcpCallRecords)
         }
     }
 
@@ -155,7 +160,7 @@ struct MCPServerSettings: View {
             port: setup.port, token: showsToken ? setup.token : "••••••••",
             bridgePath: setup.bridgePath
         )
-        return Section("Connect Clients") {
+        return Section(TermindCopy.Settings.connectClients.swiftUIKey) {
             ForEach(MCPClientSetupCommand.Client.allCases) { client in
                 let command = setup.command(for: client)
                 HStack(spacing: Metrics.Space.m) {
@@ -170,22 +175,22 @@ struct MCPServerSettings: View {
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    CopyButton(text: command ?? "", title: "Copy Add Command")
+                    CopyButton(text: command ?? "", title: TermindCopy.Settings.copyAddCommand)
                         .disabled(command == nil)
                         .fixedSize()
                 }
             }
             VStack(alignment: .leading, spacing: Metrics.Space.s) {
                 if displayToken.isEmpty {
-                    Text("Generate a token to copy client setup commands.")
+                    Text(TermindCopy.Settings.generateATokenToCopyClientSetupCommands)
                 }
                 if setup.bridgePath == nil {
-                    Text("The bundled MCP bridge is missing. Codex and Hermes setup commands are unavailable.")
+                    Text(TermindCopy.Settings.missingMCPBridge)
                 }
-                Text("Run the copied command in a terminal on this Mac. Enable the server before connecting.")
-                Text("Hermes needs the server running during setup and may ask you to select tools.")
+                Text(TermindCopy.Settings.mcpSetupExplanation)
+                Text(TermindCopy.Settings.hermesSetupRequirement)
                 Text(
-                    "Update client configurations after changing the port or token, or after moving Termind for Codex and Hermes."
+                    TermindCopy.Settings.mcpClientConfigurationReminder
                 )
             }
             .font(.caption)
@@ -230,7 +235,8 @@ private struct ExternalToolCallRow: View {
                     Text(row.clientName)
                     Text(row.startedAt, style: .relative)
                     if let duration = row.duration {
-                        Text(duration, format: .number.precision(.fractionLength(2))) + Text("s")
+                        Text(duration, format: .number.precision(.fractionLength(2)))
+                            + Text(TermindCopy.MCP.secondsSuffix)
                     }
                 }
                 .font(.caption2).foregroundStyle(.tertiary)

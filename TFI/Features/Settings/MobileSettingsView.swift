@@ -1,5 +1,6 @@
 import SwiftUI
 import TermindApplication
+import TermindPresentation
 
 struct MobileSettingsView: View {
     let app: MobileAppModel
@@ -9,7 +10,9 @@ struct MobileSettingsView: View {
     var body: some View {
         Form {
             Section {
-                Button("Termind Pro", systemImage: "sparkles.rectangle.stack") { app.pro.presentPaywall() }
+                Button(TermindCopy.Pro.termindPro.swiftUIKey, systemImage: "sparkles.rectangle.stack") {
+                    app.pro.presentPaywall()
+                }
             }
             Section {
                 NavigationLink {
@@ -18,27 +21,27 @@ struct MobileSettingsView: View {
                         appReview: app.appReview,
                         reviewScene: reviewScene)
                 } label: {
-                    Label("App", systemImage: "app.badge")
+                    Label(TermindCopy.Settings.app.swiftUIKey, systemImage: "app.badge")
                 }
                 NavigationLink {
                     MobileTerminalSettingsView(model: app.terminalSettings)
                 } label: {
-                    Label("Terminal", systemImage: "terminal")
+                    Label(TermindCopy.Settings.terminal.swiftUIKey, systemImage: "terminal")
                 }
                 NavigationLink {
                     MobileConnectionSettingsView(ssh: app.sshSettings, sftp: app.sftpSettings)
                 } label: {
-                    Label("Connections", systemImage: "network")
+                    Label(TermindCopy.Settings.connections.swiftUIKey, systemImage: "network")
                 }
                 NavigationLink {
                     MobileAISettingsView(app: app)
                 } label: {
-                    Label("AI", systemImage: "sparkles")
+                    Label(TermindCopy.Settings.ai.swiftUIKey, systemImage: "sparkles")
                 }
                 NavigationLink {
                     MobileSyncSettingsView(app: app)
                 } label: {
-                    Label("Sync", systemImage: "icloud")
+                    Label(TermindCopy.Settings.sync.swiftUIKey, systemImage: "icloud")
                 }
             }
             if debugSectionEnabled {
@@ -46,17 +49,17 @@ struct MobileSettingsView: View {
                     NavigationLink {
                         MobileLoggingView(logging: app.logging)
                     } label: {
-                        Label("Logging", systemImage: "doc.text")
+                        Label(TermindCopy.Settings.logging.swiftUIKey, systemImage: "doc.text")
                     }
                     LabeledContent {
-                        Text(verbatim: DeviceCensorship.canDisplayTaiwanFlag ? "true" : "false")
+                        Text(verbatim: String(DeviceCensorship.canDisplayTaiwanFlag))
                     } label: {
-                        Label("Taiwan Flag Available", systemImage: "touchid")
+                        Label(TermindCopy.Settings.taiwanFlagAvailable.swiftUIKey, systemImage: "touchid")
                     }
                 }
             }
         }
-        .navigationTitle("Settings")
+        .navigationTitle(TermindCopy.Navigation.settings.swiftUIKey)
         .mobileReviewPage("settings", scene: reviewScene)
     }
 }

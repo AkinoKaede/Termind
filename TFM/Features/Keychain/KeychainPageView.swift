@@ -85,11 +85,11 @@ struct KeychainPageView: ManagedCardPage {
     var managedSections: [ManagedCardSection<SectionID, Item>] {
         [
             ManagedCardSection(
-                id: .keys, title: String(localized: "Keys"),
+                id: .keys, title: String(localized: TermindCopy.Keychain.keys),
                 items: keys.map(Item.key), showsWhenEmpty: state.query.isEmpty
             ),
             ManagedCardSection(
-                id: .identities, title: String(localized: "Identities"),
+                id: .identities, title: String(localized: TermindCopy.Keychain.identities),
                 items: identities.map(Item.identity), showsWhenEmpty: state.query.isEmpty
             ),
         ]
@@ -193,23 +193,23 @@ struct KeychainPageView: ManagedCardPage {
     func managedBlankAreaMenu(for section: SectionID?) -> [NativeMenuEntry] {
         [
             NativeMenuEntry(
-                title: String(localized: "Import Key"), symbol: MenuSymbol.importItem
+                title: TermindCopy.Keychain.importKey, symbol: MenuSymbol.importItem
             ) {
                 window.openVaultWork(.importKey, on: .keychain)
             },
             NativeMenuEntry(
-                title: String(localized: "Generate Key"), symbol: MenuSymbol.generateKey
+                title: TermindCopy.Keychain.generateKey, symbol: MenuSymbol.generateKey
             ) {
                 window.openVaultWork(.generateKey, on: .keychain)
             },
             .separator,
             NativeMenuEntry(
-                title: String(localized: "New Identity"), symbol: MenuSymbol.newIdentity
+                title: TermindCopy.Keychain.newIdentity, symbol: MenuSymbol.newIdentity
             ) {
                 window.openVaultWork(.identityEditor(nil), on: .keychain)
             },
             .separator,
-            NativeMenuEntry(title: String(localized: "Import .ssh Folder"), symbol: MenuSymbol.importItem) {
+            NativeMenuEntry(title: TermindCopy.Vault.importSshFolder, symbol: MenuSymbol.importItem) {
                 window.openVaultWork(.sshImport(knownHostsOnly: false), on: .keychain)
             },
         ]
@@ -293,7 +293,7 @@ struct KeychainPageView: ManagedCardPage {
             if !app.credentials.delete(identityID: identity.id) {
                 state.errorMessage =
                     app.credentials.storageError
-                    ?? String(localized: "The identity could not be deleted.")
+                    ?? String(localized: TermindCopy.Keychain.theIdentityCouldNotBeDeleted)
             }
         }
         for key in keys {
@@ -309,21 +309,21 @@ struct KeychainPageView: ManagedCardPage {
 
     func managedEmptyState() -> some View {
         ContentUnavailableView {
-            Label("Keychain Is Empty", systemImage: "key.fill")
+            Label(TermindCopy.Keychain.keychainIsEmpty.swiftUIKey, systemImage: "key.fill")
         } description: {
             Text(
-                "Import or generate a key, then create an identity with a username. Private keys stay in the Keychain."
+                TermindCopy.Keychain.emptyDescription
             )
         } actions: {
             // The only door out of the empty state that opens yet: an identity
             // can be a username and a password, which needs no key material.
-            Button("New Identity") {
+            Button(TermindCopy.Keychain.newIdentity.swiftUIKey) {
                 window.openVaultWork(.identityEditor(nil), on: .keychain)
             }
-            Button("Import Key") {
+            Button(TermindCopy.Keychain.importKey.swiftUIKey) {
                 window.openVaultWork(.importKey, on: .keychain)
             }
-            Button("Generate Key") {
+            Button(TermindCopy.Keychain.generateKey.swiftUIKey) {
                 window.openVaultWork(.generateKey, on: .keychain)
             }
         }
@@ -367,10 +367,10 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
                 ),
                 titleVisibility: .visible
             ) {
-                Button("Delete", role: .destructive) {
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) {
                     actions.delete(state.deleting)
                 }
-                Button("Cancel", role: .cancel) { state.deleting = [] }
+                Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) { state.deleting = [] }
             } message: {
                 confirmationMessage
             }
@@ -379,13 +379,13 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
             // be missed: leaving a key the user asked to remove sitting there
             // with no explanation is the one outcome worth interrupting for.
             .alert(
-                "Keychain Operation Failed",
+                TermindCopy.Keychain.keychainOperationFailed.swiftUIKey,
                 isPresented: Binding(
                     get: { state.errorMessage != nil },
                     set: { if !$0 { state.errorMessage = nil } }
                 )
             ) {
-                Button("OK") { state.errorMessage = nil }
+                Button(TermindCopy.Common.ok.swiftUIKey) { state.errorMessage = nil }
             } message: {
                 Text(state.errorMessage ?? "")
             }
@@ -394,29 +394,31 @@ struct KeychainPagePresentation: ManagedCardPresentationModifier {
     private var confirmationTitle: Text {
         let keys = state.deleting.compactMap(\.key)
         let identities = state.deleting.compactMap(\.identity)
-        if keys.count == 1, identities.isEmpty { return Text("Delete Key?") }
-        if keys.count > 1, identities.isEmpty { return Text("Delete \(keys.count) Keys?") }
-        if identities.count == 1, keys.isEmpty { return Text("Delete Identity?") }
-        if identities.count > 1, keys.isEmpty { return Text("Delete \(identities.count) Identities?") }
-        return Text("Delete \(keys.count + identities.count) Items?")
+        if keys.count == 1, identities.isEmpty { return Text(TermindCopy.Keychain.deleteKeyConfirmation) }
+        if keys.count > 1, identities.isEmpty { return Text(TermindCopy.Keychain.deleteKeysConfirmation(keys.count)) }
+        if identities.count == 1, keys.isEmpty { return Text(TermindCopy.Keychain.deleteIdentityConfirmation) }
+        if identities.count > 1, keys.isEmpty {
+            return Text(TermindCopy.Keychain.deleteIdentitiesConfirmation(identities.count))
+        }
+        return Text(TermindCopy.Keychain.deleteItemsConfirmation(keys.count + identities.count))
     }
 
     private var confirmationMessage: Text {
         let keys = state.deleting.compactMap(\.key)
         let identities = state.deleting.compactMap(\.identity)
         if keys.count == 1, identities.isEmpty {
-            return Text("Identities using this key will no longer have access to it.")
+            return Text(TermindCopy.Keychain.deleteKeyWarning)
         }
         if keys.count > 1, identities.isEmpty {
-            return Text("Identities using these keys will no longer have access to them.")
+            return Text(TermindCopy.Keychain.deleteKeysWarning)
         }
         if identities.count == 1, keys.isEmpty {
-            return Text("Hosts using this identity will ask for credentials again.")
+            return Text(TermindCopy.Keychain.deleteIdentityWarning)
         }
         if identities.count > 1, keys.isEmpty {
-            return Text("Hosts using these identities will ask for credentials again.")
+            return Text(TermindCopy.Keychain.deleteIdentitiesWarning)
         }
-        return Text("Hosts and identities using these items may need to be configured again.")
+        return Text(TermindCopy.Keychain.deleteItemsWarning)
     }
 }
 
@@ -426,7 +428,7 @@ struct KeychainImportDetail: View {
 
     var body: some View {
         SoftwareKeyEditor(
-            title: "Import Key", symbol: "square.and.arrow.down",
+            title: TermindCopy.Keychain.importKey, symbol: "square.and.arrow.down",
             close: window.closeVaultWork,
             defaultStorage: app.newVaultKeyStorage,
             save: save
@@ -463,7 +465,7 @@ private struct SoftwareKeyEditor: View {
     }
 
     let existing: SSHKeyRef?
-    let title: LocalizedStringKey
+    let title: LocalizedStringResource
     let symbol: String
     let close: () -> Void
     let loadPrivateKey: (() throws -> String)?
@@ -497,7 +499,7 @@ private struct SoftwareKeyEditor: View {
     @Environment(VaultWorkEditingSession.self) private var editingSession
 
     init(
-        existing: SSHKeyRef? = nil, title: LocalizedStringKey,
+        existing: SSHKeyRef? = nil, title: LocalizedStringResource,
         symbol: String, close: @escaping () -> Void,
         defaultStorage: KeyStorage = .iCloud,
         loadPrivateKey: (() throws -> String)? = nil,
@@ -529,10 +531,10 @@ private struct SoftwareKeyEditor: View {
             close: {
                 if existing == nil { close() } else { cancelEditing() }
             },
-            closeLabel: existing == nil ? "Close" : "Cancel"
+            closeLabel: existing == nil ? TermindCopy.Common.close : TermindCopy.Common.cancel
         ) {
             if isLoading {
-                ProgressView("Loading private key…")
+                ProgressView(TermindCopy.Keychain.loadingPrivateKeyProgress.swiftUIKey)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
                 Form {
@@ -549,37 +551,41 @@ private struct SoftwareKeyEditor: View {
                     }
 
                     Section {
-                        Picker("Store in", selection: $storage) {
-                            Label("iCloud", systemImage: "icloud.fill").tag(KeyStorage.iCloud)
-                            Label("This Mac", systemImage: "lock.laptopcomputer")
+                        Picker(TermindCopy.Keychain.storeIn.swiftUIKey, selection: $storage) {
+                            Label(TermindCopy.Keychain.iCloud.swiftUIKey, systemImage: "icloud.fill").tag(
+                                KeyStorage.iCloud)
+                            Label(TermindCopy.Keychain.thisMac.swiftUIKey, systemImage: "lock.laptopcomputer")
                                 .tag(KeyStorage.thisDevice)
                         }
                         .disabled(!canEditPrivateKey || existing?.storage == .iCloud)
                         keyTextEditor(
                             text: $privateKey, minHeight: 150,
-                            placeholder: "Paste a private key, or drag one in"
+                            placeholder: TermindCopy.Keychain.pasteAPrivateKeyOrDragOneIn
                         )
-                        .accessibilityLabel("Private Key")
+                        .accessibilityLabel(TermindCopy.Keychain.privateKey.swiftUIKey)
                         .disabled(!canEditPrivateKey)
                         if let existing, let material,
                             material.publicKey != existing.publicKey
                         {
                             Label(
-                                "Replacing this private key changes its public key. Hosts using the old key may reject the next connection.",
+                                TermindCopy.Keychain.replacePrivateKeyWarning.swiftUIKey,
                                 systemImage: "arrow.triangle.2.circlepath"
                             )
                             .font(.caption)
                             .foregroundStyle(.orange)
                         }
-                        RevealableSecretField("Passphrase", text: $passphrase, prompt: Text("Optional"))
-                            .disabled(!canEditPrivateKey)
+                        RevealableSecretField(
+                            TermindCopy.Keychain.passphrase, text: $passphrase,
+                            prompt: Text(TermindCopy.Common.optional)
+                        )
+                        .disabled(!canEditPrivateKey)
                     } header: {
-                        fileSectionHeader("Private Key", canChoose: canEditPrivateKey) {
+                        fileSectionHeader(TermindCopy.Keychain.privateKey, canChoose: canEditPrivateKey) {
                             chooseFile(for: .privateKey)
                         }
                     }
 
-                    Section("Public Key") {
+                    Section(TermindCopy.Keychain.publicKey.swiftUIKey) {
                         Text(publicKeyDisplay)
                             .font(.caption.monospaced())
                             .foregroundStyle(material == nil ? .secondary : .primary)
@@ -589,16 +595,16 @@ private struct SoftwareKeyEditor: View {
                     Section {
                         keyTextEditor(
                             text: $certificate, minHeight: 110,
-                            placeholder: "Certificate (optional)"
+                            placeholder: TermindCopy.Keychain.certificateOptional
                         )
-                        .accessibilityLabel("Certificate")
+                        .accessibilityLabel(TermindCopy.Keychain.certificate.swiftUIKey)
                         if let warning = certificateWarning {
                             Label(warning, systemImage: "exclamationmark.triangle.fill")
                                 .font(.caption)
                                 .foregroundStyle(.orange)
                         }
                     } header: {
-                        fileSectionHeader("Certificate") { chooseFile(for: .certificate) }
+                        fileSectionHeader(TermindCopy.Keychain.certificate) { chooseFile(for: .certificate) }
                     }
                 }
                 .formStyle(.grouped)
@@ -606,14 +612,14 @@ private struct SoftwareKeyEditor: View {
         } footer: {
             HStack(spacing: Metrics.Space.m) {
                 if existing != nil, delete != nil {
-                    Button("Delete", role: .destructive) { confirmsDeletion = true }
+                    Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
                 }
                 Spacer()
                 if isWorking { ProgressView().controlSize(.small) }
-                Button("Cancel") {
+                Button(TermindCopy.Common.cancel.swiftUIKey) {
                     if existing == nil { close() } else { cancelEditing() }
                 }
-                Button(existing == nil ? "Import" : "Save") {
+                Button(existing == nil ? TermindCopy.Common.import.swiftUIKey : TermindCopy.Common.save.swiftUIKey) {
                     Task {
                         guard await commitChanges() else { return }
                         close()
@@ -659,11 +665,14 @@ private struct SoftwareKeyEditor: View {
             guard let editingToken else { return }
             editingSession.unregister(editingToken)
         }
-        .confirmationDialog("Delete Key?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
-            Button("Delete Key", role: .destructive, action: deleteKey)
-            Button("Cancel", role: .cancel) {}
+        .confirmationDialog(
+            TermindCopy.Keychain.deleteKeyConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            titleVisibility: .visible
+        ) {
+            Button(TermindCopy.Keychain.deleteKey.swiftUIKey, role: .destructive, action: deleteKey)
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text("Identities using this key will no longer have access to it.")
+            Text(TermindCopy.Keychain.deleteKeyWarning)
         }
         .task(id: validationToken) { await derivePublicMaterial() }
     }
@@ -680,7 +689,7 @@ private struct SoftwareKeyEditor: View {
     /// a visibly empty box. It matches the editor's font so the first typed
     /// character lands exactly where the prompt started.
     private func keyTextEditor(
-        text: Binding<String>, minHeight: CGFloat, placeholder: LocalizedStringKey
+        text: Binding<String>, minHeight: CGFloat, placeholder: LocalizedStringResource
     ) -> some View {
         TextEditor(text: text)
             .font(.caption.monospaced())
@@ -712,12 +721,12 @@ private struct SoftwareKeyEditor: View {
     /// section title. With the editor no longer drawn as a box, that row had
     /// nothing left to attach to and read as a second heading.
     private func fileSectionHeader(
-        _ title: LocalizedStringKey, canChoose: Bool = true, choose: @escaping () -> Void
+        _ title: LocalizedStringResource, canChoose: Bool = true, choose: @escaping () -> Void
     ) -> some View {
         HStack {
             Text(title)
             Spacer()
-            Button("Choose", action: choose)
+            Button(TermindCopy.Common.choose.swiftUIKey, action: choose)
                 .disabled(!canChoose)
         }
     }
@@ -810,15 +819,15 @@ private struct SoftwareKeyEditor: View {
     private var dropPresentation: DropTargetPresentation {
         DropTargetPresentation(
             title: existing == nil
-                ? String(localized: "Drag to Import")
-                : String(localized: "Drag to Replace"),
-            detail: String(localized: "Private key or certificate"),
+                ? String(localized: TermindCopy.Common.dragToImport)
+                : String(localized: TermindCopy.Keychain.dragToReplace),
+            detail: String(localized: TermindCopy.Keychain.privateKeyOrCertificate),
             systemImage: "key.fill"
         )
     }
 
     private var publicKeyDisplay: String {
-        material?.publicKey ?? existing?.publicKey ?? String(localized: "Derived from the private key")
+        material?.publicKey ?? existing?.publicKey ?? String(localized: TermindCopy.Keychain.derivedFromThePrivateKey)
     }
 
     private var certificateWarning: String? {
@@ -1043,14 +1052,17 @@ private struct GenerateKeySheet: View {
     }
 
     var body: some View {
-        VaultDetailScaffold(title: "Generate Key", symbol: "key.fill", close: close) {
+        VaultDetailScaffold(title: TermindCopy.Keychain.generateKey, symbol: "key.fill", close: close) {
             Form {
                 Section {
                     VaultNameField(text: $label, prompt: Text(defaultName))
                     VaultColorField(selection: $colorTag)
                 }
-                Section(storage == .secureEnclave ? "Secure Enclave" : "Private Key") {
-                    Picker("Store in", selection: $storage) {
+                Section(
+                    storage == .secureEnclave
+                        ? TermindCopy.Keychain.secureEnclave.swiftUIKey : TermindCopy.Keychain.privateKey.swiftUIKey
+                ) {
+                    Picker(TermindCopy.Keychain.storeIn.swiftUIKey, selection: $storage) {
                         ForEach(availableStorage) { location in
                             Label(location.displayName, systemImage: location.symbol)
                                 .tag(location)
@@ -1058,39 +1070,44 @@ private struct GenerateKeySheet: View {
                         }
                     }
                     if storage == .secureEnclave {
-                        LabeledContent("Algorithm", value: "ECDSA")
-                        LabeledContent("Elliptic Curve", value: "NIST P-256")
-                        Toggle("Require Authentication", isOn: $requiresUserPresence)
+                        LabeledContent(TermindCopy.Keychain.algorithm.swiftUIKey, value: "ECDSA")
+                        LabeledContent(
+                            TermindCopy.Keychain.ellipticCurve.swiftUIKey,
+                            value: String(localized: TermindCopy.Keychain.nistP256))
+                        Toggle(TermindCopy.Keychain.requireAuthentication.swiftUIKey, isOn: $requiresUserPresence)
                     } else {
-                        Picker("Algorithm", selection: $kind) {
+                        Picker(TermindCopy.Keychain.algorithm.swiftUIKey, selection: $kind) {
                             ForEach(Kind.allCases) { Text($0.rawValue).tag($0) }
                         }
                         if kind == .ecdsa {
-                            Picker("Elliptic Curve", selection: $curveBits) {
-                                Text("NIST P-256").tag(256)
-                                Text("NIST P-384").tag(384)
-                                Text("NIST P-521").tag(521)
+                            Picker(TermindCopy.Keychain.ellipticCurve.swiftUIKey, selection: $curveBits) {
+                                Text(TermindCopy.Keychain.nistP256).tag(256)
+                                Text(TermindCopy.Keychain.nistP384).tag(384)
+                                Text(TermindCopy.Keychain.nistP521).tag(521)
                             }
                         } else if kind == .rsa {
-                            Picker("Key Size", selection: $rsaBits) {
-                                Text("2048 bit").tag(2048)
-                                Text("3072 bit").tag(3072)
-                                Text("4096 bit").tag(4096)
+                            Picker(TermindCopy.Keychain.keySize.swiftUIKey, selection: $rsaBits) {
+                                Text(TermindCopy.Keychain.rsa2048Bits).tag(2048)
+                                Text(TermindCopy.Keychain.rsa3072Bits).tag(3072)
+                                Text(TermindCopy.Keychain.rsa4096Bits).tag(4096)
                             }
                         }
-                        RevealableSecretField("Passphrase", text: $passphrase, prompt: Text("Optional"))
-                        RevealableSecretField("Confirm Passphrase", text: $confirmation)
+                        RevealableSecretField(
+                            TermindCopy.Keychain.passphrase, text: $passphrase,
+                            prompt: Text(TermindCopy.Common.optional))
+                        RevealableSecretField(TermindCopy.Keychain.confirmPassphrase, text: $confirmation)
                             .disabled(passphrase.isEmpty)
                         if !passphrase.isEmpty {
-                            Picker("Cipher", selection: $cipher) {
+                            Picker(TermindCopy.Keychain.cipher.swiftUIKey, selection: $cipher) {
                                 ForEach(SSHKeyMaterial.Cipher.allCases) { cipher in
                                     Text(cipher.displayName).tag(cipher)
                                 }
                             }
-                            TextField("Rounds", value: $rounds, format: .number).lineLimit(1)
+                            TextField(TermindCopy.Keychain.rounds.swiftUIKey, value: $rounds, format: .number)
+                                .lineLimit(1)
                         }
                         if !passwordsMatch {
-                            Text("Passphrases do not match.")
+                            Text(TermindCopy.Keychain.passphrasesDoNotMatch)
                                 .font(.caption)
                                 .foregroundStyle(.red)
                         }
@@ -1106,8 +1123,8 @@ private struct GenerateKeySheet: View {
             HStack {
                 Spacer()
                 if isWorking { ProgressView().controlSize(.small) }
-                Button("Cancel", action: close).keyboardShortcut(.cancelAction)
-                Button("Generate") {
+                Button(TermindCopy.Common.cancel.swiftUIKey, action: close).keyboardShortcut(.cancelAction)
+                Button(TermindCopy.Keychain.generate.swiftUIKey) {
                     Task { await commit() }
                 }
                 .keyboardShortcut(.defaultAction)
@@ -1169,7 +1186,7 @@ struct KeychainEditDetail: View {
                 )
             } else {
                 SoftwareKeyEditor(
-                    existing: key, title: "Edit Key", symbol: "pencil",
+                    existing: key, title: TermindCopy.Keychain.editKey, symbol: "pencil",
                     close: window.closeVaultWork,
                     loadPrivateKey: { try loadPrivateKey(key) },
                     saveMetadata: { name, colorTag, certificate in
@@ -1189,14 +1206,14 @@ struct KeychainEditDetail: View {
                 )
             }
         } else {
-            ContentUnavailableView("Key Unavailable", systemImage: "key.slash")
+            ContentUnavailableView(TermindCopy.Keychain.keyUnavailable.swiftUIKey, systemImage: "key.slash")
         }
     }
 
     private func loadPrivateKey(_ key: SSHKeyRef) throws -> String {
         guard case .software(let secret)? = try app.credentials.keyCredential(for: key) else {
             throw TermindSSHError.library(
-                String(localized: "The private key is unavailable on this Mac.")
+                String(localized: TermindCopy.Keychain.thePrivateKeyIsUnavailableOnThisMac)
             )
         }
         return secret.privateKey
@@ -1282,19 +1299,22 @@ private struct SecureEnclaveKeyEditor: View {
     }
 
     var body: some View {
-        VaultDetailScaffold(title: "Edit Key", symbol: "pencil", close: cancelEditing, closeLabel: "Cancel") {
+        VaultDetailScaffold(
+            title: TermindCopy.Keychain.editKey, symbol: "pencil", close: cancelEditing,
+            closeLabel: TermindCopy.Common.cancel
+        ) {
             Form {
                 Section {
                     VaultNameField(text: $name, prompt: Text(verbatim: key.defaultName))
                     VaultColorField(selection: $colorTag)
                 }
-                Section("Secure Enclave") {
-                    LabeledContent("Store in", value: key.storage.displayName)
-                    LabeledContent("Algorithm", value: key.algorithm.displayName)
-                    LabeledContent("Fingerprint") {
+                Section(TermindCopy.Keychain.secureEnclave.swiftUIKey) {
+                    LabeledContent(TermindCopy.Keychain.storeIn.swiftUIKey, value: key.storage.displayName)
+                    LabeledContent(TermindCopy.Keychain.algorithm.swiftUIKey, value: key.algorithm.displayName)
+                    LabeledContent(TermindCopy.KnownHosts.fingerprint.swiftUIKey) {
                         Text(key.fingerprint).font(.caption.monospaced()).textSelection(.enabled)
                     }
-                    LabeledContent("Public Key") {
+                    LabeledContent(TermindCopy.Keychain.publicKey.swiftUIKey) {
                         Text(key.publicKey).font(.caption.monospaced()).textSelection(.enabled)
                     }
                 }
@@ -1305,10 +1325,10 @@ private struct SecureEnclaveKeyEditor: View {
             .formStyle(.grouped)
         } footer: {
             HStack(spacing: Metrics.Space.m) {
-                Button("Delete", role: .destructive) { confirmsDeletion = true }
+                Button(TermindCopy.Common.delete.swiftUIKey, role: .destructive) { confirmsDeletion = true }
                 Spacer()
-                Button("Cancel", action: cancelEditing)
-                Button("Save", action: saveAndClose)
+                Button(TermindCopy.Common.cancel.swiftUIKey, action: cancelEditing)
+                Button(TermindCopy.Common.save.swiftUIKey, action: saveAndClose)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
             }
@@ -1323,11 +1343,14 @@ private struct SecureEnclaveKeyEditor: View {
             guard let editingToken else { return }
             editingSession.unregister(editingToken)
         }
-        .confirmationDialog("Delete Key?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
-            Button("Delete Key", role: .destructive, action: deleteKey)
-            Button("Cancel", role: .cancel) {}
+        .confirmationDialog(
+            TermindCopy.Keychain.deleteKeyConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            titleVisibility: .visible
+        ) {
+            Button(TermindCopy.Keychain.deleteKey.swiftUIKey, role: .destructive, action: deleteKey)
+            Button(TermindCopy.Common.cancel.swiftUIKey, role: .cancel) {}
         } message: {
-            Text("Identities using this key will no longer have access to it.")
+            Text(TermindCopy.Keychain.deleteKeyWarning)
         }
     }
 
@@ -1398,7 +1421,7 @@ struct ExportKeyToHostsSheet: View {
     private var isFinished: Bool { !states.isEmpty && !isExporting }
 
     var body: some View {
-        VaultDetailScaffold(title: "Export to Hosts", symbol: "square.and.arrow.up", close: close) {
+        VaultDetailScaffold(title: TermindCopy.Keychain.exportToHosts, symbol: "square.and.arrow.up", close: close) {
             VStack(spacing: 0) {
                 header
                 Divider().opacity(0.7)
@@ -1421,7 +1444,7 @@ struct ExportKeyToHostsSheet: View {
             HStack(spacing: Metrics.Space.m) {
                 CardIcon(symbol: "key.fill", tint: TermindColor.accent)
                 VStack(alignment: .leading, spacing: Metrics.Space.xxs) {
-                    Text("Export to Hosts")
+                    Text(TermindCopy.Keychain.exportToHosts)
                         .font(.headline)
                     Text(keySummary)
                         .font(.caption)
@@ -1432,7 +1455,9 @@ struct ExportKeyToHostsSheet: View {
             HStack(spacing: Metrics.Space.s) {
                 Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                TextField("Search hosts", text: queryBinding.singleLineText, axis: .horizontal).singleLinePaste()
+                TextField(
+                    TermindCopy.Vault.searchHosts.swiftUIKey, text: queryBinding.singleLineText, axis: .horizontal
+                ).singleLinePaste()
                     .lineLimit(1)
                     .textFieldStyle(.plain)
                     .focused($searchFocused)
@@ -1447,7 +1472,7 @@ struct ExportKeyToHostsSheet: View {
                             .foregroundStyle(.secondary)
                     }
                     .buttonStyle(.plain)
-                    .accessibilityLabel(Text("Clear search"))
+                    .accessibilityLabel(Text(TermindCopy.Common.clearSearch))
                 }
             }
             .padding(Metrics.Space.s)
@@ -1463,9 +1488,9 @@ struct ExportKeyToHostsSheet: View {
     private var content: some View {
         if app.credentials.hosts.isEmpty {
             ContentUnavailableView {
-                Label("No Hosts", systemImage: "server.rack")
+                Label(TermindCopy.Vault.noHosts.swiftUIKey, systemImage: "server.rack")
             } description: {
-                Text("Add and connect to a host before exporting a key to it.")
+                Text(TermindCopy.Keychain.addAndConnectToAHostBeforeExportingAKeyToIt)
             }
         } else if hosts.isEmpty {
             ContentUnavailableView.search(text: query)
@@ -1535,11 +1560,11 @@ struct ExportKeyToHostsSheet: View {
             ProgressView()
                 .controlSize(.small)
         case .succeeded:
-            Label("Exported", systemImage: "checkmark.circle.fill")
+            Label(TermindCopy.Keychain.exported.swiftUIKey, systemImage: "checkmark.circle.fill")
                 .foregroundStyle(.green)
                 .font(.caption)
         case .failed(let message):
-            Label("Failed", systemImage: "exclamationmark.triangle.fill")
+            Label(TermindCopy.Common.failed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
                 .foregroundStyle(.red)
                 .font(.caption)
                 .help(Text(message))
@@ -1562,7 +1587,9 @@ struct ExportKeyToHostsSheet: View {
                 Text(
                     failures == 0
                         ? successSummary(hostCount: states.count)
-                        : String(localized: "\(states.count - failures) exported, \(failures) failed")
+                        : String(
+                            localized: TermindCopy.Keychain.exportedFailed(
+                                count1: states.count - failures, failures: failures))
                 )
                 .font(.caption)
                 .foregroundStyle(
@@ -1570,12 +1597,15 @@ struct ExportKeyToHostsSheet: View {
                 )
                 .monospacedDigit()
             } else {
-                Text("\(chooser.selected.count) selected")
+                Text(TermindCopy.Common.selected(chooser.selected.count))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .monospacedDigit()
 
-                Button(allEligibleChecked ? "Deselect All" : "Select All") {
+                Button(
+                    allEligibleChecked
+                        ? TermindCopy.Common.deselectAll.swiftUIKey : TermindCopy.Common.selectAll.swiftUIKey
+                ) {
                     toggleAllEligible()
                 }
                 .disabled(eligibleHosts.isEmpty || isExporting)
@@ -1583,12 +1613,14 @@ struct ExportKeyToHostsSheet: View {
 
             Spacer()
 
-            Button(isFinished ? "Done" : "Cancel", action: close)
-                .keyboardShortcut(.cancelAction)
-                .disabled(isExporting)
+            Button(
+                isFinished ? TermindCopy.Common.done.swiftUIKey : TermindCopy.Common.cancel.swiftUIKey, action: close
+            )
+            .keyboardShortcut(.cancelAction)
+            .disabled(isExporting)
 
             if !isFinished {
-                Button("Export", action: export)
+                Button(TermindCopy.Common.export.swiftUIKey, action: export)
                     .buttonStyle(.borderedProminent)
                     .keyboardShortcut(.defaultAction)
                     .disabled(chooser.selected.isEmpty || isExporting)
@@ -1611,18 +1643,18 @@ struct ExportKeyToHostsSheet: View {
         if keys.count == 1 {
             return keys[0].label
         }
-        return String(localized: "\(keys.count) keys")
+        return String(localized: TermindCopy.Keychain.keysNamed(keys.count))
     }
 
     private func successSummary(hostCount: Int) -> String {
         if keys.count == 1 {
             return hostCount == 1
-                ? String(localized: "Exported to 1 host")
-                : String(localized: "Exported to \(hostCount) hosts")
+                ? String(localized: TermindCopy.Keychain.exportedTo1Host)
+                : String(localized: TermindCopy.Keychain.exportedToHosts(hostCount))
         }
         return hostCount == 1
-            ? String(localized: "Exported \(keys.count) keys to 1 host")
-            : String(localized: "Exported \(keys.count) keys to \(hostCount) hosts")
+            ? String(localized: TermindCopy.Keychain.exportedKeysTo1Host(keys.count))
+            : String(localized: TermindCopy.Keychain.exportedKeysToHosts(count: keys.count, hostCount: hostCount))
     }
 
     /// Select All follows the visible, filtered list, matching the host chooser:
@@ -1705,16 +1737,18 @@ struct KeyObjectActions: View {
     var body: some View {
         // Copy Fingerprint repeats Copy Public Key's verb, so the glyph stays on
         // the first of the pair.
-        Button("Copy Public Key", systemImage: MenuSymbol.copy) { copyToPasteboard(key.publicKey) }
-            .disabled(key.publicKey.isEmpty)
-        Button("Copy Fingerprint") {
+        Button(TermindCopy.Keychain.copyPublicKey.swiftUIKey, systemImage: MenuSymbol.copy) {
+            copyToPasteboard(key.publicKey)
+        }
+        .disabled(key.publicKey.isEmpty)
+        Button(TermindCopy.KnownHosts.copyFingerprint.swiftUIKey) {
             copyToPasteboard(key.fingerprint)
         }
         Divider()
-        Button("Export to Hosts", systemImage: MenuSymbol.export, action: export)
+        Button(TermindCopy.Keychain.exportToHosts.swiftUIKey, systemImage: MenuSymbol.export, action: export)
             .disabled(key.publicKey.isEmpty)
         Divider()
-        Button("Edit", systemImage: MenuSymbol.edit, action: edit)
+        Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
     }
 }
 
@@ -1788,7 +1822,7 @@ private struct KeyCard: View {
                     CardChip(text: keyDisplayName)
                     if key.hasPassphrase {
                         CardChip(
-                            text: String(localized: "Passphrase Required"),
+                            text: String(localized: TermindCopy.Keychain.passphraseRequired),
                             symbol: "lock.fill"
                         )
                     }
@@ -1799,12 +1833,12 @@ private struct KeyCard: View {
                     switch app.credentials.keyAvailability(for: key) {
                     case .missing:
                         CardChip(
-                            text: String(localized: "Private key missing"),
+                            text: String(localized: TermindCopy.Keychain.privateKeyMissing),
                             symbol: "exclamationmark.triangle.fill", tint: .orange
                         )
                     case .failed:
                         CardChip(
-                            text: String(localized: "Keychain unavailable"),
+                            text: String(localized: TermindCopy.Keychain.keychainUnavailable),
                             symbol: "exclamationmark.triangle.fill", tint: .orange
                         )
                     case .available, .notConfigured:
@@ -1814,7 +1848,7 @@ private struct KeyCard: View {
                     Spacer(minLength: Metrics.Space.xs)
 
                     if dependents > 0 {
-                        Text("\(dependents) identities")
+                        Text(TermindCopy.Keychain.identityCount(dependents))
                             .font(.caption2)
                             .foregroundStyle(.tertiary)
                             .lineLimit(1)
@@ -1826,11 +1860,11 @@ private struct KeyCard: View {
             if actionKeys.count == 1, actionIdentities.isEmpty {
                 KeyObjectActions(key: key, edit: edit, export: export)
             } else if actionIdentities.isEmpty {
-                Button("Export to Hosts", systemImage: MenuSymbol.export, action: export)
+                Button(TermindCopy.Keychain.exportToHosts.swiftUIKey, systemImage: MenuSymbol.export, action: export)
                     .disabled(actionKeys.isEmpty || actionKeys.contains { $0.publicKey.isEmpty })
                 Divider()
             }
-            DestructiveMenuButton("Delete", action: delete)
+            DestructiveMenuButton(TermindCopy.Common.delete, action: delete)
         }
         .help(Text(key.fingerprint))
     }
@@ -1849,7 +1883,7 @@ struct IdentityObjectActions: View {
     let edit: () -> Void
 
     var body: some View {
-        Button("Edit", systemImage: MenuSymbol.edit, action: edit)
+        Button(TermindCopy.Common.edit.swiftUIKey, systemImage: MenuSymbol.edit, action: edit)
     }
 }
 
@@ -1906,7 +1940,7 @@ private struct IdentityCard: View {
                     Text(
                         modifiedAt
                             .map { $0.formatted(.relative(presentation: .numeric)) }
-                            ?? String(localized: "Unknown")
+                            ?? String(localized: TermindCopy.SFTP.unknown)
                     )
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
@@ -1918,7 +1952,7 @@ private struct IdentityCard: View {
             if actionKeys.isEmpty, actionIdentities.count == 1 {
                 IdentityObjectActions(edit: edit)
             }
-            DestructiveMenuButton("Delete", action: delete)
+            DestructiveMenuButton(TermindCopy.Common.delete, action: delete)
         }
         .help(Text(identity.notes.isEmpty ? identity.username : identity.notes))
     }
@@ -1943,15 +1977,15 @@ private struct IdentityCard: View {
         if identity.usesPassword {
             switch app.credentials.passwordAvailability(for: identity) {
             case .available:
-                CardChip(text: String(localized: "Password"), symbol: "lock.fill")
+                CardChip(text: String(localized: TermindCopy.Vault.password), symbol: "lock.fill")
             case .missing:
                 CardChip(
-                    text: String(localized: "Password missing"),
+                    text: String(localized: TermindCopy.Keychain.passwordMissing),
                     symbol: "exclamationmark.triangle.fill", tint: .orange
                 )
             case .failed:
                 CardChip(
-                    text: String(localized: "Password unavailable"),
+                    text: String(localized: TermindCopy.Keychain.passwordUnavailable),
                     symbol: "exclamationmark.triangle.fill", tint: .orange
                 )
             case .notConfigured:
@@ -1971,7 +2005,7 @@ private struct IdentityCard: View {
                 )
             } else {
                 CardChip(
-                    text: String(localized: "Key missing"),
+                    text: String(localized: TermindCopy.Keychain.keyMissing),
                     symbol: "exclamationmark.triangle.fill",
                     tint: .orange
                 )
@@ -1979,7 +2013,7 @@ private struct IdentityCard: View {
         }
 
         if !identity.hasSecret {
-            CardChip(text: String(localized: "No secret"), symbol: "questionmark.circle")
+            CardChip(text: String(localized: TermindCopy.Keychain.noSecret), symbol: "questionmark.circle")
         }
     }
 }

@@ -84,9 +84,9 @@ struct MobileConnectionJourneyView: View {
     private var logs: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("Connection Log").font(.headline)
+                Text(TermindCopy.Terminal.connectionLog).font(.headline)
                 Spacer()
-                Button("Copy", action: copyLogs)
+                Button(TermindCopy.Common.copy.swiftUIKey, action: copyLogs)
                     .controlSize(.small)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -134,7 +134,7 @@ private struct MobileJourneyFailureCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Label("Connection Failed", systemImage: "exclamationmark.triangle.fill")
+            Label(TermindCopy.Connections.connectionFailed.swiftUIKey, systemImage: "exclamationmark.triangle.fill")
                 .font(.headline)
                 .foregroundStyle(.red)
             Text(message)
@@ -155,15 +155,15 @@ private struct MobileJourneyFailureCard: View {
         if dynamicTypeSize.isAccessibilitySize {
             VStack(spacing: 10) {
                 HStack {
-                    Button("Cancel", action: cancel)
+                    Button(TermindCopy.Common.cancel.swiftUIKey, action: cancel)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
-                    Button("Copy Logs", action: copyLogs)
+                    Button(TermindCopy.Terminal.copyLogs.swiftUIKey, action: copyLogs)
                         .lineLimit(1)
                         .fixedSize(horizontal: true, vertical: false)
                     Spacer()
                 }
-                Button("Retry", action: retry)
+                Button(TermindCopy.Common.retry.swiftUIKey, action: retry)
                     .buttonStyle(.borderedProminent)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
@@ -171,14 +171,14 @@ private struct MobileJourneyFailureCard: View {
             }
         } else {
             HStack {
-                Button("Cancel", action: cancel)
+                Button(TermindCopy.Common.cancel.swiftUIKey, action: cancel)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
-                Button("Copy Logs", action: copyLogs)
+                Button(TermindCopy.Terminal.copyLogs.swiftUIKey, action: copyLogs)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
                 Spacer()
-                Button("Retry", action: retry)
+                Button(TermindCopy.Common.retry.swiftUIKey, action: retry)
                     .buttonStyle(.borderedProminent)
                     .lineLimit(1)
                     .fixedSize(horizontal: true, vertical: false)
