@@ -336,11 +336,8 @@ private struct ConversationTranscriptSurface: View {
                 },
                 implementPlan: { card in
                     guard app.proAccess.require(.assistant) else { return }
-                    conversation.resolvePlan(card.id, as: .implemented)
-                    let prompt = ConversationModel.implementationPrompt(for: card.plan)
-                    conversation.appendUserTurn(prompt)
-                    app.startAgentRun(
-                        conversation, prompt: prompt, context: sessionContext,
+                    app.sendPlanImplementation(
+                        card, in: conversation, context: sessionContext,
                         terminalSuggestionsAvailable: showsTerminalActions)
                 },
                 canDeliverCommand: {

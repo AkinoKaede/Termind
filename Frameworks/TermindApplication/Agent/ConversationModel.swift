@@ -800,6 +800,8 @@ public final class ConversationModel: Identifiable {
     private var runtime: AgentRuntime?
     private var eventTask: Task<Void, Never>?
     private var runtimeGeneration: UInt64 = 0
+    private var agentPreparationID: UUID?
+    private var cancelAgentPreparation: (() -> Task<Void, Never>)?
     private var approvalWaiters: [UUID: CheckedContinuation<AgentApprovalDecision, Never>] = [:]
     private var inputWaiters: [UUID: CheckedContinuation<AgentUserInputResponse, Never>] = [:]
     private var userInputTimeoutTask: Task<Void, Never>?
@@ -837,6 +839,13 @@ public final class ConversationModel: Identifiable {
     /// True while a compaction is in flight, so the composer can say so and not
     /// start a second one.
     public private(set) var isCompacting = false
+
+    /// A submitted user turn whose immutable run assembly is still waiting for
+    /// compaction or memory. This is deliberately separate from `isStreaming`:
+    /// there is no runtime to accept steering until preparation completes.
+    public private(set) var isPreparingAgentRun = false
+
+    public var isAgentRunActive: Bool { isStreaming || isPreparingAgentRun }
 
     /// The current task list, whole. Replaced rather than patched — see
     /// `AgentTask`.
@@ -1765,8 +1774,14 @@ public final class ConversationModel: Identifiable {
     public func appendUserTurnContent(_ text: String, contextSnapshot: AgentTurnContextSnapshot? = nil)
         -> ComposedUserTurn
     {
-        let composed = composed(text)
-        let messageID = UUID()
+        appendUserTurnContent(composeUserTurn(text), contextSnapshot: contextSnapshot)
+    }
+
+    @discardableResult
+    public func appendUserTurnContent(
+        _ composed: ComposedUserTurn, contextSnapshot: AgentTurnContextSnapshot? = nil
+    ) -> ComposedUserTurn {
+        let messageID = composed.id
         let contextChips = composer.attachments.map {
             ContextChipReference(
                 id: $0.id, kind: $0.kind, label: $0.label,
@@ -1778,14 +1793,14 @@ public final class ConversationModel: Identifiable {
         refreshAttachedContextEstimate()
         messages.append(
             ChatMessage(
-                id: messageID, role: .user, text: text,
+                id: messageID, role: .user, text: composed.authoredText,
                 contextChips: contextChips, images: composed.images
             )
         )
         transcript.append(
             AgentTranscriptMessage(
                 id: messageID, role: .user, text: composed.text,
-                authoredText: text, images: composed.images,
+                authoredText: composed.authoredText, images: composed.images,
                 contextAttachments: composed.contextAttachments, contextSnapshot: contextSnapshot
             )
         )
@@ -1794,17 +1809,14 @@ public final class ConversationModel: Identifiable {
             publishContextEstimateImmediately()
         }
         updatedAt = .now
-        return ComposedUserTurn(
-            id: messageID, text: composed.text, authoredText: text, images: composed.images,
-            contextAttachments: composed.contextAttachments
-        )
+        return composed
     }
 
     /// Renders attachments into the model-facing message body. The visible
     /// `ChatMessage` deliberately keeps only the prompt: extracted documents
     /// and pasted text can be hundreds of thousands of characters and do not
     /// belong in a Markdown bubble.
-    private func composed(_ text: String) -> ComposedUserTurn {
+    public func composeUserTurn(_ text: String) -> ComposedUserTurn {
         let skillDirective = composer.armedSkillName.map { name in
             """
             <use_skill name="\(name)">
@@ -1857,6 +1869,41 @@ public final class ConversationModel: Identifiable {
     /// provider response from racing the UI attachment path.
     public private(set) var activeContextSnapshot: AgentTurnContextSnapshot?
 
+    @discardableResult
+    func beginAgentPreparation(
+        id: UUID, cancellation: @escaping @MainActor () -> Task<Void, Never>
+    ) -> Bool {
+        guard agentPreparationID == nil else { return false }
+        agentPreparationID = id
+        cancelAgentPreparation = cancellation
+        isPreparingAgentRun = true
+        return true
+    }
+
+    func supersedeAgentPreparation(
+        id: UUID, cancellation: @escaping @MainActor () -> Task<Void, Never>
+    ) {
+        agentPreparationID = id
+        cancelAgentPreparation = cancellation
+        isPreparingAgentRun = true
+    }
+
+    func finishAgentPreparation(id: UUID) {
+        guard agentPreparationID == id else { return }
+        agentPreparationID = nil
+        cancelAgentPreparation = nil
+        isPreparingAgentRun = false
+    }
+
+    @discardableResult
+    func cancelPendingAgentPreparation() -> Task<Void, Never>? {
+        cancelAgentPreparation?()
+    }
+
+    func cancelPendingAgentPreparationAndWait() async {
+        await cancelPendingAgentPreparation()?.value
+    }
+
     public func start(runtime: AgentRuntime, request: AgentRunRequest) {
         activeContextSnapshot = request.contextSnapshot
         if let index = transcript.firstIndex(where: { $0.id == request.promptID }) {
@@ -1908,6 +1955,7 @@ public final class ConversationModel: Identifiable {
 
     /// Retains the ordered event consumer until the cancellation snapshot is durable.
     public func stopAndWait() async {
+        await cancelPendingAgentPreparationAndWait()
         guard let runtime else {
             stop()
             return
@@ -1921,6 +1969,7 @@ public final class ConversationModel: Identifiable {
     }
 
     public func stop() {
+        cancelPendingAgentPreparation()
         runtimeGeneration &+= 1
         settleStreamingPresentation(for: activeRunID)
         publishAllStagedTools()
@@ -1961,7 +2010,7 @@ public final class ConversationModel: Identifiable {
     public func submitSteeringDraft(context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false) {
         let text = composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSendDraft, let runtime else { return }
-        let composed = composed(text)
+        let composed = composeUserTurn(text)
         var snapshot = activeContextSnapshot?.withSessionContext(context.modelContext)
         if snapshot != nil {
             var availability = snapshot?.toolAvailability ?? [:]

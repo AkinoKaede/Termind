@@ -124,10 +124,12 @@ final class MobileAssistantModel {
         }
         guard conversation.canSendDraft else { return }
         if library.selectedConversation == nil {
-            guard let started = library.startDraftConversation() else { return }
+            guard
+                execution.sendDraftConversation(
+                    in: library,
+                    terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable) != nil
+            else { return }
             configure(library.draftConversation)
-            execution.startAgentRun(
-                started, terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
         } else {
             execution.sendAgentDraft(
                 conversation, terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
@@ -210,20 +212,17 @@ final class MobileAssistantModel {
         }
     }
 
-    func edit(_ conversation: ConversationModel, messageID: UUID, text: String) async {
-        await perform {
-            guard
-                let prompt = try await operations.edit(
-                    conversation, messageID: messageID, text: text,
-                    contextSnapshot: execution.contextSnapshot(
-                        for: conversation, context: .none,
-                        terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable))
-            else { return }
-            execution.startAgentRun(
-                conversation, promptID: prompt.id, prompt: prompt.text,
-                authoredPrompt: prompt.authoredText, promptImages: prompt.images,
-                promptContextAttachments: prompt.contextAttachments,
+    func edit(_ conversation: ConversationModel, messageID: UUID, text: String) {
+        guard
+            let prepared = execution.prepareAgentEdit(
+                conversation, messageID: messageID, text: text,
                 terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
+        else { return }
+        Task {
+            await perform {
+                _ = try await execution.performAgentEdit(
+                    prepared, in: conversation, operations: operations)
+            }
         }
     }
 
@@ -234,12 +233,12 @@ final class MobileAssistantModel {
     fileprivate func implement(
         _ card: AgentPlanCard, in conversation: ConversationModel, library: AssistantLibraryModel
     ) {
-        guard !conversation.isArchived, !conversation.isStreaming else { return }
-        conversation.resolvePlan(card.id, as: .implemented)
-        conversation.isPlanning = false
-        conversation.composer.draft = String(localized: "Implement this plan.")
+        guard
+            execution.sendPlanImplementation(
+                card, in: conversation,
+                terminalSuggestionsAvailable: Self.terminalSuggestionsAvailable)
+        else { return }
         select(conversation, in: library)
-        send(in: library)
     }
 
     private func perform(_ operation: () async throws -> Void) async {
@@ -299,8 +298,8 @@ final class MobileAssistantSceneModel {
         await runtime.fork(conversation, at: messageID, in: library)
     }
 
-    func edit(_ conversation: ConversationModel, messageID: UUID, text: String) async {
-        await runtime.edit(conversation, messageID: messageID, text: text)
+    func edit(_ conversation: ConversationModel, messageID: UUID, text: String) {
+        runtime.edit(conversation, messageID: messageID, text: text)
     }
 
     func compact(_ conversation: ConversationModel, instructions: String = "") async {

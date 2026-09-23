@@ -526,7 +526,7 @@ struct MobileAssistantConversation: View {
                         }
                         ToolbarItem(placement: .confirmationAction) {
                             Button("Send", systemImage: "arrow.up") {
-                                Task { await model.edit(conversation, messageID: message.id, text: editedText) }
+                                model.edit(conversation, messageID: message.id, text: editedText)
                                 editing = nil
                             }.labelStyle(.iconOnly).disabled(
                                 editedText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)

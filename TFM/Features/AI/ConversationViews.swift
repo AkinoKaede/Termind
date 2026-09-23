@@ -738,7 +738,7 @@ struct ComposerView: View {
             // focus. Without this, typing would make a run unstoppable
             // until the draft was cleared again.
             .onKeyPress(KeyEquivalent("."), phases: .down) { press in
-                guard conversation.isStreaming, press.modifiers.contains(.command) else {
+                guard conversation.isAgentRunActive, press.modifiers.contains(.command) else {
                     return .ignored
                 }
                 conversation.stop()
@@ -776,7 +776,9 @@ struct ComposerView: View {
     /// moved under the pointer the moment the draft gained a character. With a
     /// draft to send, Send is what the button is for; with nothing to send,
     /// stopping is the only thing left to do.
-    private var showsStopButton: Bool { conversation.isStreaming && !conversation.canSendDraft }
+    private var showsStopButton: Bool {
+        conversation.isPreparingAgentRun || (conversation.isStreaming && !conversation.canSendDraft)
+    }
 
     private func standardControls(contextEstimate: AgentContextEstimate) -> some View {
         HStack(spacing: Metrics.Space.s) {

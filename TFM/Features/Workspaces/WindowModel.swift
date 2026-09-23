@@ -757,6 +757,11 @@ final class WindowModel {
         return conversation
     }
 
+    func assistantSidebarConversationDidStart(_ conversation: ConversationModel) {
+        sidebar.assistantConversationID = conversation.id
+        sidebar.assistantDraft = ConversationModel()
+    }
+
     /// Republishes the focused Workspace's host, directory, and OS facts for the
     /// sidebar composer.
     ///

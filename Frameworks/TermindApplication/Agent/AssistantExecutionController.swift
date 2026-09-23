@@ -12,7 +12,6 @@ public final class AssistantExecutionController {
     private let ai: AIConfigurationModel
     private let skills: SkillLibraryModel
     private let memory: MemoryModel?
-    private var preparingMemory = Set<UUID>()
     private let agentRunRepository: any AgentRunPersisting
     private let authorize: @MainActor () -> Bool
     private let makeRegistry: RegistryFactory
@@ -21,10 +20,68 @@ public final class AssistantExecutionController {
     private let agentCompaction = AgentCompactionService()
     private let guardianSessions = GuardianSessionStore()
     private var titledConversationIDs = Set<UUID>()
-    private var preparationGeneration: UInt64 = 0
-    private var preparing = Set<UUID>()
+    private var preparations: [UUID: PreparationState] = [:]
 
-    public func cancelPendingRuns() { preparationGeneration &+= 1 }
+    fileprivate struct GuardianCapture {
+        var provider: ModelProvider
+        var model: AIModel
+        var secret: String
+        var reasoning: ReasoningEffort
+    }
+
+    fileprivate struct RunCapture {
+        var id: UUID
+        var prompt: ConversationModel.ComposedUserTurn
+        var contextSnapshot: AgentTurnContextSnapshot
+        var permissionMode: AgentPermissionMode
+        var reasoning: ReasoningEffort
+        var chat: (provider: ModelProvider, model: AIModel)?
+        var secret: String?
+        var nativeSearch: Bool
+        var skillCatalog: AgentSkillCatalog
+        var skillInventory: [AgentSkill]
+        var channel: AgentEventChannel?
+        var baseRegistry: AgentToolRegistry?
+        var guardian: GuardianCapture?
+        var memorySessionID: UUID?
+        var shouldCompact: Bool
+        var compactionModel: (any AgentModelCompleting)?
+        var memoryReviewModel: (any AgentModelCompleting)?
+    }
+
+    private struct PreparationState {
+        var id: UUID
+        var conversation: ConversationModel
+        var permissionMode: AgentPermissionMode
+        var task: Task<Void, Never>?
+        var historyTask: Task<ConversationModel.ComposedUserTurn?, any Error>?
+        var cancellationTask: Task<Void, Never>?
+        var recordsInterruption = false
+        var cancellationRequested = false
+    }
+
+    public struct PreparedAgentEdit {
+        fileprivate var capture: RunCapture
+        fileprivate var replacement: AgentTranscriptMessage
+        fileprivate var messageID: UUID
+    }
+
+    @discardableResult
+    public func cancelPendingRuns() -> Task<Void, Never> {
+        var cancellationTasks: [Task<Void, Never>] = []
+        for conversationID in Array(preparations.keys) {
+            guard let state = preparations[conversationID] else { continue }
+            cancellationTasks.append(
+                requestCancellation(
+                    for: state.conversation, expectedID: state.id,
+                    recordsInterruption: true))
+        }
+        return Task { @MainActor in
+            for task in cancellationTasks {
+                await task.value
+            }
+        }
+    }
 
     public init(
         ai: AIConfigurationModel, skills: SkillLibraryModel, repository: any AgentRunPersisting,
@@ -43,56 +100,207 @@ public final class AssistantExecutionController {
         self.logger = logger
     }
 
+    @discardableResult
     public func sendAgentDraft(
         _ conversation: ConversationModel,
         context: SessionContext = .none,
         terminalSuggestionsAvailable: Bool = false
-    ) {
-        guard authorize() else { return }
-        let draft = conversation.composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard conversation.canSendDraft, !conversation.isArchived, !conversation.isStreaming,
-            !conversation.isCompacting, !conversation.isHistoryChanging,
-            conversation.composer.pendingAttachments.isEmpty,
-            !preparingMemory.contains(conversation.id), preparing.insert(conversation.id).inserted
-        else { return }
-        let generation = preparationGeneration
-        // The *returned* text, not `draft`: attachments are folded in there, and
-        // running on the pre-fold string would show the model a turn that does
-        // not match the one the conversation recorded.
-        let prompt = conversation.appendUserTurnContent(
-            draft,
-            contextSnapshot: contextSnapshot(
-                for: conversation, context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable))
-        conversation.composer.draft = ""
-        // Compaction happens *after* the turn is recorded and before the run,
-        // so the message the user just typed is inside the kept window rather
-        // than being the first thing summarized away. When nothing needs
-        // compacting this is a synchronous check that starts the run in the same
-        // tick, which is what keeps the composer feeling immediate.
-        Task { [weak self, weak conversation] in
-            guard let self, let conversation else { return }
-            defer { preparing.remove(conversation.id) }
-            await compactIfNeeded(conversation)
-            guard generation == preparationGeneration, !Task.isCancelled else {
-                do {
-                    try await agentRunRepository.save(
-                        AgentRunSnapshot(
-                            conversationID: conversation.id, state: .interrupted,
-                            permissionMode: ai.resolve(conversation: conversation.permissionMode),
-                            messages: conversation.transcript, finishedAt: .now))
-                    conversation.handle(.runState(.interrupted))
-                } catch {
-                    conversation.messages.append(ChatMessage(role: .assistant, text: error.localizedDescription))
-                }
-                return
-            }
-            startAgentRun(
-                conversation, promptID: prompt.id, prompt: prompt.text,
-                authoredPrompt: prompt.authoredText, promptImages: prompt.images,
-                promptContextAttachments: prompt.contextAttachments, context: context,
-                terminalSuggestionsAvailable: terminalSuggestionsAvailable
-            )
+    ) -> Bool {
+        guard
+            let capture = captureDraft(
+                conversation, context: context,
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        else { return false }
+        startPreparation(capture, for: conversation, compactBeforeRun: true)
+        return true
+    }
+
+    @discardableResult
+    public func sendNewConversation(
+        _ conversation: ConversationModel, in library: AssistantLibraryModel,
+        context: SessionContext = .none,
+        terminalSuggestionsAvailable: Bool = false
+    ) -> ConversationModel? {
+        guard library.canPromote(conversation),
+            let capture = captureDraft(
+                conversation, context: context,
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        else { return nil }
+        guard library.promoteCapturedConversation(conversation) else {
+            cancelCapturedTurn(capture, in: conversation)
+            return nil
         }
+        startPreparation(capture, for: conversation, compactBeforeRun: true)
+        return conversation
+    }
+
+    @discardableResult
+    public func sendDraftConversation(
+        in library: AssistantLibraryModel,
+        context: SessionContext = .none,
+        terminalSuggestionsAvailable: Bool = false
+    ) -> ConversationModel? {
+        let conversation = library.draftConversation
+        guard library.canPromote(conversation),
+            let capture = captureDraft(
+                conversation, context: context,
+                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        else { return nil }
+        guard library.promoteCapturedDraftConversation(conversation) else {
+            cancelCapturedTurn(capture, in: conversation)
+            return nil
+        }
+        startPreparation(capture, for: conversation, compactBeforeRun: true)
+        return conversation
+    }
+
+    @discardableResult
+    public func sendAgentText(
+        _ text: String, in conversation: ConversationModel,
+        context: SessionContext = .none,
+        terminalSuggestionsAvailable: Bool = false
+    ) -> Bool {
+        guard authorize(), canSubmit(to: conversation),
+            !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+            conversation.composer.pendingAttachments.isEmpty
+        else { return false }
+        let prompt = conversation.composeUserTurn(text)
+        let snapshot = contextSnapshot(
+            for: conversation, context: context,
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        guard
+            let capture = captureRun(
+                conversation, prompt: prompt, contextSnapshot: snapshot,
+                beginPreparation: true)
+        else { return false }
+        let submittedPrompt = conversation.appendUserTurnContent(
+            capture.prompt, contextSnapshot: capture.contextSnapshot)
+        var submitted = capture
+        submitted.prompt = submittedPrompt
+        startPreparation(submitted, for: conversation, compactBeforeRun: true)
+        return true
+    }
+
+    @discardableResult
+    public func sendPlanImplementation(
+        _ card: AgentPlanCard, in conversation: ConversationModel,
+        context: SessionContext = .none,
+        terminalSuggestionsAvailable: Bool = false
+    ) -> Bool {
+        guard authorize(), canSubmit(to: conversation),
+            conversation.composer.pendingAttachments.isEmpty,
+            let pending = conversation.plans.first(where: {
+                $0.id == card.id && $0.outcome == .pending
+            })
+        else { return false }
+        let prompt = conversation.composeUserTurn(
+            ConversationModel.implementationPrompt(for: pending.plan))
+        var snapshot = contextSnapshot(
+            for: conversation, context: context,
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        snapshot.planContract = nil
+        guard
+            let capture = captureRun(
+                conversation, prompt: prompt, contextSnapshot: snapshot,
+                beginPreparation: true)
+        else { return false }
+        let submittedPrompt = conversation.appendUserTurnContent(
+            capture.prompt, contextSnapshot: capture.contextSnapshot)
+        conversation.resolvePlan(card.id, as: .implemented)
+        var submitted = capture
+        submitted.prompt = submittedPrompt
+        startPreparation(submitted, for: conversation, compactBeforeRun: true)
+        return true
+    }
+
+    public func prepareAgentEdit(
+        _ conversation: ConversationModel, messageID: UUID, text: String,
+        context: SessionContext = .none,
+        terminalSuggestionsAvailable: Bool = false
+    ) -> PreparedAgentEdit? {
+        guard authorize(), !conversation.isStreaming, !conversation.isArchived,
+            !conversation.isCompacting, !conversation.isHistoryChanging,
+            var replacement = conversation.editedUserMessage(messageID, authoredText: text)
+        else { return nil }
+        let snapshot = contextSnapshot(
+            for: conversation, context: context,
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        replacement.contextSnapshot = snapshot
+        let prompt = ConversationModel.ComposedUserTurn(
+            id: replacement.id, text: replacement.text,
+            authoredText: replacement.authoredText ?? text, images: replacement.images,
+            contextAttachments: replacement.contextAttachments)
+        guard
+            let capture = captureRun(
+                conversation, prompt: prompt, contextSnapshot: snapshot,
+                beginPreparation: true, supersedePreparation: true)
+        else { return nil }
+        return PreparedAgentEdit(capture: capture, replacement: replacement, messageID: messageID)
+    }
+
+    public func performAgentEdit(
+        _ prepared: PreparedAgentEdit, in conversation: ConversationModel,
+        operations: AssistantConversationOperations
+    ) async throws -> Bool {
+        let capture = prepared.capture
+        guard isCurrent(capture, for: conversation) else { return false }
+        let historyTask = Task { @MainActor in
+            try Task.checkCancellation()
+            return try await operations.edit(
+                conversation, messageID: prepared.messageID, replacement: prepared.replacement)
+        }
+        guard var state = preparations[conversation.id], state.id == capture.id,
+            !state.cancellationRequested
+        else {
+            historyTask.cancel()
+            return false
+        }
+        state.historyTask = historyTask
+        preparations[conversation.id] = state
+        do {
+            guard let edited = try await historyTask.value else {
+                guard isCurrent(capture, for: conversation) else { return false }
+                retirePreparation(capture.id, for: conversation)
+                return false
+            }
+            guard isCurrent(capture, for: conversation) else { return false }
+            if var state = preparations[conversation.id], state.id == capture.id {
+                state.historyTask = nil
+                preparations[conversation.id] = state
+            }
+            var submitted = capture
+            submitted.prompt = edited
+            startPreparation(submitted, for: conversation, compactBeforeRun: false)
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            guard isCurrent(capture, for: conversation) else { return false }
+            retirePreparation(capture.id, for: conversation)
+            throw error
+        }
+    }
+
+    private func captureDraft(
+        _ conversation: ConversationModel, context: SessionContext,
+        terminalSuggestionsAvailable: Bool
+    ) -> RunCapture? {
+        guard authorize(), canSubmit(to: conversation), conversation.canSendDraft,
+            conversation.composer.pendingAttachments.isEmpty
+        else { return nil }
+        let draft = conversation.composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        let snapshot = contextSnapshot(
+            for: conversation, context: context,
+            terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        let preview = conversation.composeUserTurn(draft)
+        guard
+            var capture = captureRun(
+                conversation, prompt: preview, contextSnapshot: snapshot,
+                beginPreparation: true)
+        else { return nil }
+        capture.prompt = conversation.appendUserTurnContent(preview, contextSnapshot: snapshot)
+        conversation.composer.draft = ""
+        return capture
     }
 
     public func startAgentRun(
@@ -105,64 +313,39 @@ public final class AssistantExecutionController {
         context: SessionContext? = nil,
         terminalSuggestionsAvailable: Bool = false
     ) {
-        guard authorize(), !conversation.isStreaming, !conversation.isArchived else { return }
-        guard preparingMemory.insert(conversation.id).inserted else { return }
-        let generation = preparationGeneration
-        if let memory, memory.isEnabled {
-            Task { [weak self, weak conversation] in
-                guard let self, let conversation else { return }
-                defer { preparingMemory.remove(conversation.id) }
-                let id =
-                    conversation.transcript.first(where: { $0.contextSnapshot?.memorySessionID != nil })?
-                    .contextSnapshot?.memorySessionID ?? conversation.id
-                let session = await memory.session(id)
-                guard generation == preparationGeneration, !Task.isCancelled else { return }
-                performStartAgentRun(
-                    conversation, promptID: promptID, prompt: prompt, authoredPrompt: authoredPrompt,
-                    promptImages: promptImages, promptContextAttachments: promptContextAttachments,
-                    context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable, memorySession: session
-                )
-            }
-        } else {
-            preparingMemory.remove(conversation.id)
-            performStartAgentRun(
-                conversation, promptID: promptID, prompt: prompt, authoredPrompt: authoredPrompt,
-                promptImages: promptImages, promptContextAttachments: promptContextAttachments,
-                context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
-        }
+        guard authorize(), canSubmit(to: conversation) else { return }
+        let lastUserTurn = conversation.transcript.last(where: { $0.role == .user })
+        let resolvedPrompt = ConversationModel.ComposedUserTurn(
+            id: promptID ?? lastUserTurn?.id ?? UUID(),
+            text: prompt ?? lastUserTurn?.text ?? "",
+            authoredText: authoredPrompt ?? lastUserTurn?.authoredText ?? "",
+            images: promptImages ?? lastUserTurn?.images ?? [],
+            contextAttachments: promptContextAttachments ?? lastUserTurn?.contextAttachments ?? [])
+        guard
+            !resolvedPrompt.text.isEmpty || !resolvedPrompt.images.isEmpty
+                || !resolvedPrompt.contextAttachments.isEmpty
+        else { return }
+        // A legacy absent snapshot is unknown. Do not manufacture historical
+        // session, skill, plan, memory, or surface facts from today's UI.
+        let snapshot = lastUserTurn?.contextSnapshot ?? AgentTurnContextSnapshot()
+        guard
+            let capture = captureRun(
+                conversation, prompt: resolvedPrompt, contextSnapshot: snapshot,
+                beginPreparation: true)
+        else { return }
+        startPreparation(capture, for: conversation, compactBeforeRun: false)
     }
 
     private func performStartAgentRun(
-        _ conversation: ConversationModel,
-        promptID: UUID? = nil,
-        prompt: String? = nil,
-        authoredPrompt: String? = nil,
-        promptImages: [AgentImageAttachment]? = nil,
-        promptContextAttachments: [AgentContextAttachment]? = nil,
-        context: SessionContext? = nil,
-        terminalSuggestionsAvailable: Bool = false,
+        _ conversation: ConversationModel, capture: RunCapture,
         memorySession: (context: AgentMemoryContext, access: any AgentMemoryAccessing)? = nil
     ) {
-        guard authorize() else { return }
-        guard !conversation.isStreaming, !conversation.isArchived, !conversation.isHistoryChanging else { return }
-        let lastUserTurn = conversation.transcript.last(where: { $0.role == .user })
-        let userPrompt =
-            prompt
-            ?? lastUserTurn?.text
-            ?? ""
-        let userImages =
-            promptImages
-            ?? lastUserTurn?.images
-            ?? []
-        let userContextAttachments =
-            promptContextAttachments
-            ?? lastUserTurn?.contextAttachments
-            ?? []
-        guard !userPrompt.isEmpty || !userImages.isEmpty || !userContextAttachments.isEmpty
+        guard isCurrent(capture, for: conversation), !conversation.isStreaming,
+            !conversation.isArchived, !conversation.isHistoryChanging
         else { return }
         let operationID = UUID().uuidString.lowercased()
         let conversationID = conversation.id.uuidString.lowercased()
-        guard let chat = ai.resolve(conversation: conversation.model) else {
+        guard let chat = capture.chat else {
             logger.error(
                 "agent.run.failed",
                 metadata: [
@@ -171,16 +354,15 @@ public final class AssistantExecutionController {
                 ])
             recordFailedRun(
                 conversation,
-                promptID: promptID ?? lastUserTurn?.id ?? UUID(),
-                prompt: userPrompt,
-                authoredPrompt: authoredPrompt ?? lastUserTurn?.authoredText,
-                images: userImages,
-                contextAttachments: userContextAttachments,
+                promptID: capture.prompt.id, prompt: capture.prompt.text,
+                authoredPrompt: capture.prompt.authoredText, images: capture.prompt.images,
+                contextAttachments: capture.prompt.contextAttachments,
+                permissionMode: capture.permissionMode,
                 reason: String(localized: "No Chat model is configured.")
             )
             return
         }
-        guard let secret = ai.modelSecret(for: chat.provider) else {
+        guard let secret = capture.secret else {
             logger.error(
                 "agent.run.failed",
                 metadata: [
@@ -189,24 +371,19 @@ public final class AssistantExecutionController {
                 ])
             recordFailedRun(
                 conversation,
-                promptID: promptID ?? lastUserTurn?.id ?? UUID(),
-                prompt: userPrompt,
-                authoredPrompt: authoredPrompt ?? lastUserTurn?.authoredText,
-                images: userImages,
-                contextAttachments: userContextAttachments,
+                promptID: capture.prompt.id, prompt: capture.prompt.text,
+                authoredPrompt: capture.prompt.authoredText, images: capture.prompt.images,
+                contextAttachments: capture.prompt.contextAttachments,
+                permissionMode: capture.permissionMode,
                 reason: String(localized: "The Chat model has no available credential.")
             )
             return
         }
 
-        let mode = ai.resolve(conversation: conversation.permissionMode)
-        let nativeSearch =
-            ai.webSearch.isEnabled && ai.webSearch.prefersBuiltIn
-            && chat.provider.supportsNativeWebSearch(model: chat.model)
         let model = AgentProviderClient(
             provider: chat.provider, model: chat.model, secret: secret,
-            reasoning: conversation.reasoningEffort,
-            webSearch: nativeSearch, promptCacheKey: conversation.id.uuidString
+            reasoning: capture.reasoning,
+            webSearch: capture.nativeSearch, promptCacheKey: conversation.id.uuidString
         )
         // One channel for the whole run, shared by everything that publishes
         // into it. The broker used to raise its review events through a closure
@@ -214,22 +391,11 @@ public final class AssistantExecutionController {
         // events had no defined order against the tool events they belong
         // between, and its durable writes had no defined order against
         // anything. See `AgentEventChannel`.
-        let channel = AgentEventChannel(repository: agentRunRepository)
-
-        // Read once, here, for the reason `isPlanning` below is: a run's posture
-        // is fixed when it starts, so enabling a skill while the agent is
-        // thinking must not change what this run was told it had. Empty when the
-        // model cannot call tools, which is what keeps the catalog block from
-        // naming a tool this run was never given.
-        let skillCatalog =
-            chat.model.abilities.contains(.toolCall)
-            ? skills.catalog : AgentSkillCatalog()
-
-        let baseRegistry = makeRegistry(
-            conversation, chat.model, chat.provider, skillCatalog, channel)
+        guard let channel = capture.channel, let baseRegistry = capture.baseRegistry else { return }
+        let skillCatalog = capture.skillCatalog
         let skillRegistry = AgentToolCatalog.registry(
             builtIn: .init(
-                groups: [.skills, .memory], skills: skillCatalog, skillInventory: skills.inventory,
+                groups: [.skills, .memory], skills: skillCatalog, skillInventory: capture.skillInventory,
                 readOnlySkillNames: AgentSkillLibrary.reservedNames,
                 skillPackageResolver: GitHubSkillPackageResolver(), skillLibrary: skills,
                 memory: memorySession?.access))
@@ -242,19 +408,14 @@ public final class AssistantExecutionController {
         let guardianServices = AgentToolServices()
             .setting(AgentSSHInteraction.unavailable, for: .sshInteraction)
         let reviewer: (any GuardianReviewing)? = {
-            guard mode == .approveForMe, let review = ai.resolve(.guardian) else { return nil }
-            guard let reviewSecret = ai.modelSecret(for: review.provider)
-            else { return nil }
-            let reasoning = GuardianClient.preferredReasoning(
-                model: review.model, provider: review.provider
-            )
+            guard capture.permissionMode == .approveForMe, let review = capture.guardian else { return nil }
             let reviewTools =
                 review.model.abilities.contains(.toolCall)
                 ? registry : AgentToolRegistry([])
             return GuardianClient(
                 model: AgentProviderClient(
-                    provider: review.provider, model: review.model, secret: reviewSecret,
-                    reasoning: reasoning,
+                    provider: review.provider, model: review.model, secret: review.secret,
+                    reasoning: review.reasoning,
                     promptCacheKey: TermindAgentPolicy.guardianCacheKey(conversationID: conversation.id)
                 ),
                 sessions: guardianSessions,
@@ -286,11 +447,7 @@ public final class AssistantExecutionController {
         conversation.noteToolSchemas(registry.descriptors)
         // Read once, here: the posture a run enforces is the one it started
         // under, and the user is free to leave plan mode while it is thinking.
-        let frozenContext =
-            lastUserTurn?.contextSnapshot
-            ?? contextSnapshot(
-                for: conversation, context: context ?? .none,
-                terminalSuggestionsAvailable: terminalSuggestionsAvailable)
+        let frozenContext = capture.contextSnapshot
         let isPlanning = frozenContext.planContract != nil
         // The catalog reaches the model boundary through the pipeline rather
         // than through the system prompt, so the prompt stays byte-identical for
@@ -304,11 +461,7 @@ public final class AssistantExecutionController {
         configuration.outputProjection = AgentToolOutputProjection(
             workspace: AgentScratchWorkspace(
                 conversationID: conversation.id, applicationName: TermindAgentPolicy.scratchDirectoryName))
-        configuration.contextSnapshot = { session, planning in
-            AgentTurnContextSnapshot(
-                sessionContext: session, skillCatalog: skillCatalog.isEmpty ? nil : skillCatalog.catalogBlock,
-                planContract: planning ? TermindAgentPolicy.planContract : nil)
-        }
+        configuration.contextSnapshot = { _, _ in frozenContext }
         configuration.contextPipeline = { sessionContext, promptID, planning in
             var pipeline = AgentContextPipeline.chat(
                 sessionContext: sessionContext, before: promptID,
@@ -336,11 +489,11 @@ public final class AssistantExecutionController {
             runtime: runtime,
             request: AgentRunRequest(
                 conversationID: conversation.id,
-                promptID: promptID ?? lastUserTurn?.id ?? UUID(), prompt: userPrompt,
-                authoredPrompt: authoredPrompt ?? lastUserTurn?.authoredText,
-                promptImages: userImages,
-                promptContextAttachments: userContextAttachments,
-                permissionMode: mode, isPlanning: isPlanning,
+                promptID: capture.prompt.id, prompt: capture.prompt.text,
+                authoredPrompt: capture.prompt.authoredText,
+                promptImages: capture.prompt.images,
+                promptContextAttachments: capture.prompt.contextAttachments,
+                permissionMode: capture.permissionMode, isPlanning: isPlanning,
                 systemPrompt: TermindAgentPolicy.systemPrompt,
                 priorMessages: conversation.pendingPriorMessages,
                 authorizationEvidence: GuardianEvidence.collect(from: conversation.transcript),
@@ -355,6 +508,258 @@ public final class AssistantExecutionController {
         scheduleTitle(for: conversation, isPlanning: isPlanning, operationID: operationID)
     }
 
+    private func canSubmit(to conversation: ConversationModel) -> Bool {
+        !conversation.isArchived && !conversation.isStreaming && !conversation.isCompacting
+            && !conversation.isHistoryChanging && !conversation.isPreparingAgentRun
+    }
+
+    private func captureRun(
+        _ conversation: ConversationModel,
+        prompt: ConversationModel.ComposedUserTurn,
+        contextSnapshot: AgentTurnContextSnapshot,
+        beginPreparation: Bool,
+        supersedePreparation: Bool = false
+    ) -> RunCapture? {
+        let id = UUID()
+        let chat = ai.resolve(conversation: conversation.model)
+        let secret = chat.flatMap { ai.modelSecret(for: $0.provider) }
+        let permissionMode = ai.resolve(conversation: conversation.permissionMode)
+        let nativeSearch =
+            chat.map {
+                ai.webSearch.isEnabled && ai.webSearch.prefersBuiltIn
+                    && $0.provider.supportsNativeWebSearch(model: $0.model)
+            } ?? false
+        let skillCatalog =
+            chat?.model.abilities.contains(.toolCall) == true
+            ? skills.catalog : AgentSkillCatalog()
+        let skillInventory = skills.inventory
+        let channel = chat != nil && secret != nil ? AgentEventChannel(repository: agentRunRepository) : nil
+        let baseRegistry = channel.flatMap { channel in
+            chat.map {
+                makeRegistry(conversation, $0.model, $0.provider, skillCatalog, channel)
+            }
+        }
+        let guardian: GuardianCapture? = {
+            guard permissionMode == .approveForMe, let review = ai.resolve(.guardian),
+                let secret = ai.modelSecret(for: review.provider)
+            else { return nil }
+            return GuardianCapture(
+                provider: review.provider, model: review.model, secret: secret,
+                reasoning: GuardianClient.preferredReasoning(
+                    model: review.model, provider: review.provider))
+        }()
+        let contextWindow = chat?.model.contextLength
+        let shouldCompact =
+            conversation.usage.map {
+                AgentCompaction.shouldCompact(
+                    contextTokens: $0.contextTokens, contextWindow: contextWindow,
+                    reserveTokens: compactionBudget.reserveTokens)
+            } ?? false
+        let capture = RunCapture(
+            id: id, prompt: prompt, contextSnapshot: contextSnapshot,
+            permissionMode: permissionMode, reasoning: conversation.reasoningEffort,
+            chat: chat, secret: secret, nativeSearch: nativeSearch,
+            skillCatalog: skillCatalog, skillInventory: skillInventory,
+            channel: channel, baseRegistry: baseRegistry, guardian: guardian,
+            memorySessionID: contextSnapshot.memorySessionID,
+            shouldCompact: shouldCompact, compactionModel: compactionModel(),
+            memoryReviewModel: memoryReviewModel(conversation))
+        guard beginPreparation else { return capture }
+        let cancellation: @MainActor () -> Task<Void, Never> = { [weak self, weak conversation] in
+            guard let self, let conversation else { return Task {} }
+            return self.requestCancellation(
+                for: conversation, expectedID: id, recordsInterruption: true)
+        }
+        if supersedePreparation {
+            if let current = preparations[conversation.id] {
+                _ = requestCancellation(
+                    for: conversation, expectedID: current.id,
+                    recordsInterruption: false)
+            }
+            preparations[conversation.id] = PreparationState(
+                id: id, conversation: conversation, permissionMode: permissionMode)
+            conversation.supersedeAgentPreparation(id: id, cancellation: cancellation)
+            return capture
+        }
+        let installed = conversation.beginAgentPreparation(id: id, cancellation: cancellation)
+        guard installed else { return nil }
+        preparations[conversation.id] = PreparationState(
+            id: id, conversation: conversation, permissionMode: permissionMode)
+        return capture
+    }
+
+    private func startPreparation(
+        _ capture: RunCapture, for conversation: ConversationModel,
+        compactBeforeRun: Bool
+    ) {
+        guard isCurrent(capture, for: conversation) else { return }
+        let needsAsync = (compactBeforeRun && capture.shouldCompact) || capture.memorySessionID != nil
+        guard needsAsync else {
+            performStartAgentRun(conversation, capture: capture)
+            retirePreparation(capture.id, for: conversation)
+            return
+        }
+        let task = Task { [weak self, weak conversation] in
+            guard let self, let conversation else { return }
+            if compactBeforeRun, capture.shouldCompact {
+                await compactCaptured(conversation, capture: capture)
+            }
+            guard !Task.isCancelled, isCurrent(capture, for: conversation) else {
+                await finishCancelledPreparation(capture, for: conversation)
+                return
+            }
+            let memorySession: (context: AgentMemoryContext, access: any AgentMemoryAccessing)?
+            if let memorySessionID = capture.memorySessionID, let memory {
+                memorySession = await memory.session(memorySessionID)
+            } else {
+                memorySession = nil
+            }
+            guard !Task.isCancelled, isCurrent(capture, for: conversation) else {
+                await finishCancelledPreparation(capture, for: conversation)
+                return
+            }
+            performStartAgentRun(conversation, capture: capture, memorySession: memorySession)
+            retirePreparation(capture.id, for: conversation)
+        }
+        guard var state = preparations[conversation.id], state.id == capture.id else {
+            task.cancel()
+            return
+        }
+        state.task = task
+        preparations[conversation.id] = state
+    }
+
+    private func compactCaptured(_ conversation: ConversationModel, capture: RunCapture) async {
+        guard let model = capture.compactionModel, !conversation.isStreaming, !conversation.isCompacting else { return }
+        conversation.beginCompaction()
+        guard let span = conversation.compactionSpan(keepRecentTokens: compactionBudget.keepRecentTokens) else {
+            conversation.endCompaction()
+            return
+        }
+        do {
+            if capture.contextSnapshot.planContract == nil, let memory,
+                let review = capture.memoryReviewModel
+            {
+                await memory.review(
+                    conversationID: conversation.id, messages: conversation.transcript,
+                    model: review, wait: true)
+            }
+            try Task.checkCancellation()
+            let summary = try await agentCompaction.summarize(
+                span.summarize, instructions: "",
+                toolResultLimit: compactionBudget.toolResultLimit, model: model)
+            try Task.checkCancellation()
+            guard isCurrent(capture, for: conversation),
+                let record = conversation.prepareCompaction(summary: summary, cut: span.cut)
+            else { throw CancellationError() }
+            try await persistAndApplyCompaction(record, to: conversation, cut: span.cut)
+            conversation.endCompaction()
+        } catch is CancellationError {
+            conversation.endCompaction()
+        } catch {
+            conversation.failCompaction(error.localizedDescription)
+        }
+    }
+
+    private func isCurrent(_ capture: RunCapture, for conversation: ConversationModel) -> Bool {
+        guard let state = preparations[conversation.id] else { return false }
+        return state.id == capture.id && !state.cancellationRequested
+    }
+
+    private func retirePreparation(_ id: UUID, for conversation: ConversationModel) {
+        guard preparations[conversation.id]?.id == id else { return }
+        preparations[conversation.id] = nil
+        conversation.finishAgentPreparation(id: id)
+    }
+
+    private func cancelCapturedTurn(_ capture: RunCapture, in conversation: ConversationModel) {
+        guard isCurrent(capture, for: conversation) else { return }
+        preparations[conversation.id]?.task?.cancel()
+        retirePreparation(capture.id, for: conversation)
+    }
+
+    /// Invalidates a captured run before returning to the caller. The task only
+    /// joins asynchronous work and persists the terminal snapshot; it never
+    /// decides whether the runtime may still start.
+    private func requestCancellation(
+        for conversation: ConversationModel, expectedID: UUID? = nil,
+        recordsInterruption: Bool
+    ) -> Task<Void, Never> {
+        guard var state = preparations[conversation.id],
+            expectedID == nil || state.id == expectedID
+        else { return Task {} }
+        state.recordsInterruption = state.recordsInterruption || recordsInterruption
+        state.cancellationRequested = true
+        state.task?.cancel()
+        state.historyTask?.cancel()
+        if let cancellationTask = state.cancellationTask {
+            preparations[conversation.id] = state
+            return cancellationTask
+        }
+        preparations[conversation.id] = state
+        let preparationTask = state.task
+        let historyTask = state.historyTask
+        let preparationID = state.id
+        let cancellationTask = Task { @MainActor [weak self, weak conversation] in
+            guard let self, let conversation else { return }
+            if let historyTask {
+                _ = try? await historyTask.value
+            }
+            if let preparationTask {
+                await preparationTask.value
+            }
+            await finishCancelledPreparation(
+                preparationID, for: conversation)
+        }
+        state.cancellationTask = cancellationTask
+        preparations[conversation.id] = state
+        return cancellationTask
+    }
+
+    private func finishCancelledPreparation(
+        _ capture: RunCapture, for conversation: ConversationModel
+    ) async {
+        guard let state = preparations[conversation.id], state.id == capture.id else { return }
+        if state.recordsInterruption {
+            let now = Date.now
+            do {
+                try await agentRunRepository.save(
+                    AgentRunSnapshot(
+                        conversationID: conversation.id, state: .interrupted,
+                        permissionMode: capture.permissionMode,
+                        messages: conversation.transcript, startedAt: now, finishedAt: now))
+                guard preparations[conversation.id]?.id == capture.id else { return }
+                conversation.handle(.runState(.interrupted))
+            } catch {
+                guard preparations[conversation.id]?.id == capture.id else { return }
+                conversation.messages.append(ChatMessage(role: .assistant, text: error.localizedDescription))
+            }
+        }
+        retirePreparation(capture.id, for: conversation)
+    }
+
+    private func finishCancelledPreparation(
+        _ preparationID: UUID, for conversation: ConversationModel
+    ) async {
+        guard let state = preparations[conversation.id], state.id == preparationID else { return }
+        if state.recordsInterruption {
+            let now = Date.now
+            do {
+                try await agentRunRepository.save(
+                    AgentRunSnapshot(
+                        conversationID: conversation.id, state: .interrupted,
+                        permissionMode: state.permissionMode,
+                        messages: conversation.transcript, startedAt: now, finishedAt: now))
+                guard preparations[conversation.id]?.id == preparationID else { return }
+                conversation.handle(.runState(.interrupted))
+            } catch {
+                guard preparations[conversation.id]?.id == preparationID else { return }
+                conversation.messages.append(ChatMessage(role: .assistant, text: error.localizedDescription))
+            }
+        }
+        retirePreparation(preparationID, for: conversation)
+    }
+
     private func recordFailedRun(
         _ conversation: ConversationModel,
         promptID: UUID,
@@ -362,6 +767,7 @@ public final class AssistantExecutionController {
         authoredPrompt: String?,
         images: [AgentImageAttachment],
         contextAttachments: [AgentContextAttachment],
+        permissionMode: AgentPermissionMode,
         reason: String
     ) {
         var messages = conversation.pendingPriorMessages
@@ -377,7 +783,7 @@ public final class AssistantExecutionController {
         let now = Date.now
         let snapshot = AgentRunSnapshot(
             conversationID: conversation.id, state: .failed,
-            permissionMode: ai.resolve(conversation: conversation.permissionMode),
+            permissionMode: permissionMode,
             messages: messages, startedAt: now, finishedAt: now,
             failure: reason
         )
@@ -426,7 +832,7 @@ public final class AssistantExecutionController {
         isManual: Bool = true
     ) async -> Bool {
         guard authorize() else { return false }
-        guard !conversation.isStreaming, !conversation.isCompacting else { return false }
+        guard !conversation.isAgentRunActive, !conversation.isCompacting else { return false }
         conversation.beginCompaction()
         guard
             let span = conversation.compactionSpan(
@@ -481,23 +887,6 @@ public final class AssistantExecutionController {
             record, conversationID: conversation.id
         )
         conversation.applyCompaction(record, cut: cut)
-    }
-
-    /// Compacts before a run when the conversation is close to the window.
-    ///
-    /// Threshold only. Recovering a turn that has *already* overflowed means
-    /// recognising four providers' distinct context-length errors, which is its
-    /// own piece of work — this is what keeps a conversation from getting there.
-    private func compactIfNeeded(_ conversation: ConversationModel) async {
-        guard let usage = conversation.usage else { return }
-        let window = ai.resolve(conversation: conversation.model)?.model.contextLength
-        guard
-            AgentCompaction.shouldCompact(
-                contextTokens: usage.contextTokens, contextWindow: window,
-                reserveTokens: compactionBudget.reserveTokens
-            )
-        else { return }
-        await compact(conversation, isManual: false)
     }
 
     /// Resolves the Chat model with reasoning clamped off, like titling does.

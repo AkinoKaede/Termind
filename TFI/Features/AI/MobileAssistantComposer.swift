@@ -171,7 +171,7 @@ struct MobileAssistantComposer: View {
                 .disabled(!canSend)
             Button("Stop", action: conversation.stop)
                 .keyboardShortcut(MobileShortcut.stop)
-                .disabled(!conversation.isStreaming)
+                .disabled(!conversation.isAgentRunActive)
         }
         .frame(width: 0, height: 0)
         .opacity(0)
@@ -374,7 +374,7 @@ struct MobileAssistantComposer: View {
     }
 
     @ViewBuilder private var primaryButton: some View {
-        if conversation.isStreaming && !canSend {
+        if conversation.isPreparingAgentRun || (conversation.isStreaming && !canSend) {
             Button(action: conversation.stop) {
                 Label("Stop", systemImage: "stop.circle.fill").labelStyle(.iconOnly)
                     .font(.system(size: 34, weight: .semibold)).foregroundStyle(.red)
