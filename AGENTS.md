@@ -43,6 +43,8 @@ macOS tests that present windows or activate the app must use `.requiresVisibleW
 
 StoreKit tests require manual authorization and are also skipped by default. Run them explicitly with `TERMIND_STOREKIT_TESTS=1`, preferably with `-only-testing:TFMTests/StoreKitTrialTests`.
 
+Mobile key-window integration suites are skipped by default because they share UIKit's process-wide presentation state. Run them explicitly with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1` (Xcode forwards it as `TERMIND_MOBILE_UI_TESTS=1`), `-parallel-testing-enabled NO`, and narrow `-only-testing:TFITests/<Suite>` filters.
+
 ## Localization Guidelines
 
 Put user-facing app text in `Frameworks/Resources/Localizable.xcstrings` and bundle metadata in `InfoPlist.xcstrings`. Text owned by the agent runtime lives in `../AgentKit/Localizations/Localizable.xcstrings`; after editing it run `../AgentKit/Scripts/build-localizations.sh`, because `swift build` copies resources verbatim instead of compiling string catalogs. New or changed English strings require finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. Before committing, run `Scripts/check-zh-localization.sh` (requires `jq`); it rejects invalid catalogs, missing or unfinished translations, and spacing errors. Run `AppLanguageTests` for localization behavior changes.

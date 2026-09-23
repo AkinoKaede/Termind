@@ -1,4 +1,5 @@
 import AgentKit
+import Foundation
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -8,7 +9,12 @@ import UIKit
 
 @testable import TermindIOS
 
-@Suite(.serialized) @MainActor
+@Suite(
+    .enabled(
+        if: ProcessInfo.processInfo.environment["TERMIND_MOBILE_UI_TESTS"] == "1",
+        "Set TERMIND_MOBILE_UI_TESTS=1 and disable parallel testing for key-window integration tests"),
+    .serialized)
+@MainActor
 struct MobileSavedNameRenderingTests {
     @Test func forwardingNameHasNoPlaceholderUntilAHostIsSelected() async throws {
         let draft = ForwardingNameDraft()

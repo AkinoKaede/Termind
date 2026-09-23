@@ -122,7 +122,7 @@ final class MobileAppModel {
     private var scenePhases: [UUID: ScenePhase] = [:]
 
     convenience init(
-        hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = .standard,
+        hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = nil,
         background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
         workspaceConnectionServices: MobileWorkspaceConnectionServices = .live,
         appReview: AppReviewController = AppReviewController()

@@ -26,14 +26,30 @@ struct PortForwardingPresentationTests {
         #expect(PortForwardingFieldPresentation.showsDestination(for: kind))
         #expect(PortForwardingFieldPresentation.directionDescription(for: kind).contains("Destination"))
         #expect(!PortForwardingFieldPresentation.directionDescription(for: kind).contains("Target"))
-        #expect(PortForwardingFieldPresentation.directionDescription(for: kind).contains("This Mac"))
-        #expect(!PortForwardingFieldPresentation.directionDescription(for: kind).contains("This Device"))
+        #expect(PortForwardingFieldPresentation.directionDescription(for: kind).contains(localDeviceName))
+        #expect(!PortForwardingFieldPresentation.directionDescription(for: kind).contains(otherDeviceName))
     }
 
     @Test func dynamicForwardingUsesARequestedDestinationWithoutFixedDestinationFields() {
         #expect(!PortForwardingFieldPresentation.showsDestination(for: .dynamic))
         #expect(
             PortForwardingFieldPresentation.directionDescription(for: .dynamic)
-                == "SOCKS5 on This Mac → SSH Host → Requested Destination")
+                == "SOCKS5 on \(localDeviceName) → SSH Host → Requested Destination")
+    }
+
+    private var localDeviceName: String {
+        #if os(macOS)
+            "This Mac"
+        #else
+            "This Device"
+        #endif
+    }
+
+    private var otherDeviceName: String {
+        #if os(macOS)
+            "This Device"
+        #else
+            "This Mac"
+        #endif
     }
 }
