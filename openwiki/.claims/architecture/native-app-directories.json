@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:46bd31b52ab67eba8321c1885f18fb3436a08178dbccd92f5b6405559b9c3212",
+  "pageVersion": "sha256:7b943e2d155437d61aafb7681db058ef94efb0afbdab534a552eeaee29dc8413",
   "claims": [
     {
       "id": "claim_8e9cf2adb50847f98fcd4516cb0ed521",
@@ -16,7 +16,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:4bc8de73959fb7b78ab29e7936fbeab9a5f13a0e0f7555d520d99ff2bd731cec"
+          "version": "repo-file-v1:sha256:721bea277227a69f102c1b505cf41245ddf5d568b96d6ff229cb440e53106ac0"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
@@ -231,6 +231,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T07:36:39.730Z"
+    "at": "2026-09-23T08:21:59.182Z"
   }
 }

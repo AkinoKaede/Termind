@@ -16,6 +16,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-b62626c07828480fcd2b71b7
     resource: repo://Frameworks/TermindApplication/Agent/ConversationTitleController.swift
+  - id: openwiki-source-2d98a2885dc21f508f49b749
+    resource: repo://Frameworks/TermindApplication/Agent/MemoryIndexedAgentRepository.swift
   - id: openwiki-source-76220f10b4e23e3c61a811be
     resource: repo://Frameworks/TermindApplication/Agent/TermindAgentPolicy.swift
   - id: openwiki-source-7397a04f40a393c81b0ca52d
@@ -24,6 +26,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
+  - id: openwiki-source-ee4e94c8b189e0881ec4fd15
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
@@ -60,6 +64,8 @@ sources:
     resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
+  - id: openwiki-source-6570374eaac2e0278fa84640
+    resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
   - id: openwiki-source-16db5d5459897d40fe080701
@@ -78,14 +84,16 @@ sources:
     resource: repo://TFMTests/AgentScratchTests.swift
   - id: openwiki-source-7e117096f381ecc32caff068
     resource: repo://TFMTests/AgentSkillTests.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-78797a18dd3153d23a2c42e2
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "codex", at: "2026-09-23T07:42:01.096Z" }
+generated: { by: "codex", at: "2026-09-23T08:21:59.182Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T07:42:01.096Z
+    at: 2026-09-23T08:21:59.182Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory
@@ -204,6 +212,18 @@ Once startup has begun, Stop requests runtime cancellation; the consumer checks 
 
 The join guarantees that the captured snapshot-save attempt has returned, not that storage succeeded. In pinned AgentKit, terminal events precede the terminal snapshot save, while stream completion follows it; a terminal event alone is therefore an earlier boundary. The separate durable-event recorder and run-secret disposal tasks are not joined by this consumer. These contracts do not promise recovery from a storage failure or process death before a save. Desktop Stop keeps its immediate presentation behavior without adopting the mobile background lifecycle.
 
+### Desktop termination ownership
+
+Desktop `AppModel.shutdownForTermination()` permanently fences the execution controller's authorization callback before cancellation. New draft/text sends, first-conversation promotion, prepared edits, plan implementation, explicit starts and compaction requests are refused at that boundary. A prepared edit accepted before shutdown is invalidated synchronously, so its later UI task cannot enter history truncation or runtime preparation.
+
+The app snapshots its `AssistantConversationStore`, separately requests controller-wide preparation cancellation, then stops every stored conversation before any await or window teardown. Full-screen and sidebar surfaces navigate that same store; an unregistered or closed window does not remove its conversations. Each conversation receives a drain task, and the app also retains the controller cancellation task so an accepted preparation outside the store is joined. Ordinary preparations finish their interruption path; `savingFailure` keeps its existing save attempt. Retained queued, active and previously stopped runtime owners use the existing `stopAndWait()` contract.
+
+MCP shutdown and SFTP cancellation proceed alongside those Assistant joins. Agent background commands are closed only after all these waits return, followed by the Agent connection pool. Repeated shutdown returns the same cleanup task. The native reply coordinator separately replies once when cleanup returns or its three-second fallback fires; termination can therefore happen before a blocked save or later resource closure completes. A joined save attempt remains distinct from save success.
+
+Cancellation is cooperative across the remote stack. `AgentSSHAuthenticationContext.configurationAttempt()` and shared pool opening await unstructured tasks; cancelling the runtime does not necessarily cancel those tasks or settle their interaction continuations. Such a drain may remain blocked until exit, before background-command or pool closure is reached. `AgentBackgroundCommands.closeAll()` itself requests command-task cancellation without awaiting remote settlement. These joins also exclude already-running manual compaction, title generation and memory indexing. `memory.suspend()` cancels current work, but successful terminal saves call `historyChanged()` and can schedule indexing again. The shutdown contract therefore covers captured turns and retained consumers, with the native fallback bounding the quit reply.
+
+### Mobile background expiration
+
 Mobile background expiration first sets `isSuspending`, cancels pending preparations and recording, snapshots the stored conversations, and calls `stop()` on every conversation synchronously. Only after all cancellation requests are issued does its cleanup task call `stopAndWait()` for each snapshot member, then close background commands and Agent connections. A first conversation's blocked save therefore cannot postpone cancellation of a later queued or active run. Repeated expiration during that cleanup is inert, and composer sends remain blocked until cleanup returns, including when a scene has already returned to the foreground.
 
 The finite UIKit lease has a separate boundary: its expiration callback requests this cleanup and ends the matching valid lease synchronously, without awaiting those drains. Cleanup may continue when execution is available, but iOS suspension or termination can prevent completion. Neither the lease nor Live Activities guarantee persistence or continued network work. See [Platform Runtime](/openwiki/architecture/platform-runtime.md) for scene aggregation, lease identity and workspace recovery.
@@ -316,6 +336,7 @@ New submissions capture whether they have a memory-session identity before prepa
 
 The focused tests establish behavior that is important when changing this area:
 
+- `TFMTests/AppTerminationTests.swift` checks queued store-owned conversations after window unregistration, blocked cancellation saves before resource closure, post-fence eligible submissions and prepared-edit invalidation, and an unstored captured failure whose save must be joined. Injected clock gates exercise cleanup-first and fallback-first replies exactly once. These fixtures establish app ordering; they do not simulate process death, failing disk writes or a production SSH authentication drain.
 - `TFMTests/AgentRuntimeTests.swift` covers schema-before-approval/execution, approval mode routing, Guardian timeout/failure fail-closed behavior, single-use secret handles, steering delivery, tool cancellation, registry shadowing, and durable-event filtering.
 - `TFMTests/AgentPersistenceTests.swift` covers redaction, interrupted-run recovery, replay deduplication, tool-result repair, graph deletion, same-run edit prefix/tool preservation, canonical equal-time ordering, empty retained runs, staging adoption, late-write rejection, fork persistence and compaction restoration. `ChatComposerStateTests.swift` checks the compacted live prefix, tool cards, title, plans and adopted run summaries.
 - `FrameworkTests/AgentReplayPersistenceTests.swift` checks failed/interrupted staging adoption, queued cancellation, and controller-owned configuration failure of an edited replacement. The cancellation and captured-failure fixtures reload through a fresh `ModelContext` and repository, checking one adopted run, captured text/images/attachments/context, permission mode, and staging/terminal chronology.

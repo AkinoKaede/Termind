@@ -10,14 +10,20 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-160f180df5d3cb1457febfee
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
+  - id: openwiki-source-2d98a2885dc21f508f49b749
+    resource: repo://Frameworks/TermindApplication/Agent/MemoryIndexedAgentRepository.swift
   - id: openwiki-source-5c91b796f7e6d651aedf3023
     resource: repo://Frameworks/TermindApplication/FeatureModels/CommandHistoryModel.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
+  - id: openwiki-source-7397a04f40a393c81b0ca52d
+    resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-4f78037bc69b6dfc293aca3d
@@ -52,6 +58,10 @@ sources:
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalThemePicker.swift
   - id: openwiki-source-87b90af0bd504e35083a8414
     resource: repo://Frameworks/TermindPresentation/VaultSyncStatusLabel.swift
+  - id: openwiki-source-ee4e94c8b189e0881ec4fd15
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift
+  - id: openwiki-source-0c82bf45bc197f879a54fd3a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
@@ -114,14 +124,16 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-385c953ef1c6bf095d1c1244
     resource: repo://TFM/Platform/TerminalFontCatalog.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T07:42:01.096Z" }
+generated: { by: "codex", at: "2026-09-23T08:21:59.182Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T07:42:01.096Z
+    at: 2026-09-23T08:21:59.182Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -194,9 +206,20 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - Desktop Vault/Assistant, Metrics, dynamic Workspaces and Settings routes are window-local. Settings data is app-wide;
   closing it restores the replaced destination. Width changes may adapt panels, never routes/editor identity/session
   composition/monitor ownership; covered panels retain last size, native table identity, sorting and scroll.
-- `AssistantLibraryModel` owns standalone conversations, not panes. Workspaces own SSH/SFTP/serial panes and session
-  conversations; sessions own transports/terminal/browser state. Ordering/pinning commits metadata before publication
+- Desktop `AssistantConversationStore` is app-wide; each window's `AssistantLibraryModel` navigates the same stored
+  conversation instances, including full-screen and sidebar surfaces. Closing a window does not retire those conversations.
+  Workspaces own SSH/SFTP/serial panes; sessions own transports/terminal/browser state. Ordering/pinning commits metadata before publication
   and preserves instances during runs/approvals/compaction. Archive/delete keep run guards; archived chats cannot move.
+- Desktop termination permanently fences controller-authorized draft/text/new-conversation/edit/plan/start/compaction
+  admissions. It cancels captured preparation and stops every stored conversation synchronously before window teardown
+  or the first await, then joins the controller's preparation/failure-save task and retained conversation consumers alongside
+  MCP/SFTP cleanup. Only after those joins return does it close Agent background commands, then the connection pool.
+  Repeated shutdown returns the same cleanup task; an independent three-second native fallback replies once even if a save
+  or drain remains blocked. Joining an attempt does not prove save success or completion before process exit.
+  Shared unstructured SSH authentication/pool setup can outlive runtime cancellation. Existing manual compaction, titles and
+  memory indexing are outside these captured-turn joins; memory suspension cancels current tasks but successful terminal
+  saves can schedule indexing again. Background-command close requests cancellation without proving remote settlement.
+  See [Platform Runtime](/openwiki/architecture/platform-runtime.md) and `AppTerminationTests` for scope and verification.
 - Connection/authentication/forwarding state is memory-only, excluded from domain records, sync and UserDefaults.
   Serial is local/temporary, never persisted or an Agent host. Vault-synced Workspace templates contain named
   SSH/SFTP/empty split trees/fractions; only TFM materializes them, preserving empty panes for missing Hosts.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:bca342add2ba08c7d23d8e2249dbd1fc90d80da4cd53969a03f04507a81c9e8e",
+  "pageVersion": "sha256:eebf0a77f06515f063a173fdf53ac96cca81aeae0519a99c3c2697d94c59429d",
   "claims": [
     {
       "id": "claim_34230e88036241baad093fb8de5bac8e",
@@ -40,7 +40,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:4bc8de73959fb7b78ab29e7936fbeab9a5f13a0e0f7555d520d99ff2bd731cec"
+          "version": "repo-file-v1:sha256:721bea277227a69f102c1b505cf41245ddf5d568b96d6ff229cb440e53106ac0"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
@@ -144,13 +144,13 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:4bc8de73959fb7b78ab29e7936fbeab9a5f13a0e0f7555d520d99ff2bd731cec"
+          "version": "repo-file-v1:sha256:721bea277227a69f102c1b505cf41245ddf5d568b96d6ff229cb440e53106ac0"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T07:36:39.730Z"
+    "at": "2026-09-23T08:21:59.182Z"
   }
 }

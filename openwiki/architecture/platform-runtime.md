@@ -4,6 +4,20 @@ title: Platform Runtime, App Composition, and Lifetimes
 description: How Termind composes shared services and persistence on macOS and iOS, and where app-wide, window-local, scene-local, and session state begin and end.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
 sources:
+  - id: openwiki-source-5f99e8af445e073ffe9bc257
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-160f180df5d3cb1457febfee
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
+  - id: openwiki-source-1c48f72c0c7a3164d7d5c715
+    resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
+  - id: openwiki-source-2d98a2885dc21f508f49b749
+    resource: repo://Frameworks/TermindApplication/Agent/MemoryIndexedAgentRepository.swift
+  - id: openwiki-source-7397a04f40a393c81b0ca52d
+    resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
+  - id: openwiki-source-ee4e94c8b189e0881ec4fd15
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift
+  - id: openwiki-source-0c82bf45bc197f879a54fd3a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-dc9295278cc250ed20567540
@@ -46,14 +60,16 @@ sources:
     resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
+  - id: openwiki-source-73c75477db0674192248aa00
+    resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
-generated: { by: "codex", at: "2026-09-23T07:42:01.096Z" }
+generated: { by: "codex", at: "2026-09-23T08:21:59.182Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T07:42:01.096Z
+    at: 2026-09-23T08:21:59.182Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -129,7 +145,13 @@ A host-opening action is centralized in `AppModel`, which chooses the requested 
 
 The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from `MacDeviceName.current`; the synchronized directory can therefore update without rewriting connection events. TFI refreshes its name directly from DeviceKit's `Device.current.safeDescription` on active-scene transitions. On termination the desktop app first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
 
-Shutdown is deliberately idempotent and bounded by the delegate. It suspends memory and edit monitoring, stops metrics, speech, windows, SFTP work, external authentication, forwarding, and the outbox; concurrently awaits MCP and SFTP cancellation, then closes agent background commands and connection pools. The delegate replies to macOS when cleanup completes or after a three-second fallback, preventing an unbounded quit wait.
+Shutdown first sets a permanent desktop Assistant admission fence. The execution controller's shared authorization callback rejects new draft/text sends, first-conversation promotion, edits, plan implementation, explicit starts and compaction requests. It snapshots the app-wide conversation store, cancels captured preparations, and calls `stop()` on every stored conversation synchronously before window teardown or any await. This includes full-screen and sidebar conversations whose window was already closed or unregistered: closing a window does not remove them from the store.
+
+The returned cleanup task separately joins the controller's captured preparation and failure-save attempts, plus each conversation's retained runtime consumers. The latter include queued, active and previously stopped owners still draining. Every cancellation request precedes these waits, so one blocked save cannot postpone stopping another conversation. MCP shutdown and SFTP cancellation run alongside the Assistant drains. Only after all those joins return does cleanup call `AgentBackgroundCommands.closeAll()`, then `AgentConnectionPool.closeAll()`.
+
+The app publishes that one cleanup task before suspending memory/edit monitoring and stopping metrics, speech, window-owned workspaces, SFTP work, external authentication, forwarding and the outbox. Repeated calls return the same task. `AppTerminationReplyCoordinator` independently races cleanup completion against a three-second fallback and replies to AppKit once. The fallback can permit exit while persistence or resource cleanup is still pending; returning from a save attempt does not establish that it succeeded.
+
+This is a captured-turn shutdown boundary, not a join of every Assistant task. Already-running manual compaction, title generation and memory indexing are outside it. `memory.suspend()` cancels current work, but a successful terminal save through `MemoryIndexedAgentRepository` can schedule indexing again. Shared unstructured SSH authentication and pool-opening tasks may not inherit runtime cancellation, leaving a consumer drain blocked and later resource closes unreached before fallback. Background-command close itself requests cancellation rather than proving remote settlement. These limitations make the native fallback necessary; the iOS lifecycle remains separate.
 
 ## Mobile composition
 
@@ -202,6 +224,7 @@ For a service that represents navigation, focus, a sheet, an editor draft, a des
 
 Tests exercise the lifetime contracts rather than merely constructing views:
 
+- `AppTerminationTests` uses queued conversations retained after window unregistration, a blocked terminal save, an unstored captured failure, and eligible post-fence sends/edits to verify cancellation, admission and save-attempt-before-resource-close ordering. An injected clock gate checks both cleanup-first and fallback-first replies occur once; these are application ordering tests, not proof of successful disk persistence or production SSH authentication settlement.
 - `MobileAppTests` verifies saved descriptors reopen on demand without replaying commands or paths, and that two scenes selecting one restored workspace create only one connection.
 - `MobileWorkspaceConnectionRecoveryTests` verifies background expiration disconnects affected mobile workspaces and foreground resumes them, while a quick foreground return preserves a healthy connection. Scene-removal fixtures also check that removing the sole active scene starts one lease for surviving background scenes and that an empty scene set starts none.
 - `MobileBackgroundControllerTests` checks synchronous callback/end ordering, stale and repeated callbacks, denied acquisition, and reentrant expiration during acquisition without losing or ending the replacement lease.
