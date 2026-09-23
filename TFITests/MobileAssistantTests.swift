@@ -485,9 +485,95 @@ struct MobileAssistantTests {
         #expect(app.assistant.isSuspending)
         assistant.send()
         #expect(assistant.conversation.composer.draft == "preserve")
+        await assistant.compact(assistant.conversation)
+        #expect(assistant.conversation.compactionActivity == nil)
         await app.assistant.waitForSuspension()
         #expect(!app.assistant.isSuspending)
         #expect(!app.assistant.isRunning)
+    }
+
+    @Test func backgroundExpirationBlocksEditsUntilCleanupCompletesThenAllowsRecovery() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
+        let conversation = assistant.conversation
+        conversation.composer.draft = "Original question"
+        assistant.send()
+        #expect(await eventually { conversation.runState == .failed })
+        let original = try #require(conversation.messages.first { $0.role == .user })
+        let blocker = ConversationModel()
+        assistant.library.insertAndSelect(blocker)
+        let blockerRepository = MobileTerminalSaveGateRepository()
+        blocker.start(
+            runtime: AgentRuntime(
+                model: MobileImmediateAssistantModel(calls: MobileAssistantModelCalls()), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: blockerRepository
+            ),
+            request: AgentRunRequest(
+                conversationID: blocker.id, prompt: "block cleanup", permissionMode: .askForApproval),
+            repository: blockerRepository
+        )
+        await blockerRepository.waitForTerminalSave()
+
+        app.assistant.expireBackground()
+        #expect(app.assistant.isSuspending)
+        assistant.edit(conversation, messageID: original.id, text: "Replacement question")
+        await Task.yield()
+        #expect(conversation.messages.first(where: { $0.role == .user })?.text == "Original question")
+
+        await blockerRepository.releaseTerminalSaves()
+        await app.assistant.waitForSuspension()
+        #expect(!app.assistant.isSuspending)
+        assistant.edit(conversation, messageID: original.id, text: "Replacement question")
+        #expect(
+            await eventually {
+                conversation.messages.first(where: { $0.role == .user })?.text == "Replacement question"
+            }
+        )
+        #expect(await eventually { conversation.runState == .failed })
+    }
+
+    @Test func backgroundExpirationBlocksPlanImplementationUntilCleanupCompletesThenAllowsRecovery() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
+        let conversation = ConversationModel()
+        _ = assistant.library.startConversation(conversation)
+        let plan = AgentPlan(
+            title: "Implementation plan", body: "Apply the requested change.",
+            scratchPath: "/tmp/plan.md")
+        conversation.isPlanning = true
+        conversation.handle(.planPresented(plan))
+        let card = try #require(conversation.plans.first)
+        let blocker = ConversationModel()
+        assistant.library.insertAndSelect(blocker)
+        let blockerRepository = MobileTerminalSaveGateRepository()
+        blocker.start(
+            runtime: AgentRuntime(
+                model: MobileImmediateAssistantModel(calls: MobileAssistantModelCalls()), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: blockerRepository
+            ),
+            request: AgentRunRequest(
+                conversationID: blocker.id, prompt: "block cleanup", permissionMode: .askForApproval),
+            repository: blockerRepository
+        )
+        await blockerRepository.waitForTerminalSave()
+
+        app.assistant.expireBackground()
+        #expect(app.assistant.isSuspending)
+        assistant.implement(card, in: conversation)
+        #expect(conversation.plans.first?.outcome == .pending)
+        #expect(conversation.transcript.isEmpty)
+
+        await blockerRepository.releaseTerminalSaves()
+        await app.assistant.waitForSuspension()
+        #expect(!app.assistant.isSuspending)
+        assistant.implement(card, in: conversation)
+        #expect(conversation.plans.first?.outcome == .implemented)
+        let implementation = try #require(conversation.transcript.last)
+        #expect(implementation.role == .user)
+        #expect(implementation.contextSnapshot?.planContract == nil)
+        #expect(await eventually { conversation.runState == .failed })
     }
 
     @Test func backgroundExpirationStopsEveryConversationBeforeJoiningTheFirstDrain() async throws {
