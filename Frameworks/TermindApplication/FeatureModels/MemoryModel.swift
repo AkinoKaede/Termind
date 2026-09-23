@@ -91,8 +91,7 @@ public final class MemoryModel {
         let token = generation
         do {
             let updated = try await storage.replaceTarget(target, text: text)
-            guard token == generation, isEnabled else { return }
-            state = updated
+            try publishCommittedState(updated, token: token)
             error = nil
         } catch { if token == generation { self.error = error.localizedDescription } }
     }
@@ -120,6 +119,31 @@ public final class MemoryModel {
         guard isEnabled, !isSuspended, token == generation, !isBusy, let storage else { throw CancellationError() }
         return storage
     }
+    private func publishCommittedState(_ updated: AgentMemoryState, token: UUID) throws {
+        do {
+            _ = try require(token)
+        } catch {
+            reloadStateForCurrentGeneration()
+            throw error
+        }
+        state = updated
+    }
+    private func reloadStateForCurrentGeneration() {
+        guard isEnabled, !isSuspended, !isBusy, let storage else { return }
+        let token = generation
+        Task { [weak self] in
+            guard let self else { return }
+            do {
+                let value = try await storage.memoryState()
+                guard token == generation, isEnabled, !isSuspended, !isBusy else { return }
+                state = value
+                error = nil
+            } catch {
+                guard token == generation, isEnabled, !isSuspended, !isBusy else { return }
+                self.error = error.localizedDescription
+            }
+        }
+    }
     fileprivate func read(token: UUID) async throws -> AgentMemoryState {
         let result = try await require(token).memoryState()
         _ = try require(token)
@@ -128,8 +152,7 @@ public final class MemoryModel {
     @discardableResult
     fileprivate func apply(_ operations: [AgentMemoryOperation], token: UUID) async throws -> AgentMemoryState {
         let result = try await require(token).applyMemory(operations)
-        _ = try require(token)
-        state = result
+        try publishCommittedState(result, token: token)
         return result
     }
     fileprivate func search(_ request: AgentSessionSearchRequest, token: UUID) async throws -> AgentJSONValue {
@@ -221,8 +244,7 @@ public final class MemoryModel {
                 if let updated = try await storage.applyReview(
                     operations, expected: current, messageID: last, conversationID: conversationID)
                 {
-                    _ = try require(token)
-                    state = updated
+                    try publishCommittedState(updated, token: token)
                 }
             } catch is CancellationError {
             } catch { if token == generation { self.error = error.localizedDescription } }
@@ -257,6 +279,7 @@ public final class MemoryModel {
     public func resume() {
         guard isSuspended else { return }
         isSuspended = false
+        reloadStateForCurrentGeneration()
         historyChanged()
     }
 }

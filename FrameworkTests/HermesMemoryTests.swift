@@ -152,6 +152,31 @@ struct HermesMemoryTests {
         _ = try await resumed.access.memoryState()
     }
 
+    @Test func resumeReconcilesACommittedWriteFromTheSuspendedGeneration() async throws {
+        let store = MemoryLifecycleStore(blocksApply: true)
+        let model = MemoryModel(storage: store)
+        await model.setEnabled(true)
+        let original = try #require(await model.session(UUID()))
+        let write = Task {
+            try await original.access.applyMemory([
+                .init(action: .add, target: .memory, content: "Committed during suspension")
+            ])
+        }
+        await store.waitUntilApplyEntered()
+
+        model.suspend()
+        model.resume()
+        try await waitUntil { await store.memoryStateCallCount >= 2 }
+        await store.releaseApply()
+
+        await #expect(throws: CancellationError.self) { try await write.value }
+        try await waitUntil {
+            await store.memoryStateCallCount >= 3
+                && model.state.text(.memory) == "Committed during suspension"
+        }
+        await #expect(throws: CancellationError.self) { try await original.access.memoryState() }
+    }
+
     @Test func suspendPreventsStaleReviewFromApplyingAfterResume() async throws {
         let store = MemoryLifecycleStore()
         let model = MemoryModel(storage: store)
@@ -246,14 +271,46 @@ struct HermesMemoryTests {
 private actor MemoryLifecycleStore: MemoryPersisting {
     private var memory = AgentMemoryState()
     private var historyReplacements: [[StoredAgentConversation]] = []
+    private let blocksApply: Bool
+    private var applyEntered = false
+    private var applyReleased = false
+    private var applyEntryWaiters: [CheckedContinuation<Void, Never>] = []
+    private var applyReleaseWaiters: [CheckedContinuation<Void, Never>] = []
     private(set) var reviewApplyCount = 0
+    private(set) var memoryStateCallCount = 0
 
     var historyReplacementCount: Int { historyReplacements.count }
     var lastHistory: [StoredAgentConversation]? { historyReplacements.last }
 
+    init(blocksApply: Bool = false) { self.blocksApply = blocksApply }
+
+    func waitUntilApplyEntered() async {
+        if applyEntered { return }
+        await withCheckedContinuation { applyEntryWaiters.append($0) }
+    }
+
+    func releaseApply() {
+        applyReleased = true
+        let waiters = applyReleaseWaiters
+        applyReleaseWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
+
     func rebuildHistoryIndex() {}
-    func memoryState() -> AgentMemoryState { memory }
-    func applyMemory(_ operations: [AgentMemoryOperation]) throws -> AgentMemoryState {
+    func memoryState() -> AgentMemoryState {
+        memoryStateCallCount += 1
+        return memory
+    }
+    func applyMemory(_ operations: [AgentMemoryOperation]) async throws -> AgentMemoryState {
+        if blocksApply {
+            applyEntered = true
+            let waiters = applyEntryWaiters
+            applyEntryWaiters.removeAll()
+            for waiter in waiters { waiter.resume() }
+            if !applyReleased {
+                await withCheckedContinuation { applyReleaseWaiters.append($0) }
+            }
+        }
         memory = try memory.applying(operations)
         return memory
     }
