@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:cd736475053bed4751ff7b4f06ee0433c8d3ac3e74f3866d585bc958dd6b25d5",
+  "pageVersion": "sha256:4139c19be34c8fc47c74c1b05a07851c8e18bdfafe33237f7507fbc542e4b360",
   "claims": [
     {
       "id": "claim_34230e88036241baad093fb8de5bac8e",
@@ -44,7 +44,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:4c153bf5b7d97bf82683269527c35e76d9666ce459b681af16e7eed4a586e837"
+          "version": "repo-file-v1:sha256:42182779b1c8b55a350b4f77b4237e05c87338d040f72530f919cbd13a474823"
         }
       ]
     },
@@ -101,8 +101,8 @@
       "statement": "Cross-feature responsibility is split among Application policy, concrete shared adapters, Persistence stores and native owners: remote files use a filesystem port plus a transfer coordinator; Assistant execution uses an injected tool-registry factory; Vault sync uses persistence journals; speech uses an injected native audio input.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L6-L44",
-          "version": "repo-lines-v1:sha256:acf89cdfba502ef9c32f962dc43493dd515971c9c8b203533c43044e3ebca670:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3YzgyYWM5Yzk2MGJhNjIyNDBlYWZkZDE0ZTY2NTI1NjQ2MTMzOTE5NjU2MzNiODhlMWIwNjk5MjY2MGI2NTEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjFhZDFiYmYwZjdkYWQyYTAyNGQxMzBmZjQzOWQ5M2Y0ODZhZDQwMmQ5Y2U5N2Q3ZDVhMDZhYTUxNjFlMmIyZWEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImI4MjgyYmRhZjE5OTYzODdkODg5MzczMjM0Njc1ZjQ2YTI5N2UxN2RhZjAxMGJjMWI5OGMzNjA0Zjk5OGEwNDMifQ"
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L85-L101",
+          "version": "repo-lines-v1:sha256:577dce93a8dc638405f6c56f3765a8c249566b31e706d49b62be67594175b5e8:eyJzZWxlY3RlZExpbmVDb3VudCI6MTcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImJmM2UzN2Y2NzljZDY2NzAyYjcxZjNmOThkN2IyYjYyZTAwMGEzM2FkYjQ4OTE1NDdjNjZhOTJkNDEyNGIxNzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4OTM5MWFkMjEyZWVlODE0ZWE3ODFhNWJkOTlkM2YxZDcwY2JiODhlZmE0OTc0ZGZmMmJlZGE5NzVhOWNjODYifQ"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift#L4-L14",
@@ -151,6 +151,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T01:34:03.251Z"
+    "at": "2026-09-23T02:40:53.789Z"
   }
 }

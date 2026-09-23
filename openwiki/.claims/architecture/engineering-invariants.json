@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:75fe464fb65e761e5eeaab3f31f1a2d852175cc5f78f5b099ddffee4a8655971",
+  "pageVersion": "sha256:564964f95e8176182ff915ce6d8834e7717b6a3a3be946666c5b1d1d749906cc",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -52,11 +52,11 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:ba89018766f45b430033efc2969c0307ba30c0d298bd8b55a51e17a08915c767"
+          "version": "repo-file-v1:sha256:8efd1aa2da741e633993416bf4f88eff4df978ee3768a13788a1ac0419bdf837"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:4c153bf5b7d97bf82683269527c35e76d9666ce459b681af16e7eed4a586e837"
+          "version": "repo-file-v1:sha256:42182779b1c8b55a350b4f77b4237e05c87338d040f72530f919cbd13a474823"
         }
       ]
     },
@@ -321,10 +321,54 @@
           "version": "repo-lines-v1:sha256:a228288ef4e8a002f6ea687e2fadd9646d999992d73665e548aec331284a7d4e:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiYmMxNDAxZmI0YzIwNTE3YTEyYWUxOWZkMDNlYjE4Y2UwMDg3ODZlMGFmOGQ0OTJjZTNiNjIwZGI3YWJhMmFlNCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
         }
       ]
+    },
+    {
+      "id": "claim_e9d194c36350453093030ee401cf1f18",
+      "statement": "AssistantExecutionController synchronously captures composed user-turn content, context, model/provider/credential, reasoning/permissions, search, skills/registry and Guardian/preparation configuration before memory or automatic compaction waits; first-send promotion and edit persistence follow capture.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L103-L340",
+          "version": "repo-lines-v1:sha256:a36381cd69fbf5b2b411a7a7a409a011e0e654507ad45760c7b36bb648354caa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjM4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5YWQ1M2JhYWMxODc4NTJiNDMxYzIzMmUwNTE2MDYxZDQ5NmY3YTIxNTZlZTRiZjdkZWE2NDdmYzY2NDk4NjZkIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI5NTZkZWYzNmJmNjVmNmJkNjM4NThiMTkwN2U3ZDNiOGQ4N2I2MjVmMzk5M2Q5YzM0ODQ1YzAwMTYwNGVkYzY3IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI4M2FlZTJjY2Q2MDIwNWM0ZjU2NDVjNDYxNzM2ZWU2ZmI5MmU1NWRkM2YxNjJkNjRkNGNlMzhiMGNiNTYxMWQwIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyNjhlMWNiOWEwY2Y5YTE2NjZhODRmOGZkZjhmZjUzNGM1NjljYThkYTYxOGNmYWZhZjdiZWE1ZDY0ODU5ZTBhIn0"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L516-L630",
+          "version": "repo-lines-v1:sha256:b1882f48ba2a0c4f0faaa010c3ad73fbbfed243a2f0f51c0d883ed8058e5a3d3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTE1LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIzN2U2Yzk0MTIwZGUzNjU0OGMxZjcwMTkzYzMxYzg0NTQ1ODI0OGQ0M2E4N2U2ZTU0MjY5MTBmY2VkYmJlOGJiIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI3NDhiNTNjYTI2MWZjOWVmMTVjMzg5YWVkYTA0Zjg2MTFjN2I0N2UxOGU2MjA5NWQxMWRmODkwYWNjMWQ4ZjRjIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIwZWE5ZjA1OWViZGRiM2M1YTA1MTQwYTNhNTJjMTM2MmU4ZGVhZDhlNmU1MjllZWNhNWMyNjkxOGZhNTMyNTY1In0"
+        }
+      ]
+    },
+    {
+      "id": "claim_bbae8e4110c5473b83d5d2803745fea5",
+      "statement": "Preparation has a separate identity from streaming: cancellation invalidates it synchronously and joins tracked history/preparation work before interrupted persistence; stale edits are rejected, archive/delete cancel preparation, manual compaction refuses it, and changing selection alone does not cancel it.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L236-L259",
+          "version": "repo-lines-v1:sha256:fb96479831645e246050471c6bfb603e36dfa4c433cea61b917671f897948614:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk2YmY3NzkyYmMwMzMxOWEyNThmMDMxMzZlNTg4MWE0YjdmNTI3ZWVkNTQ4ZDQ4MGRlZWE5Zjg0ZGE2NTczZWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwNTRiZjkyODIzYmI3NmNlYjU1YmNkZGI1Y2UwNTk0MTUzNjJjZGNhZjk3MTQ1MzhmMDg0NzQ1ZmQ4Njg2OWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ4MDZhNjU1YWM2ZmRkYzgzZGYwOGUyMmQyNjc1MzM3ZjZjYWYzN2E0NGZhMDdjOGEzNWViZGIwZWNlYTVjMWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImMxYWI2OTA5MDBkNWZjZmRjMmMxNjEzYjRlNDA0ODc3YTU2MjZjMjM2MWZiNGQ0MTJjMGIyMDlkYjBlNzJlMzgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift#L12-L21",
+          "version": "repo-lines-v1:sha256:e2ba6b40bc2c5a1843a0a570f28c471ba3a74682cf31c79865a8472029912a21:eyJzZWxlY3RlZExpbmVDb3VudCI6MTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZkNWFkOTQ4ZjVhN2JlOWJlMTVkNTRhY2EwNzlmZWI4MDYwMjNlMjVjNjIzNmVmMWI0NTM0YzQ0NDA1ZTk1NDIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImI5NDU0MDY3MDk1MTM2ZmQyMDViNmNhM2JkMGFjYjk5N2M0MDg5M2JjNGI4OWFjMzMxN2YxZmNhYzFiMzc5ZmUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU4ZGJjMzU4MWFjZTk4MTNjMmE3ZmQ5OWI2YjNmN2I2ZTBlNmE5ZjJiMGJlZDUzNmUwOTJiZjI2NWMzOWNmNGIifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift#L63-L75",
+          "version": "repo-lines-v1:sha256:c49e78dca59df1fa504084f70e5870b13c95199d99512f713215e4d963559c1c:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBlZGZjY2UzODdkY2Y5MTEzNWQ4YjcyMzViYjIzZGU4ZDM4OGVkOWY0YjU5MzhkODdlMTM1ZjA3OGU5MzBlNjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmNTU2NmQyMjg3Mjk1MmM0NDc3MmQ1NDEyZTgwZjE2MzI4ZWM1ZGM5YmIxM2YyNjVkODFmNTg0MGFhYWM1ZjIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVmM2MyYmU5Yzg4ODZjMmM1YzI4MjYzOTk4MTBmZTYyMDY0YWZhZWEyN2RmMTNmNzQ5OGI4M2QyMmVlODBjODkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjZjMxNzMzMTFlZjYxMGRlNTllOTE2MjM5ZDBiZDQ3YjA5OTU3MTNjYThiYWY1NGZmYWVkY2Y2ZmJmZTQxZjUifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L241-L280",
+          "version": "repo-lines-v1:sha256:10dde8f96383fc4e7c331b4e927c1c5e61a7173356ef4b5b49d67c68ba29e2e3:eyJzZWxlY3RlZExpbmVDb3VudCI6NDAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImExMGUxZDhkNTQ2OGFiNjQ4MzUxNzE3MWM1ZDQ0NzZiNjUzNjIwNDJlYzVlNzZhYjNlZWQ2NTM4YjhmZmRiN2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJiZWNkMDQ0NWJmNGEzYTg5NTcwNTczNGE0YmEyYjFjYzQxMjRiNzM1NzYyYWY0ZWYxYzQyODcyNTkyMThlNzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBiNDkxY2E1OGFjYmFiYWNhOTBhZDBkYmQyNjgxODk3NzFhMjY2YTYyM2FhZmE3NzRhYzY1MTg5OTk3YjU1YWMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L684-L770",
+          "version": "repo-lines-v1:sha256:405ec2eca133a1dd12f58eb7f2099860c2da18f294af59b286e2f1f935847c4c:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxMGEwMjJhZTMxNzI3ZmIzMmUxNTFiMmY3NzA0ZmE4ODVkYTZjZTc0NTdhMjU1OTNiMWIxY2M3YTA3ZGY5NjQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM0OWVhNzVmZmFiZjU2OTUxMTk2YTQ4ODljNDE1OGZmYjM3NDY5NThhMmI3NDIxODE1NjVkYTU3NDkxZDI2YmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdiZTFlNjJiNzdiZmE0MWYyZjNjYzlhMDU1MDI1MzY4MWI3Y2VhN2M2ZDZhMTk5MzljYjVkNTEyMGFjNTI4M2UiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkNjUzOWRjYTQ0MjY0ZTViYjAwZTU2MzRmY2M2NGI4YmMwOThmNTViNDAxZDBjNDIzZTYzNTlmNDJhOGE0ZjEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L829-L839",
+          "version": "repo-lines-v1:sha256:1cfe225932062439ff267e988637e685c28e2ecefa0b0e93398784b85cb79032:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhMmRhZDQzODJjOWExZTA4YjBkMDE4YjZmM2E5ZTE3ZDJlODU3YTA0ZjdjOWUyN2RhODQxOGI3YjUzN2U2MzQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgwMjczNmZkMDQ2ZjFlNWQ4Y2ExZTYyNjRhNWJjZjhlNTc2YmY4YzFmM2RmNmM4OTk2MTIxZDI1ZWIyMDAzMzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjYyZDRiYThiMzc0ODExZjYxZDdmOTQ4NWYwNzMzMzFiMDczYTNmNTI5ZDdmM2ZiNDU2MDlmMTRhMTMxMjc1M2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJiMDY3MDk2YzhiOTcxNzZhODc3ZGQ3YzIyNjRmYjU3MTljMGRlYWRkMWIxMGI4YjcxYzljYWZjZDk2OWIyNDAifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T01:34:03.251Z"
+    "at": "2026-09-23T02:40:53.789Z"
   }
 }

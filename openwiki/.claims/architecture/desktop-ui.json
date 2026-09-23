@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:9e4dcfe15396af0c8e9ed77ff7347eac829aeff9d111ad37757a2e3f1e63b2c1",
+  "pageVersion": "sha256:aacd9e53709881d4edac532fd23dfffe4e8ba8cf7a5b611a79bfd846f1128d8a",
   "claims": [
     {
       "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
@@ -105,8 +105,8 @@
       "statement": "The workspace compact Assistant has routing separate from the full Assistant destination and composes transcript/interaction regions with explicit terminal context; Escape cannot fall through from a blocking interaction into closing the conversation.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L152-L225",
-          "version": "repo-lines-v1:sha256:d47d11a81fc91f016d97ec23e87c1a89e608cb049d364bda5cc33966ce5e6a5e:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0YmFkZWYzNjBmZDM2NTYwNGE2ODg4NGU5NDJiYzA4M2RjZDQ0ZTJhNTBlYzYyMjkzOTExZDYxOTg1MmVhNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyZjUyZjI3YTJiNzI0ZTlmYTM4NjA0ZGJkZGZlODczYTlkMTJhOTNiZWI0YWNiYWU5ZjFmNzk3ZDZkOTg1OTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L142-L227",
+          "version": "repo-lines-v1:sha256:e96c4ac72148f4e34e9ccbf9fe17ed3b7df5343281431eeba19e4ceb1b85eaf2:eyJzZWxlY3RlZExpbmVDb3VudCI6ODYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMyY2NmOTY5ODZiYTMxNzJlNzA4YmQzZWY1YTMyMzBmN2Y1N2QzNzg1ZmU2YzhmNzdjNGQ4MzdkZjc1OWMzOTYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJkMWMxYWE3ZmY5NDI4MTg1ZGFiMjIyMmU3NWI1N2U4Zjg2ZGFmMTJkZjZkNWI5MzMwYTI0YzQ1ODU0NzdjMDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkY2E2ZmY0MTYzODU2MjUyOTU1NzNiYjQ0ZGRjZGM5ZDZiYmZkOWQ2OGRlYjVkZDRkNjA5OGNjZWRiNTFhNjUifQ"
         },
         {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L7-L14",
@@ -207,6 +207,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T01:34:03.251Z"
+    "at": "2026-09-23T02:40:53.789Z"
   }
 }

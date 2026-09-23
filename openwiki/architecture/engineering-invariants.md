@@ -6,6 +6,10 @@ tags: [architecture, invariants, lifecycle, security, persistence, remote-sessio
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
+  - id: openwiki-source-5f99e8af445e073ffe9bc257
+    resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
   - id: openwiki-source-5c91b796f7e6d651aedf3023
     resource: repo://Frameworks/TermindApplication/FeatureModels/CommandHistoryModel.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
@@ -56,6 +60,8 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPEditService.swift
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
+  - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
+    resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-40cfadc2320da9a292c64d26
@@ -104,10 +110,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T00:59:31.979Z" }
+generated: { by: "codex", at: "2026-09-23T02:40:53.789Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T01:34:03.251Z
+    at: 2026-09-23T02:40:53.789Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -492,6 +498,14 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - Immutable hidden `AgentTurnContextSnapshot` captures facts/skills/plan/surface availability at submission/steer/edit. Replay uses original
   baseline/deltas; absent legacy context is unknown, not current UI. Leave session/mode clears; retry retains, fork copies, compact rebases.
   V16 adds independent replay backing, removed on deletion/truncation while older messages remain frozen.
+- `AssistantExecutionController` captures composed prompt/images/attachments, context, model/provider/credential, reasoning/permissions,
+  search, skills/registry, Guardian and preparation settings synchronously before memory or automatic compaction awaits. First-send promotion
+  follows accepted capture; edit UI captures before creating its persistence task. Plan implementation captures acting mode and consumes
+  attachments/armed skills once. Historical context replay does not reconstruct old model settings or skill-package bytes.
+- Preparation is distinct from streaming. Stop/background expiration invalidates preparation identity synchronously and joins pending
+  history/preparation work before its interrupted save; stale captures cannot edit or start. Archive/delete cancel pending preparation,
+  manual compaction refuses it, and navigation alone leaves it running. See [Assistant Runtime](/openwiki/concepts/agent-runtime-and-assistant.md)
+  for the preparation boundary and existing runtime/recovery limitations.
 - Project tool output once before `toolFinished`: bounded preview and scratch reference, retaining crash/replay metadata and paging offsets.
   Later completion never shortens earlier results; `sftp_read`/`scratch_read` report complete lines/truthful offsets.
 - Terminal suggestions use latest delivered user snapshot, not focus. Surface availability is partial and does not restrict independent SSH/
