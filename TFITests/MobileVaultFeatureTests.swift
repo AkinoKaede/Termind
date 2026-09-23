@@ -3,6 +3,7 @@ import SwiftData
 import TermindApplication
 import TermindDomain
 import TermindPersistence
+import TermindPresentation
 import TermindRemoteInfrastructure
 import Testing
 
@@ -249,22 +250,22 @@ struct MobileVaultFeatureTests {
         let suggestions = ["api", "production", "web"]
 
         #expect(
-            MobileTagFieldPolicy.rows(tags: ["production"], suggestions: suggestions, query: "PI") == [
+            TagFieldPolicy.rows(tags: ["production"], suggestions: suggestions, query: "PI") == [
                 .existing("api"), .create("PI"),
             ])
         #expect(
-            MobileTagFieldPolicy.rows(tags: [], suggestions: suggestions, query: "API") == [
+            TagFieldPolicy.rows(tags: [], suggestions: suggestions, query: "API") == [
                 .existing("api")
             ])
         #expect(
-            MobileTagFieldPolicy.rows(tags: ["production"], suggestions: suggestions, query: "edge") == [
+            TagFieldPolicy.rows(tags: ["production"], suggestions: suggestions, query: "edge") == [
                 .create("edge")
             ])
-        #expect(MobileTagFieldPolicy.submission(query: " API ", suggestions: suggestions) == "api")
-        #expect(MobileTagFieldPolicy.adding(" api ", to: ["production"]) == ["production", "api"])
-        #expect(MobileTagFieldPolicy.adding(" Production ", to: ["production"]) == ["production"])
-        #expect(MobileTagFieldPolicy.adding("   ", to: ["production"]) == ["production"])
-        #expect(MobileTagFieldPolicy.removing("production", from: ["production", "api"]) == ["api"])
+        #expect(TagFieldPolicy.submission(query: " API ", suggestions: suggestions) == "api")
+        #expect(TagFieldPolicy.adding(" api ", to: ["production"]) == ["production", "api"])
+        #expect(TagFieldPolicy.adding(" Production ", to: ["production"]) == ["production"])
+        #expect(TagFieldPolicy.adding("   ", to: ["production"]) == ["production"])
+        #expect(TagFieldPolicy.removing("production", from: ["production", "api"]) == ["api"])
     }
 
     @Test func aTagDisappearsAfterItsLastHostStopsUsingIt() throws {

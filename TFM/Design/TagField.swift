@@ -67,7 +67,7 @@ struct TagField: View {
     // MARK: - Pieces
 
     private var chips: some View {
-        ChipFlow(spacing: Metrics.Space.xs) {
+        TagFlowLayout(spacing: Metrics.Space.xs, widthSizing: .proposed) {
             ForEach(tags, id: \.self) { tag in
                 RemovableTagChip(tag: tag) { remove(tag) }
             }
@@ -182,32 +182,12 @@ struct TagField: View {
 
     // MARK: - Rows
 
-    /// What the dropdown can offer. One type so the highlight index, the click,
-    /// and Return all walk the same list — the alternative is a separate "is the
-    /// create row highlighted" flag, and two things to keep in step.
-    nonisolated fileprivate enum Row: Hashable, Sendable {
-        case existing(String)
-        case create(String)
-    }
-
     private var trimmedQuery: String {
         query.trimmingCharacters(in: .whitespaces)
     }
 
-    private var rows: [Row] {
-        let taken = Set(tags.map { $0.lowercased() })
-        let matches =
-            suggestions
-            .filter { !taken.contains($0.lowercased()) }
-            .filter { trimmedQuery.isEmpty || $0.localizedCaseInsensitiveContains(trimmedQuery) }
-
-        // The create row is offered only for a word that is not already spoken
-        // for — by a chip or by a suggestion. So typing the full name of an
-        // unused tag shows one row to press Return on, not two.
-        guard !trimmedQuery.isEmpty else { return matches.map(Row.existing) }
-        let spokenFor = taken.union(suggestions.map { $0.lowercased() })
-        guard !spokenFor.contains(trimmedQuery.lowercased()) else { return matches.map(Row.existing) }
-        return matches.map(Row.existing) + [.create(trimmedQuery)]
+    private var rows: [TagFieldPolicy.Row] {
+        TagFieldPolicy.rows(tags: tags, suggestions: suggestions, query: query)
     }
 
     // MARK: - Editing
@@ -240,7 +220,7 @@ struct TagField: View {
         }
     }
 
-    private func commit(_ row: Row) {
+    private func commit(_ row: TagFieldPolicy.Row) {
         switch row {
         case .existing(let tag), .create(let tag): add(tag)
         }
@@ -250,18 +230,15 @@ struct TagField: View {
     /// host lists them, and a chip that jumps elsewhere the moment it is added
     /// is a chip nobody can find again to remove.
     private func add(_ tag: String) {
-        let trimmed = tag.trimmingCharacters(in: .whitespaces)
-        guard !trimmed.isEmpty else { return }
-        if !tags.contains(where: { $0.caseInsensitiveCompare(trimmed) == .orderedSame }) {
-            tags.append(trimmed)
-        }
+        guard !tag.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        tags = TagFieldPolicy.adding(tag, to: tags)
         query = ""
         highlighted = rows.isEmpty ? nil : 0
         isFocused = true
     }
 
     private func remove(_ tag: String) {
-        tags.removeAll { $0 == tag }
+        tags = TagFieldPolicy.removing(tag, from: tags)
         highlighted = rows.isEmpty ? nil : 0
     }
 }
@@ -269,7 +246,7 @@ struct TagField: View {
 // MARK: - Row view
 
 private struct TagRowView: View {
-    let row: TagField.Row
+    let row: TagFieldPolicy.Row
     let isHighlighted: Bool
 
     @State private var isHovering = false
@@ -336,70 +313,6 @@ private struct RemovableTagChip: View {
         .background(.quaternary.opacity(0.6), in: .capsule)
         .lineLimit(1)
         .onHover { isHovering = $0 }
-    }
-}
-
-// MARK: - Layout
-
-/// Lays chips out left to right and wraps to a new line when the row is full.
-///
-/// A `Layout` rather than nested `HStack`s because the number of chips is not
-/// known until the user has typed them, and a fixed grid would either clip a
-/// long tag or leave a column of air after a short one.
-private struct ChipFlow: Layout {
-    var spacing: CGFloat
-
-    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
-        let width = proposal.replacingUnspecifiedDimensions().width
-        let rows = arrange(subviews: subviews, in: width)
-        let height = rows.reduce(0) { $0 + $1.height } + spacing * CGFloat(max(rows.count - 1, 0))
-        return CGSize(width: width, height: height)
-    }
-
-    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
-        var y = bounds.minY
-        for row in arrange(subviews: subviews, in: bounds.width) {
-            var x = bounds.minX
-            for index in row.indices {
-                let size = subviews[index].sizeThatFits(.unspecified)
-                subviews[index].place(
-                    at: CGPoint(x: x, y: y),
-                    anchor: .topLeading,
-                    proposal: ProposedViewSize(size)
-                )
-                x += size.width + spacing
-            }
-            y += row.height + spacing
-        }
-    }
-
-    private struct RowRun {
-        var indices: [Int] = []
-        var height: CGFloat = 0
-    }
-
-    private func arrange(subviews: Subviews, in width: CGFloat) -> [RowRun] {
-        var rows: [RowRun] = []
-        var current = RowRun()
-        var x: CGFloat = 0
-
-        for index in subviews.indices {
-            let size = subviews[index].sizeThatFits(.unspecified)
-            // A chip wider than the whole row still gets its own line rather
-            // than being dropped: `current.indices.isEmpty` keeps the first one
-            // on every line unconditionally.
-            if !current.indices.isEmpty && x + size.width > width {
-                rows.append(current)
-                current = RowRun()
-                x = 0
-            }
-            current.indices.append(index)
-            current.height = max(current.height, size.height)
-            x += size.width + spacing
-        }
-
-        if !current.indices.isEmpty { rows.append(current) }
-        return rows
     }
 }
 

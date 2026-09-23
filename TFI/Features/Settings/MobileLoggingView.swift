@@ -70,18 +70,7 @@ struct MobileLoggingView: View {
     }
 
     private var loggingOptionsSection: some View {
-        Section {
-            Toggle(TermindCopy.Common.save.swiftUIKey, isOn: savingBinding)
-            Picker(TermindCopy.Settings.level.swiftUIKey, selection: levelBinding) {
-                ForEach(ApplicationLogLevel.allCases) { level in
-                    Text(verbatim: level.localizedName).tag(level.rawValue)
-                }
-            }
-        } header: {
-            Text(TermindCopy.Settings.logging)
-        } footer: {
-            Text(TermindCopy.Settings.logSharingWarning)
-        }
+        LoggingSettingsSection(saving: savingBinding, level: levelBinding)
     }
 
     @ViewBuilder
@@ -101,20 +90,7 @@ struct MobileLoggingView: View {
         Button {
             selectedFile = file
         } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 6) {
-                        Text(file.createdAt, format: .dateTime.year().month().day().hour().minute())
-                        if file.isCurrent {
-                            Text(TermindCopy.Common.current).font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
-                    Text(ByteCountFormatter.string(fromByteCount: file.byteCount, countStyle: .file))
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-                Spacer()
-                Image(systemName: "square.and.arrow.up").foregroundStyle(.secondary)
-            }
+            LoggingFileLabel(file: file, dateFormat: .dateTime.year().month().day().hour().minute())
         }
         .buttonStyle(.plain)
         .contextMenu {
