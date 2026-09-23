@@ -845,7 +845,6 @@ private struct AssistantConversationNativeList: NSViewRepresentable {
 
         func makeListView() -> List {
             let listView = List()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.estimatedRowHeight = Metrics.Sidebar.navigationRowHeight
             listView.rows {
                 ListRow(AssistantConversationHostingRow.self)

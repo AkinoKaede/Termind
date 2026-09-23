@@ -362,7 +362,6 @@ private struct SidebarNativeList: NSViewRepresentable {
 
         func makeListView() -> List {
             let listView = List()
-            listView.rowAnimator = ListBouncyAnimator(style: .regular)
             listView.topInset = Metrics.Space.xs
             listView.bottomInset = Metrics.Space.xs
             listView.estimatedRowHeight = Metrics.Sidebar.navigationRowHeight
