@@ -320,8 +320,8 @@ struct HostChooserView: View {
         .frame(maxWidth: .infinity)
         .overlay {
             connectionProtocolPicker
+                .termindGlassSurface(cornerRadius: Metrics.Radius.medium, isInteractive: true)
                 .frame(width: protocolPickerWidth, height: 30)
-                .termindGlassCapsule(isInteractive: true)
         }
         .padding(.horizontal, Metrics.Space.xl)
         .padding(.top, Metrics.Space.l)
@@ -388,7 +388,6 @@ struct HostChooserView: View {
         }
         .pickerStyle(.segmented)
         .labelsHidden()
-        .frame(maxWidth: .infinity)
         .accessibilityLabel("Connection protocol")
     }
 
