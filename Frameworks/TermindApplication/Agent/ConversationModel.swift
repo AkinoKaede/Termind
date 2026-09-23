@@ -1958,12 +1958,16 @@ public final class ConversationModel: Identifiable {
     /// later be shown a conversation that never happened. The bubble appears
     /// when the runtime reports the message delivered, which is where the model
     /// really saw it.
-    public func submitSteeringDraft(context: SessionContext = .none, includesTerminalSuggestion: Bool = false) {
+    public func submitSteeringDraft(context: SessionContext = .none, terminalSuggestionsAvailable: Bool = false) {
         let text = composer.draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard canSendDraft, let runtime else { return }
         let composed = composed(text)
         var snapshot = activeContextSnapshot?.withSessionContext(context.modelContext)
-        snapshot?.toolAvailability = ["terminal_suggest": includesTerminalSuggestion]
+        if snapshot != nil {
+            var availability = snapshot?.toolAvailability ?? [:]
+            availability["terminal_suggest"] = terminalSuggestionsAvailable
+            snapshot?.toolAvailability = availability
+        }
         let pending = PendingSteeringMessage(
             draft: text, attachments: composer.attachments,
             message: AgentTranscriptMessage(

@@ -188,8 +188,11 @@ struct AgentSteeringTests {
     @Test
     func steeringCapturesTheSendingTerminalAndDoesNotChangeTheRunningContextUntilDelivery() {
         let conversation = ConversationModel()
+        let memorySessionID = UUID()
         let first = AgentTurnContextSnapshot(
-            sessionContext: "host A", skillCatalog: "fixed skills", planContract: "fixed mode")
+            sessionContext: "host A", skillCatalog: "fixed skills", planContract: "fixed mode",
+            toolAvailability: ["terminal_suggest": false, "future_surface_tool": false],
+            memorySessionID: memorySessionID)
         conversation.start(
             runtime: AgentRuntime(
                 model: HangingAgentModel(), tools: [],
@@ -201,15 +204,31 @@ struct AgentSteeringTests {
         conversation.composer.draft = "inspect here"
         conversation.submitSteeringDraft(
             context: SessionContext(hostName: "B", workingDirectory: "/srv"),
-            includesTerminalSuggestion: true)
+            terminalSuggestionsAvailable: true)
         let queued = try! #require(conversation.pendingSteering.first?.message)
         #expect(conversation.activeContextSnapshot == first)
         #expect(queued.contextSnapshot?.sessionContext?.contains("host_name: B") == true)
         #expect(queued.contextSnapshot?.skillCatalog == first.skillCatalog)
         #expect(queued.contextSnapshot?.planContract == first.planContract)
+        #expect(queued.contextSnapshot?.memorySessionID == memorySessionID)
+        #expect(queued.contextSnapshot?.toolAvailability?["terminal_suggest"] == true)
+        #expect(queued.contextSnapshot?.toolAvailability?["future_surface_tool"] == false)
         conversation.handle(.steeringDelivered(queued))
         #expect(conversation.activeContextSnapshot == queued.contextSnapshot)
         #expect(conversation.transcript.last?.text == "inspect here")
+        conversation.stop()
+    }
+
+    @Test
+    func steeringKeepsLegacyUnknownContextUnknown() {
+        let conversation = ConversationModel()
+        startRun(conversation)
+        #expect(conversation.activeContextSnapshot == nil)
+        conversation.composer.draft = "inspect here"
+
+        conversation.submitSteeringDraft(terminalSuggestionsAvailable: true)
+
+        #expect(conversation.pendingSteering.first?.message.contextSnapshot == nil)
         conversation.stop()
     }
 

@@ -394,13 +394,13 @@ final class AppModel {
     @ObservationIgnored private lazy var assistantExecution = AssistantExecutionController(
         ai: ai, skills: skills, repository: agentRunRepository, memory: memory,
         authorize: { [weak self] in self?.proAccess.require(.assistant) == true },
-        makeRegistry: { [weak self] conversation, model, provider, skills, channel, includes in
+        makeRegistry: { [weak self] conversation, model, provider, skills, channel in
             guard let self else { return AgentToolRegistry([AnyAgentTool]()) }
             return AssistantToolRegistry.make(
                 conversation: conversation, model: model, provider: provider,
                 skills: skills, channel: channel, ai: ai, hosts: agentHosts, metrics: serverMetrics,
                 connections: agentConnections, authentication: agentAuthentication,
-                background: agentBackgroundCommands, includesTerminalSuggestion: includes)
+                background: agentBackgroundCommands)
         },
         title: { [weak self] context in
             guard let self else { throw CancellationError() }
@@ -410,23 +410,23 @@ final class AppModel {
 
     func sendAgentDraft(
         _ conversation: ConversationModel, context: SessionContext = .none,
-        includesTerminalSuggestion: Bool = false
+        terminalSuggestionsAvailable: Bool = false
     ) {
         assistantExecution.sendAgentDraft(
-            conversation, context: context, includesTerminalSuggestion: includesTerminalSuggestion)
+            conversation, context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
     }
 
     func startAgentRun(
         _ conversation: ConversationModel, promptID: UUID? = nil, prompt: String? = nil,
         authoredPrompt: String? = nil, promptImages: [AgentImageAttachment]? = nil,
         promptContextAttachments: [AgentContextAttachment]? = nil,
-        context: SessionContext? = nil, includesTerminalSuggestion: Bool = false
+        context: SessionContext? = nil, terminalSuggestionsAvailable: Bool = false
     ) {
         assistantExecution.startAgentRun(
             conversation, promptID: promptID, prompt: prompt,
             authoredPrompt: authoredPrompt, promptImages: promptImages,
             promptContextAttachments: promptContextAttachments,
-            context: context, includesTerminalSuggestion: includesTerminalSuggestion)
+            context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
     }
 
     @discardableResult
@@ -477,10 +477,10 @@ final class AppModel {
             fork: { [weak self, weak window] id, messageID, inSidebar in
                 self?.forkConversation(id, at: messageID, selectingIn: window, inSidebar: inSidebar)
             },
-            edit: { [weak self, weak window] id, messageID, text, context, includes in
+            edit: { [weak self, weak window] id, messageID, text, context, terminalSuggestionsAvailable in
                 self?.editConversation(
                     id, messageID: messageID, text: text, context: context,
-                    includesTerminalSuggestion: includes, reportingTo: window
+                    terminalSuggestionsAvailable: terminalSuggestionsAvailable, reportingTo: window
                 )
             }
         )
@@ -597,7 +597,7 @@ final class AppModel {
 
     private func editConversation(
         _ id: UUID, messageID: UUID, text value: String,
-        context: SessionContext, includesTerminalSuggestion: Bool, reportingTo window: WindowModel?
+        context: SessionContext, terminalSuggestionsAvailable: Bool, reportingTo window: WindowModel?
     ) {
         guard let conversation = conversation(id) else { return }
         Task { [weak window] in
@@ -607,13 +607,13 @@ final class AppModel {
                         conversation, messageID: messageID, text: value,
                         contextSnapshot: assistantExecution.contextSnapshot(
                             for: conversation, context: context,
-                            includesTerminalSuggestion: includesTerminalSuggestion))
+                            terminalSuggestionsAvailable: terminalSuggestionsAvailable))
                 else { return }
                 startAgentRun(
                     conversation, promptID: prompt.id, prompt: prompt.text,
                     authoredPrompt: prompt.authoredText, promptImages: prompt.images,
                     promptContextAttachments: prompt.contextAttachments,
-                    context: context, includesTerminalSuggestion: includesTerminalSuggestion)
+                    context: context, terminalSuggestionsAvailable: terminalSuggestionsAvailable)
             } catch { window?.assistantOperationError = error.localizedDescription }
         }
     }

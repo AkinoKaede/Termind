@@ -11,11 +11,66 @@ import Testing
 
 @testable import Termind
 
+private actor SurfaceToolExecutionLog {
+    private var names: [String] = []
+
+    func record(_ name: String) { names.append(name) }
+    func snapshot() -> Set<String> { Set(names) }
+}
+
+private actor SurfaceAvailabilityModel: AgentModelStreaming {
+    private var turn = 0
+
+    private func nextTurn() -> Int {
+        defer { turn += 1 }
+        return turn
+    }
+
+    nonisolated func stream(
+        _ request: AgentModelRequest
+    ) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                if await nextTurn() == 0 {
+                    for (index, name) in ["terminal_suggest", "ssh_exec", "sftp_read"].enumerated() {
+                        continuation.yield(
+                            .toolCallSnapshot(
+                                id: "call-\(index)", providerItemID: nil,
+                                name: name, arguments: "{}"))
+                    }
+                    continuation.yield(.finished(.toolCalls))
+                } else {
+                    continuation.yield(.textDelta("done"))
+                    continuation.yield(.finished(.completed))
+                }
+                continuation.finish()
+            }
+        }
+    }
+}
+
+private func surfaceTool(_ name: String, log: SurfaceToolExecutionLog) -> AnyAgentTool {
+    AnyAgentTool(
+        descriptor: AgentToolDescriptor(
+            name: name, summary: name,
+            inputSchema: .object([
+                "type": .string("object"), "properties": .object([:]),
+                "required": .array([]), "additionalProperties": .bool(false),
+            ]),
+            target: .host, approvalPolicy: .approve, concurrency: .parallel
+        ),
+        execute: { invocation, _ in
+            await log.record(name)
+            return AgentToolResult(callID: invocation.call.id, content: "ok")
+        }
+    )
+}
+
 @Suite
 @MainActor
 struct AgentBuiltInToolAvailabilityTests {
     @Test
-    func terminalSuggestionDefinitionIsStableAcrossSurfaces() throws {
+    func termindCatalogHasStableDefinitionsAndExactRunModeSets() async throws {
         let hosts = AgentHostResolver(store: HostLibraryModel())
         let connections = AgentConnectionPool(
             configuration: { _ in throw AgentToolError.invalidHost },
@@ -24,46 +79,110 @@ struct AgentBuiltInToolAvailabilityTests {
             openSFTP: { _ in throw AgentToolError.invalidHost },
             sweepInterval: nil
         )
+        let workspace = AgentScratchWorkspace(
+            conversationID: UUID(), base: FileManager.default.temporaryDirectory
+        )
 
-        let mainAssistant = TermindAgentTools.tools(
+        let catalog = TermindAgentTools.tools(
             in: .init(
-                hosts: hosts, metrics: TestMetricsReader(), connections: connections
+                hosts: hosts, metrics: TestMetricsReader(), connections: connections,
+                workspace: workspace
             )
         ).map(\.descriptor)
-        let workspaceSidebar = TermindAgentTools.tools(
-            in: .init(
-                hosts: hosts, metrics: TestMetricsReader(), connections: connections, includesTerminalSuggestion: true
-            )
-        ).map(\.descriptor)
 
-        #expect(mainAssistant.contains { $0.name == "get_metrics" })
-        #expect(workspaceSidebar.contains { $0.name == "get_metrics" })
-        #expect(mainAssistant.contains { $0.name == "terminal_suggest" })
-        #expect(mainAssistant == workspaceSidebar)
-        #expect(workspaceSidebar.contains { $0.name == "terminal_suggest" })
+        #expect(catalog.contains { $0.name == "get_metrics" })
+        #expect(catalog.contains { $0.name == "terminal_suggest" })
 
         let registry = AgentToolRegistry(
             TermindAgentTools.tools(
                 in: .init(
-                    hosts: hosts, metrics: TestMetricsReader(), connections: connections
+                    hosts: hosts, metrics: TestMetricsReader(), connections: connections,
+                    workspace: workspace
                 )
             )
         )
-        let planning = Set(registry.available(in: .planning).descriptors.map(\.name))
-        let acting = Set(registry.available(in: .acting).descriptors.map(\.name))
+        let planningRegistry = registry.available(in: .planning)
+        let actingRegistry = registry.available(in: .acting)
+        let planning = Set(planningRegistry.descriptors.map(\.name))
+        let acting = Set(actingRegistry.descriptors.map(\.name))
         #expect(registry.available(in: .reviewing).descriptors.isEmpty)
-        #expect(planning.contains("ssh_exec"))
-        #expect(!planning.contains("sftp_write"))
-        #expect(!planning.contains("sftp_copy"))
-        #expect(acting.contains("sftp_copy"))
-        #expect(acting.isSuperset(of: ["ssh_exec", "sftp_write"]))
-        let exec = try #require(mainAssistant.first { $0.name == "ssh_exec" })
+        #expect(
+            planning == [
+                "get_metrics", "list_hosts", "ssh_exec", "ssh_wait", "terminal_suggest",
+                "sftp_list", "sftp_stat", "sftp_read", "scratch_pull",
+            ])
+        #expect(
+            acting == [
+                "get_metrics", "list_hosts", "ssh_exec", "ssh_wait", "terminal_suggest",
+                "sftp_list", "sftp_stat", "sftp_read", "sftp_write", "sftp_mkdir",
+                "sftp_move", "sftp_copy", "sftp_chmod", "sftp_delete", "scratch_pull",
+                "scratch_push",
+            ])
+        let exec = try #require(catalog.first { $0.name == "ssh_exec" })
         #expect(registry.available(in: .planning).descriptors.first { $0.name == "ssh_exec" } == exec)
         #expect(exec.summary.contains("discover host_id with list_hosts"))
         #expect(exec.summary.contains("do not call request_user_secret for SSH login"))
         #expect(
-            mainAssistant.first { $0.name == "list_hosts" }?.summary.contains("no session context") == true
+            catalog.first { $0.name == "list_hosts" }?.summary.contains("no session context") == true
         )
+
+        let planningExec = try #require(planningRegistry["ssh_exec"])
+        let actingExec = try #require(actingRegistry["ssh_exec"])
+        let hostID = UUID()
+        func invocation(_ command: String) -> AgentToolInvocation {
+            AgentToolInvocation(
+                runID: UUID(),
+                call: AgentToolCall(
+                    id: UUID().uuidString, name: "ssh_exec",
+                    arguments: .object([
+                        "host_id": .string(hostID.uuidString), "command": .string(command),
+                    ])))
+        }
+
+        let destructive = invocation("rm -rf /var/log/nginx")
+        #expect(try await planningExec.preflight(destructive).approvalPolicy == .deny)
+        #expect(try await actingExec.preflight(destructive).approvalPolicy == .ask)
+
+        let read = invocation("systemctl status nginx")
+        let planningRead = try await planningExec.preflight(read)
+        let actingRead = try await actingExec.preflight(read)
+        #expect(planningRead.approvalPolicy == .approve)
+        #expect(planningRead.concurrency == .parallel)
+        #expect(actingRead.approvalPolicy == .approve)
+        #expect(actingRead.concurrency == .parallel)
+    }
+
+    @Test(arguments: [false, true])
+    func contextSnapshotGatesOnlyTerminalSuggestionsAtExecution(terminalSuggestionsAvailable: Bool) async {
+        let log = SurfaceToolExecutionLog()
+        let runtime = AgentRuntime(
+            model: SurfaceAvailabilityModel(),
+            tools: [
+                surfaceTool("terminal_suggest", log: log),
+                surfaceTool("ssh_exec", log: log),
+                surfaceTool("sftp_read", log: log),
+            ],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+        )
+        var results: [String: AgentToolResult] = [:]
+        for await event in await runtime.start(
+            AgentRunRequest(
+                conversationID: UUID(), prompt: "inspect", permissionMode: .askForApproval,
+                contextSnapshot: .init(
+                    toolAvailability: ["terminal_suggest": terminalSuggestionsAvailable]))
+        ) {
+            if case .toolFinished(let invocation, let result) = event {
+                results[invocation.call.name] = result
+            }
+        }
+
+        let executed = await log.snapshot()
+        #expect(executed.contains("ssh_exec"))
+        #expect(executed.contains("sftp_read"))
+        #expect(results["ssh_exec"]?.isError == false)
+        #expect(results["sftp_read"]?.isError == false)
+        #expect(executed.contains("terminal_suggest") == terminalSuggestionsAvailable)
+        #expect(results["terminal_suggest"]?.isError == !terminalSuggestionsAvailable)
     }
 
     @Test
@@ -100,10 +219,10 @@ struct AgentBuiltInToolAvailabilityTests {
     }
 
     @Test(arguments: [true, false])
-    func standaloneContextKeepsHostDiscoveryInstructions(includesTerminalSuggestion: Bool) {
+    func standaloneContextKeepsHostDiscoveryInstructions(terminalSuggestionsAvailable: Bool) {
         let snapshot = AgentTurnContextSnapshot(
             sessionContext: SessionContext.none.modelContext,
-            toolAvailability: ["terminal_suggest": includesTerminalSuggestion]
+            toolAvailability: ["terminal_suggest": terminalSuggestionsAvailable]
         )
         let context = AgentContextSnapshotReplay().transform(
             .init(
@@ -143,7 +262,7 @@ struct AgentBuiltInToolAvailabilityTests {
             additional: TermindAgentTools.tools(
                 in: .init(
                     hosts: hosts, metrics: TestMetricsReader(), connections: connections,
-                    includesTerminalSuggestion: true, workspace: workspace
+                    workspace: workspace
                 ))
         ).descriptors
 

@@ -171,7 +171,7 @@ struct ConversationView: View {
                 conversation: conversation,
                 maxContentWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth,
                 sessionContext: sessionContext,
-                includesTerminalSuggestion: showsTerminalActions,
+                terminalSuggestionsAvailable: showsTerminalActions,
                 onNewChat: onNewChat,
                 onSend: onSend
             )
@@ -321,7 +321,7 @@ private struct ConversationTranscriptSurface: View {
                         messageID: id,
                         text: text,
                         context: sessionContext,
-                        includesTerminalSuggestion: showsTerminalActions
+                        terminalSuggestionsAvailable: showsTerminalActions
                     )
                 },
                 forkAssistantMessage: { id in
@@ -341,7 +341,7 @@ private struct ConversationTranscriptSurface: View {
                     conversation.appendUserTurn(prompt)
                     app.startAgentRun(
                         conversation, prompt: prompt, context: sessionContext,
-                        includesTerminalSuggestion: showsTerminalActions)
+                        terminalSuggestionsAvailable: showsTerminalActions)
                 },
                 canDeliverCommand: {
                     guard let workspace = window.selectedWorkspace else { return false }

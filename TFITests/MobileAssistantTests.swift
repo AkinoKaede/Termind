@@ -224,10 +224,37 @@ struct MobileAssistantTests {
 
         #expect(conversation.composer.draft.isEmpty)
         #expect(conversation.messages.map(\.text).contains("Follow-up question"))
+        #expect(conversation.transcript.last?.contextSnapshot?.toolAvailability?["terminal_suggest"] == false)
         #expect(await eventually { conversation.runState == .failed })
         #expect(conversation.messages.map(\.role) == [.user, .user])
         #expect(conversation.transcript.map(\.role) == [.user, .user])
         try expectMissingModelFailure(in: conversation)
+    }
+
+    @Test func steeringFromMobileSceneDisablesTerminalSuggestionsInTheQueuedSnapshot() async throws {
+        let app = try MobileAppModel(inMemory: true)
+        let assistant = app.assistant.makeSceneModel()
+        let conversation = ConversationModel()
+        assistant.library.insertAndSelect(conversation)
+        conversation.start(
+            runtime: AgentRuntime(
+                model: MobileDelayedAgentModel(), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow })
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "start",
+                permissionMode: .askForApproval,
+                contextSnapshot: .init(
+                    toolAvailability: ["terminal_suggest": true, "future_surface_tool": false]))
+        )
+        conversation.composer.draft = "Inspect again"
+
+        assistant.send()
+
+        let snapshot = try #require(conversation.pendingSteering.first?.message.contextSnapshot)
+        #expect(snapshot.toolAvailability?["terminal_suggest"] == false)
+        #expect(snapshot.toolAvailability?["future_surface_tool"] == false)
+        #expect(await eventually { conversation.runState.isTerminal })
     }
 
     @Test func slashCatalogShowsAlphabetizedCompactPlanAndSkillCommandsOnMobile() throws {
@@ -343,12 +370,11 @@ struct MobileAssistantTests {
         model.abilities = [.toolCall]
         let provider = ModelProvider(name: "Test")
         let conversation = ConversationModel()
-        func registry(_ model: AIModel, includesTerminalSuggestion: Bool = false) -> AgentToolRegistry {
+        func registry(_ model: AIModel) -> AgentToolRegistry {
             AssistantToolRegistry.make(
                 conversation: conversation, model: model, provider: provider,
                 skills: app.skills.catalog, channel: channel, ai: app.ai, hosts: hosts, metrics: app.metrics.core,
-                connections: connections, authentication: authentication, background: background,
-                includesTerminalSuggestion: includesTerminalSuggestion)
+                connections: connections, authentication: authentication, background: background)
         }
         let mobileDescriptors = registry(model).descriptors
         let names = Set(mobileDescriptors.map(\.name))
@@ -359,8 +385,6 @@ struct MobileAssistantTests {
         ] {
             #expect(names.contains(name), "Missing tool: \(name)")
         }
-        // Surface availability is enforced at execution, not by changing the cached tool definitions.
-        #expect(mobileDescriptors == registry(model, includesTerminalSuggestion: true).descriptors)
         let exec = try #require(mobileDescriptors.first { $0.name == "ssh_exec" })
         #expect(exec.summary.contains("discover host_id with list_hosts"))
         #expect(exec.summary.contains("do not call request_user_secret for SSH login"))
@@ -370,7 +394,6 @@ struct MobileAssistantTests {
         )
         model.abilities = []
         #expect(registry(model).descriptors.isEmpty)
-        #expect(registry(model, includesTerminalSuggestion: true).descriptors.isEmpty)
     }
 
     @Test func backgroundExpirationBlocksNewRunsUntilCleanupCompletes() async throws {
@@ -405,6 +428,18 @@ struct MobileAssistantTests {
             try? await Task.sleep(for: .milliseconds(10))
         }
         return false
+    }
+}
+
+private struct MobileDelayedAgentModel: AgentModelStreaming {
+    func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                try? await Task.sleep(for: .milliseconds(200))
+                continuation.yield(.finished(.completed))
+                continuation.finish()
+            }
+        }
     }
 }
 

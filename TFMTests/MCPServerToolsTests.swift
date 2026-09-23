@@ -97,12 +97,43 @@ struct MCPServerToolsTests {
     }
 
     @Test
-    func exportsTheCompleteHostToolSet() {
+    func exportsTheCompleteActingHostSubsetAndTransferTools() {
         let server = makeMCPServerTools()
         let descriptors = server.descriptors
+        let resolver = AgentHostResolver(store: HostLibraryModel())
+        let connections = AgentConnectionPool(
+            configuration: { _ in throw MCPTestFailure.unused },
+            routeFingerprint: { _ in throw MCPTestFailure.unused },
+            openConnection: { _ in throw MCPTestFailure.unused },
+            openSFTP: { _ in throw MCPTestFailure.unused },
+            sweepInterval: nil
+        )
+        let acting = AgentToolRegistry(
+            TermindAgentTools.tools(
+                in: .init(
+                    hosts: resolver, metrics: TestMetricsReader(), connections: connections,
+                    authentication: AgentSSHAuthenticationRegistry(resolver: resolver),
+                    background: AgentBackgroundCommands(sweepInterval: nil)
+                ))
+        ).available(in: .acting)
+        let transferNames: Set<String> = [
+            "sftp_upload", "sftp_upload_status", "sftp_download", "sftp_download_status",
+        ]
+        let runtimeNames: Set<String> = ["request_user_secret"]
+        let sharedNames = MCPServerTools.exportedNames.subtracting(transferNames).subtracting(runtimeNames)
+        let excludedNames: Set<String> = [
+            "terminal_suggest", "scratch_pull", "scratch_push", "scratch_list", "scratch_read",
+            "scratch_write", "scratch_edit", "scratch_diff", "scratch_delete", "fetch", "web_search",
+            "skill_read_file", "skill_install", "skill_manage", "present_plan", "manage_tasks",
+        ]
 
         #expect(descriptors.count == 18)
         #expect(Set(descriptors.map(\.name)) == MCPServerTools.exportedNames)
+        #expect(excludedNames.isDisjoint(with: MCPServerTools.exportedNames))
+        #expect(sharedNames.isSubset(of: Set(acting.descriptors.map(\.name))))
+        for name in sharedNames {
+            #expect(server.descriptors.first { $0.name == name } == acting[name]?.descriptor)
+        }
         for descriptor in descriptors {
             #expect(descriptor.inputSchema.objectValue?["type"]?.stringValue == "object")
         }
