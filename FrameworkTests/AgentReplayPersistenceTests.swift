@@ -194,6 +194,80 @@ struct AgentReplayPersistenceTests {
     }
 
     @Test
+    func capturedConfigurationFailureAdoptsEditedStagingOnlyAfterDurableSave() async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+        let image = AgentImageAttachment(
+            label: "capture.png", mimeType: "image/png", data: Data([4, 5, 6]),
+            pixelWidth: 2, pixelHeight: 2
+        )
+        let attachment = AgentContextAttachment(
+            id: UUID(), kind: .file, label: "capture.txt",
+            contentTypeIdentifier: "public.plain-text", suggestedFilename: "capture.txt",
+            data: Data("captured payload".utf8)
+        )
+        let original = AgentTranscriptMessage(
+            role: .user, text: "before", authoredText: "before",
+            images: [image], contextAttachments: [attachment]
+        )
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval, messages: [original]
+            ))
+        let stored = try #require(try await repository.loadConversations().first)
+        let store = AssistantConversationStore()
+        store.restore([stored])
+        let conversation = try #require(store.conversations.first)
+        conversation.permissionMode = .fullAccess
+        let controller = AssistantExecutionController(
+            ai: AIConfigurationModel(), skills: SkillLibraryModel(), repository: repository,
+            authorize: { true },
+            makeRegistry: { _, _, _, _, _ in AgentToolRegistry([]) },
+            title: { _ in "Title" }
+        )
+        let operations = AssistantConversationOperations(repository: repository)
+        let prepared = try #require(
+            controller.prepareAgentEdit(
+                conversation, messageID: original.id, text: "after",
+                context: SessionContext(hostName: "captured-host", workingDirectory: "/captured"),
+                terminalSuggestionsAvailable: true
+            ))
+
+        #expect(try await controller.performAgentEdit(prepared, in: conversation, operations: operations))
+        let replacement = try #require(conversation.transcript.first)
+        let staging = try #require(conversation.runSummaries[replacement.id])
+        await conversation.stopAndWait()
+
+        #expect(conversation.runState == .failed)
+        #expect(conversation.runSummaries[replacement.id] == nil)
+
+        let freshRepository = SwiftDataAgentRunRepository(context: ModelContext(container))
+        let restored = try #require(try await freshRepository.loadConversations().first)
+        let run = try #require(restored.runs.first)
+        let message = try #require(restored.messages.first)
+        #expect(restored.runs.count == 1)
+        #expect(run.id != replacement.id)
+        #expect(run.state == .failed)
+        #expect(run.failure == String(localized: "No Chat model is configured."))
+        #expect(run.startedAt >= staging.startedAt)
+        #expect(run.finishedAt.map { $0 >= run.startedAt } == true)
+        #expect(restored.messageRunIDs[replacement.id] == run.id)
+        #expect(message.id == replacement.id)
+        #expect(message.text == replacement.text)
+        #expect(message.authoredText == "after")
+        #expect(message.images == [image])
+        #expect(message.contextAttachments == [attachment])
+        #expect(message.contextSnapshot?.sessionContext?.contains("captured-host") == true)
+        #expect(message.contextSnapshot?.toolAvailability?["terminal_suggest"] == true)
+        #expect(message.createdAt <= (run.finishedAt ?? .distantPast))
+        let runRows = try ModelContext(container).fetch(FetchDescriptor<PersistentAgentRun>())
+        #expect(runRows.count == 1)
+        #expect(runRows.first?.permissionMode == AgentPermissionMode.fullAccess.rawValue)
+    }
+
+    @Test
     func v15MigratesWithoutInventingHistoricalContext() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

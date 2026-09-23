@@ -50,14 +50,26 @@ public final class AssistantExecutionController {
     }
 
     private struct PreparationState {
+        enum Phase {
+            case preparing
+            case savingFailure
+        }
+
         var id: UUID
         var conversation: ConversationModel
         var permissionMode: AgentPermissionMode
+        var phase = Phase.preparing
         var task: Task<Void, Never>?
         var historyTask: Task<ConversationModel.ComposedUserTurn?, any Error>?
         var cancellationTask: Task<Void, Never>?
         var recordsInterruption = false
         var cancellationRequested = false
+    }
+
+    private enum StartResult {
+        case runtimeStarted
+        case failurePersistenceStarted
+        case abandoned
     }
 
     public struct PreparedAgentEdit {
@@ -339,10 +351,10 @@ public final class AssistantExecutionController {
     private func performStartAgentRun(
         _ conversation: ConversationModel, capture: RunCapture,
         memorySession: (context: AgentMemoryContext, access: any AgentMemoryAccessing)? = nil
-    ) {
+    ) -> StartResult {
         guard isCurrent(capture, for: conversation), !conversation.isStreaming,
             !conversation.isArchived, !conversation.isHistoryChanging
-        else { return }
+        else { return .abandoned }
         let operationID = UUID().uuidString.lowercased()
         let conversationID = conversation.id.uuidString.lowercased()
         guard let chat = capture.chat else {
@@ -352,15 +364,11 @@ public final class AssistantExecutionController {
                     "conversation_id": "\(conversationID)", "error_code": "missing_model",
                     "operation_id": "\(operationID)", "outcome": "failure", "stage": "preparing",
                 ])
-            recordFailedRun(
-                conversation,
-                promptID: capture.prompt.id, prompt: capture.prompt.text,
-                authoredPrompt: capture.prompt.authoredText, images: capture.prompt.images,
-                contextAttachments: capture.prompt.contextAttachments,
-                permissionMode: capture.permissionMode,
+            beginFailedRunPersistence(
+                conversation, capture: capture,
                 reason: String(localized: "No Chat model is configured.")
             )
-            return
+            return .failurePersistenceStarted
         }
         guard let secret = capture.secret else {
             logger.error(
@@ -369,15 +377,11 @@ public final class AssistantExecutionController {
                     "conversation_id": "\(conversationID)", "error_code": "missing_credential",
                     "operation_id": "\(operationID)", "outcome": "failure", "stage": "preparing",
                 ])
-            recordFailedRun(
-                conversation,
-                promptID: capture.prompt.id, prompt: capture.prompt.text,
-                authoredPrompt: capture.prompt.authoredText, images: capture.prompt.images,
-                contextAttachments: capture.prompt.contextAttachments,
-                permissionMode: capture.permissionMode,
+            beginFailedRunPersistence(
+                conversation, capture: capture,
                 reason: String(localized: "The Chat model has no available credential.")
             )
-            return
+            return .failurePersistenceStarted
         }
 
         let model = AgentProviderClient(
@@ -391,7 +395,7 @@ public final class AssistantExecutionController {
         // events had no defined order against the tool events they belong
         // between, and its durable writes had no defined order against
         // anything. See `AgentEventChannel`.
-        guard let channel = capture.channel, let baseRegistry = capture.baseRegistry else { return }
+        guard let channel = capture.channel, let baseRegistry = capture.baseRegistry else { return .abandoned }
         let skillCatalog = capture.skillCatalog
         let skillRegistry = AgentToolCatalog.registry(
             builtIn: .init(
@@ -508,6 +512,7 @@ public final class AssistantExecutionController {
                 "planning": "\(isPlanning)", "stage": "running", "tool_count": "\(registry.registeredTools.count)",
             ])
         scheduleTitle(for: conversation, isPlanning: isPlanning, operationID: operationID)
+        return .runtimeStarted
     }
 
     private func canSubmit(to conversation: ConversationModel) -> Bool {
@@ -574,6 +579,7 @@ public final class AssistantExecutionController {
         }
         if supersedePreparation {
             if let current = preparations[conversation.id] {
+                guard current.phase != .savingFailure else { return nil }
                 _ = requestCancellation(
                     for: conversation, expectedID: current.id,
                     recordsInterruption: false)
@@ -597,8 +603,12 @@ public final class AssistantExecutionController {
         guard isCurrent(capture, for: conversation) else { return }
         let needsAsync = (compactBeforeRun && capture.shouldCompact) || capture.memorySessionID != nil
         guard needsAsync else {
-            performStartAgentRun(conversation, capture: capture)
-            retirePreparation(capture.id, for: conversation)
+            switch performStartAgentRun(conversation, capture: capture) {
+            case .runtimeStarted, .abandoned:
+                retirePreparation(capture.id, for: conversation)
+            case .failurePersistenceStarted:
+                break
+            }
             return
         }
         let task = Task { [weak self, weak conversation] in
@@ -620,8 +630,12 @@ public final class AssistantExecutionController {
                 await finishCancelledPreparation(capture, for: conversation)
                 return
             }
-            performStartAgentRun(conversation, capture: capture, memorySession: memorySession)
-            retirePreparation(capture.id, for: conversation)
+            switch performStartAgentRun(conversation, capture: capture, memorySession: memorySession) {
+            case .runtimeStarted, .abandoned:
+                retirePreparation(capture.id, for: conversation)
+            case .failurePersistenceStarted:
+                break
+            }
         }
         guard var state = preparations[conversation.id], state.id == capture.id else {
             task.cancel()
@@ -690,6 +704,9 @@ public final class AssistantExecutionController {
         guard var state = preparations[conversation.id],
             expectedID == nil || state.id == expectedID
         else { return Task {} }
+        if state.phase == .savingFailure {
+            return state.task ?? Task {}
+        }
         state.recordsInterruption = state.recordsInterruption || recordsInterruption
         state.cancellationRequested = true
         state.task?.cancel()
@@ -764,35 +781,43 @@ public final class AssistantExecutionController {
         retirePreparation(preparationID, for: conversation)
     }
 
-    private func recordFailedRun(
-        _ conversation: ConversationModel,
-        promptID: UUID,
-        prompt: String,
-        authoredPrompt: String?,
-        images: [AgentImageAttachment],
-        contextAttachments: [AgentContextAttachment],
-        permissionMode: AgentPermissionMode,
-        reason: String
+    private func beginFailedRunPersistence(
+        _ conversation: ConversationModel, capture: RunCapture, reason: String
     ) {
+        guard var state = preparations[conversation.id], state.id == capture.id else { return }
         var messages = conversation.pendingPriorMessages
-        if !messages.contains(where: { $0.id == promptID }) {
+        if !messages.contains(where: { $0.id == capture.prompt.id }) {
             messages.append(
                 AgentTranscriptMessage(
-                    id: promptID, role: .user, text: prompt,
-                    authoredText: authoredPrompt, images: images,
-                    contextAttachments: contextAttachments,
-                    contextSnapshot: conversation.transcript.first(where: { $0.id == promptID })?.contextSnapshot
+                    id: capture.prompt.id, role: .user, text: capture.prompt.text,
+                    authoredText: capture.prompt.authoredText, images: capture.prompt.images,
+                    contextAttachments: capture.prompt.contextAttachments,
+                    contextSnapshot: capture.contextSnapshot
                 ))
         }
         let now = Date.now
         let snapshot = AgentRunSnapshot(
             conversationID: conversation.id, state: .failed,
-            permissionMode: permissionMode,
+            permissionMode: capture.permissionMode,
             messages: messages, startedAt: now, finishedAt: now,
             failure: reason
         )
-        conversation.recordFailedRun(snapshot)
-        Task { [agentRunRepository] in try? await agentRunRepository.save(snapshot) }
+        conversation.beginAgentPreparationFailurePersistence(id: capture.id)
+        state.phase = .savingFailure
+        let preparationID = capture.id
+        let task = Task { @MainActor [self, conversation, agentRunRepository] in
+            do {
+                try await agentRunRepository.save(snapshot)
+                guard preparations[conversation.id]?.id == preparationID else { return }
+                conversation.recordFailedRun(snapshot)
+            } catch {
+                guard preparations[conversation.id]?.id == preparationID else { return }
+                conversation.messages.append(ChatMessage(role: .assistant, text: error.localizedDescription))
+            }
+            retirePreparation(preparationID, for: conversation)
+        }
+        state.task = task
+        preparations[conversation.id] = state
     }
 
     public func contextSnapshot(

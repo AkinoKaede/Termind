@@ -884,6 +884,11 @@ public final class ConversationModel: Identifiable {
     /// there is no runtime to accept steering until preparation completes.
     public private(set) var isPreparingAgentRun = false
 
+    /// True only after a captured configuration failure has committed to its
+    /// terminal snapshot save. Ordinary prepared edits remain supersedable,
+    /// while history mutations must not overtake this durable boundary.
+    public private(set) var isPersistingAgentPreparationFailure = false
+
     public var isAgentRunActive: Bool { isStreaming || isPreparingAgentRun }
 
     /// The current task list, whole. Replaced rather than patched — see
@@ -1081,12 +1086,16 @@ public final class ConversationModel: Identifiable {
     }
 
     public func canEditUserMessage(_ id: UUID) -> Bool {
-        guard !isStreaming, !isCompacting, !isArchived, !isHistoryChanging else { return false }
+        guard !isStreaming, !isCompacting, !isArchived, !isHistoryChanging,
+            !isPersistingAgentPreparationFailure
+        else { return false }
         return transcript.contains { $0.id == id && $0.role == .user && !$0.isCompaction }
     }
 
     public func canForkAssistantMessage(_ id: UUID) -> Bool {
-        guard !isStreaming, !isCompacting, !isArchived, !isHistoryChanging else { return false }
+        guard !isStreaming, !isCompacting, !isArchived, !isHistoryChanging,
+            !isPersistingAgentPreparationFailure
+        else { return false }
         return transcript.contains { $0.id == id && $0.role == .assistant }
     }
 
@@ -2032,6 +2041,12 @@ public final class ConversationModel: Identifiable {
         agentPreparationID = nil
         cancelAgentPreparation = nil
         isPreparingAgentRun = false
+        isPersistingAgentPreparationFailure = false
+    }
+
+    func beginAgentPreparationFailurePersistence(id: UUID) {
+        guard agentPreparationID == id else { return }
+        isPersistingAgentPreparationFailure = true
     }
 
     @discardableResult
