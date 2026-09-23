@@ -62,10 +62,7 @@ struct SidebarInlineRenameField: NSViewRepresentable {
     }
 
     private var textColor: NSColor {
-        guard isSelected else { return .labelColor }
-        return controlActiveState == .key
-            ? .alternateSelectedControlTextColor
-            : .unemphasizedSelectedTextColor
+        controlActiveState == .key ? .labelColor : .secondaryLabelColor
     }
 
     private var placeholderColor: NSColor {
@@ -237,10 +234,9 @@ struct SidebarNavigatorRow<Trailing: View>: View {
             HStack(spacing: Metrics.Space.s) {
                 Image(systemName: symbol)
                     .foregroundStyle(
-                        SidebarSelectionStyle.foreground(
+                        SidebarSelectionStyle.iconForeground(
                             isSelected: isSelected,
-                            controlActiveState: controlActiveState,
-                            unselected: AnyShapeStyle(.secondary)
+                            controlActiveState: controlActiveState
                         )
                     )
                     .frame(width: Metrics.Sidebar.rowIcon)

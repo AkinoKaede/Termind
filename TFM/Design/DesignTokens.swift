@@ -481,9 +481,8 @@ struct LegacySidebarMaterialBackground: NSViewRepresentable {
     }
 }
 
-/// A native selection: the key window uses the system selection color with
-/// reversed content; an inactive window uses the system's neutral selection
-/// background and unemphasized text color.
+/// A quiet, neutral selection matching the sidebar's glass controls. Both
+/// active and inactive windows keep readable foreground content on a gray fill.
 ///
 /// The row's context menu is drawn here rather than by the caller, and it is a
 /// native menu rather than SwiftUI's: `contextMenu` derives its source rectangle
@@ -563,10 +562,7 @@ struct TermindSidebarRowBackground: ViewModifier {
 
 enum SidebarSelectionStyle {
     static func background(controlActiveState: ControlActiveState) -> Color {
-        Color(
-            nsColor: controlActiveState == .key
-                ? .selectedContentBackgroundColor : .unemphasizedSelectedContentBackgroundColor
-        )
+        Color.primary.opacity(controlActiveState == .key ? 0.10 : 0.06)
     }
 
     static func foreground(
@@ -574,10 +570,20 @@ enum SidebarSelectionStyle {
         controlActiveState: ControlActiveState,
         unselected: AnyShapeStyle
     ) -> AnyShapeStyle {
-        guard isSelected else { return unselected }
-        return controlActiveState == .key
-            ? AnyShapeStyle(TermindColor.selectedForeground)
-            : AnyShapeStyle(Color(nsColor: .unemphasizedSelectedTextColor))
+        guard controlActiveState == .key else { return AnyShapeStyle(.secondary) }
+        return isSelected ? AnyShapeStyle(.primary) : unselected
+    }
+
+    static func iconForeground(
+        isSelected: Bool,
+        controlActiveState: ControlActiveState
+    ) -> AnyShapeStyle {
+        if controlActiveState == .key { return AnyShapeStyle(TermindColor.accent) }
+        return foreground(
+            isSelected: isSelected,
+            controlActiveState: controlActiveState,
+            unselected: AnyShapeStyle(.primary)
+        )
     }
 }
 

@@ -400,10 +400,9 @@ private struct WorkspaceNavigatorRow: View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: workspace.symbol)
                 .foregroundStyle(
-                    SidebarSelectionStyle.foreground(
+                    SidebarSelectionStyle.iconForeground(
                         isSelected: isSelected,
-                        controlActiveState: controlActiveState,
-                        unselected: AnyShapeStyle(.secondary)
+                        controlActiveState: controlActiveState
                     )
                 )
                 .frame(width: Metrics.Sidebar.rowIcon)

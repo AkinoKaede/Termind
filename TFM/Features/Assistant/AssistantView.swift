@@ -1358,10 +1358,9 @@ struct AssistantConversationRow: View {
         HStack(spacing: Metrics.Space.s) {
             Image(systemName: conversation.isArchived ? "archivebox" : "sparkles")
                 .foregroundStyle(
-                    SidebarSelectionStyle.foreground(
+                    SidebarSelectionStyle.iconForeground(
                         isSelected: isSelected,
-                        controlActiveState: controlActiveState,
-                        unselected: AnyShapeStyle(.secondary)
+                        controlActiveState: controlActiveState
                     ))
             if isRenaming {
                 SidebarInlineRenameField(
@@ -1385,9 +1384,8 @@ struct AssistantConversationRow: View {
                 } label: {
                     Image(systemName: conversation.isArchived ? "arrow.uturn.backward" : "archivebox")
                         .font(.caption)
-                        // The row's own foreground, so on a selected card in a
-                        // key window this reads white with the title beside it
-                        // rather than as an accent-coloured glyph on accent.
+                        // Keep this action legible with the row's text in both
+                        // active and inactive windows.
                         .foregroundStyle(
                             SidebarSelectionStyle.foreground(
                                 isSelected: isSelected,
