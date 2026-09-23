@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:fad06b683f4e91f808959ed85ce962b1c86d64a67078b39c7ba20f8aa12ad35b",
+  "pageVersion": "sha256:9e4dcfe15396af0c8e9ed77ff7347eac829aeff9d111ad37757a2e3f1e63b2c1",
   "claims": [
     {
       "id": "claim_5a53c5a47b7445f7a7b6f8865297a805",
@@ -105,12 +105,16 @@
       "statement": "The workspace compact Assistant has routing separate from the full Assistant destination and composes transcript/interaction regions with explicit terminal context; Escape cannot fall through from a blocking interaction into closing the conversation.",
       "evidence": [
         {
+          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L152-L225",
+          "version": "repo-lines-v1:sha256:d47d11a81fc91f016d97ec23e87c1a89e608cb049d364bda5cc33966ce5e6a5e:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk0YmFkZWYzNjBmZDM2NTYwNGE2ODg4NGU5NDJiYzA4M2RjZDQ0ZTJhNTBlYzYyMjkzOTExZDYxOTg1MmVhNDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU1MDMyZTk2NGQwOTMyMzUxZTVkMTg1MjY5MjgxYjE3MWEzYTA5YjA4YjI4NmU2NjFlYTQ3MDMyM2M4MmViNGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjEyZjUyZjI3YTJiNzI0ZTlmYTM4NjA0ZGJkZGZlODczYTlkMTJhOTNiZWI0YWNiYWU5ZjFmNzk3ZDZkOTg1OTEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk5OWJkZWZlZWFjYTYzNDBlMDI5MGRjODZlODg5Yzg5ZDVlMTg5YWE1YmE0NGI1ODViM2I3MDczNGY0YTYyZDgifQ"
+        },
+        {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L7-L14",
           "version": "repo-lines-v1:sha256:a3755412e818d877b2c9c59bc75105e21157bb4519e47f13f4ee6fd2764de97b:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZmFlZDhjNWNjMzg0MGRjMjMwYTRiNGY3MTExN2UxZGE4MjRmZmJmYjA5ZTZjMWVmYWY4M2U1Mzc5MTNkNjkzZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNTcxZGE3NDM0NTdjMDNhMjQwNDRhMTk3NTQ2MGE2YzQ4OTllODBiNzUyOGUzMDRkMzE0ZDY3ZmU1NWE0MTYwNiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMWMwMDRmMzdkODZkOTFjYzUyZGY1ZDhiYjAyYjU0YmI1ODk5YjA1MWYzY2M0YTU5ODk2ZDFiNTZjYjQ1NGNiMiJ9"
         },
         {
-          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L89-L225",
-          "version": "repo-lines-v1:sha256:a235a02d0e28feb4b79c8d8a6f5e3844a9598fd35568c864ee8ed9cabfbc4c8d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5MTFlOGI2MmUzM2JjNDg0MWM4NmE1MmJiZmQ0MjRhZTQxZTBiYmVhODI0MjJkMTBlMGQyMGI5ZjMwNWZiNDBjIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI1NTAzMmU5NjRkMDkzMjM1MWU1ZDE4NTI2OTI4MWIxNzFhM2EwOWIwOGIyODZlNjYxZWE0NzAzMjNjODJlYjRkIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiIyYTFiOTczN2RlNTU1MTEwZjU1YmYyZmI2N2UxNzk1ZTU1ODA4NDdjYTQzOWI0YjBkZmJjN2U1YmZjNGU1YjcxIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI5OTliZGVmZWVhY2E2MzQwZTAyOTBkYzg2ZTg4OWM4OWQ1ZTE4OWFhNWJhNDRiNTg1YjNiNzA3MzRmNGE2MmQ4In0"
+          "resource": "repo://TFM/Features/Assistant/AssistantView.swift#L89-L96",
+          "version": "repo-lines-v1:sha256:b2fe9ba7bbc30e22c4c7c13247a4e7f913020f78afc2693088e31914f9c554ac:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTExZThiNjJlMzNiYzQ4NDFjODZhNTJiYmZkNDI0YWU0MWUwYmJlYTgyNDIyZDEwZTBkMjBiOWYzMDVmYjQwYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiMDFiYTQ3MTljODBiNmZlOTExYjA5MWE3YzA1MTI0YjY0ZWVlY2U5NjRlMDljMDU4ZWY4Zjk4MDVkYWNhNTQ2YiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiMmExYjk3MzdkZTU1NTExMGY1NWJmMmZiNjdlMTc5NWU1NTgwODQ3Y2E0MzliNGIwZGZiYzdlNWJmYzRlNWI3MSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGE0ZjU3YTVlYzJkYWUxY2Q0ZmY3MDczMDE0Zjg4YTM0NWJiMzVlMmJmNDFjNDMzMzc4NjE2ZjAzNjM2OGM2MSJ9"
         }
       ]
     },
@@ -203,6 +207,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T00:14:42.075Z"
+    "at": "2026-09-23T01:34:03.251Z"
   }
 }
