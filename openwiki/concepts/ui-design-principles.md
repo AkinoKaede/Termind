@@ -110,8 +110,6 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-  - id: openwiki-source-98505b843db3ce6b8e4ca024
-    resource: repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
   - id: openwiki-source-2891f940e682279163740c83
@@ -120,10 +118,12 @@ sources:
     resource: repo://TFMTests/TerminalThemeTests.swift
   - id: openwiki-source-1c583949c6f00d5acc015c90
     resource: repo://TFMTests/WorkspaceLayoutDropTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+  - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
+    resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
+generated: { by: "codex", at: "2026-09-23T17:44:09.687Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+    at: 2026-09-23T17:44:09.687Z
 ---
 
 # UI Design Principles and Shared Presentation Boundaries
@@ -332,7 +332,7 @@ Saved rows and live workspaces follow different lifetimes; only selection connec
 
 Mobile descriptor and live-session lifetimes are separate; a fold or tab switch is not a close operation.
 
-Desktop continuity includes an interaction constraint as well as a layout cache. `WorkspaceContentView` keeps a dragged pane mounted but temporarily omits its branch from split geometry, disabling hit testing and accessibility for that pane; removing its native drag source would end AppKit's session prematurely. Its pane-level native receiver reads the live `WindowModel` and displayed workspace at drag time, previews the nearest edge on an occupied pane (whole-area replacement on an empty slot), and only mutates the model on drop. `WorkspaceNavigatorView` overlays its native List with one receiver for workspace-section insertion, using measured global row frames; preview boundaries include the dragged row while the move index excludes it. The source session is cleaned up after mutation, and unrelated pasteboard data or a destination that became hidden must not commit a layout change. `WorkspaceLayoutDropTests` cover edge merges, live pane rearrangement, empty slots, stale drags and the changed-destination rejection; `PersistentWorkspaceDeckLayoutTests` cover parked sizes and sidebar insertion indices.
+Desktop continuity includes an interaction constraint as well as a layout cache. `WorkspaceContentView` keeps a dragged pane mounted but temporarily omits its branch from split geometry, disabling hit testing and accessibility for that pane; removing its native drag source would end AppKit's session prematurely. Its pane-level native receiver reads the live `WindowModel` and displayed workspace at drag time, previews the nearest edge on an occupied pane (whole-area replacement on an empty slot), and only mutates the model on drop. `WorkspaceNavigatorView` overlays its native List with one receiver that clamps List pointer positions to Workspace insertion boundaries, using measured global row frames; preview boundaries include the dragged row while the move index excludes it. The source session is cleaned up after mutation, and unrelated pasteboard data or a destination that became hidden must not commit a layout change. `WorkspaceLayoutDropTests` cover edge merges, live pane rearrangement, empty slots, stale drags and the changed-destination rejection; `PersistentWorkspaceDeckLayoutTests` cover parked sizes and sidebar insertion indices. See [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md) before changing the native List source, tear-off completion or preview ownership.
 
 “Keep state” does not mean “keep every view measuring, animating and accepting events forever.” Conversely, unmounting a view does not by itself authorize terminating the work it displays.
 

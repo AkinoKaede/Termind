@@ -32,10 +32,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "codex", at: "2026-09-23T17:55:27.475Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+    at: 2026-09-23T17:55:27.475Z
 ---
 
 # Termind Engineering Quickstart
@@ -49,6 +49,8 @@ Termind is one Xcode project with native `TFM` (macOS) and `TFI` (iPhone/iPad) p
 | Module placement, imports, nested directories, or shared resources | [Module and Directory Architecture Map](/openwiki/architecture/module-map.md), [Shared Framework Directory Responsibilities](/openwiki/architecture/shared-module-directories.md), [Native App Directory Responsibilities](/openwiki/architecture/native-app-directories.md), and [Supporting Products, Packages, and Tooling](/openwiki/architecture/supporting-system-directories.md); run `ArchitectureBoundaryTests` for dependency changes. |
 | Composition, startup failure, window/scene state, backgrounding, quit | [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md); use `AppTerminationTests`, `MobileAppTests`, or `MobileForwardingLifecycleTests` for the changed lifetime. |
 | Desktop Navigator, sidebar, workspaces, Vault, Assistant layout | [TFM Desktop UI Architecture](/openwiki/architecture/desktop-ui.md); target window/navigation or layout tests. |
+| Desktop Workspace/Pane sorting, merging, drag-out new windows, or Assistant list reordering | [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md); preserve the native Workspace List source and live receiver contracts. Use `WorkspaceNavigatorDropTests`, `WorkspaceLayoutDropTests`, `WorkspaceWindowMoveTests` or `AssistantConversationListDropTests`, plus the source/cancellation/animation suites listed in that guide. |
+| File-drop events, Assistant attachments, SSH terminal/SFTP uploads, desktop remote-file dragging or Key import | [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md); trace native routing, payload priority, provider staging and transfer lifetimes. Use `FileURLDropTargetTests`, `MobileDropTests`, upload/attachment/import suites listed there; the guide also locates the shared Overlay UI. |
 | Mobile tabs, scene routes, cards, editors, terminal continuity | [TFI Mobile UI Architecture](/openwiki/architecture/mobile-ui.md); target `MobileAdaptiveLayoutTests`, `MobileNavigationParityTests`, or the relevant feature test. |
 | Shared UI conventions, fields, tokens, accessibility | [UI Design Principles and Shared Presentation Boundaries](/openwiki/concepts/ui-design-principles.md); check platform renderings and `ArchitectureBoundaryTests`. |
 | SSH/Telnet, credentials, routes, host-key trust, session cleanup | [SSH, Telnet, Trust, and Workspace Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md); run connection, trust, authentication, and session tests. For channel admission and backpressure see [SSH Multiplexing and I/O Scheduling](/openwiki/concepts/ssh-multiplexing-and-scheduling.md). |

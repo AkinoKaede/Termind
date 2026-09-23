@@ -88,10 +88,10 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "codex", at: "2026-09-23T17:55:27.475Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+    at: 2026-09-23T17:55:27.475Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory
@@ -101,6 +101,8 @@ Termind's Assistant is a durable conversation product built around a host-neutra
 This split is a security boundary as well as a modularity boundary. A model proposes tool calls; it does not gain direct access to a PTY, Keychain material, stored credentials, another conversation's workspace, or the persistence store. The sibling `AgentKit/` checkout is useful for reading runtime contracts, but the Xcode project resolves AgentKit as a remote Swift package (`AkinoKaede/AgentKit`, minimum 0.14.0), not from that sibling directory.
 
 ## Responsibilities and assembly
+
+For file and image drop entrypoints, attachment import lifetimes, and the shared drop Overlay UI, see [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md).
 
 `AssistantExecutionController` is the application entry point for a submitted turn. Before recording a new turn it rejects overlapping starts, archived/history-changing conversations, active compaction, unfinished attachments, and unauthorized use. Accepted submission synchronously captures the composed prompt, images and context attachments; session, plan and surface context; chat model/provider/credential; reasoning and permission mode; search choice; skills and base registry; Guardian configuration; and memory/compaction preparation settings. Only then can asynchronous compaction or memory loading begin. Runtime assembly consumes this capture instead of re-reading mutable composer or configuration state after an await. A missing model or credential remains a captured failure even if Settings changes during preparation.
 

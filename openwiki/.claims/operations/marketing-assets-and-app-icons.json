@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7b3ce9c4cc12de4717776e682cd9dce9ad9f8d5b85c86d2d7973020a96f41900",
+  "pageVersion": "sha256:fad66ff965fef116da03a7c1877ac29d5e74a52a5776bd8fea95df12d9148d2c",
   "claims": [
     {
       "id": "claim_bf6e7f1d333040099a25edc9d0d96b84",
@@ -88,7 +88,7 @@
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/ipad-13/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:cf24516e56651e18753b28ae691eec93af1bf9635cff10e150f25a077bc2a062"
+          "version": "repo-file-v1:sha256:91f42bd4886963bf869f67acc8340d482b1c77eeff7d63d3c18a3a3d8a675b52"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/iphone-6.5/06-vault.jpg",
@@ -96,7 +96,7 @@
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hans/mac/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:3874a7438bfad6bf3a2e971e6d4cf0a49ee70943bd321319e0c4134fe1e0e4af"
+          "version": "repo-file-v1:sha256:ddbafedc19cf30b482b9841ab580e1064bf3e39abe8f07a2404a014cce05f549"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/ipad-13/06-vault.jpg",
@@ -104,7 +104,7 @@
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/iphone-6.5/01-three-screens.jpg",
-          "version": "repo-file-v1:sha256:f169ca3fa2eb75a0ae1cbd60a6070251571c7e62de0b2425efe61688a53d90d4"
+          "version": "repo-file-v1:sha256:95192049858148512686ea6569f29cb6b7a7a2bac9b9926bb10fbd0c14bd94de"
         },
         {
           "resource": "repo://Marketing/AppStore/zh-hant/mac/06-command-generator.jpg",
@@ -197,6 +197,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T15:54:40.903Z"
+    "at": "2026-09-23T17:44:09.687Z"
   }
 }

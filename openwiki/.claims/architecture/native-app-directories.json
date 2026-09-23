@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6b216b91ff9ce07a63124cef82d5ac927e7356e7232af65bf6ddb2b6e4b35f83",
+  "pageVersion": "sha256:859cffd573a4ae453badb065aef993a7eedab453a7b7c20ee9cb8cd035339c92",
   "claims": [
     {
       "id": "claim_8e9cf2adb50847f98fcd4516cb0ed521",
@@ -20,7 +20,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
+          "version": "repo-file-v1:sha256:48fbe838ab08ba66ab64b0889b966cfbb8164b73efab2d65345af3bc05bcbb03"
         }
       ]
     },
@@ -104,7 +104,7 @@
         },
         {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift",
-          "version": "repo-file-v1:sha256:9904a3837a3361c3c293771cc6b7567874d9ee6fcb61b1c53a69d42e0177d548"
+          "version": "repo-file-v1:sha256:a081da3f2d7e8b2e0794e1a3b1525617fb32f71b6198b4b70e629424000bac8e"
         },
         {
           "resource": "repo://TFM/Features/Shell/WindowRoute.swift",
@@ -190,7 +190,7 @@
         },
         {
           "resource": "repo://TFM/Platform/MainWindowCoordinator.swift",
-          "version": "repo-file-v1:sha256:5225124cc24e1d8c5858385ce4e7d8c924938fdd6ea6102f195f98ebdd98e40c"
+          "version": "repo-file-v1:sha256:ddfbb66c2bb9ae45f272ed48c1844e9d23d069f017639a93636bdb1119e97a91"
         },
         {
           "resource": "repo://TFM/Platform/MetricsMenuBarController.swift",
@@ -418,7 +418,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
+          "version": "repo-file-v1:sha256:48fbe838ab08ba66ab64b0889b966cfbb8164b73efab2d65345af3bc05bcbb03"
         },
         {
           "resource": "repo://TFMTests/WindowSidebarTests.swift",
@@ -429,6 +429,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T15:54:40.903Z"
+    "at": "2026-09-23T17:44:09.687Z"
   }
 }

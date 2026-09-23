@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:eb0f474e09d5f4ce9446bd127c6ce3302378d61f713b93157789c95febfd9358",
+  "pageVersion": "sha256:91ecfd787fcb1263ef5522faa373581ec4539ca331ea55e0baf70368990d6126",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -56,7 +56,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
+          "version": "repo-file-v1:sha256:48fbe838ab08ba66ab64b0889b966cfbb8164b73efab2d65345af3bc05bcbb03"
         }
       ]
     },
@@ -482,7 +482,7 @@
     },
     {
       "id": "claim_0bb36663909342939a70f3e208ac12c2",
-      "statement": "ArchitectureBoundaryTests fail closed on missing or empty production Swift roots, restrict mobile feature imports and concrete storage/transport construction, enforce a single app-independent TermindCopy owner, and require CloudKit sync delegates to use shared upload/quarantine gates; these source checks do not exercise runtime UI or sync behavior.",
+      "statement": "ArchitectureBoundaryTests fail closed on missing or empty production Swift roots, restrict mobile feature imports and concrete storage/transport construction, enforce a single app-independent AppStrings owner, and require CloudKit sync delegates to use shared upload/quarantine gates; these source checks do not exercise runtime UI or sync behavior.",
       "evidence": [
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L191-L219",
@@ -665,10 +665,32 @@
           "version": "repo-lines-v1:sha256:91d24826d49a5a4ea7c1bd74f3fcf11a4ab8c6c2dbb2d1f1265ef37312d423d4:eyJzZWxlY3RlZExpbmVDb3VudCI6NzYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmFiYzBjYjBiYWYxM2U2MWU1OWExZDEyOTk5ZTIwYjRhMGUzODg1NThjNGY1NWQ0OWVlYjAzZDM0ODNlYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ODUzNjM4YTQ4YmNkZjJkMTBiY2MyMTVhOWMyOWYxZGQzNTMxNzE5OThmYTFhOTQ2YzY1Zjc3ZTVlYTE2Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ODk1NTkwOGUxODQxMjRjZWE5NzA4YTNkNTYxYzcyOWMzYTNmNGI4YjcxZTY5ZTRlNjA3ZGE4NWFjNGQ1NzEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_d96f2083da54402cacfafbe74d3d3255",
+      "statement": "Pane title drags and native Workspace List drags on macOS 26 and later can request a new window for an unaccepted, uncancelled release outside the source window; live ownership remains in the source until the native destination registers.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift#L357-L415",
+          "version": "repo-lines-v1:sha256:2a82188dc65a4fcca89ddc41b540a7454157f718b7b7b496c92ad8d384812031:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiNTZlNzgzZGJiOTljZmRjNzEzYmEyZjlhMDkzZmQ0NTA0MDIxMTAxNDY2NzUyOGYzNzA3M2RmNDcxNWQxYWYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBmYzVkOGVjN2Q1M2E5MTkzMzI1NjYzZGMwZTdjYmZiZDgzZTg3ZGY3N2UxYzk2NmI2NjU3ZmU2NTc4NDBlMGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU3ODBlYjcwNDlmNGIzYTRkMDNiYWU1ZjVmNmY2NTBhNWZkZmY1MzkzNjE3ODMwMmZkMzI5ZGQxMDQwOTc0NjQifQ"
+        },
+        {
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L164-L228",
+          "version": "repo-lines-v1:sha256:d242718cb129cbc195bb385d0de841e138818c1d6359b075c0d2128751fecb38:eyJzZWxlY3RlZExpbmVDb3VudCI6NjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlhZDUzYmFhYzE4Nzg1MmI0MzFjMjMyZTA1MTYwNjFkNDk2ZjdhMjE1NmVlNGJmN2RlYTY0N2ZjNjY0OTg2NmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImFjZGI1YmEwZjg5NDVkMjc3ZTdhY2NkNGI1MDBjZmIxMzAxMjNlMTllY2E2YTI5ZWY1NmJiZWUwODcyNThmMmMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ0YzM1N2NiNzllZDUyZmIyZjRjMDUzZTBhMjhkYTgzMDhmZDA3NTNhOTM2YjJkYTMxZjY2NjU0YjRmYmE0MTAifQ"
+        },
+        {
+          "resource": "repo://TFM/UI/Components/WorkspaceLayoutDragSource.swift#L216-L254",
+          "version": "repo-lines-v1:sha256:52ba30a5c03d4a296d272f1476e61653f7890d141576b576770757f86dc9be8a:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRlMzcxNWQyZTY1MDBmNjgxZTRhOTY3M2QyMmMxNGNkNzQ4OWMwYzMxN2JhYjcyMzU3YTEzMDI3ZGE0NjA2MzkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzNDU4ZGU1MWM0MzA1YTU0ZGU1OWEzMDM2MzliZTgwNDg3MTRjY2E2NDU5ZjEzOWNmNjVkNGRlNGY5NGFiNjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQzYmQ1ODA4OGVmYTdmMjRhYjBmYTM3NzcxOWU2ZGRkNjIzODQ3ZmNkYjQxODRlY2FmY2ZjZWU1YTMyMjJhZDAifQ"
+        },
+        {
+          "resource": "repo://TFM/UI/Components/WorkspaceLayoutDragSource.swift#L51-L75",
+          "version": "repo-lines-v1:sha256:cbb25b46763f864654c3ac4a6dd7504e694a1e1a21d4dd0b4c09be63ef968f99:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ2ODljOGU1OGVkNzE3ZmM0Y2U4ZjA1MTJmNWRiOTFlM2YwOGQyZTZiZDI5MWE3NTU4YTkxNjM3NmU0OTc0MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNGY2MWQ0YWEzNzkxMTQ4YTUyNGZmNzA2YWE5YTg2MjQwMDZkNGNhMTIzZWM3NWU4YjQzOTRlYmZkYjdhOWUifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:32:50.942Z"
+    "at": "2026-09-23T17:55:27.475Z"
   }
 }

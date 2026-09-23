@@ -5,7 +5,7 @@ description: "How the macOS app composes its native window shell, persistent wor
 tags: [macos, tfm, ui, navigation, workspaces, swiftui, appkit, design]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+    at: 2026-09-23T17:44:09.687Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -41,6 +41,12 @@ sources:
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-5e2670d68f19777e2dd312ea
     resource: repo://TFM/UI/Components/WindowToolbar.swift
+  - id: openwiki-source-29722107a3a9d938ca19ebb4
+    resource: repo://TFM/UI/Components/WorkspaceLayoutDragSource.swift
+  - id: openwiki-source-f941c4bd7cfa47476dcdb53f
+    resource: repo://TFM/UI/Components/WorkspaceLayoutDropTarget.swift
+  - id: openwiki-source-7e279101ce56c0b482381df4
+    resource: repo://TFM/UI/Components/WorkspaceNavigatorDragAnimation.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-23acce6fe9173a886d433b44
@@ -57,7 +63,9 @@ sources:
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
   - id: openwiki-source-05f0aeba12df8388b97b3c76
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
-generated: { by: "codex", at: "2026-09-23T14:05:10.244Z" }
+  - id: openwiki-source-a48980e81bab99fcd643df54
+    resource: repo://TFMTests/WorkspaceWindowMoveTests.swift
+generated: { by: "codex", at: "2026-09-23T17:44:09.687Z" }
 ---
 
 # TFM Desktop UI Architecture
@@ -120,7 +128,7 @@ sequenceDiagram
     Coordinator->>Target: open live workspace
 ```
 
-A workspace move waits for native destination registration before changing ownership. [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
+A workspace move waits for native destination registration before changing ownership. A pane released outside its source window uses the same request mechanism: a split pane becomes a new workspace around the existing live pane, while a lone pane carries its original workspace and name. The detailed release, cancellation and animation rules are in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md). [Source: `TFM/Platform/MainWindowCoordinator.swift` and `TFM/Features/Workspaces/WindowModel.swift`.]
 
 ## The window shell owns chrome once
 
@@ -147,7 +155,9 @@ They influence one another, but they are not interchangeable selections. `Window
 
 Inline rename seeds the editor with `workspace.title(in: app.hostLibrary, locale: locale)` **before** activating the rename field; commit sends the text to `WindowModel.rename`, cancel discards it. The model refuses non-renameable workspaces and trims whitespace: split names belong to the workspace, single-pane overrides to its pane; clearing restores an automatically allocated/derived name. This ordering matters because the native text field selects its initial text when focused. The visible-window `WorkspaceNavigatorRenameTests` exercise both the context-menu and double-click entrypoints and require the full existing title in the editable field.
 
-The layout drop receiver overlays the `List`, rather than attaching a target behind its native rows. Workspace and pane drags carry IDs, but live `WindowModel.dragging` identifies the payload during native callbacks, even before another SwiftUI render. On macOS 26+, the workspace row uses `.draggable` and the **active** native drag session sets this state from the pasteboard; querying a writer after a click must not start a drag. Earlier systems set it with `.onDrag`. Row/header frames are measured in global coordinates, translated at the receiver, then insertion geometry excludes the dragged workspace from the mutation index. A valid drop reorders with `move` or lifts a pane from a split workspace with `detachPane`; a lone pane cannot detach. Drops outside the Workspace section or after switching away from Navigator are rejected, and successful drops clear drag state. Older systems may retain drag state after a release outside any target until the next click or drag, so receivers still validate the pasteboard. See `WorkspaceNavigatorDropTests` for native drag, scrolled insertion previews, immediate callbacks, mode-change rejection and pane detachment.
+The layout drop receiver overlays the `List`, rather than attaching a target behind its native rows. Workspace and pane drags carry IDs, but live `WindowModel.dragging` identifies the payload during native callbacks, even before another SwiftUI render. On macOS 26+, the workspace row uses `.draggable` and the **active** native drag session sets this state from the pasteboard; querying a writer after a click must not start a drag. Earlier systems set it with `.onDrag`. Row/header frames are measured in global coordinates, translated at the receiver, then insertion geometry excludes the dragged workspace from the mutation index. A valid drop reorders with `move` or lifts a pane from a split workspace with `detachPane`; a lone pane cannot detach into another workspace in the same window. Within the List receiver, pointer positions clamp to Workspace insertion boundaries, including above the first and below the last workspace row. Switching away from Navigator or a mismatched pasteboard rejects the drop; successful drops clear drag state. Older systems may retain workspace drag state after a release outside any target until the next click or drag, so receivers still validate the pasteboard.
+
+Preserve this native List drag source when extending Workspace behavior. On macOS 26+, its completion observer adds new-window creation for an unaccepted release outside the **source** window, excluding Escape and a still-held primary mouse button. A small data-source forwarding adapter disables the native failed-drop return animation at `willBegin`; it does not replace row dragging or drop geometry. Pane titles use a separate native drag source with completion callbacks on all supported macOS versions. See [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md) for the full interaction matrix, preview lifetimes and regression tests.
 
 ### Toolbar commands follow the detail, not the mode rail
 
@@ -242,7 +252,7 @@ The renderer resolves a pointer to a section and insertion slot; it does not nee
 
 ## Assistant: route state and native rendering are separate
 
-The full Assistant destination and the workspace's compact Assistant are different presentation surfaces. Opening a conversation in the compact sidebar does not replace the foreground terminal. Its transcript region and interaction/composer region can be composed separately, and terminal context/actions are passed deliberately.
+The full Assistant destination and the workspace's compact Assistant are different presentation surfaces. Opening a conversation in the compact sidebar does not replace the foreground terminal. Its transcript region and interaction/composer region can be composed separately, and terminal context/actions are passed deliberately. Conversation list reordering has its own native receiver and hidden-list participation rules; see the brief [Assistant drag flow](/openwiki/workflows/desktop-drag-and-drop.md#assistant-conversation-reordering).
 
 The compact Sidebar and full Assistant share one window-local Chat/Archive route. `AssistantLibraryModel.selectedConversationID` identifies the open chat, while `WindowModel.isAssistantArchivePresented` overrides it for Archive; entering Archive or returning to the chat landing state clears the selected conversation so the two surfaces cannot diverge. Surface actions still differ in navigation effect: a Sidebar action updates the shared route while leaving the workspace in front, whereas its full-screen counterpart also selects the Assistant destination. Closing the last workspace promotes a visible compact chat or Archive into that destination. The contextual Sidebar draft and focused-session context remain Sidebar-owned, and transcript owners remain keyed by conversation plus surface, so navigation is shared without merging draft or native-rendering lifetimes.
 

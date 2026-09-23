@@ -113,7 +113,7 @@ sources:
 generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T15:54:40.903Z
+    at: 2026-09-23T17:44:09.687Z
 ---
 
 # Native App Directory Responsibilities

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:bb0f2a64bcf1b70e729e2ab171f3462d82fa5e8adf4d144da228df1a1a6dfa2d",
+  "pageVersion": "sha256:db377626334a0164fcb87fa2e8cc84322c8b5ac4a06d3f2542505939ff801331",
   "claims": [
     {
       "id": "claim_bd9f5ddda6b6466eb79c622b02fd73f2",
@@ -48,7 +48,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
+          "version": "repo-file-v1:sha256:48fbe838ab08ba66ab64b0889b966cfbb8164b73efab2d65345af3bc05bcbb03"
         }
       ]
     },
@@ -67,12 +67,12 @@
       "statement": "The desktop native window coordinator registers and unregisters each `WindowModel`, handles workspace transfer/new-window requests, preserves system-restored geometry, and closes the window model when its native `NSWindow` closes.",
       "evidence": [
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L164-L198",
-          "version": "repo-lines-v1:sha256:39c33819ac6c901dc92d22c529ae1be50ac338f0b31e3549ed59dde26117cedf:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImViNzczMmVjOGVkYzNiMmY0ZDYwNjFlNGEzZGE4YTVkNDVmODE5ZWM0NTJlYTJkZTYzZjUyYmE0YWE2MjAwZDQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjU5MDcwMTcyYjVmYzFkNTQ4YjhjNzMwMzk5YWRhYWEyMTRlMjM1NTdjZjQyNmU3OTJmMThmMTE5MjM3NDI5ZjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQzODlhNTliNGY0MDI4MWFhZDFlM2YxNmIwMmE3YWVjMzVkMjI1YzczOTZiYWE1ZmNhMTM0NzcxNzA1MDcwZWEifQ"
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L155-L228",
+          "version": "repo-lines-v1:sha256:05859b1e4702b697009b1a09b0202f2f1235b3ca8ceece817ec06bceab7b1037:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyOTY1ZDkzN2E0ZjM0YzY3NmFjN2ZiYTVhNzc0ZjY1NDVmZjFkOTM0Nzc4Y2MwYzUzZjg0OTJkNGQwMzdlOGIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwODZmMjNhZmUyY2EzNDFlNmMxYzg0NmU5ZjVmMzk0Y2NlM2M2ZmU5OTcyMWRmNDU4MTEzNGE3OGIzNjRjOTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQ0YzM1N2NiNzllZDUyZmIyZjRjMDUzZTBhMjhkYTgzMDhmZDA3NTNhOTM2YjJkYTMxZjY2NjU0YjRmYmE0MTAifQ"
         },
         {
-          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L216-L245",
-          "version": "repo-lines-v1:sha256:20497ec4b23f0dbd500bbedb9ece84ed40049b79733a01d7b08aca7aba36ed71:eyJzZWxlY3RlZExpbmVDb3VudCI6MzAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjkyODZhNmM2N2VhNDQ3M2I4YTkyZjk3ZWViMTAwOTNhYjZjYTUwNGRlNTkxMzQwZjY5YTI1NDEyYzJhOTNhZDEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImQ4ODllZDk4Yzg4OWFhOTViNTdiYWEwODk0NjI0YmEyMDBkMDg4NWQ0NDY2ZWQ1ZDE3MmEwOGY4NzM1M2ZkY2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1NGZlOWE1ZDY4ZmYzY2I3MWYwYjhmYzIxNmYwY2JlM2FjNjM2OThkYzkwOTZlOGI2YTA2NDgxMzJmOTQ0OTIifQ"
+          "resource": "repo://TFM/Platform/MainWindowCoordinator.swift#L265-L278",
+          "version": "repo-lines-v1:sha256:140731d265cec1f8c14e8955120f658c7f65e3f6fbc81de28c53187c387b21c1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg4MDA1ZTViMzQxMjg0NzIxNTA5NTE0ODRlN2VkYmNmNjhlYTUyYWE2NDkzYjAyMTdjYjA3OGZmOTdiNTllMDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM5ZjMyZjFiMjI2NTNjYTE3MDYzYTU4ODk0NTVkODQyODUyZDQwYjE1MDllZWQzOGE1YjI1YjBhMWJjNjE2YTciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU1NGZlOWE1ZDY4ZmYzY2I3MWYwYjhmYzIxNmYwY2JlM2FjNjM2OThkYzkwOTZlOGI2YTA2NDgxMzJmOTQ0OTIifQ"
         }
       ]
     },
@@ -216,7 +216,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:e8026ae12918def408f93091360b85a058c0c972a6e07b4eb386a20904fc96b3"
+          "version": "repo-file-v1:sha256:48fbe838ab08ba66ab64b0889b966cfbb8164b73efab2d65345af3bc05bcbb03"
         }
       ]
     },
@@ -447,6 +447,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:32:50.942Z"
+    "at": "2026-09-23T17:44:09.687Z"
   }
 }

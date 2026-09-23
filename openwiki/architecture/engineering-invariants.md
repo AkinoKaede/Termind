@@ -130,8 +130,14 @@ sources:
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-7e364c6182a8339831ecab24
+    resource: repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift
+  - id: openwiki-source-22e92f96394f292a731fc6fb
+    resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-385c953ef1c6bf095d1c1244
     resource: repo://TFM/Platform/TerminalFontCatalog.swift
+  - id: openwiki-source-29722107a3a9d938ca19ebb4
+    resource: repo://TFM/UI/Components/WorkspaceLayoutDragSource.swift
   - id: openwiki-source-73c75477db0674192248aa00
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
@@ -140,10 +146,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T14:32:50.942Z" }
+generated: { by: "codex", at: "2026-09-23T17:44:09.687Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:32:50.942Z
+    at: 2026-09-23T17:55:27.475Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -221,9 +227,12 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 - Command-W closes the focused pane, removing empty Workspaces but retaining the window; otherwise dismisses natively.
   All window-close paths confirm if that window owns any Workspaces, even hidden/disconnected. Shift-Command-W requests
   window dismissal. Clearing document-edited decoration must not change confirmation/delegate behavior.
-- Moving a Workspace between registered windows preserves surfaces/transports/splits/state, without close history;
-  out-of-window drags create no window. Native close disconnects only owned sessions and cancels pending moves;
-  independent transfers/services survive. Mounting never repeats authentication; explicit retry/reopen may.
+- Moving a Workspace between registered windows preserves live panes/transports/splits/state, without close history.
+  Pane title drags, and native Workspace List drags on macOS 26+, can create a new window after an unaccepted release
+  outside the source window. Escape and accepted drops do not create a window. Ownership transfers only when the
+  destination's native window registers; native close disconnects only owned sessions and cancels pending moves.
+  Independent transfers/services survive. Mounting never repeats authentication; explicit retry/reopen may.
+  Preserve the source and receiver contracts in [TFM Drag and Drop](/openwiki/workflows/desktop-drag-and-drop.md).
 - Desktop Vault/Assistant, Metrics, dynamic Workspaces and Settings routes are window-local. Settings data is app-wide;
   closing it restores the replaced destination. Width changes may adapt panels, never routes/editor identity/session
   composition/monitor ownership; covered panels retain last size, native table identity, sorting and scroll.

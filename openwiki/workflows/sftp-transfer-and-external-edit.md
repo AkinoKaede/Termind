@@ -48,13 +48,15 @@ sources:
     resource: repo://TFMTests/SFTPEditTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "codex", at: "2026-09-23T17:55:27.475Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:05:10.244Z
+    at: 2026-09-23T17:55:27.475Z
 ---
 
 ## Scope and operating model
+
+For native drag events, mobile provider staging, SSH versus SFTP drop destinations, and desktop remote-file payloads, start with [File Drag and Drop Across TFM and TFI](/openwiki/workflows/file-drag-and-drop.md). That guide follows the gesture up to the transfer preparation and queue boundaries described here.
 
 SFTP file work is split deliberately: browser and application models prepare batches and own UI choices; `SFTPTransferCoordinator` owns queued transfer runtime, admission, progress, cancellation, and completion; `SFTPTransferContext` owns a generation-scoped authenticated primary connection; and `SFTPChannel` implements actual libssh2 file I/O. `SFTPClient` is only the connect/disconnect facade around its primary channel. This division lets standalone SFTP, browser transfers, terminal-drop transfers, and edits share atomic write, resume, and copy mechanics without sharing a pane lifetime. [^client-channel]
 

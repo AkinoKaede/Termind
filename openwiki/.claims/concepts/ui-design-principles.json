@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:58e007a6d6a030d89a576783693867cef333da17416c8617a992a133ad8221b5",
+  "pageVersion": "sha256:5be04fadb09bbb3c62238bb4033b4d66e3eca9f81df3588da05b6edf81c17e9d",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -296,7 +296,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/Features/Assistant/AssistantView.swift",
-          "version": "repo-file-v1:sha256:9904a3837a3361c3c293771cc6b7567874d9ee6fcb61b1c53a69d42e0177d548"
+          "version": "repo-file-v1:sha256:a081da3f2d7e8b2e0794e1a3b1525617fb32f71b6198b4b70e629424000bac8e"
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
@@ -446,7 +446,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WorkspaceContentView.swift#L99-L116",
-          "version": "repo-lines-v1:sha256:01b2449e675f9ac1efc718a165f9c2594abbbc460cbf529e3aac8383ad5f2b4d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2Y5OTE2NTU5YmM4Mjc2ZDI1YTRiN2RjMTkyNWNiZjcxYzI1NTQ0ZDY0MzI5N2I4MzNkOGM1MTc5OTE3NzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5Mzc5Yzg0N2Q1YWE4ZTg0ZjYwN2JmMGQ0NzI3YWE5YWJlYjg4NDkyNTQzZDk5NjhjOGJmOWEwNWQ2ZmNiZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwZmQwNTk4NzdkYjNiNmYzNDYzYjBhOTlhZmNlYTY1YzY0NWJjYTFjYzE4MjYwNDVjYzc5YzBhYzJhZDFiMDIifQ"
+          "version": "repo-lines-v1:sha256:e1b70d29a86051aa53fea2a196d6399b043c77ee9abdaa20c30d2fd865c8e48f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFiM2Y5OTE2NTU5YmM4Mjc2ZDI1YTRiN2RjMTkyNWNiZjcxYzI1NTQ0ZDY0MzI5N2I4MzNkOGM1MTc5OTE3NzAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY5Mzc5Yzg0N2Q1YWE4ZTg0ZjYwN2JmMGQ0NzI3YWE5YWJlYjg4NDkyNTQzZDk5NjhjOGJmOWEwNWQ2ZmNiZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwZmQwNTk4NzdkYjNiNmYzNDYzYjBhOTlhZmNlYTY1YzY0NWJjYTFjYzE4MjYwNDVjYzc5YzBhYzJhZDFiMDIifQ"
         },
         {
           "resource": "repo://TFM/UI/Components/WorkspaceLayoutDropTarget.swift#L137-L153",
@@ -472,15 +472,19 @@
     },
     {
       "id": "claim_b1bab73f1fbb49d88d75c22640fb2702",
-      "statement": "Desktop Navigator workspace drops use a native overlay on the List and measured row frames to show an insertion boundary while computing the move index without the dragged row; drops detach panes or reorder workspaces only inside the workspace section.",
+      "statement": "Desktop Navigator layout drops use a native overlay on the List and measured global row frames to clamp pointer positions to Workspace insertion boundaries; preview geometry includes the dragged row while the move index excludes it, and valid Navigator drops reorder a workspace or detach a pane.",
       "evidence": [
         {
-          "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift",
-          "version": "repo-file-v1:sha256:e8d96ef3f766a15b53ca2e4e14074834a565b815eb7e41256dcf4f637d215f15"
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift#L215-L301",
+          "version": "repo-lines-v1:sha256:db133ba93e0ef74d84a3c80e3353e783a3de2fa1d58044be861a7eacd7ac769a:eyJzZWxlY3RlZExpbmVDb3VudCI6ODcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU0NThmMzc1OWM3ZDY1YmMzZGE3ZDY1Y2I2NDc1ZGMxOTY2ZGE5N2YyYWMzYmQwMWU0MGIwNDhlMDFkMGRkZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjcwYzY4Yzg0YzZjNjNlMDQwY2E4NzRiMzkxN2JkMWQwNDY4ZTllMmU2NmNkYjNiZTZjZTBmMTEyYjlmZTc4MGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc3MTJmY2NjOWY2YTFmZGU3MmQ3YTQ2NGMzYmMyNmUyYzUyYjgwNjBjMzlmODZiNDQxMzg0NDRlOTZkNGQ4ZjYifQ"
         },
         {
-          "resource": "repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift",
-          "version": "repo-file-v1:sha256:34130ea4db7eb1ab3d0a72aa0ac66e78d487ca3fea6986a0d48631c41ea56e60"
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift#L418-L443",
+          "version": "repo-lines-v1:sha256:32fe00366466b40c0bdfa638b73560401ce6be7e3054365bc3f01c682fe03058:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzZDlkYjVhNWRkZDU4N2IyMmYyMTE3OGNhMDk1NzA1N2NiNWI0ZmI5MWQ3NDlhOWMzODA2ZjQ0NDU0MDU1NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY4ZmYyNGJiMWFmZjQ0NjFlNjcxYjA3NGU4YTQxZDEwNDM1MWI1NTdjMWNhMjljOTA4ODg3ZmZiODMzYjIwZDgifQ"
+        },
+        {
+          "resource": "repo://TFMTests/WorkspaceNavigatorDropTests.swift#L295-L387",
+          "version": "repo-lines-v1:sha256:2b121eae49ca13c02687dcaa64b06609d3d014e1cc8db3514211dc6736ac99fa:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY4ZmRiMWE0ZmJiNDNlODMyMWI3MmU0Y2Y1ZmI2MDViMzJjMGRhMDlmMDVjZjQ2NjRkOTk1ZWFhYWZmZjk3YjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImM2YWFlNmM1ODhlZTZlNzBiOTY4NjFmMGE4MWY1YzI3MzkxMTgxMGJhMTdmODMxZGIxMGJmNDQ1YTYwZWViMzEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImM4NmI0NDc2YjRiY2U3YmU2YWFkOWRjZmNiMTEwMjZhNzY0OTQ3YmRmNGRjNzQ2NDk1ZmVjNDAyYjc4MDA4M2QifQ"
         }
       ]
     },
@@ -595,6 +599,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:32:50.942Z"
+    "at": "2026-09-23T17:44:09.687Z"
   }
 }
