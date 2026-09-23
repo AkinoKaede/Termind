@@ -49,7 +49,7 @@ sources:
 generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T02:40:53.789Z
+    at: 2026-09-23T05:17:08.701Z
 ---
 
 # Module and Directory Architecture Map

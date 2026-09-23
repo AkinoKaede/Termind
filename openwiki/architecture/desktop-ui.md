@@ -5,7 +5,7 @@ description: "How the macOS app composes its native window shell, persistent wor
 tags: [macos, tfm, ui, navigation, workspaces, swiftui, appkit, design]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T02:40:53.789Z
+    at: 2026-09-23T05:17:08.701Z
 sources:
   - id: openwiki-source-e09fb7bc8e7ca0579f6d446e
     resource: repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift
@@ -15,6 +15,8 @@ sources:
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-f490cb5bfbb8ce236a7f1bf4
+    resource: repo://TFM/Design/DesignTokens.swift
   - id: openwiki-source-95f72232fb896aa95dd5f6c7
     resource: repo://TFM/Features/AI/TranscriptListView.swift
   - id: openwiki-source-d35453512ef488d0cacdc06e
@@ -33,11 +35,13 @@ sources:
     resource: repo://TFM/Features/Workspaces/WorkspaceContentView.swift
   - id: openwiki-source-f6a967b4f14bf50d1af51b8b
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
+  - id: openwiki-source-23acce6fe9173a886d433b44
+    resource: repo://TFMTests/AssistantConversationMenuTests.swift
   - id: openwiki-source-98505b843db3ce6b8e4ca024
     resource: repo://TFMTests/PersistentWorkspaceDeckLayoutTests.swift
   - id: openwiki-source-dceb8d7e7c5bb09359e70052
     resource: repo://TFMTests/ResponsivePageLayoutTests.swift
-generated: { by: "codex", at: "2026-09-22T09:17:11.491Z" }
+generated: { by: "codex", at: "2026-09-23T05:17:08.701Z" }
 ---
 
 # TFM Desktop UI Architecture
@@ -88,6 +92,8 @@ The main layers are:
 `RootView` owns the split view, the window toolbar, search host, native window registration, title reporting, Quick Open, onboarding and app-level presentation bridges. It supplies one leading creation area, a principal Metrics page picker when applicable, and one Find slot following the content in front.
 
 The sidebar is one column whose mode rail switches between Navigator, Assistant, Snippets and History. `WindowModel.activateSidebarMode` is an **intent operation**, not just a property assignment: choosing Navigator from the full Assistant restores its prior destination, while choosing Assistant inside a workspace opens the contextual sidebar rather than hiding the terminal. Direct mode assignment remains available for presentation/restoration without these navigation side effects. History is unavailable for focused Telnet/serial sessions, and reconciliation moves away from an invalid mode.
+
+The column's material belongs to the native split view on macOS 26 and later; `RootView` does not layer another glass sheet over it. Earlier systems receive `LegacySidebarMaterialBackground`, an AppKit visual-effect fallback. Explicit glass remains on controls: the mode rail is one capsule with a neutral moving selection highlight, readable symbols, selected accessibility traits and a separate key-window keyboard-focus outline. Reduce Motion disables its selection animation. See [UI Design Principles](/openwiki/concepts/ui-design-principles.md) for row foreground and active/inactive selection roles.
 
 Keep the following coordinates distinct:
 
@@ -166,6 +172,8 @@ The renderer resolves a pointer to a section and insertion slot; it does not nee
 
 The full Assistant destination and the workspace's compact Assistant are different presentation surfaces. Opening a conversation in the compact sidebar does not replace the foreground terminal. Its transcript region and interaction/composer region can be composed separately, and terminal context/actions are passed deliberately.
 
+Archive presentation is one `WindowModel.isAssistantArchivePresented` flag shared by these two surfaces within the window, not a second flag on `WindowSidebarState` and not app-wide navigation state. Conversation selection remains surface-specific. `AssistantConversationMenuSurface` reads the current shared flag when constructing the native blank-area menu, so both **Show Archive** checkmarks agree. Its action still respects the invoking surface: the sidebar route clears the compact conversation and shows the archive without replacing the foreground workspace; the full-screen route clears compact selection and selects the Assistant destination. Opening or closing a compact conversation clears the shared archive flag, and the compact archive's **Open Full Screen** control explicitly promotes the archive to the main destination.
+
 Native transcript ownership adds another boundary:
 
 - `TranscriptListCache` is window-local.
@@ -201,6 +209,7 @@ Before changing a UI owner, trace both what happens when its view disappears and
 | Change | Focused seams |
 | --- | --- |
 | Multi-window navigation, return routes or sidebar modes | `WindowModel`, `WindowSidebarTests`, `MultiWindowTests`, `SettingsNavigationTests`. |
+| Shared Assistant Archive state and surface-aware blank-area menus | `AssistantConversationMenuTests.archiveStateIsSharedWhileSidebarActionKeepsWorkspaceInFront` and `WindowStateTests` compact/full-screen navigation cases. |
 | Hidden workspace layout or drag geometry | `PersistentWorkspaceDeckLayoutTests`; split/pane interaction and broadcast tests. |
 | Narrow editor or Metrics detail layout | `ResponsivePageLayoutTests`, including native table identity and retained scroll positions. |
 | Managed selection/reordering | `ManagedCardDropResolver`, selection and marquee tests; resource-specific move tests. |
