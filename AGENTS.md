@@ -53,6 +53,19 @@ Reuse semantic entries and shared formatting functions from TFM and TFI; keep
 protocol values, identifiers, and diagnostic codes with their existing owners.
 Run `Scripts/check-presentation-copy.sh` alongside the Chinese localization check.
 
+The two shared app catalogs are manually managed: every entry must have
+`extractionState: "manual"`. A single target's extraction does not see all shared
+and platform-specific copy, so its `stale` flags are not evidence that a key is
+unused. Add keys and translations explicitly; verify references across both apps
+and shared modules before removing a key. After editing a catalog, run
+`Scripts/normalize-string-catalogs.py --write` to apply Xcode-compatible ordering
+and formatting without changing translations. `Scripts/check-zh-localization.sh`
+also runs the normalizer in read-only `--check` mode. Do not use `jq -S` or a
+generic JSON formatter on these files: their whitespace differs from Xcode's.
+The normalizer defaults to the two app catalogs and does not touch AgentKit.
+Keep `STRING_CATALOG_GENERATE_SYMBOLS = NO`: `AppStrings` owns the Swift API,
+and generating symbols for every manual English key introduces naming collisions.
+
 Put user-facing app text in `Frameworks/Resources/Localizable.xcstrings` and bundle metadata in `InfoPlist.xcstrings`. Text owned by the agent runtime lives in `../AgentKit/Localizations/Localizable.xcstrings`; after editing it run `../AgentKit/Scripts/build-localizations.sh`, because `swift build` copies resources verbatim instead of compiling string catalogs. New or changed English strings require finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. Before committing, run `Scripts/check-zh-localization.sh` (requires `jq`); it rejects invalid catalogs, missing or unfinished translations, and spacing errors. Run `AppLanguageTests` for localization behavior changes.
 
 ## Commit & Pull Request Guidelines

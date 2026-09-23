@@ -17,6 +17,8 @@ else
   )
 fi
 
+python3 "$script_dir/normalize-string-catalogs.py" --check "${catalogs[@]}"
+
 for catalog in "${catalogs[@]}"; do
 
 if ! jq empty "$catalog"; then

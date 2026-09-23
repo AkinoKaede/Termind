@@ -1,0 +1,32 @@
+name: Localization
+
+on:
+  pull_request:
+    paths:
+      - "Frameworks/Resources/*.xcstrings"
+      - "Scripts/normalize-string-catalogs.py"
+      - "Scripts/check-zh-localization.sh"
+      - "Scripts/Tests/test_normalize_string_catalogs.py"
+      - ".github/workflows/localization.yml"
+  push:
+    branches: [main]
+    paths:
+      - "Frameworks/Resources/*.xcstrings"
+      - "Scripts/normalize-string-catalogs.py"
+      - "Scripts/check-zh-localization.sh"
+      - "Scripts/Tests/test_normalize_string_catalogs.py"
+      - ".github/workflows/localization.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  catalogs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - name: Test catalog normalization
+        run: python3 -m unittest discover -s Scripts/Tests -p 'test_normalize_string_catalogs.py'
+      - name: Check catalog stability and Chinese translations
+        run: Scripts/check-zh-localization.sh
