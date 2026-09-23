@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:392a5cd29488846a61161bf56d2b7a9e5d87640c51cea9de02d4a7f679efe676",
+  "pageVersion": "sha256:cca8239457462455652c40b3bb1223ac001457c4955f7d3427e24358992cb80d",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -30,7 +30,7 @@
     },
     {
       "id": "claim_89ac65df647f447c8a7f43a8ef686191",
-      "statement": "Settings synchronization uses zone `TermindAIConfigurationV1`, subscription `termind-ai-configuration-v1-changes`, record type `AIConfigurationItem`, and a distinct `SFTPPreferencesItem` record type; Metrics uses zone `TermindMetricsV1`, record type `MetricsItem`, and subscription `termind-metrics-v1-changes`.",
+      "statement": "Settings synchronization uses zone TermindAIConfigurationV1, subscription termind-ai-configuration-v1-changes, and record types AIConfigurationItem, SSHPreferencesItem, SFTPPreferencesItem and WorkspacePreferencesItem; Metrics uses zone TermindMetricsV1, record type MetricsItem and subscription termind-metrics-v1-changes.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift#L13-L16",
@@ -38,7 +38,11 @@
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L12-L19",
-          "version": "repo-lines-v1:sha256:4ed5720bb25292fcd425cb02a2a8ea0ccc81de824e598fc089506ac6106afe74:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGE0MmM2ZjQ3ZTA4YTgyNmIwZjgzNTM2YzViYmEyY2QyMjc2YTM1YzJmMWMzYWMzYTM2MDBkMDVmOTlmNzE2MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDczMGYzMjI3ZDNmYTUzZTU2YTc0YzVjYmQxZmQ3NTJmMmVjZGUyOTI2NTVlZWI1ZjNjYjQ1NTNjMWE1NWIxYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmJkYzg2M2IwOWEwN2RlOWE4ZGM3ZjBmNTdhMDFkY2Y3MGQ1MDNiMzBkZWEzODRiNzE3MzA1OTlmMGFiYmYyZiJ9"
+          "version": "repo-lines-v1:sha256:680c59cf2510a2133b35051167e7e804d76e49457b8c03cbb6f0510aae90512e:eyJzZWxlY3RlZExpbmVDb3VudCI6OCwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjRhYzA4ZjU0ZjE3ZTBlMzkzZjZlNzA0ODViOGEwNWRiZTZhZWQ3NGY0Yjk3NmFjY2FmZmEzNDY2MzQ4OGJjZiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDczMGYzMjI3ZDNmYTUzZTU2YTc0YzVjYmQxZmQ3NTJmMmVjZGUyOTI2NTVlZWI1ZjNjYjQ1NTNjMWE1NWIxYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiM2U4YmQ0MGZkZjIxZWZhNjRiNzIxMjdhYTE4ZmVjNDlmM2NmYzVlZTMyYzIwYjg2Zjc1NTQ0NDcwMGNkNmVjMCJ9"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift#L12-L20",
+          "version": "repo-lines-v1:sha256:5e0f93b1072206c5f40b2745ae881cd78b3e209652bf916dfa748c68aabd41ce:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMmVkNGFjNzk5MjNmZGM4ODg4ZmNlNmRkZTQ3NjNkYTIxMDg1OTliNDJiNzYxMzJlN2Y3ZGMwYzU1MGNlNGMwZSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGE0MmM2ZjQ3ZTA4YTgyNmIwZjgzNTM2YzViYmEyY2QyMjc2YTM1YzJmMWMzYWMzYTM2MDBkMDVmOTlmNzE2MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDczMGYzMjI3ZDNmYTUzZTU2YTc0YzVjYmQxZmQ3NTJmMmVjZGUyOTI2NTVlZWI1ZjNjYjQ1NTNjMWE1NWIxYiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmJkYzg2M2IwOWEwN2RlOWE4ZGM3ZjBmNTdhMDFkY2Y3MGQ1MDNiMzBkZWEzODRiNzE3MzA1OTlmMGFiYmYyZiJ9"
         }
       ]
     },
@@ -108,7 +112,7 @@
     },
     {
       "id": "claim_e195235702f84b7188836027fefa15f1",
-      "statement": "The compatibility safety layer uses local V31 quarantine/recovery entities, and V32 connection-history plus generic device-directory payload additions continue using the existing category zones, VaultItem record type, and V1 CloudKit envelope format.",
+      "statement": "The compatibility safety layer retains local V31 quarantine/recovery entities in current V34, whose direct V31 migration adds connection-history and generic device-directory shapes. These Vault payloads continue using the existing category zone, VaultItem record type and V1 CloudKit envelope format.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift",
@@ -120,7 +124,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:91868100b77cc0aca7a6c119f4dfeb7c17fda8e21018788dff6b1b4bb709066c"
+          "version": "repo-file-v1:sha256:2decf5319e2a1302f86a30e9dd9066658885034b8edd637368d1a3e2f8025682"
         }
       ]
     },
@@ -130,7 +134,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncLifecycleTests.swift",
-          "version": "repo-file-v1:sha256:c319f68b716338d47084e88bb37751052cff7d5d0f04989cb7841c15b65bdb48"
+          "version": "repo-file-v1:sha256:f1cf26cdf75bc42748c7a938467689d7fb2e55161868d6d7c267d1e7b2537fbe"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyFixture.swift",
@@ -138,11 +142,11 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:41fe85b84350f855a0bb51655cea0423cf1a3b61003ca3ab0ffac859991aa94b"
+          "version": "repo-file-v1:sha256:49b60cd6fbd6947443a729053f11b81278f3124c032b68439cf18a2ee2645f32"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
-          "version": "repo-file-v1:sha256:aee7f41dbc34ca19214dde4c5a8408464fdd96b3efc490df52e23419ced39b30"
+          "version": "repo-file-v1:sha256:603f6e77ab33461d78203254b0746011e57d85070aa095fe60cf525ae9ad9dd7"
         }
       ]
     },
@@ -152,7 +156,7 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
-          "version": "repo-file-v1:sha256:2c8baddd408651cfaaec231be95b0af95c4b93b8e264d1733cbffbba7bad48f7"
+          "version": "repo-file-v1:sha256:fb027da6eb8f6d18a40f242b03d9e49c2a8a96540082884a13956b4bded9fc99"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
@@ -174,25 +178,33 @@
     },
     {
       "id": "claim_f279371635eb47f6af4ea58a4b6f3bb8",
-      "statement": "Connection events and reusable device-name records use separate connectionHistory and device payload kinds in the existing VaultItem schema; release validation must cover event end updates, tombstones and newest-300 convergence as well as device-rename propagation and independence from history retention or clearing on signed devices.",
+      "statement": "Connection events and reusable device-name records use separate connectionHistory and device payload kinds in the existing VaultItem schema; release validation must cover event end updates, tombstones and newest-250 convergence as well as device-rename propagation and independence from history retention or clearing on signed devices.",
       "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/HistoryLimits.swift",
+          "version": "repo-file-v1:sha256:a228288ef4e8a002f6ea687e2fadd9646d999992d73665e548aec331284a7d4e"
+        },
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift",
           "version": "repo-file-v1:sha256:5186b2e30bb07fa6c53dd4def6a5cfba285e103690004e7767bbd40f9f3fe18c"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
-          "version": "repo-file-v1:sha256:bce6af5c5b9287e3c05817bd18bc59bdfb8836b85f92c35005eac37273ed736e"
+          "version": "repo-file-v1:sha256:53e2195732d61b918a7ea9eb8bbe64bd000a402b894f31620d9c5747f08cacbe"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift#L225-L235",
+          "version": "repo-lines-v1:sha256:95e9774f2b6d8d79a9634e030eea1c47d88c4e7c25a580d459192f542ed233f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxNzE3Mzk5MzhiMWMzZWMyNDZlY2IxN2JhNzg4ZTlkN2Y5MjRkZGJlYWRmYzFkNTYzNmRjYjA5YjJjMzkxMzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0MjVjZTM4ZWU1NDFhZjRjYWVjNWM4MzY1NjM2Y2I4NThjMjUwOTFhODYwMzc1M2U4NGVhODUzM2VlZTk2MWQifQ"
         },
         {
           "resource": "repo://TFMTests/VaultSyncTests.swift",
-          "version": "repo-file-v1:sha256:43cfca7990751c8b39bc13e19f561fba99edaa0bbc8d96232b456d9418981e7e"
+          "version": "repo-file-v1:sha256:fb1177900e93b9a2d3f30d4b728e61381d7d1336226ac22610e85779b8d0dadc"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T11:34:21.807Z"
+    "at": "2026-09-23T00:14:42.075Z"
   }
 }

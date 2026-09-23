@@ -72,6 +72,8 @@ sources:
     resource: repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift
   - id: openwiki-source-a0f4f642e37695357bc9150d
     resource: repo://TFM/Infrastructure/Security/MCPServerTokenStore.swift
+  - id: openwiki-source-68b5f4529ef349aac826b1d9
+    resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-28f740582e7f32c1d0099069
     resource: repo://TFM/Platform/MacOSSpeechAudioInput.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
@@ -82,10 +84,10 @@ sources:
     resource: repo://TFM/UI/Managed/ManagedCardPage.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-22T10:02:02.985Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # Native App Directory Responsibilities
@@ -109,7 +111,7 @@ verified:
 
 `App`, `Platform`, `Design`, and `DesignSystem` are currently flat source directories. Their multiple concerns are listed above rather than presented as nonexistent child folders.
 
-The app composition roots also adapt platform device naming into the shared device directory. Both TFM and TFI read DeviceKit's `Device.current.safeDescription`; TFM refreshes it when the application becomes active, and TFI refreshes it when a scene becomes active. The portable `DeviceRecord`, directory model and repositories remain in shared frameworks rather than either native app directory.
+The app composition roots also adapt platform device naming into the shared device directory. TFM's `MacDeviceName` reads `kern.hostname`, trims whitespace and falls back to DeviceKit's `Device.current.safeDescription` when the hostname is unavailable or empty. TFI uses DeviceKit's description directly. TFM refreshes the name when the application becomes active, and TFI refreshes it when a scene becomes active. The portable `DeviceRecord`, directory model and repositories remain in shared frameworks rather than either native app directory.
 
 ## Application subdirectories
 

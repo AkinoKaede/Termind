@@ -4,6 +4,10 @@ title: Settings, Vault, Metrics, and Cloud Sync Workflow
 description: How Termind independently synchronizes Vault, Settings, and Metrics through CloudKit, including lifecycle gates, durable journals, account and environment transitions, conflict handling, and AI-secret upload authorization.
 tags: [cloudkit, synchronization, settings, vault, metrics, secrets, swiftdata]
 sources:
+  - id: openwiki-source-dc7b363138921b0923d2dc2f
+    resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
+  - id: openwiki-source-7ca30f0e781e8c2df826b47a
+    resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
   - id: openwiki-source-9fbc733f79d51a7265ee9e4a
     resource: repo://Frameworks/TermindApplication/SettingsKey.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
@@ -62,10 +66,10 @@ sources:
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
     resource: repo://TFM/App/AppModel.swift
-generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # Settings, Vault, Metrics, and Cloud Sync Workflow
@@ -79,7 +83,7 @@ This workflow is CloudKit replication built around a SwiftData journal, not Swif
 | Category | Coordinator and zone | Content boundary | Default control |
 | --- | --- | --- | --- |
 | Vault | `VaultSyncCoordinator`; `TermindVaultV1`; `VaultItem` | Hosts, identities, SSH-key references, known hosts, snippets, forwarding rules, workspace templates, connection-history events, and the reusable device directory | `vault.sync.enabled` plus `icloud.sync.enabled` |
-| Settings | `SettingsSyncCoordinator`; `TermindAIConfigurationV1`; `AIConfigurationItem`, `SSHPreferencesItem`, and `SFTPPreferencesItem` | AI configuration, skills, search, terminal, SSH, and SFTP preferences—not credential material | `settings.sync.enabled` plus `icloud.sync.enabled` |
+| Settings | `SettingsSyncCoordinator`; `TermindAIConfigurationV1`; `AIConfigurationItem`, `SSHPreferencesItem`, `SFTPPreferencesItem`, and `WorkspacePreferencesItem` | AI configuration, skills, search, terminal, SSH, SFTP, and workspace preferences—not credential material | `settings.sync.enabled` plus `icloud.sync.enabled` |
 | Metrics | `MetricsSyncCoordinator`; `TermindMetricsV1`; `MetricsItem` | Persisted metrics selections, not samples or active monitoring | `metrics.sync.enabled` plus `icloud.sync.enabled` |
 
 All master and category switches default on. A category is enabled only when the master `SettingsKey.iCloudSyncEnabled` and that category’s key are enabled; an absent preference uses its category default. `SettingsKey.migrateSyncPreferences(in:)` migrates the old Settings selection and derives an initial master choice without discarding explicit opt-outs.
@@ -139,9 +143,9 @@ On fetch, coordinators process only their zone and accepted record types. They d
 
 Merge is deterministic: newer versions win; an older remote value causes the local value to be requeued. For equal versions whose payloads differ, encoded bytes provide a deterministic tie-breaker. Settings and Metrics additionally collapse multiple fetched versions of one key before deciding, so batch delivery order does not affect the result. A `serverRecordChanged` save failure runs the server record through the same validation path as a fetch. A supported envelope either establishes an identical local version as uploaded or requeues the winning local result; an unsupported envelope is quarantined instead of silently retrying a stale local payload. Successful sends clear `needsUpload` only if the journal still holds the sent version, so a newer local edit cannot be incorrectly acknowledged.
 
-Vault projections deliberately remove device-local presentation metadata from envelopes: group and package expansion is normalized rather than synchronized. The live V33 Identity shape no longer contains `lastUsedAt` usage metadata. Settings likewise excludes explicitly device-local defaults such as debug/logging, review history, and terminal font family/size/follow-theme-size. Settings record-type compatibility is intentional: SSH and SFTP preferences use distinct types in the Settings zone so older clients can ignore newer records before decoding.
+Vault projections deliberately remove device-local presentation metadata from envelopes: group and package expansion is normalized rather than synchronized. The live V33 Identity shape no longer contains `lastUsedAt` usage metadata. Settings likewise excludes explicitly device-local defaults such as debug/logging, review history, and terminal font family/size/follow-theme-size. Settings record-type compatibility is intentional: SSH, SFTP and workspace preferences use distinct types in the Settings zone so older clients can ignore newer records before decoding.
 
-Connection history is an exception to “configuration-only Vault” by design: each event is an independent `connectionHistory` Vault key using the same `VaultItem` record type and V1 envelope. Existing local events bootstrap even after the original Vault bootstrap completed. Insert, end-time update, deletion and clear reconcile history rows with the journal in one transaction; logical deletions use ordinary envelope tombstones. Remote events may arrive before their referenced Host and remain stored but hidden until that Host exists. After local or remote merge, deterministic start-time/UUID ordering retains the newest 300 and journals tombstones for the overflow, allowing devices to converge. Platform views then choose a stable-source-device local projection or the complete synchronized event stream.
+Connection history is an exception to “configuration-only Vault” by design: each event is an independent `connectionHistory` Vault key using the same `VaultItem` record type and V1 envelope. Existing local events bootstrap even after the original Vault bootstrap completed. Insert, end-time update, deletion and clear reconcile history rows with the journal in one transaction; logical deletions use ordinary envelope tombstones. Remote events may arrive before their referenced Host and remain stored but hidden until that Host exists. After local or remote merge, deterministic start-time/UUID ordering retains the newest 250 and journals tombstones for the overflow, allowing devices to converge. Launch-time pruning can discard overflow journal rows that never reached CloudKit; previously uploaded overflow receives tombstones. Platform views then choose a stable-source-device local projection or the complete synchronized event stream.
 
 The reusable device directory is a separate replication stream in the same Vault category. Each `DeviceRecord` uses a `.device` payload keyed by the stable installation ID; its repository upsert and journal envelope commit together independently of the event repository. Platform activation refreshes the current system display name, and app models invalidate the directory cache when remote `.device` keys arrive. Device reconciliation creates or updates records but does not tombstone mappings merely because they are absent locally, and connection-event retention, per-Host deletion, or Clear History never removes them.
 
@@ -152,7 +156,7 @@ A scoped quarantine entry is an upload restriction, not only a diagnostic. It re
 There are three outbound checks:
 
 1. **Journal eligibility:** return only unblocked pending names; keep the blocked row's `needsUpload` intent unchanged.
-2. **Restored queue and batch:** remove blocked names from the engine's scheduling state, reject physical deletes, and synchronously materialize only eligible saves. A batch uses no suspension between its final checks and handoff.
+2. **Restored queue and batch:** remove blocked names from the engine's scheduling state, reject physical deletes, and synchronously materialize at most 250 eligible saves per request. Invalid or blocked pending entries do not consume that record limit. A batch uses no suspension between its final checks and handoff.
 3. **Final record provider:** check current-engine readiness and the scoped restriction again, including the journal's outgoing-entry lookup. Lookup or persistence failure closes the category gate rather than treating an error as an empty restriction set.
 
 An acknowledgement for an already blocked record does not clear its local intent. Local tombstones and console-deletion recreation follow the same restriction; neither can overwrite unknown remote data. Other records in the category can keep syncing, including while the UI reports a partial restriction. Local editing remains possible, but the pending change is not represented as successfully synchronized.

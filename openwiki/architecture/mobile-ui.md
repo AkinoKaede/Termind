@@ -42,12 +42,14 @@ sources:
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-16ec96bd78162e7e62effd0e
+    resource: repo://TFITests/MobileConnectionPickerTests.swift
   - id: openwiki-source-11c91698354a4f95be3c4654
     resource: repo://TFITests/MobileWorkspaceMenuTests.swift
-generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
+generated: { by: "codex", at: "2026-09-23T00:59:31.979Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:59:31.979Z
 ---
 
 # TFI Mobile UI Architecture
@@ -143,7 +145,7 @@ The Workspaces destination and the Vault expose different projections over the s
 
 - Workspaces Recents uses only events from this installation, aggregates every protocol and attempt into one row per Host, and keeps the newest five Hosts. A primary tap uses current Host capability preference (SSH before Telnet); protocol context and swipe actions keep SSH, Telnet and SFTP visible while disabling unavailable choices. Deleting the aggregate clears that Host's events across devices.
 - Home Screen quick actions use the same local per-Host projection, publish at most three host-only `server.rack` items, and resolve the current preferred terminal protocol at activation. Older payloads that carried a protocol still decode, but that stale protocol is ignored.
-- Vault's History page follows Known Hosts and displays up to 100 individual events from every synchronized device. The leading symbol remains protocol-specific, while the right column and search resolve the event's `sourceDeviceID` through the reusable synchronized device directory. Row deletion removes one event; **Clear History** clears the complete timeline.
+- Vault's History page follows Known Hosts and displays up to 50 individual events from every synchronized device. The leading symbol remains protocol-specific, while the right column and search resolve the event's `sourceDeviceID` through the reusable synchronized device directory. Row deletion removes one event; **Clear History** clears the complete timeline.
 
 The unified Workspaces rows and local Recents align their text from the same 36-point Host distribution icon slot and
 12-point gap. Workspace rows always show protocol at the common right edge and only live runtimes overlay the status dot;

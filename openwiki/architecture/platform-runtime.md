@@ -16,6 +16,8 @@ sources:
     resource: repo://TFI/App/MobileSceneModel.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-9c78befae6b387426c603305
+    resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
   - id: openwiki-source-2c8d92432bb6dac7ede21141
@@ -30,16 +32,18 @@ sources:
     resource: repo://TFM/Features/Workspaces/Pane.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
+  - id: openwiki-source-68b5f4529ef349aac826b1d9
+    resource: repo://TFM/Platform/MacDeviceName.swift
   - id: openwiki-source-22e92f96394f292a731fc6fb
     resource: repo://TFM/Platform/MainWindowCoordinator.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
-generated: { by: "codex", at: "2026-09-22T10:02:02.985Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -70,7 +74,7 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 
 ## macOS composition
 
-`TermindApp.init()` is the desktop composition root. It determines whether it is running tests or a debug screenshot demo, constructs one SwiftData `ModelContainer`, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the reusable device directory, and the common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and DeviceKit's `Device.current.safeDescription`. Startup fails closed: an inability to open the local database calls `fatalError` rather than substituting an empty store.
+`TermindApp.init()` is the desktop composition root. It determines whether it is running tests or a debug screenshot demo, constructs one SwiftData `ModelContainer`, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the reusable device directory, and the common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and `MacDeviceName.current`: the trimmed `kern.hostname`, falling back to DeviceKit's `Device.current.safeDescription` when unavailable or empty. Startup fails closed: an inability to open the local database calls `fatalError` rather than substituting an empty store.
 
 ```mermaid
 flowchart TD
@@ -113,7 +117,7 @@ A host-opening action is centralized in `AppModel`, which chooses the requested 
 
 ### Desktop lifecycle and termination
 
-The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from DeviceKit's `Device.current.safeDescription`; the synchronized directory can therefore update without rewriting connection events. TFI performs the equivalent DeviceKit refresh on active-scene transitions. On termination the desktop app first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
+The AppKit delegate starts native appearance/login handling and, outside tests, starts metrics activity and the metrics menu once `AppModel` is available. On app activation it refreshes both entitlement state and the current `DeviceRecord` display name from `MacDeviceName.current`; the synchronized directory can therefore update without rewriting connection events. TFI refreshes its name directly from DeviceKit's `Device.current.safeDescription` on active-scene transitions. On termination the desktop app first checks for pending external edits; after user confirmation, it saves window sizing and invokes `AppModel.shutdownForTermination()`.
 
 Shutdown is deliberately idempotent and bounded by the delegate. It suspends memory and edit monitoring, stops metrics, speech, windows, SFTP work, external authentication, forwarding, and the outbox; concurrently awaits MCP and SFTP cancellation, then closes agent background commands and connection pools. The delegate replies to macOS when cleanup completes or after a three-second fallback, preventing an unbounded quit wait.
 
@@ -155,7 +159,7 @@ The app model wires cross-service invalidation at construction. Host deletion an
 
 `MobileAppModel`, rather than a scene, owns `workspaces` and the persisted descriptor list. `openWorkspace(_:)` first returns an already-live workspace; otherwise it validates the saved descriptor's Host, constructs the workspace, publishes it, and then starts its connection. Publishing before connecting is an invariant: multiple scenes selecting the same descriptor share an instance and cannot trigger duplicate first connections. A scene only selects/presents that shared workspace.
 
-Mobile persistence deliberately restores **descriptors, not sessions**. On cold launch `loadRecentWorkspaces()` reads descriptors, removes those whose Hosts are absent, and publishes no live workspace or connection; it also clears leftover Live Activities. A descriptor contains local identity/title/kind/duplicate-index information, while initial commands, paths, connection secrets, and transports stay outside it. Opening a saved descriptor connects it on demand. Closing removes both the live instance and descriptor; externally linked temporary workspaces are not persisted.
+Mobile persistence deliberately restores **descriptors, not sessions**. On cold launch `loadRecentWorkspaces()` reads descriptors, removes those whose Hosts are absent, and publishes no live workspace or connection; it also clears leftover Live Activities. A descriptor contains only workspace ID, Host ID, title, and connection kind, while initial commands, paths, connection secrets, and transports stay outside it. Opening a saved descriptor connects it on demand. Closing removes both the live instance and descriptor; externally linked temporary workspaces are not persisted.
 
 ### Mobile foreground and background boundaries
 

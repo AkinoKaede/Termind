@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:0b0ea65c8f99eafc07573ee48a92854ed136e4499e1a50382c1e7a9f6a57087b",
+  "pageVersion": "sha256:db9f09d0c4799f6c8ecc04c8b993af8c45c2c71fbb32827587c3c99c945c3c2b",
   "claims": [
     {
       "id": "claim_085ce722f39f48eea75366ec3b3f7554",
@@ -36,7 +36,7 @@
     },
     {
       "id": "claim_04df7977ba1a43bfba0b2585bc5f185a",
-      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; its current container uses TermindSchemaV33 and architecture tests reject @Model declarations outside TermindPersistence.",
+      "statement": "Persistence exclusively owns SwiftData models, versioned schemas, migrations, and ModelContainer construction; its current container uses TermindSchemaV34 and architecture tests reject @Model declarations outside TermindPersistence.",
       "evidence": [
         {
           "resource": "repo://AGENTS.md",
@@ -44,15 +44,15 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:91868100b77cc0aca7a6c119f4dfeb7c17fda8e21018788dff6b1b4bb709066c"
+          "version": "repo-file-v1:sha256:2decf5319e2a1302f86a30e9dd9066658885034b8edd637368d1a3e2f8025682"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:99027dc9f52c9df892fa1a52d5236e1b2940613ea5bc1bb23fc7b215c05f068e"
+          "version": "repo-file-v1:sha256:ad0b99e06c0a0817f6980a6a682f016a27d45d86fd8c378ab1036ae910712cd4"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:93f91b564371034f72c76c52581281fea35eebe77efa124b0f9668b4ed5b4034"
+          "version": "repo-file-v1:sha256:ca356c025f911101bbaf63a9a34b72736291043ed0fc0daa8dbedec972eac6b1"
         }
       ]
     },
@@ -62,11 +62,11 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:99027dc9f52c9df892fa1a52d5236e1b2940613ea5bc1bb23fc7b215c05f068e"
+          "version": "repo-file-v1:sha256:ad0b99e06c0a0817f6980a6a682f016a27d45d86fd8c378ab1036ae910712cd4"
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:1861792f3f00f64e974298d8d61e0d8b9538bb1e78d2c2f0cd8318359ee36290"
+          "version": "repo-file-v1:sha256:72bc88a9f06e31aca2ec86d3b13ba58773798d2a53742e63a0287edf971c7f25"
         },
         {
           "resource": "repo://TFI/App/TermindIOSApp.swift",
@@ -74,7 +74,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:38cd92e23d3ede988a474a1bc7ce819702e822216227cc5cb253ce7c1790b3d8"
+          "version": "repo-file-v1:sha256:4bc8de73959fb7b78ab29e7936fbeab9a5f13a0e0f7555d520d99ff2bd731cec"
         }
       ]
     },
@@ -148,11 +148,11 @@
     },
     {
       "id": "claim_af53e904e34a4a029b78a9356cc9b56e",
-      "statement": "Connection-history ownership is layered and independent from device naming: Domain defines events that reference sourceDeviceID, Application defines the history model/repository port, and Persistence owns event storage/journal transactions; the reusable DeviceRecord-to-name directory has its own Domain value, Application model/port, and Persistence repository, while both TFM and TFI supply DeviceKit's Device.current.safeDescription as their app-owned naming adapter.",
+      "statement": "Connection-history ownership is layered and independent from device naming: Domain defines events that reference sourceDeviceID, Application defines the history model/repository port, and Persistence owns event storage/journal transactions; the reusable DeviceRecord-to-name directory has its own Domain value, Application model/port, and Persistence repository, while TFM supplies trimmed kern.hostname with a DeviceKit fallback and TFI supplies DeviceKit's Device.current.safeDescription directly as their app-owned naming adapters.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/Repositories/ConnectionHistoryRepository.swift",
-          "version": "repo-file-v1:sha256:52a0371f6d25d3eaa7692a88d55cb6fe40487800882b96f592f1f1cc8f211059"
+          "version": "repo-file-v1:sha256:bc820384eb0b3010fde22d9c46b6847f41b982a0df9eb04fe5cbd52cb8ffd4d3"
         },
         {
           "resource": "repo://Frameworks/TermindApplication/Repositories/DeviceDirectoryRepository.swift",
@@ -168,7 +168,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataConnectionHistoryRepository.swift",
-          "version": "repo-file-v1:sha256:e0468dec12004d9d8552b2f0d7745008a17b0271f20b65c1b425d9b917e0319a"
+          "version": "repo-file-v1:sha256:4444aea2b60d28d150e05778ddf9fb71bbd535e6773a2043cb6405cf32406c2b"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
@@ -176,17 +176,21 @@
         },
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:1861792f3f00f64e974298d8d61e0d8b9538bb1e78d2c2f0cd8318359ee36290"
+          "version": "repo-file-v1:sha256:72bc88a9f06e31aca2ec86d3b13ba58773798d2a53742e63a0287edf971c7f25"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:38cd92e23d3ede988a474a1bc7ce819702e822216227cc5cb253ce7c1790b3d8"
+          "version": "repo-file-v1:sha256:4bc8de73959fb7b78ab29e7936fbeab9a5f13a0e0f7555d520d99ff2bd731cec"
+        },
+        {
+          "resource": "repo://TFM/Platform/MacDeviceName.swift#L5-L29",
+          "version": "repo-lines-v1:sha256:2e3a802d84fd2b017f0074f76c3ef896d3127453e0142f3a054521e823ba686f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIzZWIyNmFmMDY4MGI1ZTY3MGVmYjZkZGRhNjRmNGEyMzVmNDhmNTE2N2NlMWY4OTYwMDQ0MDU0MGE1OWRkMzIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVlNGQzYWNkOTllYjdjOGNhNzFkNzZjODJjMTIxOTcxNzU5YjBlOTFmODVlNzhhNWQ1NDJlOWUzNWQ4ODFhODUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T11:34:21.807Z"
+    "at": "2026-09-23T00:14:42.075Z"
   }
 }

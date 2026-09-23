@@ -44,10 +44,10 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-22T11:34:21.807Z" }
+generated: { by: "codex", at: "2026-09-23T00:14:42.075Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T11:34:21.807Z
+    at: 2026-09-23T00:14:42.075Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -94,9 +94,9 @@ The safety fixture substitutes only the CloudKit transport. It uses the producti
 
 Disk-backed tests separately migrate a V30 store to V31, import legacy quarantine, reopen interrupted state and verify that journal intent and recovery flags survive. Scope tests vary container, environment, account, zone and owner independently. Lifecycle tests hold fetches and inject persistence/lookup failures, exercise overlapping explicit operations and automatic callbacks, and prove that an old or failed engine cannot reopen upload authorization.
 
-Connection-history coverage adds a V31-to-V32 disk migration, Vault codec/merge/tombstone tests, event start/end lifetime checks, stable local-device filtering and deterministic retention of 300 stored events. Migration and sync tests also verify the independent generic device directory: old events receive the installation ID, a separate `DeviceRecord` is created, and changing that record's name updates resolution without rewriting events. Desktop tests distinguish local Welcome Recents from the 100-row all-device sidebar projection. Mobile tests distinguish local per-Host Recents and host-only quick actions from the 100-event Vault History page, including preferred SSH/Telnet activation, disabled protocol actions, device-name search and multilingual light/dark screenshots. Serial remains outside the connection-history enum and mobile workspace routes.
+Connection-history coverage adds a V31-to-V34 disk migration, Vault codec/merge/tombstone tests, event start/end lifetime checks, stable local-device filtering and deterministic retention of 250 stored events. Migration and sync tests also verify the independent generic device directory: old events receive the installation ID, a separate `DeviceRecord` is created, and changing that record's name updates resolution without rewriting events. Desktop tests distinguish local Welcome Recents from the 100-row all-device sidebar projection. Mobile tests distinguish local per-Host Recents and host-only quick actions from the 50-event Vault History page, including preferred SSH/Telnet activation, disabled protocol actions, device-name search and multilingual light/dark screenshots. Serial remains outside the connection-history enum and mobile workspace routes.
 
-Compatibility coverage continues through V33: the V32-to-V33 fixture verifies that removing Identity usage metadata preserves Identity configuration and its independent Vault journal modification date.
+The same direct V31-to-V34 fixture verifies that removing Identity usage metadata preserves Identity configuration and its independent Vault journal modification date, and that workspace preferences bootstrap with defaults. V32 and V33 are not distributed migration endpoints.
 
 These tests do not prove unknown-field round trips through an actual historical binary, Production schema deployment, or signed-device delivery. Keep those checks in [CloudKit Release Readiness](../operations/cloudkit-release-readiness.md); a fake transport passing is not evidence that iCloud has delivered a record.
 
@@ -123,7 +123,7 @@ Those tests are intentionally actor-driven and use polling only to wait for obse
 
 External connection URLs are another ownership boundary: opening one creates an ephemeral workspace and does not create a Vault host or saved workspace descriptor. Conversely, closing all workspaces disconnects each live workspace and is repeatable. Background-expiration tests provide a controlled connection service and cover resume intent, foreground recovery, and rejection of retired callbacks. A lifecycle change must preserve the appropriate one of these contracts rather than merely asserting that a view updates.
 
-`MobileWorkspaceStoreTests` protects the device-local restoration format. The store contains connection intent only—workspace descriptor identity, host reference, title, kind, and duplicate index—not credentials, commands, or live session state. It migrates legacy arrays into the versioned snapshot while allocating missing duplicate indices deterministically by host and kind. If bytes are malformed, unknown-version, or invalid, loading and later saving fail while the original bytes remain untouched; a successful load is required before replacement. Add a fixture for every format transition and for corruption behavior, because silently replacing unreadable restoration data with an empty list loses recoverable user state.
+`MobileWorkspaceStoreTests` protects the device-local restoration format. The store contains connection intent only—workspace descriptor identity, host reference, title and kind—not credentials, commands, duplicate indices or live session state. It migrates legacy arrays into the versioned snapshot while preserving IDs, titles and kinds and discarding legacy indices. If bytes are malformed, unknown-version, or invalid (including duplicate IDs), loading and later saving fail while the original bytes remain untouched; a successful load is required before replacement. Add a fixture for every format transition and for corruption behavior, because silently replacing unreadable restoration data with an empty list loses recoverable user state.
 
 ## Fixture design rules
 

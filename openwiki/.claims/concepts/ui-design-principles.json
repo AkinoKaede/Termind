@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:3c9dd812481bbfb7ac06fdb0073a97ba6a5d2d2966f90d7619e1c7d1d5fc6319",
+  "pageVersion": "sha256:2ea45885f28729e3e1c545ea046ac5d552d5ad17465af3efc9beccb6755bc299",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -98,7 +98,7 @@
         },
         {
           "resource": "repo://TFM/Features/HostEditor/HostEditorView.swift#L8-L100",
-          "version": "repo-lines-v1:sha256:61f6f4836f9c752b4a98127700de4b5e4e05c6af251cf6e19c01b00df95fdef4:eyJzZWxlY3RlZExpbmVDb3VudCI6OTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijk3Y2Q5ODQ4ZjJkY2Y0M2VjZmQ0MGVlODYxZDNjZTI1OWU5NjQxMDAxZDdlNjIwNDk2N2YwMzE0MDY2NTY2NDciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA4ODc1MTVlMzgwNGJlM2RiZGU3YjIzNmNiMWE2N2ZhODg3MTNkYWMyNTM3OGU4NjcwN2YyNGVmMDg1MDQ0NzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNkYTMxMmZlMTU1NzA0MzkzMzRiYzkwMGRiNDQyOTUzNjJmMzg5ZjVjNmVkOGU0MTViODIyYzBmN2YwNDJjNDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjJjNTM0OGE3MjlmMjNmOGM1MTFlZjEzYWI4NTk4YjhjMWZmYmYzOTY4MDhlNjk4YWEzOTFkOThlYmUyMDQ3OGMifQ"
+          "version": "repo-lines-v1:sha256:49673a299a1dad2236e522503b138500311be62416728477bb1efaf1b282477d:eyJzZWxlY3RlZExpbmVDb3VudCI6MTQ3LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5N2NkOTg0OGYyZGNmNDNlY2ZkNDBlZTg2MWQzY2UyNTllOTY0MTAwMWQ3ZTYyMDQ5NjdmMDMxNDA2NjU2NjQ3IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiIwODg3NTE1ZTM4MDRiZTNkYmRlN2IyMzZjYjFhNjdmYTg4NzEzZGFjMjUzNzhlODY3MDdmMjRlZjA4NTA0NDc0IiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJjZGEzMTJmZTE1NTcwNDM5MzM0YmM5MDBkYjQ0Mjk1MzYyZjM4OWY1YzZlZDhlNDE1YjgyMmMwZjdmMDQyYzQ4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiIyYzUzNDhhNzI5ZjIzZjhjNTExZWYxM2FiODU5OGI4YzFmZmJmMzk2ODA4ZTY5OGFhMzkxZDk4ZWJlMjA0NzhjIn0"
         }
       ]
     },
@@ -189,10 +189,106 @@
           "version": "repo-lines-v1:sha256:36c22131a55ec5b65823348af839c0293b5a92ddefbe81767e35d7639cd91675:eyJzZWxlY3RlZExpbmVDb3VudCI6ODksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImUwYTE2OTVjOWVlODY1YjZlODA3Nzc2NWVmZDRhYjFkOGZmN2YzM2ZmY2EzNDExNGIxYTg5Zjk2ZTczOGFkYjEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
         }
       ]
+    },
+    {
+      "id": "claim_f313061b243e4f7fa6f1db50dbba001a",
+      "statement": "Both apps consume binding-driven TerminalFontFields with the shared 8–36 editing range, using a macOS Slider and iOS Stepper. App-owned font catalogs include any family with a loadable monospaced member, sort in localized order and refresh on settings appearance or scene activation; unavailable family choices remain stored while rendering resolves a copy.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift",
+          "version": "repo-file-v1:sha256:c93baa0f2e250a82d0885a552a876132c642e95a26dd4b62753719eefe5f00dc"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalFontFields.swift",
+          "version": "repo-file-v1:sha256:c119424e412062df06cd4a3ca4acfe9f5825e21f042ae615f7c62979f24ddb8e"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalFontPicker.swift",
+          "version": "repo-file-v1:sha256:50d5bcef66143d4630cd81b0fbfe5f6a2b3a83db89335b55651ef00174fc8230"
+        },
+        {
+          "resource": "repo://TFI/Features/Settings/MobileTerminalSettingsView.swift#L6-L27",
+          "version": "repo-lines-v1:sha256:db0f6ac319ebe6e659670cb3fd3961daab53fc6bb6cca98bd301196b4a94cb2c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFlZWQ0ODIzYWM5OWFkMjBjNDQ4YTY5NTNiZDAxMDI0ZjhmZTNiZGE5YWE4Nzk4NTI3Yzk3MmVmN2I2NzRiNGEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdmODMzMmZhOTk2MTExMDJiYjgyOTEzYTZjMDFlYWU5N2Q3OTMyN2JlNTViZTY1ODYxMDM3Y2Y0OGRmYWQ5MjIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdjODk1ZjdlZDQ0MWRhOTBjNGEwMzliZjFkNzg2YWYzMjg2YmY2YmZjMjgxZjM3ODQ5MzIzNTczNjk4M2YzYjMifQ"
+        },
+        {
+          "resource": "repo://TFI/Platform/TerminalFontCatalog.swift",
+          "version": "repo-file-v1:sha256:458044744f770958bc9ab87d9824ecffe182f5cabfeaecef8156906ae8a9f96b"
+        },
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift",
+          "version": "repo-file-v1:sha256:0c4e6f0881eead2da90bc782396a7c7c069a85a6ede7f2f4fdd23bc6233ecb1a"
+        },
+        {
+          "resource": "repo://TFM/Platform/TerminalFontCatalog.swift",
+          "version": "repo-file-v1:sha256:c1792c30b77feda7f8f0f61b0c8c632b29e85f9d6debc5bb10a271d4924aee45"
+        }
+      ]
+    },
+    {
+      "id": "claim_1e008bed54f24db1af88acb888b9c932",
+      "statement": "TerminalFontSettings stores typography locally through AppStorage, separately from synchronized TerminalPreferences; TerminalSettingsModel persists preference edits before publishing and retains existing preferences on a save failure while exposing storageError.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindApplication/FeatureModels/TerminalSettingsModel.swift",
+          "version": "repo-file-v1:sha256:eb5cf53c8644858b49d6f711d4743dfe86248ecbb530d2b832506a373091ed08"
+        },
+        {
+          "resource": "repo://Frameworks/TermindDomain/Sessions/TerminalFontPreferences.swift",
+          "version": "repo-file-v1:sha256:c93baa0f2e250a82d0885a552a876132c642e95a26dd4b62753719eefe5f00dc"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalFontSettings.swift",
+          "version": "repo-file-v1:sha256:e59c85ba12335af1a05e03b26a4ddd4d9ecfc6573952dad2b4961831e017437c"
+        }
+      ]
+    },
+    {
+      "id": "claim_4556ccaeb3eb45819c67c7edb0d5f37b",
+      "statement": "TerminalThemePicker retains missing, empty or wrong-appearance selection values with a localized hint while the renderer chooses an appearance-specific fallback without writing preferences. Rendering applies base theme, custom overlay and local typography in order; the base picker remains editable with overlays. Desktop custom editing autosaves and imports files, while mobile explicitly saves a draft sheet.",
+      "evidence": [
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift#L60-L96",
+          "version": "repo-lines-v1:sha256:4913d1b987cc2081c776971d909d256779a51d26723c42bad5ae9e09e5a30e02:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwNTEyZTQ4YzcxZWY3NmY3NDdmZGQxYThmYzZiMjlkMTQxZWM0NTA5ZTllNzMzMmQ4MzNjYjdmOGU5MzIzZjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjkxMjg4YmU0Y2U3ZTdmMDAyNTdiODBlMmY2NGI1NGY3MjNiODBjZGYwNmFkZThmYmQ1ODhmYTg0NjkzYjc4ODEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRmYzUzMjljZTc1ZGEyMmZhOWIzODhiMDVmZmQ5NjhhZTg5YmQ1MzRiOTg1ODFlOTFlOTg1OWUyYTE1OTAyZTEifQ"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Terminal/TerminalThemePicker.swift",
+          "version": "repo-file-v1:sha256:1531a49920dd29ec27794a8c0113cd62601cb025e9263e1714942238c2dc106c"
+        },
+        {
+          "resource": "repo://TFI/Features/Settings/MobileTerminalSettingsView.swift",
+          "version": "repo-file-v1:sha256:47527034489c9cedc0dc531e2524553e5e6f4bcfaae73233f3ca5833d5299180"
+        },
+        {
+          "resource": "repo://TFM/Features/Settings/SettingsPageView.swift#L680-L726",
+          "version": "repo-lines-v1:sha256:49d4b62cae29977d89d76b80a4c2a92de212e127217474382144e30452d744bc:eyJzZWxlY3RlZExpbmVDb3VudCI6NDcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQyZWYyOGVjNTZhMzkyZGI1NDEzNGI2YzBmYzVlN2QyM2QzMDNlNjIxMzFmMDA0ODMzNWE2ZmE0M2JkZTUwYmEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImYwZjY1YWFhMDIxZWI3NTc1YjZmNWIzYjc0OWM1ZTk2N2FlNTFkNDZlOGQ1YjYwN2FlNDJmZTdiZTkyYmMzMjgiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjljZWYwZTgzNDcyNDgwMWQwN2I4N2YzZmY3YmYwNTAzZjBmZGRmODlmZTQwNGMxNTUwMGM4MWY0ZGRmOTI1NjIifQ"
+        },
+        {
+          "resource": "repo://TFM/Features/Settings/TerminalCustomConfigurationEditorSheet.swift#L88-L149",
+          "version": "repo-lines-v1:sha256:a9895ec2bcad6c2f2ae96c2e28c6012a07a88f8c59aa87e94762f84f17277032:eyJzZWxlY3RlZExpbmVDb3VudCI6NjIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImY5NjY2OGNjZjFjZDBlYzYwYjE1YjY2MDEwZTBjZDJiZjJiNjgzNjA4NmFiYzM3MDgyNzY2YTU4NzdkMWM5NDgiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc5NmRiNmJiZmE2NTc0MWZjMjUzNGZhNWE4NzAyM2JhZTY1NTY1M2NmZGQyYzdmM2Q1YzRkMmU2MTYxYjA2MjkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoxLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_adb6b4c166494ec084899f3ae35c379d",
+      "statement": "Focused terminal tests verify complete macOS monospaced-family membership, local-font precedence and controller identity, filtered theme catalogs and fallback, overlay/base interaction, and zero writes on presenting the actual desktop settings page; mobile font rendering tests cover English and both Chinese variants.",
+      "evidence": [
+        {
+          "resource": "repo://TFITests/MobileTerminalFontTests.swift",
+          "version": "repo-file-v1:sha256:49fe7d9938c969c0d56269a3b89d4497496ce107f76db3e65f9c77d8dd85f050"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalFontRenderingTests.swift",
+          "version": "repo-file-v1:sha256:6055de0f0e82e9c220a70f0954052c644cfbebdb07ee51d2b79afea4bdff947f"
+        },
+        {
+          "resource": "repo://TFMTests/TerminalThemeTests.swift",
+          "version": "repo-file-v1:sha256:486afc2bf3721fee357282fdd83470fcd029c99f029f17b66f3c4f634305e662"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T09:51:39.958Z"
+    "at": "2026-09-23T00:14:42.075Z"
   }
 }
