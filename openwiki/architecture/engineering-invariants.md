@@ -10,6 +10,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
     resource: repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift
+  - id: openwiki-source-1c48f72c0c7a3164d7d5c715
+    resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
   - id: openwiki-source-5c91b796f7e6d651aedf3023
     resource: repo://Frameworks/TermindApplication/FeatureModels/CommandHistoryModel.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
@@ -36,6 +38,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
+  - id: openwiki-source-28d6772acb1a409d29ff1973
+    resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-7a9c6d90cba4ebd1d1398673
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
@@ -110,10 +114,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T02:40:53.789Z" }
+generated: { by: "codex", at: "2026-09-23T03:34:06.838Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T02:40:53.789Z
+    at: 2026-09-23T03:34:06.838Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -506,6 +510,14 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
   history/preparation work before its interrupted save; stale captures cannot edit or start. Archive/delete cancel pending preparation,
   manual compaction refuses it, and navigation alone leaves it running. See [Assistant Runtime](/openwiki/concepts/agent-runtime-and-assistant.md)
   for the preparation boundary and existing runtime/recovery limitations.
+- History edits validate before persistence and publish their live replacement only after truncation commits. The boundary is the selected
+  user message in canonical run/message order, not its whole run: retain the same-run prefix and owned tool graph with a neutral completed
+  summary, remove the suffix and later runs, and prune compactions by removed message IDs. Compacted display history still informs ownership
+  and opening-title preservation. See [Persistent Data](/openwiki/concepts/persistence-and-secrets.md) for graph cleanup and rollback.
+- An edited replacement initially owns a staging run whose ID equals its message ID. The first real snapshot transaction adopts only that
+  staged row and deletes the staging run; historical replay rows keep their owners. Live running, failed and interrupted projections use
+  the same provenance and preserve the staging chronology lower bound. Retired run IDs reject late saves/events in the repository instance.
+  This is not universal persist-before-publish: missing-model/credential failures still project live before their asynchronous save.
 - Project tool output once before `toolFinished`: bounded preview and scratch reference, retaining crash/replay metadata and paging offsets.
   Later completion never shortens earlier results; `sftp_read`/`scratch_read` report complete lines/truthful offsets.
 - Terminal suggestions use latest delivered user snapshot, not focus. Surface availability is partial and does not restrict independent SSH/
