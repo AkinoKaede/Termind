@@ -644,7 +644,6 @@ public actor SSHPTYChannel {
     public typealias ExitHandler = @Sendable (Result<Int32, TermindSSHError>) -> Void
     public typealias ShellIntegrationHandler = @Sendable (SSHShellIntegrationEvent) -> Void
     public typealias EnvironmentRejectionHandler = @Sendable ([String]) -> Void
-    public typealias CharsetErrorHandler = @Sendable (String) -> Void
 
     private nonisolated let worker: SSHPTYChannelWorker
     private let keyboardInteractive: SSHKeyboardInteractiveHandler?
@@ -750,10 +749,6 @@ public actor SSHPTYChannel {
         environmentRejection = rejection
     }
 
-    public func configureCharsetErrors(_ handler: @escaping CharsetErrorHandler) {
-        worker.setCharsetErrorHandler(handler)
-    }
-
     public func write(_ data: Data) {
         worker.write(data)
     }
@@ -776,8 +771,6 @@ public actor SSHPTYChannel {
 }
 
 nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
-    private static let bracketedPasteStart = Data("\u{1B}[200~".utf8)
-    private static let bracketedPasteEnd = Data("\u{1B}[201~".utf8)
     private static let initialization: Void = {
         precondition(libssh2_init(0) == 0, "libssh2 initialization failed")
     }()
@@ -806,7 +799,6 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
     private var inputConverter: RemoteCharsetStreamConverter?
     private var outputConverter: RemoteCharsetStreamConverter?
     private var workingDirectoryFilter: RemoteOSC7CharsetFilter?
-    private var charsetErrorHandler: SSHPTYChannel.CharsetErrorHandler = { _ in }
     private var didReportExit = false
     private var sftpChannelOwner: SSHMultiplexedSFTPChannelOwner!
 
@@ -1199,24 +1191,10 @@ nonisolated final class SSHPTYChannelWorker: @unchecked Sendable {
                 integration.noteUserInput()
                 shellIntegration = integration
             }
-            do {
-                let converted = try inputConverter?.convert(data).data ?? data
-                if !converted.isEmpty { pendingWrites.append(converted) }
-            } catch {
-                if data.range(of: Self.bracketedPasteStart) != nil {
-                    pendingWrites.append(Self.bracketedPasteStart)
-                }
-                if data.range(of: Self.bracketedPasteEnd) != nil {
-                    pendingWrites.append(Self.bracketedPasteEnd)
-                }
-                charsetErrorHandler(error.localizedDescription)
-            }
+            let converted = (try? inputConverter?.convert(data).data) ?? data
+            if !converted.isEmpty { pendingWrites.append(converted) }
             pump()
         }
-    }
-
-    func setCharsetErrorHandler(_ handler: @escaping SSHPTYChannel.CharsetErrorHandler) {
-        queue.async { self.charsetErrorHandler = handler }
     }
 
     public func resize(columns: UInt16, rows: UInt16, widthPixels: UInt32, heightPixels: UInt32) {

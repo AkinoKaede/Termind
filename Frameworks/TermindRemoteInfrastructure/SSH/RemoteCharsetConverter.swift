@@ -38,8 +38,9 @@ public nonisolated struct RemoteCharsetConversionError: LocalizedError, Sendable
     }
 }
 
-/// A stateful iconv adapter. Encoding is strict. Decoding preserves malformed
-/// source bytes verbatim so receiving text never interrupts a byte stream.
+/// A stateful iconv adapter that preserves unconvertible source bytes verbatim.
+/// Valid input is converted while malformed, incomplete, or unrepresentable bytes
+/// remain in place so Charset conversion never interrupts a byte stream.
 public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable {
     public enum Direction: Sendable { case encoding, decoding }
 
@@ -68,11 +69,8 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         let destination = direction == .encoding ? charset.iconvName : RemoteCharset.utf8.iconvName
         let descriptor = iconv_open(destination, source)
         guard descriptor != iconv_t(bitPattern: -1) else {
-            if direction == .decoding {
-                self.descriptor = nil
-                return
-            }
-            throw RemoteCharsetConversionError(charset: charset, direction: .encoding)
+            self.descriptor = nil
+            return
         }
         self.descriptor = descriptor
     }
@@ -82,8 +80,8 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
     }
 
     /// Converts one stream fragment. Incomplete source characters are retained.
-    /// Decoding bypasses malformed source bytes verbatim. Encoding can optionally
-    /// discard invalid UTF-8 input with `recoveringInvalidInput`.
+    /// Bytes that cannot be converted are emitted verbatim. The recovery argument
+    /// remains for source compatibility; conversion no longer rejects input.
     public func convert(_ data: Data, recoveringInvalidInput: Bool = false) throws -> Output {
         try lock.withLock {
             try convertLocked(data, recoveringInvalidInput: recoveringInvalidInput)
@@ -94,7 +92,7 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         var source = pending
         source.append(data)
         pending.removeAll(keepingCapacity: true)
-        if direction == .decoding, charset == .utf8 || descriptor == nil {
+        if charset == .utf8 || descriptor == nil {
             return Output(data: source, rejectedInput: false)
         }
         do {
@@ -108,7 +106,7 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         }
     }
 
-    /// Finishes the stream. An incomplete trailing character is rejected.
+    /// Finishes the stream, emitting an incomplete trailing character verbatim.
     public func finish(recoveringInvalidInput: Bool = false) throws -> Output {
         try lock.withLock {
             try finishLocked(recoveringInvalidInput: recoveringInvalidInput)
@@ -119,6 +117,9 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         defer {
             pending.removeAll(keepingCapacity: false)
             reset()
+        }
+        if charset == .utf8 || descriptor == nil {
+            return Output(data: pending, rejectedInput: false)
         }
         let converted = try convert(pending, final: true, recoveringInvalidInput: recoveringInvalidInput)
         return Output(data: converted.output, rejectedInput: converted.rejectedInput)
@@ -138,20 +139,16 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         return String(decoding: output, as: UTF8.self)
     }
 
-    private var errorDirection: RemoteCharsetConversionError.Direction {
-        direction == .encoding ? .encoding : .decoding
-    }
-
     private func convert(
         _ data: Data, final: Bool, recoveringInvalidInput: Bool
     ) throws -> Conversion {
+        _ = recoveringInvalidInput
         var bytes = Array(data)
         defer { _ = bytes.withUnsafeMutableBytes { $0.initializeMemory(as: UInt8.self, repeating: 0) } }
         var output = Data()
-        var rejectedInput = false
         var remainder = Data()
 
-        try bytes.withUnsafeMutableBytes { rawBuffer in
+        bytes.withUnsafeMutableBytes { rawBuffer in
             var input = rawBuffer.baseAddress?.assumingMemoryBound(to: CChar.self)
             var inputCount = rawBuffer.count
 
@@ -176,26 +173,15 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
                     }
                     inputCount = 0
                 case EINVAL, EILSEQ:
-                    guard input != nil, inputCount > 0 else {
-                        throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
-                    }
-                    if direction == .decoding {
-                        output.append(UInt8(bitPattern: input!.pointee))
-                    } else {
-                        guard recoveringInvalidInput else {
-                            throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
-                        }
-                        rejectedInput = true
-                    }
+                    guard let currentInput = input, inputCount > 0 else { return }
+                    output.append(UInt8(bitPattern: currentInput.pointee))
                     self.reset()
                     inputCount -= 1
                     // iconv updates `input`; advance past the bypassed source byte.
-                    input = input?.advanced(by: 1)
+                    input = currentInput.advanced(by: 1)
                 default:
-                    guard direction == .decoding, input != nil, inputCount > 0 else {
-                        throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
-                    }
-                    output.append(Data(bytes: input!, count: inputCount))
+                    guard let input, inputCount > 0 else { return }
+                    output.append(Data(bytes: input, count: inputCount))
                     self.reset()
                     inputCount = 0
                 }
@@ -203,17 +189,10 @@ public nonisolated final class RemoteCharsetStreamConverter: @unchecked Sendable
         }
 
         if final, !remainder.isEmpty {
-            if direction == .decoding {
-                output.append(remainder)
-                remainder.removeAll()
-            } else if recoveringInvalidInput {
-                rejectedInput = true
-                remainder.removeAll()
-            } else {
-                throw RemoteCharsetConversionError(charset: charset, direction: errorDirection)
-            }
+            output.append(remainder)
+            remainder.removeAll()
         }
-        return Conversion(output: output, remainder: remainder, rejectedInput: rejectedInput)
+        return Conversion(output: output, remainder: remainder, rejectedInput: false)
     }
 
     private func reset() {

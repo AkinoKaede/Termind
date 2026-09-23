@@ -28,7 +28,6 @@ final class SerialSessionModel: Identifiable {
     private(set) var configuration: SerialConnectionConfiguration
     var status: ConnectionStatus = .disconnected
     var hasUnreadOutput = false
-    var charsetError: String?
     @ObservationIgnored lazy var find = TerminalFindController(
         perform: { [weak self] in self?.performFind($0) },
         focus: { [weak self] in self?.requestTerminalFocus() }
@@ -86,7 +85,6 @@ final class SerialSessionModel: Identifiable {
 
     func connect() {
         startsOnMount = false
-        charsetError = nil
         connectionTask?.cancel()
         let previousConnection = connection
         connection = nil
@@ -165,13 +163,7 @@ final class SerialSessionModel: Identifiable {
     func handleTerminalWrite(_ data: Data, interactive: Bool) {
         guard let connection else { return }
         let source = interactive ? configuration.transformInteractiveInput(data) : data
-        let output: Data
-        do {
-            output = try inputConverter.convert(source).data
-        } catch {
-            if charsetError == nil { charsetError = error.localizedDescription }
-            return
-        }
+        let output = (try? inputConverter.convert(source).data) ?? source
         if interactive, configuration.localEcho { terminalSurface.receive(source) }
         Task {
             do { try await connection.write(output) } catch {
@@ -210,18 +202,10 @@ struct SerialTerminalView: View {
             journey: session.connectionJourney,
             isVisible: isVisible,
             requestsFocus: requestsFocus,
-            charsetError: charsetError,
             connectIfNeeded: session.connectIfNeeded,
             retry: session.connect,
             requestFocus: session.requestTerminalFocus,
             closePane: closePane
-        )
-    }
-
-    private var charsetError: Binding<String?> {
-        Binding(
-            get: { session.charsetError },
-            set: { session.charsetError = $0 }
         )
     }
 

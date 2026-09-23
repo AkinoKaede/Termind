@@ -89,7 +89,6 @@ nonisolated final class TerminalInteractiveInputCapture: @unchecked Sendable {
 
 private struct DesktopTerminalChrome: ViewModifier {
     let state: TerminalViewState
-    @Binding var charsetError: String?
     @TerminalAppearanceSettings private var appearance
 
     func body(content: Content) -> some View {
@@ -101,27 +100,12 @@ private struct DesktopTerminalChrome: ViewModifier {
             .onChange(of: appearance) { _, value in
                 state.applyPreferences(value.preferences, font: value.font)
             }
-            .alert(TermindCopy.Terminal.charsetError.swiftUIKey, isPresented: charsetErrorPresented) {
-                Button(TermindCopy.Common.ok.swiftUIKey, role: .cancel) { charsetError = nil }
-            } message: {
-                Text(charsetError ?? "")
-            }
-    }
-
-    private var charsetErrorPresented: Binding<Bool> {
-        Binding(
-            get: { charsetError != nil },
-            set: { if !$0 { charsetError = nil } }
-        )
     }
 }
 
 extension View {
-    func desktopTerminalChrome(
-        state: TerminalViewState,
-        charsetError: Binding<String?>
-    ) -> some View {
-        modifier(DesktopTerminalChrome(state: state, charsetError: charsetError))
+    func desktopTerminalChrome(state: TerminalViewState) -> some View {
+        modifier(DesktopTerminalChrome(state: state))
     }
 }
 
@@ -133,7 +117,6 @@ struct SimpleDesktopTerminalView: View {
     let journey: ConnectionJourney
     let isVisible: Bool
     let requestsFocus: Bool
-    @Binding var charsetError: String?
     let connectIfNeeded: () -> Void
     let retry: () -> Void
     let requestFocus: () -> Void
@@ -149,7 +132,7 @@ struct SimpleDesktopTerminalView: View {
             isVisible: isVisible,
             requestsFocus: requestsFocus && !journey.isPresented
         )
-        .desktopTerminalChrome(state: state, charsetError: $charsetError)
+        .desktopTerminalChrome(state: state)
         .overlay { connectionJourney }
         .focused($focused)
         .onAppear {

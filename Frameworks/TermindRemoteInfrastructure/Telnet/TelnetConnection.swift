@@ -7,7 +7,6 @@ import TermindDomain
 public nonisolated final class TelnetConnection: @unchecked Sendable {
     public typealias OutputHandler = @Sendable (Data) -> Void
     public typealias EventHandler = @Sendable (TelnetConnectionEvent) -> Void
-    public typealias ErrorHandler = @Sendable (String) -> Void
     public typealias CloseHandler = @Sendable (String?) -> Void
 
     private let worker: TelnetConnectionWorker
@@ -15,11 +14,9 @@ public nonisolated final class TelnetConnection: @unchecked Sendable {
     public init(
         output: @escaping OutputHandler,
         event: @escaping EventHandler = { _ in },
-        charsetError: @escaping ErrorHandler = { _ in },
         closed: @escaping CloseHandler = { _ in }
     ) {
-        worker = TelnetConnectionWorker(
-            output: output, event: event, charsetError: charsetError, closed: closed)
+        worker = TelnetConnectionWorker(output: output, event: event, closed: closed)
     }
 
     public func connect(
@@ -42,7 +39,6 @@ private nonisolated final class TelnetConnectionWorker: @unchecked Sendable {
     private let queue = DispatchQueue(label: "com.akinokaede.termind.telnet")
     private let output: TelnetConnection.OutputHandler
     private let event: TelnetConnection.EventHandler
-    private let charsetError: TelnetConnection.ErrorHandler
     private let closed: TelnetConnection.CloseHandler
 
     private var connection: NWConnection?
@@ -65,12 +61,10 @@ private nonisolated final class TelnetConnectionWorker: @unchecked Sendable {
     init(
         output: @escaping TelnetConnection.OutputHandler,
         event: @escaping TelnetConnection.EventHandler,
-        charsetError: @escaping TelnetConnection.ErrorHandler,
         closed: @escaping TelnetConnection.CloseHandler
     ) {
         self.output = output
         self.event = event
-        self.charsetError = charsetError
         self.closed = closed
     }
 
@@ -236,12 +230,8 @@ private nonisolated final class TelnetConnectionWorker: @unchecked Sendable {
         guard !data.isEmpty else { return }
         queue.async { [self] in
             guard connection != nil else { return }
-            do {
-                let encoded = try inputConverter?.convert(data).data ?? data
-                sendApplicationData(encoded)
-            } catch {
-                charsetError(error.localizedDescription)
-            }
+            let encoded = (try? inputConverter?.convert(data).data) ?? data
+            sendApplicationData(encoded)
         }
     }
 
@@ -381,9 +371,8 @@ private nonisolated final class TelnetConnectionWorker: @unchecked Sendable {
         sendApplicationLine(encoded)
     }
 
-    private func failAutomaticLogin(_ error: any Error) {
+    private func failAutomaticLogin(_: any Error) {
         configuration?.clearSecret()
-        charsetError(error.localizedDescription)
         event(.continuingManually)
         markReady()
     }

@@ -63,7 +63,6 @@ final class SSHSessionModel: Identifiable {
         RemotePath.displayed(path, home: homeResolution)
     }
     var hasUnreadOutput: Bool = false
-    var charsetError: String?
     /// History for an unsaved Quick Connect destination. Saved Hosts use the
     /// app-wide CommandHistoryModel instead so every window sees the same list.
     private(set) var transientCommandHistory: [CommandHistoryEntry] = []
@@ -361,7 +360,6 @@ final class SSHSessionModel: Identifiable {
 
     private func startConnection(using store: any RemoteSessionHostStore) {
         resetCommandGeneratorShellState()
-        charsetError = nil
         remoteWindowTitle = nil
         homeResolution = .unavailable
         let reconnecting = connection.hasConnectedOnce && connection.isRecovering
@@ -829,12 +827,6 @@ final class SSHSessionModel: Identifiable {
                 }
             }
         )
-        await actor.configureCharsetErrors { [weak self] message in
-            Task { @MainActor in
-                guard let self, self.connectionAttemptID == attemptID, self.charsetError == nil else { return }
-                self.charsetError = message
-            }
-        }
         ssh = actor
         do {
             await actor.configureEnvironment(host.environmentVariables) { variables in

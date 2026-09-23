@@ -22,7 +22,6 @@ final class TelnetSessionModel: Identifiable {
         didSet { statusStore?.setConnectionStatus(status, connectionID: id, hostID: hostID) }
     }
     var hasUnreadOutput = false
-    var charsetError: String?
     @ObservationIgnored lazy var find = TerminalFindController(
         perform: { [weak self] in self?.performFind($0) },
         focus: { [weak self] in self?.requestTerminalFocus() }
@@ -111,7 +110,6 @@ final class TelnetSessionModel: Identifiable {
     func connect(using store: any RemoteSessionHostStore) {
         startsOnMount = false
         statusStore = store
-        charsetError = nil
         connectionTask?.cancel()
         connection?.disconnect()
         connection = nil
@@ -142,11 +140,6 @@ final class TelnetSessionModel: Identifiable {
                         self.status = .connected
                         self.connectionJourney.succeed()
                     }
-                }
-            },
-            charsetError: { [weak self] message in
-                Task { @MainActor in
-                    if self?.charsetError == nil { self?.charsetError = message }
                 }
             },
             closed: { [weak self] message in
@@ -228,18 +221,10 @@ struct TelnetTerminalView: View {
             journey: session.connectionJourney,
             isVisible: isVisible,
             requestsFocus: requestsFocus,
-            charsetError: charsetError,
             connectIfNeeded: { session.connectIfNeeded(using: app.hostLibrary) },
             retry: { session.connect(using: app.hostLibrary) },
             requestFocus: session.requestTerminalFocus,
             closePane: closePane
-        )
-    }
-
-    private var charsetError: Binding<String?> {
-        Binding(
-            get: { session.charsetError },
-            set: { session.charsetError = $0 }
         )
     }
 

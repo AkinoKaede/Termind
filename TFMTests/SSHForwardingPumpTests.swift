@@ -31,10 +31,10 @@ struct SSHForwardingPumpTests {
     }
 
     @Test
-    func textCommandInputUsesCharsetWhilePlainInputStaysByteTransparent() throws {
+    func textCommandInputUsesCharsetAndBypassesUnrepresentableBytes() throws {
         let textQueue = SSHByteQueue()
-        try SSHCommandInput.text("café").append(to: textQueue, charset: .isoLatin1)
-        #expect(drain(textQueue) == Data([0x63, 0x61, 0x66, 0xE9, 0x0A]))
+        try SSHCommandInput.text("café🙂").append(to: textQueue, charset: .isoLatin1)
+        #expect(drain(textQueue) == Data([0x63, 0x61, 0x66, 0xE9]) + Data("🙂\n".utf8))
 
         let raw = Data("café".utf8)
         let plainQueue = SSHByteQueue()

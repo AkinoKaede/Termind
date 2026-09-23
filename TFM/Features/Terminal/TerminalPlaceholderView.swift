@@ -115,7 +115,7 @@ struct TerminalPlaceholderView: View {
     /// terminal alone answers for the pane.
     var body: some View {
         terminalSurface
-            .desktopTerminalChrome(state: sshSession.terminalState, charsetError: charsetError)
+            .desktopTerminalChrome(state: sshSession.terminalState)
             .overlay(alignment: .bottom) { uploadDecoration }
             .overlay { connectionJourney }
             .animation(Motion.panel, value: uploadNotice)
@@ -162,13 +162,6 @@ struct TerminalPlaceholderView: View {
             } message: {
                 Text(TermindCopy.SFTP.applyToAllConflicts)
             }
-    }
-
-    private var charsetError: Binding<String?> {
-        Binding(
-            get: { sshSession.charsetError },
-            set: { sshSession.charsetError = $0 }
-        )
     }
 
     @ViewBuilder

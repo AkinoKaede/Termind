@@ -730,12 +730,6 @@ final class MobileWorkspace: Identifiable {
                         handlers.exit,
                         handlers.shellIntegration)
                     ssh = session
-                    await session.configureCharsetErrors { [weak self] message in
-                        Task { @MainActor in
-                            guard let self, self.generation == token, self.operationError == nil else { return }
-                            self.operationError = message
-                        }
-                    }
                     await session.configureEnvironment(host.environmentVariables) { variables in
                         let list = variables.joined(separator: ", ")
                         let warning = String(localized: TermindCopy.Terminal.rejectedEnvironmentVariables(list))
@@ -934,12 +928,6 @@ final class MobileWorkspace: Identifiable {
                         self.status = String(localized: TermindCopy.Connections.connected)
                         self.journey.succeed()
                     }
-                }
-            },
-            charsetError: { [weak self] message in
-                Task { @MainActor in
-                    guard let self, self.generation == token, self.operationError == nil else { return }
-                    self.operationError = message
                 }
             },
             closed: { [weak self] message in

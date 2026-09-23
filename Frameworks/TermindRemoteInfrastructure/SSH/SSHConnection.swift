@@ -28,9 +28,11 @@ public nonisolated struct SSHExecResult: Hashable, Sendable {
 public nonisolated enum SSHCommandInput: Sendable {
     /// Byte-transparent input. Charset conversion is intentionally bypassed.
     case plain(Data)
-    /// Text encoded strictly with the connected Host's Charset.
+    /// Text converted to the connected Host's Charset. Unrepresentable UTF-8
+    /// bytes remain in place so command input is never discarded.
     case text(String)
-    /// UTF-8 secret text converted without materializing a Swift String.
+    /// UTF-8 secret text converted with the same byte-preserving fallback,
+    /// without materializing a Swift String.
     case secret(AgentSecret)
 
     func append(to queue: SSHByteQueue, charset: RemoteCharset = .utf8) throws {

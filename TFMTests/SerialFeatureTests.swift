@@ -47,6 +47,33 @@ nonisolated private struct EmittingSerialService: SerialPortServing {
     }
 }
 
+nonisolated private final class RecordingSerialConnection: SerialPortConnection, @unchecked Sendable {
+    private let lock = NSLock()
+    private var storedWrites: [Data] = []
+
+    var writes: [Data] { lock.withLock { storedWrites } }
+
+    func write(_ data: Data) async throws { lock.withLock { storedWrites.append(data) } }
+    func close() async {}
+}
+
+nonisolated private struct RecordingSerialService: SerialPortServing {
+    let connection: RecordingSerialConnection
+
+    func availablePorts() async -> [SerialPortDescriptor] { [] }
+    func portUpdates() -> AsyncStream<[SerialPortDescriptor]> {
+        AsyncStream { $0.finish() }
+    }
+    func open(
+        _: SerialConnectionConfiguration,
+        receive _: @escaping @Sendable (Data) -> Void,
+        disconnected _: @escaping @Sendable (String) -> Void,
+        progress _: @escaping @Sendable (SerialPortOpenStage) -> Void
+    ) async throws -> any SerialPortConnection {
+        connection
+    }
+}
+
 @Suite
 struct SerialFeatureTests {
     @Test
@@ -128,7 +155,7 @@ struct SerialFeatureTests {
 
     @MainActor
     @Test
-    func serialReceiveBypassesInvalidUTF8WithoutReportingACharsetError() async {
+    func serialReceiveBypassesInvalidUTF8WithoutDisconnecting() async {
         let configuration = SerialConnectionConfiguration(devicePath: "/dev/ttyUSB0", charset: .utf8)
         let session = SerialSessionModel(
             configuration: configuration,
@@ -140,7 +167,28 @@ struct SerialFeatureTests {
         for _ in 0..<10 { await Task.yield() }
 
         #expect(session.status == .connected)
-        #expect(session.charsetError == nil)
+        session.disconnect()
+    }
+
+    @MainActor
+    @Test
+    func serialSendBypassesUnrepresentableUTF8WithoutDisconnecting() async {
+        let connection = RecordingSerialConnection()
+        let configuration = SerialConnectionConfiguration(
+            devicePath: "/dev/ttyUSB0", charset: .isoLatin1)
+        let session = SerialSessionModel(
+            configuration: configuration,
+            service: RecordingSerialService(connection: connection)
+        )
+
+        session.prepareForReopen()
+        session.connectIfNeeded()
+        for _ in 0..<10 { await Task.yield() }
+        session.handleTerminalWrite(Data("café🙂".utf8), interactive: false)
+        for _ in 0..<10 { await Task.yield() }
+
+        #expect(connection.writes == [Data([0x63, 0x61, 0x66, 0xE9]) + Data("🙂".utf8)])
+        #expect(session.status == .connected)
         session.disconnect()
     }
 

@@ -37,10 +37,14 @@ struct RemoteCharsetTests {
     }
 
     @Test
-    func encodingRemainsStrictWhileUTF8DecodingBypassesInvalidBytes() throws {
-        #expect(throws: RemoteCharsetConversionError.self) {
-            _ = try RemoteCharsetStreamConverter.encode("🙂", charset: .isoLatin1)
-        }
+    func utf8ConversionBypassesInvalidBytesInBothDirections() throws {
+        let encoder = try RemoteCharsetStreamConverter(charset: .utf8, direction: .encoding)
+        let encodedFirst = try encoder.convert(Data([0x41, 0xE4]))
+        let encodedSecond = try encoder.convert(Data([0xB8, 0xFF, 0x42]))
+        #expect(encodedFirst.data + encodedSecond.data == Data([0x41, 0xE4, 0xB8, 0xFF, 0x42]))
+        #expect(!encodedFirst.rejectedInput)
+        #expect(!encodedSecond.rejectedInput)
+        #expect(try encoder.finish().data.isEmpty)
 
         let decoder = try RemoteCharsetStreamConverter(charset: .utf8, direction: .decoding)
         let first = try decoder.convert(Data([0x41, 0xE4]))
@@ -50,6 +54,27 @@ struct RemoteCharsetTests {
         #expect(!second.rejectedInput)
         #expect(try decoder.finish().data.isEmpty)
         #expect(try RemoteCharsetStreamConverter.decode(Data([0x41, 0xFF, 0x42]), charset: .utf8) == "A�B")
+    }
+
+    @Test
+    func legacyEncoderBypassesUnrepresentableAndIncompleteUTF8BytesInPlace() throws {
+        let emoji = Data("🙂".utf8)
+        let encoder = try RemoteCharsetStreamConverter(charset: .isoLatin1, direction: .encoding)
+        let first = try encoder.convert(Data([0x63, 0x61, 0x66, 0xC3, 0xA9, emoji[0], emoji[1]]))
+        let second = try encoder.convert(Data([emoji[2], emoji[3], 0x66, 0x69, 0x6E]))
+        #expect(first.data + second.data == Data([0x63, 0x61, 0x66, 0xE9]) + emoji + Data("fin".utf8))
+        #expect(!first.rejectedInput)
+        #expect(!second.rejectedInput)
+        #expect(try encoder.finish().data.isEmpty)
+
+        let invalid = try RemoteCharsetStreamConverter(charset: .isoLatin1, direction: .encoding)
+        #expect(try invalid.convert(Data([0x41, 0xFF, 0x42])).data == Data([0x41, 0xFF, 0x42]))
+
+        let incomplete = try RemoteCharsetStreamConverter(charset: .isoLatin1, direction: .encoding)
+        #expect(try incomplete.convert(Data([0x41, 0xE2, 0x82])).data == Data([0x41]))
+        #expect(try incomplete.finish().data == Data([0xE2, 0x82]))
+
+        #expect(try RemoteCharsetStreamConverter.encode("café🙂fin", charset: .isoLatin1) == first.data + second.data)
     }
 
     @Test
