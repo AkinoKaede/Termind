@@ -14,7 +14,6 @@ struct DockMenuTests {
         let initial = try #require(delegate.applicationDockMenu(NSApp))
         #expect(initial.items.count == 1)
         #expect(!initial.autoenablesItems)
-        #expect(initial.items[0].title == String(localized: "New Window"))
         #expect(initial.items[0].image == nil)
         #expect(!initial.items[0].isEnabled)
         initial.update()

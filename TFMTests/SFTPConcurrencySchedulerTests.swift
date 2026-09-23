@@ -6,7 +6,6 @@ import Testing
 @Suite
 struct SFTPConcurrencySchedulerTests {
     @Test func smartResolvesTheSixtyFourMBBoundaryAndUnknownSizeToSessions() async throws {
-        #expect(SFTPConcurrencyStrategy.smartConnectionThreshold == 64_000_000)
         let scheduler = SFTPConcurrencyScheduler(
             preferences: SFTPPreferences(globalLimit: 3, perHostLimit: 3, strategy: .smart))
         let host = UUID()
@@ -16,10 +15,10 @@ struct SFTPConcurrencySchedulerTests {
             anchorHostID: host, hostIDs: [host], source: source, byteCount: nil)
         let boundary = try await scheduler.acquire(
             anchorHostID: host, hostIDs: [host], source: source,
-            byteCount: SFTPConcurrencyStrategy.smartConnectionThreshold)
+            byteCount: 64_000_000)
         let large = try await scheduler.acquire(
             anchorHostID: host, hostIDs: [host], source: source,
-            byteCount: SFTPConcurrencyStrategy.smartConnectionThreshold + 1)
+            byteCount: 64_000_001)
 
         #expect(unknown.schedulingMode == .channelsOnly)
         #expect(boundary.schedulingMode == .channelsOnly)

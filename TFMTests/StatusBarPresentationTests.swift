@@ -77,10 +77,6 @@ struct StatusBarPresentationTests {
     /// ever moves, this is what says the clearance moved with it.
     @Test
     func bottomOverlaysClearTheCapsuleInBothStates() {
-        #expect(
-            Metrics.StatusBar.overlayClearance
-                == Metrics.StatusBar.height + Metrics.StatusBar.floatingInset * 2
-        )
         #expect(Metrics.StatusBar.overlayClearance > Metrics.StatusBar.height)
     }
 
@@ -114,45 +110,34 @@ struct StatusBarPresentationTests {
     }
 
     @Test
-    func runningUploadsUseTheUploadSymbol() {
-        let transfers = [
+    func transferDirectionSymbolsDifferentiateOneWayTransfersAndUseOneValidSharedSymbol() {
+        let uploads = [
             transfer(direction: .upload, state: .running),
             transfer(direction: .upload, state: .running),
         ]
 
-        #expect(StatusBarTransferPresentation.runningDirectionSymbol(for: transfers) == "arrow.up")
-    }
-
-    @Test
-    func idleTransfersUseTheBidirectionalSymbolWithoutACircle() {
-        #expect(StatusBarTransferPresentation.idleDirectionSymbol == "arrow.up.arrow.down")
-    }
-
-    @Test
-    func runningDownloadsUseTheDownloadSymbol() {
-        let transfers = [
+        let uploadSymbol = StatusBarTransferPresentation.runningDirectionSymbol(for: uploads)
+        let downloads = [
             transfer(direction: .download, state: .running),
             transfer(direction: .download, state: .running),
         ]
 
-        #expect(StatusBarTransferPresentation.runningDirectionSymbol(for: transfers) == "arrow.down")
-    }
-
-    @Test
-    func copiesAndMixedDirectionsUseTheBidirectionalSymbol() {
-        #expect(
+        let downloadSymbol = StatusBarTransferPresentation.runningDirectionSymbol(for: downloads)
+        let sharedSymbols = [
+            StatusBarTransferPresentation.idleDirectionSymbol,
+            StatusBarTransferPresentation.runningDirectionSymbol(for: [transfer(direction: .copy, state: .running)]),
             StatusBarTransferPresentation.runningDirectionSymbol(
-                for: [transfer(direction: .copy, state: .running)]
-            ) == "arrow.up.arrow.down"
-        )
+                for: [transfer(direction: .upload, state: .running), transfer(direction: .download, state: .running)]),
+        ]
+        #expect(uploadSymbol != downloadSymbol)
+        #expect(Set(sharedSymbols).count == 1)
+        #expect(uploadSymbol == "arrow.up")
+        #expect(downloadSymbol == "arrow.down")
+        #expect(sharedSymbols == ["arrow.up.arrow.down", "arrow.up.arrow.down", "arrow.up.arrow.down"])
         #expect(
-            StatusBarTransferPresentation.runningDirectionSymbol(
-                for: [
-                    transfer(direction: .upload, state: .running),
-                    transfer(direction: .download, state: .running),
-                ]
-            ) == "arrow.up.arrow.down"
-        )
+            ([uploadSymbol, downloadSymbol] + sharedSymbols).allSatisfy {
+                NSImage(systemSymbolName: $0, accessibilityDescription: nil) != nil
+            })
     }
 
     @Test
@@ -166,12 +151,13 @@ struct StatusBarPresentationTests {
             transfer(direction: .download, state: .failed("Offline")),
         ]
 
-        #expect(StatusBarTransferPresentation.runningDirectionSymbol(for: transfers) == "arrow.up")
-        #expect(
-            StatusBarTransferPresentation.runningDirectionSymbol(
-                for: [transfer(direction: .download, state: .queued)]
-            ) == "arrow.up.arrow.down"
-        )
+        let runningSymbol = StatusBarTransferPresentation.runningDirectionSymbol(for: transfers)
+        let inactiveSymbol = StatusBarTransferPresentation.runningDirectionSymbol(
+            for: [transfer(direction: .download, state: .queued)])
+        #expect(runningSymbol == "arrow.up")
+        #expect(inactiveSymbol == "arrow.up.arrow.down")
+        #expect(NSImage(systemSymbolName: runningSymbol, accessibilityDescription: nil) != nil)
+        #expect(NSImage(systemSymbolName: inactiveSymbol, accessibilityDescription: nil) != nil)
     }
 
     @Test

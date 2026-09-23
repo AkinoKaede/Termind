@@ -96,7 +96,7 @@ struct MobileCardTests {
         }
     }
 
-    @Test func knownHostEditorDistinguishesAddAndEditTitles() throws {
+    @Test func knownHostEditorDistinguishesNewAndSavedEntries() throws {
         let app = try MobileAppModel(inMemory: true)
         let saved = KnownHostEntry(hostname: "saved.example", fingerprint: "SHA256:saved")
         #expect(app.knownHosts.save(saved))
@@ -105,9 +105,9 @@ struct MobileCardTests {
         let edit = MobileKnownHostEditor(app: app, entry: saved)
 
         #expect(add.isNew)
-        #expect(add.editorTitle == String(localized: "Add Known Host"))
+        #expect(add.editorTitle == String(localized: TermindCopy.KnownHosts.addKnownHost))
         #expect(!edit.isNew)
-        #expect(edit.editorTitle == String(localized: "Edit Known Host"))
+        #expect(edit.editorTitle == String(localized: TermindCopy.KnownHosts.editKnownHost))
     }
 
     @Test func hostSectionsFoldNestedGroupsKeepEmptyGroupsAndLeaveSearchAvailable() throws {

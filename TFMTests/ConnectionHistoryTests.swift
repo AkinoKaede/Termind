@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 import SwiftData
 import TermindApplication
@@ -16,17 +17,26 @@ import struct TermindDomain.Host
 @MainActor
 struct ConnectionHistoryTests {
     @Test
-    func connectionProtocolSymbolsAreDistinct() {
-        #expect(HistoryLimits.retainedEntries == 250)
+    func sharedHistoryModelsUseTheSameRetentionLimit() {
         #expect(ConnectionHistoryModel.limit == HistoryLimits.retainedEntries)
         #expect(CommandHistoryModel.perHostLimit == HistoryLimits.retainedEntries)
         #expect(SFTPHistoryModel.perHostLimit == HistoryLimits.retainedEntries)
-        #expect(DesktopHistoryPresentation.limit == 100)
-        #expect(DesktopHistoryPresentation.limited(Array(0...100)) == Array(0..<100))
-        #expect(ConnectionHistoryEntry.Kind.ssh.symbol == "terminal")
-        #expect(ConnectionHistoryEntry.Kind.telnet.symbol == "text.rectangle")
-        #expect(ConnectionHistoryEntry.Kind.sftp.symbol == "folder")
+    }
+
+    @Test
+    func connectionProtocolSymbolsAreUniqueAndAvailable() {
         #expect(Set(ConnectionHistoryEntry.Kind.allCases.map(\.symbol)).count == 3)
+        #expect(
+            ConnectionHistoryEntry.Kind.allCases.allSatisfy {
+                NSImage(systemSymbolName: $0.symbol, accessibilityDescription: nil) != nil
+            })
+    }
+
+    @Test
+    func desktopHistoryProjectionTruncatesItsInput() {
+        let input = Array(0...100)
+        let projected = DesktopHistoryPresentation.limited(input)
+        #expect(projected == Array(0..<100))
     }
 
     @Test
@@ -155,7 +165,7 @@ struct ConnectionHistoryTests {
     @Test
     func globalLimitKeepsTheNewestAttempts() {
         let model = ConnectionHistoryModel()
-        for index in 0...ConnectionHistoryModel.limit {
+        for index in 0...250 {
             model.record(
                 kind: .ssh, for: UUID(),
                 at: Date(timeIntervalSince1970: TimeInterval(index))
@@ -163,19 +173,17 @@ struct ConnectionHistoryTests {
         }
 
         let entries = model.entries()
-        #expect(entries.count == ConnectionHistoryModel.limit)
+        #expect(entries.count == 250)
         #expect(
             entries.first?.connectedAt
-                == Date(
-                    timeIntervalSince1970: TimeInterval(ConnectionHistoryModel.limit)
-                ))
+                == Date(timeIntervalSince1970: 250))
         #expect(entries.last?.connectedAt == Date(timeIntervalSince1970: 1))
     }
 
     @Test
     func loadedConnectionHistoryImmediatelyTrimsToTheSharedLimit() {
         let model = ConnectionHistoryModel(
-            entries: (0...HistoryLimits.retainedEntries).map { index in
+            entries: (0...250).map { index in
                 ConnectionHistoryEntry(
                     hostID: UUID(), kind: .ssh,
                     connectedAt: Date(timeIntervalSince1970: TimeInterval(index))
@@ -183,10 +191,10 @@ struct ConnectionHistoryTests {
             })
 
         let entries = model.entries()
-        #expect(entries.count == HistoryLimits.retainedEntries)
+        #expect(entries.count == 250)
         #expect(
             entries.first?.connectedAt
-                == Date(timeIntervalSince1970: TimeInterval(HistoryLimits.retainedEntries)))
+                == Date(timeIntervalSince1970: 250))
         #expect(entries.last?.connectedAt == Date(timeIntervalSince1970: 1))
     }
 

@@ -3,7 +3,21 @@
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "$0")" && pwd)
-catalog=${1:-"$script_dir/../Frameworks/Resources/Localizable.xcstrings"}
+if [[ $# -gt 1 ]]; then
+  echo "Usage: $0 [catalog]" >&2
+  exit 2
+fi
+
+if [[ $# -eq 1 ]]; then
+  catalogs=("$1")
+else
+  catalogs=(
+    "$script_dir/../Frameworks/Resources/Localizable.xcstrings"
+    "$script_dir/../Frameworks/Resources/InfoPlist.xcstrings"
+  )
+fi
+
+for catalog in "${catalogs[@]}"; do
 
 if ! jq empty "$catalog"; then
   echo "Invalid string catalog: $catalog" >&2
@@ -13,7 +27,7 @@ fi
 for language in zh-Hans zh-Hant; do
   missing=$(jq -r --arg language "$language" '
     .strings | to_entries[]
-    | select(.value.localizations[$language] == null)
+    | select(.value.shouldTranslate != false and .value.localizations[$language] == null)
     | .key
   ' "$catalog")
   if [[ -n "$missing" ]]; then
@@ -24,6 +38,7 @@ for language in zh-Hans zh-Hant; do
 
   unfinished=$(jq -r --arg language "$language" '
     .strings | to_entries[] as $entry
+    | select($entry.value.shouldTranslate != false)
     | [
         $entry.value.localizations[$language]
         | .. | objects | .stringUnit?
@@ -40,6 +55,7 @@ for language in zh-Hans zh-Hant; do
 
   violations=$(jq -r --arg language "$language" '
     .strings | to_entries[] as $entry
+    | select($entry.value.shouldTranslate != false)
     | [
         ($entry.value.localizations[$language] // {})
         | .. | objects | .stringUnit?.value? // empty
@@ -60,6 +76,8 @@ for language in zh-Hans zh-Hant; do
     echo "$violations" >&2
     exit 1
   fi
+done
+
 done
 
 echo "zh-Hans and zh-Hant localization checks passed."

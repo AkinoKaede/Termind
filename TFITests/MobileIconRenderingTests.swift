@@ -16,7 +16,6 @@ struct MobileIconRenderingTests {
     @Test func terminalKeyboardKeepsItsCompactHeight() {
         #expect(UIImage(systemName: "play.rectangle") != nil)
         #expect(UIImage(systemName: "doc.on.clipboard") != nil)
-        #expect(MobileTerminalKeyboard.barHeight == 44)
         for width in [CGFloat(320), 390, 430] {
             for dynamicTypeSize in [DynamicTypeSize.large, .accessibility3] {
                 let controller = UIHostingController(

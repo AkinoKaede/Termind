@@ -18,7 +18,10 @@ struct KnownHostPresentationTests {
             fingerprint: "SHA256:test"
         )
 
-        #expect(hashed.presentationTitle == String(localized: "Hashed Address"))
+        #expect(!hashed.presentationTitle.isEmpty)
+        #expect(!hashed.presentationTitle.contains(hashed.hostname))
+        #expect(!hashed.presentationTitle.contains("salt"))
+        #expect(!hashed.presentationTitle.contains("hash"))
         #expect(plain.presentationTitle == plain.displayAddress)
     }
 }

@@ -52,8 +52,7 @@ struct MobileHomeScreenQuickActionTests {
                     .history(hostID: others[1].id),
                 ])
         #expect(descriptors.map(\.title) == ["Production", "Host 0", "Host 1"])
-        #expect(descriptors.allSatisfy { $0.symbol == "server.rack" })
-        #expect(UIImage(systemName: descriptors[1].symbol) != nil)
+        #expect(descriptors.allSatisfy { UIImage(systemName: $0.symbol) != nil })
         #expect(descriptors[1].shortcutItem.icon != nil)
     }
 

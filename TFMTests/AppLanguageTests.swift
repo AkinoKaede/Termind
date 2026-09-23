@@ -134,34 +134,6 @@ struct AppLanguageTests {
     }
 
     @Test
-    func everyCatalogEntryHasFinishedChineseTranslations() throws {
-        let repository = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent().deletingLastPathComponent()
-        for name in ["Localizable", "InfoPlist"] {
-            let url = repository.appending(path: "Frameworks/Resources/\(name).xcstrings")
-            let root = try #require(
-                JSONSerialization.jsonObject(with: Data(contentsOf: url))
-                    as? [String: Any]
-            )
-            let strings = try #require(root["strings"] as? [String: Any])
-            for (key, value) in strings {
-                let entry = try #require(value as? [String: Any])
-                if entry["shouldTranslate"] as? Bool == false { continue }
-                let localizations = try #require(entry["localizations"] as? [String: Any])
-                for language in ["zh-Hans", "zh-Hant"] {
-                    let chinese = try #require(localizations[language] as? [String: Any])
-                    let units = localizedUnits(in: chinese)
-                    #expect(!units.isEmpty, "No translated values for \(language): \(key)")
-                    for unit in units {
-                        #expect(unit["state"] as? String == "translated", "Incomplete \(language): \(key)")
-                        #expect(!(unit["value"] as? String ?? "").isEmpty || key.isEmpty)
-                    }
-                }
-            }
-        }
-    }
-
-    @Test
     func forwardingTemplatesPreserveArgumentsInOrder() throws {
         let repository = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
@@ -229,18 +201,6 @@ struct AppLanguageTests {
         #expect(DeviceCensorship.containsColoredPixel([255, 0, 0, 255]))
         #expect(!DeviceCensorship.containsColoredPixel([128, 128, 128, 255]))
         #expect(!DeviceCensorship.containsColoredPixel([]))
-    }
-
-    private func localizedUnits(in value: [String: Any]) -> [[String: Any]] {
-        if let unit = value["stringUnit"] as? [String: Any] { return [unit] }
-        guard let variations = value["variations"] as? [String: Any] else { return [] }
-        return variations.values.flatMap { variation -> [[String: Any]] in
-            guard let forms = variation as? [String: Any] else { return [] }
-            return forms.values.flatMap { form -> [[String: Any]] in
-                guard let form = form as? [String: Any] else { return [] }
-                return localizedUnits(in: form)
-            }
-        }
     }
 
     private func pluralForms(in localization: [String: Any]) -> [String: Any] {

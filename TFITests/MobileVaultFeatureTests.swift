@@ -305,13 +305,19 @@ struct MobileVaultFeatureTests {
                 identity: identity, password: "", hasConfiguredPassword: true, removesPassword: false))
     }
 
-    @Test func identityEditorUsesNewAndEditTitles() throws {
+    @Test func identityEditorDistinguishesNewAndSavedEntries() throws {
         let app = try MobileAppModel(inMemory: true)
         let identity = Identity(name: "Deploy", username: "deploy")
 
-        #expect(MobileIdentityEditor(app: app, identity: identity).title == String(localized: "New Identity"))
+        #expect(MobileIdentityEditor(app: app, identity: identity).isNew)
+        #expect(
+            MobileIdentityEditor(app: app, identity: identity).title
+                == String(localized: TermindCopy.Keychain.newIdentity))
         app.library.upsert(identity)
-        #expect(MobileIdentityEditor(app: app, identity: identity).title == String(localized: "Edit Identity"))
+        #expect(!MobileIdentityEditor(app: app, identity: identity).isNew)
+        #expect(
+            MobileIdentityEditor(app: app, identity: identity).title
+                == String(localized: TermindCopy.Keychain.editIdentity))
         app.outbox.stop()
     }
 

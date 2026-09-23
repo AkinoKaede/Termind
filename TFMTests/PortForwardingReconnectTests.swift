@@ -15,9 +15,7 @@ struct PortForwardingReconnectTests {
         let failed = PortForwardingRuntimeState.failed(failureMessage)
 
         #expect(running.compactLabel == String(localized: "Running"))
-        #expect(
-            running.label
-                == String(localized: "Running · SSH \(3)/\(8) · \(37) TCP flows"))
+        #expect(running.label == String(localized: "Running · SSH \(3)/\(8) · \(37) TCP flows"))
         #expect(failed.compactLabel == String(localized: "Failed"))
         #expect(failed.label == failureMessage)
         #expect(PortForwardingRuntimeState.reconnecting.compactLabel == String(localized: "Reconnecting"))

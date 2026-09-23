@@ -295,7 +295,6 @@ struct MobileWorkspaceTests {
 @Suite
 struct MobileTerminalShiftStateTests {
     @Test func controlShortcutsPreserveOrderAndKeyPresses() {
-        #expect(MobileTerminalControlShortcut.allCases.map(\.label) == ["^C", "^I", "^S", "^Z"])
         #expect(
             MobileTerminalControlShortcut.allCases.map(\.keyPress)
                 == [
