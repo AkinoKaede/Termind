@@ -208,6 +208,8 @@ struct AppLanguageTests {
             // `%lld results` is not here: `web_search`'s card moved to AgentKit
             // with the runtime, and so did the plural resource behind it.
             "%lld commands", "%lld hosts", "%lld items", "%lld questions",
+            "%lld files", "%lld directories", "%lld scratch files", "%lld scratch items",
+            "%lld URLs", "%lld plans", "%lld secrets", "%lld suggestions",
             "the task list %lld times",
             "%lld tool calls", "%@ — %lld tools",
         ] {

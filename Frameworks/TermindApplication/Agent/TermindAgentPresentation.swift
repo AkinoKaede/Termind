@@ -17,7 +17,13 @@ nonisolated extension AgentToolDescriptor.Presentation.ActivityKind {
     public static let metrics = Self("metrics")
     public static let remoteCommand = Self("remoteCommand")
     public static let remoteFile = Self("remoteFile")
+    public static let remoteDirectory = Self("remoteDirectory")
     public static let sshCommand = Self("sshCommand")
+    public static let suggestion = Self("suggestion")
+}
+
+nonisolated extension AgentToolDescriptor.Presentation.ActionKind {
+    public static let provide = Self("provide")
 }
 
 nonisolated extension AgentToolDescriptor.Presentation.PhaseKind {

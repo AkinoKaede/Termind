@@ -143,8 +143,8 @@ nonisolated public struct TerminalSuggestTool: AgentToolDefinition, AgentToolSch
             required: ["command"], target: .user, approvalPolicy: .approve,
             concurrency: .parallel,
             presentation: .init(
-                symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command),
-                groupsWithAdjacentTools: false, actionKind: .suggest
+                symbol: "terminal", activity: .semanticLabel(.suggestion),
+                groupsWithAdjacentTools: false, actionKind: .provide
             )
         )
     }

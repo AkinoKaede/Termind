@@ -84,7 +84,7 @@ nonisolated public struct SFTPListTool: SFTPToolDefinition {
         id: "builtin.sftp_list", present: present
     )
     public static let presentation = AgentToolDescriptor.Presentation(
-        symbol: "folder", activity: .semanticArgument(key: "path", fallback: .remoteFile),
+        symbol: "folder", activity: .semanticArgument(key: "path", fallback: .remoteDirectory),
         output: .automatic, actionKind: .list
     )
     public let authentication: AgentSSHAuthenticationRegistry
@@ -223,7 +223,7 @@ nonisolated public struct SFTPMkdirTool: SFTPToolDefinition {
     )
     public static let presentation = AgentToolDescriptor.Presentation(
         symbol: "folder.badge.plus",
-        activity: .semanticArgument(key: "path", fallback: .remoteFile),
+        activity: .semanticArgument(key: "path", fallback: .remoteDirectory),
         output: .automatic, actionKind: .create
     )
     public let authentication: AgentSSHAuthenticationRegistry

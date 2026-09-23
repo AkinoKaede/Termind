@@ -5,12 +5,12 @@ import TermindDomain
 import TermindInfrastructure
 import TermindPersistence
 import TermindPresentation
-import TermindRemoteInfrastructure
 import Testing
 
 import struct TermindDomain.Host
 
 @testable import Termind
+@testable import TermindRemoteInfrastructure
 
 @Suite
 struct AgentToolPresentationTests {
@@ -915,6 +915,155 @@ struct AgentToolPresentationTests {
         )
         let data = try JSONEncoder().encode(activity)
         #expect(try JSONDecoder().decode(type(of: activity), from: data) == activity)
+    }
+
+    @Test
+    func batchesDescribeTheObjectsOfEachActionForCurrentAndHistoricalTools() {
+        let cases:
+            [(
+                String, AgentToolDescriptor.Presentation.ActivityKind,
+                AgentToolDescriptor.Presentation.ActionKind, String
+            )] = [
+                ("ssh_exec", .sshCommand, .run, "Ran 2 commands"),
+                ("terminal_suggest", .command, .suggest, "Provided 2 suggestions"),
+                ("scratch_push", .remoteFile, .push, "Pushed 2 files"),
+                ("scratch_pull", .remoteFile, .pull, "Pulled 2 files"),
+                ("sftp_read", .remoteFile, .read, "Read 2 files"),
+                ("sftp_write", .remoteFile, .write, "Wrote 2 files"),
+                ("sftp_copy", .remoteFile, .copy, "Copied 2 files"),
+                ("sftp_move", .remoteFile, .move, "Moved 2 files"),
+                ("sftp_delete", .remoteFile, .delete, "Deleted 2 files"),
+                ("sftp_stat", .remoteFile, .inspect, "Inspected 2 files"),
+                ("sftp_chmod", .remoteFile, .changePermissions, "Changed permissions for 2 files"),
+                // Persisted semantic descriptors used remoteFile for directories.
+                ("sftp_list", .remoteFile, .list, "Listed 2 directories"),
+                ("sftp_mkdir", .remoteFile, .create, "Created 2 directories"),
+                ("scratch_read", .scratchFile, .read, "Read 2 scratch files"),
+                ("scratch_write", .scratchFile, .write, "Wrote 2 scratch files"),
+                ("scratch_edit", .scratchFile, .edit, "Edited 2 scratch files"),
+                ("scratch_copy", .scratchEntry, .copy, "Copied 2 scratch items"),
+                ("scratch_move", .scratchEntry, .move, "Moved 2 scratch items"),
+                ("scratch_delete", .scratchEntry, .delete, "Deleted 2 scratch items"),
+                ("scratch_diff", .scratchFiles, .compare, "Compared scratch files (2 times)"),
+                ("scratch_list", .scratchWorkspace, .list, "Listed the scratch workspace (2 times)"),
+                ("scratch_search", .scratchWorkspace, .search, "Searched the scratch workspace (2 times)"),
+                ("fetch", .url, .fetch, "Fetched 2 URLs"),
+                ("scratch_fetch", .url, .fetch, "Fetched 2 URLs"),
+                ("web_search", .web, .search, "Searched the web (2 times)"),
+                ("list_hosts", .hosts, .list, "Listed hosts (2 times)"),
+                ("get_metrics", .metrics, .read, "Read host metrics (2 times)"),
+                ("ssh_wait", .remoteCommand, .wait, "Waited for the remote command (2 times)"),
+                ("present_plan", .plan, .present, "Presented 2 plans"),
+                ("manage_tasks", .taskList, .update, "Updated the task list 2 times"),
+                ("request_user_secret", .secret, .request, "Requested 2 secrets"),
+            ]
+        for (name, kind, action, expected) in cases {
+            let current = AgentToolDescriptor.Presentation(
+                symbol: "wrench", activity: .semanticArgument(key: "path", fallback: kind), actionKind: action)
+            let legacy = AgentToolDescriptor.Presentation(
+                symbol: "wrench", activity: .argument(key: "path", fallback: "legacy activity"))
+            for presentation in [current, legacy, nil] {
+                var card = makeCard(
+                    name: name, target: name == "terminal_suggest" ? .user : .host, presentation: presentation)
+                card.state = .completed
+                #expect(
+                    AgentToolPresentation.batchSummary(for: [card, card], locale: Locale(identifier: "en")) == expected,
+                    "\(name): \(String(describing: presentation))")
+                for language in ["zh-Hans", "zh-Hant"] {
+                    let title = AgentToolPresentation.batchSummary(
+                        for: [card, card], locale: Locale(identifier: language))
+                    #expect(!title.contains("tool calls"))
+                    #expect(!title.contains("工具调用"))
+                    #expect(!title.contains("工具呼叫"))
+                    #expect(!title.contains("legacy activity"))
+                }
+            }
+        }
+    }
+
+    @Test
+    func executionAndSuggestionUseDifferentVerbsInAllSupportedLanguages() {
+        let english = Locale(identifier: "en")
+        for activity: AgentToolDescriptor.Presentation.Activity in [
+            .semanticArgument(key: "command", fallback: .sshCommand),
+            .argument(key: "command", fallback: "the SSH command"),
+        ] {
+            var command = makeCard(
+                name: "ssh_exec", target: .host, arguments: ["command": .string("pwd")],
+                presentation: .init(symbol: "terminal", activity: activity, actionKind: .run))
+            command.state = .completed
+            #expect(AgentToolPresentation.batchSummary(for: [command], locale: english) == "Ran a command")
+            #expect(AgentToolPresentation.summary(for: command, locale: english) == "Ran pwd")
+        }
+        let legacy = AgentToolDescriptor.Presentation(
+            symbol: "terminal", activity: .semanticArgument(key: "command", fallback: .command), actionKind: .suggest)
+        for presentation in [TerminalSuggestTool().descriptor.presentation, legacy, nil] {
+            var suggestion = makeCard(
+                name: "terminal_suggest", target: .user, arguments: ["command": .string("pwd")],
+                presentation: presentation)
+            suggestion.state = .completed
+            #expect(AgentToolPresentation.summary(for: suggestion, locale: english) == "Provided a suggestion")
+            #expect(AgentToolPresentation.batchSummary(for: [suggestion], locale: english) == "Provided a suggestion")
+            for (language, expected) in [("zh-Hans", "已提供2条建议"), ("zh-Hant", "已提供2條建議")] {
+                #expect(
+                    AgentToolPresentation.batchSummary(
+                        for: [suggestion, suggestion], locale: Locale(identifier: language))
+                        == expected)
+            }
+        }
+    }
+
+    @Test
+    func fileBatchesPreserveEveryLifecycleStateAndMixedOutcomes() {
+        var card = makeCard(
+            name: "sftp_write", target: .host, presentation: SFTPWriteTool.presentation)
+        let english = Locale(identifier: "en")
+        let states: [(AgentToolCard.State, String)] = [
+            (.proposed, "Preparing to write 2 files"), (.reviewing, "Preparing to write 2 files"),
+            (.waitingForApproval, "Waiting to write 2 files"), (.waitingForUser, "Waiting to write 2 files"),
+            (.running, "Writing 2 files"), (.completed, "Wrote 2 files"),
+            (.denied, "Did not write 2 files"), (.failed, "Failed to write 2 files"),
+            (.interrupted, "Interrupted while writing 2 files"),
+        ]
+        for (state, expected) in states {
+            card.state = state
+            #expect(AgentToolPresentation.batchSummary(for: [card, card], locale: english) == expected)
+        }
+        card.state = .completed
+        var failed = card
+        failed.state = .failed
+        #expect(
+            AgentToolPresentation.batchSummary(for: [card, card, failed], locale: english)
+                == "Wrote 2 files, failed to write a file")
+        for (language, expected) in [("zh-Hans", "已写入2个文件，写入文件失败"), ("zh-Hant", "已寫入2個檔案，寫入檔案失敗")] {
+            #expect(
+                AgentToolPresentation.batchSummary(for: [card, card, failed], locale: Locale(identifier: language))
+                    == expected)
+        }
+    }
+
+    @Test
+    func batchesCountArrayElementsAndKeepUnknownToolObjects() {
+        for activity: AgentToolDescriptor.Presentation.Activity in [
+            .semanticArrayCount(key: "questions", unit: .question, fallback: .question),
+            .arrayCount(key: "questions", singular: "a question", plural: "questions", fallback: "a question"),
+        ] {
+            var card = makeCard(
+                name: "request_user_input", target: .user,
+                arguments: ["questions": .array([.object([:]), .object([:])])],
+                presentation: .init(symbol: "questionmark", activity: activity, actionKind: .ask))
+            card.state = .completed
+            #expect(
+                AgentToolPresentation.batchSummary(for: [card, card], locale: Locale(identifier: "en"))
+                    == "Asked 4 questions")
+        }
+        var custom = makeCard(
+            name: "scratch_push", target: .mcp,
+            presentation: .init(symbol: "wrench", activity: .label("artifacts"), actionKind: .push))
+        custom.state = .completed
+        #expect(
+            AgentToolPresentation.batchSummary(for: [custom, custom], locale: Locale(identifier: "en"))
+                == "Pushed artifacts (2 times)")
     }
 
     private func makeCard(

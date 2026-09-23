@@ -65,7 +65,8 @@ import Testing
         write.state = .failed
         let title = AgentToolPresentation.batchSummary(for: [read, read, write], locale: english)
         #expect(title.contains("Read persistent memory"))
-        #expect(title.contains("2 tool calls"))
+        #expect(title.contains("persistent memory (2 times)"))
+        #expect(!title.contains("tool calls"))
         #expect(title.contains("failed to update persistent memory"))
         #expect(!title.contains("skill"))
     }
