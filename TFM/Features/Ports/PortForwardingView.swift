@@ -64,12 +64,20 @@ struct PortForwardingPageView: ManagedCardPage {
                         systemImage: MenuSymbol.start
                     ) { start(item) }.disabled(!canStart(item))
                 }
+                Menu("Copy", systemImage: MenuSymbol.copy) {
+                    Button("Address", systemImage: MenuSymbol.copy) {
+                        copyToPasteboard(item.bindAddress)
+                    }
+                    Button("SSH Command", systemImage: MenuSymbol.ssh) {
+                        if let command = app.forwardings.sshCommand(for: item) {
+                            copyToPasteboard(command)
+                        }
+                    }
+                    .disabled(app.forwardings.sshCommand(for: item) == nil)
+                }
+                Divider()
                 Button("Edit", systemImage: MenuSymbol.edit) { open(item) }
                 Button("Duplicate", systemImage: MenuSymbol.duplicate) { duplicate(item) }
-                Button("Copy Address", systemImage: MenuSymbol.copy) { copyToPasteboard(item.bindAddress) }
-                Button("Copy SSH Command") {
-                    if let command = app.forwardings.sshCommand(for: item) { copyToPasteboard(command) }
-                }.disabled(app.forwardings.sshCommand(for: item) == nil)
             }
             Divider()
             DestructiveMenuButton("Delete") {

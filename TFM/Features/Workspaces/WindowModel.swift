@@ -632,6 +632,7 @@ final class WindowModel {
 
     func showAssistantArchive() {
         isAssistantArchivePresented = true
+        sidebar.assistantConversationID = nil
         selectedDestination = .assistant
     }
 
@@ -642,20 +643,20 @@ final class WindowModel {
 
     func openAssistantInSidebar(_ id: ConversationModel.ID) {
         guard assistantLibrary.conversation(id: id) != nil else { return }
-        sidebar.isAssistantArchivePresented = false
+        isAssistantArchivePresented = false
         sidebar.assistantConversationID = id
         refreshSessionContext()
     }
 
     func closeAssistantInSidebar() {
-        sidebar.isAssistantArchivePresented = false
+        isAssistantArchivePresented = false
         sidebar.assistantConversationID = nil
         refreshSessionContext()
     }
 
     func showAssistantArchiveInSidebar() {
         sidebar.assistantConversationID = nil
-        sidebar.isAssistantArchivePresented = true
+        isAssistantArchivePresented = true
         refreshSessionContext()
     }
 
@@ -671,7 +672,7 @@ final class WindowModel {
         if wasArchived, wasSelected { isAssistantArchivePresented = true }
         if sidebar.assistantConversationID == id {
             sidebar.assistantConversationID = nil
-            if wasArchived { sidebar.isAssistantArchivePresented = true }
+            if wasArchived { isAssistantArchivePresented = true }
         }
     }
 
@@ -733,7 +734,7 @@ final class WindowModel {
         }
         if sidebar.assistantConversationID == id {
             sidebar.assistantConversationID = nil
-            sidebar.isAssistantArchivePresented = false
+            isAssistantArchivePresented = false
         }
     }
     func forkAssistantConversation(

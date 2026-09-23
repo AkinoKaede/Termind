@@ -70,7 +70,7 @@ struct MobileIconRenderingTests {
                 NavigationStack {
                     MobileSnippetDetailView(
                         app: snippetApp, snippetID: snippet.id, execute: { _ in },
-                        executeOnHosts: { _ in }, edit: {}, duplicate: { _ in }, delete: {})
+                        edit: {}, duplicate: { _ in }, delete: {})
                 }
                 .environment(\.locale, locale)
             }
@@ -87,8 +87,8 @@ struct MobileIconRenderingTests {
             }
             try await capture("snippet-execution-targets-\(suffix)", language: language, scheme: scheme) {
                 MobileSnippetHostPicker(
-                    app: snippetApp, selected: [], title: "Execute on Hosts",
-                    actionTitle: "Execute", requiresSelection: true, save: { _ in }
+                    app: snippetApp, selected: [], title: "Run",
+                    actionTitle: "Run", requiresSelection: true, save: { _ in }
                 )
                 .environment(\.locale, locale)
             }

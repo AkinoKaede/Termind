@@ -13,6 +13,43 @@ nonisolated enum AssistantSidebarEscapePolicy {
     }
 }
 
+enum AssistantConversationMenuSurface {
+    case fullScreen
+    case sidebar
+
+    /// New Chat and Show Archive are the Assistant's global verbs, so they stay
+    /// live with nothing under the pointer. AppKit asks for this after the click,
+    /// so the menu reads the matching surface's current state at that moment.
+    func blankAreaMenu(
+        in window: WindowModel, locale: Locale
+    ) -> [NativeMenuEntry] {
+        [
+            NativeMenuEntry(
+                title: AppLocalization.string("New Chat", locale: locale),
+                symbol: MenuSymbol.newChat
+            ) {
+                window.openNewAssistantChat()
+            },
+            NativeMenuEntry(
+                title: AppLocalization.string("Show Archive", locale: locale),
+                symbol: MenuSymbol.archive,
+                isOn: isArchivePresented(in: window)
+            ) { showArchive(in: window) },
+        ]
+    }
+
+    private func isArchivePresented(in window: WindowModel) -> Bool {
+        window.isAssistantArchivePresented
+    }
+
+    private func showArchive(in window: WindowModel) {
+        switch self {
+        case .fullScreen: window.showAssistantArchive()
+        case .sidebar: window.showAssistantArchiveInSidebar()
+        }
+    }
+}
+
 /// Assistant's conversation navigator inside the window's shared sidebar: the
 /// chat list, over a bar holding the two things you do to the list itself.
 ///
@@ -30,6 +67,7 @@ struct AssistantSidebarView: View {
                 selectedID: window.isAssistantArchivePresented
                     ? nil : window.assistantLibrary.selectedConversationID,
                 query: window.assistantQuery,
+                menuSurface: .fullScreen,
                 onOpen: { window.selectAssistant($0) }
             )
 
@@ -113,14 +151,14 @@ struct AssistantPanelView: View {
         )
         .animation(
             Motion.panel(reduceMotion: reduceMotion),
-            value: window.sidebar.isAssistantArchivePresented
+            value: window.isAssistantArchivePresented
         )
         .clipped()
     }
 
     @ViewBuilder
     private var workspaceLayer: some View {
-        if window.sidebar.isAssistantArchivePresented {
+        if window.isAssistantArchivePresented {
             AssistantArchiveView(
                 isCompact: true,
                 isInteractive: isFocusedOnWorkspace,
@@ -231,6 +269,7 @@ struct AssistantPanelView: View {
         AssistantConversationList(
             selectedID: window.sidebar.assistantConversationID,
             isInteractive: isFocusedOnWorkspace,
+            menuSurface: .sidebar,
             onOpen: { window.openAssistantInSidebar($0) }
         )
         .overlay {
@@ -291,6 +330,7 @@ private struct AssistantConversationList: View {
     /// False for a copy the Assistant panel keeps mounted behind the one on
     /// screen. See `AssistantConversationListContainer.isInteractive`.
     var isInteractive: Bool = true
+    let menuSurface: AssistantConversationMenuSurface
     let onOpen: (UUID) -> Void
     var scope: Scope = .active
     var archiveMaxWidth: CGFloat?
@@ -389,7 +429,7 @@ private struct AssistantConversationList: View {
                     )
                     window.dragging = nil
                 },
-            blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) },
+            blankAreaMenu: { menuSurface.blankAreaMenu(in: window, locale: locale) },
             isInteractive: isInteractive
         ) { item in
             renderedItem(item, window: window)
@@ -406,7 +446,7 @@ private struct AssistantConversationList: View {
             window: window,
             topInset: Metrics.Space.m,
             bottomInset: Metrics.Space.m,
-            blankAreaMenu: { Self.blankAreaMenu(in: window, locale: locale) },
+            blankAreaMenu: { menuSurface.blankAreaMenu(in: window, locale: locale) },
             isInteractive: isInteractive
         ) { item in
             renderedItem(item, window: window)
@@ -415,30 +455,6 @@ private struct AssistantConversationList: View {
                 .padding(.horizontal, archiveMaxWidth == nil ? 0 : Metrics.Space.xl)
         }
         .background(Color.clear)
-    }
-
-    /// New Chat and Show Archive are the Assistant's global verbs, so they stay
-    /// live with nothing under the pointer. That also covers the one place the
-    /// titlebar cannot: the chat list showing while Vault is the front content.
-    ///
-    /// Static, and given the window rather than reading it: AppKit asks for this
-    /// when the pointer is already down, long after the body that built the list.
-    private static func blankAreaMenu(
-        in window: WindowModel, locale: Locale
-    ) -> [NativeMenuEntry] {
-        [
-            NativeMenuEntry(
-                title: AppLocalization.string("New Chat", locale: locale),
-                symbol: MenuSymbol.newChat
-            ) {
-                window.openNewAssistantChat()
-            },
-            NativeMenuEntry(
-                title: AppLocalization.string("Show Archive", locale: locale),
-                symbol: MenuSymbol.archive,
-                isOn: window.isAssistantArchivePresented
-            ) { window.showAssistantArchive() },
-        ]
     }
 
     private var activeItems: [AssistantConversationListItem] {
@@ -1123,6 +1139,7 @@ private struct AssistantArchiveView: View {
                 selectedID: nil,
                 query: query,
                 isInteractive: isInteractive,
+                menuSurface: isCompact ? .sidebar : .fullScreen,
                 onOpen: onOpen,
                 scope: .archived,
                 archiveMaxWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth
@@ -1183,6 +1200,15 @@ private struct AssistantArchiveView: View {
                 .padding(.vertical, 2)
                 .background(.quaternary, in: .capsule)
             Spacer(minLength: 0)
+            if isCompact {
+                Button {
+                    window.showAssistantArchive()
+                } label: {
+                    Image(systemName: "arrow.up.left.and.arrow.down.right")
+                }
+                .buttonStyle(.borderless)
+                .help(Text("Open Full Screen"))
+            }
         }
     }
 }

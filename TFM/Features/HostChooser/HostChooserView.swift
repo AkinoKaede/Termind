@@ -53,7 +53,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         case .connect: "Connect"
         case .batchStartup: "Batch Startup"
         case .metrics: "Add Server"
-        case .snippet: "Execute on Hosts"
+        case .snippet: "Run"
         }
     }
 
@@ -72,7 +72,7 @@ nonisolated enum HostChooserPurpose: Hashable, Sendable, Identifiable {
         switch self {
         case .connect, .batchStartup: "Connect"
         case .metrics: "Add Server"
-        case .snippet: "Execute"
+        case .snippet: "Run"
         }
     }
 
@@ -237,13 +237,13 @@ struct HostChooserView: View {
             }
         }
         .confirmationDialog(
-            "Execute a destructive script?",
+            "Run a destructive script?",
             isPresented: $isConfirmingDestructiveSnippet,
             titleVisibility: .visible
         ) {
             Button(
                 chooser.selected.count == 1
-                    ? "Execute on 1 Host" : "Execute on \(chooser.selected.count) Hosts",
+                    ? "Run on 1 Host" : "Run on \(chooser.selected.count) Hosts",
                 role: .destructive
             ) {
                 performSnippetExecution()

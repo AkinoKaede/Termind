@@ -590,7 +590,7 @@ private struct SnippetsSidebarView: View {
             )
         }
         .confirmationDialog(
-            "Execute a destructive script?",
+            "Run a destructive script?",
             isPresented: Binding(
                 get: { destructiveSnippet != nil },
                 set: { if !$0 { destructiveSnippet = nil } }
@@ -598,7 +598,7 @@ private struct SnippetsSidebarView: View {
             titleVisibility: .visible,
             presenting: destructiveSnippet
         ) { snippet in
-            Button("Execute", role: .destructive) { executeNow(snippet) }
+            Button("Run", role: .destructive) { executeNow(snippet) }
             Button("Cancel", role: .cancel) { destructiveSnippet = nil }
         } message: { snippet in
             let assessment = CommandRiskClassifier.assess(snippet.body)

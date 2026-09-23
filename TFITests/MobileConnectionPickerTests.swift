@@ -197,12 +197,12 @@ struct MobileConnectionPickerTests {
 
         try await withStandaloneNavigation(
             MobileSnippetHostPicker(
-                app: app, selected: [], title: "Execute on Hosts", actionTitle: "Execute",
+                app: app, selected: [], title: "Run", actionTitle: "Run",
                 requiresSelection: true, save: { _ in }),
             language: "en"
         ) { navigation in
-            let execute = try #require(toolbarButton(named: "Execute", in: navigation))
-            #expect(!execute.isEnabled)
+            let run = try #require(toolbarButton(named: "Run", in: navigation))
+            #expect(!run.isEnabled)
         }
 
         try await withStandaloneNavigation(

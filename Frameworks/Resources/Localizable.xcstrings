@@ -2630,6 +2630,22 @@
         }
       }
     },
+    "Address" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "地址"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "位址"
+          }
+        }
+      }
+    },
     "Address unavailable" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -10526,86 +10542,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "執行破壞性指令？"
-          }
-        }
-      }
-    },
-    "Execute a destructive script?" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "执行破坏性脚本？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "執行破壞性指令碼？"
-          }
-        }
-      }
-    },
-    "Execute destructive scripts?" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "执行破坏性脚本？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "執行破壞性指令碼？"
-          }
-        }
-      }
-    },
-    "Execute on %lld Hosts" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "执行%lld主机"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "執行%lld主機"
-          }
-        }
-      }
-    },
-    "Execute on 1 Host" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在1主机上执行"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在1主機上執行"
-          }
-        }
-      }
-    },
-    "Execute on Hosts" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在主机上执行"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在主機上執行"
           }
         }
       }
@@ -21898,6 +21834,70 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "要執行破壞性指令嗎？"
+          }
+        }
+      }
+    },
+    "Run a destructive script?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行破坏性脚本？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行破壞性指令碼？"
+          }
+        }
+      }
+    },
+    "Run destructive scripts?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "运行破坏性脚本？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "執行破壞性指令碼？"
+          }
+        }
+      }
+    },
+    "Run on %lld Hosts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在%lld台主机上运行"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在%lld部主機上執行"
+          }
+        }
+      }
+    },
+    "Run on 1 Host" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在1台主机上运行"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在1部主機上執行"
           }
         }
       }

@@ -202,7 +202,7 @@ struct WindowStateTests {
         #expect(window.selectedDestination == .assistant)
         #expect(window.assistantLibrary.selectedConversation == nil)
         #expect(window.sidebar.assistantConversationID == nil)
-        #expect(!window.sidebar.isAssistantArchivePresented)
+        #expect(!window.isAssistantArchivePresented)
     }
 
     @Test
@@ -224,11 +224,11 @@ struct WindowStateTests {
         #expect(window.assistantLibrary.selectedConversation === conversation)
 
         window.showAssistantArchiveInSidebar()
-        #expect(window.sidebar.isAssistantArchivePresented)
+        #expect(window.isAssistantArchivePresented)
         #expect(window.sidebarAssistantConversation == nil)
 
         window.openAssistantInSidebar(conversation.id)
-        #expect(!window.sidebar.isAssistantArchivePresented)
+        #expect(!window.isAssistantArchivePresented)
         #expect(window.sidebarAssistantConversation === conversation)
     }
 

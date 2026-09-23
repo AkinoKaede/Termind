@@ -51,7 +51,6 @@ final class WindowSidebarState {
     /// top-level destination. `nil` is the history + composer landing screen.
     var assistantConversationID: ConversationModel.ID?
     var assistantDraft = ConversationModel()
-    var isAssistantArchivePresented = false
 
     /// What the focused pane is, for whichever composer this column is showing.
     ///

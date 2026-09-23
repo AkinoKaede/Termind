@@ -84,11 +84,14 @@ struct MobileForwardingView: View {
                 Button(runtime.isFailed ? "Retry" : "Start", systemImage: "play") { start(rule) }.disabled(
                     !canStart(rule))
             }
+            Button("Copy Address", systemImage: "doc.on.doc") { UIPasteboard.general.string = rule.bindAddress }
+            Button("Copy SSH Command", systemImage: "apple.terminal") {
+                UIPasteboard.general.string = app.forwardingLibrary.sshCommand(for: rule)
+            }
+            .disabled(app.forwardingLibrary.sshCommand(for: rule) == nil)
+            Divider()
             Button("Edit", systemImage: "pencil") { editing = rule }.disabled(runtime.isActive)
             Button("Duplicate", systemImage: "plus.square.on.square") { duplicate(rule) }
-            Button("Copy Address", systemImage: "doc.on.doc") { UIPasteboard.general.string = rule.bindAddress }
-            Button("Copy SSH Command") { UIPasteboard.general.string = app.forwardingLibrary.sshCommand(for: rule) }
-                .disabled(app.forwardingLibrary.sshCommand(for: rule) == nil)
             Divider()
             Button("Delete", systemImage: "trash", role: .destructive) { removing = rule }
         }

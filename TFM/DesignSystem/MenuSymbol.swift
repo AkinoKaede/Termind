@@ -73,7 +73,6 @@ nonisolated enum MenuSymbol {
     static let insert = "text.insert"
     static let paste = "doc.on.clipboard"
     static let execute = "play"
-    static let executeOnHosts = "server.rack"
     static let start = "play"
     static let stop = "stop.fill"
     static let refresh = "arrow.clockwise"
@@ -126,7 +125,7 @@ nonisolated enum MenuSymbol {
         newIdentity, generateKey, generateCommand,
         importItem, download, export, upload,
         details, pause, selectDevices, open, openFullScreen, edit, rename, resetName, duplicate, copy, insert, paste,
-        execute, executeOnHosts, start, stop, refresh, showHiddenFiles, hideHiddenFiles, editPath,
+        execute, start, stop, refresh, showHiddenFiles, hideHiddenFiles, editPath,
         editPermissions, test,
         pin, unpin, archive, unarchive, delete,
         workspace, nextWorkspace, previousWorkspace, currentWorkspace, newWorkspace, newWindow, moveToNewWindow,
