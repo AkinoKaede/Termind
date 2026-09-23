@@ -481,9 +481,9 @@ struct LegacySidebarMaterialBackground: NSViewRepresentable {
     }
 }
 
-/// A native-feeling emphasized selection: the key window uses an accent fill
-/// with reversed content, while an inactive window keeps the same destination
-/// legible with a quiet accent wash and accent-colored content.
+/// A native selection: the key window uses the system selection color with
+/// reversed content; an inactive window uses the system's neutral selection
+/// background and unemphasized text color.
 ///
 /// The row's context menu is drawn here rather than by the caller, and it is a
 /// native menu rather than SwiftUI's: `contextMenu` derives its source rectangle
@@ -554,9 +554,7 @@ struct TermindSidebarRowBackground: ViewModifier {
 
     private var fillColor: Color {
         if isSelected {
-            controlActiveState == .key
-                ? TermindColor.accent
-                : TermindColor.accent.opacity(0.14)
+            SidebarSelectionStyle.background(controlActiveState: controlActiveState)
         } else {
             Highlight.fill(isSelected: false, isHovering: isHovering)
         }
@@ -564,6 +562,13 @@ struct TermindSidebarRowBackground: ViewModifier {
 }
 
 enum SidebarSelectionStyle {
+    static func background(controlActiveState: ControlActiveState) -> Color {
+        Color(
+            nsColor: controlActiveState == .key
+                ? .selectedContentBackgroundColor : .unemphasizedSelectedContentBackgroundColor
+        )
+    }
+
     static func foreground(
         isSelected: Bool,
         controlActiveState: ControlActiveState,
@@ -572,7 +577,7 @@ enum SidebarSelectionStyle {
         guard isSelected else { return unselected }
         return controlActiveState == .key
             ? AnyShapeStyle(TermindColor.selectedForeground)
-            : AnyShapeStyle(.tint)
+            : AnyShapeStyle(Color(nsColor: .unemphasizedSelectedTextColor))
     }
 }
 
