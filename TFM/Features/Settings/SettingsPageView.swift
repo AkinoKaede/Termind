@@ -682,22 +682,11 @@ private struct TerminalSettings: View {
     @Environment(AppModel.self) private var app
     @TerminalFontSettings private var font
     @Environment(\.scenePhase) private var scenePhase
-    private var darkTheme: String { app.terminalSettings.preferences.darkTheme }
-    private var lightTheme: String { app.terminalSettings.preferences.lightTheme }
-    private var darkCustomEnabled: Bool { app.terminalSettings.preferences.darkCustomEnabled }
-    private var lightCustomEnabled: Bool { app.terminalSettings.preferences.lightCustomEnabled }
 
     private func binding<Value>(_ keyPath: WritableKeyPath<TerminalPreferences, Value>) -> Binding<Value> {
         Binding(
             get: { app.terminalSettings.preferences[keyPath: keyPath] },
             set: { app.terminalSettings.set($0, for: keyPath) })
-    }
-
-    private var darkThemes: [GhosttyThemeDefinition] {
-        TermindTerminalThemeCatalog.allThemes.filter(\.isDark).sorted { $0.name < $1.name }
-    }
-    private var lightThemes: [GhosttyThemeDefinition] {
-        TermindTerminalThemeCatalog.allThemes.filter { !$0.isDark }.sorted { $0.name < $1.name }
     }
 
     var body: some View {
@@ -706,18 +695,14 @@ private struct TerminalSettings: View {
                 Text(error).foregroundStyle(.orange)
             }
             Section("Light") {
-                Picker("Theme", selection: binding(\.lightTheme)) {
-                    ForEach(lightThemes) { Text($0.name).tag($0.name) }
-                }
-                .disabled(lightCustomEnabled)
+                TerminalThemePicker(selection: binding(\.lightTheme), isDark: false)
                 Toggle("Custom Configuration", isOn: binding(\.lightCustomEnabled))
                 FormNavigationAction(title: "Edit Custom Configuration") {
                     editConfiguration(.light)
                 }
             }
             Section {
-                Picker("Theme", selection: binding(\.darkTheme)) { ForEach(darkThemes) { Text($0.name).tag($0.name) } }
-                    .disabled(darkCustomEnabled)
+                TerminalThemePicker(selection: binding(\.darkTheme), isDark: true)
                 Toggle("Custom Configuration", isOn: binding(\.darkCustomEnabled))
                 FormNavigationAction(title: "Edit Custom Configuration") {
                     editConfiguration(.dark)
@@ -730,22 +715,7 @@ private struct TerminalSettings: View {
                 )
             }
             Section("Font") {
-                TerminalFontPicker(family: $font.family, families: TerminalFontCatalog.shared.families)
-                VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                    Picker("Font Size", selection: $font.sizeFollowsTheme) {
-                        Text("Follow Theme").tag(true)
-                        Text("Custom").tag(false)
-                    }
-                    .pickerStyle(.menu)
-                    if !font.sizeFollowsTheme {
-                        HStack {
-                            Slider(value: $font.size, in: 9...24, step: 1)
-                                .labelsHidden().accessibilityLabel("Font Size")
-                            Text(font.size, format: .number.precision(.fractionLength(0)))
-                                .monospacedDigit().frame(width: 24, alignment: .trailing)
-                        }
-                    }
-                }
+                TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
             }
             Section("Mouse") {
                 Toggle("Copy on Selection", isOn: binding(\.copyOnSelect))
@@ -777,12 +747,6 @@ private struct TerminalSettings: View {
         }
         .onAppear {
             TerminalFontCatalog.shared.refresh()
-            if TermindTerminalThemeCatalog.darkTheme(named: darkTheme) == nil {
-                app.terminalSettings.set(SettingsKey.defaultTerminalThemeDark, for: \.darkTheme)
-            }
-            if TermindTerminalThemeCatalog.lightTheme(named: lightTheme) == nil {
-                app.terminalSettings.set(SettingsKey.defaultTerminalThemeLight, for: \.lightTheme)
-            }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { TerminalFontCatalog.shared.refresh() }

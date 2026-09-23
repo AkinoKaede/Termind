@@ -11,13 +11,26 @@ import UIKit
 struct MobileTerminalFontTests {
     @Test func fontCatalogIncludesOnlyAvailableMonospacedFamilies() {
         TerminalFontCatalog.shared.refresh()
-        #expect(!TerminalFontCatalog.shared.families.isEmpty)
-        #expect(!TerminalFontCatalog.shared.families.contains("Helvetica"))
-        for family in TerminalFontCatalog.shared.families {
+        let catalogFamilies = TerminalFontCatalog.shared.families
+        #expect(!catalogFamilies.isEmpty)
+        #expect(
+            catalogFamilies
+                == catalogFamilies.sorted { $0.localizedStandardCompare($1) == .orderedAscending })
+        for family in catalogFamilies {
             #expect(
                 UIFont.fontNames(forFamilyName: family).contains {
                     UIFont(name: $0, size: 14)?.fontDescriptor.symbolicTraits.contains(.traitMonoSpace) == true
                 })
+        }
+
+        let proportionalFamily = UIFont.familyNames.first { family in
+            let fonts = UIFont.fontNames(forFamilyName: family).compactMap { UIFont(name: $0, size: 14) }
+            return !fonts.isEmpty
+                && fonts.allSatisfy { !$0.fontDescriptor.symbolicTraits.contains(.traitMonoSpace) }
+        }
+        #expect(proportionalFamily != nil)
+        if let proportionalFamily {
+            #expect(!catalogFamilies.contains(proportionalFamily))
         }
     }
 

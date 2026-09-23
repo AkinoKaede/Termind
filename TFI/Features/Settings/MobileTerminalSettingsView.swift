@@ -15,21 +15,7 @@ struct MobileTerminalSettingsView: View {
             themeSection(dark: false)
             themeSection(dark: true)
             Section("Font") {
-                TerminalFontPicker(family: $font.family, families: TerminalFontCatalog.shared.families)
-                VStack(alignment: .leading, spacing: 8) {
-                    Picker("Font Size", selection: $font.sizeFollowsTheme) {
-                        Text("Follow Theme").tag(true)
-                        Text("Custom").tag(false)
-                    }
-                    .pickerStyle(.menu)
-                    if !font.sizeFollowsTheme {
-                        Stepper(value: $font.size, in: 8...36, step: 1) {
-                            Text(font.size, format: .number.precision(.fractionLength(0))).monospacedDigit()
-                        }
-                        .accessibilityLabel("Font Size")
-                        .accessibilityValue(font.size.formatted())
-                    }
-                }
+                TerminalFontFields(preferences: $font, families: TerminalFontCatalog.shared.families)
             }
             Section("Integration") { Toggle("Shell Integration", isOn: binding(\.shellIntegration)) }
             if let error = model.storageError { Text(error).foregroundStyle(.red) }
@@ -64,11 +50,7 @@ struct MobileTerminalSettingsView: View {
 
     private func themeSection(dark: Bool) -> some View {
         Section {
-            Picker("Theme", selection: binding(dark ? \.darkTheme : \.lightTheme)) {
-                ForEach(TermindTerminalThemeCatalog.allThemes.filter { $0.isDark == dark }, id: \.name) {
-                    Text(verbatim: $0.name).tag($0.name)
-                }
-            }
+            TerminalThemePicker(selection: binding(dark ? \.darkTheme : \.lightTheme), isDark: dark)
             Toggle("Custom Configuration", isOn: binding(dark ? \.darkCustomEnabled : \.lightCustomEnabled))
             Button("Edit Configuration", systemImage: "pencil") {
                 customText =

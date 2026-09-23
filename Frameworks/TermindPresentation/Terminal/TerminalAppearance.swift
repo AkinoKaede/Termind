@@ -59,6 +59,20 @@ public nonisolated enum TermindTerminalThemeCatalog {
 
     public static let defaultDark = TermindTerminalPalette.termindDark.ghosttyDefinition
     public static let defaultLight = TermindTerminalPalette.termindLight.ghosttyDefinition
+    public static let darkThemes = allThemes.filter(\.isDark).sorted { $0.name < $1.name }
+    public static let lightThemes = allThemes.filter { !$0.isDark }.sorted { $0.name < $1.name }
+
+    public static func themes(isDark: Bool) -> [GhosttyThemeDefinition] {
+        isDark ? darkThemes : lightThemes
+    }
+
+    public static func fallbackTheme(isDark: Bool) -> GhosttyThemeDefinition {
+        isDark ? defaultDark : defaultLight
+    }
+
+    public static func resolvedTheme(named name: String, isDark: Bool) -> GhosttyThemeDefinition {
+        theme(named: name).flatMap { $0.isDark == isDark ? $0 : nil } ?? fallbackTheme(isDark: isDark)
+    }
 
     public static func terminalConfiguration(
         themeName: String,
@@ -67,8 +81,7 @@ public nonisolated enum TermindTerminalThemeCatalog {
         isDark: Bool,
         font: TerminalFontPreferences = .init()
     ) -> GhosttyTerminal.TerminalConfiguration {
-        let fallback = isDark ? defaultDark : defaultLight
-        let selected = theme(named: themeName).flatMap { $0.isDark == isDark ? $0 : nil } ?? fallback
+        let selected = resolvedTheme(named: themeName, isDark: isDark)
         let base = selected.toTerminalConfiguration()
         let themed = customEnabled ? TerminalCustomConfiguration(customText).applying(to: base) : base
         // Ghostty renders theme commands after session overrides. Typography must
@@ -88,8 +101,7 @@ public nonisolated enum TermindTerminalThemeCatalog {
         customText: String,
         isDark: Bool
     ) -> TermindTerminalPalette.RGB {
-        let fallback = isDark ? defaultDark : defaultLight
-        let selected = theme(named: themeName).flatMap { $0.isDark == isDark ? $0 : nil } ?? fallback
+        let selected = resolvedTheme(named: themeName, isDark: isDark)
         if customEnabled,
             let value = TerminalCustomConfiguration(customText).lastValue(for: "background"),
             let customBackground = TermindTerminalPalette.RGB(hex: value)

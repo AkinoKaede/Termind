@@ -17143,6 +17143,23 @@
         }
       }
     },
+    "No Theme Selected" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未选择主题"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "未選擇主題"
+          }
+        }
+      }
+    },
     "No Transfers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -28758,6 +28775,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暫不支援此SSH記錄。"
+          }
+        }
+      }
+    },
+    "This theme is unavailable for this appearance. Using “%@” instead." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此主题不适用于当前外观，将改用“%@”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此主題不適用於目前外觀，將改用「%@」。"
           }
         }
       }
