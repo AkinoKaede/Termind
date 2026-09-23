@@ -6,7 +6,7 @@ import TermindDomain
 import TermindPersistence
 import Testing
 
-@Suite @MainActor
+@Suite(.timeLimit(.minutes(1))) @MainActor
 struct AgentReplayPersistenceTests {
     @Test
     func snapshotsAndFrozenResultsSurviveRestoreAndDeletion() async throws {
@@ -112,6 +112,162 @@ struct AgentReplayPersistenceTests {
     }
 
     @Test
+    func queuedCancellationAtomicallyAdoptsEditedStagingAndReloadsCapturedPayload() async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+        let original = AgentTranscriptMessage(role: .user, text: "before", authoredText: "before")
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval, messages: [original]
+            ))
+        let stored = try #require(try await repository.loadConversations().first)
+        let store = AssistantConversationStore()
+        store.restore([stored])
+        let conversation = try #require(store.conversations.first)
+        let context = AgentTurnContextSnapshot(
+            sessionContext: "captured host", skillCatalog: "captured skills",
+            planContract: "captured plan", toolAvailability: ["terminal_suggest": false]
+        )
+        let image = AgentImageAttachment(
+            label: "capture.png", mimeType: "image/png", data: Data([1, 2, 3]),
+            pixelWidth: 2, pixelHeight: 2
+        )
+        let attachment = AgentContextAttachment(
+            id: UUID(), kind: .file, label: "capture.txt",
+            contentTypeIdentifier: "public.plain-text", suggestedFilename: "capture.txt",
+            data: Data("captured payload".utf8)
+        )
+        let replacement = AgentTranscriptMessage(
+            role: .user, text: "after", authoredText: "After authored",
+            images: [image], contextAttachments: [attachment], contextSnapshot: context,
+            createdAt: .now
+        )
+        let operations = AssistantConversationOperations(repository: repository)
+        let composed = try #require(
+            try await operations.edit(
+                conversation, messageID: original.id, replacement: replacement
+            ))
+        let staging = try #require(conversation.runSummaries[replacement.id])
+        let calls = ReplayModelCalls()
+        conversation.start(
+            runtime: AgentRuntime(
+                model: CountingReplayModel(calls: calls), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, promptID: composed.id,
+                prompt: composed.text, authoredPrompt: composed.authoredText,
+                promptImages: composed.images,
+                promptContextAttachments: composed.contextAttachments,
+                permissionMode: .fullAccess, contextSnapshot: context
+            ),
+            repository: repository
+        )
+
+        await conversation.stopAndWait()
+
+        #expect(await calls.count == 0)
+        #expect(conversation.runSummaries[replacement.id] == nil)
+        let freshRepository = SwiftDataAgentRunRepository(context: ModelContext(container))
+        let restored = try #require(try await freshRepository.loadConversations().first)
+        let run = try #require(restored.runs.first)
+        #expect(restored.runs.count == 1)
+        #expect(run.id != replacement.id)
+        #expect(run.state == .cancelled)
+        #expect(run.startedAt >= staging.startedAt)
+        #expect(run.finishedAt.map { $0 >= run.startedAt } == true)
+        #expect(restored.messageRunIDs[replacement.id] == run.id)
+        let message = try #require(restored.messages.first)
+        #expect(message.id == replacement.id)
+        #expect(message.text == replacement.text)
+        #expect(message.authoredText == replacement.authoredText)
+        #expect(message.images == [image])
+        #expect(message.contextAttachments == [attachment])
+        #expect(message.contextSnapshot == context)
+        #expect(message.createdAt <= (run.finishedAt ?? .distantPast))
+        let runRows = try ModelContext(container).fetch(FetchDescriptor<PersistentAgentRun>())
+        #expect(runRows.count == 1)
+        #expect(runRows.first?.permissionMode == AgentPermissionMode.fullAccess.rawValue)
+    }
+
+    @Test
+    func capturedConfigurationFailureAdoptsEditedStagingOnlyAfterDurableSave() async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+        let image = AgentImageAttachment(
+            label: "capture.png", mimeType: "image/png", data: Data([4, 5, 6]),
+            pixelWidth: 2, pixelHeight: 2
+        )
+        let attachment = AgentContextAttachment(
+            id: UUID(), kind: .file, label: "capture.txt",
+            contentTypeIdentifier: "public.plain-text", suggestedFilename: "capture.txt",
+            data: Data("captured payload".utf8)
+        )
+        let original = AgentTranscriptMessage(
+            role: .user, text: "before", authoredText: "before",
+            images: [image], contextAttachments: [attachment]
+        )
+        try await repository.save(
+            AgentRunSnapshot(
+                conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval, messages: [original]
+            ))
+        let stored = try #require(try await repository.loadConversations().first)
+        let store = AssistantConversationStore()
+        store.restore([stored])
+        let conversation = try #require(store.conversations.first)
+        conversation.permissionMode = .fullAccess
+        let controller = AssistantExecutionController(
+            ai: AIConfigurationModel(), skills: SkillLibraryModel(), repository: repository,
+            authorize: { true },
+            makeRegistry: { _, _, _, _, _ in AgentToolRegistry([]) },
+            title: { _ in "Title" }
+        )
+        let operations = AssistantConversationOperations(repository: repository)
+        let prepared = try #require(
+            controller.prepareAgentEdit(
+                conversation, messageID: original.id, text: "after",
+                context: SessionContext(hostName: "captured-host", workingDirectory: "/captured"),
+                terminalSuggestionsAvailable: true
+            ))
+
+        #expect(try await controller.performAgentEdit(prepared, in: conversation, operations: operations))
+        let replacement = try #require(conversation.transcript.first)
+        let staging = try #require(conversation.runSummaries[replacement.id])
+        await conversation.stopAndWait()
+
+        #expect(conversation.runState == .failed)
+        #expect(conversation.runSummaries[replacement.id] == nil)
+
+        let freshRepository = SwiftDataAgentRunRepository(context: ModelContext(container))
+        let restored = try #require(try await freshRepository.loadConversations().first)
+        let run = try #require(restored.runs.first)
+        let message = try #require(restored.messages.first)
+        #expect(restored.runs.count == 1)
+        #expect(run.id != replacement.id)
+        #expect(run.state == .failed)
+        #expect(run.failure == String(localized: "No Chat model is configured."))
+        #expect(run.startedAt >= staging.startedAt)
+        #expect(run.finishedAt.map { $0 >= run.startedAt } == true)
+        #expect(restored.messageRunIDs[replacement.id] == run.id)
+        #expect(message.id == replacement.id)
+        #expect(message.text == replacement.text)
+        #expect(message.authoredText == "after")
+        #expect(message.images == [image])
+        #expect(message.contextAttachments == [attachment])
+        #expect(message.contextSnapshot?.sessionContext?.contains("captured-host") == true)
+        #expect(message.contextSnapshot?.toolAvailability?["terminal_suggest"] == true)
+        #expect(message.createdAt <= (run.finishedAt ?? .distantPast))
+        let runRows = try ModelContext(container).fetch(FetchDescriptor<PersistentAgentRun>())
+        #expect(runRows.count == 1)
+        #expect(runRows.first?.permissionMode == AgentPermissionMode.fullAccess.rawValue)
+    }
+
+    @Test
     func v15MigratesWithoutInventingHistoricalContext() async throws {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -138,5 +294,24 @@ struct AgentReplayPersistenceTests {
         container.mainContext.insert(
             PersistentAgentMessage(.init(role: .user, text: "legacy"), runID: snapshot.id, sequence: 0))
         try container.mainContext.save()
+    }
+}
+
+private actor ReplayModelCalls {
+    private(set) var count = 0
+    func called() { count += 1 }
+}
+
+private struct CountingReplayModel: AgentModelStreaming {
+    let calls: ReplayModelCalls
+
+    func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                await calls.called()
+                continuation.yield(.finished(.completed))
+                continuation.finish()
+            }
+        }
     }
 }

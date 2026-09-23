@@ -122,7 +122,7 @@ final class MobileAppModel {
     private var scenePhases: [UUID: ScenePhase] = [:]
 
     convenience init(
-        hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = .standard,
+        hosts: (any HostRepository)? = nil, inMemory: Bool = false, defaults: UserDefaults? = nil,
         background: any MobileBackgroundTaskManaging = MobileBackgroundController(),
         workspaceConnectionServices: MobileWorkspaceConnectionServices = .live,
         appReview: AppReviewController = AppReviewController()
@@ -558,29 +558,15 @@ final class MobileAppModel {
     }
 
     func sceneChanged(_ id: UUID, phase: ScenePhase) {
-        let wasBackground = !scenePhases.isEmpty && scenePhases.values.allSatisfy { $0 == .background }
+        let wasBackground = allScenesAreBackgrounded
         scenePhases[id] = phase
-        let isBackground = scenePhases.values.allSatisfy { $0 == .background }
+        let isBackground = allScenesAreBackgrounded
         if isBackground && !wasBackground {
-            sftpEdits.setMonitoring(false)
-            memory.suspend()
-            vaultSync?.pause()
-            metricsSync?.pause()
-            settingsSync?.pause()
-            metrics.pause()
-            outbox.stop()
-            assistant.suspendRecording()
-            background.begin { [weak self] in
-                guard let self else { return }
-                for workspace in workspaces { workspace.suspendForBackgroundExpiration() }
-                forwardings.stopAll()
-                transfers.pauseAll()
-                assistant.expireBackground()
-            }
-            liveActivities.update(workspaceActivitySessions)
+            enterBackground()
         } else if phase == .active {
             devices.updateCurrentDeviceName(Device.current.safeDescription)
             sftpEdits.setMonitoring(true)
+            memory.resume()
             Task { await sftpEdits.recheck() }
             Task { [weak self] in await self?.pro.refresh() }
             background.finish()
@@ -648,8 +634,33 @@ final class MobileAppModel {
     }
 
     func removeScene(_ id: UUID) {
+        let wasBackground = allScenesAreBackgrounded
         scenePhases[id] = nil
+        if allScenesAreBackgrounded && !wasBackground { enterBackground() }
         reconcileSync()
+    }
+
+    private var allScenesAreBackgrounded: Bool {
+        !scenePhases.isEmpty && scenePhases.values.allSatisfy { $0 == .background }
+    }
+
+    private func enterBackground() {
+        sftpEdits.setMonitoring(false)
+        memory.suspend()
+        vaultSync?.pause()
+        metricsSync?.pause()
+        settingsSync?.pause()
+        metrics.pause()
+        outbox.stop()
+        assistant.suspendRecording()
+        background.begin { [weak self] in
+            guard let self else { return }
+            for workspace in workspaces { workspace.suspendForBackgroundExpiration() }
+            forwardings.stopAll()
+            transfers.pauseAll()
+            assistant.expireBackground()
+        }
+        liveActivities.update(workspaceActivitySessions)
     }
 
     func focusWorkspaceActivity(_ id: UUID) {

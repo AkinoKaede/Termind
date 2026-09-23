@@ -1,3 +1,4 @@
+import ListViewKit
 import SwiftUI
 import TermindApplication
 import TermindDomain
@@ -86,7 +87,7 @@ struct MobileAdaptiveLayoutTests {
         try await withRoot(app: app, scene: scene, language: language, regions: regions) { controller in
             let composer = try #require(textInput(containing: conversation.composer.draft, in: controller.view))
             let input = try #require(composer as? any UITextInput)
-            let transcript = try #require(find(UICollectionView.self, in: controller.view))
+            let transcript = try #require(find(ListScrollView.self, in: controller.view))
             #expect(composer.becomeFirstResponder())
             input.setMarkedText("输入中", selectedRange: NSRange(location: 3, length: 0))
             try await settle()
@@ -99,7 +100,7 @@ struct MobileAdaptiveLayoutTests {
                 regions.regions = [region]
                 try await settle()
                 #expect(scene.assistant.conversation === conversation)
-                #expect(find(UICollectionView.self, in: controller.view) === transcript)
+                #expect(find(ListScrollView.self, in: controller.view) === transcript)
                 #expect(composer.isFirstResponder)
                 #expect(composer.window != nil)
                 let marked = try #require(input.markedTextRange)

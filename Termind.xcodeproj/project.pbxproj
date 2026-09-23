@@ -17,8 +17,6 @@
 		10DD764492A94453449B3484 /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		1D479CE3B3FF74B0C23BA3F2 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		20ADB83C9DB7F78EDF8BCBDF /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
-		DEVK00000000000000000003 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
-		DEVK00000000000000000004 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
 		23E272F32F769A979F3ABF42 /* AgentKit in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD0000000000000010001B /* AgentKit */; };
 		25C0658E2DD9B2FE28023DA7 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		26C689ECB8B41A357765CCF1 /* TermindRemoteInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21951230A1FF30987ADC3B6B /* TermindRemoteInfrastructure.framework */; };
@@ -76,6 +74,8 @@
 		CE6200000000000000000001 /* TermindRemoteInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 21951230A1FF30987ADC3B6B /* TermindRemoteInfrastructure.framework */; };
 		CF863393BB8C2B38A9EEE18A /* TermindInfrastructure.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 67B48098792E58C2955768F2 /* TermindInfrastructure.framework */; };
 		D7D1BBB65020F61F7EFDDFD7 /* GhosttyTerminal in Frameworks */ = {isa = PBXBuildFile; productRef = TRMD00000000000000100012 /* GhosttyTerminal */; };
+		DEVK00000000000000000003 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
+		DEVK00000000000000000004 /* DeviceKit in Frameworks */ = {isa = PBXBuildFile; productRef = DEVK00000000000000000002 /* DeviceKit */; };
 		E635C54CA9F1A63D909CFCE6 /* TermindPersistence.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 244632CCDB1CA43F45C0EB54 /* TermindPersistence.framework */; };
 		EF2F88E4809C845C3F1BBF63 /* TermindDomain.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7A62058825D6607920F1E2A1 /* TermindDomain.framework */; };
 		F04700000000000000000001 /* TFMTests/SSHForwardingPumpTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F04700000000000000000011 /* TFMTests/SSHForwardingPumpTests.swift */; };
@@ -2769,20 +2769,20 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/devicekit/DeviceKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 5.8.0;
-			};
-		};
 		BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/groue/GRDB.swift.git";
 			requirement = {
 				kind = exactVersion;
 				version = 7.11.1;
+			};
+		};
+		DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/devicekit/DeviceKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.8.0;
 			};
 		};
 		LOGG00000000000000000001 /* XCRemoteSwiftPackageReference "swift-log" */ = {
@@ -2860,15 +2860,15 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		DEVK00000000000000000002 /* DeviceKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */;
-			productName = DeviceKit;
-		};
 		BAAD00000000000000000002 /* GRDB */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = BAAD00000000000000000001 /* XCRemoteSwiftPackageReference "GRDB.swift" */;
 			productName = GRDB;
+		};
+		DEVK00000000000000000002 /* DeviceKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = DEVK00000000000000000001 /* XCRemoteSwiftPackageReference "DeviceKit" */;
+			productName = DeviceKit;
 		};
 		LOGG00000000000000000002 /* Logging */ = {
 			isa = XCSwiftPackageProductDependency;

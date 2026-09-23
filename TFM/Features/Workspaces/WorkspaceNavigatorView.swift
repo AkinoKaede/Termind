@@ -336,8 +336,8 @@ struct WorkspaceNavigatorView: View {
 
     private func beginWorkspaceRename(_ workspace: Workspace) {
         guard workspace.isRenameable else { return }
-        renamingWorkspaceID = workspace.id
         workspaceRenameTitle = workspace.title(in: app.hostLibrary, locale: locale)
+        renamingWorkspaceID = workspace.id
     }
 
     private func commitWorkspaceRename(_ workspace: Workspace) {

@@ -3,7 +3,7 @@ import Foundation
 import TermindApplication
 import Testing
 
-@Suite @MainActor
+@Suite(.timeLimit(.minutes(1))) @MainActor
 struct AssistantConversationOperationsTests {
     private func fixture() async throws -> (
         InMemoryAgentRunRepository, ConversationModel, AssistantConversationOperations
@@ -203,20 +203,265 @@ struct AssistantConversationOperationsTests {
     }
 
     @Test
-    func immediateStopCannotStartAQueuedRuntime() async {
+    func immediateStopAndWaitPersistsCapturedCancellationWithoutCallingProviderOrTools() async throws {
         let calls = AssistantModelCalls()
+        let tools = AssistantToolCalls()
+        let repository = InMemoryAgentRunRepository()
         let conversation = ConversationModel()
+        let promptID = UUID()
+        let context = AgentTurnContextSnapshot(
+            sessionContext: "captured host", skillCatalog: "captured skills",
+            planContract: "captured plan", toolAvailability: ["terminal_suggest": false]
+        )
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "never", summary: "Never runs", inputSchema: .object([:]),
+                target: .local, approvalPolicy: .approve
+            )
+        ) { invocation, _ in
+            await tools.called()
+            return AgentToolResult(callID: invocation.call.id, content: "unexpected")
+        }
         let runtime = AgentRuntime(
-            model: CountingAssistantModel(calls: calls), tools: [],
-            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .deny("test") }))
+            model: CountingAssistantModel(calls: calls), tools: [tool],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .deny("test") }),
+            repository: repository)
         conversation.start(
             runtime: runtime,
             request: AgentRunRequest(
-                conversationID: conversation.id, prompt: "go", permissionMode: .askForApproval))
-        conversation.stop()
-        for _ in 0..<20 { await Task.yield() }
+                conversationID: conversation.id, promptID: promptID, prompt: "go",
+                authoredPrompt: "Go now", permissionMode: .fullAccess,
+                contextSnapshot: context),
+            repository: repository)
+
+        await conversation.stopAndWait()
+
         #expect(await calls.count == 0)
+        #expect(await tools.count == 0)
         #expect(!conversation.isStreaming)
+        #expect(conversation.runState == .cancelled)
+        let stored = try #require(await repository.loadConversations().first)
+        let run = try #require(stored.runs.first)
+        let snapshot = try #require(await repository.snapshot(run.id))
+        #expect(snapshot.state == .cancelled)
+        #expect(snapshot.permissionMode == .fullAccess)
+        #expect(snapshot.messages.last?.id == promptID)
+        #expect(snapshot.messages.last?.text == "go")
+        #expect(snapshot.messages.last?.authoredText == "Go now")
+        #expect(snapshot.messages.last?.contextSnapshot == context)
+        #expect(snapshot.messages.last.map { $0.createdAt <= (snapshot.finishedAt ?? .distantPast) } == true)
+        #expect(conversation.messageRunIDs[promptID] == run.id)
+        #expect(conversation.runSummaries[run.id]?.state == .cancelled)
+    }
+
+    @Test
+    func stopThenStopAndWaitJoinsTheQueuedCancellationSave() async {
+        let calls = AssistantModelCalls()
+        let repository = TerminalSaveGateRepository()
+        let conversation = ConversationModel()
+        let runtime = AgentRuntime(
+            model: CountingAssistantModel(calls: calls), tools: [],
+            approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .deny("test") }),
+            repository: repository)
+        conversation.start(
+            runtime: runtime,
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "go", permissionMode: .askForApproval),
+            repository: repository)
+
+        conversation.stop()
+        await repository.waitForTerminalSave()
+        let join = JoinProbe()
+        let waiter = Task { @MainActor in
+            join.markStarted()
+            await conversation.stopAndWait()
+            join.markFinished()
+        }
+        await join.waitUntilStarted()
+        #expect(!join.finished)
+
+        await repository.releaseTerminalSaves()
+        await waiter.value
+        #expect(join.finished)
+        #expect(await calls.count == 0)
+        #expect(await repository.savedTerminalState == .cancelled)
+    }
+
+    @Test
+    func queuedStopPersistsAfterConversationPresentationIsReleased() async {
+        let calls = AssistantModelCalls()
+        let repository = TerminalSaveGateRepository()
+        weak var released: ConversationModel?
+        do {
+            var conversation: ConversationModel? = ConversationModel()
+            released = conversation
+            let runtime = AgentRuntime(
+                model: CountingAssistantModel(calls: calls), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: repository
+            )
+            conversation?.start(
+                runtime: runtime,
+                request: AgentRunRequest(
+                    conversationID: conversation!.id, prompt: "go",
+                    permissionMode: .askForApproval),
+                repository: repository
+            )
+            conversation?.stop()
+            conversation = nil
+        }
+
+        #expect(released == nil)
+        await repository.waitForTerminalSave()
+        #expect(await calls.count == 0)
+        await repository.releaseTerminalSaves()
+        await repository.waitForTerminalSaved()
+    }
+
+    @Test
+    func directStartCancelsAndPersistsTheDisplacedQueuedOwner() async {
+        let oldCalls = AssistantModelCalls()
+        let oldRepository = TerminalSaveGateRepository()
+        let conversation = ConversationModel()
+        conversation.start(
+            runtime: AgentRuntime(
+                model: CountingAssistantModel(calls: oldCalls), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: oldRepository
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "old", permissionMode: .askForApproval),
+            repository: oldRepository
+        )
+
+        let newCalls = AssistantModelCalls()
+        let newRepository = InMemoryAgentRunRepository()
+        conversation.start(
+            runtime: AgentRuntime(
+                model: HangingCountingAssistantModel(calls: newCalls), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: newRepository
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "new", permissionMode: .askForApproval),
+            repository: newRepository
+        )
+
+        await oldRepository.waitForTerminalSave()
+        await newCalls.waitUntilCalled()
+        #expect(await oldCalls.count == 0)
+        #expect(conversation.runState == .running)
+        await oldRepository.releaseTerminalSaves()
+        await oldRepository.waitForTerminalSaved()
+        #expect(await oldRepository.savedTerminalState == .cancelled)
+        await conversation.stopAndWait()
+    }
+
+    @Test
+    func stopAndWaitCancelsPendingApprovalAndJoinsItsTerminalSave() async {
+        let tools = AssistantToolCalls()
+        let repository = TerminalSaveGateRepository()
+        let conversation = ConversationModel()
+        let tool = AnyAgentTool(
+            descriptor: AgentToolDescriptor(
+                name: "held", summary: "Held", inputSchema: .object([:]),
+                target: .local, approvalPolicy: .ask
+            )
+        ) { invocation, _ in
+            await tools.called()
+            return AgentToolResult(callID: invocation.call.id, content: "unexpected")
+        }
+        conversation.start(
+            runtime: AgentRuntime(
+                model: ApprovalRequestingAssistantModel(), tools: [tool],
+                approval: AgentApprovalBroker(
+                    reviewer: nil,
+                    manualApproval: { [weak conversation] request in
+                        guard let conversation else { return .deny("gone") }
+                        return await conversation.requestApproval(request)
+                    }
+                ),
+                repository: repository
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "approve",
+                permissionMode: .askForApproval),
+            repository: repository
+        )
+        await waitUntil { conversation.pendingApproval != nil }
+
+        let releaseTerminalSave = Task { @MainActor in
+            await repository.waitForTerminalSave()
+            #expect(conversation.pendingApprovals.isEmpty)
+            await repository.releaseTerminalSaves()
+        }
+        await conversation.stopAndWait()
+        await releaseTerminalSave.value
+
+        #expect(conversation.pendingApprovals.isEmpty)
+        #expect(await tools.count == 0)
+        #expect(await repository.savedTerminalState == .cancelled)
+        #expect(conversation.runState == .cancelled)
+    }
+
+    @Test
+    func runningStopAndWaitDrainsOldPersistenceWithoutClobberingReplacement() async {
+        let oldCalls = AssistantModelCalls()
+        let oldRepository = TerminalSaveGateRepository()
+        let conversation = ConversationModel()
+        conversation.start(
+            runtime: AgentRuntime(
+                model: HangingCountingAssistantModel(calls: oldCalls), tools: [],
+                approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                repository: oldRepository
+            ),
+            request: AgentRunRequest(
+                conversationID: conversation.id, prompt: "old", permissionMode: .askForApproval),
+            repository: oldRepository
+        )
+        await oldCalls.waitUntilCalled()
+        await waitUntil { conversation.runSummaries.values.contains(where: { $0.state == .running }) }
+        let oldRunID = try! #require(conversation.runSummaries.values.first(where: { $0.state == .running })?.id)
+        let reviewInvocation = AgentToolInvocation(
+            runID: oldRunID,
+            call: AgentToolCall(id: "reviewed", name: "reviewed", arguments: .object([:]))
+        )
+        let reviewDescriptor = AgentToolDescriptor(
+            name: "reviewed", summary: "Reviewed", inputSchema: .object([:]),
+            target: .local, approvalPolicy: .ask
+        )
+        let reviewRequest = AgentApprovalRequest(
+            invocation: reviewInvocation, descriptor: reviewDescriptor, userIntent: "review"
+        )
+        conversation.handle(.toolProposed(reviewInvocation, reviewDescriptor))
+        conversation.handle(.reviewStarted(reviewRequest))
+        #expect(conversation.runState == .reviewing)
+
+        let replacementCalls = AssistantModelCalls()
+        let replacementRepository = InMemoryAgentRunRepository()
+        let replaceWhileOldSaveIsBlocked = Task { @MainActor in
+            await oldRepository.waitForTerminalSave()
+            conversation.start(
+                runtime: AgentRuntime(
+                    model: HangingCountingAssistantModel(calls: replacementCalls), tools: [],
+                    approval: AgentApprovalBroker(reviewer: nil, manualApproval: { _ in .allow }),
+                    repository: replacementRepository
+                ),
+                request: AgentRunRequest(
+                    conversationID: conversation.id, prompt: "new", permissionMode: .askForApproval),
+                repository: replacementRepository
+            )
+            await replacementCalls.waitUntilCalled()
+            await waitUntil { conversation.runState == .running }
+            await oldRepository.releaseTerminalSaves()
+        }
+
+        await conversation.stopAndWait()
+        await replaceWhileOldSaveIsBlocked.value
+        #expect(conversation.runState == .running)
+        #expect(conversation.toolCards.first(where: { $0.id == reviewInvocation.id })?.state == .interrupted)
+        #expect(await oldRepository.savedTerminalState == .cancelled)
+        await conversation.stopAndWait()
     }
 
     @Test func deletingRemovesDurableConversation() async throws {
@@ -310,7 +555,95 @@ private actor RejectingConversationRepository: AgentRunPersisting {
 
 private actor AssistantModelCalls {
     var count = 0
+    private var waiters: [CheckedContinuation<Void, Never>] = []
+
+    func called() {
+        count += 1
+        let pending = waiters
+        waiters.removeAll()
+        for waiter in pending { waiter.resume() }
+    }
+
+    func waitUntilCalled() async {
+        guard count == 0 else { return }
+        await withCheckedContinuation { waiters.append($0) }
+    }
+}
+
+private actor AssistantToolCalls {
+    var count = 0
     func called() { count += 1 }
+}
+
+@MainActor
+private final class JoinProbe {
+    private(set) var finished = false
+    private var started = false
+    private var startWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func markStarted() {
+        started = true
+        let pending = startWaiters
+        startWaiters.removeAll()
+        for waiter in pending { waiter.resume() }
+    }
+
+    func waitUntilStarted() async {
+        guard !started else { return }
+        await withCheckedContinuation { startWaiters.append($0) }
+    }
+
+    func markFinished() { finished = true }
+}
+
+private actor TerminalSaveGateRepository: AgentRunPersisting {
+    private var terminalSaveEntered = false
+    private var terminalSaveWaiters: [CheckedContinuation<Void, Never>] = []
+    private var terminalReleaseWaiters: [CheckedContinuation<Void, Never>] = []
+    private var terminalSavedWaiters: [CheckedContinuation<Void, Never>] = []
+    private(set) var savedTerminalState: AgentRunState?
+
+    func save(_ snapshot: AgentRunSnapshot) async {
+        guard snapshot.state.isTerminal else { return }
+        terminalSaveEntered = true
+        let entered = terminalSaveWaiters
+        terminalSaveWaiters.removeAll()
+        for waiter in entered { waiter.resume() }
+        await withCheckedContinuation { terminalReleaseWaiters.append($0) }
+        savedTerminalState = snapshot.state
+        let saved = terminalSavedWaiters
+        terminalSavedWaiters.removeAll()
+        for waiter in saved { waiter.resume() }
+    }
+
+    func waitForTerminalSave() async {
+        guard !terminalSaveEntered else { return }
+        await withCheckedContinuation { terminalSaveWaiters.append($0) }
+    }
+
+    func releaseTerminalSaves() {
+        let pending = terminalReleaseWaiters
+        terminalReleaseWaiters.removeAll()
+        for waiter in pending { waiter.resume() }
+    }
+
+    func waitForTerminalSaved() async {
+        guard savedTerminalState == nil else { return }
+        await withCheckedContinuation { terminalSavedWaiters.append($0) }
+    }
+
+    func record(_ event: AgentEvent, runID: UUID) {}
+    func persistCompaction(_ record: AgentCompactionRecord, conversationID: UUID) {}
+    func loadConversations() -> [StoredAgentConversation] { [] }
+    func deleteConversation(_ id: UUID) {}
+    func setTitle(_ title: String, conversationID: UUID) {}
+    func setConversationMetadata(_ metadata: StoredAgentConversationMetadata, conversationID: UUID) {}
+    func reorderConversations(_ updates: [StoredAgentConversationOrder]) {}
+    func truncateConversation(
+        _ id: UUID, fromUserMessageID messageID: UUID,
+        replacingWith message: AgentTranscriptMessage
+    ) {}
+    func createConversation(_ conversation: StoredAgentConversation) {}
 }
 
 private struct CountingAssistantModel: AgentModelStreaming {
@@ -324,4 +657,34 @@ private struct CountingAssistantModel: AgentModelStreaming {
             }
         }
     }
+}
+
+private struct HangingCountingAssistantModel: AgentModelStreaming {
+    let calls: AssistantModelCalls
+
+    func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            Task {
+                await calls.called()
+                continuation.yield(.textDelta("working"))
+                try? await Task.sleep(for: .seconds(30))
+                continuation.finish()
+            }
+        }
+    }
+}
+
+private struct ApprovalRequestingAssistantModel: AgentModelStreaming {
+    func stream(_ request: AgentModelRequest) -> AsyncThrowingStream<AgentModelStreamEvent, any Error> {
+        AsyncThrowingStream { continuation in
+            continuation.yield(.toolCallDelta(id: "held", name: "held", arguments: "{}"))
+            continuation.yield(.finished(.toolCalls))
+            continuation.finish()
+        }
+    }
+}
+
+@MainActor
+private func waitUntil(_ condition: @escaping @MainActor () -> Bool) async {
+    while !condition() { await Task.yield() }
 }

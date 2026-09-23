@@ -177,13 +177,20 @@ final class MCPUploadCoordinator {
             runID: ticket.info.runID, clientName: ticket.info.clientName, hostID: ticket.request.hostID,
             remotePath: ticket.request.remotePath, overwrite: ticket.request.overwrite
         )
+        let cancellation = ticket.info.cancellation
+        // The transfer cancels its own token on any failure, so track HTTP disconnect provenance separately.
+        let disconnection = TransferCancellationToken()
         tickets[id] = ticket
         return .accept(
             { [weak self] read in
                 guard let self else { return Self.error(503, "upload_unavailable") }
-                return await self.receive(id: id, attempt: attempt, read: read)
+                return await self.receive(id: id, attempt: attempt, disconnection: disconnection, read: read)
             },
-            disconnected: { [weak self] in Task { @MainActor in self?.interrupt(id, attempt: attempt) } }
+            disconnected: { [weak self] in
+                disconnection.cancel()
+                cancellation.cancel()
+                Task { @MainActor in self?.interrupt(id, attempt: attempt) }
+            }
         )
     }
 
@@ -220,9 +227,10 @@ final class MCPUploadCoordinator {
         tickets.removeAll()
     }
 
-    private func receive(id: UUID, attempt: UUID, read: @escaping SFTPStreamUploadOperation.ReadChunk) async
-        -> HTTPResponse
-    {
+    private func receive(
+        id: UUID, attempt: UUID, disconnection: TransferCancellationToken,
+        read: @escaping SFTPStreamUploadOperation.ReadChunk
+    ) async -> HTTPResponse {
         guard let ticket = tickets[id], ticket.attemptID == attempt, ticket.info.state == "connecting",
             !ticket.info.cancellation.isCancelled
         else {
@@ -244,8 +252,14 @@ final class MCPUploadCoordinator {
                 return Self.json(200, payload(completed))
             } catch {
                 let cleanup = error as? SFTPTemporaryFileCleanupError
+                let cancelRequested = tickets[id]?.info.cancelRequested == true
+                let interrupted =
+                    tickets[id]?.interrupted == true
+                    || disconnection.isCancelled
+                if interrupted { tickets[id]?.interrupted = true }
                 let (status, code) = Self.failure(
-                    cleanup?.cause ?? error, cancelled: tickets[id]?.info.cancelRequested == true)
+                    cleanup?.cause ?? error,
+                    cancelled: cancelRequested || disconnection.isCancelled)
                 tickets[id]?.temporaryPath = cleanup?.path
                 if let failure = (cleanup?.cause ?? error) as? SFTPStreamUploadOperation.Failure,
                     case .digestMismatch(let actual) = failure
@@ -253,9 +267,9 @@ final class MCPUploadCoordinator {
                     tickets[id]?.actualSHA256 = actual
                 }
                 let canResume =
-                    tickets[id]?.info.cancelRequested != true
+                    !cancelRequested
                     && !Self.integrityFailure(cleanup?.cause ?? error)
-                    && (tickets[id]?.interrupted == true || Self.recoverable(cleanup?.cause ?? error))
+                    && (interrupted || Self.recoverable(cleanup?.cause ?? error))
                     && ticket.info.expiresAt > now()
                 if !canResume { await cleanupTicket(id) }
                 finish(

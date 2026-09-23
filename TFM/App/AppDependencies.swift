@@ -8,6 +8,14 @@ import TermindRemoteInfrastructure
 import struct TermindDomain.Host
 
 @MainActor
+struct AppShutdownDependencies {
+    let stopMCP: @MainActor () async -> Void
+    let stopSFTP: @MainActor () async -> Void
+    let closeAgentBackgroundCommands: @MainActor () async -> Void
+    let closeAgentConnections: @MainActor () async -> Void
+}
+
+@MainActor
 struct AppDependencies {
     let hostRepository: any HostRepository
     let outboxRunner: OutboxRunner?
@@ -21,6 +29,8 @@ struct AppDependencies {
     let mcpServerSecrets: any SecretStoring
     let logging: any ApplicationLogManaging
     let settingsDefaults: UserDefaults
+    let assistantConversations: AssistantConversationStore?
+    let shutdown: AppShutdownDependencies?
 
     init(
         hostRepository: any HostRepository, outboxRunner: OutboxRunner?,
@@ -33,7 +43,9 @@ struct AppDependencies {
         metricsPreferences: (any MetricsConfigurationStoring)? = nil,
         mcpServerSecrets: any SecretStoring = InMemorySecretStore(),
         logging: any ApplicationLogManaging = DisabledApplicationLogManager.shared,
-        settingsDefaults: UserDefaults = .standard
+        settingsDefaults: UserDefaults = .standard,
+        assistantConversations: AssistantConversationStore? = nil,
+        shutdown: AppShutdownDependencies? = nil
     ) {
         self.hostRepository = hostRepository
         self.outboxRunner = outboxRunner
@@ -47,6 +59,8 @@ struct AppDependencies {
         self.mcpServerSecrets = mcpServerSecrets
         self.logging = logging
         self.settingsDefaults = settingsDefaults
+        self.assistantConversations = assistantConversations
+        self.shutdown = shutdown
     }
 
     static func inMemory(hosts: [Host], groups: [HostGroup]) -> Self {

@@ -359,10 +359,7 @@ struct MCPUploadTests {
                 return Data([1])
             }
         }
-        for _ in 0..<100 {
-            if await fixture.client.started { break }
-            await Task.yield()
-        }
+        #expect(await waitUntil { await fixture.client.started })
         switch reason {
         case "disabled": fixture.uploads.setEnabled(false)
         case "session": await fixture.uploads.endSession(runID: fixture.runID)
@@ -375,6 +372,19 @@ struct MCPUploadTests {
         #expect(await fixture.client.committed == nil)
         #expect(!fixture.uploads.hasActiveUpload(runID: fixture.runID))
         #expect(fixture.history.entries(tool: "http_sftp_upload").first?.status == .error)
+        if reason == "disconnect" {
+            #expect(
+                try fixture.uploads.status(id: fixture.id(ticket), runID: fixture.runID).objectValue?["status"]
+                    == .string("paused"))
+        }
+    }
+
+    private func waitUntil(_ condition: @escaping () async -> Bool) async -> Bool {
+        for _ in 0..<200 {
+            if await condition() { return true }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        return false
     }
 
     @Test(arguments: [true, false])

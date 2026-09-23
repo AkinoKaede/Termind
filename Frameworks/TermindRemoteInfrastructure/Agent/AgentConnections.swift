@@ -561,8 +561,10 @@ public actor AgentSSHAuthenticationContext {
     }
 
     private struct Pending {
+        var id: UUID
         var generation: UInt64
         var task: Task<AgentHostResolver.InteractiveResolution, any Error>
+        var waiters: [UUID: CheckedContinuation<AgentHostResolver.InteractiveResolution, any Error>]
     }
 
     private let resolver: AgentHostResolver
@@ -597,12 +599,16 @@ public actor AgentSSHAuthenticationContext {
     }
 
     public func configurationAttempt() async throws -> Attempt {
+        try Task.checkCancellation()
         if let cached { return makeAttempt(configuration: cached, generation: generation) }
 
-        let active: Pending
+        let pendingID: UUID
+        let pendingGeneration: UInt64
         if let pending, pending.generation == generation {
-            active = pending
+            pendingID = pending.id
+            pendingGeneration = pending.generation
         } else {
+            let id = UUID()
             let currentGeneration = generation
             let resolver = resolver
             let hostID = hostID
@@ -622,30 +628,33 @@ public actor AgentSSHAuthenticationContext {
                     forcedHostID: forcedHostID, forcedProxy: forcedProxy, failure: failure
                 )
             }
-            active = Pending(generation: currentGeneration, task: task)
-            pending = active
+            pending = Pending(
+                id: id, generation: currentGeneration, task: task, waiters: [:]
+            )
+            pendingID = id
+            pendingGeneration = currentGeneration
+            Task { [weak self] in
+                do {
+                    let resolution = try await task.value
+                    await self?.finishConfigurationAttempt(
+                        id: id, generation: currentGeneration, result: .success(resolution)
+                    )
+                } catch {
+                    await self?.finishConfigurationAttempt(
+                        id: id, generation: currentGeneration, result: .failure(error)
+                    )
+                }
+            }
         }
 
-        do {
-            let resolution = try await active.task.value
-            if generation == active.generation {
-                submissions = resolution.submissions
-                proxySubmissions = resolution.proxySubmissions
-                temporaryHostKeys = resolution.temporaryHostKeys
-                cached = resolution.configuration
-                forcedHostID = nil
-                forcedProxy = false
-                failure = nil
-                if pending?.generation == active.generation { pending = nil }
-            }
-            return makeAttempt(
-                configuration: resolution.configuration,
-                generation: active.generation
-            )
-        } catch {
-            if pending?.generation == active.generation { pending = nil }
-            throw error
-        }
+        let resolution = try await waitForConfigurationAttempt(
+            id: pendingID, generation: pendingGeneration
+        )
+        try Task.checkCancellation()
+        return makeAttempt(
+            configuration: resolution.configuration,
+            generation: pendingGeneration
+        )
     }
 
     /// Convenience for focused resolver tests that do not need to simulate a
@@ -673,8 +682,7 @@ public actor AgentSSHAuthenticationContext {
         generation &+= 1
         cached?.clearSecrets()
         cached = nil
-        pending?.task.cancel()
-        pending = nil
+        cancelPendingConfigurationAttempt()
         forcedHostID = target
         forcedProxy = error.isProxyAuthentication
         failure = error.localizedDescription
@@ -686,8 +694,85 @@ public actor AgentSSHAuthenticationContext {
         proxySubmissions.removeAll()
         cached?.clearSecrets()
         cached = nil
-        pending?.task.cancel()
+        cancelPendingConfigurationAttempt()
+    }
+
+    private func waitForConfigurationAttempt(
+        id: UUID, generation: UInt64
+    ) async throws -> AgentHostResolver.InteractiveResolution {
+        let waiterID = UUID()
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { continuation in
+                guard !Task.isCancelled else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                guard var active = pending,
+                    active.id == id,
+                    active.generation == generation
+                else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                active.waiters[waiterID] = continuation
+                pending = active
+            }
+        } onCancel: {
+            Task { [weak self] in
+                await self?.cancelConfigurationWaiter(
+                    id: id, generation: generation, waiterID: waiterID
+                )
+            }
+        }
+    }
+
+    private func finishConfigurationAttempt(
+        id: UUID, generation completedGeneration: UInt64,
+        result: Result<AgentHostResolver.InteractiveResolution, any Error>
+    ) {
+        guard let active = pending,
+            active.id == id,
+            active.generation == completedGeneration
+        else { return }
         pending = nil
+        if case .success(let resolution) = result, generation == completedGeneration {
+            submissions = resolution.submissions
+            proxySubmissions = resolution.proxySubmissions
+            temporaryHostKeys = resolution.temporaryHostKeys
+            cached = resolution.configuration
+            forcedHostID = nil
+            forcedProxy = false
+            failure = nil
+        }
+        for continuation in active.waiters.values {
+            continuation.resume(with: result)
+        }
+    }
+
+    private func cancelConfigurationWaiter(
+        id: UUID, generation: UInt64, waiterID: UUID
+    ) {
+        guard var active = pending,
+            active.id == id,
+            active.generation == generation,
+            let continuation = active.waiters.removeValue(forKey: waiterID)
+        else { return }
+        continuation.resume(throwing: CancellationError())
+        if active.waiters.isEmpty {
+            pending = nil
+            active.task.cancel()
+        } else {
+            pending = active
+        }
+    }
+
+    private func cancelPendingConfigurationAttempt() {
+        guard let active = pending else { return }
+        pending = nil
+        active.task.cancel()
+        for continuation in active.waiters.values {
+            continuation.resume(throwing: CancellationError())
+        }
     }
 
     private func makeAttempt(
@@ -1077,9 +1162,19 @@ public actor AgentConnectionPool {
         var lastUsedAt: ContinuousClock.Instant
     }
 
-    private struct InFlight {
+    private struct ConnectionOpenKey: Hashable, Sendable {
+        var hostID: UUID
         var fingerprint: String
+    }
+
+    private struct OpenedConnection: Sendable {
+        var value: any SSHConnectionProtocol
+    }
+
+    private struct InFlight {
+        var id: UUID
         var task: Task<any SSHConnectionProtocol, any Error>
+        var waiters: [UUID: CheckedContinuation<OpenedConnection, any Error>]
     }
 
     private let configuration: ConfigurationResolving
@@ -1089,7 +1184,7 @@ public actor AgentConnectionPool {
     private let idleTimeout: Duration
     private let sweeper: AgentIdleSweeper
     private var entries: [UUID: Entry] = [:]
-    private var pending: [UUID: InFlight] = [:]
+    private var pending: [ConnectionOpenKey: InFlight] = [:]
     private var activeExecLeases: [UUID: Int] = [:]
 
     struct SFTPLease: Sendable {
@@ -1449,7 +1544,7 @@ public actor AgentConnectionPool {
 
     @discardableResult
     public func disconnect(hostID: UUID) async -> Bool {
-        pending.removeValue(forKey: hostID)?.task.cancel()
+        cancelConnectionOpenings(hostID: hostID)
         let stateClosed = await disconnectSFTPState(hostID: hostID)
         activeExecLeases[hostID] = nil
         let entry = entries.removeValue(forKey: hostID)
@@ -1461,7 +1556,7 @@ public actor AgentConnectionPool {
     public func closeAll() async {
         let hostIDs = Set(entries.keys)
             .union(sftpStates.keys)
-            .union(pending.keys)
+            .union(pending.keys.map(\.hostID))
             .union(sftpPrimaryOpens.keys)
         for hostID in hostIDs { _ = await disconnect(hostID: hostID) }
     }
@@ -1545,12 +1640,11 @@ public actor AgentConnectionPool {
     ) async throws -> any SSHConnectionProtocol {
         // Without this join, two tool calls that both miss the cache would each
         // build a connection and one of them would never be pooled — or closed.
-        if let inFlight = pending[hostID], inFlight.fingerprint == fingerprint {
-            let connection = try await inFlight.task.value
-            let committedFingerprint = try await routeFingerprint(hostID)
-            commit(connection, hostID: hostID, fingerprint: committedFingerprint)
-            return connection
+        let key = ConnectionOpenKey(hostID: hostID, fingerprint: fingerprint)
+        if let inFlight = pending[key] {
+            return try await waitForConnectionOpening(key: key, id: inFlight.id)
         }
+        let id = UUID()
         let task = Task { [configuration, openConnection] () async throws -> any SSHConnectionProtocol in
             let request: SSHConnectionRequest
             if let override {
@@ -1562,18 +1656,122 @@ public actor AgentConnectionPool {
             }
             return try await openConnection(request)
         }
-        pending[hostID] = InFlight(fingerprint: fingerprint, task: task)
-        defer { if pending[hostID]?.fingerprint == fingerprint { pending[hostID] = nil } }
-        // Committed on every path that receives a client, not only on the path
-        // that started the task: whoever started it may have been cancelled
-        // while a second caller was still waiting on the same connection.
-        let connection = try await task.value
-        // Saving/binding an Identity while the connection prompt is open
-        // legitimately changes the route fingerprint. Bind the authenticated
-        // connection to that post-save route so the next command can reuse it.
-        let committedFingerprint = try await routeFingerprint(hostID)
-        commit(connection, hostID: hostID, fingerprint: committedFingerprint)
-        return connection
+        pending[key] = InFlight(id: id, task: task, waiters: [:])
+        Task { [weak self] in
+            do {
+                let connection = try await task.value
+                await self?.finishConnectionOpening(
+                    key: key, id: id, result: .success(connection)
+                )
+            } catch {
+                await self?.finishConnectionOpening(
+                    key: key, id: id, result: .failure(error)
+                )
+            }
+        }
+        return try await waitForConnectionOpening(key: key, id: id)
+    }
+
+    private func waitForConnectionOpening(
+        key: ConnectionOpenKey, id: UUID
+    ) async throws -> any SSHConnectionProtocol {
+        let waiterID = UUID()
+        let connection: OpenedConnection = try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation {
+                (continuation: CheckedContinuation<OpenedConnection, any Error>) in
+                guard !Task.isCancelled else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                guard var opening = pending[key], opening.id == id else {
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                opening.waiters[waiterID] = continuation
+                pending[key] = opening
+            }
+        } onCancel: {
+            Task { [weak self] in
+                await self?.cancelConnectionOpeningWaiter(
+                    key: key, id: id, waiterID: waiterID
+                )
+            }
+        }
+        try Task.checkCancellation()
+        return connection.value
+    }
+
+    private func finishConnectionOpening(
+        key: ConnectionOpenKey, id: UUID,
+        result initialResult: Result<any SSHConnectionProtocol, any Error>
+    ) async {
+        guard let opening = pending[key], opening.id == id else {
+            if case .success(let connection) = initialResult {
+                await connection.disconnect()
+            }
+            return
+        }
+
+        let result: Result<OpenedConnection, any Error>
+        switch initialResult {
+        case .failure(let error):
+            result = .failure(error)
+        case .success(let connection):
+            do {
+                // Saving/binding an Identity while the connection prompt is open
+                // legitimately changes the route fingerprint. Bind the authenticated
+                // connection to that post-save route so the next command can reuse it.
+                let committedFingerprint = try await routeFingerprint(key.hostID)
+                guard pending[key]?.id == id else {
+                    await connection.disconnect()
+                    return
+                }
+                commit(
+                    connection, hostID: key.hostID,
+                    fingerprint: committedFingerprint
+                )
+                result = .success(OpenedConnection(value: connection))
+            } catch {
+                await connection.disconnect()
+                result = .failure(error)
+            }
+        }
+
+        guard let completed = pending.removeValue(forKey: key), completed.id == id else {
+            if case .success(let connection) = result {
+                await connection.value.disconnect()
+            }
+            return
+        }
+        for continuation in completed.waiters.values {
+            continuation.resume(with: result)
+        }
+    }
+
+    private func cancelConnectionOpeningWaiter(
+        key: ConnectionOpenKey, id: UUID, waiterID: UUID
+    ) {
+        guard var opening = pending[key], opening.id == id,
+            let continuation = opening.waiters.removeValue(forKey: waiterID)
+        else { return }
+        continuation.resume(throwing: CancellationError())
+        if opening.waiters.isEmpty {
+            pending[key] = nil
+            opening.task.cancel()
+        } else {
+            pending[key] = opening
+        }
+    }
+
+    private func cancelConnectionOpenings(hostID: UUID) {
+        let keys = pending.keys.filter { $0.hostID == hostID }
+        for key in keys {
+            guard let opening = pending.removeValue(forKey: key) else { continue }
+            opening.task.cancel()
+            for continuation in opening.waiters.values {
+                continuation.resume(throwing: CancellationError())
+            }
+        }
     }
 
     private func commit(

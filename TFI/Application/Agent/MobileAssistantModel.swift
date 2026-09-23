@@ -144,6 +144,8 @@ final class MobileAssistantModel {
         execution.cancelPendingRuns()
         speech.cancelAll()
         let conversations = store.conversations
+        // Request every cancellation before awaiting a drain that may be held by persistence.
+        for conversation in conversations { conversation.stop() }
         suspensionTask = Task {
             for conversation in conversations { await conversation.stopAndWait() }
             await background.closeAll()
@@ -213,6 +215,7 @@ final class MobileAssistantModel {
     }
 
     func edit(_ conversation: ConversationModel, messageID: UUID, text: String) {
+        guard !isSuspending else { return }
         guard
             let prepared = execution.prepareAgentEdit(
                 conversation, messageID: messageID, text: text,
@@ -227,12 +230,14 @@ final class MobileAssistantModel {
     }
 
     func compact(_ conversation: ConversationModel, instructions: String = "") async {
+        guard !isSuspending else { return }
         _ = await execution.compact(conversation, instructions: instructions)
     }
 
     fileprivate func implement(
         _ card: AgentPlanCard, in conversation: ConversationModel, library: AssistantLibraryModel
     ) {
+        guard !isSuspending else { return }
         guard
             execution.sendPlanImplementation(
                 card, in: conversation,

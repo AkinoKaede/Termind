@@ -64,6 +64,75 @@ struct AgentHostAuthenticationTests {
         #expect(configuration.credentials.isEmpty)
     }
 
+    @Test
+    func cancellingTheOnlyConfigurationWaiterClearsItsAuthenticationCard() async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let store = HostLibraryModel(hosts: [host])
+        let conversation = ConversationModel()
+        let session = AgentSSHAuthenticationContext(
+            resolver: AgentHostResolver(store: store), hostID: host.id,
+            invocationID: UUID(), interaction: WeakAgentUserInteraction(conversation).sshInteraction
+        )
+        let completion = AuthenticationCompletionProbe()
+        let attempt = Task {
+            defer { Task { await completion.finish() } }
+            return try await session.configurationAttempt()
+        }
+        try await waitForAuthentication(in: conversation)
+
+        attempt.cancel()
+        let completedBeforeAnswer = await waitForCompletion(completion)
+        let cardCleared = conversation.pendingSSHAuthentication == nil
+        if !cardCleared {
+            conversation.respondToSSHAuthentication(.cancelled)
+        }
+
+        #expect(completedBeforeAnswer)
+        #expect(cardCleared)
+        await #expect(throws: CancellationError.self) {
+            _ = try await attempt.value
+        }
+    }
+
+    @Test
+    func cancellingOneSharedConfigurationWaiterKeepsTheOtherOwnerRunning() async throws {
+        let host = Host(name: "Server", host: "server.example")
+        let store = HostLibraryModel(hosts: [host])
+        let conversation = ConversationModel()
+        let session = AgentSSHAuthenticationContext(
+            resolver: AgentHostResolver(store: store), hostID: host.id,
+            invocationID: UUID(), interaction: WeakAgentUserInteraction(conversation).sshInteraction
+        )
+        let firstCompletion = AuthenticationCompletionProbe()
+        let first = Task {
+            defer { Task { await firstCompletion.finish() } }
+            return try await session.configurationAttempt()
+        }
+        try await waitForAuthentication(in: conversation)
+        let second = Task { try await session.configurationAttempt() }
+        for _ in 0..<100 { await Task.yield() }
+
+        first.cancel()
+        let firstCompletedBeforeAnswer = await waitForCompletion(firstCompletion)
+        let request = try #require(conversation.pendingSSHAuthentication)
+        conversation.respondToSSHAuthentication(
+            .submit(
+                AgentSSHAuthenticationAnswer(
+                    username: "deploy", password: "one-use", save: false
+                )),
+            requestID: request.id
+        )
+
+        #expect(firstCompletedBeforeAnswer)
+        await #expect(throws: CancellationError.self) {
+            _ = try await first.value
+        }
+        let retained = try await second.value
+        #expect(retained.configuration.username == "deploy")
+        #expect(password(in: retained.configuration, matches: "one-use"))
+        #expect(conversation.pendingSSHAuthentication == nil)
+    }
+
     @Test func concurrentConnectionChallengesAreNeverCoalescedWithSavedCredentials() async throws {
         let identity = Identity(name: "OTP", username: "deploy")
         let host = Host(name: "Server", host: "server.example", identityID: identity.id)
@@ -1177,6 +1246,30 @@ struct AgentHostAuthenticationTests {
         }
         return false
     }
+
+    private func waitForAuthentication(in conversation: ConversationModel) async throws {
+        for _ in 0..<1_000 {
+            if conversation.pendingSSHAuthentication != nil { return }
+            await Task.yield()
+        }
+        throw AuthenticationCancellationTestError.timedOut
+    }
+
+    private func waitForCompletion(_ completion: AuthenticationCompletionProbe) async -> Bool {
+        for _ in 0..<1_000 {
+            if await completion.isFinished { return true }
+            await Task.yield()
+        }
+        return await completion.isFinished
+    }
+}
+
+private enum AuthenticationCancellationTestError: Error { case timedOut }
+
+private actor AuthenticationCompletionProbe {
+    private(set) var isFinished = false
+
+    func finish() { isFinished = true }
 }
 
 private final class MemoryHostSecretStore: SecretStoring, @unchecked Sendable {

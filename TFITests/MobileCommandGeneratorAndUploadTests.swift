@@ -537,7 +537,7 @@ struct MobileCommandGeneratorTests {
     }
 }
 
-@Suite @MainActor
+@Suite(.serialized) @MainActor
 struct MobileUploadBatchTests {
     @Test func usernameOnlyTerminalUploadRejectsInteractionWithoutOpeningASheet() async throws {
         let identity = Identity(name: "OTP", username: "user")

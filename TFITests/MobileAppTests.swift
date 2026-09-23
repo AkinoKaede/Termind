@@ -411,6 +411,50 @@ struct MobileWorkspaceConnectionRecoveryTests {
         #expect(connections.connectCount == 1)
     }
 
+    @Test func removingTheLastActiveSceneStartsOneBackgroundLeaseForRemainingScenes() async throws {
+        let background = MobileTestBackgroundTaskManager()
+        let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
+        let app = try MobileAppModel(
+            inMemory: true, background: background, workspaceConnectionServices: connections.services)
+        let host = try configureConnectionFixture(in: app)
+        _ = try #require(app.open(hostID: host.id, kind: .sftp))
+        defer { app.closeAll() }
+        #expect(await eventually { app.workspaces.first?.connected == true })
+        let backgroundScene = UUID()
+        let activeScene = UUID()
+        app.sceneChanged(backgroundScene, phase: .active)
+        app.sceneChanged(activeScene, phase: .active)
+        app.sceneChanged(backgroundScene, phase: .background)
+
+        app.removeScene(activeScene)
+
+        #expect(background.beginCount == 1)
+        #expect(app.workspaces.first?.connected == true)
+        app.removeScene(activeScene)
+        #expect(background.beginCount == 1)
+        background.expire()
+        #expect(app.workspaces.first?.connected == false)
+
+        app.removeScene(backgroundScene)
+        #expect(background.beginCount == 1)
+    }
+
+    @Test func removingABackgroundSceneWhileAnotherSceneIsVisibleDoesNotStartALease() throws {
+        let background = MobileTestBackgroundTaskManager()
+        let app = try MobileAppModel(inMemory: true, background: background)
+        let backgroundScene = UUID()
+        let activeScene = UUID()
+        app.sceneChanged(backgroundScene, phase: .active)
+        app.sceneChanged(activeScene, phase: .active)
+        app.sceneChanged(backgroundScene, phase: .background)
+
+        app.removeScene(backgroundScene)
+
+        #expect(background.beginCount == 0)
+        app.removeScene(activeScene)
+        #expect(background.beginCount == 0)
+    }
+
     @Test func failedForegroundResumeKeepsReconnectionJourneyVisible() async throws {
         let (host, library) = try connectionFixture()
         let connections = MobileSFTPConnectionBox(clients: [MobileTestSFTPClient()])
@@ -1266,8 +1310,10 @@ private final class MobileSFTPConnectionBox {
 @MainActor
 private final class MobileTestBackgroundTaskManager: MobileBackgroundTaskManaging {
     private var expiration: (@MainActor () -> Void)?
+    private(set) var beginCount = 0
 
     func begin(expiration: @escaping @MainActor () -> Void) {
+        beginCount += 1
         self.expiration = expiration
     }
 
