@@ -213,6 +213,34 @@ struct TermindApp: App {
 }
 
 #if canImport(AppKit)
+    @MainActor
+    final class AppTerminationReplyCoordinator {
+        typealias Sleep = @Sendable (Duration) async throws -> Void
+
+        private var replied = false
+
+        func begin(
+            cleanup: Task<Void, Never>, timeout: Duration = .seconds(3),
+            sleep: @escaping Sleep = { try await Task.sleep(for: $0) },
+            reply: @escaping @MainActor () -> Void
+        ) {
+            Task { @MainActor [weak self] in
+                await cleanup.value
+                self?.finish(reply)
+            }
+            Task { @MainActor [weak self] in
+                try? await sleep(timeout)
+                self?.finish(reply)
+            }
+        }
+
+        private func finish(_ reply: @MainActor () -> Void) {
+            guard !replied else { return }
+            replied = true
+            reply()
+        }
+    }
+
     /// Owns native application lifecycle; window and pane commands live in `TermindCommands`.
     final class AppDelegate: NSObject, NSApplicationDelegate {
         weak var app: AppModel? {
@@ -228,7 +256,7 @@ struct TermindApp: App {
         private let metricsActivity = MetricsActivityObserver()
         private let metricsMenu = MetricsMenuBarController()
         private var awaitingTermination = false
-        private var repliedToTermination = false
+        private let terminationReply = AppTerminationReplyCoordinator()
         private var quietLaunchObserver: (any NSObjectProtocol)?
         private let appearanceController = AppAppearanceController()
 
@@ -381,20 +409,9 @@ struct TermindApp: App {
         private func beginTermination(_ app: AppModel) {
             app.mainWindows.saveSizeForTermination()
             let cleanup = app.shutdownForTermination()
-            Task { @MainActor [weak self] in
-                await cleanup.value
-                self?.finishTermination()
+            terminationReply.begin(cleanup: cleanup) {
+                NSApp.reply(toApplicationShouldTerminate: true)
             }
-            Task { @MainActor [weak self] in
-                try? await Task.sleep(for: .seconds(3))
-                self?.finishTermination()
-            }
-        }
-
-        private func finishTermination() {
-            guard !repliedToTermination else { return }
-            repliedToTermination = true
-            NSApp.reply(toApplicationShouldTerminate: true)
         }
 
         func applicationWillTerminate(_ notification: Notification) {

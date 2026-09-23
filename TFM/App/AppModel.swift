@@ -42,6 +42,7 @@ nonisolated enum HostOpenTarget: Hashable, Sendable {
 @Observable
 final class AppModel {
     private var terminationTask: Task<Void, Never>?
+    private var isTerminating = false
     private final class WeakWindow {
         weak var value: WindowModel?
         init(_ value: WindowModel) { self.value = value }
@@ -104,7 +105,7 @@ final class AppModel {
     let speechTranscription: SpeechTranscriptionCoordinator
     /// The one set of conversations every window navigates. See
     /// `AssistantConversationStore`.
-    private let assistantConversations = AssistantConversationStore()
+    private let assistantConversations: AssistantConversationStore
     private let agentRunRepository: any AgentRunPersisting
     private let agentHosts: AgentHostResolver
     private let agentConnections: AgentConnectionPool
@@ -115,6 +116,7 @@ final class AppModel {
     private let agentBackgroundCommands: AgentBackgroundCommands
     private let outboxRunner: OutboxRunner?
     private let settingsDefaults: UserDefaults
+    private let shutdownDependencies: AppShutdownDependencies?
     private var windows: [ObjectIdentifier: WeakWindow] = [:]
     private var deletedAgentConversationIDs = Set<UUID>()
     /// Conversations already handed to the summarizer. Titling is once per
@@ -162,6 +164,8 @@ final class AppModel {
         self.windowSizeStore = windowSizeStore
         let dependencies = dependencies ?? .inMemory(hosts: hosts.hosts, groups: hosts.groups)
         settingsDefaults = dependencies.settingsDefaults
+        assistantConversations = dependencies.assistantConversations ?? AssistantConversationStore()
+        shutdownDependencies = dependencies.shutdown
         logging = dependencies.logging
         let externalAuthentication = ExternalAuthCoordinator(
             logger: logging.makeLogger(label: "termind.external-mcp"))
@@ -393,7 +397,10 @@ final class AppModel {
 
     @ObservationIgnored private lazy var assistantExecution = AssistantExecutionController(
         ai: ai, skills: skills, repository: agentRunRepository, memory: memory,
-        authorize: { [weak self] in self?.proAccess.require(.assistant) == true },
+        authorize: { [weak self] in
+            guard let self, !self.isTerminating else { return false }
+            return self.proAccess.require(.assistant)
+        },
         makeRegistry: { [weak self] conversation, model, provider, skills, channel in
             guard let self else { return AgentToolRegistry([AnyAgentTool]()) }
             return AssistantToolRegistry.make(
@@ -717,9 +724,47 @@ final class AppModel {
     /// The delegate gives this asynchronous cleanup a bounded termination window.
     @discardableResult
     func shutdownForTermination() -> Task<Void, Never> {
+        isTerminating = true
+        if let terminationTask { return terminationTask }
+        let conversations = assistantConversations.conversations
+        let preparationCancellation = assistantExecution.cancelPendingRuns()
+        for conversation in conversations { conversation.stop() }
+        let conversationDrains = conversations.map { conversation in
+            Task { @MainActor in await conversation.stopAndWait() }
+        }
+        let task = Task {
+            [shutdownDependencies, mcpServer, sftpTransfers, agentBackgroundCommands, agentConnections] in
+            async let stopMCP: Void = {
+                if let stop = shutdownDependencies?.stopMCP {
+                    await stop()
+                } else {
+                    await mcpServer.stop()
+                }
+            }()
+            async let stopSFTP: Void = {
+                if let stop = shutdownDependencies?.stopSFTP {
+                    await stop()
+                } else {
+                    await sftpTransfers.waitForCancellation()
+                }
+            }()
+            await preparationCancellation.value
+            for drain in conversationDrains { await drain.value }
+            _ = await (stopMCP, stopSFTP)
+            if let close = shutdownDependencies?.closeAgentBackgroundCommands {
+                await close()
+            } else {
+                await agentBackgroundCommands.closeAll()
+            }
+            if let close = shutdownDependencies?.closeAgentConnections {
+                await close()
+            } else {
+                await agentConnections.closeAll()
+            }
+        }
+        terminationTask = task
         memory.suspend()
         sftpEdits.setMonitoring(false)
-        if let terminationTask { return terminationTask }
         serverMetrics.shutdown()
         speechTranscription.cancelAll()
         let liveWindows = windows.values.compactMap(\.value)
@@ -728,14 +773,6 @@ final class AppModel {
         sftpTransfers.cancelAll()
         externalAuthentication.cancelAll()
         forwarding.stopAll()
-        let task = Task { [mcpServer, sftpTransfers, agentConnections, agentBackgroundCommands] in
-            async let stopMCP: Void = mcpServer.stop()
-            async let stopSFTP: Void = sftpTransfers.waitForCancellation()
-            _ = await (stopMCP, stopSFTP)
-            await agentBackgroundCommands.closeAll()
-            await agentConnections.closeAll()
-        }
-        terminationTask = task
         outboxRunner?.stop()
         return task
     }
