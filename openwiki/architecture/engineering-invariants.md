@@ -114,10 +114,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T03:34:06.838Z" }
+generated: { by: "codex", at: "2026-09-23T06:54:45.592Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T05:17:08.701Z
+    at: 2026-09-23T06:54:45.592Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -506,8 +506,11 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
   search, skills/registry, Guardian and preparation settings synchronously before memory or automatic compaction awaits. First-send promotion
   follows accepted capture; edit UI captures before creating its persistence task. Plan implementation captures acting mode and consumes
   attachments/armed skills once. Historical context replay does not reconstruct old model settings or skill-package bytes.
-- Preparation is distinct from streaming. Stop/background expiration invalidates preparation identity synchronously and joins pending
-  history/preparation work before its interrupted save; stale captures cannot edit or start. Archive/delete cancel pending preparation,
+- Preparation is distinct from streaming. While preparing, Stop/background expiration invalidates its identity synchronously and joins pending
+  history/preparation work before its interrupted save; stale captures cannot edit or start. Once a captured configuration failure enters
+  `savingFailure`, cancellation joins that one terminal save attempt without cancelling it or adding an interrupted snapshot. Archive/delete
+  await the same boundary, and edits/forks cannot overtake it. The save task retains its controller and conversation until it returns.
+  Archive/delete cancel ordinary pending preparation,
   manual compaction refuses it, and navigation alone leaves it running. See [Assistant Runtime](/openwiki/concepts/agent-runtime-and-assistant.md)
   for the preparation boundary and existing runtime/recovery limitations.
 - History edits validate before persistence and publish their live replacement only after truncation commits. The boundary is the selected
@@ -517,7 +520,9 @@ factories/Sendable buffer handlers. Timers/workers enter explicit short MainActo
 - An edited replacement initially owns a staging run whose ID equals its message ID. The first real snapshot transaction adopts only that
   staged row and deletes the staging run; historical replay rows keep their owners. Live running, failed and interrupted projections use
   the same provenance and preserve the staging chronology lower bound. Retired run IDs reject late saves/events in the repository instance.
-  This is not universal persist-before-publish: missing-model/credential failures still project live before their asynchronous save.
+  Missing-model/credential failures publish failed state and adopt staging only after their save succeeds and identity is rechecked.
+  Save rejection reports the persistence error and retires preparation without adopting staging; joining the attempt does not guarantee storage
+  success. Queued-runtime cancellation retains its separate live-before-save projection contract.
 - Project tool output once before `toolFinished`: bounded preview and scratch reference, retaining crash/replay metadata and paging offsets.
   Later completion never shortens earlier results; `sftp_read`/`scratch_read` report complete lines/truthful offsets.
 - Terminal suggestions use latest delivered user snapshot, not focus. Surface availability is partial and does not restrict independent SSH/

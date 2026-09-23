@@ -40,6 +40,8 @@ sources:
     resource: repo://TFITests/MobileConnectionPickerTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
+  - id: openwiki-source-7e364c6182a8339831ecab24
+    resource: repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
     resource: repo://TFMTests/AgentHostAuthenticationTests.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
@@ -52,14 +54,18 @@ sources:
     resource: repo://TFMTests/ConnectionHistoryTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
+  - id: openwiki-source-0dd012e3740bcc348fc36ccb
+    resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-960109cd5bc0de7a879c1e16
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-23T03:34:06.838Z" }
+  - id: openwiki-source-05f0aeba12df8388b97b3c76
+    resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
+generated: { by: "codex", at: "2026-09-23T06:54:45.592Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T05:17:08.701Z
+    at: 2026-09-23T06:54:45.592Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -105,7 +111,11 @@ A message edit inside one run needs a fixture such as `opening → assistant/too
 
 Application error and timing fixtures complement those real SwiftData checks. `AssistantConversationOperationsTests` proves an invalid replacement never reaches persistence and a rejecting truncation leaves both visible and model history unchanged. Controller tests hold preparation at a memory barrier, cancel after a successful edit, and assert interrupted real-run provenance replaces staging. These seams do not inject disk-full or read-only failures into the real SwiftData transaction; its rollback path must not be described as fault-injection tested.
 
-Use the boundary that the assertion needs as its wait condition. Captured missing-model/credential failure projects `.failed` before launching a separate asynchronous repository save, so `!isPreparingAgentRun` is not a save barrier. The controller fixture's `waitUntilSnapshot(state:)` checks existing snapshots or suspends an actor-owned continuation; `save` records the snapshot before resuming matching waiters. The missing-credential and navigation tests retain both live-state and repository-state assertions and wait for the latter explicitly. This does not change production failure ordering or prove durability across the separate queued-runtime immediate-stop handoff.
+Use the boundary that the assertion needs as its wait condition. Captured missing-model/credential failure stays in preparation until its save attempt returns; `.failed` and staging adoption publish only after success and an identity check. A retired preparation can also mean a rejected save, so retirement alone does not prove durability. The recording repository distinguishes attempted snapshots from completed saves; actor waiters handle both already-observed and future events.
+
+`AssistantExecutionControllerTests` blocks the first failure save and verifies preparation remains active without failed projection. Stop followed by `stopAndWait` and controller cancellation join the single failed snapshot, with no interrupted write. Synchronous MainActor start/completion probes establish that those joins are pending before releasing the save. Archive/delete tests assert the exact save-attempt → save-completed → metadata/delete sequence. Further fixtures cover the memory-preparation transition, controller/conversation lifetime after callers release them, rejection of superseding and direct edits/forks over a retained assistant prefix, and injected save rejection leaving staging intact while reporting the error.
+
+`AgentReplayPersistenceTests.capturedConfigurationFailureAdoptsEditedStagingOnlyAfterDurableSave` exercises the production controller, operations and SwiftData repository, then restores through a fresh context. It checks one failed run with the edited message's text, images, attachments, context and permission, no remaining staging run, and monotonic staging/terminal chronology. This in-memory fixture and the injected rejection do not test a disk failure or process restart. Queued-runtime cancellation retains its separate live-before-save behavior and save-attempt join described in [Assistant Runtime](../concepts/agent-runtime-and-assistant.md).
 
 ### CloudKit compatibility: test prohibited uploads, not just decoding
 
@@ -170,6 +180,10 @@ TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme
 
 In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot suites can retain their dedicated gates. A visual change still needs behavior-appropriate coverage: an offscreen test for state/policy, a visible-window test for focus/presentation when applicable, and screenshot/marketing capture only where that workflow owns the deliverable.
 
+`WorkspaceNavigatorRenameTests` is a serialized visible-window suite. It exercises both the context-menu and double-click rename paths and checks that the editor starts with the complete workspace title. The production view seeds the title before publishing the renamed workspace ID, so mounting the editor sees its initial value.
+
+StoreKit tests use a separate opt-in because they require manual authorization. `StoreKitTrialTests` is serialized and skipped unless `TERMIND_STOREKIT_TESTS=1`; when explicitly authorized, prefer the narrow `-only-testing:TFMTests/StoreKitTrialTests` selection. Ordinary default-suite success therefore does not imply this StoreKit suite ran.
+
 ## Change-to-regression matrix
 
 | Change type | Primary regression seam | Required behavior to protect |
@@ -177,6 +191,7 @@ In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing 
 | Framework dependency or data-owner change | `ArchitectureBoundaryTests` plus affected framework suite | No reverse import, concrete implementation leak, duplicate AgentKit type, or SwiftData model outside Persistence. |
 | SwiftData schema, migration, or durable agent record | Persistence compatibility/replay fixtures | Old stores open, records retain intended values, interrupted timing remains recoverable, and deletes clean backing rows. |
 | Assistant message-boundary edits or replacement provenance | Agent persistence/replay, conversation operations/controller, composer and mobile Assistant fixtures | Same-run prefix and graph survive, suffix backing is removed, staging adopts once, chronology remains stable, live/restore agree, and late retired writes cannot resurrect history. |
+| Captured Assistant configuration-failure persistence | Controller save barriers and fresh-context replay restore | Failure remains owned until save return; joins add no interrupted write; success precedes adoption, rejected saves retain staging, and edits/forks cannot overtake the attempt. |
 | CloudKit format, upload scheduling, conflict or recovery behavior | Shared lifecycle, coordinator-safety and on-disk safety fixtures | Unsupported IDs never upload, compatible peers progress, restrictions survive retry/reopen, and failed reconciliation cannot unblock data. |
 | SSH credentials, prompts, host trust, or agent authentication | Authentication and interaction-policy fixtures | Ephemeral secrets stay ephemeral, prompt scope/order/coalescing is correct, forbidden work stays noninteractive, and secrets are invalidated after use. |
 | SSH/SFTP transfer scheduling or pane/session teardown | `SFTPTransferContextTests` with a controlled channel harness | Concurrency bounds hold, background transfer ownership survives UI teardown, cancellation cleans up, and fallback does not invite interaction. |

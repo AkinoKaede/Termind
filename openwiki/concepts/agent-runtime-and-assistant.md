@@ -80,10 +80,10 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "codex", at: "2026-09-23T06:11:02.802Z" }
+generated: { by: "codex", at: "2026-09-23T06:54:45.592Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T06:11:02.802Z
+    at: 2026-09-23T06:54:45.592Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory
@@ -176,9 +176,13 @@ This sequence shows an accepted draft submission and the persistence points afte
 
 `ConversationModel.isPreparingAgentRun` is distinct from `isStreaming`; `isAgentRunActive` combines them for activity guards. Preparation has no runtime that can accept steering, so it must not masquerade as streaming. When neither compaction nor memory loading is needed, preparation can hand off synchronously without an asynchronous preparation task.
 
-Stop, controller-wide cancellation and mobile background expiration invalidate preparation identity synchronously. Cancellation cancels and joins tracked edit-history/preparation work before finishing its interrupted save; completion rechecks identity after the save so an older cancellation cannot retire a replacement capture. The concrete SwiftData truncation method checks cancellation before entering its synchronous transaction. These boundaries prevent a stopped or superseded preparation from later editing history or starting a runtime; they do not roll back a history transaction that already committed.
+While a capture is still preparing, Stop, controller-wide cancellation and mobile background expiration invalidate its identity synchronously. Cancellation cancels and joins tracked edit-history/preparation work before finishing its interrupted save; completion rechecks identity after the save so an older cancellation cannot retire a replacement capture. The concrete SwiftData truncation method checks cancellation before entering its synchronous transaction. These boundaries prevent a stopped or superseded preparation from later editing history or starting a runtime; they do not roll back a history transaction that already committed.
 
-Archive/delete operations cancel and await pending preparation before their existing activity guards and persistence work. Manual compaction refuses preparation, while selecting another conversation leaves its preparation running. Automatic compaction uses the captured model/settings and the valid transcript available during preparation, with persistence preceding the live projection change.
+A captured missing model or credential moves preparation into `savingFailure`. Its one terminal snapshot save replaces the tracked preparation task, and the enclosing preparation task returns without awaiting itself. The failure task retains the controller, conversation and repository until the attempt returns. Preparation remains active throughout the save; only success followed by the current-identity check publishes failed state and adopts an edited staging run. A rejected save appends the persistence error and retires preparation without publishing a failed run or adopting staging.
+
+Cancellation during `savingFailure` returns that existing task without cancelling it, dropping it, or adding an interrupted snapshot. Thus Stop followed by `stopAndWait`, controller cancellation and archive/delete all join the same save attempt. This join includes a rejected attempt and does not guarantee storage success. While it is pending, edit supersession and direct edit/fork operations are refused, preventing a new history mutation from overtaking the failure snapshot. Ordinary prepared edits remain supersedable.
+
+Archive/delete operations request cancellation and await pending preparation or failure persistence before their existing activity guards and persistence work. Manual compaction refuses preparation, while selecting another conversation leaves its preparation running. Automatic compaction uses the captured model/settings and the valid transcript available during preparation, with persistence preceding the live projection change.
 
 ### Streaming, steering, and cancellation
 
@@ -250,7 +254,7 @@ Tool cleanup follows ownership before time. Known source-message and run-local c
 
 The replacement is durable before a runtime exists: its message ID also identifies an independent, completed, failure-free staging run containing that one user row and no tool graph. Its start time is placed after the latest retained run if clocks tie or move backward, including when the earlier retained run has no messages. On the first real snapshot containing that staged final user turn, `save` transactionally moves only the staged message to the real run, assigns its snapshot sequence, retains its attachments/replay backing, deletes the staging run and retires its ID. Historical messages replayed into the snapshot keep their existing owners and are not duplicated. Adoption preserves the staging start-time lower bound; subsequent snapshots cannot move it backward, and terminal time is clamped to that start when necessary.
 
-`ConversationModel` mirrors adoption on `runStarted`, captured failure, preparation interruption, and queued-runtime cancellation; `runFinished` retains the adjusted chronology. Failed, interrupted, and cancelled replacements therefore use their actual run provenance rather than an abandoned staging summary. Publication order still depends on the path: preparation cancellation awaits the interrupted save and rechecks identity before adopting, while queued-runtime cancellation and `recordFailedRun` for a missing model/credential project live before their asynchronous save. Neither the end of preparation nor visible terminal state alone proves that persistence finished. For queued cancellation, `stopAndWait()` joins that save attempt. The persist-before-live contract above is specifically the history mutation boundary.
+`ConversationModel` mirrors adoption on `runStarted`, captured failure, preparation interruption, and queued-runtime cancellation; `runFinished` retains the adjusted chronology. Preparation interruption and captured configuration failure await a successful save and recheck identity before adoption. A failed save leaves the edited staging provenance intact. Queued-runtime cancellation retains its separate immediate live projection before asynchronous save. `stopAndWait()` joins the relevant attempt in either cancellation path; a visible runtime terminal event alone remains insufficient evidence of save completion or success.
 
 The repository instance retires the edited target run, removed later runs and adopted staging run so late snapshots or durable tool events cannot resurrect the discarded suffix. Truncation and snapshot save roll back SwiftData changes and restore the previous in-memory retired-ID set on error. These rules use the existing schema and Termind's Application/Persistence adapters, without changing AgentKit or its package pin. See [Persistent Data](persistence-and-secrets.md) for the storage contract.
 
@@ -268,7 +272,7 @@ stateDiagram-v2
     Ready --> Preparing: accepted capture
     Preparing --> Running: current capture handed to runtime
     Preparing --> Interrupted: cancellation saved
-    Preparing --> Failed: captured configuration unavailable
+    Preparing --> Failed: captured failure saved
     Running --> WaitingApproval: Ask action pending
     WaitingApproval --> Running: allow
     WaitingApproval --> Running: denial result recorded
@@ -308,15 +312,15 @@ The focused tests establish behavior that is important when changing this area:
 
 - `TFMTests/AgentRuntimeTests.swift` covers schema-before-approval/execution, approval mode routing, Guardian timeout/failure fail-closed behavior, single-use secret handles, steering delivery, tool cancellation, registry shadowing, and durable-event filtering.
 - `TFMTests/AgentPersistenceTests.swift` covers redaction, interrupted-run recovery, replay deduplication, tool-result repair, graph deletion, same-run edit prefix/tool preservation, canonical equal-time ordering, empty retained runs, staging adoption, late-write rejection, fork persistence and compaction restoration. `ChatComposerStateTests.swift` checks the compacted live prefix, tool cards, title, plans and adopted run summaries.
-- `FrameworkTests/AgentReplayPersistenceTests.swift` checks failed/interrupted staging adoption and queued cancellation of an edited replacement. The cancellation fixture reloads through a fresh `ModelContext` and repository, checking one adopted run, captured text/images/attachments/context, permission mode, and staging/terminal chronology.
-- `FrameworkTests/AssistantExecutionControllerTests.swift` covers capture across a memory barrier, missing credentials, first-send guards and payload folding, plan implementation, edit persistence/cancellation barriers, failed/interrupted replacement provenance, superseded captures, navigation, compaction refusal, memory revocation, and neutral legacy context. Repository snapshot waiters distinguish async save completion from a live failed state.
+- `FrameworkTests/AgentReplayPersistenceTests.swift` checks failed/interrupted staging adoption, queued cancellation, and controller-owned configuration failure of an edited replacement. The cancellation and captured-failure fixtures reload through a fresh `ModelContext` and repository, checking one adopted run, captured text/images/attachments/context, permission mode, and staging/terminal chronology.
+- `FrameworkTests/AssistantExecutionControllerTests.swift` covers capture across a memory barrier, missing credentials, first-send guards and payload folding, plan implementation, edit persistence/cancellation barriers, failed/interrupted replacement provenance, superseded captures, navigation, compaction refusal, memory revocation, and neutral legacy context. Failure-save barriers verify preparation stays owned, Stop/controller joins, exact save-before-archive/delete ordering, edit/fork refusal, retention after caller release, and rejection without staging adoption. Synchronous MainActor join probes distinguish entered joins from completed joins while the save is blocked.
 - `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first history mutations and activity guards, plus queued Stop/Stop-and-Wait with zero provider/tool calls, captured cancelled snapshots, Stop followed by a blocked-save join, persistence after presentation release, direct queued-owner displacement, pending approval cancellation, and an old persistence drain finishing while a replacement remains running. Injected review events verify that the stopped run's review state and card do not contaminate that replacement.
 - `TFMTests/AgentScratchTests.swift` verifies workspace containment, symlink refusal, inter-conversation isolation, quotas, and bounded reads.
 - `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions.
 - `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, acting-mode plan implementation, and tool-incapable models. Mobile's SwiftData restore/edit fixture also verifies same-run prefix preservation and replacement provenance.
 - `TFMTests/MCPServerToolsTests.swift` checks the exported acting subset against shared descriptors, transfer tools and disabled calls; `AgentHostProtocolListingTests.swift` checks protocol-neutral discovery, and `AgentToolPresentationTests.swift` retains legacy presentation coverage alongside the persistence suite.
 
-The queued-cancellation SwiftData regression uses an in-memory container with a fresh read context, not a process restart or an on-disk crash test. Barrier fixtures establish save-attempt ordering; they do not exercise storage failure. The review-state fixture injects presentation events rather than contacting a Guardian provider. Preserve these distinctions when choosing additional validation.
+The queued-cancellation and captured-failure SwiftData regressions use an in-memory container with a fresh read context, not a process restart or an on-disk crash test. Controller barriers establish save-attempt ordering and inject a repository save rejection; they do not simulate a failing SwiftData disk transaction. The queued-runtime barrier and review-state fixtures remain ordering/presentation tests, with injected events rather than a live Guardian provider. Preserve these distinctions when choosing additional validation.
 
 ## Change guidance
 

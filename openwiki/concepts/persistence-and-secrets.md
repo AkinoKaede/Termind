@@ -62,6 +62,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-017f5e2abe9b13df755a5322
     resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
+  - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
+    resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-bf7a64e7c819eb9279e2f9e4
     resource: repo://FrameworkTests/CloudSyncLifecycleTests.swift
   - id: openwiki-source-40cfadc2320da9a292c64d26
@@ -82,10 +84,10 @@ sources:
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-1d1efb20e239b1f2142f6cb7
     resource: repo://TFMTests/SettingsSyncTests.swift
-generated: { by: "codex", at: "2026-09-23T03:40:50.823Z" }
+generated: { by: "codex", at: "2026-09-23T06:59:53.554Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T03:40:50.823Z
+    at: 2026-09-23T06:59:53.554Z
 ---
 
 # Persistent Data, Migrations, and Secret Boundaries
@@ -136,7 +138,9 @@ The first real snapshot whose final ordinary user turn is this staged replacemen
 
 The repository's in-memory retired-ID set includes the edited target run even when its prefix survives, all removed later runs, and adopted staging runs. `save` and durable-event `record` ignore retired IDs, preventing late work from rebuilding the discarded suffix. This is a repository-instance guard, not a new persisted tombstone or schema migration. Both truncation and snapshot save restore the previous retired-ID set and roll back their `ModelContext` changes if the transaction fails.
 
-`AssistantConversationOperations` applies the live history edit only after the repository commits; invalid replacements and rejected writes leave history unchanged. Live running, failed and interrupted projections adopt staging provenance too, but publication ordering is not universal: a captured missing-model/credential failure still updates live state before its separate asynchronous save. See [Assistant Runtime](agent-runtime-and-assistant.md) for that boundary and the distinct immediate-stop runtime-handoff limitation. Shared replay tests restore failed/interrupted adoption through a fresh context; desktop and mobile fixtures compare same-run prefix history and provenance after edits. These fixtures do not inject a real disk-full or read-only SwiftData failure.
+`AssistantConversationOperations` applies the live history edit only after the repository commits; invalid replacements and rejected writes leave history unchanged. A captured missing-model/credential failure remains owned by preparation until its terminal save returns. Success and a current-identity check precede failed projection and staging adoption; rejection reports the persistence error and retires preparation with staging intact. Synchronous Stop preserves this one save task without cancelling it or adding interruption; `stopAndWait()` or awaiting the task returned by controller cancellation joins the attempt. Archive/delete await it, while edit supersession and direct edit/fork operations are refused until it finishes. A completed join therefore proves the attempt returned, not that storage succeeded.
+
+Queued-runtime cancellation retains its separate immediate live projection before saving; see [Assistant Runtime](agent-runtime-and-assistant.md) for its save-attempt join and runtime-handoff contract. Shared replay tests restore failed/interrupted adoption and a controller-owned failed edit through fresh contexts; desktop and mobile fixtures compare same-run prefix history and provenance after edits. The controller rejection fixture uses an injected repository error, and fresh-context restore uses in-memory SwiftData. Neither is a real disk-full/read-only SwiftData failure or process-restart test.
 
 ## Schema evolution: preserve the past exactly
 

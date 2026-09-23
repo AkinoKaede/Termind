@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6bee77cc55ac7f4209d5ea3e889e5ef21b88a7e3f39118c9fa0dffe665855886",
+  "pageVersion": "sha256:3c5890c5831313021a01c7840ee3ab3fa0b82708cc9e2b60a336255809efbf3f",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -275,44 +275,104 @@
       "statement": "Application edit tests reject invalid replacements before repository calls and preserve live history after injected repository rejection; controller cancellation after committed editing checks interrupted staging adoption. These fixtures replace the persistence port and do not inject real SwiftData storage failure.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/AssistantConversationOperationsTests.swift#L228-L266",
-          "version": "repo-lines-v1:sha256:d504dc650e02ce7236152c633382cef19bd6762a026047c05f7c1ad0785f7a7c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyNWIwMmI1NzE0ZDA2NmZkMzIxNmQyMjMxYmRkZGFjYjM2ZDcwODc3OTE4NmRhYzg5MjQyYWViZDA2ZjQ1M2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYjYzYjhkYTE1ZTdkOGZhNDBlNjhmYjhkNjY0YzhjZDQ4NGFlMzQ4NGEyMjEzNWU0NDAwYjA4NjI3Yjg2ZjciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyNWU4YzMwNjkwMDIyNmYwNDA2OWM5YTZmMTZjNmY0ODE2NzkzYzM5NTNjZDM3YWFlNzQ5OWY2OGQ1YjAyNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+          "resource": "repo://FrameworkTests/AssistantConversationOperationsTests.swift#L473-L514",
+          "version": "repo-lines-v1:sha256:70c017e4fd4742ac1a8eff8c685ae4daf7c00755d6c14a68ae2e962fa7c18613:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEyNWIwMmI1NzE0ZDA2NmZkMzIxNmQyMjMxYmRkZGFjYjM2ZDcwODc3OTE4NmRhYzg5MjQyYWViZDA2ZjQ1M2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIyNWU4YzMwNjkwMDIyNmYwNDA2OWM5YTZmMTZjNmY0ODE2NzkzYzM5NTNjZDM3YWFlNzQ5OWY2OGQ1YjAyNmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNmNzlkNTgyZDc4ODhjODJjODQ4Y2M2MGUxMmNhNGYxMzU3MjhjNWIwMmEyYjM1NGMzZDE3YTBmOGI0YmMyNDIifQ"
         },
         {
-          "resource": "repo://FrameworkTests/AssistantConversationOperationsTests.swift#L290-L309",
-          "version": "repo-lines-v1:sha256:1aadebda28ab65aaf172c7524dd75bfbc882c73879618892eee83488349e51aa:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImIyMGI5NDg0YjQ4YTE3M2QzMTM2ZjhkYWRiNzdiNTUwYWQ5ZmRiMzU4YjMyMjllNTRjOGQyNjg1NGNkMWVlNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6Ijc1MjhmNGExMDgwN2M3ZDcxOTRjZTUxNTlmMzNmMjFiZjM1YzYxMzA5ZGNhNDkzNjgyOTViZjBkYzE3Y2QyYTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZkMWY5Njk2ZTM2ODQ2MzcxNzIxODJiOGMzZmNlMWFlMzQ4Yzc4MzJkOGU4OTE0ZDVjZjJlZjU1NDIxNDIwYWUifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L596-L619",
+          "version": "repo-lines-v1:sha256:9013a9b0c8dda08deb9c74c8b93dd354b89a5d981c5c43457c083341a7639434:eyJzZWxlY3RlZExpbmVDb3VudCI6MjQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZjMWE5ZjIzZTE1YzkwM2U4NGYxMDdkNGI4YmQ2NDZhYjcwNmRkNmEyNjczZWI5N2VhMTZkODc0ZTRhYzMxZTUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImEwNTYyNGUyNDJmZjU3YTY0YjU1M2YxMTQzNzBlMmQxZmViYmU4ODIyZjI5NzA2ZmZlYmI4YTgwZjVhM2FiMzcifQ"
         },
         {
-          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L450-L534",
-          "version": "repo-lines-v1:sha256:fd0683e00df11cd8ca35568565d1b1d43a68ad37ab7bf54e5f68803954f14349:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkYTc3OGQ5NDJjNzRkNGFjOGYzMmM1MTgyMDg2MGFlOGE2MDQ5YWE1NDUwYTE5NjMzMTM4MmNmNWVmNWU1MGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NTUyNmNmOWEwOGQ4Yzc1ZTA5ZThhMWZhMTIwODkxZmQ3MWEwMDNhMjkwY2U5ZTEzY2YwOWQ5NjRmYjkxYWUifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L719-L747",
+          "version": "repo-lines-v1:sha256:cafc285231544b00272d58ff3d5e4205703f2bd167937c426e285a131b1184ec:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE4ZGIwNzEzYzU1NTE0MjI3ZmQ3NGRmMTNlODYzZjQyMTU0MGFiMDk1YzVhNDU2Mjg5OTJiYzE3YjdlZDE1M2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk1NTUyNmNmOWEwOGQ4Yzc1ZTA5ZThhMWZhMTIwODkxZmQ3MWEwMDNhMjkwY2U5ZTEzY2YwOWQ5NjRmYjkxYWUifQ"
         }
       ]
     },
     {
       "id": "claim_9b91e98a29a34c4caa268050b13a5f3e",
-      "statement": "Missing-credential and selection-during-preparation tests wait for the recording repository's failed snapshot as well as checking live failure because production captured failures publish before asynchronous save; actor waiters handle both already-recorded and future snapshots.",
+      "statement": "Captured configuration-failure tests distinguish attempted snapshots from completed saves: preparation remains owned until return, successful save and identity recheck precede failed projection, and rejection retires without adoption. The recording repository uses actor waiters for existing or future events; synchronous MainActor join probes check Stop/controller joins remain pending while the single terminal save is blocked.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L231-L255",
-          "version": "repo-lines-v1:sha256:63509c11ab1c2718bead3930614de6427e1e6df47c0e787aeed401498661891c:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY0YzVmZGJhOWRmZTUwNjMwNjlkYTdlN2RiZWVjM2QzZWRiNjE3YmUzMTQxYjBmNGEyYzY0OTEzNWI0N2M2ZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyMzkzYWYzYmRiOTExYzA2ZWFmMjNkYjMxZTkyMmNkNGY3NDc2MmYzNGFmMTE1NTJkNDczYzc1ODhhZmFhZTkifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L797-L814",
+          "version": "repo-lines-v1:sha256:af356e00debb9d78ef75b58cde8ef7cbc573512c578ef87eb17ed868648285b6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ0NzUxNDBlMjZlOWM1YTE3MTFkNjQ0NWExOGI3ZjRhZTIwMjJmOTkzZWY2Mjg0MDc1NTQzMDFiOTZlMGRjMjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjBmN2Q5MjQ1MDBjZTE0ODEwOTUzODdhNWU5ZWIxYmMzYjFlM2VhYWY1Y2ViMzBkMTQ2Y2MwNTU0YWU1MWRlNmIifQ"
         },
         {
-          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L66-L86",
-          "version": "repo-lines-v1:sha256:80d25cc0451a928bc50f91e07a28b411b83c0d7299889938c179b8d5e96fb33b:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY1OGZlNzcyYzJiNDExMGEyYzJhOWQxYTk5MjI3OGY4ZTNmZDg5YzMzNzJlZjZmYjE0Y2NjYmU1NDU3MmQyMWQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkMzMwZjllZDlkNjUwYTVhMDRlNTk4Y2YxNmE2NmZkOTM3NWZjYWIxMzhkMmJiNmE0MWYxNTJjYzRjMjExNDQifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L876-L963",
+          "version": "repo-lines-v1:sha256:3375908ebaf9b2d4c4f15c8b1a3cf12eb10655fea5770f3f4c8166873cd09c59:eyJzZWxlY3RlZExpbmVDb3VudCI6ODgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImVkYTE1MzZiMTI0MWUxNzZmNjhjNjhmYTdlZWM3NTkwYmI4M2JmMmExNTVmNmEwNGE2N2FkMDJjODJlZTYzYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAwMDQyZDA4N2MwMjJlZDJjZDM1YjkzODg0YTkyZTU3NDAzN2UyNjJhMjg0Mjc3MzI3MTRkNjM2ZjkxMWVlOWUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdjMzk2ZGVjMGY5OGEyZjE4ZGUxMTk1NGMxOGJlOGQxYjdiY2VhOTc2YTQ5ZjQ3ZjQzNTgzZGE5ZGY5ZTY5ODMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUwNjNhNTViZWUzYmQxYjU3Nzc4NDgzYWRhOWRkOWEzZDE4OTM1OTcyOGI3NGU4YzE3ZTBlNmU0ZmVhZWVmODgifQ"
         },
         {
-          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L661-L689",
-          "version": "repo-lines-v1:sha256:74df831f049f3d94b2df3e3684005e41efcfdbae4210f2a76d72f07088772ff4:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI3M2UyMmU5ZjA4MTYzZWY3NDM5ODE2MTc3YzcyODZiZjg0MGRhODFhYTAxODc0ZTUxOTExNDM3NTNhNTIzNTMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjM4YTQ5OThkMTFmOGNhNTNkOWY1ZWE2OWQ3ZmJmYmE1MGViMTFhMzBhMTdkNDZiNzQzZDZiN2EyNzA5MDhlYzciLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVjYWZkOTVhYTdjMWM0MzA0YWEyNTI0OTg4YWNlMTM1NjQwMjU1MGZjYTg1ZmY5ODlhODEzYjNmNTEwNmJmZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImRlMzE4ODBjNjRmODIxZTk5ZmMxNGNjNWE0MDY5OTE0MzQzZTIwNGUwYmQ3N2U4NjU5ODhjMzQ1Y2RkZTdiMDgifQ"
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L89-L131",
+          "version": "repo-lines-v1:sha256:0aabaf1fd1e04c8fba54bf8ea2f77d091b5d3ea63e944027c2702ee290dfe3e4:eyJzZWxlY3RlZExpbmVDb3VudCI6NDMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY4NzZiOTY4ZTBiYTUzZTU1MTZkN2QyMzg4MjAyNTY1NjNkOTU1MzQ3OGVmYzEwNmExYWE5NDllMWM0YTk5MmYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUzZWNkNjA4NmI0MGM1OWViOGRiZGFmOThjNzMzYzMyMWM5MDgxMzFjNWU2ZmQ4NjBhNWY5NjQ4ZDZiOGM3YmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L765-L793",
-          "version": "repo-lines-v1:sha256:e87d08aec434dbaca6f03d91f4f5c0cab6e7e04e6040b3e13dc277d1eff4ed2f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU4MzY5NDdmMWVlZjZmNjIwZWJlZmQzMGE0N2EwNWI4ZDhiZWI2ZTNkYTFlZjkzOTM3MTg5OTZiZTI1NDkxYWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImE2ODhmNzU3ODA1NDczNjk2N2U4NzY5MmJiYTg2YjI4MDhmMzI0MTk3NTQ0MDVlYmZkNmM0NWI3MTk4OWQ0NzQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjQ3MTVmNGViNzI5YTZmMGMwMDk2MWMyN2JhMzFjNmU2ZGQxNWIwNTFkOTRhOGI5NzY3YWQ4Zjg3NGZmODBjZDMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjNmM3Y2RjOGM0ZWMwYmM5ZGU4ZTY5MThmYWUwYWE5ODQ0MTJiNDJjZTVjMzY5ZWExZTMzMjg0N2Y4ZjIyOWIifQ"
+          "resource": "repo://Frameworks/TermindApplication/Agent/AssistantExecutionController.swift#L697-L820",
+          "version": "repo-lines-v1:sha256:573ad87c0b11a4de84485b6efb502dec46851957f042f8e9ec82bd6e97473bd1:eyJzZWxlY3RlZExpbmVDb3VudCI6MTI0LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiI5NjAyZDY4M2JmOTNkNjM2MTgwMmU2Nzg5Y2UzODc1Yjc4MDJhYzk3MWU2YmRjNzhkNGJjNmJiZDRiN2FmN2ViIiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI4NzVkZDcxOTdjZGMzM2M2MDAwMDg2NzJjNjYxMmRhZjVlMjJjMzMwMjQ3YTNhZjBiZjgyZTQ4MDJmMzZlZTIzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiI2YjBkM2YxNGUzNjMyYmE5ZjBlM2I5YTJhYTM4M2UwNjVhYTBhY2UxOWM1MTU4NTA2YTliMWJjNzQ1MjExYWU4IiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI0YzZjN2NkYzhjNGVjMGJjOWRlOGU2OTE4ZmFlMGFhOTg0NDEyYjQyY2U1YzM2OWVhMWUzMzI4NDdmOGYyMjliIn0"
+        }
+      ]
+    },
+    {
+      "id": "claim_7dd64768ed39484797fa78c85266ebd4",
+      "statement": "Captured failure regressions verify save-before-archive/delete event order, asynchronous memory-to-failure transition, controller/conversation retention after caller release, superseding/direct edit and fork refusal with a retained assistant prefix, and injected save rejection preserving staging while reporting the error.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L134-L232",
+          "version": "repo-lines-v1:sha256:add34c3dc6b409429595dda053aa9f9a9f4e6a3da7dbf513bd2d2bfde8f03436:eyJzZWxlY3RlZExpbmVDb3VudCI6OTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImNmYjUwYTQxZDQ1MjY0ZjQyZDRiZGJkYzA1ZmQxODQ5NDdlODQ1MGRkNmJlNjFjOWRiN2ZiYThmYjA5ZDRiMmQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZiYTcxY2EyZWYyNGM5OWNhZTBjMDI2M2IzN2VlMGQ3OWE2MjQxZDJjYWFjNTY4NGE5ZjIwOWY3NjI3ZmYwNmQifQ"
+        },
+        {
+          "resource": "repo://FrameworkTests/AssistantExecutionControllerTests.swift#L652-L717",
+          "version": "repo-lines-v1:sha256:6b8eb70bb6c318b4e14ac50fde58fbd362830d046c50e1727140d6980e727740:eyJzZWxlY3RlZExpbmVDb3VudCI6NjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjFhYTU4ZmU0MmEyZWE4ODVmNDg3OWQ3MzVlOGJkMzU2ZTczYmEwZDFkNjkxYzc5MWVmZmU5YmE5YzJjNDg5ZjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjdiM2M1MzE3OGIwNjU0NDdkYTk1NjJlYjVhMTRjNDMzNDVlYmQyZWRkYjlkMmQ5OTFkZGIxNTQzNjkyNWYyMGQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_93d64172184241cf8f5472dfee5a85ae",
+      "statement": "The controller-owned failed-edit SwiftData regression restores through a fresh ModelContext over an in-memory container and checks one failed adopted run, text/images/attachments/context/permission, removed staging and monotonic chronology; it is not a disk-failure or process-restart test.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/AgentReplayPersistenceTests.swift#L196-L269",
+          "version": "repo-lines-v1:sha256:7697da7b2aab9dddc1b7d45cb0d33eb8cd52a84562a516b2156d742ce8a0d558:eyJzZWxlY3RlZExpbmVDb3VudCI6NzQsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiYjg4ZDJmYmY0Njc5YmVjNzJmYjM3MWQ4ZjVmNWMwZGU3YzM2YWEyNDFjN2ZjYzU3Y2NhZGM2NmQ2MTQ3NzkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijc5MjQxN2JmMzllNTM0Nzc3NGNkOTQ1NmY5NjExNzQzMDA1NWVjYTU0MDFkOGI3OWNmN2Q5YzJiYzM3YWQ5MzYifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_f5aac7bd4e8b450088cc9bf29e8beeaf",
+      "statement": "WorkspaceNavigatorRenameTests is serialized and requires the visible-window opt-in; it exercises context-menu and double-click rename and verifies the editor starts with the complete title, which production seeds before publishing the workspace rename identity.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift#L324-L328",
+          "version": "repo-lines-v1:sha256:f8e4a5c0e7a2300738f7cce45a7c486f0bacfc92825f6d761fac53bc50ef1695:eyJzZWxlY3RlZExpbmVDb3VudCI6NSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiMWNiNGMyNDM1MzhjMjRmY2M0YmUyYTY0ZTdkMTBiNzkwNmI4OGUyNTliNmNmYWE5ZDJhNTZkMWE3Zjk4YWY3ZCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDg5M2Y0MGUzNzgxZWI4OTZjODJkMDQ2YTA4MDY3YTExZTM1Y2RmMmYxZGZhZjI2ZmVhOTBiOGRiNjY3NjQxMyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTUzMjgyNGM2OTFiNzdhNDUwN2EyNDhkNmVmMjNjMjRkNzRkZDIwNDQ0YTA2Nzc3ODI3YTcxNTljNzZhZjVkOCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiOGYyN2ViYzQwNDY2MWU1NjQzZTZhYmE1MTQwNzNiN2RiOGJmNDlmMjAzMmYxMTRjYmI4OGI4YWU2ODVlN2UyNyJ9"
+        },
+        {
+          "resource": "repo://TFMTests/VisibleWindowTestTrait.swift#L4-L12",
+          "version": "repo-lines-v1:sha256:cfd19f71f216d3c053e0e94522292d5084c78db67cbe7e2d740a830c1c08390d:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZDZkYzRhNmI2NzJiZTRkMGI5ZjA5ODI5ZGNkMzgyYzEwMWJhMWMwMGQxZjYzNTY3MDI4OWFiNWE1NzBiNTYzZiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNDEyY2EzNDVjY2Y3NWJmOWMwODA2YmNlNjk1YmU4ZGU4MDhiNzk5ODQyNTFhN2E1NGQyMDJjZjYxMDFkZDQ1MSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiNzNkOTM2OTExYzY5MzE5OTAxOGFmMTI5ZTA3Njg2YjY5NjgyMDZmMjk0MmY2ZGViNzdkNWJjMmQ0MGI1ZTJhMiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        },
+        {
+          "resource": "repo://TFMTests/WorkspaceNavigatorRenameTests.swift#L1-L32",
+          "version": "repo-lines-v1:sha256:2c721458e519a812013020dc767cdd9f740f66ad200910e07c7aeff4a9e79b1b:eyJzZWxlY3RlZExpbmVDb3VudCI6MzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFjMzYyZGQ0NjUwMDgyZDM0N2RhMTFjMmRlYzc0MjBjNDJjNmMwZDEzMzYwNTAzYjg4OGZjOTgxZmU3Njk3ZDAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjZjNGY2MWQ0YWEzNzkxMTQ4YTUyNGZmNzA2YWE5YTg2MjQwMDZkNGNhMTIzZWM3NWU4YjQzOTRlYmZkYjdhOWUifQ"
+        },
+        {
+          "resource": "repo://TFMTests/WorkspaceNavigatorRenameTests.swift#L94-L104",
+          "version": "repo-lines-v1:sha256:7f43f16b1edffd49fc0d67c0ad2f6b0b02929bb07166fa9c92645704ac36aaa2:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMzYTVmMTM3YmZhZTRiNWFmN2ZjZGFkYzg3NjA4Njc5YjkyYmMwMTdmNTQ2OTIzZDg1NmU3OWM0YjNjZDYyYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImVkNWFhMDZhNzQ1NzBjMWVmMjU3OWM2ZmYyNGEyODM2YzI4YjdjMTBjMjMwN2MwNmZkMzYyYzUzOTBlYTJiMDgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjI0NzM4ODM3Zjk3OWNlYmIzODdjOGU1OTc2ZTQ5YjVhOWNkNGMxYzcyNmI4OWVmZTMyNGIxMmQ0ZDNhYzU3NDQifQ"
+        }
+      ]
+    },
+    {
+      "id": "claim_7c9b6608858b4bcc8a896f22150b1e9f",
+      "statement": "StoreKitTrialTests is serialized and skipped unless TERMIND_STOREKIT_TESTS=1; repository guidance requires manual authorization and recommends selecting that suite explicitly, so default-suite success does not show it ran.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L38-L44",
+          "version": "repo-lines-v1:sha256:b4bdfc1dd31e3110c8db7dc96616e1c6f44099a823533aba94f92226bd89d638:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiOTdmYzk4NmVmMDFlZTVmNThjNmYxZmEyNjViOGE2NDEzMTE2OGY4YWE1OTkzZDc4ODZkOTZjNmUxODk4OTQzMiIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiOGUwNDgwMzIwNDhlODdiMGE2MWE3ZjMwMTU4YTE3YTZlODA1MWI0YzQ4ZDUwZTE0YjJmYjY3NmI4MDBlYTJjYyIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZDFkYTg3Nzk4Y2M5NTc1N2I3NzQ0NThlYzQ5Yjg0MWRjYWMzODA1MWQ5MjljZGI5ODE5MGJiMTdiMjdkZmQ4OCIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiJ9"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift#L12-L22",
+          "version": "repo-lines-v1:sha256:c502b82a80a53329d256f638301cdaa11432ebba24ee9005eec7d39ed1f5dd65:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjEzYTU3NzFmOGY3ZmZmZjlhMjNkOWZiZTMyYTlmYzAwYzc0ZjRjYTU2NWY2NjFhNmQ2YmYxNGRiNmY2ZTlkNmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRiNjVlZGIzMWM5NDAzM2M2ZWVmOTIzOTQ3OWMzODczYzY0NzhhYmMyMWZhZDZlODJkYjJhNWU5ZDMyYzRhNmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgwNjZjMGUyZDJhNzZhZGViYTcyYzdmMjY3OWJlMTNkM2UzZWM5MzgzNzFhODliNTUzM2I0OTk0OTQwZTBhOGMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjEzY2EyMjE1MzJlMmQwOGM1YTgwYjA2MDJmNTBkMzIyMjBmMjZhMTBlNGFmYmYyMzA1NWU2ZGU2MmY3Yjk2ZDkifQ"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T05:17:08.701Z"
+    "at": "2026-09-23T06:54:45.592Z"
   }
 }

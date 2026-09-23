@@ -22,10 +22,12 @@ sources:
     resource: repo://TFM/Features/Workspaces/WindowModel.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "omp", at: "2026-09-22T03:23:14.035Z" }
+  - id: openwiki-source-0dd012e3740bcc348fc36ccb
+    resource: repo://TFMTests/StoreKitTrialTests.swift
+generated: { by: "codex", at: "2026-09-23T06:54:45.592Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T05:17:08.701Z
+    at: 2026-09-23T06:54:45.592Z
 ---
 
 # Termind Engineering Quickstart
@@ -98,6 +100,8 @@ Scripts/check-zh-localization.sh
 ```
 
 Use an installed iPhone or iPad simulator destination for `TFI` tests. Keep visible-window macOS tests opt-in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` and a narrow `-only-testing` selection; routine checks should stay headless. UI string changes require completed `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`; landing-page work is separately validated with `cd LandingPage && npm ci && npm run build`.
+
+StoreKit tests also remain skipped by default because they require manual authorization. When explicitly running them, set `TERMIND_STOREKIT_TESTS=1` and prefer `-only-testing:TFMTests/StoreKitTrialTests`. Default-suite success does not imply that opt-in suite ran.
 
 ## Change checklist
 
