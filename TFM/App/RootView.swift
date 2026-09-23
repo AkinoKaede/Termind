@@ -31,16 +31,20 @@ struct RootView: View {
         @Bindable var presentations = window.presentations
 
         NavigationSplitView(columnVisibility: sidebarVisibility) {
-            ZStack {
-                SidebarGlassBackground()
-                    .ignoresSafeArea()
-                WindowSidebarView()
-            }
-            .navigationSplitViewColumnWidth(
-                min: Metrics.Sidebar.min,
-                ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
-                max: sidebarMaxWidth
-            )
+            WindowSidebarView()
+                .background {
+                    // Modern split views supply the system sidebar material.
+                    // An additional glass surface changes its tint and contrast.
+                    if #unavailable(macOS 26.0) {
+                        LegacySidebarMaterialBackground()
+                            .ignoresSafeArea()
+                    }
+                }
+                .navigationSplitViewColumnWidth(
+                    min: Metrics.Sidebar.min,
+                    ideal: min(Metrics.Sidebar.ideal, sidebarMaxWidth),
+                    max: sidebarMaxWidth
+                )
         } detail: {
             detail
                 // Floating over the pane rather than docked under it, so switching
