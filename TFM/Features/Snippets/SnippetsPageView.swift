@@ -428,7 +428,9 @@ struct SnippetsPagePresentation: ManagedCardPresentationModifier {
                 : Text("This package tree contains \(count) snippets.")
         case .executeDestructive(let batch):
             return Text(actions.executionMessage(batch.snippets))
-        case .deleteSnippets, nil:
+        case .deleteSnippets:
+            return Text("This action cannot be undone.")
+        case nil:
             return Text("")
         }
     }
@@ -605,6 +607,8 @@ struct SnippetEditorSheet: View {
         .confirmationDialog("Delete Snippet?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
             Button("Delete Snippet", role: .destructive, action: delete)
             Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This action cannot be undone.")
         }
     }
 

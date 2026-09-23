@@ -40,9 +40,15 @@ struct MobileHostEditor: View {
         _selectedProtocol = State(initialValue: host.sshEnabled ? .ssh : .telnet)
     }
 
+    var editorTitle: String {
+        app.library.host(original.id) == nil
+            ? String(localized: "Add Host")
+            : String(localized: "Edit Host")
+    }
+
     var body: some View {
         MobileEditorSheet(
-            title: String(localized: "Host"),
+            title: editorTitle,
             isDirty: draft != original || !customIdentity.sshUsername.isEmpty
                 || !customIdentity.sshPassword.isEmpty || customIdentity.sshKeyID != nil
                 || !customIdentity.telnetUsername.isEmpty || !customIdentity.telnetPassword.isEmpty

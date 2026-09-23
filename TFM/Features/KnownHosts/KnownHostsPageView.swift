@@ -76,14 +76,14 @@ struct KnownHostsPageView: ManagedCardPage {
             Text("Import trusted server keys or add a fingerprint manually.")
         } actions: {
             Button("Import Known Hosts") { window.openVaultWork(.sshImport(knownHostsOnly: true), on: .knownHosts) }
-            Button("Add Host Key") { window.openVaultWork(.knownHostEditor(nil), on: .knownHosts) }
+            Button("Add Known Host") { window.openVaultWork(.knownHostEditor(nil), on: .knownHosts) }
         }
     }
     func managedNoResultsState() -> some View { ContentUnavailableView.search(text: state.query) }
     var managedPresentation: ManagedCardDeletionPresentation<UUID> {
         ManagedCardDeletionPresentation(
             deleting: $state.deleting, error: $state.error, ids: app.knownHosts.entries.map(\.id),
-            confirmationTitle: "Delete Host Keys?", errorTitle: "Known Hosts Operation Failed",
+            confirmationTitle: deletionTitle, errorTitle: "Known Hosts Operation Failed",
             explanation: Text("The next connection will ask you to verify the server key again."),
             prune: { window.pruneVaultSelections(in: app.hostLibrary) },
             delete: {
@@ -91,6 +91,12 @@ struct KnownHostsPageView: ManagedCardPage {
                 state.deleting = []
                 window.pruneVaultSelections(in: app.hostLibrary)
             })
+    }
+
+    private var deletionTitle: LocalizedStringKey {
+        state.deleting.count == 1
+            ? "Delete Known Host?"
+            : "Delete \(state.deleting.count) Known Hosts?"
     }
 
     private func select(_ entry: KnownHostEntry, action: @escaping () -> Void) {
@@ -182,7 +188,7 @@ struct KnownHostEditorView: View {
 
     var body: some View {
         VaultDetailScaffold(
-            title: entryID == nil ? "Add Host Key" : "Edit Host Key", symbol: "touchid",
+            title: entryID == nil ? "Add Known Host" : "Edit Known Host", symbol: "touchid",
             close: cancelEditing, closeLabel: "Cancel"
         ) {
             Form {
@@ -234,7 +240,7 @@ struct KnownHostEditorView: View {
             guard let editingToken else { return }
             editingSession.unregister(editingToken)
         }
-        .confirmationDialog("Delete Host Keys?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
+        .confirmationDialog("Delete Known Host?", isPresented: $confirmsDeletion, titleVisibility: .visible) {
             Button("Delete", role: .destructive, action: delete)
             Button("Cancel", role: .cancel) {}
         } message: {

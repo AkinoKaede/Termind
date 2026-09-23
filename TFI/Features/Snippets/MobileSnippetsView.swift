@@ -135,6 +135,8 @@ struct MobileSnippetsView: View {
         ) {
             Button("Delete Snippet", role: .destructive, action: deleteSnippet)
             Button("Cancel", role: .cancel) { deletingSnippetID = nil }
+        } message: {
+            Text("This action cannot be undone.")
         }
         .confirmationDialog(
             packageDeletionTitle,

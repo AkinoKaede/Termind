@@ -1261,7 +1261,7 @@ private struct ConnectionHistorySidebar: View {
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("This permanently removes all connection history without deleting any Hosts.")
+            Text("This permanently removes all connection history.")
         }
     }
 

@@ -2892,18 +2892,18 @@
         }
       }
     },
-    "Add Host Key" : {
+    "Add Known Host" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "添加主机密钥"
+            "value" : "添加已知主机"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "新增主機金鑰"
+            "value" : "新增已知主機"
           }
         }
       }
@@ -8322,6 +8322,22 @@
         }
       }
     },
+    "Delete %lld Known Hosts?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "删除%lld个已知主机？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "刪除%lld個已知主機？"
+          }
+        }
+      }
+    },
     "Delete %lld Snippets" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -8502,22 +8518,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除組和主機"
-          }
-        }
-      }
-    },
-    "Delete Host Keys?" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "删除主机密钥？"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "刪除主機金鑰？"
           }
         }
       }
@@ -10237,18 +10237,18 @@
         }
       }
     },
-    "Edit Host Key" : {
+    "Edit Known Host" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "编辑主机密钥"
+            "value" : "编辑已知主机"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "編輯主機金鑰"
+            "value" : "編輯已知主機"
           }
         }
       }
@@ -29027,18 +29027,34 @@
         }
       }
     },
-    "This permanently removes all connection history without deleting any Hosts." : {
+    "This action cannot be undone." : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "这将永久清除所有连接历史，但不会删除任何主机。"
+            "value" : "此操作无法撤销。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "這將永久清除所有連線歷史，但不會刪除任何主機。"
+            "value" : "此操作無法復原。"
+          }
+        }
+      }
+    },
+    "This permanently removes all connection history." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "这将永久清除所有连接历史。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "這將永久清除所有連線歷史。"
           }
         }
       }

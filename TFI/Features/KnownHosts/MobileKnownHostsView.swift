@@ -66,7 +66,7 @@ struct MobileKnownHostsView: View {
         .navigationTitle("Known Hosts")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
-                Button("Add Host Key", systemImage: "plus") {
+                Button("Add Known Host", systemImage: "plus") {
                     editing = KnownHostEntry(hostname: "")
                 }
             }
@@ -100,7 +100,7 @@ struct MobileKnownHostEditor: View {
     }
 
     var editorTitle: String {
-        isNew ? String(localized: "Add Host Key") : String(localized: "Edit Host Key")
+        isNew ? String(localized: "Add Known Host") : String(localized: "Edit Known Host")
     }
 
     var body: some View {

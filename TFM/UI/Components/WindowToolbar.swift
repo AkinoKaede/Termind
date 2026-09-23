@@ -781,7 +781,7 @@ extension WindowModel {
             ]
         case .knownHosts:
             return [
-                WindowToolbarCreationAction(id: "known-host", title: "Add Host Key", symbol: "plus") {
+                WindowToolbarCreationAction(id: "known-host", title: "Add Known Host", symbol: "plus") {
                     self.openVaultWork(.knownHostEditor(nil), on: .knownHosts)
                 },
                 WindowToolbarCreationAction(

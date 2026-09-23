@@ -105,9 +105,9 @@ struct MobileCardTests {
         let edit = MobileKnownHostEditor(app: app, entry: saved)
 
         #expect(add.isNew)
-        #expect(add.editorTitle == String(localized: "Add Host Key"))
+        #expect(add.editorTitle == String(localized: "Add Known Host"))
         #expect(!edit.isNew)
-        #expect(edit.editorTitle == String(localized: "Edit Host Key"))
+        #expect(edit.editorTitle == String(localized: "Edit Known Host"))
     }
 
     @Test func hostSectionsFoldNestedGroupsKeepEmptyGroupsAndLeaveSearchAvailable() throws {
