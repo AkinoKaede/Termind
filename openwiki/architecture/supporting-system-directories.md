@@ -54,6 +54,14 @@ sources:
     resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-637644793f7e37cc057eb973
     resource: repo://TFI/Platform/MobileLiveActivityController.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-f4b87eae375fa9241ff8cb35
+    resource: repo://TFITests/MobileForwardingRenderingTests.swift
+  - id: openwiki-source-96b0d4f1528e0e0e4e7b6a12
+    resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
+  - id: openwiki-source-1068a19b8ad42f734f4b4bb6
+    resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-d1ffd558b3360478aa85b5af
     resource: repo://TFIWidgets/WorkspaceLiveActivity.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
@@ -64,12 +72,14 @@ sources:
     resource: repo://TFM/Infrastructure/Networking/LoopbackHTTPServer.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-0dd012e3740bcc348fc36ccb
+    resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "omp", at: "2026-09-22T03:45:03.442Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T06:11:02.802Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # Supporting Products, Packages, and Tooling
@@ -159,8 +169,8 @@ Here solid arrows are updates/navigation and dashed arrows are shared type contr
 | --- | --- |
 | `FrameworkTests` | Flat shared-layer test suites for values/use cases, persistence/migration, sync, shared presentation, and other framework contracts. |
 | `FrameworkTests/Fixtures` | Synthetic original-module V1/V14 SwiftData stores. They preserve cross-module migration evidence and must not be regenerated from the extracted models. |
-| `TFMTests` | Flat desktop and integration suites: architecture boundaries, windows/navigation, terminal/remote flows, transfers, MCP, and rendering. Visible-window and screenshot cases have explicit opt-in gates. |
-| `TFITests` | Flat mobile suites: app/scene ownership, workspace/session behavior, backgrounding, editor/Assistant behavior, adaptive layout, and screenshots. |
+| `TFMTests` | Flat desktop and integration suites: architecture boundaries, windows/navigation, terminal/remote flows, transfers, MCP, and rendering. Visible-window and screenshot cases have explicit opt-in gates; manually authorized StoreKit tests use their own default-off gate. |
+| `TFITests` | Flat mobile suites: app/scene ownership, workspace/session behavior, backgrounding, editor/Assistant behavior, adaptive layout, and screenshots. Suites that replace the process-global UIKit key window are opt-in and run with parallel testing disabled. |
 | `Benchmarks/PortForwarding` | Standalone forwarding benchmark executable over shared-framework SPI; not hosted by an app or test bundle. |
 | `Scripts` | Flat executable utilities grouped by function below. |
 | `Scripts/Tests` | Python regression tests for version bumping and forwarding-benchmark tooling. |

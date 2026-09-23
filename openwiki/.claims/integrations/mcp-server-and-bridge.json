@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:e8702d030f8cc69c70ce0b630321aa0bf139b70e4dfb9e29b469cb5cfd77a53c",
+  "pageVersion": "sha256:ecf21d72d9c031ff95071424e149d92da037b8ec6e0151dd5b9c4a80fea18ceb",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:c2cb4b92ca17a7787641c64d2e87058979c4f731f2d098c63aa164ebc695c02b"
+          "version": "repo-file-v1:sha256:fc361c911553c831e066539b9f2c0df902eb588f71f3bac8606c0a48048a196e"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
@@ -315,10 +315,36 @@
           "version": "repo-lines-v1:sha256:bbe609256f29f5d3f57df07fd079fd2175c599b92d24faf60060b97a17b592d7:eyJzZWxlY3RlZExpbmVDb3VudCI6NDEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA0MWJjMzU3ZWE2YzA2MmNiNjE1MGRiZmIwY2Q3YTBhZTM4ZTA3MTllYzU1Y2QwOWY0OGY3Y2U4MGVjOTcyZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjYzgwYmFjZGQ0ZWUwOTdkYmRlMzFjZTEzNGIzM2YyODlhMzVhMWM1ZTBmZjNhYmFhZWI3YTVhNmY5ZmVmNDEifQ"
         }
       ]
+    },
+    {
+      "id": "claim_43b43ec4cc7648a6b1aa639440f83140",
+      "statement": "MCP upload disconnect synchronously cancels the active transfer token and records disconnect provenance separately, allowing 410 cancellation plus resumable pause while preserving 502 mapping for unrelated SFTP cleanup failures; attempt IDs isolate old callbacks and committed success survives late disconnect.",
+      "evidence": [
+        {
+          "resource": "repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift#L177-L197",
+          "version": "repo-lines-v1:sha256:09225b7b105df303acc8396e48c42c5251ddf2feff12b03d2c52d91c79fb352e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjE2YjJkOTVmZTFiOTA3OGRkZDkzZWExMWM5MjlhODc4MzAyMzQwOWVmYWIyMDdmMDcwNmRkZDllZGM4NDJlZjAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImI2NWU4NzRiZTc5MTIwY2ExMDZjMzcyZmM5ODlkNjZiZWQxOWMzZTQ0ZjRjMmIzNjJiZjUxMmU5ZWZhYWI4MjkiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEyZTVkNGJlYjE4YmNmZTY3NjVlZTBlYzQ4MjZhODg2ZWY0ZTFlMGNiYjc3NTE0ZmQ2M2ZhOTIwNDRmNzEzODQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE5MTFhMDA0NWFiYzgzOWNjYzM0YjVkZjRkYWNiY2ZiYTFjMmUyMjBlOTQ0NDM1MTM0ZTY1NjA1YmJmNGU0MmYifQ"
+        },
+        {
+          "resource": "repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift#L251-L276",
+          "version": "repo-lines-v1:sha256:3792a7f25d2ec146b7b352c37c6e4a5fd9883de3c0451915c4f7da84dbc9887e:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNlMWQ3MjAzODMyYmQ5ZTZlNDY5ZjUzYTdkMWQ2MWE5YjM3NTQxOTIyNzliZTY0OTYyYTg5MDVlNzAyNWMzNjMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5ZDk1ZWE2MmVhNjlkZmZkZTJmYmI1ODE4MDZhNzgyMTViODcxYzU3ZTliZWZmNjMxN2YxN2YwYjVmMmM1YzIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNiODM5NTZmZDAzNzU5M2UyNzUyMGYwN2I1ZDQwYzhiZWRjOTkyMTVlNDMxMTA0ODA0NWZiYjJmY2IwMGZlMzMiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUxODUyZWMwMmU4N2ZiYTQ5MDQ1OGJlNDc0YWY1ZDliYmJhZjk0NWJmYjQ4MzhjNmIxY2Y5NGVmYjRmMWZmYmYifQ"
+        },
+        {
+          "resource": "repo://TFMTests/MCPUploadTests.swift#L21-L53",
+          "version": "repo-lines-v1:sha256:2e8d63e4f97cfb831287755652f9f735659bc2871d71a3b7827defbae6ff055c:eyJzZWxlY3RlZExpbmVDb3VudCI6MzMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjA3ZjY0NGJkNTI1YmI3YjdjMjFhYzJhODY3ZDgyM2IwM2M3NzQ3NjFkYzQxMzg2NDIxMzYxMDNlYjNjNjcyYjciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijg5NWEyYTgzNmJjZWYyMjY5YTI4MWRkMzQ3MjdlN2Q0ZTI1YTlhMGU4MDc4ZTI5YjM5MTg1OTQ2MDZlNzNmN2MiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjgyYzFjZjUxZDU4ZWIzOWQyNDBjM2EzNjc2NTM0NzhhMWYwOWFkNGM3NjAwOWY3YWU1M2U2Y2E2OThiOWM1MjQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjlmMmMyMDczMWRiOTVmNTA1MGU4NTgwNDY4MDYwNGQ5MzZiY2MxNWIwMjI4MzNhMDBlM2I1ZWQ4ZWZkYjViYTAifQ"
+        },
+        {
+          "resource": "repo://TFMTests/MCPUploadTests.swift#L349-L385",
+          "version": "repo-lines-v1:sha256:abaaf8c46f62023236e935d4b7d44779766e48bbd0cc68f16f6592abfb97c637:eyJzZWxlY3RlZExpbmVDb3VudCI6MzcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRlMDQzYTczOTBlMWNhN2FhMDU2ZTk1YWFmMjE2NTM5YTIyNTkwNjU2ZGI4ZmIwNmI2ZWU5YzMyMWMxMjNlYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlZDdlYjk1NWQzOTAwMmZhMTlmM2MzNTJmYzhmNDNiMTg1MDNiYjRjYjIyNzhiNTFlMjFlMjdkMWFiYjU3ZTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRlOWZjNmY2NzhjN2U5Y2EwY2YxOTY1YmVjZWUzMjA5OWEzNzRlZTc0N2Q2NTE2ZWViZWFiMzQ2NDU0NGVhMTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA3N2U0MDI5NjM5ZmIzOGQxZGRmYzZjMjllOWJiZTRkNGMxMWVmMjBlOTRiZmM4ZWE5YTdjYzI3NmVlYjUxOTMifQ"
+        },
+        {
+          "resource": "repo://TFMTests/MCPUploadTests.swift#L409-L423",
+          "version": "repo-lines-v1:sha256:1b322d04c0951a6a53f975af182a52d23521961f78ab35983ea597819276dbd4:eyJzZWxlY3RlZExpbmVDb3VudCI6MTUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmNzNlODA1NDZmYTc2MThhODBmNTNiNjFhMTA3NGYzMGI1MjRlOWE5NzZmNTAxOGJmOWQzY2RlNjNkMDQ1NzMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjU5MGRjYjA1YTgxZTQ0NTJkZTczZGU2YjIyNmEyNTg5ZTY2MzY0NDk4OGYxNmJhOTBhOTQ4NzkwMTJlOTZlMTAifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T07:36:39.730Z"
+    "at": "2026-09-23T10:06:09.363Z"
   }
 }

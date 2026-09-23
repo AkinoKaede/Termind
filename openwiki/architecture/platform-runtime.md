@@ -10,14 +10,14 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
-  - id: openwiki-source-2d98a2885dc21f508f49b749
-    resource: repo://Frameworks/TermindApplication/Agent/MemoryIndexedAgentRepository.swift
   - id: openwiki-source-7397a04f40a393c81b0ca52d
     resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
   - id: openwiki-source-ee4e94c8b189e0881ec4fd15
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBackgroundCommands.swift
   - id: openwiki-source-0c82bf45bc197f879a54fd3a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
+  - id: openwiki-source-256e2b134a8446ea63b15585
+    resource: repo://FrameworkTests/HermesMemoryTests.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-dc9295278cc250ed20567540
@@ -66,10 +66,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-531f6567ecf96fd4b0c5e97a
     resource: repo://TFMTests/ExternalConnectionURLTests.swift
-generated: { by: "codex", at: "2026-09-23T08:21:59.182Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T08:21:59.182Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -151,7 +151,7 @@ The returned cleanup task separately joins the controller's captured preparation
 
 The app publishes that one cleanup task before suspending memory/edit monitoring and stopping metrics, speech, window-owned workspaces, SFTP work, external authentication, forwarding and the outbox. Repeated calls return the same task. `AppTerminationReplyCoordinator` independently races cleanup completion against a three-second fallback and replies to AppKit once. The fallback can permit exit while persistence or resource cleanup is still pending; returning from a save attempt does not establish that it succeeded.
 
-This is a captured-turn shutdown boundary, not a join of every Assistant task. Already-running manual compaction, title generation and memory indexing are outside it. `memory.suspend()` cancels current work, but a successful terminal save through `MemoryIndexedAgentRepository` can schedule indexing again. Shared unstructured SSH authentication and pool-opening tasks may not inherit runtime cancellation, leaving a consumer drain blocked and later resource closes unreached before fallback. Background-command close itself requests cancellation rather than proving remote settlement. These limitations make the native fallback necessary; the iOS lifecycle remains separate.
+This is a captured-turn shutdown boundary, not a join of every Assistant task. Already-running manual compaction and title generation are outside it. `memory.suspend()` now establishes a persistent admission fence: it invalidates current access, ignores later history notifications, and reloads state plus backfills history only after resume. Shared SSH configuration and pool-opening work may still outlive one cancelled caller when other waiters remain; each waiter cancels independently, the final waiter cancels the underlying task, and explicit Host retirement cancels the whole opening. Background-command close itself requests cancellation rather than proving remote settlement. These limitations make the native fallback necessary; the iOS lifecycle remains separate.
 
 ## Mobile composition
 
@@ -199,9 +199,9 @@ Scene phases are aggregated by scene ID. The app enters global background behavi
 
 `MobileBackgroundController` keeps one identity-bearing lease around the UIKit identifier. The expiration handler runs synchronously on the MainActor: it detaches the matching lease, invokes the app's cancellation callback, and ends that lease's valid identifier before returning. Finishing or replacing a lease makes its old callbacks inert. A denied acquisition immediately invokes expiration without ending an invalid identifier. If expiration reenters `begin`, the old lease cannot end or overwrite its replacement; if the platform calls expiration before returning an identifier, the outer acquisition retires the returned old identifier afterward. Each valid identifier is ended at most once.
 
-The callback requests suspension; it does not await network teardown or persistence. Workspaces detach their sessions and start asynchronous disconnects. Assistant synchronously requests cancellation for every conversation before joining retained consumers, then closes background commands and connection pools. Those drains remain best effort under iOS suspension or termination, so an ended platform lease is not evidence that a save or remote cleanup completed. The Assistant composer-send guard remains set until its cleanup task returns, even if a scene becomes active meanwhile.
+The callback requests suspension; it does not await network teardown or persistence. Workspaces detach their sessions and start asynchronous disconnects. Assistant synchronously requests cancellation for every conversation before joining retained consumers, then closes background commands and connection pools. Those drains remain best effort under iOS suspension or termination, so an ended platform lease is not evidence that a save or remote cleanup completed. The Assistant admission fence remains set until its cleanup task returns—even if a scene becomes active meanwhile—and blocks send, edit, plan implementation and manual compaction rather than merely disabling the composer.
 
-When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync according to foreground entitlement, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. Returning before expiration therefore preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
+When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, resumes memory (which reloads committed state and schedules history backfill), finishes the background task, asks existing workspaces to resume, reconciles sync according to foreground entitlement, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. Returning before expiration therefore preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground, and an unfinished Assistant suspension drain keeps its own admission fence until cleanup completes.
 
 ## Ownership invariants and safe extension points
 

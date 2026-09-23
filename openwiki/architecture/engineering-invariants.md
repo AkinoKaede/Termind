@@ -14,8 +14,6 @@ sources:
     resource: repo://Frameworks/TermindApplication/Agent/AssistantLibraryModel.swift
   - id: openwiki-source-1c48f72c0c7a3164d7d5c715
     resource: repo://Frameworks/TermindApplication/Agent/ConversationModel.swift
-  - id: openwiki-source-2d98a2885dc21f508f49b749
-    resource: repo://Frameworks/TermindApplication/Agent/MemoryIndexedAgentRepository.swift
   - id: openwiki-source-5c91b796f7e6d651aedf3023
     resource: repo://Frameworks/TermindApplication/FeatureModels/CommandHistoryModel.swift
   - id: openwiki-source-dc7b363138921b0923d2dc2f
@@ -118,6 +116,8 @@ sources:
     resource: repo://TFM/App/AppModel.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-396f97a332870d48c065d7e9
+    resource: repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift
   - id: openwiki-source-0854be84b166268626a3cb08
     resource: repo://TFM/Features/Sidebar/WindowSidebarView.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -128,12 +128,14 @@ sources:
     resource: repo://TFMTests/AppTerminationTests.swift
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-47dc468698b2904f0004ee04
+    resource: repo://TFMTests/MCPUploadTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T08:21:59.182Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T08:21:59.182Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -216,9 +218,11 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   MCP/SFTP cleanup. Only after those joins return does it close Agent background commands, then the connection pool.
   Repeated shutdown returns the same cleanup task; an independent three-second native fallback replies once even if a save
   or drain remains blocked. Joining an attempt does not prove save success or completion before process exit.
-  Shared unstructured SSH authentication/pool setup can outlive runtime cancellation. Existing manual compaction, titles and
-  memory indexing are outside these captured-turn joins; memory suspension cancels current tasks but successful terminal
-  saves can schedule indexing again. Background-command close requests cancellation without proving remote settlement.
+  Shared SSH configuration and connection openings use independently cancellable waiters; their underlying task is cancelled
+  only after the last waiter leaves, while explicit Host retirement cancels the whole opening. Existing manual compaction and
+  title generation remain outside the captured-turn joins. Memory suspension is a persistent admission fence: it invalidates
+  current sessions and tasks, ignores history notifications while suspended, then reloads state and backfills history on resume.
+  Background-command close requests cancellation without proving remote settlement.
   See [Platform Runtime](/openwiki/architecture/platform-runtime.md) and `AppTerminationTests` for scope and verification.
 - Connection/authentication/forwarding state is memory-only, excluded from domain records, sync and UserDefaults.
   Serial is local/temporary, never persisted or an Agent host. Vault-synced Workspace templates contain named
@@ -482,7 +486,9 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
   HTTP 200/Content-Length alone proves neither success nor persistence.
 - Shared metadata/expiry policy, separate directional state/claims/errors/ordering. Four active slots, each direction at most 64 unfinished
   and 256 terminal records for thirty minutes. Live work blocks idle expiry; completion remains queryable. Disconnect/recoverable SSH
-  failure pauses; explicit revocation cancels. Resume needs original active session/unexpired capability; exit loses both. Generation IDs
+  failure pauses; upload disconnect synchronously cancels that attempt's thread-safe transfer token before MainActor bookkeeping, while a
+  separate per-attempt disconnect signal preserves 410 mapping and resumability without misclassifying ordinary SFTP cleanup failures.
+  Explicit revocation cancels. Resume needs original active session/unexpired capability; exit loses both. Generation IDs
   reject old callbacks. Host/session retirement, stop/token rotation/direction disable revoke; release capacity after cleanup. Audits never
   include bytes/tokens. Upload expiry may clean partials; download allows valid Range after success.
 

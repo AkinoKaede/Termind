@@ -5,7 +5,7 @@ description: Safe, targeted validation and release procedures for Termind’s Xc
 tags: [operations, build, testing, localization, release, agentkit, screenshots]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-23T10:06:09.363Z
 sources:
   - id: openwiki-source-ea70eb6c045047448e446296
     resource: repo://.gitignore
@@ -27,11 +27,21 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-f4b87eae375fa9241ff8cb35
+    resource: repo://TFITests/MobileForwardingRenderingTests.swift
+  - id: openwiki-source-96b0d4f1528e0e0e4e7b6a12
+    resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
+  - id: openwiki-source-1068a19b8ad42f734f4b4bb6
+    resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
+  - id: openwiki-source-0dd012e3740bcc348fc36ccb
+    resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 ---
 
 # Build, Validation, Localization, and Dependency Release Operations
@@ -102,6 +112,24 @@ TEST_RUNNER_TERMIND_WINDOW_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme
 ```
 
 In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing screenshot tests may retain their own dedicated opt-in variables; offscreen layout and logic tests remain part of normal validation. This separation prevents a routine test run from activating the app, stealing focus, or becoming display-dependent.
+
+StoreKit integration tests have a separate default-off gate because the test host requires manual StoreKit authorization. Run only the focused suite after authorizing the host:
+
+```sh
+TERMIND_STOREKIT_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFM -destination 'platform=macOS' -onlyUsePackageVersionsFromResolvedFile test -only-testing:TFMTests/StoreKitTrialTests
+```
+
+On mobile, four UIKit integration suites replace the process-global key window. They remain skipped in the normal parallel suite and must run together with their opt-in enabled and Xcode parallel testing disabled:
+
+```sh
+TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1 xcodebuild -project Termind.xcodeproj -scheme TFI -destination '<installed iOS simulator>' -onlyUsePackageVersionsFromResolvedFile -parallel-testing-enabled NO test \
+  -only-testing:TFITests/MobileEditorToolbarTests \
+  -only-testing:TFITests/MobileForwardingRenderingTests \
+  -only-testing:TFITests/MobileHostIntegrationRenderingTests \
+  -only-testing:TFITests/MobileSavedNameRenderingTests
+```
+
+Default-suite success does not imply either manually gated group ran.
 
 For an isolated interactive desktop demo, use a supported scene and one of the three supported languages:
 

@@ -48,6 +48,8 @@ sources:
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
+  - id: openwiki-source-256e2b134a8446ea63b15585
+    resource: repo://FrameworkTests/HermesMemoryTests.swift
   - id: openwiki-source-105d05d558f14996921a83f6
     resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-a62bfbbc7de13a894444718b
@@ -90,10 +92,10 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "codex", at: "2026-09-23T08:21:59.182Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T08:21:59.182Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory
@@ -220,11 +222,11 @@ The app snapshots its `AssistantConversationStore`, separately requests controll
 
 MCP shutdown and SFTP cancellation proceed alongside those Assistant joins. Agent background commands are closed only after all these waits return, followed by the Agent connection pool. Repeated shutdown returns the same cleanup task. The native reply coordinator separately replies once when cleanup returns or its three-second fallback fires; termination can therefore happen before a blocked save or later resource closure completes. A joined save attempt remains distinct from save success.
 
-Cancellation is cooperative across the remote stack. `AgentSSHAuthenticationContext.configurationAttempt()` and shared pool opening await unstructured tasks; cancelling the runtime does not necessarily cancel those tasks or settle their interaction continuations. Such a drain may remain blocked until exit, before background-command or pool closure is reached. `AgentBackgroundCommands.closeAll()` itself requests command-task cancellation without awaiting remote settlement. These joins also exclude already-running manual compaction, title generation and memory indexing. `memory.suspend()` cancels current work, but successful terminal saves call `historyChanged()` and can schedule indexing again. The shutdown contract therefore covers captured turns and retained consumers, with the native fallback bounding the quit reply.
+Cancellation is cooperative across the remote stack. Shared SSH configuration and pool openings register one continuation per caller. Cancelling one waiter resumes only that caller with cancellation and keeps the underlying task alive for remaining waiters; the last waiter cancels the task, while explicit Host retirement cancels the whole opening. A shared drain can therefore remain blocked while another legitimate waiter still owns it. `AgentBackgroundCommands.closeAll()` itself requests command-task cancellation without awaiting remote settlement. These joins also exclude already-running manual compaction and title generation. Memory suspension now remains an admission fence: it invalidates current sessions/tasks and ignores later history notifications until resume reloads committed state and schedules backfill. The shutdown contract therefore covers captured turns and retained consumers, with the native fallback bounding the quit reply.
 
 ### Mobile background expiration
 
-Mobile background expiration first sets `isSuspending`, cancels pending preparations and recording, snapshots the stored conversations, and calls `stop()` on every conversation synchronously. Only after all cancellation requests are issued does its cleanup task call `stopAndWait()` for each snapshot member, then close background commands and Agent connections. A first conversation's blocked save therefore cannot postpone cancellation of a later queued or active run. Repeated expiration during that cleanup is inert, and composer sends remain blocked until cleanup returns, including when a scene has already returned to the foreground.
+Mobile background expiration first sets `isSuspending`, cancels pending preparations and recording, snapshots the stored conversations, and calls `stop()` on every conversation synchronously. Only after all cancellation requests are issued does its cleanup task call `stopAndWait()` for each snapshot member, then close background commands and Agent connections. A first conversation's blocked save therefore cannot postpone cancellation of a later queued or active run. Repeated expiration during that cleanup is inert. Send, prepared edit, plan implementation and manual compaction admissions all remain blocked until cleanup returns, including when a scene has already returned to the foreground.
 
 The finite UIKit lease has a separate boundary: its expiration callback requests this cleanup and ends the matching valid lease synchronously, without awaiting those drains. Cleanup may continue when execution is available, but iOS suspension or termination can prevent completion. Neither the lease nor Live Activities guarantee persistence or continued network work. See [Platform Runtime](/openwiki/architecture/platform-runtime.md) for scene aggregation, lease identity and workspace recovery.
 
@@ -331,6 +333,8 @@ The GRDB store opens lazily, so disabled memory does not create or open its data
 A memory session receives a frozen snapshot for its conversation. Memory reviews use a compare-and-apply base state, so a stale review cannot overwrite newer memory. Disabling memory invalidates sessions, cancels indexing and reviews, and closes the database while preserving stored data. Destroying memory first persists disabled/destroy-pending state, revokes contexts and joins ongoing work, then closes and removes the owned directory; failure remains disabled and is retried on a later launch. Memory and credentials are device-local and are not synced.
 
 New submissions capture whether they have a memory-session identity before preparation awaits. Enabling memory afterward does not add a session to that captured turn. Disabling it remains a revocation boundary: `MemoryModel` invalidates existing contexts and rejects a late snapshot load from the old generation, so capture does not override a later disable.
+
+Suspension is distinct from disabling. It keeps the user's enabled preference and database, but advances the generation, revokes active access, cancels indexing/reviews, refuses refresh/edit/session/search/index/review admission, and ignores terminal history notifications while suspended. Resume opens admission, reloads the store for the new generation, and schedules a full history replacement. If an old-generation write committed in storage while suspension invalidated its caller, the reload reconciles that committed state instead of publishing the stale return value.
 
 ## Focused verification
 

@@ -4,6 +4,8 @@ title: TFI Mobile UI Architecture
 description: "How the iPhone/iPad app composes registered feature stacks, scene-local navigation, shared runtimes, adaptive content regions, native terminal/transcript surfaces and mobile interaction policies."
 tags: [ios, ipados, tfi, ui, navigation, adaptive-layout, swiftui, uikit]
 sources:
+  - id: openwiki-source-7397a04f40a393c81b0ca52d
+    resource: repo://Frameworks/TermindApplication/FeatureModels/MemoryModel.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-60d390fe6fbfea55a2a8230a
@@ -42,14 +44,24 @@ sources:
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
   - id: openwiki-source-b822b041afbf829d09a8555a
     resource: repo://TFITests/MobileAppTests.swift
+  - id: openwiki-source-a154b5d36ec59496392d45e4
+    resource: repo://TFITests/MobileAssistantTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-f4b87eae375fa9241ff8cb35
+    resource: repo://TFITests/MobileForwardingRenderingTests.swift
+  - id: openwiki-source-96b0d4f1528e0e0e4e7b6a12
+    resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
+  - id: openwiki-source-1068a19b8ad42f734f4b4bb6
+    resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-11c91698354a4f95be3c4654
     resource: repo://TFITests/MobileWorkspaceMenuTests.swift
-generated: { by: "codex", at: "2026-09-23T00:59:31.979Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T07:36:39.730Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # TFI Mobile UI Architecture
@@ -221,7 +233,7 @@ The application runtime owns execution, not `onDisappear` on the conversation vi
 
 `MobileRootView` reports its scene phase; `MobileAppModel` aggregates all scenes. Entering background handling occurs when **all tracked scenes** are backgrounded, not whenever one feature disappears or one scene resigns activity.
 
-At that boundary the app pauses edit monitoring, memory/sync/Metrics/outbox work and recording, then starts its background allowance. Expiration suspends workspaces, stops forwarding, pauses transfers and expires Assistant background execution. An active scene ends the allowance and asks retained workspaces to resume, rechecks edited files, and restarts the appropriate services. This is best-effort mobile continuity, not unlimited background network execution.
+At that boundary the app pauses edit monitoring, memory/sync/Metrics/outbox work and recording, then starts its background allowance. Memory suspension is an admission fence rather than a one-shot cancellation: existing memory sessions are invalidated, new indexing/review/edit access is refused, and resume reloads committed state before backfilling history. Expiration suspends workspaces, stops forwarding, pauses transfers and expires Assistant background execution. While the Assistant suspension drain is active, send, edit, plan implementation and manual compaction remain blocked even if a scene becomes active. An active scene ends the platform allowance and asks retained workspaces to resume, rechecks edited files, and restarts the appropriate services, but it does not bypass that Assistant drain. This is best-effort mobile continuity, not unlimited background network execution.
 
 Closing a workspace, navigating back from its detail, switching tabs, and exhausting background allowance are therefore four different actions with different owners. A UI refactor must preserve that distinction.
 
@@ -237,5 +249,7 @@ Implemented principles:
 6. **Hide covered interaction as well as pixels.** Hit testing and accessibility must follow the visible region.
 
 `MobileAdaptiveLayoutTests` exercises native tab identity across compact/regular widths, all five destinations, Dynamic Type and English/Chinese variants. It also checks that region changes retain the Metrics list and scroll position, and preserve Assistant conversation identity, native transcript, composer focus and marked Chinese text. These tests validate injected geometry and navigation behavior; platform availability and real-device presentation still need appropriate device verification.
+
+Four suites that create or replace a process-global UIKit key window are excluded from the default parallel run. Run `MobileEditorToolbarTests`, `MobileForwardingRenderingTests`, `MobileHostIntegrationRenderingTests` and `MobileSavedNameRenderingTests` explicitly with `TERMIND_MOBILE_UI_TESTS=1` and parallel testing disabled; their shared presentation surface makes concurrent execution nondeterministic even though each suite is serialized internally.
 
 For a change, inspect scene routing tests for navigation, region/layout tests for geometry, workspace/terminal tests for session continuity, and Assistant tests for run-versus-selection ownership. See [Platform Runtime Composition](/openwiki/architecture/platform-runtime.md) and [Build, Test, and Release Operations](/openwiki/operations/build-test-and-release.md) before changing the lifetime boundary.

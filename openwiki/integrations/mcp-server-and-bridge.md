@@ -16,6 +16,8 @@ sources:
     resource: repo://TFM/App/MCPServerController.swift
   - id: openwiki-source-76b1cdca4a02038756187f92
     resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
+  - id: openwiki-source-396f97a332870d48c065d7e9
+    resource: repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift
   - id: openwiki-source-d485ebb339c77875a3b2701e
     resource: repo://TFM/Features/ExternalRequests/ExternalAuthCoordinator.swift
   - id: openwiki-source-ef4c6426a19087a6c49e4841
@@ -42,10 +44,10 @@ sources:
     resource: repo://TFMTests/MCPTransferTicketTests.swift
   - id: openwiki-source-47dc468698b2904f0004ee04
     resource: repo://TFMTests/MCPUploadTests.swift
-generated: { by: "codex", at: "2026-09-23T01:34:03.251Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T07:36:39.730Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # MCP Server, Transfer APIs, and Stdio Bridge
@@ -144,6 +146,8 @@ Upload and download are separate state machines and separate capabilities, even 
 The upload ticket binds the expected byte count, SHA-256 digest, target path, and overwrite intent. The byte route accepts only its capability and required binary request shape, claims the ticket atomically, and streams with backpressure into a dedicated SFTP operation—no scratch workspace or whole-file staging. The remote write commits only after exact length and incremental digest verification. A duplicate/parallel claim cannot replay committed bytes.
 
 Interrupted uploads can resume only from the coordinator’s acknowledged remote offset. The client must provide matching `Upload-Offset` and suffix `Content-Length`; the remote prefix is verified before continuation. Digest mismatch, truncation, cancellation, or cleanup failure does not publish a successful remote file. The status may report a possible temporary remote path if cleanup fails. Uploads never overwrite directories; `overwrite` is only meaningful for an existing regular file.
+
+HTTP disconnect is signaled outside the MainActor, so its callback synchronously cancels the attempt's thread-safe transfer token before scheduling coordinator bookkeeping. A second per-attempt token records that the cancellation came from this HTTP connection: failure mapping can return `410 upload_cancelled` and preserve a resumable paused ticket without interpreting every internal SFTP failure—which also cancels the transfer token—as a disconnect. Attempt IDs keep a late callback from an old connection from cancelling a resumed upload, and a disconnect after remote commit cannot erase success.
 
 ### Download: `sftp_download` then `GET /downloads/<id>`
 

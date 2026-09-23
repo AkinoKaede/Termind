@@ -5,8 +5,10 @@ description: Product metadata, entitlement expectations, App Store Connect owner
 tags: [app-store, storekit, commerce, subscriptions, release]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-23T10:06:09.363Z
 sources:
+  - id: openwiki-source-8037e2358a2c4f9b2c722a11
+    resource: repo://AGENTS.md
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
@@ -17,7 +19,7 @@ sources:
     resource: repo://TFMTests/ProAccessTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
-generated: { by: "codex", at: "2026-09-22T01:13:21.371Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 ---
 
 # App Store Commerce Configuration and Release Verification
@@ -52,7 +54,7 @@ Keep runtime access behavior in the shared commerce controller and domain types.
 
 ## Release verification
 
-1. Run `StoreKitTrialTests` and the relevant `SKTestSession`/Pro access suites. Verify purchase, introductory trial, renewal, cancellation, restore, expiration, billing retry, paid-to-paid grace, refund, revocation, Ask to Buy, deferred completion, and transaction updates.
+1. After manually authorizing StoreKit for the test host, run `StoreKitTrialTests` explicitly with `TERMIND_STOREKIT_TESTS=1`, preferably using `-only-testing:TFMTests/StoreKitTrialTests`, plus the relevant Pro access suites. The StoreKit suite is skipped by default, so routine suite success is not evidence that it ran. Verify purchase, introductory trial, renewal, cancellation, restore, expiration, billing retry, paid-to-paid grace, refund, revocation, Ask to Buy, deferred completion, and transaction updates.
 2. With a new Sandbox account, verify the localized annual and lifetime product names, descriptions, prices, annual period, introductory eligibility/duration, and Family Sharing. Existing accounts may already have consumed introductory eligibility.
 3. Verify the same Apple-account entitlement on Mac, iPhone, and iPad, then verify Family Sharing separately. Confirm lifetime precedence and cancellation-through-expiry behavior.
 4. Apply all English, Simplified Chinese, and Traditional Chinese metadata changes in App Store Connect. Coordinate storefront text with website and free-Workspace messaging while preserving the product IDs, prices, subscription group, offer, and grace policy.

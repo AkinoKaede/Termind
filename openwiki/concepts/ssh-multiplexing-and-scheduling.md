@@ -3,9 +3,6 @@ type: implementation guide
 title: SSH Multiplexing, Channel Admission, and I/O Scheduling
 description: "The concrete ownership and scheduling layers behind Termind SSH: per-connection session leases, serial libssh2 workers, exec state machines, multiplexed SFTP retries, readiness, backpressure, and feature-specific connection reuse."
 tags: [ssh, multiplexing, scheduling, libssh2, backpressure, sftp, concurrency]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
   - id: openwiki-source-8e06414c0a0a26e45de192bd
     resource: repo://Frameworks/TermindDomain/Connections/SSHPreferences.swift
@@ -29,11 +26,16 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHPTYChannel.swift
   - id: openwiki-source-e63615bc111f4678ec12525d
     resource: repo://Frameworks/TermindRemoteInfrastructure/SSH/SSHStreamPump.swift
+  - id: openwiki-source-0260a25fb41739d94e23d2ea
+    resource: repo://TFMTests/AgentConnectionPoolTests.swift
   - id: openwiki-source-7364a5d16e49e89eb03bbee2
     resource: repo://TFMTests/SSHForwardingPumpTests.swift
   - id: openwiki-source-ec3ec372dd69a7df3113c6b1
     resource: repo://TFMTests/SSHMaxSessionsPolicyTests.swift
-generated: { by: "omp", at: "2026-09-22T02:43:23.140Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # SSH Multiplexing, Channel Admission, and I/O Scheduling
@@ -76,7 +78,7 @@ This is a conceptual layering diagram, not a claim that every owner supports eve
 
 Metrics deliberately opts out of concurrent operations: `SSHExclusiveConnectionAdapter.withConnection` uses a busy flag and FIFO continuations to serialize complete operations on its owned connection. That adapter has no topology/fallback policy. Similar-looking SSH usage does not authorize merging Metrics, terminal, Agent, and forwarding lifetimes.
 
-The Agent has a separate higher-level reuse policy: `AgentConnectionPool` keys connections by Host ID plus route fingerprint, joins same-fingerprint in-flight opens, and opens primary SFTP on its pooled SSH connection. Reuse survives a follow-up Agent run; default idle expiry is 180 seconds, and active exec/SFTP leases prevent whole-host idle retirement. Missing/changed routes invalidate reuse. This is an Agent-owned pool, not the terminal or forwarding pool.
+The Agent has a separate higher-level reuse policy: `AgentConnectionPool` keys connections by Host ID plus route fingerprint, joins same-fingerprint in-flight opens, and opens primary SFTP on its pooled SSH connection. Every joined caller has its own waiter identity. Cancelling one waiter resumes only that caller; the underlying open continues for remaining waiters, but is cancelled and removed when the last waiter leaves. Explicit Host disconnect cancels the whole opening and all waiters, and a late successful connection whose opening identity was retired is disconnected instead of entering the pool. Reuse survives a follow-up Agent run; default idle expiry is 180 seconds, and active exec/SFTP leases prevent whole-host idle retirement. Missing/changed routes invalidate reuse. This is an Agent-owned pool, not the terminal or forwarding pool.
 
 ## Session-channel budget: local FIFO, not server discovery
 
@@ -159,6 +161,6 @@ The Agent's automatic replacement retry is deliberately narrow: `AgentConnection
 | Can a busy/slow flow starve or corrupt a peer? | `SSHForwardingPumpTests`: ready-queue rotation, watermarks, window updates, half-close; `SSHForwardingWireTests`: concurrent streams and slow consumer. |
 | Why did SFTP open another socket rather than a sibling? | File permit's selected mode and `SFTPTransferContext.capability`, not the exec ready queue. |
 | Why does closing the terminal not close SSH yet? | PTY `closeTerminalSession` and last-sibling callback; an SFTP subsystem can still own the transport. |
-| Why was an Agent connection retained or rebuilt? | `AgentConnectionPool` route fingerprint, in-flight join, active leases and idle sweep; `AgentConnectionPoolTests`. |
+| Why was an Agent connection retained or rebuilt? | `AgentConnectionPool` route fingerprint, per-caller in-flight waiters, active leases and idle sweep; `AgentConnectionPoolTests`. |
 
 Tests cited here are implementation evidence; they are not a performance guarantee for arbitrary servers/routes. Keep the pinned dependency graph when validating changes, and do not turn the [historical forwarding benchmarks](/openwiki/operations/port-forwarding-benchmarks.md) into general WAN latency claims.

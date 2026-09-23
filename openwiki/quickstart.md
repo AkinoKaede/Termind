@@ -16,6 +16,14 @@ sources:
     resource: repo://TFI/App/MobileRootView.swift
   - id: openwiki-source-6c9f797fc6a1e7ce639b72b8
     resource: repo://TFI/App/TermindIOSApp.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-f4b87eae375fa9241ff8cb35
+    resource: repo://TFITests/MobileForwardingRenderingTests.swift
+  - id: openwiki-source-96b0d4f1528e0e0e4e7b6a12
+    resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
+  - id: openwiki-source-1068a19b8ad42f734f4b4bb6
+    resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -24,10 +32,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
-generated: { by: "codex", at: "2026-09-23T06:54:45.592Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T08:21:59.182Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # Termind Engineering Quickstart
@@ -102,6 +110,8 @@ Scripts/check-zh-localization.sh
 Use an installed iPhone or iPad simulator destination for `TFI` tests. Keep visible-window macOS tests opt-in with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` and a narrow `-only-testing` selection; routine checks should stay headless. UI string changes require completed `zh-Hans` and `zh-Hant` translations in `Frameworks/Resources/Localizable.xcstrings`; landing-page work is separately validated with `cd LandingPage && npm ci && npm run build`.
 
 StoreKit tests also remain skipped by default because they require manual authorization. When explicitly running them, set `TERMIND_STOREKIT_TESTS=1` and prefer `-only-testing:TFMTests/StoreKitTrialTests`. Default-suite success does not imply that opt-in suite ran.
+
+Four mobile UIKit suites that replace the process-global key window are also default-off: `MobileEditorToolbarTests`, `MobileForwardingRenderingTests`, `MobileHostIntegrationRenderingTests`, and `MobileSavedNameRenderingTests`. Run them with `TEST_RUNNER_TERMIND_MOBILE_UI_TESTS=1`, narrow `-only-testing` selections, and `-parallel-testing-enabled NO`; suite-level serialization does not coordinate key-window ownership across separate suites.
 
 ## Change checklist
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a1c9a480314b124cb096731918e3a208c7dab2e590e8c42bcfa94456f9440b9c",
+  "pageVersion": "sha256:0387b384f0e9df7daaf614e6d1e66ed31e2d0bd1f198bce95d1d8e6191d2e00b",
   "claims": [
     {
       "id": "claim_70c5c3da992944188e719c65adc9b06c",
@@ -233,10 +233,24 @@
           "version": "repo-file-v1:sha256:97866af84c8b01df60e0e125b61a85836eaa9156052aeac3c3ddb0c234cad81f"
         }
       ]
+    },
+    {
+      "id": "claim_57342484912448139dbc6265eedd1769",
+      "statement": "StoreKitTrialTests is skipped during routine unattended runs and requires an explicit TERMIND_STOREKIT_TESTS=1 opt-in because the local SKTestSession test host needs manual StoreKit authorization.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L56-L58",
+          "version": "repo-lines-v1:sha256:59b48c1c93af632d0d54f375f34be63bfe084da21dbf98d89f2c5174f4f566ea:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNWYxODBmOWMxMjY5MDNiY2MzMzFhYTk1NDU2ZTQ5NDQ0YTdkNGQwMTFlOGEyYTgzZjVkYzg3MDIzOTE4MTJkMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjQ4MzZlZDdlMDA1Mzc3NWEwYTk2NmNlODYxMzRiMjM0N2Q4NTFhN2IwMmY0ODEyYmViMmM1OWQxYzY4ZDUyNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGMwNmIzZDc5NGYzMzczOTYxOGNhZmVjOTQwY2ZkY2YxZjllYjI1ZjI5YjUyYWJjZmNkZjA0MWY3NTg2YWZmYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTA1MTY5OTI5YTliMjNhOWIwMDJiYjE5MDNhYTA3ZWMxZGE0ODA1ZjY3ZTEyNTBmYzZjOTQ4MDlmMzJlMGM3ZSJ9"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift#L1-L18",
+          "version": "repo-lines-v1:sha256:01f6bcd9c1be6ab834bd576093f823f2b13ebdc7043b843fc256fa8ab1b51bb3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTliNzVmNjRiMTA2ZWI1NDRkZTIwMWY1OTkxMjJkNzVhYmM0ODNjNWIxNTZiYmE2YzA1YzBmOTU2ZGJjM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxNTMzZDM3NTZmOGMwZjgyNDc4YjE4NWUzODYwNWNlOTA0MDBhM2Q1ZjlmMDA0MGIxMDgzZjllMmRjYjVkMWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyMzkxMGFkMTQyYWFlZTQ0YzE0ZGU2YTYxODVkZTBiY2NhNDhlYzZlZGQ3ODFlNWU1MjQzYjdiODk2N2VkMTkifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-23T10:06:09.363Z"
   }
 }

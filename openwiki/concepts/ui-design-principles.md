@@ -50,6 +50,14 @@ sources:
     resource: repo://TFI/UI/Managed/MobileCards.swift
   - id: openwiki-source-fffc181d864b6caea779a6f5
     resource: repo://TFITests/MobileAdaptiveLayoutTests.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-f4b87eae375fa9241ff8cb35
+    resource: repo://TFITests/MobileForwardingRenderingTests.swift
+  - id: openwiki-source-96b0d4f1528e0e0e4e7b6a12
+    resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
+  - id: openwiki-source-1068a19b8ad42f734f4b4bb6
+    resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-8194e1eb3652c7ad61d75cfa
     resource: repo://TFITests/MobileTerminalFontTests.swift
   - id: openwiki-source-873894299539cce9a737a860
@@ -88,10 +96,10 @@ sources:
     resource: repo://TFMTests/TerminalFontRenderingTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "codex", at: "2026-09-23T05:17:08.701Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T07:36:39.730Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # UI Design Principles and Shared Presentation Boundaries
@@ -241,6 +249,8 @@ The implementation already treats accessibility as behavior, not a final label p
 - Mobile geometry tests retain marked Chinese text and first responder status during region changes, not just the final draft string.
 
 Localization likewise affects measurement and identity-sensitive presentation. The existing adaptive/rendering cases exercise English, Simplified Chinese and Traditional Chinese, including narrow desktop editors and the mobile tab set. A layout that works only with the shortest English label is not proven by a source-level logic test.
+
+Mobile tests that must install a real UIKit key window are a different seam from injected geometry tests. The editor-toolbar, forwarding, host-integration and saved-name rendering suites share process-global presentation state, so they are disabled in the default parallel run and must be invoked with `TERMIND_MOBILE_UI_TESTS=1` plus parallel testing disabled. Serialization inside each suite does not make separate key-window suites safe to overlap.
 
 Do not claim all animation sites are already Reduce Motion-aware: the helpers make that policy available, but each changed call site still needs inspection. Likewise, an accessibility label does not prove that focus order, clipping, menu reachability or large-text layout is correct.
 

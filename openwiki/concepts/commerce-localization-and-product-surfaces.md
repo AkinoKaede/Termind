@@ -5,7 +5,7 @@ description: Explains StoreKit-derived Pro access, native paywall and review own
 tags: [commerce, storekit, localization, product-surfaces, marketing, widgets]
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
+    at: 2026-09-23T10:06:09.363Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -55,7 +55,7 @@ sources:
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 ---
 
 ## Scope and ownership
@@ -124,7 +124,7 @@ The public site is a separate Astro app in `LandingPage/`, with strict TypeScrip
 
 ## Change and verification guide
 
-- For an access change, update `ProFeature`/callers and `ProAccessController` together; test entitlement phases, verification failures, pending Ask to Buy, restore, and metadata failure separately. `StoreKitTrialTests` exercises the local `SKTestSession` configuration, while `CommerceConfigurationTests` catches drift between product identifiers and the fixture.
+- For an access change, update `ProFeature`/callers and `ProAccessController` together; test entitlement phases, verification failures, pending Ask to Buy, restore, and metadata failure separately. `StoreKitTrialTests` exercises the local `SKTestSession` configuration, while `CommerceConfigurationTests` catches drift between product identifiers and the fixture. Because `SKTestSession` needs manual StoreKit authorization on the test host, that suite is skipped by default and runs only when `TERMIND_STOREKIT_TESTS=1` is explicitly supplied; routine unattended suite success does not mean it ran.
 - Treat local StoreKit testing as insufficient evidence for production: configure and verify App Store Connect metadata and use Sandbox/review environments for storefront prices, subscription lifecycle, restore, Family Sharing, and cross-device behavior.
 - For paywall or review work, test both platform presenters and the shared controller’s cancellation, persistence, cooldown, and multi-surface rules. Do not infer a rating or prompt display from an attempt record.
 - For text or product-copy changes, complete all three languages, run `Scripts/check-zh-localization.sh`, and run `AppLanguageTests` where applicable.

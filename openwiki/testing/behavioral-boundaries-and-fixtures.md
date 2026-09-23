@@ -24,6 +24,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-256e2b134a8446ea63b15585
+    resource: repo://FrameworkTests/HermesMemoryTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
@@ -38,8 +40,18 @@ sources:
     resource: repo://TFITests/MobileCardRenderingTests.swift
   - id: openwiki-source-16ec96bd78162e7e62effd0e
     resource: repo://TFITests/MobileConnectionPickerTests.swift
+  - id: openwiki-source-7341d7b266d976d7aac5d161
+    resource: repo://TFITests/MobileEditorToolbarTests.swift
+  - id: openwiki-source-f4b87eae375fa9241ff8cb35
+    resource: repo://TFITests/MobileForwardingRenderingTests.swift
+  - id: openwiki-source-96b0d4f1528e0e0e4e7b6a12
+    resource: repo://TFITests/MobileHostIntegrationRenderingTests.swift
+  - id: openwiki-source-1068a19b8ad42f734f4b4bb6
+    resource: repo://TFITests/MobileSavedNameRenderingTests.swift
   - id: openwiki-source-9b78a7e39bfa08bea5192722
     resource: repo://TFITests/MobileWorkspaceStoreTests.swift
+  - id: openwiki-source-396f97a332870d48c065d7e9
+    resource: repo://TFM/Application/MCPServer/MCPUploadCoordinator.swift
   - id: openwiki-source-7e364c6182a8339831ecab24
     resource: repo://TFM/Features/Workspaces/WorkspaceNavigatorView.swift
   - id: openwiki-source-cfbc34def649c94f760c5695
@@ -52,6 +64,8 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-c15cd5bef4646aaf64df407e
     resource: repo://TFMTests/ConnectionHistoryTests.swift
+  - id: openwiki-source-47dc468698b2904f0004ee04
+    resource: repo://TFMTests/MCPUploadTests.swift
   - id: openwiki-source-53e2b2fd2e661123f63e69e1
     resource: repo://TFMTests/SFTPTransferContextTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
@@ -62,10 +76,10 @@ sources:
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
   - id: openwiki-source-05f0aeba12df8388b97b3c76
     resource: repo://TFMTests/WorkspaceNavigatorRenameTests.swift
-generated: { by: "codex", at: "2026-09-23T06:54:45.592Z" }
+generated: { by: "codex", at: "2026-09-23T10:06:09.363Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T06:54:45.592Z
+    at: 2026-09-23T10:06:09.363Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -152,6 +166,10 @@ SFTP transfer tests use a controlled `TransferChannelHarness`, a `TransferChanne
 
 Those tests are intentionally actor-driven and use polling only to wait for observable harness state. Prefer this style for races: hold the transfer at a known point, make the ownership transition, then release it and assert the terminal state and disconnect count.
 
+MCP upload cancellation uses the same principle. `MCPUploadTests` waits until the fake destination has actually entered the transfer, fires each cancellation owner—including HTTP disconnect—and then requires a `410`, no remote commit, released activity and failed audit. The disconnect case additionally requires a paused ticket. This catches the ordering gap where a socket callback could enqueue MainActor bookkeeping after the transfer had already mapped an ordinary failure to `502`.
+
+Hermes lifecycle tests avoid wall-clock polling for the index replacement itself. The actor-backed store resumes continuations when the first or second history replacement arrives, then the test yields only for the MainActor indexing flag to settle. Separate barriers hold an old-generation memory write or review at the commit/model boundary, suspend and resume the feature, and verify stale publication is rejected while committed storage is reloaded. Under a highly parallel full suite, event ownership is more deterministic than increasing a timeout.
+
 ### Mobile: app state, scenes, and device-local restoration
 
 `TFITests` owns `MobileAppModel` composition and mobile scene behavior. Mobile app tests build `MobileAppModel(inMemory: true)` or supply dependency seams, which permits assertions over the actual shared schema and repositories without using the user's database or Keychain. Representative tests verify that scenes share durable conversations while navigation, selected conversation, and composer drafts stay scene-local; shared SwiftData history is observable from fresh repositories over the same container.
@@ -184,6 +202,8 @@ In Xcode, set `TERMIND_WINDOW_TESTS=1` in the Test action environment. Existing 
 
 StoreKit tests use a separate opt-in because they require manual authorization. `StoreKitTrialTests` is serialized and skipped unless `TERMIND_STOREKIT_TESTS=1`; when explicitly authorized, prefer the narrow `-only-testing:TFMTests/StoreKitTrialTests` selection. Ordinary default-suite success therefore does not imply this StoreKit suite ran.
 
+Mobile UIKit tests that create a replacement key window also use a separate gate. `MobileEditorToolbarTests`, `MobileForwardingRenderingTests`, `MobileHostIntegrationRenderingTests` and `MobileSavedNameRenderingTests` are serialized and skipped unless `TERMIND_MOBILE_UI_TESTS=1`. Run the four suites with Xcode parallel testing disabled because suite-level serialization does not coordinate process-global key-window state across separate suites.
+
 ## Change-to-regression matrix
 
 | Change type | Primary regression seam | Required behavior to protect |
@@ -196,7 +216,10 @@ StoreKit tests use a separate opt-in because they require manual authorization. 
 | SSH credentials, prompts, host trust, or agent authentication | Authentication and interaction-policy fixtures | Ephemeral secrets stay ephemeral, prompt scope/order/coalescing is correct, forbidden work stays noninteractive, and secrets are invalidated after use. |
 | SSH/SFTP transfer scheduling or pane/session teardown | `SFTPTransferContextTests` with a controlled channel harness | Concurrency bounds hold, background transfer ownership survives UI teardown, cancellation cleans up, and fallback does not invite interaction. |
 | Mobile workspace, scene, restoration, or background lifecycle | `MobileAppTests` and `MobileWorkspaceStoreTests` | State is shared or local at the intended scope, external sessions remain ephemeral, restoration is safe, and callbacks cannot revive retired state. |
+| Hermes suspension or resume reconciliation | `HermesMemoryTests` with actor continuations and controlled write/review barriers | Suspended work cannot publish, history waits until resume, and committed stale-generation writes are reloaded. |
+| MCP upload disconnect/cancellation | `MCPUploadTests` with a blocked source and started destination | Every owner unblocks both sides without commit; disconnect maps to 410 and leaves a resumable paused ticket without changing ordinary failures. |
 | macOS rendering or focus behavior | Focused offscreen test plus `.requiresVisibleWindow` suite when needed | Default tests stay headless; opted-in tests prove the user-visible interaction. |
+| Mobile process-global key-window rendering | Four TERMIND_MOBILE_UI_TESTS suites with Xcode parallel testing disabled | Native navigation, toolbars and localized rendering run without cross-suite key-window interference. |
 
 ## Execution strategy
 

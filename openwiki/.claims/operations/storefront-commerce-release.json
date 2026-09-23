@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:1f74472fe60ef3963fee0dcf3fb7a78120097f664925842fc6db119dbd10d57f",
+  "pageVersion": "sha256:d7f1ff3b8eb7120aba2d023df8fc286ed253a0f183a332c4d4c6df27aba330a7",
   "claims": [
     {
       "id": "claim_3d431c8c7b804187a1ef5a7d9178c430",
@@ -71,10 +71,24 @@
           "version": "repo-lines-v1:sha256:6a76d54ef19ad5c6b564234115af5f6d34dd4d600f01435ccb6ed36cebdbdf5f:eyJzZWxlY3RlZExpbmVDb3VudCI6MjYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNkMDE3YjUwYWY0OTFiMzExZTAwMzA0N2UzMGMyYWUxMDFkZDRkZjllMzRkNmE5YmI5OGEyZTIzZjIzNDI4NWQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImEzMGQ3MDNjMjIxZGFkNmRhMzg4Yzk5MjdjOTQyN2I5YTY5NTBiYmNlZTliMzM0NGY4OGY4YjAxOTZmNGU0OWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6Ijk3YWNjMWEyNTVjNDVmNzk5ZTAyYjM4Zjg1MGVmOGIzMDMwOTNiZTE5OTZiMDIwNTE5MjU0YzRkNjYyYTViMzAifQ"
         }
       ]
+    },
+    {
+      "id": "claim_d3350be7dc9c4d2faf80fbc61d192968",
+      "statement": "StoreKitTrialTests requires manual StoreKit authorization and an explicit TERMIND_STOREKIT_TESTS=1 opt-in; default test-suite success does not count as storefront lifecycle evidence.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L56-L58",
+          "version": "repo-lines-v1:sha256:59b48c1c93af632d0d54f375f34be63bfe084da21dbf98d89f2c5174f4f566ea:eyJzZWxlY3RlZExpbmVDb3VudCI6MywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNWYxODBmOWMxMjY5MDNiY2MzMzFhYTk1NDU2ZTQ5NDQ0YTdkNGQwMTFlOGEyYTgzZjVkYzg3MDIzOTE4MTJkMCIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiYjQ4MzZlZDdlMDA1Mzc3NWEwYTk2NmNlODYxMzRiMjM0N2Q4NTFhN2IwMmY0ODEyYmViMmM1OWQxYzY4ZDUyNiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZGMwNmIzZDc5NGYzMzczOTYxOGNhZmVjOTQwY2ZkY2YxZjllYjI1ZjI5YjUyYWJjZmNkZjA0MWY3NTg2YWZmYSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTA1MTY5OTI5YTliMjNhOWIwMDJiYjE5MDNhYTA3ZWMxZGE0ODA1ZjY3ZTEyNTBmYzZjOTQ4MDlmMzJlMGM3ZSJ9"
+        },
+        {
+          "resource": "repo://TFMTests/StoreKitTrialTests.swift#L1-L18",
+          "version": "repo-lines-v1:sha256:01f6bcd9c1be6ab834bd576093f823f2b13ebdc7043b843fc256fa8ab1b51bb3:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkYTliNzVmNjRiMTA2ZWI1NDRkZTIwMWY1OTkxMjJkNzVhYmM0ODNjNWIxNTZiYmE2YzA1YzBmOTU2ZGJjM2MiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMxNTMzZDM3NTZmOGMwZjgyNDc4YjE4NWUzODYwNWNlOTA0MDBhM2Q1ZjlmMDA0MGIxMDgzZjllMmRjYjVkMWQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjowLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjUyMzkxMGFkMTQyYWFlZTQ0YzE0ZGU2YTYxODVkZTBiY2NhNDhlYzZlZGQ3ODFlNWU1MjQzYjdiODk2N2VkMTkifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T03:23:14.035Z"
+    "at": "2026-09-23T10:06:09.363Z"
   }
 }
