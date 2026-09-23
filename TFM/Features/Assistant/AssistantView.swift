@@ -342,7 +342,7 @@ private struct AssistantConversationList: View {
     let menuSurface: AssistantConversationMenuSurface
     let onOpen: (UUID) -> Void
     var scope: Scope = .active
-    var archiveMaxWidth: CGFloat?
+    var archiveHorizontalPadding: CGFloat = 0
 
     typealias Scope = AssistantLibraryModel.SearchScope
 
@@ -459,9 +459,8 @@ private struct AssistantConversationList: View {
             isInteractive: isInteractive
         ) { item in
             renderedItem(item, window: window)
-                .frame(maxWidth: archiveMaxWidth ?? .infinity)
                 .frame(maxWidth: .infinity, alignment: .topLeading)
-                .padding(.horizontal, archiveMaxWidth == nil ? 0 : Metrics.Space.xl)
+                .padding(.horizontal, archiveHorizontalPadding)
         }
         .background(Color.clear)
     }
@@ -1152,7 +1151,7 @@ private struct AssistantArchiveView: View {
                 menuSurface: isCompact ? .sidebar : .fullScreen,
                 onOpen: onOpen,
                 scope: .archived,
-                archiveMaxWidth: isCompact ? nil : Metrics.Chat.contentMaxWidth
+                archiveHorizontalPadding: isCompact ? 0 : Metrics.Space.xl
             )
             .overlay {
                 if window.assistantLibrary.archivedConversations.isEmpty {
