@@ -356,11 +356,29 @@ struct WorkspaceNavigatorView: View {
 
 private struct WorkspaceNavigatorDragSession: ViewModifier {
     let window: WindowModel
+    @Environment(AppModel.self) private var app
+    @State private var cancellation = WorkspaceDragCancellationTracker()
 
     func body(content: Content) -> some View {
         if #available(macOS 26.0, *) {
             content
-                .dragConfiguration(DragConfiguration(allowMove: true))
+                .dragConfiguration(
+                    DragConfiguration(
+                        operationsWithinApp: .init(allowMove: true),
+                        operationsOutsideApp: .init(allowCopy: false)
+                    )
+                )
+                .background {
+                    WorkspaceNavigatorDragAnimation { session in
+                        guard let value = session.draggingPasteboard.string(forType: .string),
+                            let id = UUID(uuidString: value),
+                            window.workspaces.contains(where: { $0.id == id })
+                        else { return }
+                        // An outside release becomes a new window. Configure the
+                        // native session before AppKit starts any failed-drop animation.
+                        session.animatesToStartingPositionsOnCancelOrFail = false
+                    }
+                }
                 // Native List owns the session, so observe it here, not on a
                 // row whose listener does not receive the native callbacks.
                 .onDragSessionUpdated { session in
@@ -374,12 +392,23 @@ private struct WorkspaceNavigatorDragSession: ViewModifier {
                             let id = UUID(uuidString: value),
                             window.workspaces.contains(where: { $0.id == id })
                         else { return }
+                        cancellation.begin()
                         window.dragging = .workspace(id)
-                    case .ended:
+                    case .ended(let operation):
+                        let wasCancelled = cancellation.end()
+                        if case .workspace(let id) = window.dragging,
+                            operation == .cancel || operation == .forbidden,
+                            WorkspaceLayoutDragCompletion.shouldTearOffAtCurrentPointer(
+                                outside: app.mainWindows.frame(for: window), cancelled: wasCancelled
+                            )
+                        {
+                            app.mainWindows.moveWorkspace(id, from: window, at: NSEvent.mouseLocation)
+                        }
                         if case .workspace = window.dragging { window.dragging = nil }
                     default: break
                     }
                 }
+                .onDisappear { cancellation.end() }
         } else {
             content
         }

@@ -207,6 +207,91 @@ struct WorkspaceNavigatorDropTests {
         #expect(writtenIDs == workspaces.map(\.id))
     }
 
+    @Test(.requiresVisibleWindow)
+    @available(macOS 26.0, *)
+    func draggingASplitWorkspaceOutsideItsSourceMovesTheWholeLayout() async throws {
+        let workspace = workspace("Split")
+        workspace.splitFocusedPane(
+            axis: .horizontal,
+            with: .sshSession(host: TermindDomain.Host(name: "Second", host: "second.invalid"))
+        )
+        let paneIDs = workspace.panes.map(\.id)
+        let fixture = try Fixture(workspaces: [workspace])
+        defer { fixture.close() }
+        _ = try await fixture.mount()
+        fixture.app.mainWindows.register(fixture.window, model: fixture.model, requestID: nil)
+        var requests: [UUID] = []
+        fixture.app.mainWindows.createScene = { requests.append($0) }
+
+        let release = NSEvent.mouseLocation
+        let screen = try #require(NSScreen.main).visibleFrame
+        let originX = release.x < screen.midX ? screen.maxX - fixture.window.frame.width : screen.minX
+        fixture.window.setFrameOrigin(CGPoint(x: originX, y: screen.minY))
+        try #require(!fixture.window.frame.contains(release))
+        let other = NSWindow(
+            contentRect: CGRect(x: release.x - 50, y: release.y - 50, width: 100, height: 100),
+            styleMask: [.titled], backing: .buffered, defer: false
+        )
+        other.isReleasedWhenClosed = false
+        defer { other.close() }
+        other.orderFrontRegardless()
+        fixture.window.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        try await Task.sleep(for: .milliseconds(200))
+        let outline = try #require(descendant(in: fixture.hosting, ofType: NSOutlineView.self))
+        let dragSource = try #require(outline.dataSource as? WorkspaceNavigatorDragAnimationDataSource)
+        let configureSession = dragSource.configureSession
+        var configuredSessions = 0
+        dragSource.configureSession = { session in
+            configureSession(session)
+            #expect(!session.animatesToStartingPositionsOnCancelOrFail)
+            configuredSessions += 1
+        }
+        let row = try #require(
+            (0..<outline.numberOfRows).first { row in
+                guard let cell = outline.view(atColumn: 0, row: row, makeIfNecessary: true),
+                    let menu = descendant(in: cell, ofType: NativeRowContextMenu.RowMenuView.self)
+                else { return false }
+                return menu.entries().contains { $0.title == "Close Workspace" }
+            })
+        let start = outline.convert(CGPoint(x: 100, y: outline.rect(ofRow: row).midY), to: nil)
+        let end = fixture.window.convertPoint(fromScreen: release)
+        let events: [(NSEvent.EventType, CGPoint)] = [
+            (.leftMouseDown, start),
+            (.leftMouseDragged, CGPoint(x: start.x + 20, y: start.y - 20)),
+            (.leftMouseDragged, end), (.leftMouseUp, end),
+        ]
+        for (index, entry) in events.enumerated() {
+            let event = try #require(
+                NSEvent.mouseEvent(
+                    with: entry.0, location: entry.1, modifierFlags: [],
+                    timestamp: ProcessInfo.processInfo.systemUptime + Double(index) * 0.05,
+                    windowNumber: fixture.window.windowNumber, context: nil,
+                    eventNumber: index, clickCount: 1, pressure: 1
+                ))
+            NSApp.postEvent(event, atStart: false)
+        }
+        let deadline = Date(timeIntervalSinceNow: 1)
+        while Date() < deadline {
+            if let event = NSApp.nextEvent(
+                matching: .any, until: Date(timeIntervalSinceNow: 0.05), inMode: .default, dequeue: true
+            ) {
+                NSApp.sendEvent(event)
+            }
+        }
+        #expect(requests.count == 1)
+        #expect(configuredSessions == 1)
+        #expect(fixture.model.selectedWorkspace === workspace)
+        #expect(fixture.model.dragging == nil)
+        let request = try #require(requests.first)
+        let destination = WindowModel()
+        // Claim the request only after native drag completion, as a real scene does.
+        fixture.app.mainWindows.register(other, model: destination, requestID: request)
+        #expect(destination.selectedWorkspace === workspace)
+        #expect(workspace.panes.map(\.id) == paneIDs)
+        #expect(fixture.model.workspaces.isEmpty)
+    }
+
     @Test(arguments: [false, true])
     func mountedNavigatorReordersUsingDragStateSetBeforeTheNextRender(moveToEnd: Bool) async throws {
         let workspaces = [workspace("First"), workspace("Middle"), workspace("Last")]

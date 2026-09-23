@@ -137,9 +137,9 @@ final class WindowModel {
     /// a whole workspace. The pasteboard payload resolves asynchronously, one drop too
     /// late to answer any of them.
     ///
-    /// Sources clear this when their native session ends on macOS 26 and later.
-    /// Older systems can leave it set after a release outside any destination;
-    /// the next click or drag clears it, and drops still validate the pasteboard.
+    /// Pane sources clear this when their native session ends. Workspace sources
+    /// use the List's session callback on macOS 26 and later; older systems clear
+    /// any leftover workspace preview on the next click or drag.
     var dragging: DragPayload? {
         get { dragState.payload }
         set { dragState.payload = newValue }
@@ -1347,6 +1347,21 @@ final class WindowModel {
             vaultDestination = .welcome
             vaultWorkRoute = nil
         }
+        refreshSessionContext()
+        reconcileSidebarMode()
+        return workspace
+    }
+
+    /// Extracts live pane state only after another window is ready to own it.
+    /// A lone pane carries its existing workspace, including its assigned name.
+    func takePaneForMove(_ id: Pane.ID) -> Workspace? {
+        guard !isClosed, let pane = pane(id), pane.isCombinable,
+            let source = workspace(holding: id)
+        else { return nil }
+        if source.panes.count == 1 { return takeWorkspaceForMove(source.id) }
+        guard source.closePane(id) else { return nil }
+        let workspace = automaticallyNamedWorkspace(pane: pane)
+        dragging = nil
         refreshSessionContext()
         reconcileSidebarMode()
         return workspace

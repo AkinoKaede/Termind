@@ -105,7 +105,7 @@ struct WorkspaceContentView: View {
     /// you are in the middle of abandoning.
     ///
     /// Keeping the original `PaneView` mounted is required by AppKit: removing
-    /// the view that owns `.onDrag` can end the native drag session before the
+    /// the view that owns the drag can end the native drag session before the
     /// pointer reaches the Navigator. `SplitBranchView` uses this identity only
     /// for temporary geometry; the model tree is unchanged until a drop lands.
     private var omittedPaneID: Pane.ID? {
@@ -438,9 +438,6 @@ private struct PaneView: View {
         .contentShape(.rect)
         .onHover { isHovering = $0 }
         .onTapGesture {
-            // Belt and braces for a drag released outside the window, where
-            // no drop target of ours ever hears about it: the next click
-            // anywhere in a pane puts the layout back.
             window.dragging = nil
             workspace.focus(pane.id)
         }
@@ -745,13 +742,14 @@ private struct PaneView: View {
             label
                 .pointerStyle(.grabIdle)
                 .help(Text(AppStrings.Workspace.dragToMoveThisPaneDoubleClickToRename))
-                .onDrag {
-                    window.dragging = .pane(pane.id)
-                    return NSItemProvider(object: pane.id.uuidString as NSString)
-                } preview: {
-                    dragChip
-                }
-                .modifier(PaneDragSession(window: window, paneID: pane.id))
+                .modifier(
+                    WorkspaceLayoutDragSource(
+                        window: window, payload: .pane(pane.id),
+                        title: displayedTitle, symbol: pane.symbol,
+                        onTearOff: { point in
+                            app.mainWindows.movePane(pane.id, from: window, at: point)
+                        }
+                    ))
         } else if pane.kind.isRenameable {
             label
                 .help(Text(AppStrings.Workspace.doubleClickToRename))
@@ -761,10 +759,6 @@ private struct PaneView: View {
             // Empty, and it stops existing the moment something fills it.
             label
         }
-    }
-
-    private var dragChip: some View {
-        ItemDragPreview(title: displayedTitle, symbol: pane.symbol)
     }
 
     private func beginRename() {
@@ -783,27 +777,6 @@ private struct PaneView: View {
         workspace.isSplit
             ? pane.sidebarTitle(in: app.hostLibrary)
             : workspace.title(in: app.hostLibrary)
-    }
-}
-
-private struct PaneDragSession: ViewModifier {
-    let window: WindowModel
-    let paneID: Pane.ID
-
-    func body(content: Content) -> some View {
-        if #available(macOS 26.0, *) {
-            content
-                .dragConfiguration(DragConfiguration(allowMove: true))
-                .onDragSessionUpdated { session in
-                    switch session.phase {
-                    case .ended:
-                        if window.dragging == .pane(paneID) { window.dragging = nil }
-                    default: break
-                    }
-                }
-        } else {
-            content
-        }
     }
 }
 

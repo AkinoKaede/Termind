@@ -6,6 +6,11 @@ import SwiftUI
 @MainActor
 @Observable
 final class MainWindowCoordinator {
+    private enum Move: Equatable {
+        case workspace(UUID)
+        case pane(UUID)
+    }
+
     private final class Entry {
         weak var window: NSWindow?
         weak var model: WindowModel?
@@ -20,20 +25,31 @@ final class MainWindowCoordinator {
 
     private final class Request {
         weak var source: WindowModel?
-        let workspaceID: UUID?
+        let move: Move?
         let showsMetrics: Bool
         /// AppKit content coordinates, including the titlebar for the main
         /// window's full-size content view. Never a fullscreen frame.
         let sourceSize: CGSize
+        let screenPoint: CGPoint?
 
         init(
-            source: WindowModel? = nil, workspaceID: UUID? = nil,
-            showsMetrics: Bool = false, sourceSize: CGSize
+            source: WindowModel? = nil, move: Move? = nil,
+            showsMetrics: Bool = false, sourceSize: CGSize, screenPoint: CGPoint? = nil
         ) {
             self.source = source
-            self.workspaceID = workspaceID
+            self.move = move
             self.showsMetrics = showsMetrics
             self.sourceSize = sourceSize
+            self.screenPoint = screenPoint
+        }
+
+        func takeWorkspace() -> Workspace? {
+            guard let source else { return nil }
+            switch move {
+            case .workspace(let id): return source.takeWorkspaceForMove(id)
+            case .pane(let id): return source.takePaneForMove(id)
+            case nil: return nil
+            }
         }
     }
 
@@ -136,20 +152,33 @@ final class MainWindowCoordinator {
         createScene = create
     }
 
+    func frame(for model: WindowModel) -> CGRect? {
+        entries.first(where: { $0.model === model })?.window?.frame
+    }
+
     @discardableResult
     func newWindow(from source: WindowModel? = nil, showsMetrics: Bool = false) -> UUID? {
         request(Request(showsMetrics: showsMetrics, sourceSize: sourceSize(from: source)))
     }
 
     @discardableResult
-    func moveWorkspace(_ id: UUID, from source: WindowModel) -> UUID? {
+    func moveWorkspace(_ id: UUID, from source: WindowModel, at screenPoint: CGPoint? = nil) -> UUID? {
         guard !source.isClosed, source.workspaces.contains(where: { $0.id == id }) else { return nil }
-        if let existing = requests.first(where: { $0.value.source === source && $0.value.workspaceID == id }) {
-            createScene?(existing.key)
+        return move(.workspace(id), from: source, at: screenPoint)
+    }
+
+    @discardableResult
+    func movePane(_ id: UUID, from source: WindowModel, at screenPoint: CGPoint? = nil) -> UUID? {
+        guard !source.isClosed, source.pane(id)?.isCombinable == true else { return nil }
+        return move(.pane(id), from: source, at: screenPoint)
+    }
+
+    private func move(_ move: Move, from source: WindowModel, at screenPoint: CGPoint?) -> UUID? {
+        if let existing = requests.first(where: { $0.value.source === source && $0.value.move == move }) {
             return existing.key
         }
         return request(
-            Request(source: source, workspaceID: id, sourceSize: sourceSize(from: source)))
+            Request(source: source, move: move, sourceSize: sourceSize(from: source), screenPoint: screenPoint))
     }
 
     private func sourceSize(from source: WindowModel?) -> CGSize {
@@ -179,16 +208,17 @@ final class MainWindowCoordinator {
         if native.styleMask.contains(.fullScreen) { fullScreenWindows.insert(ObjectIdentifier(model)) }
         app?.registerWindow(model)
         if let requestID, let request = requests.removeValue(forKey: requestID) {
-            if let workspaceID = request.workspaceID, let source = request.source,
-                let workspace = source.takeWorkspaceForMove(workspaceID)
-            {
+            // A tear-off should appear at the release point immediately, without
+            // another document-opening animation after the drag completes.
+            if request.screenPoint != nil { native.animationBehavior = .none }
+            if let workspace = request.takeWorkspace() {
                 model.open(workspace)
                 model.refreshSessionContext()
                 model.reconcileSidebarMode()
             } else if request.showsMetrics {
                 model.selectedDestination = .metrics
             }
-            applySize(request.sourceSize, to: native, model: model)
+            applySize(request.sourceSize, to: native, model: model, at: request.screenPoint)
         }
         // A restored scene has no pending request. Its system-restored frame
         // must not be replaced with another window's shared fallback.
@@ -197,15 +227,18 @@ final class MainWindowCoordinator {
         synchronizePaywall()
     }
 
-    private func applySize(_ size: CGSize, to native: NSWindow, model: WindowModel) {
+    private func applySize(_ size: CGSize, to native: NSWindow, model: WindowModel, at screenPoint: CGPoint?) {
         let contentSize = CGSize(
             width: max(
                 size.width, native.contentMinSize.width, Metrics.Window.minWidth(showsSidebar: model.showsSidebar)),
             height: max(size.height, native.contentMinSize.height, Metrics.Window.minHeight))
         let frameSize = native.frameRect(forContentRect: CGRect(origin: .zero, size: contentSize)).size
-        let screen = native.screen ?? NSScreen.main
+        let screen =
+            screenPoint.flatMap { point in NSScreen.screens.first { $0.frame.contains(point) } }
+            ?? native.screen ?? NSScreen.main
         var frame = CGRect(
-            x: native.frame.minX, y: native.frame.maxY - frameSize.height,
+            x: screenPoint.map { $0.x - frameSize.width / 2 } ?? native.frame.minX,
+            y: (screenPoint?.y ?? native.frame.maxY) - frameSize.height,
             width: frameSize.width, height: frameSize.height)
         if let screen {
             frame = Self.fittingFrame(frame, within: screen.visibleFrame)
