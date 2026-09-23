@@ -8,12 +8,22 @@ sources:
     resource: repo://AGENTS.md
   - id: openwiki-source-a8a9aade8fbc89d5829a491e
     resource: repo://Frameworks/Resources/Localizable.xcstrings
+  - id: openwiki-source-a51ca858a040a90d4ab9c1c4
+    resource: repo://Frameworks/TermindApplication/AppLanguage.swift
   - id: openwiki-source-b2f57db7a90dcc30dd3886da
     resource: repo://Frameworks/TermindApplication/FeatureModels/AppReviewController.swift
   - id: openwiki-source-b37c974aaea12bd08606d67d
     resource: repo://Frameworks/TermindDomain/Commerce/ProAccessTypes.swift
   - id: openwiki-source-3aa42bdd0f8eaf866f06599f
     resource: repo://Frameworks/TermindInfrastructure/Commerce/ProAccessController.swift
+  - id: openwiki-source-18f43f55e6d48a1649e762b7
+    resource: repo://Frameworks/TermindPresentation/Copy/CopyPresentation.swift
+  - id: openwiki-source-e578911e4391488d345a6ab6
+    resource: repo://Frameworks/TermindPresentation/Copy/LocalizedStringResource%2BPresentation.swift
+  - id: openwiki-source-20185210a03efc9e775b73e9
+    resource: repo://Frameworks/TermindPresentation/Copy/NavigationCopy.swift
+  - id: openwiki-source-2e9889796b354b6c280c8168
+    resource: repo://Frameworks/TermindPresentation/Copy/TermindCopy.swift
   - id: openwiki-source-a298d9034d557f1b420cb306
     resource: repo://Frameworks/TermindPresentation/ProOfferPresentation.swift
   - id: openwiki-source-eae5d91412d0e2847dacd5b6
@@ -24,6 +34,8 @@ sources:
     resource: repo://LandingPage/src/lib/marketingImages.ts
   - id: openwiki-source-446ef49ac8edac86b5511fe5
     resource: repo://Marketing/README.md
+  - id: openwiki-source-f6e4a8e5d7aef42804ab0509
+    resource: repo://Scripts/check-presentation-copy.swift
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-60d4159ef162d09de4f4b469
@@ -70,16 +82,20 @@ sources:
     resource: repo://TFM/Features/KnownHosts/KnownHostsPageView.swift
   - id: openwiki-source-793d7861000adc19f0c3df01
     resource: repo://TFMTests/AppLanguageTests.swift
+  - id: openwiki-source-d3d065330c730839f5cc6112
+    resource: repo://TFMTests/ArchitectureBoundaryTests.swift
+  - id: openwiki-source-dc392b9979d99f5026bdeadf
+    resource: repo://TFMTests/PresentationCopyTests.swift
   - id: openwiki-source-0da64bbb5811b467bbf89b7f
     resource: repo://TFMTests/ProAccessTests.swift
   - id: openwiki-source-0dd012e3740bcc348fc36ccb
     resource: repo://TFMTests/StoreKitTrialTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "omp", at: "2026-09-23T14:21:19.398Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:05:10.244Z
+    at: 2026-09-23T14:21:19.398Z
 ---
 
 ## Scope and ownership
@@ -128,9 +144,15 @@ Eligibility requires at least seven days since first use, three distinct active 
 
 ## Localization as a release invariant
 
+Define app-facing copy as semantic `LocalizedStringResource` entries in `Frameworks/TermindPresentation/Copy`, **including copy used on only one platform**. `TermindCopy` groups navigation, feature and common wording for both TFM and TFI; share an entry for the same meaning and use explicit variants when the platform action or wording differs. Keep protocol values, identifiers, diagnostic codes and user-authored content with their existing owners rather than treating them as translatable UI literals. The `Copy` directory owns definitions and reusable formatting, not a shared native view or a separate resource bundle.
+
 User-facing app strings belong in `Frameworks/Resources/Localizable.xcstrings`, which is compiled into every app bundle; bundle metadata belongs in `InfoPlist.xcstrings`. The separate AgentKit runtime owns its own `../AgentKit/Localizations/Localizable.xcstrings`; its catalog must be rebuilt with `../AgentKit/Scripts/build-localizations.sh` after changes because a plain Swift build copies those resources rather than compiling them.
 
+A `TermindCopy` entry produces a resource on demand; resolve it at the display boundary rather than caching a translated `String` across language changes. SwiftUI can consume the resource directly, or use `swiftUIKey` where an API needs `LocalizedStringKey` (ordinary `String` conversion loses resource localization metadata). For imperative/native menus or count-dependent messages, `AppLocalization.resolve(_:locale:)` selects the requested locale from the app's main-bundle catalog and shared formatting selects appropriate singular/plural resources while preserving literal names and paths. `PresentationCopyTests` exercises English, `zh-Hans`, and `zh-Hant` resolution, nested menus, count messages, accessibility copy and the SwiftUI key bridge.
+
 Any new or changed English app string requires completed `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. `Scripts/check-zh-localization.sh` requires `jq` and rejects invalid catalog JSON, missing locale entries, unfinished string units, and Chinese/Latin or punctuation spacing violations. Run it in the normal commit pipeline even when localization was not intentionally changed; run `AppLanguageTests` when behavior changes. Shared commerce copy includes the annual/lifetime selection, trial and renewal disclosures, status/error messages, and the feature list in both native paywalls; `ProOfferPresentation` localizes interpolated StoreKit values with the chosen app locale. `AppLanguageTests` checks explicit-language Pro offers and both catalogs for finished Chinese string units. Product configuration likewise carries English, Simplified Chinese, and Traditional Chinese names and descriptions, so App Store Connect updates must remain synchronized with the local fixture and the localized product copy.
+
+`Scripts/check-presentation-copy.sh` runs a SwiftSyntax visitor across TFM/TFI and flags selected string literals used as first arguments or named copy arguments in UI APIs, as localized string declarations, or in localized return types. Its detection is deliberately narrower than “all app text”: it excludes macros and only recognizes specified call forms; review new copy ownership and semantic reuse even when the script passes. `ArchitectureBoundaryTests.presentationCopyHasOneSharedOwner` prevents an app-local `TermindCopy` declaration and bans app, AppKit/UIKit, TermindInfrastructure and TermindPersistence imports in the Copy directory. Run the copy check alongside `Scripts/check-zh-localization.sh`; neither replaces language-aware rendering and behavior tests. See [Shared Framework Directory Responsibilities](/openwiki/architecture/shared-module-directories.md) for the ownership map.
 
 ### Vault labels and locale-sensitive presentation
 
@@ -159,5 +181,5 @@ The public site is a separate Astro app in `LandingPage/`, with strict TypeScrip
 - For an access change, update `ProFeature`/callers and `ProAccessController` together; test entitlement phases, verification failures, pending Ask to Buy, restore, and metadata failure separately. `StoreKitTrialTests` exercises the local `SKTestSession` configuration (opt in with `TERMIND_STOREKIT_TESTS=1`, ideally restricting to `TFMTests/StoreKitTrialTests`): it covers trial metadata and restoration, lifetime precedence, cancellation and catalog network errors, pending Ask to Buy approval, unverified transactions, annual purchase without an introductory offer, invalid annual product shape, and empty restore. `CommerceConfigurationTests` catches drift between product identifiers and the fixture.
 - Treat local StoreKit testing as insufficient evidence for production: configure and verify App Store Connect metadata and use Sandbox/review environments for storefront prices, subscription lifecycle, restore, Family Sharing, and cross-device behavior.
 - For paywall or review work, test both platform presenters and the shared controller’s cancellation, persistence, cooldown, and multi-surface rules. Do not infer a rating or prompt display from an attempt record.
-- For text or product-copy changes, complete all three languages, run `Scripts/check-zh-localization.sh`, and run `AppLanguageTests` where applicable.
+- For text or product-copy changes, define semantic resource entries under `TermindPresentation/Copy` and complete all three catalog languages. Run `Scripts/check-presentation-copy.sh` with `Scripts/check-zh-localization.sh`, then `PresentationCopyTests` and `AppLanguageTests` where applicable; inspect affected native screens in all three app languages and on both platforms as needed.
 - For widget/deep-link changes, test bounded payload construction, restoration/duplicate handling, and route validation. For marketing changes, run `npm run build` in `LandingPage/`, preserve real device chrome, and recapture affected locale/platform combinations.

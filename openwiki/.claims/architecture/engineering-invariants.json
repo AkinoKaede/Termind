@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:01dff4e055d1d84f2ae10051b53bc73764eeb76dc2728ac14e0298625517d395",
+  "pageVersion": "sha256:4c3b22f5375d1a45ef2fb8f3d2f8bfe9820d93a41e1115c444af49995e66f2ba",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -482,7 +482,7 @@
     },
     {
       "id": "claim_0bb36663909342939a70f3e208ac12c2",
-      "statement": "ArchitectureBoundaryTests fail closed when production Swift roots are absent or empty, restrict mobile feature layers from importing or constructing concrete storage/transport implementations, and require CloudKit sync delegates to use shared lifecycle upload/quarantine gates rather than ad hoc change batches; these source checks do not exercise runtime UI or sync behavior.",
+      "statement": "ArchitectureBoundaryTests fail closed on missing or empty production Swift roots, restrict mobile feature imports and concrete storage/transport construction, enforce a single app-independent TermindCopy owner, and require CloudKit sync delegates to use shared upload/quarantine gates; these source checks do not exercise runtime UI or sync behavior.",
       "evidence": [
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L191-L219",
@@ -633,10 +633,42 @@
           "version": "repo-lines-v1:sha256:23741adb64c4324b01aab2e7b6c1ff5b763b7be042588dafeb2e55ddb2254e05:eyJzZWxlY3RlZExpbmVDb3VudCI6MzgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImYzYjI4MzBlZWZiNWU4Y2YwOGEyZmUwM2FiY2M3MjE4NTI1MDljMzkxNWI2MDEyNGQ1YWQxZGQ2ZTA4MTUyOGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImQwMWUwZTUzYzVjZjJmYjM3M2ZhNjdiZGYxZWIxODUzZmI5ZWUyMmVkOWUwZWQwZTdiMWQwNDFiOGYwN2Y2ZjcifQ"
         }
       ]
+    },
+    {
+      "id": "claim_66b22a6a24d646e6b9fe0e57ad4b78b9",
+      "statement": "App-facing copy, including single-platform wording, is defined as LocalizedStringResource entries under TermindPresentation/Copy for both apps to reuse, with protocol values, identifiers and diagnostic codes excluded; catalog entries remain in shared Resources.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L48-L56",
+          "version": "repo-lines-v1:sha256:7fc10023870e8e27b5637f8a7ded5380d2bdc9e7d2a9267af6e83616677b0772:eyJzZWxlY3RlZExpbmVDb3VudCI6OSwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiN2ViNmVkNjM3YmU2ODNjNzYxMmY2NzdlYTllMWE1NmI5NjU5OWU3NzJmNmQ3NjkwYjQyMzc0MGNkMTRhZmZmNyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiOTg2ZjBmYzI2Yzg1ZWJjYjA4ODA0ODE3YmIwZDNkYmQ3YTA5YTYxYTU3ZGE5YTA1OTdhYWM5ZTc1ZDBkNzQ5MiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+        },
+        {
+          "resource": "repo://Frameworks/Resources/Localizable.xcstrings",
+          "version": "repo-file-v1:sha256:90f5f9cd26e6974a00c7ce9c688e2bc3de33de2a02cf0012e0d9472be0b3fd48"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPresentation/Copy/TermindCopy.swift#L1-L6",
+          "version": "repo-lines-v1:sha256:a802c63736642d9ed391c8f49e4579b11474d00f2d2b9749f6b7b59a9a4bf0aa:eyJzZWxlY3RlZExpbmVDb3VudCI6NiwiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiZGRhOWI3NWY2NGIxMDZlYjU0NGRlMjAxZjU5OTEyMmQ3NWFiYzQ4M2M1YjE1NmJiYTZjMDVjMGY5NTZkYmMzYyIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiNmNjYzIzOGQ5YTg0Yjg5YTYzMTU2NzMzMTEyZWIzM2ExOTk2MGJkYmYxNDhmODFmMmUyYTc1MzU3ODY2ZTg4YSIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjAsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjAsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiZTNiMGM0NDI5OGZjMWMxNDlhZmJmNGM4OTk2ZmI5MjQyN2FlNDFlNDY0OWI5MzRjYTQ5NTk5MWI3ODUyYjg1NSJ9"
+        }
+      ]
+    },
+    {
+      "id": "claim_3ac8bf529e4442b6b368643cd0fd33c9",
+      "statement": "The SwiftSyntax presentation-copy script flags selected user-facing literal forms in TFM and TFI, and the repository requires it alongside the Chinese localization check; it does not comprehensively verify every possible UI string or displayed translation.",
+      "evidence": [
+        {
+          "resource": "repo://AGENTS.md#L50-L56",
+          "version": "repo-lines-v1:sha256:1e1f25455008fc3fcd2907320b720480922fb864f451f3c20b53f48e2e757912:eyJzZWxlY3RlZExpbmVDb3VudCI6NywiZmlyc3RTZWxlY3RlZExpbmVIYXNoIjoiNjllNGU3MjdjYjY0N2FlMTc1YjMzMTA5YzI2YTQ3MWQwYTZjN2E3NmE4ZDEwY2M0OGE1MWJmZTc0MWFiODQ1NSIsImxhc3RTZWxlY3RlZExpbmVIYXNoIjoiODQ1MThlZDQyNWZhZWNhNTgxNGExYzEwMTU0ZjEzMjgxOGViM2VjMGI2ZTgzOThkZjQ5NGI4YWRmN2MzYTI0NiIsInByZWNlZGluZ0NvbnRleHRMaW5lQ291bnQiOjMsInByZWNlZGluZ0NvbnRleHRIYXNoIjoiZmVjYzgxYWMyZjE3ZWVjMDQwYzhjNWM2NzYwODkzYjJkNmJmMmJkMjVhN2M4MTlkMTBhMGMzMWZmMjE5M2NhZiIsImZvbGxvd2luZ0NvbnRleHRMaW5lQ291bnQiOjMsImZvbGxvd2luZ0NvbnRleHRIYXNoIjoiMGVkYzQzMzI5OGFkNTgxMjllZTBhODg1MmMxM2Y1MjkyMGRhYWY5NGE4YzY0YTQ4NzFlZWVmNDZlMTMxNWVkMiJ9"
+        },
+        {
+          "resource": "repo://Scripts/check-presentation-copy.swift#L7-L78",
+          "version": "repo-lines-v1:sha256:6afeb1cc4f60acbcc5ce9623ef4ffc2d92ef02fd93e90fc3ce7af43beae73a14:eyJzZWxlY3RlZExpbmVDb3VudCI6NzIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJkYmFiYzBjYjBiYWYxM2U2MWU1OWExZDEyOTk5ZTIwYjRhMGUzODg1NThjNGY1NWQ0OWVlYjAzZDM0ODNlYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImE0ODUzNjM4YTQ4YmNkZjJkMTBiY2MyMTVhOWMyOWYxZGQzNTMxNzE5OThmYTFhOTQ2YzY1Zjc3ZTVlYTE2Y2YiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ3ODk1NTkwOGUxODQxMjRjZWE5NzA4YTNkNTYxYzcyOWMzYTNmNGI4YjcxZTY5ZTRlNjA3ZGE4NWFjNGQ1NzEifQ"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T14:05:10.244Z"
+    "at": "2026-09-23T14:21:19.398Z"
   }
 }

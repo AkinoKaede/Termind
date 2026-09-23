@@ -74,8 +74,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-2c20dfd15c3c8143bab58304
     resource: repo://Frameworks/TermindPresentation/AssistantTranscriptPresentationState.swift
-  - id: openwiki-source-a9bb60a9c9cb331432c4de08
-    resource: repo://Frameworks/TermindPresentation/IdentityFormSections.swift
+  - id: openwiki-source-18f43f55e6d48a1649e762b7
+    resource: repo://Frameworks/TermindPresentation/Copy/CopyPresentation.swift
+  - id: openwiki-source-2e9889796b354b6c280c8168
+    resource: repo://Frameworks/TermindPresentation/Copy/TermindCopy.swift
   - id: openwiki-source-9f84e62524d638f4155e0c76
     resource: repo://Frameworks/TermindPresentation/LinuxDistributionIconCatalog.swift
   - id: openwiki-source-89c20ee8e0b6b93533722c5a
@@ -118,6 +120,8 @@ sources:
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
   - id: openwiki-source-72f95a523c9b93bf5c81d9e5
     resource: repo://FrameworkTests/RemoteCharsetTests.swift
+  - id: openwiki-source-aa9e36be30555d3a6c7a3f6a
+    resource: repo://Scripts/check-presentation-copy.sh
   - id: openwiki-source-41a7ded3800c9422f058a3ef
     resource: repo://Scripts/check-zh-localization.sh
   - id: openwiki-source-66092b0aa632065907bc7606
@@ -126,10 +130,10 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "omp", at: "2026-09-23T14:21:19.398Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:05:10.244Z
+    at: 2026-09-23T14:21:19.398Z
 ---
 
 # Shared Framework Directory Responsibilities
@@ -286,10 +290,11 @@ Keep trust/authentication interaction with the initiating feature. Additional si
 | Directory | Responsibility |
 | --- | --- |
 | Root files | SwiftUI forms and presentation values for hosts, identities, secrets, trust, connection journeys, forwarding, snippets, providers/models, skills, memory and sync; metrics panels/formatting; Assistant transcript/tool details and disclosure state; Markdown parsing and small input/drop/speech helpers. |
+| `Copy` | `TermindCopy` semantic `LocalizedStringResource` entries, including single-platform wording, and shared count/message/accessibility formatting. Native views consume these resources; the actual catalog is bundled by the products. |
 | `SFTP` | Remote-file type/icon/size presentation, transfer status formatting, SFTP settings fields, and edit-upload overlays. |
 | `Terminal` | Terminal appearance/theme mapping and font-selection/settings content. Actual font discovery and native terminal mounting remain app-owned. |
 
-Reusable content is not a shared screen controller. In particular, transcript presentation state does not own the Agent runtime, terminal appearance does not own a PTY, and an identity form does not access Keychain directly. Architecture tests prohibit native AppKit/UIKit, persistence, and remote-infrastructure dependencies here.
+Reusable content is not a shared screen controller. In particular, transcript presentation state does not own the Agent runtime, terminal appearance does not own a PTY, and an identity form does not access Keychain directly. Define user-facing app copy in `Copy` for both apps rather than duplicating strings in their views; leave protocol values, identifiers and diagnostic codes with their existing owners. Architecture tests prohibit native AppKit/UIKit, persistence, and remote-infrastructure dependencies here and prevent app-local `TermindCopy` declarations.
 
 Details: [UI Design Principles](../concepts/ui-design-principles.md).
 
@@ -304,7 +309,7 @@ Details: [UI Design Principles](../concepts/ui-design-principles.md).
 
 `Frameworks/Resources` is a file-system-synchronized Xcode group included in **TFM, TFI, TermindWidgets, and FrameworkTests**, not the six shared framework targets. The empty explicit resources phases do not enumerate its files individually. Shared data is therefore available in those product/test bundles; do not assume it is in `Bundle(for:)` of an arbitrary shared framework. `LinuxDistributionIconCatalog` loads `LinuxDistributionIcons.json` from `Bundle.main` and matches detected distribution IDs (falling back to like IDs); AgentKit's model capability resolver searches the main and package bundles for the Pi catalog and optional overrides. If the icon catalog cannot load, icon lookup returns no entry. Platform-specific icons stay in `TFM/Resources` and `TFI/Resources`. Resource consumers should not create a dependency on an app target.
 
-App text belongs in `Localizable.xcstrings`, bundle metadata text in `InfoPlist.xcstrings`, and AgentKit runtime text in its own localization catalog. Add finished `zh-Hans` and `zh-Hant` translations with new English strings; run `Scripts/check-zh-localization.sh` and relevant `AppLanguageTests`. For Linux icon refreshes, `Scripts/update-linux-distribution-icons.sh` takes a pinned Simple Icons version and regenerates catalog, image sets and separate license material together; the app does not fetch icons at runtime.
+App-facing resource definitions belong in `TermindPresentation/Copy`; their translations belong in `Frameworks/Resources/Localizable.xcstrings`, bundle metadata text in `InfoPlist.xcstrings`, and AgentKit runtime text in its own localization catalog. Add finished `zh-Hans` and `zh-Hant` translations with new English strings; run `Scripts/check-presentation-copy.sh` and `Scripts/check-zh-localization.sh` together and relevant `PresentationCopyTests`/`AppLanguageTests`. For Linux icon refreshes, `Scripts/update-linux-distribution-icons.sh` takes a pinned Simple Icons version and regenerates catalog, image sets and separate license material together; the app does not fetch icons at runtime.
 
 ## Cross-layer flow: edit, persist, synchronize, render
 

@@ -6,6 +6,8 @@ tags: [architecture, invariants, lifecycle, security, persistence, remote-sessio
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
+  - id: openwiki-source-a8a9aade8fbc89d5829a491e
+    resource: repo://Frameworks/Resources/Localizable.xcstrings
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
     resource: repo://Frameworks/TermindApplication/Agent/AssistantConversationOperations.swift
   - id: openwiki-source-5f99e8af445e073ffe9bc257
@@ -50,6 +52,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindPersistence.swift
   - id: openwiki-source-5b42af91dbdc738123786a99
     resource: repo://Frameworks/TermindPresentation/AgentToolPresentation.swift
+  - id: openwiki-source-2e9889796b354b6c280c8168
+    resource: repo://Frameworks/TermindPresentation/Copy/TermindCopy.swift
   - id: openwiki-source-8185a608f0b79f1af097efbd
     resource: repo://Frameworks/TermindPresentation/Terminal/TerminalAppearance.swift
   - id: openwiki-source-0689f4693840cd29f5ac352c
@@ -86,6 +90,8 @@ sources:
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-f6e4a8e5d7aef42804ab0509
+    resource: repo://Scripts/check-presentation-copy.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-e43a0da5ab77c2fc3554244d
@@ -134,10 +140,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-9442022b3dba1be62a55f0f0
     resource: repo://TFMTests/TerminalThemeTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-23T10:36:38.039Z" }
+generated: { by: "omp", at: "2026-09-23T14:21:19.398Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T14:05:10.244Z
+    at: 2026-09-23T14:21:19.398Z
 ---
 
 # Cross-Cutting Engineering Invariants
@@ -165,16 +171,25 @@ sibling working tree is not the app dependency. Follow `AGENTS.md` for package r
 
 - Use direct owner imports/public APIs, not re-exports, forwarding aliases, `Shared` types or a generic Core module.
   Shared resources enter both app bundles; icons, metadata and signing remain platform-owned.
+- Define app-facing copy as `LocalizedStringResource` under `Frameworks/TermindPresentation/Copy`, even for a single-platform
+  surface. Both apps reuse semantic `TermindCopy` entries and shared formatting; platform-specific wording uses explicit
+  variants. Keep protocol values, identifiers and diagnostic codes with their existing owners. The string catalog remains
+  in `Frameworks/Resources/Localizable.xcstrings`, not in the framework bundle. See
+  [Commerce, Localization, and Product Surfaces](/openwiki/concepts/commerce-localization-and-product-surfaces.md) for
+  display-time resolution and the copy checks.
 - Moves preserve entity identity, fields, defaults and historical semantics. Original-module V1/V14 fixtures guard
   migration. `makeContainer` fixes the complete schema/plan; one container per process serves all scenes. Never
   recreate a failed store silently. macOS retains its `Termind` location; mobile uses Application Support/in-memory
   tests. Both apps share the CloudKit container and bundle-derived Keychain access group.
 - Architecture tests fail closed on absent/empty production roots. Source checks guard dependencies, native-list
-  allowlists, AgentKit/SwiftData ownership only; UI/copy/wiring need behavioral or visual coverage.
-  Their mobile and shared-framework import checks prohibit storage/transport construction in feature layers; the
-  CloudKit delegate check additionally requires all sync delegates to use the shared lifecycle upload gate and
-  quarantine/conflict validation, rather than constructing ad hoc change batches. These are source-boundary checks,
-  not a substitute for behavioral sync or UI tests.
+  allowlists, AgentKit/SwiftData ownership and the single `TermindCopy` declaration outside the apps; Copy files cannot
+  import app targets, AppKit/UIKit, TermindInfrastructure or TermindPersistence. The SwiftSyntax-based
+  `Scripts/check-presentation-copy.sh` detects selected UI-literal patterns in TFM/TFI; run it with
+  `Scripts/check-zh-localization.sh`. Neither check proves semantic reuse, correct runtime rendering or every possible
+  literal, so copy and wiring still need behavioral/visual coverage. Mobile and shared-framework import checks prohibit
+  storage/transport construction in feature layers; the CloudKit delegate check additionally requires all sync
+  delegates to use the shared lifecycle upload gate and quarantine/conflict validation rather than ad hoc change
+  batches. These are source-boundary checks, not a substitute for behavioral sync or UI tests.
 - V31 adds scoped quarantine/recovery models. Released V31 stores migrate directly to V34; V32/V33 were not distributed
   schema endpoints. V34 replaces Host, connection-history and Identity models, adds device-directory and Workspace
   preference models, and backfills history with the installation ID plus its initial DeviceRecord. Local schema changes
