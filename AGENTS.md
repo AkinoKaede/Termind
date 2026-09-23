@@ -41,6 +41,8 @@ Use Swift Testing (`@Suite`, `@Test`, `#expect`) in the three test directories. 
 
 macOS tests that present windows or activate the app must use `.requiresVisibleWindow` on their suite or individual test. They are skipped by default; keep this opt-in off for routine verification. To opt in from the command line, prefix the test command with `TEST_RUNNER_TERMIND_WINDOW_TESTS=1` (Xcode forwards it as `TERMIND_WINDOW_TESTS=1` to the test host), preferably with `-only-testing:TFMTests/<Suite>` to limit the run. In Xcode, set `TERMIND_WINDOW_TESTS=1` in the test action's environment. Screenshot tests with existing dedicated opt-in variables keep those gates. Offscreen layout and logic tests remain enabled by default.
 
+StoreKit tests require manual authorization and are also skipped by default. Run them explicitly with `TERMIND_STOREKIT_TESTS=1`, preferably with `-only-testing:TFMTests/StoreKitTrialTests`.
+
 ## Localization Guidelines
 
 Put user-facing app text in `Frameworks/Resources/Localizable.xcstrings` and bundle metadata in `InfoPlist.xcstrings`. Text owned by the agent runtime lives in `../AgentKit/Localizations/Localizable.xcstrings`; after editing it run `../AgentKit/Scripts/build-localizations.sh`, because `swift build` copies resources verbatim instead of compiling string catalogs. New or changed English strings require finished `zh-Hans` and `zh-Hant` translations in the same commit. Preserve placeholders and Chinese punctuation conventions. Before committing, run `Scripts/check-zh-localization.sh` (requires `jq`); it rejects invalid catalogs, missing or unfinished translations, and spacing errors. Run `AppLanguageTests` for localization behavior changes.

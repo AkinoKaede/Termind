@@ -11,7 +11,11 @@ import Testing
 
 @testable import Termind
 
-@Suite(.serialized)
+@Suite(
+    .enabled(
+        if: ProcessInfo.processInfo.environment["TERMIND_STOREKIT_TESTS"] == "1",
+        "Set TERMIND_STOREKIT_TESTS=1 to run StoreKit tests that require manual authorization"),
+    .serialized)
 @MainActor
 struct StoreKitTrialTests {
     @Test
