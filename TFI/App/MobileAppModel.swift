@@ -566,6 +566,7 @@ final class MobileAppModel {
         } else if phase == .active {
             devices.updateCurrentDeviceName(Device.current.safeDescription)
             sftpEdits.setMonitoring(true)
+            memory.resume()
             Task { await sftpEdits.recheck() }
             Task { [weak self] in await self?.pro.refresh() }
             background.finish()

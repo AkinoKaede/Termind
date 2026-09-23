@@ -33,6 +33,7 @@ public final class MemoryModel {
     private var indexDirty = false
     private var reviews: [UUID: Task<Void, Never>] = [:]
     private var pendingReviews: [UUID: (@Sendable () async -> Void)] = [:]
+    private var isSuspended = false
 
     public init(storage: (any MemoryPersisting)? = nil, defaults: UserDefaults? = nil) {
         self.storage = storage
@@ -75,7 +76,7 @@ public final class MemoryModel {
         } catch { self.error = error.localizedDescription }
     }
     public func refresh() async {
-        guard isEnabled, let storage else { return }
+        guard isEnabled, !isSuspended, let storage else { return }
         let token = generation
         do {
             let value = try await storage.memoryState()
@@ -86,7 +87,7 @@ public final class MemoryModel {
         } catch { if token == generation { self.error = error.localizedDescription } }
     }
     public func edit(_ target: AgentMemoryTarget, text: String) async {
-        guard isEnabled, let storage else { return }
+        guard isEnabled, !isSuspended, let storage else { return }
         let token = generation
         do {
             let updated = try await storage.replaceTarget(target, text: text)
@@ -96,7 +97,7 @@ public final class MemoryModel {
         } catch { if token == generation { self.error = error.localizedDescription } }
     }
     public func session(_ id: UUID) async -> (context: AgentMemoryContext, access: any AgentMemoryAccessing)? {
-        guard isEnabled, let storage else { return nil }
+        guard isEnabled, !isSuspended, let storage else { return nil }
         let token = generation
         do {
             let context: AgentMemoryContext
@@ -116,7 +117,7 @@ public final class MemoryModel {
     }
     private func require(_ token: UUID) throws -> any MemoryPersisting {
         try Task.checkCancellation()
-        guard isEnabled, token == generation, !isBusy, let storage else { throw CancellationError() }
+        guard isEnabled, !isSuspended, token == generation, !isBusy, let storage else { throw CancellationError() }
         return storage
     }
     fileprivate func read(token: UUID) async throws -> AgentMemoryState {
@@ -140,7 +141,7 @@ public final class MemoryModel {
         return result
     }
     public func rebuildHistoryIndex() async {
-        guard isEnabled else { return }
+        guard isEnabled, !isSuspended else { return }
         let token = generation
         historyChanged()
         await indexTask?.value
@@ -151,7 +152,7 @@ public final class MemoryModel {
     }
 
     public func historyChanged() {
-        guard isEnabled, let storage, let history else { return }
+        guard isEnabled, !isSuspended, let storage, let history else { return }
         indexDirty = true
         guard indexTask == nil else { return }
         let token = generation
@@ -161,7 +162,7 @@ public final class MemoryModel {
             defer {
                 indexTask = nil
                 isIndexing = false
-                if indexDirty, isEnabled { historyChanged() }
+                if indexDirty, isEnabled, !isSuspended { historyChanged() }
             }
             do {
                 while indexDirty, token == generation, isEnabled, !Task.isCancelled {
@@ -183,7 +184,7 @@ public final class MemoryModel {
         conversationID: UUID, messages: [AgentTranscriptMessage], model: any AgentModelCompleting,
         wait: Bool = false
     ) async {
-        guard isEnabled, reviewEnabled, let storage, let last = messages.last?.id else { return }
+        guard isEnabled, !isSuspended, reviewEnabled, let storage, let last = messages.last?.id else { return }
         let token = generation
         if let running = reviews[conversationID] {
             if wait {
@@ -249,9 +250,14 @@ public final class MemoryModel {
         isBusy = false
     }
     public func suspend() {
-        indexTask?.cancel()
-        for task in reviews.values { task.cancel() }
-        pendingReviews.removeAll()
+        guard !isSuspended else { return }
+        isSuspended = true
+        invalidate()
+    }
+    public func resume() {
+        guard isSuspended else { return }
+        isSuspended = false
+        historyChanged()
     }
 }
 

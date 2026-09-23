@@ -113,6 +113,66 @@ struct HermesMemoryTests {
         await model.setEnabled(false)
     }
 
+    @Test func suspendedMemoryDefersTerminalHistoryIndexUntilResume() async throws {
+        let store = MemoryLifecycleStore()
+        let model = MemoryModel(storage: store)
+        let history = InMemoryAgentRunRepository()
+        let repository = MemoryIndexedAgentRepository(base: history, memory: model)
+        await model.setEnabled(true)
+        try await waitUntil { await store.historyReplacementCount == 1 && !model.isIndexing }
+
+        model.suspend()
+        let conversationID = UUID()
+        try await repository.save(
+            .init(
+                conversationID: conversationID, state: .completed, permissionMode: .askForApproval,
+                messages: [.init(role: .user, text: "Saved after suspension")]))
+
+        #expect(!model.isIndexing)
+        #expect(await store.historyReplacementCount == 1)
+
+        model.resume()
+        try await waitUntil { await store.historyReplacementCount == 2 && !model.isIndexing }
+        #expect(await store.lastHistory?.contains(where: { $0.id == conversationID }) == true)
+    }
+
+    @Test func suspendInvalidatesExistingMemoryAccessAcrossResume() async throws {
+        let store = MemoryLifecycleStore()
+        let model = MemoryModel(storage: store)
+        await model.setEnabled(true)
+        let conversationID = UUID()
+        let original = try #require(await model.session(conversationID))
+
+        model.suspend()
+        #expect(await model.session(conversationID) == nil)
+        model.resume()
+
+        await #expect(throws: CancellationError.self) { try await original.access.memoryState() }
+        let resumed = try #require(await model.session(conversationID))
+        _ = try await resumed.access.memoryState()
+    }
+
+    @Test func suspendPreventsStaleReviewFromApplyingAfterResume() async throws {
+        let store = MemoryLifecycleStore()
+        let model = MemoryModel(storage: store)
+        await model.setEnabled(true)
+        let reviewModel = BlockingMemoryReviewModel()
+        let review = Task {
+            await model.review(
+                conversationID: UUID(), messages: [.init(role: .user, text: "Remember concise replies")],
+                model: reviewModel, wait: true)
+        }
+        await reviewModel.waitUntilEntered()
+
+        model.suspend()
+        model.resume()
+        await reviewModel.release()
+        await review.value
+
+        #expect(await store.reviewApplyCount == 0)
+        #expect(model.state.entries.isEmpty)
+    }
+
     @Test func skillPackagesPersistWithoutChangingLegacySkillRows() throws {
         let container = try TermindPersistence.makeContainer(inMemory: true)
         let persistence = SkillPersistence(context: container.mainContext)
@@ -182,6 +242,85 @@ struct HermesMemoryTests {
         #expect(!FileManager.default.fileExists(atPath: url.path))
     }
 }
+
+private actor MemoryLifecycleStore: MemoryPersisting {
+    private var memory = AgentMemoryState()
+    private var historyReplacements: [[StoredAgentConversation]] = []
+    private(set) var reviewApplyCount = 0
+
+    var historyReplacementCount: Int { historyReplacements.count }
+    var lastHistory: [StoredAgentConversation]? { historyReplacements.last }
+
+    func rebuildHistoryIndex() {}
+    func memoryState() -> AgentMemoryState { memory }
+    func applyMemory(_ operations: [AgentMemoryOperation]) throws -> AgentMemoryState {
+        memory = try memory.applying(operations)
+        return memory
+    }
+    func snapshot(for id: UUID) -> String { memory.prompt }
+    func replaceHistory(_ conversations: [StoredAgentConversation]) { historyReplacements.append(conversations) }
+    func searchSessions(_ request: AgentSessionSearchRequest) -> AgentJSONValue { .array([]) }
+    func lastReviewedMessage(_ id: UUID) -> UUID? { nil }
+    func markReviewed(_ messageID: UUID, conversationID: UUID) {}
+    func applyReview(
+        _ operations: [AgentMemoryOperation], expected: AgentMemoryState, messageID: UUID, conversationID: UUID
+    ) throws -> AgentMemoryState? {
+        reviewApplyCount += 1
+        guard memory == expected else { return nil }
+        memory = try memory.applying(operations)
+        return memory
+    }
+    func replaceTarget(_ target: AgentMemoryTarget, text: String) -> AgentMemoryState { memory }
+    func close() {}
+    func destroy() { memory = .init() }
+}
+
+private actor BlockingMemoryReviewModel: AgentModelCompleting {
+    private var entered = false
+    private var released = false
+    private var entryWaiters: [CheckedContinuation<Void, Never>] = []
+    private var releaseWaiters: [CheckedContinuation<Void, Never>] = []
+
+    func waitUntilEntered() async {
+        if entered { return }
+        await withCheckedContinuation { entryWaiters.append($0) }
+    }
+
+    func release() {
+        released = true
+        let waiters = releaseWaiters
+        releaseWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+    }
+
+    func complete(_ request: AgentModelRequest) async throws -> [AgentModelStreamEvent] {
+        entered = true
+        let waiters = entryWaiters
+        entryWaiters.removeAll()
+        for waiter in waiters { waiter.resume() }
+        if !released {
+            await withCheckedContinuation { releaseWaiters.append($0) }
+        }
+        return [
+            .textDelta(#"{"operations":[{"action":"add","target":"user","content":"Likes concise replies"}]}"#),
+            .finished(.completed),
+        ]
+    }
+}
+
+@MainActor
+private func waitUntil(
+    timeout: Duration = .seconds(2), _ condition: @escaping @MainActor () async -> Bool
+) async throws {
+    let clock = ContinuousClock()
+    let deadline = clock.now.advanced(by: timeout)
+    while !(await condition()) {
+        guard clock.now < deadline else { throw MemoryLifecycleTestTimeout() }
+        try await Task.sleep(for: .milliseconds(1))
+    }
+}
+
+private struct MemoryLifecycleTestTimeout: Error {}
 
 private struct FailingDestroyStore: MemoryPersisting {
     let base: GRDBMemoryStore
