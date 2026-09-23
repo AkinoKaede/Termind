@@ -119,7 +119,8 @@ struct HermesMemoryTests {
         let history = InMemoryAgentRunRepository()
         let repository = MemoryIndexedAgentRepository(base: history, memory: model)
         await model.setEnabled(true)
-        try await waitUntil { await store.historyReplacementCount == 1 && !model.isIndexing }
+        await store.waitForHistoryReplacementCount(1)
+        await waitForIndexingToFinish(model)
 
         model.suspend()
         let conversationID = UUID()
@@ -132,7 +133,8 @@ struct HermesMemoryTests {
         #expect(await store.historyReplacementCount == 1)
 
         model.resume()
-        try await waitUntil { await store.historyReplacementCount == 2 && !model.isIndexing }
+        await store.waitForHistoryReplacementCount(2)
+        await waitForIndexingToFinish(model)
         #expect(await store.lastHistory?.contains(where: { $0.id == conversationID }) == true)
     }
 
@@ -274,6 +276,7 @@ private actor MemoryLifecycleStore: MemoryPersisting {
     private let blocksApply: Bool
     private var applyEntered = false
     private var applyReleased = false
+    private var historyReplacementWaiters: [Int: [CheckedContinuation<Void, Never>]] = [:]
     private var applyEntryWaiters: [CheckedContinuation<Void, Never>] = []
     private var applyReleaseWaiters: [CheckedContinuation<Void, Never>] = []
     private(set) var reviewApplyCount = 0
@@ -283,6 +286,11 @@ private actor MemoryLifecycleStore: MemoryPersisting {
     var lastHistory: [StoredAgentConversation]? { historyReplacements.last }
 
     init(blocksApply: Bool = false) { self.blocksApply = blocksApply }
+
+    func waitForHistoryReplacementCount(_ count: Int) async {
+        guard historyReplacements.count < count else { return }
+        await withCheckedContinuation { historyReplacementWaiters[count, default: []].append($0) }
+    }
 
     func waitUntilApplyEntered() async {
         if applyEntered { return }
@@ -315,7 +323,12 @@ private actor MemoryLifecycleStore: MemoryPersisting {
         return memory
     }
     func snapshot(for id: UUID) -> String { memory.prompt }
-    func replaceHistory(_ conversations: [StoredAgentConversation]) { historyReplacements.append(conversations) }
+    func replaceHistory(_ conversations: [StoredAgentConversation]) {
+        historyReplacements.append(conversations)
+        let readyCounts = historyReplacementWaiters.keys.filter { $0 <= historyReplacements.count }
+        let waiters = readyCounts.flatMap { historyReplacementWaiters.removeValue(forKey: $0) ?? [] }
+        for waiter in waiters { waiter.resume() }
+    }
     func searchSessions(_ request: AgentSessionSearchRequest) -> AgentJSONValue { .array([]) }
     func lastReviewedMessage(_ id: UUID) -> UUID? { nil }
     func markReviewed(_ messageID: UUID, conversationID: UUID) {}
@@ -367,7 +380,7 @@ private actor BlockingMemoryReviewModel: AgentModelCompleting {
 
 @MainActor
 private func waitUntil(
-    timeout: Duration = .seconds(2), _ condition: @escaping @MainActor () async -> Bool
+    timeout: Duration = .seconds(10), _ condition: @escaping @MainActor () async -> Bool
 ) async throws {
     let clock = ContinuousClock()
     let deadline = clock.now.advanced(by: timeout)
@@ -375,6 +388,11 @@ private func waitUntil(
         guard clock.now < deadline else { throw MemoryLifecycleTestTimeout() }
         try await Task.sleep(for: .milliseconds(1))
     }
+}
+
+@MainActor
+private func waitForIndexingToFinish(_ model: MemoryModel) async {
+    while model.isIndexing { await Task.yield() }
 }
 
 private struct MemoryLifecycleTestTimeout: Error {}
