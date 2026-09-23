@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:5cad513345c5cd73a1bb915584cf0566e8f1a8f543c5e5dd4da91692e6407352",
+  "pageVersion": "sha256:2440bbfacd6925e8874548c87942c4f02c29835160dde94f309fb7abc29758f5",
   "claims": [
     {
       "id": "claim_69a9de4ce918417c8a44c6c87c9f6564",
@@ -146,7 +146,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:4bff3bbe87d980066344224e6c189b784360bb2c0fc360d138b4bb0a6d816420"
+          "version": "repo-file-v1:sha256:4c153bf5b7d97bf82683269527c35e76d9666ce459b681af16e7eed4a586e837"
         }
       ]
     },
@@ -175,6 +175,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T00:14:42.075Z"
+    "at": "2026-09-23T01:34:03.251Z"
   }
 }

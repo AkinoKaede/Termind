@@ -3,12 +3,9 @@ type: agent runtime concept
 title: Assistant, Agent Runtime, Skills, and Memory
 description: How Termind assembles AgentKit into durable assistant conversations, applies approval and host-security boundaries, and manages skills, scratch workspaces, and device-local Hermes memory.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-22T03:23:14.035Z
 sources:
-  - id: openwiki-source-66f32c7d0994c9f18c0e5a98
-    resource: repo://.build/verify-zh-hans/ios/SourcePackages/checkouts/AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
+  - id: openwiki-source-0e8cfe7d74554d8a17af60b7
+    resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-5f99e8af445e073ffe9bc257
@@ -25,10 +22,36 @@ sources:
     resource: repo://Frameworks/TermindPersistence/SwiftDataAgentRunRepository.swift
   - id: openwiki-source-1fc00d0407016efa5a0378eb
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentBuiltInSSHTools.swift
+  - id: openwiki-source-0c82bf45bc197f879a54fd3a
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentConnections.swift
   - id: openwiki-source-e1a028bd99d4dbe6d1e14f6a
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AgentScratchTransferTools.swift
   - id: openwiki-source-1c845e5af67c400566be83bd
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
+  - id: openwiki-source-2a267454c356289bd66e8b40
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/PlanningSSHTools.swift
+  - id: openwiki-source-d2d4c06f734241db3badc1f5
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-6d759b4cb61f68a067dae42c
+    resource: repo://FrameworkTests/AgentSteeringTests.swift
+  - id: openwiki-source-a62bfbbc7de13a894444718b
+    resource: repo://TermindMCPBridge/main.swift
+  - id: openwiki-source-906678adb91c2fce2d3fcaed
+    resource: repo://TFI/App/MobileAppModel.swift
+  - id: openwiki-source-d44869be46c03fbd0ce9c64c
+    resource: repo://TFI/Application/Agent/MobileAssistantModel.swift
+  - id: openwiki-source-a154b5d36ec59496392d45e4
+    resource: repo://TFITests/MobileAssistantTests.swift
+  - id: openwiki-source-76b1cdca4a02038756187f92
+    resource: repo://TFM/Application/MCPServer/MCPServerTools.swift
+  - id: openwiki-source-16db5d5459897d40fe080701
+    resource: repo://TFM/Features/AI/ConversationTranscriptView.swift
+  - id: openwiki-source-d35453512ef488d0cacdc06e
+    resource: repo://TFM/Features/Assistant/AssistantView.swift
+  - id: openwiki-source-49c5ca81284394384f3c3913
+    resource: repo://TFMTests/AgentBuiltInToolAvailabilityTests.swift
+  - id: openwiki-source-8f676dd306369e67985f3dd0
+    resource: repo://TFMTests/AgentHostProtocolListingTests.swift
   - id: openwiki-source-715de8d16be5a3d06ae915ad
     resource: repo://TFMTests/AgentPersistenceTests.swift
   - id: openwiki-source-d57db929d0047db53dd73cdd
@@ -37,7 +60,12 @@ sources:
     resource: repo://TFMTests/AgentScratchTests.swift
   - id: openwiki-source-7e117096f381ecc32caff068
     resource: repo://TFMTests/AgentSkillTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-22T00:31:10.149Z" }
+  - id: openwiki-source-8d265a8732f0af93c5d4e274
+    resource: repo://TFMTests/MCPServerToolsTests.swift
+generated: { by: "codex", at: "2026-09-23T01:34:03.251Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-23T01:34:03.251Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory
@@ -52,13 +80,30 @@ This split is a security boundary as well as a modularity boundary. A model prop
 
 A runtime is deliberately single-run. It owns one event stream and one event consumer. `ConversationModel` owns the live runtime and projects its events into visible messages, tool cards, approval and input queues, run summaries, and the authoritative model transcript. The visible message list is not replay history: tool calls and results are separately rendered as cards, so replay must use `transcript`.
 
-Tool availability is fixed at run start. A tool-capable model receives the resolved skill catalog, AgentKit built-ins, and Termind tools; a model without tool-call capability does not receive the skill/tool catalog. Session facts, plan posture, surface availability, and the memory-session identity are captured in an `AgentTurnContextSnapshot`, rather than reread from mutable UI state while the run is executing.
+The registered tool catalog and run mode are resolved at run start. A tool-capable model receives the resolved skill catalog, AgentKit built-ins, and Termind tools; a model without tool-call capability does not receive the skill/tool catalog. Session facts, plan posture, surface availability, and the memory-session identity are captured in an `AgentTurnContextSnapshot`. Surface availability follows the latest delivered user snapshot rather than mutable UI focus.
 
 Termind composes the registry in this order:
 
 1. AgentKit generic tools, including scratch, skill, memory, fetch/search, task, plan, secret, and MCP support.
 2. Termind's host tools: host/metrics discovery, `ssh_exec`, terminal suggestions, SFTP operations, and the host-facing `scratch_pull` / `scratch_push` endpoints.
 3. Discovered MCP tools, which are additive and cannot shadow a built-in or Termind tool name.
+
+### Catalog, run mode, and surface availability
+
+`TermindAgentTools` is the shared static registration point. Its injected environment supplies host resolution, metrics, connection/authentication pools, background commands, and an optional scratch workspace. Dependencies determine which capabilities can be constructed: `scratch_pull` and `scratch_push` need that workspace, while `AssistantToolRegistry` returns an empty registry for a model without `toolCall`. A sending-surface Boolean is not a registration input; equivalent dependencies produce the same definitions for desktop and mobile Assistant surfaces.
+
+AgentKit selects the executable registry for the run's mode. Planning retains discovery, metrics, SSH investigation, SFTP reads and `scratch_pull`; remote SFTP mutations and `scratch_push` are acting-only, and Termind contributes no tools to reviewing. Planning and acting share the `ssh_exec` descriptor and schema, but planning uses a preflight that denies destructive commands. Acting asks for those commands; commands proven safe can be approved and run in parallel in either mode.
+
+`terminalSuggestionsAvailable` is the application argument that captures the separate execution gate in `AgentTurnContextSnapshot.toolAvailability["terminal_suggest"]`. It does not remove or change the advertised tool schema:
+
+| Surface | Terminal suggestion execution | Tool definitions |
+| --- | --- | --- |
+| TFM standalone Assistant | `false` | Shared Assistant catalog. |
+| TFM Workspace Assistant sidebar | `true` | Shared Assistant catalog. |
+| TFI standalone Assistant | `false` | Shared Assistant catalog. |
+| macOS external MCP server | Not exported | Acting host subset, `request_user_secret`, and four HTTP transfer tools. |
+
+This snapshot dictionary is a partial override: disabling terminal suggestions does not disable independent SSH/SFTP work. The MCP server explicitly selects acting definitions, then filters by its exported-name allowlist and disabled-tool settings. It excludes terminal suggestions, scratch, web, skill, plan and task tools; its four extra tools are `sftp_upload`, `sftp_upload_status`, `sftp_download` and `sftp_download_status`. The stdio bridge forwards requests to this server and registers no second tool set; TFI has no local MCP server. See [MCP Server and Bridge](../integrations/mcp-server-and-bridge.md) for the external authorization and byte-transfer boundaries.
 
 ## Turn lifecycle
 
@@ -103,6 +148,8 @@ This sequence shows one assistant turn, including the persistence points around 
 
 While a run is live, a further user message is queued as steering rather than starting another run. It becomes visible and durable only at the next model boundary, when AgentKit delivers it to the model; if the run has already ended, the UI returns queued text and attachments to the composer. This prevents history from claiming that a message was delivered when it was not.
 
+Steering captures the sending session context and updates only the `terminal_suggest` availability entry. It preserves other tool overrides, the fixed skill catalog and plan contract, and the memory-session identity. Queuing does not change `ConversationModel.activeContextSnapshot`; delivery does. If the conversation has no legacy snapshot, steering keeps that context unknown instead of filling it from current UI state. The persisted availability key remains `terminal_suggest`.
+
 Stopping a conversation cancels the runtime and its tool work, discards run-scoped secrets, marks running cards interrupted in the presentation, and returns undelivered steering text. `stopAndWait()` waits for the runtime's cancellation/persistence path before clearing live ownership. Termind also invalidates pending preparation when its controller is cancelled, recording an interrupted snapshot rather than launching a stale run.
 
 ## Approval, secrets, and trust boundaries
@@ -121,7 +168,7 @@ SSH authentication and host-key prompts are Termind interactions, not model-visi
 
 ## Host tools and plan mode
 
-Termind tools operate through noninteractive per-command SSH channels and exclusive SFTP leases; they never type into the user's interactive terminal. `terminal_suggest` creates a user-operated command card and never executes it. The standalone Assistant can discover and target configured hosts even without a sidebar session; session context is only an optional default target.
+Termind tools operate through noninteractive per-command SSH channels and exclusive SFTP leases; they never type into the user's interactive terminal. `terminal_suggest` creates a user-operated command card and never executes it. The standalone Assistant can discover and target configured hosts even without a sidebar session or open PTY; session context is only an optional default target. `list_hosts` lists enabled protocols without credentials, including Telnet-only hosts. SSH/SFTP execution requires SSH to be enabled; discovering a Telnet-only host does not provide an Agent Telnet execution capability.
 
 Plan mode freezes at submission. It permits investigation, reads, and policy-allowed commands, but host-specific planning registrations refuse direct remote writes, deletes, and scratch pushes. A plan is drafted in scratch space and presented as the final action; presenting it does not itself suspend a run awaiting a decision.
 
@@ -138,6 +185,8 @@ A fork copies its scratch scope before creating the forked conversation and remo
 `SwiftDataAgentRunRepository` stores conversations, runs, messages, replay backing, attachments, tool invocations/results, reviews, ordering metadata, and compaction records. It writes messages by message ID rather than run ID, so replaying prior conversation history into later run snapshots does not duplicate historical rows. Tool event persistence is restricted to durable lifecycle events rather than streamed token deltas.
 
 A saved context snapshot preserves the original session and policy baseline for replay, retry, edit, and fork behavior; legacy absent context remains unknown rather than being replaced by current UI state. Persisted text, tool arguments, titles, reasoning, and attachments go through redaction. In particular, secret handles are replaced with expired lifecycle content on restore, and sensitive header values are redacted.
+
+Tool cards resolve their persisted presenter ID through the immutable presenter registry. Cards predating those IDs use the closed legacy tool-name list and its `builtin.` IDs. Registration and surface-availability changes preserve those identities and the persisted context key; they do not require a SwiftData schema change.
 
 Compaction changes the **model-facing** transcript, not the scrollable display history. Its summary record is persisted before the live conversation applies it; after recovery the model receives a synthetic compaction summary plus recent messages while the user can still read the full original conversation. Editing a user message truncates the target run and later runs atomically, creates the replacement turn, and removes compactions whose boundary was removed.
 
@@ -188,6 +237,9 @@ The focused tests establish behavior that is important when changing this area:
 - `TFMTests/AgentPersistenceTests.swift` covers redaction, interrupted-run recovery, replay deduplication, tool-result repair, deletion of the persistent graph, edit truncation, fork persistence, and compaction restoration.
 - `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first archive/rename/order mutations, activity guards, and immediate stop before a queued runtime can begin.
 - `TFMTests/AgentScratchTests.swift` verifies workspace containment, symlink refusal, inter-conversation isolation, quotas, and bounded reads.
+- `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions.
+- `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, and tool-incapable models.
+- `TFMTests/MCPServerToolsTests.swift` checks the exported acting subset against shared descriptors, transfer tools and disabled calls; `AgentHostProtocolListingTests.swift` checks protocol-neutral discovery, and `AgentToolPresentationTests.swift` retains legacy presentation coverage alongside the persistence suite.
 
 ## Change guidance
 

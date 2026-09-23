@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:36dd6088760d21cfecb2ca2fffc6e6ea9aa667c3f14011c61dcbb354b0377150",
+  "pageVersion": "sha256:61210d26025511ef69e04ecbb09c4b5266e8a8b365fdc612edc432f355271193",
   "claims": [
     {
       "id": "claim_83870f4f1ad6403ea0d8bd8775729a76",
@@ -38,7 +38,7 @@
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:4bff3bbe87d980066344224e6c189b784360bb2c0fc360d138b4bb0a6d816420"
+          "version": "repo-file-v1:sha256:4c153bf5b7d97bf82683269527c35e76d9666ce459b681af16e7eed4a586e837"
         }
       ]
     },
@@ -90,7 +90,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
-          "version": "repo-file-v1:sha256:9a6ac5989bbe56b568db0e639c84f0608a8dc5b4cd089438c64d91a587a91527"
+          "version": "repo-file-v1:sha256:48b3039f44d716afaacc3e0986a88fcaad3a32d6fa00a68dba265b82e0efc284"
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
@@ -129,6 +129,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T00:14:42.075Z"
+    "at": "2026-09-23T01:34:03.251Z"
   }
 }

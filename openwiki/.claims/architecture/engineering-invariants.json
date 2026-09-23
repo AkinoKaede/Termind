@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:6f98da9e8f070ebc2a0b91545058eb3aa5a411129c7a18c9b33ee9eb6da8e799",
+  "pageVersion": "sha256:75fe464fb65e761e5eeaab3f31f1a2d852175cc5f78f5b099ddffee4a8655971",
   "claims": [
     {
       "id": "claim_72f9329a158e418cbf0fd6394f82815e",
@@ -52,11 +52,11 @@
         },
         {
           "resource": "repo://TFM/App/AppModel.swift",
-          "version": "repo-file-v1:sha256:1ac6f933da6e8e14162cab3e53a64ad3f1b4bd1bb3c55f6f3ead3286054c0cc1"
+          "version": "repo-file-v1:sha256:ba89018766f45b430033efc2969c0307ba30c0d298bd8b55a51e17a08915c767"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
-          "version": "repo-file-v1:sha256:4bff3bbe87d980066344224e6c189b784360bb2c0fc360d138b4bb0a6d816420"
+          "version": "repo-file-v1:sha256:4c153bf5b7d97bf82683269527c35e76d9666ce459b681af16e7eed4a586e837"
         }
       ]
     },
@@ -110,11 +110,11 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:486ca4d2997672c82c417051e24392ee610f9f838dff89cffedaceff0891f9fd"
+          "version": "repo-file-v1:sha256:8ccfafe881aacc3f7232d30cef9c97588787771dd925d726b5591efa15c92021"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift",
-          "version": "repo-file-v1:sha256:9a6ac5989bbe56b568db0e639c84f0608a8dc5b4cd089438c64d91a587a91527"
+          "version": "repo-file-v1:sha256:48b3039f44d716afaacc3e0986a88fcaad3a32d6fa00a68dba265b82e0efc284"
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L160",
@@ -325,6 +325,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-23T00:59:31.979Z"
+    "at": "2026-09-23T01:34:03.251Z"
   }
 }

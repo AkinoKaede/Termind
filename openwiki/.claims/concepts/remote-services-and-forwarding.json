@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:df4482efaa9bf8c8456a93e90ca849b5c53f58754ec6b5f653cc9acffd52fda9",
+  "pageVersion": "sha256:e2720aa6320a8e366bf71c3fa0c7a03da39dc3ef8d3f20aebaabdaef585258a8",
   "claims": [
     {
       "id": "claim_7c677489fd8b4a4fadd006a4da4e9937",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift",
-          "version": "repo-file-v1:sha256:486ca4d2997672c82c417051e24392ee610f9f838dff89cffedaceff0891f9fd"
+          "version": "repo-file-v1:sha256:8ccfafe881aacc3f7232d30cef9c97588787771dd925d726b5591efa15c92021"
         },
         {
           "resource": "repo://Frameworks/TermindRemoteInfrastructure/SSH/PortForwardingController.swift",
@@ -195,6 +195,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-22T11:34:21.807Z"
+    "at": "2026-09-23T01:34:03.251Z"
   }
 }
