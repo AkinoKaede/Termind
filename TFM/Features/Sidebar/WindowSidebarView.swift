@@ -7,13 +7,15 @@ import TermindPresentation
 
 import struct TermindDomain.Host
 
-/// The window's one left-hand column. A glass mode rail switches the Navigator
-/// and three Workspace tools in place without the square selection segments of
-/// `NSSegmentedControl`.
+/// The window's one left-hand column. Its mode buttons share one glass capsule
+/// with a neutral selection highlight, keeping the symbols above the material.
 struct WindowSidebarView: View {
 
     @Environment(WindowModel.self) private var window
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.controlActiveState) private var controlActiveState
+    @FocusState private var focusedMode: WindowSidebarState.Mode?
+    @Namespace private var modeSelectionNamespace
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,44 +35,20 @@ struct WindowSidebarView: View {
 
     private var focusedPaneID: Pane.ID? { window.selectedWorkspace?.focusedPaneID }
 
-    @ViewBuilder
     private var modeSelector: some View {
-        Group {
-            if #available(macOS 26.0, *) {
-                GlassEffectContainer(spacing: Metrics.Space.xs) {
-                    modeButtons(usesSystemGlass: true)
-                }
-                .padding(Metrics.Space.xs)
-                .glassEffect(.regular, in: .capsule)
-            } else {
-                modeButtons(usesSystemGlass: false)
-                    .padding(Metrics.Space.xs)
-                    .termindGlassCapsule()
+        HStack(spacing: Metrics.Space.xs) {
+            ForEach(WindowSidebarState.Mode.allCases) { mode in
+                modeButton(mode)
             }
         }
+        .padding(Metrics.Space.xs)
+        .termindGlassCapsule()
         .animation(reduceMotion ? nil : Motion.panel, value: window.sidebarMode)
         .accessibilityElement(children: .contain)
         .accessibilityLabel(Text("Sidebar"))
     }
 
-    private func modeButtons(usesSystemGlass: Bool) -> some View {
-        HStack(spacing: Metrics.Space.xs) {
-            ForEach(Array(WindowSidebarState.Mode.allCases.enumerated()), id: \.element.id) {
-                index, mode in
-                if index > 0 {
-                    Divider()
-                        .frame(height: 18)
-                        .opacity(0.55)
-                }
-                modeButton(mode, usesSystemGlass: usesSystemGlass)
-            }
-        }
-    }
-
-    private func modeButton(
-        _ mode: WindowSidebarState.Mode,
-        usesSystemGlass: Bool
-    ) -> some View {
+    private func modeButton(_ mode: WindowSidebarState.Mode) -> some View {
         let isSelected = window.sidebarMode == mode
         let isEnabled = window.isSidebarModeEnabled(mode)
 
@@ -78,23 +56,27 @@ struct WindowSidebarView: View {
             guard isEnabled else { return }
             window.activateSidebarMode(mode)
         } label: {
-            Group {
-                if #available(macOS 26.0, *), usesSystemGlass, isSelected {
-                    modeIcon(mode, isSelected: true, isEnabled: isEnabled)
-                        .background(Circle().fill(Color.accentColor))
-                        .glassEffect(.clear.interactive(), in: .circle)
-                } else {
-                    modeIcon(mode, isSelected: isSelected, isEnabled: isEnabled)
-                        .background {
-                            if isSelected {
-                                Circle().fill(Color.accentColor)
-                            }
-                        }
+            modeIcon(mode, isSelected: isSelected, isEnabled: isEnabled)
+                .frame(maxWidth: .infinity)
+                .background {
+                    if isSelected {
+                        Capsule()
+                            .fill(Color.primary.opacity(0.10))
+                            .matchedGeometryEffect(id: "selection", in: modeSelectionNamespace)
+                    }
                 }
-            }
-            .frame(maxWidth: .infinity)
+                .contentShape(.capsule)
         }
         .buttonStyle(.plain)
+        .focused($focusedMode, equals: mode)
+        .focusEffectDisabled()
+        .overlay {
+            if focusedMode == mode && controlActiveState == .key {
+                Capsule()
+                    .strokeBorder(Color.primary.opacity(0.35), lineWidth: 2)
+                    .allowsHitTesting(false)
+            }
+        }
         .disabled(!isEnabled)
         .help(Text(mode.label))
         .accessibilityLabel(Text(mode.label))
@@ -107,14 +89,9 @@ struct WindowSidebarView: View {
         isEnabled: Bool
     ) -> some View {
         Image(systemName: mode.symbol)
-            .font(.system(size: 15, weight: .medium))
-            .foregroundStyle(
-                isSelected
-                    ? AnyShapeStyle(TermindColor.selectedForeground)
-                    : isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary)
-            )
+            .font(.system(size: 15, weight: isSelected ? .semibold : .medium))
+            .foregroundStyle(isEnabled ? AnyShapeStyle(.primary) : AnyShapeStyle(.tertiary))
             .frame(width: 36, height: 36)
-            .contentShape(.circle)
     }
 
     @ViewBuilder

@@ -65,7 +65,7 @@ struct SidebarInlineRenameField: NSViewRepresentable {
         guard isSelected else { return .labelColor }
         return controlActiveState == .key
             ? .alternateSelectedControlTextColor
-            : .controlAccentColor
+            : .unemphasizedSelectedTextColor
     }
 
     private var placeholderColor: NSColor {

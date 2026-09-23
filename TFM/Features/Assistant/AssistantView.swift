@@ -57,7 +57,7 @@ enum AssistantConversationMenuSurface {
 /// every mode of the column ends at the same line. Its two controls are shaped
 /// by what they are: New Chat is a capsule because it is a labelled action that
 /// takes the width, and Archived is a circle because it is one glyph that
-/// toggles — the same distinction the mode rail at the top of the column makes.
+/// toggles. Both share neutral glass, including the archive's selected state.
 struct AssistantSidebarView: View {
     @Environment(WindowModel.self) private var window
 
@@ -71,54 +71,63 @@ struct AssistantSidebarView: View {
                 onOpen: { window.selectAssistant($0) }
             )
 
-            HStack(spacing: Metrics.Space.s) {
-                Button {
-                    window.openNewAssistantChat()
-                } label: {
-                    Label("New Chat", systemImage: "plus.bubble")
-                        .frame(
-                            maxWidth: .infinity,
-                            maxHeight: .infinity,
-                            alignment: .center
-                        )
-                        .contentShape(.capsule)
-                }
-                .buttonStyle(.plain)
-                .termindGlassCapsule(isInteractive: true)
+            footer
+                .frame(height: Metrics.Sidebar.searchFieldHeight)
+                .padding(.horizontal, Metrics.Space.m)
+                .padding(.vertical, Metrics.Space.s)
+        }
+    }
 
-                Button {
-                    window.showAssistantArchive()
-                } label: {
-                    Image(systemName: "archivebox")
-                        // Filled and reversed while it is the destination on
-                        // screen, the same way a selected row states itself.
-                        // An accent-on-glass glyph reads as "tinted", not as
-                        // "this is where you are".
-                        .foregroundStyle(
-                            window.isAssistantArchivePresented
-                                ? AnyShapeStyle(TermindColor.selectedForeground)
-                                : AnyShapeStyle(.primary)
-                        )
-                        .frame(
-                            width: Metrics.Sidebar.searchFieldHeight,
-                            height: Metrics.Sidebar.searchFieldHeight
-                        )
-                        .background {
-                            if window.isAssistantArchivePresented {
-                                Circle().fill(Color.accentColor)
-                            }
-                        }
-                        .contentShape(.circle)
-                }
-                .buttonStyle(.plain)
-                .termindGlassCircle(isInteractive: true)
-                .help(Text("Archived"))
-                .accessibilityLabel(Text("Archived"))
-                .accessibilityAddTraits(window.isAssistantArchivePresented ? .isSelected : [])
+    @ViewBuilder
+    private var footer: some View {
+        if #available(macOS 26.0, *) {
+            GlassEffectContainer(spacing: Metrics.Space.s) {
+                footerButtons
             }
-            .frame(height: Metrics.Sidebar.searchFieldHeight)
-            .padding(.horizontal, Metrics.Space.m)
-            .padding(.vertical, Metrics.Space.s)
+        } else {
+            footerButtons
+        }
+    }
+
+    private var footerButtons: some View {
+        HStack(spacing: Metrics.Space.s) {
+            Button {
+                window.openNewAssistantChat()
+            } label: {
+                Label("New Chat", systemImage: "plus.bubble")
+                    .foregroundStyle(.primary)
+                    .frame(
+                        maxWidth: .infinity,
+                        maxHeight: .infinity,
+                        alignment: .center
+                    )
+                    .contentShape(.capsule)
+            }
+            .buttonStyle(.plain)
+            .termindGlassCapsule(isInteractive: true)
+
+            Button {
+                window.showAssistantArchive()
+            } label: {
+                Image(systemName: "archivebox")
+                    .foregroundStyle(.primary)
+                    .fontWeight(window.isAssistantArchivePresented ? .semibold : .regular)
+                    .frame(
+                        width: Metrics.Sidebar.searchFieldHeight,
+                        height: Metrics.Sidebar.searchFieldHeight
+                    )
+                    .background {
+                        if window.isAssistantArchivePresented {
+                            Circle().fill(Color.primary.opacity(0.10))
+                        }
+                    }
+                    .contentShape(.circle)
+            }
+            .buttonStyle(.plain)
+            .termindGlassCircle(isInteractive: true)
+            .help(Text("Archived"))
+            .accessibilityLabel(Text("Archived"))
+            .accessibilityAddTraits(window.isAssistantArchivePresented ? .isSelected : [])
         }
     }
 }
