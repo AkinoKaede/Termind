@@ -98,7 +98,7 @@ struct TermindApp: App {
                 currentDeviceID: connectionHistoryDeviceID,
                 currentDeviceName: Self.computerName)
             let externalToolCalls = ToolAuditModel(
-                modelContext: container.mainContext,
+                repository: SwiftDataToolAuditRepository(context: container.mainContext),
                 hostName: { [weak hosts] id in hosts?.host(id)?.name }
             )
             let proAccess: ProAccessController =

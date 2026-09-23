@@ -249,6 +249,78 @@ struct ArchitectureBoundaryTests {
         #expect(!models.isEmpty)
     }
 
+    @Test
+    func swiftDataRepositoriesHaveOneSharedOwner() throws {
+        let forbiddenFiles = try [
+            "", "../TFI", "../Frameworks/TermindDomain", "../Frameworks/TermindApplication",
+            "../Frameworks/TermindInfrastructure", "../Frameworks/TermindRemoteInfrastructure",
+            "../Frameworks/TermindPresentation", "../TermindMCPBridge", "../Benchmarks/PortForwarding",
+            "../TFIWidgets", "../WorkspaceActivitySupport",
+        ].flatMap {
+            try swiftFiles(in: $0)
+        }
+        let persistenceFiles = try swiftFiles(in: "../Frameworks/TermindPersistence")
+        let files = forbiddenFiles + persistenceFiles
+        let sources = try files.map { try String(contentsOf: $0, encoding: .utf8) }
+        let declarations = try swiftDataRepositoryDeclarations(in: sources)
+
+        for (file, containsDeclaration) in zip(forbiddenFiles, declarations.prefix(forbiddenFiles.count)) {
+            #expect(
+                !containsDeclaration,
+                "\(file.path) declares a SwiftData repository outside TermindPersistence"
+            )
+        }
+        #expect(declarations.dropFirst(forbiddenFiles.count).contains(true))
+    }
+
+    @Test
+    func recognizesSwiftDataRepositoryDeclarations() throws {
+        let sources = [
+            "final class SwiftDataFooRepository {}",
+            "@MainActor public final class SwiftDataFooRepository {}",
+            "@MainActor\nfinal class SwiftDataFooRepository {}",
+            "@MainActor @Observable final class SwiftDataFooRepository {}",
+            "@available(macOS 15, *) final class SwiftDataFooRepository {}",
+            "actor SwiftDataFooRepository {}",
+            "struct SwiftDataFooRepository {}",
+            "typealias SwiftDataFooRepository = String",
+            "final class `SwiftDataFooRepository` {}",
+            "// class SwiftDataDecoyRepository {}\nfinal class SwiftDataFooRepository {}",
+            "let text = \"class SwiftDataDecoyRepository {}\"\nfinal class SwiftDataFooRepository {}",
+            "final class /* shared persistence owner */ SwiftDataFooRepository {}",
+            #"let text = "\({ () -> String in class SwiftDataFooRepository {}; return "" }())""#,
+        ]
+        let declarations = try swiftDataRepositoryDeclarations(in: sources)
+        for (source, containsDeclaration) in zip(sources, declarations) {
+            #expect(containsDeclaration, "Expected a declaration in: \(source)")
+        }
+    }
+
+    @Test
+    func ignoresSwiftDataRepositoryReferencesAndTextualNearMatches() throws {
+        let sources = [
+            "let repository = SwiftDataFooRepository()",
+            "let repository: SwiftDataFooRepository",
+            "final class NotSwiftDataFooRepository {}",
+            "final class SwiftDataFooRepositoryFactory {}",
+            "// final class SwiftDataFooRepository {}",
+            "/* struct SwiftDataFooRepository {} */",
+            "let text = \"actor SwiftDataFooRepository {}\"",
+            "/// protocol SwiftDataFooRepository {}",
+            "/* outer /* enum SwiftDataFooRepository {} */ still outer */",
+            ##"""
+            let text = """
+            class SwiftDataFooRepository {}
+            """
+            """##,
+            ##"let text = #"typealias SwiftDataFooRepository = String"#"##,
+        ]
+        let declarations = try swiftDataRepositoryDeclarations(in: sources)
+        for (source, containsDeclaration) in zip(sources, declarations) {
+            #expect(!containsDeclaration, "Expected no declaration in: \(source)")
+        }
+    }
+
     private var sourceRoot: URL {
         URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -295,6 +367,54 @@ struct ArchitectureBoundaryTests {
             }
             return code.contains(token)
         }
+    }
+
+    private func swiftDataRepositoryDeclarations(in sources: [String]) throws -> [Bool] {
+        let request = FileManager.default.temporaryDirectory.appending(
+            path: "termind-swiftdata-repository-declarations-\(UUID().uuidString).json"
+        )
+        try JSONEncoder().encode(sources).write(to: request, options: .atomic)
+        defer { try? FileManager.default.removeItem(at: request) }
+
+        let repositoryRoot = sourceRoot.deletingLastPathComponent().standardizedFileURL
+        let executable = repositoryRoot.appending(path: "Scripts/swiftdata-repository-declarations.sh")
+        let process = Process()
+        let standardOutput = Pipe()
+        let standardError = Pipe()
+        process.executableURL = executable
+        process.arguments = [request.path]
+        process.standardOutput = standardOutput
+        process.standardError = standardError
+
+        try process.run()
+        let output = standardOutput.fileHandleForReading.readDataToEndOfFile()
+        let errorOutput = standardError.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        let errorMessage = String(decoding: errorOutput, as: UTF8.self)
+
+        guard process.terminationReason == .exit, process.terminationStatus == 0 else {
+            throw SwiftDataRepositoryDeclarationToolError(
+                message: "Parser exited with status \(process.terminationStatus): \(errorMessage)"
+            )
+        }
+        guard errorOutput.isEmpty else {
+            throw SwiftDataRepositoryDeclarationToolError(
+                message: "Parser wrote to stderr: \(errorMessage)"
+            )
+        }
+        let declarations = try JSONDecoder().decode([Bool].self, from: output)
+        guard declarations.count == sources.count else {
+            throw SwiftDataRepositoryDeclarationToolError(
+                message: "Parser returned \(declarations.count) results for \(sources.count) sources"
+            )
+        }
+        return declarations
+    }
+
+    private struct SwiftDataRepositoryDeclarationToolError: LocalizedError {
+        let message: String
+
+        var errorDescription: String? { message }
     }
 
     private func swiftFiles(in directory: String) throws -> [URL] {
