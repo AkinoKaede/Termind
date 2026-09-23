@@ -224,6 +224,67 @@ struct AssistantConversationOperationsTests {
         try await operations.delete(conversation)
         #expect(await repository.loadConversations().isEmpty)
     }
+
+    @Test func invalidReplacementNeverCallsPersistence() async throws {
+        let repository = TruncationSpyAgentRunRepository()
+        let operations = AssistantConversationOperations(repository: repository)
+        let original = AgentTranscriptMessage(role: .user, text: "Before", authoredText: "Before")
+        let conversation = ConversationModel(
+            messages: [ChatMessage(id: original.id, role: .user, text: original.text)],
+            transcript: [original])
+        let invalid = AgentTranscriptMessage(role: .assistant, text: "Not a user turn")
+
+        #expect(
+            try await operations.edit(
+                conversation, messageID: original.id, replacement: invalid) == nil)
+        #expect(await repository.truncationCount == 0)
+        #expect(conversation.transcript == [original])
+        #expect(!conversation.isHistoryChanging)
+    }
+
+    @Test func truncationFailureLeavesInMemoryHistoryUnchanged() async throws {
+        let original = AgentTranscriptMessage(role: .user, text: "Before", authoredText: "Before")
+        let answer = AgentTranscriptMessage(role: .assistant, text: "Existing answer")
+        let conversation = ConversationModel(
+            messages: [
+                ChatMessage(id: original.id, role: .user, text: original.text),
+                ChatMessage(id: answer.id, role: .assistant, text: answer.text),
+            ],
+            transcript: [original, answer])
+        let originalMessages = conversation.messages
+        let originalTranscript = conversation.transcript
+        let replacement = AgentTranscriptMessage(role: .user, text: "After", authoredText: "After")
+        let operations = AssistantConversationOperations(repository: RejectingConversationRepository())
+
+        await #expect(throws: CocoaError.self) {
+            try await operations.edit(
+                conversation, messageID: original.id, replacement: replacement)
+        }
+
+        #expect(conversation.messages == originalMessages)
+        #expect(conversation.transcript == originalTranscript)
+        #expect(!conversation.isHistoryChanging)
+    }
+}
+
+private actor TruncationSpyAgentRunRepository: AgentRunPersisting {
+    private(set) var truncationCount = 0
+
+    func save(_ snapshot: AgentRunSnapshot) {}
+    func record(_ event: AgentEvent, runID: UUID) {}
+    func persistCompaction(_ record: AgentCompactionRecord, conversationID: UUID) {}
+    func loadConversations() -> [StoredAgentConversation] { [] }
+    func deleteConversation(_ id: UUID) {}
+    func setTitle(_ title: String, conversationID: UUID) {}
+    func setConversationMetadata(_ metadata: StoredAgentConversationMetadata, conversationID: UUID) {}
+    func reorderConversations(_ updates: [StoredAgentConversationOrder]) {}
+    func truncateConversation(
+        _ id: UUID, fromUserMessageID messageID: UUID,
+        replacingWith message: AgentTranscriptMessage
+    ) {
+        truncationCount += 1
+    }
+    func createConversation(_ conversation: StoredAgentConversation) {}
 }
 
 private actor RejectingConversationRepository: AgentRunPersisting {

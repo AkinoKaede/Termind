@@ -29,6 +29,8 @@ struct AgentReplayPersistenceTests {
         try await repository.save(snapshot)
         // A subsequent run must neither overwrite an earlier snapshot nor duplicate its backing.
         snapshot.id = UUID()
+        snapshot.startedAt = snapshot.startedAt.addingTimeInterval(1)
+        snapshot.finishedAt = snapshot.startedAt
         snapshot.messages.append(.init(role: .user, text: "continue", contextSnapshot: .init()))
         try await repository.save(snapshot)
         let restored = try #require(try await repository.loadConversations().first)
@@ -58,9 +60,55 @@ struct AgentReplayPersistenceTests {
         var result = AgentToolResult(callID: call.id, content: "full captured result")
         result.modelContent = "frozen preview"
         try await repository.record(.toolFinished(invocation, result), runID: snapshot.id)
-        let restored = try #require(try await repository.loadConversations().first?.messages.last)
+        let conversation = try #require(try await repository.loadConversations().first)
+        let restored = try #require(conversation.messages.last)
+        let resultID = AgentTranscriptMessage.toolResultID(runID: snapshot.id, callID: call.id)
         #expect(restored.modelText == "frozen preview")
-        #expect(restored.id == AgentTranscriptMessage.toolResultID(runID: snapshot.id, callID: call.id))
+        #expect(restored.id == resultID)
+        #expect(conversation.messageRunIDs[resultID] == snapshot.id)
+    }
+
+    @Test(arguments: [AgentRunState.failed, .interrupted])
+    func aRealRunAtomicallyAdoptsTheEditedStagingMessageAndReplayBacking(
+        state: AgentRunState
+    ) async throws {
+        let container = try TermindPersistence.makeContainer(inMemory: true)
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+        let original = AgentTranscriptMessage(role: .user, text: "before", authoredText: "before")
+        let originalRun = AgentRunSnapshot(
+            conversationID: conversationID, state: .completed,
+            permissionMode: .askForApproval, messages: [original])
+        try await repository.save(originalRun)
+        let replacement = AgentTranscriptMessage(
+            role: .user, text: "after", authoredText: "after",
+            contextSnapshot: .init(sessionContext: "captured host"))
+        try await repository.truncateConversation(
+            conversationID, fromUserMessageID: original.id, replacingWith: replacement)
+
+        let realRun = AgentRunSnapshot(
+            conversationID: conversationID, state: state,
+            permissionMode: .askForApproval, messages: [replacement],
+            failure: state == .failed ? "preparation failed" : nil)
+        try await repository.save(realRun)
+
+        let messageRows = try container.mainContext.fetch(FetchDescriptor<PersistentAgentMessage>())
+        let runRows = try container.mainContext.fetch(FetchDescriptor<PersistentAgentRun>())
+        let replayRows = try container.mainContext.fetch(FetchDescriptor<PersistentAgentMessageReplay>())
+        #expect(messageRows.count == 1)
+        #expect(messageRows.first?.id == replacement.id)
+        #expect(messageRows.first?.runID == realRun.id)
+        #expect(runRows.map(\.id) == [realRun.id])
+        #expect(replayRows.map(\.messageID) == [replacement.id])
+
+        let freshRepository = SwiftDataAgentRunRepository(context: ModelContext(container))
+        let restored = try #require(try await freshRepository.loadConversations().first)
+        #expect(restored.messages.map(\.id) == [replacement.id])
+        #expect(restored.messages.first?.contextSnapshot == replacement.contextSnapshot)
+        #expect(restored.messageRunIDs[replacement.id] == realRun.id)
+        #expect(restored.runs.map(\.id) == [realRun.id])
+        #expect(restored.runs.first?.state == state)
+        #expect(restored.runs.first?.failure == (state == .failed ? "preparation failed" : nil))
     }
 
     @Test

@@ -869,6 +869,266 @@ struct AgentPersistenceTests {
     }
 
     @Test
+    func sameRunTruncationPreservesThePrefixAndAtomicallyAdoptsTheReplacement() async throws {
+        let configuration = localModelConfiguration(
+            "AgentSameRunTruncationTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+        let oldRunID = try #require(UUID(uuidString: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"))
+        let replacementID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
+        let realRunID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
+        let instant = Date(timeIntervalSinceReferenceDate: 100)
+        let prefixAttachment = AgentContextAttachment(
+            kind: .file, label: "prefix.txt", contentTypeIdentifier: "public.plain-text",
+            suggestedFilename: "prefix.txt", data: Data("prefix".utf8))
+        let removedAttachment = AgentContextAttachment(
+            kind: .file, label: "removed.txt", contentTypeIdentifier: "public.plain-text",
+            suggestedFilename: "removed.txt", data: Data("removed".utf8))
+        let replacementAttachment = AgentContextAttachment(
+            kind: .file, label: "replacement.txt", contentTypeIdentifier: "public.plain-text",
+            suggestedFilename: "replacement.txt", data: Data("replacement".utf8))
+        let opening = AgentTranscriptMessage(
+            role: .user, text: "Opening", authoredText: "Opening",
+            contextAttachments: [prefixAttachment],
+            contextSnapshot: .init(sessionContext: "prefix context"), createdAt: instant)
+        let prefixCall = AgentToolCall(
+            id: "prefix-call", name: "inspect", arguments: .object([:]))
+        let prefixAssistant = AgentTranscriptMessage(
+            role: .assistant, text: "Prefix", toolCalls: [prefixCall], createdAt: instant)
+        let prefixResult = AgentTranscriptMessage(
+            role: .tool, text: "prefix result", toolCallID: prefixCall.id,
+            toolName: prefixCall.name, modelText: "prefix preview", createdAt: instant)
+        let steering = AgentTranscriptMessage(
+            role: .user, text: "Steer", authoredText: "Steer",
+            contextAttachments: [removedAttachment],
+            contextSnapshot: .init(sessionContext: "removed context"), createdAt: instant)
+        let suffixCall = AgentToolCall(
+            id: "suffix-call", name: "inspect", arguments: .object([:]))
+        let suffixAssistant = AgentTranscriptMessage(
+            role: .assistant, text: "Suffix", toolCalls: [suffixCall], createdAt: instant)
+        let suffixResult = AgentTranscriptMessage(
+            role: .tool, text: "suffix result", toolCallID: suffixCall.id,
+            toolName: suffixCall.name, modelText: "suffix preview", createdAt: instant)
+        let oldMessages = [
+            opening, prefixAssistant, prefixResult, steering, suffixAssistant, suffixResult,
+        ]
+        let replacement = AgentTranscriptMessage(
+            id: replacementID, role: .user, text: "Replacement", authoredText: "Replacement",
+            contextAttachments: [replacementAttachment],
+            contextSnapshot: .init(sessionContext: "replacement context"), createdAt: instant)
+        let oldSummary = AgentRunSummary(
+            id: oldRunID, state: .failed, startedAt: instant,
+            finishedAt: instant, failure: "old failure")
+        let live = ConversationModel(
+            messages: [
+                ChatMessage(id: opening.id, role: .user, text: opening.text, createdAt: instant),
+                ChatMessage(
+                    id: prefixAssistant.id, role: .assistant, text: prefixAssistant.text,
+                    createdAt: instant),
+                ChatMessage(id: steering.id, role: .user, text: steering.text, createdAt: instant),
+                ChatMessage(
+                    id: suffixAssistant.id, role: .assistant, text: suffixAssistant.text,
+                    createdAt: instant),
+            ], transcript: oldMessages, runState: .failed,
+            messageRunIDs: Dictionary(uniqueKeysWithValues: oldMessages.map { ($0.id, oldRunID) }),
+            runs: [oldSummary])
+        #expect(live.editUserMessage(steering.id, replacement: replacement) != nil)
+        let livePrefixFinishedAt = try #require(live.runSummaries[oldRunID]?.finishedAt)
+
+        let oldSnapshot = AgentRunSnapshot(
+            id: oldRunID, conversationID: conversationID, state: .failed,
+            permissionMode: .askForApproval, messages: oldMessages,
+            startedAt: instant, finishedAt: instant, failure: "old failure")
+        try await repository.save(oldSnapshot)
+        try await repository.setTitle("Preserved title", conversationID: conversationID)
+
+        let descriptor = AgentToolDescriptor(
+            name: "inspect", summary: "Inspect", inputSchema: .object([:]),
+            target: .local, approvalPolicy: .approve)
+        let prefixInvocation = AgentToolInvocation(
+            runID: oldRunID, call: prefixCall, sourceMessageID: nil,
+            createdAt: instant.addingTimeInterval(1))
+        let suffixInvocation = AgentToolInvocation(
+            runID: oldRunID, call: suffixCall,
+            sourceMessageID: suffixAssistant.id, createdAt: instant)
+        let review = GuardianDecision(
+            verdict: .approve, risk: .low, userAuthorization: .high, reason: "Allowed")
+        for invocation in [prefixInvocation, suffixInvocation] {
+            try await repository.record(.toolProposed(invocation, descriptor), runID: oldRunID)
+            try await repository.record(
+                .toolFinished(
+                    invocation,
+                    AgentToolResult(callID: invocation.call.id, content: "recorded result")),
+                runID: oldRunID)
+            let request = AgentApprovalRequest(
+                invocation: invocation, descriptor: descriptor, userIntent: "Inspect")
+            try await repository.record(.reviewFinished(request, review), runID: oldRunID)
+        }
+        // Provider-native tools can finish durably before their synthetic assistant
+        // source message reaches a snapshot. Its unknown source must fall through
+        // to the conservative timestamp rule when this steering suffix is edited.
+        let orphanInvocation = AgentToolInvocation(
+            runID: oldRunID,
+            call: AgentToolCall(id: "native-call", name: "web_search", arguments: .object([:])),
+            sourceMessageID: UUID(), createdAt: instant)
+        try await repository.record(.toolProposed(orphanInvocation, descriptor), runID: oldRunID)
+        try await repository.record(
+            .toolFinished(
+                orphanInvocation,
+                AgentToolResult(callID: orphanInvocation.call.id, content: "native result")),
+            runID: oldRunID)
+
+        let nilBoundary = AgentCompactionRecord(
+            compactedThroughMessageID: nil, sequence: 0, summary: "Legacy base",
+            summarizedTokens: 4, keptTokens: 1, displayAnchor: instant)
+        let keptCompaction = AgentCompactionRecord(
+            compactedThroughMessageID: prefixResult.id, sequence: 1, summary: "Kept prefix",
+            summarizedTokens: 8, keptTokens: 2, displayAnchor: instant)
+        for record in [nilBoundary, keptCompaction] {
+            try await repository.persistCompaction(record, conversationID: conversationID)
+        }
+
+        let preEditStore = AssistantConversationStore()
+        preEditStore.restore(try await repository.loadConversations())
+        let persistedLive = try #require(preEditStore.conversations.first)
+        #expect(
+            Set(persistedLive.toolCards.map(\.invocation.id)) == [
+                prefixInvocation.id, suffixInvocation.id, orphanInvocation.id,
+            ])
+        let operations = AssistantConversationOperations(repository: repository)
+        #expect(
+            try await operations.edit(
+                persistedLive, messageID: steering.id, replacement: replacement) != nil)
+        #expect(persistedLive.toolCards.map(\.invocation.id) == [prefixInvocation.id])
+        #expect(persistedLive.runSummaries[oldRunID]?.finishedAt == livePrefixFinishedAt)
+
+        let staged = try #require(try await repository.loadConversations().first)
+        #expect(staged.messages.map(\.id) == [opening.id, prefixAssistant.id, prefixResult.id, replacement.id])
+        #expect(staged.compactions.map(\.id) == [nilBoundary.id, keptCompaction.id])
+        #expect(staged.title == "Preserved title")
+        #expect(staged.toolCards.map(\.invocation.id) == [prefixInvocation.id])
+        #expect(staged.toolCards.first?.invocation.sourceMessageID == prefixAssistant.id)
+        #expect(staged.runs.map(\.id) == [oldRunID, replacement.id])
+        let stagedPrefix = try #require(staged.runs.first { $0.id == oldRunID })
+        #expect(stagedPrefix.state == .completed)
+        #expect(stagedPrefix.failure == nil)
+        #expect(stagedPrefix.finishedAt == livePrefixFinishedAt)
+        #expect(staged.messageRunIDs[opening.id] == oldRunID)
+        #expect(staged.messageRunIDs[prefixResult.id] == oldRunID)
+        #expect(staged.messageRunIDs[replacement.id] == replacement.id)
+
+        let attachmentRows = try container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentContextAttachments>())
+        let replayRows = try container.mainContext.fetch(
+            FetchDescriptor<PersistentAgentMessageReplay>())
+        #expect(Set(attachmentRows.map(\.messageID)) == [opening.id, replacement.id])
+        #expect(Set(replayRows.map(\.messageID)) == [opening.id, prefixResult.id, replacement.id])
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentAgentToolInvocation>()) == 1)
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentAgentToolResult>()) == 1)
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PersistentAgentReviewRecord>()) == 1)
+
+        var realSnapshot = AgentRunSnapshot(
+            id: realRunID, conversationID: conversationID, state: .running,
+            permissionMode: .askForApproval,
+            messages: [opening, prefixAssistant, prefixResult, replacement],
+            startedAt: instant)
+        try await repository.save(realSnapshot)
+        let adopted = try #require(try await repository.loadConversations().first)
+        #expect(adopted.runs.map(\.id) == [oldRunID, realRunID])
+        #expect(try #require(adopted.runs.first { $0.id == realRunID }).startedAt > instant)
+        realSnapshot.state = .completed
+        realSnapshot.finishedAt = instant.addingTimeInterval(1)
+        try await repository.save(realSnapshot)
+        try await repository.save(oldSnapshot)
+        let lateInvocation = AgentToolInvocation(
+            runID: oldRunID,
+            call: AgentToolCall(id: "late-call", name: "inspect", arguments: .object([:])),
+            sourceMessageID: suffixAssistant.id, createdAt: instant)
+        try await repository.record(.toolProposed(lateInvocation, descriptor), runID: oldRunID)
+
+        let reopened = try #require(try await repository.loadConversations().first)
+        #expect(reopened.messages.map(\.id) == [opening.id, prefixAssistant.id, prefixResult.id, replacement.id])
+        #expect(reopened.messageRunIDs[replacement.id] == realRunID)
+        #expect(reopened.runs.map(\.id) == [oldRunID, realRunID])
+        #expect(reopened.runs.first { $0.id == oldRunID }?.finishedAt == livePrefixFinishedAt)
+        #expect(reopened.lastRunState == .completed)
+        #expect(try #require(reopened.runs.first { $0.id == realRunID }).startedAt > instant)
+        #expect(reopened.toolCards.map(\.invocation.id) == [prefixInvocation.id])
+        #expect(
+            try container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentMessage>(
+                    predicate: #Predicate { $0.id == replacementID }
+                )
+            ).first?.runID == realRunID)
+        #expect(
+            try container.mainContext.fetch(
+                FetchDescriptor<PersistentAgentRun>(
+                    predicate: #Predicate { $0.id == replacementID }
+                )
+            ).isEmpty)
+    }
+
+    @Test
+    func editingALaterRunOpeningKeepsAnEarlierEmptyRunBeforeTheReplacement() async throws {
+        let configuration = localModelConfiguration(
+            "AgentEmptyPrefixRunTruncationTests", schema: HostPersistence.schema,
+            isStoredInMemoryOnly: true
+        )
+        let container = try ModelContainer(
+            for: HostPersistence.schema, configurations: [configuration]
+        )
+        let repository = SwiftDataAgentRunRepository(context: container.mainContext)
+        let conversationID = UUID()
+        let emptyRunID = try #require(UUID(uuidString: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFE"))
+        let targetRunID = try #require(UUID(uuidString: "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF"))
+        let replacementID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
+        let messageClock = Date(timeIntervalSinceReferenceDate: 100)
+        let emptyRunClock = Date(timeIntervalSinceReferenceDate: 200)
+        let targetRunClock = Date(timeIntervalSinceReferenceDate: 300)
+        try await repository.save(
+            AgentRunSnapshot(
+                id: emptyRunID, conversationID: conversationID, state: .completed,
+                permissionMode: .askForApproval, messages: [],
+                startedAt: emptyRunClock, finishedAt: emptyRunClock))
+        let target = AgentTranscriptMessage(
+            role: .user, text: "Later opening", authoredText: "Later opening",
+            createdAt: messageClock)
+        try await repository.save(
+            AgentRunSnapshot(
+                id: targetRunID, conversationID: conversationID, state: .failed,
+                permissionMode: .askForApproval, messages: [target],
+                startedAt: targetRunClock, finishedAt: targetRunClock, failure: "old failure"))
+        let store = AssistantConversationStore()
+        store.restore(try await repository.loadConversations())
+        let conversation = try #require(store.conversations.first)
+        let replacement = AgentTranscriptMessage(
+            id: replacementID, role: .user, text: "Replacement", authoredText: "Replacement",
+            createdAt: messageClock)
+
+        let operations = AssistantConversationOperations(repository: repository)
+        #expect(
+            try await operations.edit(
+                conversation, messageID: target.id, replacement: replacement) != nil)
+
+        let liveStaging = try #require(conversation.runSummaries[replacement.id])
+        #expect(liveStaging.startedAt > emptyRunClock)
+        #expect(
+            conversation.runSummaries.values.sorted {
+                if $0.startedAt != $1.startedAt { return $0.startedAt < $1.startedAt }
+                return $0.id.uuidString < $1.id.uuidString
+            }.map(\.id) == [emptyRunID, replacement.id])
+        let reopened = try #require(try await repository.loadConversations().first)
+        #expect(reopened.runs.map(\.id) == [emptyRunID, replacement.id])
+        #expect(reopened.runs.last?.startedAt == liveStaging.startedAt)
+        #expect(reopened.messages.map(\.id) == [replacement.id])
+    }
+
+    @Test
     func truncationRejectsAMessageOutsideThePersistedConversation() async throws {
         let configuration = localModelConfiguration(
             "AgentConversationMissingEditTargetTests", schema: HostPersistence.schema,

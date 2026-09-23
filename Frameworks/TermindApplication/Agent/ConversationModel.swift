@@ -1067,20 +1067,79 @@ public final class ConversationModel: Identifiable {
         )
     }
 
+    public func canApplyUserMessageEdit(
+        _ id: UUID, replacement: AgentTranscriptMessage
+    ) -> Bool {
+        guard canEditUserMessage(id), replacement.role == .user,
+            !replacement.isCompaction, replacement.toolCalls.isEmpty,
+            replacement.toolCallID == nil, replacement.toolName == nil,
+            !replacement.isError, replacement.id != id,
+            !transcript.contains(where: { $0.id == replacement.id })
+        else { return false }
+        return true
+    }
+
     public func editUserMessage(
         _ id: UUID, replacement: AgentTranscriptMessage
     ) -> ComposedUserTurn? {
-        guard canEditUserMessage(id),
+        guard canApplyUserMessageEdit(id, replacement: replacement) else { return nil }
+        return applyPersistedUserMessageEdit(id, replacement: replacement)
+    }
+
+    func applyPersistedUserMessageEdit(
+        _ id: UUID, replacement: AgentTranscriptMessage
+    ) -> ComposedUserTurn? {
+        guard replacement.role == .user, !replacement.isCompaction,
+            replacement.toolCalls.isEmpty, replacement.toolCallID == nil,
+            replacement.toolName == nil, !replacement.isError,
+            replacement.id != id,
+            !transcript.contains(where: { $0.id == replacement.id }),
             let target = transcript.firstIndex(where: { $0.id == id })
         else { return nil }
         let original = transcript[target]
-        let removedMessageIDs = Set(transcript[target...].map(\.id))
-        let removedRunIDs = Set(removedMessageIDs.compactMap { messageRunIDs[$0] })
+        guard original.role == .user, !original.isCompaction else { return nil }
+        let prefix = Array(transcript[..<target])
+        let visibleTarget = messages.firstIndex(where: { $0.id == id })
+        let visiblePrefix = visibleTarget.map { Array(messages[..<$0]) } ?? []
+        let visibleRemoved = visibleTarget.map { Array(messages[$0...]) } ?? []
+        let removedMessageIDs = Set(transcript[target...].map(\.id)).union(visibleRemoved.map(\.id))
+        let keptMessageIDs = Set(prefix.map(\.id)).union(visiblePrefix.map(\.id))
+        var removedRunIDs = Set(removedMessageIDs.compactMap { messageRunIDs[$0] })
+        let prefixRunIDs = Set(prefix.compactMap { messageRunIDs[$0.id] })
+            .union(visiblePrefix.compactMap { messageRunIDs[$0.id] })
+        let targetRunID = messageRunIDs[id]
+        if let targetRunID, let targetSummary = runSummaries[targetRunID] {
+            removedRunIDs.formUnion(
+                runSummaries.values.compactMap { summary in
+                    if summary.startedAt != targetSummary.startedAt {
+                        return summary.startedAt > targetSummary.startedAt ? summary.id : nil
+                    }
+                    return summary.id.uuidString > targetSummary.id.uuidString ? summary.id : nil
+                })
+        }
+        let hasEarlierVisibleUser =
+            visibleTarget.map { index in
+                messages[..<index].contains { $0.role == .user }
+            } ?? false
+        let keptCallIDs = Set(prefix.flatMap { $0.toolCalls.map(\.id) })
+        let removedCallIDs = Set(transcript[target...].flatMap { $0.toolCalls.map(\.id) })
+        let whollyRemovedRunIDs = removedRunIDs.subtracting(prefixRunIDs)
+        let lastKeptRun = runSummaries.values.filter { !whollyRemovedRunIDs.contains($0.id) }
+            .max {
+                if $0.startedAt != $1.startedAt { return $0.startedAt < $1.startedAt }
+                return $0.id.uuidString < $1.id.uuidString
+            }
+        let stagingStartedAt =
+            if let lastKeptRun, replacement.createdAt <= lastKeptRun.startedAt {
+                lastKeptRun.startedAt.addingTimeInterval(0.001)
+            } else {
+                replacement.createdAt
+            }
         transcript.replaceSubrange(target..., with: [replacement])
         contextEstimateTracker.remove(removedMessageIDs)
         contextEstimateTracker.upsert(replacement)
 
-        if let visibleIndex = messages.firstIndex(where: { $0.id == id }) {
+        if let visibleIndex = visibleTarget {
             messages.replaceSubrange(
                 visibleIndex...,
                 with: [
@@ -1095,22 +1154,63 @@ public final class ConversationModel: Identifiable {
                 ])
         }
         toolCards.removeAll {
-            removedRunIDs.contains($0.invocation.runID)
-                || $0.invocation.createdAt >= original.createdAt
+            if whollyRemovedRunIDs.contains($0.invocation.runID) { return true }
+            if let source = $0.invocation.sourceMessageID {
+                if removedMessageIDs.contains(source) { return true }
+                if keptMessageIDs.contains(source) { return false }
+            }
+            if removedCallIDs.contains($0.invocation.call.id) { return true }
+            if keptCallIDs.contains($0.invocation.call.id) { return false }
+            let resultMessageID = AgentTranscriptMessage.toolResultID(
+                runID: $0.invocation.runID, callID: $0.invocation.call.id)
+            if messageRunIDs[resultMessageID] == $0.invocation.runID,
+                !removedMessageIDs.contains(resultMessageID)
+            {
+                return false
+            }
+            if $0.invocation.runID != targetRunID {
+                if prefixRunIDs.contains($0.invocation.runID) { return false }
+                if removedRunIDs.contains($0.invocation.runID) { return true }
+            }
+            // Legacy rows with no recoverable source, call, or result ownership
+            // belong to the edited suffix at the boundary as well as after it.
+            return $0.invocation.createdAt >= original.createdAt
         }
         for messageID in removedMessageIDs { messageRunIDs[messageID] = nil }
-        for runID in removedRunIDs { runSummaries[runID] = nil }
+        for runID in removedRunIDs {
+            guard prefixRunIDs.contains(runID) else {
+                runSummaries[runID] = nil
+                continue
+            }
+            let lastPrefixDate =
+                visiblePrefix.last(where: { messageRunIDs[$0.id] == runID })?.createdAt
+                ?? prefix.last(where: {
+                    messageRunIDs[$0.id] == runID && $0.role != .tool
+                })?.createdAt
+                ?? prefix.last(where: { messageRunIDs[$0.id] == runID })?.createdAt
+                ?? original.createdAt
+            let startedAt = runSummaries[runID]?.startedAt ?? lastPrefixDate
+            runSummaries[runID] = AgentRunSummary(
+                id: runID, state: .completed, startedAt: startedAt,
+                finishedAt: lastPrefixDate)
+        }
+        messageRunIDs[replacement.id] = replacement.id
+        runSummaries[replacement.id] = AgentRunSummary(
+            id: replacement.id, state: .completed,
+            startedAt: stagingStartedAt, finishedAt: stagingStartedAt)
         plans.removeAll { $0.createdAt >= original.createdAt }
-        compactions.removeAll { $0.createdAt >= original.createdAt }
+        compactionRecords.removeAll { record in
+            guard let boundary = record.compactedThroughMessageID else { return false }
+            return removedMessageIDs.contains(boundary)
+        }
+        compactions = compactionRecords.map(AgentCompactionMark.init)
         tasks.removeAll()
         usage = nil
         contextEstimateTracker.setMeasured(nil)
         publishContextEstimateImmediately()
         reportedRunState = .idle
         updatedAt = replacement.createdAt
-        if !transcript[..<target].contains(where: { $0.role == .user && !$0.isCompaction }) {
-            title = nil
-        }
+        if !hasEarlierVisibleUser { title = nil }
         return ComposedUserTurn(
             id: replacement.id, text: replacement.text,
             authoredText: replacement.authoredText ?? "", images: replacement.images,
@@ -1941,16 +2041,55 @@ public final class ConversationModel: Identifiable {
         guard snapshot.conversationID == id, snapshot.state == .failed,
             let failure = snapshot.failure
         else { return }
-        if let prompt = snapshot.messages.last(where: { $0.role == .user }) {
-            messageRunIDs[prompt.id] = snapshot.id
-        }
-        runSummaries[snapshot.id] = AgentRunSummary(
+        var summary = AgentRunSummary(
             id: snapshot.id, state: .failed, startedAt: snapshot.startedAt,
             finishedAt: snapshot.finishedAt, failure: failure
         )
+        if let prompt = snapshot.messages.last(where: { $0.role == .user }),
+            messageRunIDs[prompt.id] == nil
+                || adoptStagedReplacementRun(promptID: prompt.id, summary: &summary)
+        {
+            messageRunIDs[prompt.id] = snapshot.id
+        }
+        runSummaries[snapshot.id] = summary
         reportedRunState = .failed
         updatedAt = snapshot.finishedAt ?? .now
         runDidFinish?()
+    }
+
+    public func adoptStagedReplacementRun(_ snapshot: AgentRunSnapshot) {
+        guard snapshot.conversationID == id,
+            let prompt = snapshot.messages.last(where: { $0.role == .user })
+        else { return }
+        var summary = AgentRunSummary(
+            id: snapshot.id, state: snapshot.state,
+            startedAt: snapshot.startedAt, finishedAt: snapshot.finishedAt,
+            failure: snapshot.failure)
+        adoptStagedReplacementRun(
+            promptID: prompt.id,
+            summary: &summary)
+    }
+
+    @discardableResult
+    private func adoptStagedReplacementRun(
+        promptID: UUID, summary: inout AgentRunSummary
+    ) -> Bool {
+        guard messageRunIDs[promptID] == promptID,
+            let staging = runSummaries[promptID], staging.state == .completed,
+            staging.failure == nil,
+            messageRunIDs.filter({ $0.value == promptID }).count == 1,
+            !toolCards.contains(where: { $0.invocation.runID == promptID })
+        else { return false }
+        if summary.startedAt < staging.startedAt {
+            summary.startedAt = staging.startedAt
+        }
+        if let finishedAt = summary.finishedAt, finishedAt < summary.startedAt {
+            summary.finishedAt = summary.startedAt
+        }
+        runSummaries[promptID] = nil
+        messageRunIDs[promptID] = summary.id
+        runSummaries[summary.id] = summary
+        return true
     }
 
     /// Retains the ordered event consumer until the cancellation snapshot is durable.
@@ -2484,14 +2623,23 @@ public final class ConversationModel: Identifiable {
         // them — but they are listed rather than swept into a `default` so
         // adding an event stays a compile error here.
         case .runStarted(let run):
-            activeRunID = run.id
-            runSummaries[run.id] = run
+            var adoptedRun = run
+            activeRunID = adoptedRun.id
             if let prompt = transcript.last, prompt.role == .user,
                 messageRunIDs[prompt.id] == nil
+                    || adoptStagedReplacementRun(promptID: prompt.id, summary: &adoptedRun)
             {
-                messageRunIDs[prompt.id] = run.id
+                messageRunIDs[prompt.id] = adoptedRun.id
             }
+            runSummaries[adoptedRun.id] = adoptedRun
         case .runFinished(let run):
+            var run = run
+            if let current = runSummaries[run.id], run.startedAt < current.startedAt {
+                run.startedAt = current.startedAt
+            }
+            if let finishedAt = run.finishedAt, finishedAt < run.startedAt {
+                run.finishedAt = run.startedAt
+            }
             publishAllStagedTools()
             settleStreamingPresentation(for: run.id)
             runSummaries[run.id] = run
@@ -2645,6 +2793,7 @@ public final class ConversationModel: Identifiable {
                 role: .tool, text: result.content, toolCallID: result.callID,
                 toolName: invocation.call.name, isError: result.isError, modelText: result.modelContent
             )
+            messageRunIDs[message.id] = invocation.runID
             transcript.append(message)
             contextEstimateTracker.upsert(message)
             publishContextEstimateImmediately()

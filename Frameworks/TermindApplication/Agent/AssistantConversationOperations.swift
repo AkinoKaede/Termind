@@ -131,7 +131,7 @@ public final class AssistantConversationOperations {
         replacement: AgentTranscriptMessage
     ) async throws -> ConversationModel.ComposedUserTurn? {
         try Task.checkCancellation()
-        guard
+        guard conversation.canApplyUserMessageEdit(messageID, replacement: replacement),
             pending.insert(conversation.id).inserted
         else { return nil }
         conversation.isHistoryChanging = true
@@ -143,6 +143,6 @@ public final class AssistantConversationOperations {
         try await repository.truncateConversation(
             conversation.id, fromUserMessageID: messageID, replacingWith: replacement)
         conversation.isHistoryChanging = false
-        return conversation.editUserMessage(messageID, replacement: replacement)
+        return conversation.applyPersistedUserMessageEdit(messageID, replacement: replacement)
     }
 }
