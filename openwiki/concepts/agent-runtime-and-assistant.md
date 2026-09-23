@@ -4,8 +4,6 @@ title: Assistant, Agent Runtime, Skills, and Memory
 description: How Termind assembles AgentKit into durable assistant conversations, applies approval and host-security boundaries, and manages skills, scratch workspaces, and device-local Hermes memory.
 tags: [assistant, agent-runtime, approval, persistence, skills, memory, ssh, sftp]
 sources:
-  - id: openwiki-source-0e8cfe7d74554d8a17af60b7
-    resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-685b7f8e7dbcf91b4e2a50e2
@@ -38,12 +36,16 @@ sources:
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/PlanningSSHTools.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
+  - id: openwiki-source-017f5e2abe9b13df755a5322
+    resource: repo://FrameworkTests/AgentReplayPersistenceTests.swift
   - id: openwiki-source-6d759b4cb61f68a067dae42c
     resource: repo://FrameworkTests/AgentSteeringTests.swift
   - id: openwiki-source-247755d873c5d94b0a364217
     resource: repo://FrameworkTests/AssistantConversationOperationsTests.swift
   - id: openwiki-source-6ec3fb4cd6a582cdf278bab9
     resource: repo://FrameworkTests/AssistantExecutionControllerTests.swift
+  - id: openwiki-source-105d05d558f14996921a83f6
+    resource: repo://Termind.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved
   - id: openwiki-source-a62bfbbc7de13a894444718b
     resource: repo://TermindMCPBridge/main.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
@@ -78,10 +80,10 @@ sources:
     resource: repo://TFMTests/ChatComposerStateTests.swift
   - id: openwiki-source-8d265a8732f0af93c5d4e274
     resource: repo://TFMTests/MCPServerToolsTests.swift
-generated: { by: "codex", at: "2026-09-23T03:40:50.823Z" }
+generated: { by: "codex", at: "2026-09-23T06:11:02.802Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T03:40:50.823Z
+    at: 2026-09-23T06:11:02.802Z
 ---
 
 # Assistant, Agent Runtime, Skills, and Memory
@@ -94,7 +96,7 @@ This split is a security boundary as well as a modularity boundary. A model prop
 
 `AssistantExecutionController` is the application entry point for a submitted turn. Before recording a new turn it rejects overlapping starts, archived/history-changing conversations, active compaction, unfinished attachments, and unauthorized use. Accepted submission synchronously captures the composed prompt, images and context attachments; session, plan and surface context; chat model/provider/credential; reasoning and permission mode; search choice; skills and base registry; Guardian configuration; and memory/compaction preparation settings. Only then can asynchronous compaction or memory loading begin. Runtime assembly consumes this capture instead of re-reading mutable composer or configuration state after an await. A missing model or credential remains a captured failure even if Settings changes during preparation.
 
-A runtime is deliberately single-run. It owns one event stream and one event consumer. `ConversationModel` owns the live runtime and projects its events into visible messages, tool cards, approval and input queues, run summaries, and the authoritative model transcript. The visible message list is not replay history: tool calls and results are separately rendered as cards, so replay must use `transcript`.
+A runtime is deliberately single-run. `ConversationModel` retains a per-run owner containing the runtime, immutable request, repository, start phase, cancellation intent, and ordered event consumer. The controller supplies the same repository to the runtime and this owner. Only the active owner's events update visible messages, tool cards, approval and input queues, run summaries, and the authoritative model transcript; stopped owners remain retained only until their drain finishes. The visible message list is not replay history: tool calls and results are separately rendered as cards, so replay must use `transcript`.
 
 The tool catalog and plan posture are captured at submission; AgentKit selects that captured catalog's executable mode-specific subset when the runtime starts. A tool-capable model receives the captured skill catalog, AgentKit built-ins, and Termind tools; a model without tool-call capability does not receive the skill/tool catalog. `AgentTurnContextSnapshot` is the persistable context portion of the capture: session facts, skill catalog text, plan posture, surface availability, and memory-session identity. It is not a durable copy of provider credentials or all runtime configuration. Surface availability follows the latest delivered user snapshot rather than mutable UI focus.
 
@@ -127,7 +129,7 @@ Desktop sidebar, standalone Assistant, and mobile first sends use the same contr
 
 Edits have a separate two-stage entry point: desktop and mobile UI call `prepareAgentEdit` synchronously before creating their UI `Task`. It preserves the original attachment payload and model-facing suffix while capturing fresh context and configuration for the replacement submission. `performAgentEdit` checks the capture identity before starting a tracked history task; persistence succeeds before the live edit is applied, and another identity check precedes runtime preparation. A cancelled or superseded prepared edit cannot later enter truncation or start a runtime.
 
-Once the runtime begins, the submitted prompt is persisted as part of its running snapshot before model work. AgentKit streams a provider turn, emits ordered UI and durable events through a shared `AgentEventChannel`, validates any complete tool call, then schedules execution. Tool results are appended to the model transcript and persisted before the following model round. This preserves a grammatically answerable transcript even for refusal, cancellation, or failure paths.
+Once the runtime begins, AgentKit awaits a save attempt for the running snapshot containing the submitted prompt before model work. It streams a provider turn, emits ordered UI and durable events through a shared `AgentEventChannel`, validates any complete tool call, then schedules execution. Tool results are appended to the model transcript and their snapshot save is attempted before the following model round. This preserves a grammatically answerable transcript for refusal, cancellation, or failure paths when persistence succeeds; runtime snapshot-save errors are currently swallowed.
 
 ```mermaid
 sequenceDiagram
@@ -184,9 +186,17 @@ While a run is live, a further user message is queued as steering rather than st
 
 Steering captures the sending session context and updates only the `terminal_suggest` availability entry. It preserves other tool overrides, the fixed skill catalog and plan contract, and the memory-session identity. Queuing does not change `ConversationModel.activeContextSnapshot`; delivery does. If the conversation has no legacy snapshot, steering keeps that context unknown instead of filling it from current UI state. The persisted availability key remains `terminal_suggest`.
 
-For an already-started runtime, stopping requests cancellation of runtime/tool work, discards run-scoped secrets, marks running cards interrupted in the presentation, and returns undelivered steering text. `stopAndWait()` joins preparation cancellation first, then requests runtime cancellation and waits for the event consumer before clearing live ownership.
+### Runtime handoff and cancellation
 
-The preparation guarantees do not eliminate the separate runtime handoff edge case: `ConversationModel.start` schedules its event consumer, and an immediate stop before that task calls `AgentRuntime.start` can prevent runtime startup without persisting a runtime snapshot. The ordering between `stopAndWait()` and this queued start remains a distinct boundary; do not infer universal cancellation durability from preparation tests.
+`start` takes ownership synchronously before queuing runtime startup. If Stop arrives while that owner is still queued, it records cancellation intent synchronously and never calls `AgentRuntime.start`, so neither a provider nor a tool runs. Instead it creates a cancelled snapshot from the captured request, applying AgentKit's historical-secret sanitization and unanswered/orphaned-tool repairs. The snapshot retains the prompt identity, authored/model text, images, context attachments, explicit `request.contextSnapshot`, and permission mode without duplicating an existing prompt ID. This path does not reconstruct a missing context snapshot from runtime-only configuration; production assembly supplies its frozen context explicitly.
+
+The queued owner's synthetic run ID and start time are fixed at acceptance, and its finish time is captured when cancellation is requested. The prompt keeps its existing transcript timestamp or uses that acceptance time. An independent persistence task owns the snapshot and repository, so an explicit Stop still attempts the save after the presentation model is released. Live cancellation and staging adoption are projected synchronously; visible cancelled state alone is not evidence that the save has completed.
+
+Once startup has begun, Stop requests runtime cancellation; the consumer checks cancellation again after the awaited `AgentRuntime.start` handoff, covering cancellation that reached the actor before its run task existed. Stop immediately detaches the old owner's presentation, settles streaming text and nonterminal cards for that run, retires its approval/review presentation, and returns undelivered steering. Its event consumer remains uncancelled and drains to stream completion while ignoring events from the detached owner. A direct replacement start first cancels its predecessor. Owner identity also guards completion and late steering rejection, so old work cannot clear or stop a newer run.
+
+`stopAndWait()` captures preparation cancellation and all retained run owners before its first await, requests cancellation of the owner active at entry, then joins preparation and those consumers. Consequently `stop()` followed by `stopAndWait()` still joins the stopped run; a replacement accepted during the wait is outside that call's cancellation scope. Completed owners are removed from the retained collection.
+
+The join guarantees that the captured snapshot-save attempt has returned, not that storage succeeded. In pinned AgentKit, terminal events precede the terminal snapshot save, while stream completion follows it; a terminal event alone is therefore an earlier boundary. The separate durable-event recorder and run-secret disposal tasks are not joined by this consumer. These contracts do not promise recovery from a storage failure or process death before a save. Mobile background expiration uses the join before closing its background commands and Agent connections; desktop Stop keeps its immediate presentation behavior without adopting the mobile background lifecycle.
 
 ## Approval, secrets, and trust boundaries
 
@@ -197,6 +207,8 @@ Approval is evaluated after schema validation and tool preflight, before executi
 - **Ask** routes to the user under `askForApproval`, to Guardian under `approveForMe`, or is pre-approved by `fullAccess`.
 
 `fullAccess` does not bypass schema validation, host-key trust, SSH authentication, secret binding, scratch containment, network/fetch restrictions, or tool-specific capability checks. Guardian review is only configured in `approveForMe`; it has a bounded timeout and failures, malformed output, inconsistent decisions, and critical-risk approvals fail closed. If the conversation disappears before a manual decision, the approval broker denies the request.
+
+Manual approval waits check cancellation before enqueueing and install a cancellation handler that removes and denies only the matching request continuation. Stop removes the stopped run's approval/review presentation immediately; request-specific continuation cleanup then lets the runtime finish its cancellation snapshot without requiring a user decision. Other requests and a replacement run retain their own identities.
 
 SSH authentication and host-key prompts are Termind interactions, not model-visible tool data. `AgentHostResolver` exposes public host metadata to `list_hosts`, but resolves Keychain-backed credentials into connection configuration without serializing them into tool results. Authentication context is shared only across overlapping attempts for the same destination; after successful authentication it clears staged submissions and cached secret-bearing configuration. Stale generations reject late callbacks and host-key decisions.
 
@@ -238,7 +250,7 @@ Tool cleanup follows ownership before time. Known source-message and run-local c
 
 The replacement is durable before a runtime exists: its message ID also identifies an independent, completed, failure-free staging run containing that one user row and no tool graph. Its start time is placed after the latest retained run if clocks tie or move backward, including when the earlier retained run has no messages. On the first real snapshot containing that staged final user turn, `save` transactionally moves only the staged message to the real run, assigns its snapshot sequence, retains its attachments/replay backing, deletes the staging run and retires its ID. Historical messages replayed into the snapshot keep their existing owners and are not duplicated. Adoption preserves the staging start-time lower bound; subsequent snapshots cannot move it backward, and terminal time is clamped to that start when necessary.
 
-`ConversationModel` mirrors adoption on `runStarted`, captured failure and preparation interruption; `runFinished` retains the adjusted chronology. A failed or interrupted replacement therefore has the real run's provenance rather than an abandoned staging summary. The ordering of publication still depends on the path: preparation cancellation awaits the interrupted save and rechecks identity before adopting, while `recordFailedRun` for a missing model/credential projects live first and starts a separate asynchronous save. Neither `!isPreparingAgentRun` nor a visible failed state proves that this save finished. The persist-before-live contract above is specifically the history mutation boundary.
+`ConversationModel` mirrors adoption on `runStarted`, captured failure, preparation interruption, and queued-runtime cancellation; `runFinished` retains the adjusted chronology. Failed, interrupted, and cancelled replacements therefore use their actual run provenance rather than an abandoned staging summary. Publication order still depends on the path: preparation cancellation awaits the interrupted save and rechecks identity before adopting, while queued-runtime cancellation and `recordFailedRun` for a missing model/credential project live before their asynchronous save. Neither the end of preparation nor visible terminal state alone proves that persistence finished. For queued cancellation, `stopAndWait()` joins that save attempt. The persist-before-live contract above is specifically the history mutation boundary.
 
 The repository instance retires the edited target run, removed later runs and adopted staging run so late snapshots or durable tool events cannot resurrect the discarded suffix. Truncation and snapshot save roll back SwiftData changes and restore the previous in-memory retired-ID set on error. These rules use the existing schema and Termind's Application/Persistence adapters, without changing AgentKit or its package pin. See [Persistent Data](persistence-and-secrets.md) for the storage contract.
 
@@ -296,13 +308,15 @@ The focused tests establish behavior that is important when changing this area:
 
 - `TFMTests/AgentRuntimeTests.swift` covers schema-before-approval/execution, approval mode routing, Guardian timeout/failure fail-closed behavior, single-use secret handles, steering delivery, tool cancellation, registry shadowing, and durable-event filtering.
 - `TFMTests/AgentPersistenceTests.swift` covers redaction, interrupted-run recovery, replay deduplication, tool-result repair, graph deletion, same-run edit prefix/tool preservation, canonical equal-time ordering, empty retained runs, staging adoption, late-write rejection, fork persistence and compaction restoration. `ChatComposerStateTests.swift` checks the compacted live prefix, tool cards, title, plans and adopted run summaries.
-- `FrameworkTests/AgentReplayPersistenceTests.swift` checks failed/interrupted staging adoption and reloads through a fresh `ModelContext` and repository to verify durable provenance and replay backing.
+- `FrameworkTests/AgentReplayPersistenceTests.swift` checks failed/interrupted staging adoption and queued cancellation of an edited replacement. The cancellation fixture reloads through a fresh `ModelContext` and repository, checking one adopted run, captured text/images/attachments/context, permission mode, and staging/terminal chronology.
 - `FrameworkTests/AssistantExecutionControllerTests.swift` covers capture across a memory barrier, missing credentials, first-send guards and payload folding, plan implementation, edit persistence/cancellation barriers, failed/interrupted replacement provenance, superseded captures, navigation, compaction refusal, memory revocation, and neutral legacy context. Repository snapshot waiters distinguish async save completion from a live failed state.
-- `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first archive/rename/order/edit mutations, invalid edit rejection before repository calls, failed edits leaving the live prefix unchanged, activity guards, and that immediate stop prevents a queued runtime's model call. That last test does not establish snapshot persistence for the runtime handoff gap.
+- `FrameworkTests/AssistantConversationOperationsTests.swift` verifies persistence-first history mutations and activity guards, plus queued Stop/Stop-and-Wait with zero provider/tool calls, captured cancelled snapshots, Stop followed by a blocked-save join, persistence after presentation release, direct queued-owner displacement, pending approval cancellation, and an old persistence drain finishing while a replacement remains running. Injected review events verify that the stopped run's review state and card do not contaminate that replacement.
 - `TFMTests/AgentScratchTests.swift` verifies workspace containment, symlink refusal, inter-conversation isolation, quotas, and bounded reads.
 - `TFMTests/AgentBuiltInToolAvailabilityTests.swift` checks exact Termind planning/acting/reviewing sets, the shared SSH schema with mode-specific preflight, and execution spies proving the surface gate blocks only terminal suggestions.
 - `FrameworkTests/AgentSteeringTests.swift` and `TFITests/MobileAssistantTests.swift` check snapshot preservation, delivery timing, legacy unknown context, mobile send/steer availability, acting-mode plan implementation, and tool-incapable models. Mobile's SwiftData restore/edit fixture also verifies same-run prefix preservation and replacement provenance.
 - `TFMTests/MCPServerToolsTests.swift` checks the exported acting subset against shared descriptors, transfer tools and disabled calls; `AgentHostProtocolListingTests.swift` checks protocol-neutral discovery, and `AgentToolPresentationTests.swift` retains legacy presentation coverage alongside the persistence suite.
+
+The queued-cancellation SwiftData regression uses an in-memory container with a fresh read context, not a process restart or an on-disk crash test. Barrier fixtures establish save-attempt ordering; they do not exercise storage failure. The review-state fixture injects presentation events rather than contacting a Guardian provider. Preserve these distinctions when choosing additional validation.
 
 ## Change guidance
 

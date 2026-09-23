@@ -8,26 +8,14 @@ sources:
     resource: repo://.github/workflows/openwiki-update.yml
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
-  - id: openwiki-source-82dc2a330fa464405febe5a2
-    resource: repo://AgentKit/Package.swift
-  - id: openwiki-source-7d407889e0fdf98a8da45d51
-    resource: repo://AgentKit/Scripts/build-localizations.sh
-  - id: openwiki-source-a8f2957ebda6de083a5e705b
-    resource: repo://AgentKit/Sources/AgentKit/MCP/MCPClient.swift
-  - id: openwiki-source-0e8cfe7d74554d8a17af60b7
-    resource: repo://AgentKit/Sources/AgentKit/Runtime/AgentRuntime.swift
-  - id: openwiki-source-1b7f4621a0a6d022a3b65b1b
-    resource: repo://AgentKit/Sources/AgentKit/Security/AgentSecurity.swift
-  - id: openwiki-source-b3c829b218957268073c0f43
-    resource: repo://AgentKit/Sources/AgentKit/Tools/AgentToolCatalog.swift
-  - id: openwiki-source-437ae5db92ccf61cdbffc8e9
-    resource: repo://AgentKit/Sources/AgentKitScrubber/ScrubberWebClient.swift
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
   - id: openwiki-source-7f5c1cb6f348742514987bf8
     resource: repo://Benchmarks/PortForwarding/main.swift
   - id: openwiki-source-ea04d3d10088e2d554646adf
     resource: repo://Design/Brand/README.md
+  - id: openwiki-source-1c845e5af67c400566be83bd
+    resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/AssistantToolRegistry.swift
   - id: openwiki-source-d2d4c06f734241db3badc1f5
     resource: repo://Frameworks/TermindRemoteInfrastructure/Agent/TermindAgentTools.swift
   - id: openwiki-source-581eed02dfaf161420cc4d9d
@@ -81,7 +69,7 @@ sources:
 generated: { by: "omp", at: "2026-09-22T03:45:03.442Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-23T01:34:03.251Z
+    at: 2026-09-23T06:11:02.802Z
 ---
 
 # Supporting Products, Packages, and Tooling
