@@ -27,7 +27,7 @@ extension AppStrings {
         }
 
         public static var familySharingDisclosure: LocalizedStringResource {
-            "Apple Family Sharing supported · AI provider charges are separate"
+            "Apple Family Sharing Supported"
         }
 
         public static var lifetimeAccess: LocalizedStringResource {

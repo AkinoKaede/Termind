@@ -597,7 +597,7 @@ extension AppStrings {
         }
 
         public static var permanentLifetimeUnlock: LocalizedStringResource {
-            "Permanent lifetime unlock"
+            "Permanent Lifetime Unlock"
         }
 
         public static var permanentlyDeletesThisProviderItsKeyAndItsModels: LocalizedStringResource {
