@@ -8,7 +8,7 @@ import TermindPresentation
 import struct TermindDomain.Host
 
 nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable {
-    case pro, app, terminal, connections, ai, sync
+    case app, terminal, connections, ai, sync
     #if DEBUG
         case developer
     #endif
@@ -17,7 +17,6 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 
     var title: LocalizedStringResource {
         switch self {
-        case .pro: AppStrings.Pro.termindPro
         case .app: AppStrings.Settings.app
         case .terminal: AppStrings.Settings.terminal
         case .connections: AppStrings.Settings.connections
@@ -31,7 +30,6 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 
     func title(locale: Locale = .current) -> String {
         switch self {
-        case .pro: AppLocalization.resolve(AppStrings.Pro.termindPro, locale: locale)
         case .app: AppLocalization.resolve(AppStrings.Settings.app, locale: locale)
         case .terminal: AppLocalization.resolve(AppStrings.Settings.terminal, locale: locale)
         case .connections: AppLocalization.resolve(AppStrings.Settings.connections, locale: locale)
@@ -45,7 +43,6 @@ nonisolated enum SettingsCategory: String, CaseIterable, Identifiable, Sendable 
 
     var symbol: String {
         switch self {
-        case .pro: "sparkles.rectangle.stack"
         case .app: "app.badge"
         case .terminal: "terminal"
         case .connections: MenuSymbol.connect
@@ -117,7 +114,8 @@ struct SettingsPageView: View {
             SettingsIndexPage(
                 categories: SettingsCategory.allCases,
                 select: { navigate(to: .category($0)) },
-                openLogging: { navigate(to: .logging) }
+                openLogging: { navigate(to: .logging) },
+                openPro: { app.proAccess.presentPaywall() }
             )
         case .category(let category):
             categoryPage(category)
@@ -153,8 +151,6 @@ struct SettingsPageView: View {
     @ViewBuilder
     private func categoryPage(_ category: SettingsCategory) -> some View {
         switch category {
-        case .pro:
-            SettingsFormPage { ProSettings() }
         case .app:
             SettingsFormPage {
                 AppSettings()
@@ -239,11 +235,18 @@ private struct SettingsIndexPage: View {
     let categories: [SettingsCategory]
     let select: (SettingsCategory) -> Void
     let openLogging: () -> Void
+    let openPro: () -> Void
 
     var body: some View {
         Form {
             Section {
-                categoryButton(.pro)
+                Button(action: openPro) {
+                    Label(AppStrings.Pro.termindPro.swiftUIKey, systemImage: "sparkles.rectangle.stack")
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(.rect)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("settings.openPro")
             }
 
             Section {
@@ -283,8 +286,6 @@ private struct SettingsIndexPage: View {
     private var regularCategories: [SettingsCategory] {
         categories.filter { category in
             switch category {
-            case .pro:
-                false
             #if DEBUG
                 case .developer:
                     false
@@ -504,125 +505,6 @@ private struct AppInfoSettings: View {
                 Label(AppStrings.Pro.privacyPolicy.swiftUIKey, systemImage: "hand.raised")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
-        }
-    }
-}
-
-private struct ProSettings: View {
-    @Environment(AppModel.self) private var app
-
-    var body: some View {
-        Group {
-            Section(AppStrings.Settings.access.swiftUIKey) {
-                LabeledContent(AppStrings.Common.status.swiftUIKey) { statusLabel }
-                if let expirationLabel, let expirationDate {
-                    LabeledContent(expirationLabel.swiftUIKey) {
-                        Text(expirationDate, format: .dateTime.year().month().day().hour().minute())
-                    }
-                }
-            }
-
-            Section(AppStrings.Pro.termindPro.swiftUIKey) {
-                Text(
-                    AppStrings.Settings.proPlanExplanation
-                )
-                .foregroundStyle(.secondary)
-                if app.proAccess.status.canPurchase {
-                    Button(AppStrings.Settings.viewTermindPro.swiftUIKey) { app.proAccess.presentPaywall() }
-                        .buttonStyle(.borderedProminent)
-                }
-                if canManageSubscription {
-                    Link(
-                        AppStrings.Pro.manageSubscription.swiftUIKey,
-                        destination: URL(string: "https://apps.apple.com/account/subscriptions")!)
-                }
-                Button(AppStrings.Pro.restorePurchase.swiftUIKey) { Task { await app.proAccess.restorePurchases() } }
-                    .disabled(app.proAccess.isProcessing)
-                if let message = app.proAccess.message {
-                    Text(message).font(.caption).foregroundStyle(.orange)
-                }
-            }
-
-            Section(AppStrings.Settings.options.swiftUIKey) {
-                includedFeature(AppStrings.Pro.annualSubscription, systemImage: "calendar")
-                includedFeature(AppStrings.Settings.permanentLifetimeUnlock, systemImage: "infinity")
-                includedFeature(AppStrings.Settings.appleFamilySharing, systemImage: "person.3")
-                Text(AppStrings.Settings.aiProviderUsageAndChargesAreSeparateFromTermindPro)
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-        }
-    }
-
-    private var canManageSubscription: Bool {
-        guard case .subscription(let subscription) = app.proAccess.status else { return false }
-        return subscription.ownership == .purchased
-    }
-
-    private var expirationDate: Date? {
-        switch app.proAccess.status {
-        case .subscription(let subscription): subscription.expiresAt
-        default: nil
-        }
-    }
-
-    private var expirationLabel: LocalizedStringResource? {
-        switch app.proAccess.status {
-        case .subscription(let subscription):
-            switch subscription.phase {
-            case .introductoryTrial: AppStrings.Settings.trialEnds
-            case .subscribed:
-                subscription.willAutoRenew == false ? AppStrings.Settings.accessEnds : AppStrings.Settings.renews
-            case .gracePeriod: AppStrings.Settings.gracePeriodEnds
-            case .billingRetry, .expired, .revoked: AppStrings.Settings.expired
-            }
-        default:
-            nil
-        }
-    }
-
-    private func includedFeature(
-        _ title: LocalizedStringResource,
-        systemImage: String
-    ) -> some View {
-        HStack(spacing: Metrics.Space.s) {
-            Image(systemName: systemImage)
-                .frame(width: 20, alignment: .center)
-            Text(title)
-        }
-    }
-
-    @ViewBuilder
-    private var statusLabel: some View {
-        switch app.proAccess.status {
-        case .loading: Label(AppStrings.Pro.checkingProgress.swiftUIKey, systemImage: "arrow.triangle.2.circlepath")
-        case .free: Label(AppStrings.Pro.free.swiftUIKey, systemImage: "person.crop.circle")
-        case .subscription(let subscription): subscriptionStatusLabel(subscription)
-        case .purchased(.purchased): Label(AppStrings.Pro.lifetime.swiftUIKey, systemImage: "infinity")
-        case .purchased(.familyShared):
-            Label(AppStrings.Settings.lifetimeFamilyShared.swiftUIKey, systemImage: "person.3.fill")
-        case .verificationFailed:
-            Label(AppStrings.Settings.verificationRequired.swiftUIKey, systemImage: "exclamationmark.shield")
-        case .unrestrictedForTesting: Label(AppStrings.Settings.developmentAccess.swiftUIKey, systemImage: "hammer")
-        }
-    }
-
-    @ViewBuilder
-    private func subscriptionStatusLabel(_ subscription: ProSubscriptionStatus) -> some View {
-        switch subscription.phase {
-        case .introductoryTrial: Label(AppStrings.Pro.freeTrial.swiftUIKey, systemImage: "clock")
-        case .subscribed:
-            Label(
-                subscription.ownership == .familyShared
-                    ? AppStrings.Settings.annualFamilyShared.swiftUIKey
-                    : AppStrings.Pro.annualSubscription.swiftUIKey,
-                systemImage: subscription.ownership == .familyShared ? "person.3.fill" : "checkmark.seal.fill")
-        case .gracePeriod:
-            Label(AppStrings.Pro.billingGracePeriod.swiftUIKey, systemImage: "clock.badge.exclamationmark")
-        case .billingRetry:
-            Label(AppStrings.Pro.billingIssue.swiftUIKey, systemImage: "creditcard.trianglebadge.exclamationmark")
-        case .expired:
-            Label(AppStrings.Pro.subscriptionExpired.swiftUIKey, systemImage: "calendar.badge.exclamationmark")
-        case .revoked: Label(AppStrings.Pro.subscriptionRevoked.swiftUIKey, systemImage: "xmark.seal")
         }
     }
 }

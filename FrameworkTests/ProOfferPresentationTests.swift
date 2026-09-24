@@ -4,6 +4,24 @@ import TermindPresentation
 import Testing
 
 struct ProOfferPresentationTests {
+    @Test(arguments: ["en", "zh-Hans", "zh-Hant"], [1, 2, 4])
+    func storeKitWeeklyTrialsDisplayTheirFullNumberOfDays(language: String, weeks: Int) throws {
+        var fixture = OfferFixture()
+        fixture.trialDuration = DateComponents(weekOfYear: weeks)
+        let weekly = fixture.presentation(locale: Locale(identifier: language))
+        #expect(try #require(weekly.trialBadge).contains(String(weeks * 7)))
+        #expect(try #require(weekly.selectedPlanDetail).contains(String(weeks * 7)))
+
+        fixture.trialDuration = DateComponents(day: weeks * 7)
+        let daily = fixture.presentation(locale: Locale(identifier: language))
+        #expect(weekly.trialBadge == daily.trialBadge)
+        #expect(weekly.selectedPlanDetail == daily.selectedPlanDetail)
+
+        fixture.canStartTrial = false
+        fixture.trialDuration = DateComponents(weekOfYear: weeks)
+        #expect(fixture.presentation().trialBadge == nil)
+    }
+
     @Test(arguments: [ProPurchasePlan.annual, .lifetime], [false, true])
     func purchaseTitleFollowsPlanAndTrialEligibility(plan: ProPurchasePlan, eligible: Bool) {
         var fixture = OfferFixture()

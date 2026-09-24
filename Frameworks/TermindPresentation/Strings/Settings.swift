@@ -8,10 +8,6 @@ extension AppStrings {
             "Abilities"
         }
 
-        public static var access: LocalizedStringResource {
-            "Access"
-        }
-
         public static var accessEnds: LocalizedStringResource {
             "Access Ends"
         }
@@ -90,10 +86,6 @@ extension AppStrings {
 
         public static var appearance: LocalizedStringResource {
             "Appearance"
-        }
-
-        public static var appleFamilySharing: LocalizedStringResource {
-            "Apple Family Sharing"
         }
 
         public static var approve: LocalizedStringResource {
@@ -428,10 +420,6 @@ extension AppStrings {
             "libssh2"
         }
 
-        public static var lifetimeFamilyShared: LocalizedStringResource {
-            "Lifetime · Family Shared"
-        }
-
         public static var light: LocalizedStringResource {
             "Light"
         }
@@ -588,16 +576,8 @@ extension AppStrings {
             "OpenSSL"
         }
 
-        public static var options: LocalizedStringResource {
-            "Options"
-        }
-
         public static var pasteOnRightClick: LocalizedStringResource {
             "Paste on Right-Click"
-        }
-
-        public static var permanentLifetimeUnlock: LocalizedStringResource {
-            "Permanent Lifetime Unlock"
         }
 
         public static var permanentlyDeletesThisProviderItsKeyAndItsModels: LocalizedStringResource {
@@ -808,10 +788,6 @@ extension AppStrings {
             "URL"
         }
 
-        public static var verificationRequired: LocalizedStringResource {
-            "Verification Required"
-        }
-
         public static var version: LocalizedStringResource {
             "Version"
         }
@@ -842,10 +818,6 @@ extension AppStrings {
 
         public static var modelDiscoveryRequiresURL: LocalizedStringResource {
             "Add a URL first. Models are listed from the endpoint's own address."
-        }
-
-        public static var proPlanExplanation: LocalizedStringResource {
-            "Choose annual access or a permanent unlock for the AI Assistant, terminal uploads, MCP, and iCloud sync."
         }
 
         public static var headerStorageWarning: LocalizedStringResource {

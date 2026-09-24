@@ -184,7 +184,7 @@ struct ArchitectureBoundaryTests {
             in: "../Frameworks/TermindPresentation",
             forbidden: [
                 "Termind", "TermindIOS", "UIKit", "AppKit", "SwiftData", "GRDB", "TermindPersistence",
-                "TermindRemoteInfrastructure",
+                "TermindRemoteInfrastructure", "TermindInfrastructure", "StoreKit",
             ])
     }
 

@@ -11,6 +11,33 @@ import Testing
 @testable import Termind
 
 struct SettingsNavigationTests {
+    @Test(
+        arguments: [
+            EntitlementStatus.free(trialAvailable: true), .purchased(.purchased), .purchased(.familyShared),
+            .subscription(
+                ProSubscriptionStatus(
+                    phase: .subscribed, expiresAt: .distantFuture, willAutoRenew: true, ownership: .purchased)),
+        ]) @MainActor
+    func proPresentationLeavesSettingsNavigationAndReturnDestinationIntact(status: EntitlementStatus) {
+        let workspace = Workspace(pane: Pane(.empty))
+        let window = WindowModel(workspaces: [workspace])
+        let pro = ProAccessController.testing(status: status)
+        window.openSettings()
+
+        pro.presentPaywall()
+
+        #expect(pro.isPaywallPresented)
+        #expect(window.settingsRoute == .index)
+        #expect(window.selectedDestination == .settings)
+        #expect(SettingsCategory(rawValue: "pro") == nil)
+        pro.isPaywallPresented = false
+        window.settingsRoute = .category(.terminal)
+        window.navigateBackInSettings()
+        #expect(window.settingsRoute == .index)
+        window.navigateBackInSettings()
+        #expect(window.selectedDestination == .workspace(workspace.id))
+    }
+
     @Test @MainActor
     func legacySearchSettingsAndSecretAreRemoved() throws {
         let suite = "LegacyWebSearchSettingsTests.\(UUID().uuidString)"

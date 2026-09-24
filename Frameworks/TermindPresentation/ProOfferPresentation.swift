@@ -19,7 +19,18 @@ public nonisolated struct ProOfferPresentation: Equatable, Sendable {
         formatter.unitsStyle = .full
         formatter.maximumUnitCount = 1
         annualBillingUnit = Self.billingUnit(billingPeriod, formatter: formatter, localize: localize)
-        let duration = canStartTrial ? trialDuration.flatMap { formatter.string(from: $0) } : nil
+        let duration =
+            canStartTrial
+            ? trialDuration.flatMap { period -> String? in
+                var components = period
+                // StoreKit weeks arrive as weekOfYear, which DateComponentsFormatter does not format.
+                // Preserve the offer's full duration by expressing those weeks as days.
+                if let weeks = components.weekOfYear {
+                    components.weekOfYear = nil
+                    components.day = (components.day ?? 0) + weeks * 7
+                }
+                return formatter.string(from: components)
+            } : nil
         trialBadge = duration.map { localize("\($0) free") }
         purchaseButtonTitle =
             switch plan {

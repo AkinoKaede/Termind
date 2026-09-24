@@ -6,10 +6,6 @@ extension AppStrings {
             "Annual"
         }
 
-        public static var annualAccessUntil: LocalizedStringResource {
-            "Annual Access Until"
-        }
-
         public static var assistantFeature: LocalizedStringResource {
             "Use the AI Assistant"
         }
@@ -46,12 +42,8 @@ extension AppStrings {
             "One-time purchase"
         }
 
-        public static var planExplanation: LocalizedStringResource {
-            "Choose annual access or unlock Pro permanently."
-        }
-
-        public static var proActive: LocalizedStringResource {
-            "Pro Active"
+        public static var workflowTagline: LocalizedStringResource {
+            "Make remote work easier with AI."
         }
 
         public static var reloadAppStorePrices: LocalizedStringResource {
