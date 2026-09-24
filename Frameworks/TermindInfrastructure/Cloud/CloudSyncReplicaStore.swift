@@ -5,10 +5,7 @@ import TermindPersistence
 
 @MainActor
 struct CloudSyncReplicaStore {
-    struct MissingRecords {
-        var deleted: [String]
-        var recreated: [String]
-    }
+    typealias MissingRecords = (deleted: [String], recreated: [String])
 
     var prepare: (CloudSyncScope) throws -> Bool
     var handlesRecordName: (String) -> Bool
@@ -25,32 +22,30 @@ struct CloudSyncReplicaStore {
         handlesRecordName: @escaping (String) -> Bool = { _ in true },
         preservesNewerIncarnation: @escaping (String) -> Bool = { _ in true }
     ) -> Self {
-        Self(
-            prepare: { try CloudSyncRecordStateStore(context: context, scope: $0).prepare(records()) },
+        func store(_ scope: CloudSyncScope) -> CloudSyncRecordStateStore {
+            CloudSyncRecordStateStore(context: context, scope: scope)
+        }
+        // A recreated record is a new incarnation; its old system fields would target the deleted record.
+        func clearingRecreated(_ result: MissingRecords) throws -> MissingRecords {
+            for name in result.recreated { try clearSystemFields(name) }
+            return result
+        }
+        return Self(
+            prepare: { try store($0).prepare(records()) },
             handlesRecordName: handlesRecordName,
             missing: { scope, seen in
-                let result = try CloudSyncRecordStateStore(context: context, scope: scope)
-                    .missingRecordNames(
-                        seen: seen, records: records(),
-                        preservesNewerIncarnation: preservesNewerIncarnation)
-                for name in result.recreated { try clearSystemFields(name) }
-                return MissingRecords(deleted: result.deleted, recreated: result.recreated)
+                try clearingRecreated(
+                    store(scope).missingRecordNames(
+                        seen: seen, records: records(), preservesNewerIncarnation: preservesNewerIncarnation))
             },
             reconcileDeletions: { scope, names in
-                let result = try CloudSyncRecordStateStore(context: context, scope: scope)
-                    .reconcileDeletions(
-                        names, records: records(),
-                        preservesNewerIncarnation: preservesNewerIncarnation)
-                for name in result.recreated { try clearSystemFields(name) }
-                return MissingRecords(deleted: result.deleted, recreated: result.recreated)
+                try clearingRecreated(
+                    store(scope).reconcileDeletions(
+                        names, records: records(), preservesNewerIncarnation: preservesNewerIncarnation))
             },
-            recordDeletionHandoff: {
-                try CloudSyncRecordStateStore(context: context, scope: $0).recordDeletionHandoff($1)
-            },
-            cancelDeletionHandoff: {
-                try CloudSyncRecordStateStore(context: context, scope: $0).cancelDeletionHandoff($1)
-            },
-            complete: { try CloudSyncRecordStateStore(context: context, scope: $0).completeReconciliation() },
-            reset: { try CloudSyncRecordStateStore(context: context, scope: $0).resetZone() })
+            recordDeletionHandoff: { try store($0).recordDeletionHandoff($1) },
+            cancelDeletionHandoff: { try store($0).cancelDeletionHandoff($1) },
+            complete: { try store($0).completeReconciliation() },
+            reset: { try store($0).resetZone() })
     }
 }

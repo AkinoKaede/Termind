@@ -7,10 +7,8 @@ import TermindPersistence
 /// Independently synchronizes the device directory under the master iCloud selection.
 @MainActor
 public final class DeviceSyncCoordinator {
-    public nonisolated static let containerIdentifier = "iCloud.com.akinokaede.termind"
     // Preserve the deployed zone so fresh installations can read previously uploaded records.
-    public nonisolated static let zoneName = "TermindConnectionHistoryV1"
-    public nonisolated static let recordType = HistoryRecordKind.device.recordType
+    public nonisolated static let zoneName = HistoryRecordSyncCoordinator.zoneName
     public nonisolated static let subscriptionID = "termind-device-v1-changes"
 
     let core: HistoryRecordSyncCoordinator
@@ -23,9 +21,9 @@ public final class DeviceSyncCoordinator {
 
     public convenience init(
         persistence: HistorySyncPersistence,
-        container: CKContainer = CKContainer(identifier: DeviceSyncCoordinator.containerIdentifier),
+        container: CKContainer = CKContainer(identifier: CloudSyncContainer.identifier),
         defaults: UserDefaults = .standard,
-        environmentIdentifier: String = DeviceSyncCoordinator.runtimeEnvironmentIdentifier
+        environmentIdentifier: String = CloudSyncContainer.environmentIdentifier
     ) {
         self.init(
             persistence: persistence, defaults: defaults, environmentIdentifier: environmentIdentifier,
@@ -43,13 +41,8 @@ public final class DeviceSyncCoordinator {
             environmentIdentifier: environmentIdentifier, makeTransport: makeTransport)
     }
 
-    public nonisolated static var runtimeEnvironmentIdentifier: String {
-        Bundle.main.object(forInfoDictionaryKey: "TermindCloudKitEnvironment") as? String ?? "Unknown"
-    }
-
     public func configureLogging(_ logging: any ApplicationLogManaging) { core.configureLogging(logging) }
     public func start() { core.start() }
-
     public func pause() { core.pause() }
     public func retry() { core.retry() }
     public func confirmAccountSwitchMerge() { core.confirmAccountSwitchMerge() }

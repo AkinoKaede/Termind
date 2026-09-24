@@ -15,16 +15,14 @@ struct CloudSyncLifecycleSafety {
 
     /// The lifecycle commits both legacy imports and recovery state before creating an engine.
     static func persistent(
-        context: ModelContext, capabilityID: String? = nil, capabilityProvider: (() -> String)? = nil,
-        importLegacyQuarantine: @escaping (CloudSyncScope) throws -> Void
+        context: ModelContext, capabilityID: String? = nil,
+        importLegacyQuarantine: @escaping (CloudSyncScope) throws -> Void = { _ in }
     ) -> Self {
         Self(
             prepare: { scope, legacyScope in
                 try importLegacyQuarantine(legacyScope)
                 let safety = CloudSyncSafetyStore(context: context, scope: scope)
-                if let expected = capabilityProvider?() ?? capabilityID,
-                    try safety.capability().capabilityID != expected
-                {
+                if let capabilityID, try safety.capability().capabilityID != capabilityID {
                     return true
                 }
                 return try safety.recovery().requiresRefetch
@@ -42,23 +40,32 @@ struct CloudSyncLifecycleSafety {
                 try CloudSyncSafetyStore(context: context, scope: scope).requiresNewerClient()
             },
             didCompleteFetch: { scope in
-                if let expected = capabilityProvider?() ?? capabilityID {
-                    try CloudSyncSafetyStore(context: context, scope: scope).capability().capabilityID = expected
+                if let capabilityID {
+                    try CloudSyncSafetyStore(context: context, scope: scope).capability().capabilityID = capabilityID
                 }
             })
+    }
+
+    /// History and devices share a zone, so each kind reports only its own blocked records.
+    static func persistentHistory(context: ModelContext, kind: HistoryRecordKind) -> Self {
+        var safety = persistent(
+            context: context, capabilityID: SyncRecordFormats.history.capabilityID + ";kind:" + kind.rawValue)
+        safety.blockedRecordNames = { scope in
+            try CloudSyncSafetyStore(context: context, scope: scope).blockedRecordNames().filter {
+                HistoryRecordKey(recordName: $0).map { $0.kind == kind } ?? true
+            }
+        }
+        safety.requiresNewerClient = { [blockedRecordNames = safety.blockedRecordNames] scope in
+            let store = CloudSyncSafetyStore(context: context, scope: scope)
+            return try blockedRecordNames(scope).contains {
+                try store.entry(recordName: $0)?.reasonCode == CloudSyncQuarantineReason.unsupportedFormat.rawValue
+            }
+        }
+        return safety
     }
 }
 
 extension CloudSyncRecordCoding {
-    nonisolated static func validateFormat(in data: Data, supported: Int) throws {
-        struct Header: Decodable { var formatVersion: Int }
-        let header = try JSONDecoder().decode(Header.self, from: data)
-        if header.formatVersion > supported {
-            throw CloudSyncCompatibilityError.unsupportedFormat(header.formatVersion)
-        }
-        guard header.formatVersion == supported else { throw CocoaError(.coderReadCorrupt) }
-    }
-
     @MainActor
     static func quarantine(
         _ record: CKRecord, error: any Error, in safety: CloudSyncSafetyStore, nativeFields: Bool = false
@@ -81,33 +88,16 @@ extension CloudSyncRecordCoding {
             systemFieldsData: try systemFields(of: record),
             reason: error.localizedDescription, reasonCode: reasonCode)
     }
-}
 
-extension CloudSyncLifecycleSafety {
-    static func persistentHistory(context: ModelContext, kind: HistoryRecordKind) -> Self {
-        var safety = persistent(
-            context: context,
-            capabilityID: SyncRecordFormats.history.capabilityID + ";kind:" + kind.rawValue,
-            importLegacyQuarantine: { _ in })
-        let allBlocked = safety.blockedRecordNames
-        safety.blockedRecordNames = { scope in
-            Set(
-                try allBlocked(scope).filter {
-                    HistoryRecordKey(recordName: $0).map { $0.kind == kind } ?? true
-                })
-        }
-        safety.requiresNewerClient = { scope in
-            let store = CloudSyncSafetyStore(context: context, scope: scope)
-            for name in try store.blockedRecordNames()
-            where HistoryRecordKey(recordName: name).map({ $0.kind == kind }) ?? true {
-                if try store.entry(recordName: name)?.reasonCode
-                    == CloudSyncQuarantineReason.unsupportedFormat.rawValue
-                {
-                    return true
-                }
-            }
-            return false
-        }
-        return safety
+    /// Finishes an asset cache purge that a committed cache purge marked as pending.
+    @MainActor
+    static func completePendingAssetPurge(
+        directoryName: String, context: ModelContext, cacheRoot: URL?, removeItem: (URL) throws -> Void
+    ) throws {
+        let cleanup = CloudSyncAssetCleanupStore(context: context)
+        guard try cleanup.isPending(cacheKey: directoryName) else { return }
+        try purgeAssetDirectory(directoryName: directoryName, cacheRoot: cacheRoot, removeItem: removeItem)
+        try cleanup.complete(cacheKey: directoryName)
+        try context.save()
     }
 }

@@ -9,19 +9,11 @@ struct CloudSyncSentChanges {
 
     var savedRecords: [CKRecord]
     var failedRecordSaves: [FailedSave]
-    var deletedRecordIDs: [CKRecord.ID]
-    var failedRecordDeletes: [CKRecord.ID: CKError]
+    var deletedRecordIDs: [CKRecord.ID] = []
+    var failedRecordDeletes: [CKRecord.ID: CKError] = [:]
+}
 
-    init(
-        savedRecords: [CKRecord], failedRecordSaves: [FailedSave], deletedRecordIDs: [CKRecord.ID] = [],
-        failedRecordDeletes: [CKRecord.ID: CKError] = [:]
-    ) {
-        self.savedRecords = savedRecords
-        self.failedRecordSaves = failedRecordSaves
-        self.deletedRecordIDs = deletedRecordIDs
-        self.failedRecordDeletes = failedRecordDeletes
-    }
-
+extension CloudSyncSentChanges {
     init(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) {
         self.init(
             savedRecords: changes.savedRecords,
@@ -30,14 +22,14 @@ struct CloudSyncSentChanges {
     }
 }
 
-/// A constructible projection of the CKSyncEngine events used by writable sync categories.
-/// Keeping this value separate from CloudKit's event constructors gives the shared dispatcher a deterministic test seam.
 enum CloudSyncZoneDeletionReason: Sendable {
     case deleted
     case purged
     case encryptedDataReset
 }
 
+/// A constructible projection of the CKSyncEngine events used by writable sync categories.
+/// Keeping this value separate from CloudKit's event constructors gives the shared dispatcher a deterministic test seam.
 enum CloudSyncEventInput {
     case stateUpdate(CKSyncEngine.State.Serialization)
     case accountChange(CKSyncEngine.Event.AccountChange.ChangeType)
@@ -159,29 +151,28 @@ extension CloudSyncLifecycle {
         guard let scope else { throw CancellationError() }
         // A save result proves that the ID exists after any previously handed-off delete.
         noteRecordsObserved(changes.savedRecords)
-        for id in changes.deletedRecordIDs where id.zoneID == zoneID {
-            guard let mutation = takeDeletionAcknowledgement(id) else { continue }
-            guard try !store.safety.isUploadBlocked(scope, id.recordName) else { continue }
+        // A delete of an already missing record succeeded as far as this replica is concerned.
+        let deleted =
+            changes.deletedRecordIDs
+            + changes.failedRecordDeletes.filter { $0.value.code == .unknownItem }.map(\.key)
+        for id in deleted where id.zoneID == zoneID {
+            guard let mutation = takeDeletionAcknowledgement(id),
+                try !store.safety.isUploadBlocked(scope, id.recordName)
+            else { continue }
             try acknowledge(mutation)
         }
-        for (id, error) in changes.failedRecordDeletes where id.zoneID == zoneID {
-            if error.code == .unknownItem {
-                guard let mutation = takeDeletionAcknowledgement(id) else { continue }
-                guard try !store.safety.isUploadBlocked(scope, id.recordName) else { continue }
-                try acknowledge(mutation)
+        for (id, error) in changes.failedRecordDeletes where id.zoneID == zoneID && error.code != .unknownItem {
+            let mutation = takeDeletionAcknowledgement(id)
+            if error.code == .zoneNotFound {
+                try handleZoneDeletion()
+            } else if Self.isRetryable(error) || Self.isCancellation(error) {
+                // The server may have committed an ambiguous delete. Release only
+                // the in-memory causal slot so it can retry; keep the durable fence.
             } else {
-                let mutation = takeDeletionAcknowledgement(id)
-                if error.code == .zoneNotFound {
-                    try handleZoneDeletion()
-                } else if Self.isRetryable(error) || Self.isCancellation(error) {
-                    // The server may have committed an ambiguous delete. Release only
-                    // the in-memory causal slot so it can retry; keep the durable fence.
-                } else {
-                    if let mutation { try cancelDeletionHandoff(mutation) }
-                    logFailure(error, stage: "delete")
-                    terminalError = error.localizedDescription
-                    status = .failed(error.localizedDescription)
-                }
+                if let mutation { try cancelDeletionHandoff(mutation) }
+                logFailure(error, stage: "delete")
+                terminalError = error.localizedDescription
+                status = .failed(error.localizedDescription)
             }
         }
     }

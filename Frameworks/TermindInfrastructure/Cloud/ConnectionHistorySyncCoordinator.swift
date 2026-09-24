@@ -7,10 +7,8 @@ import TermindPersistence
 /// Independently synchronizes connection events under the History selection.
 @MainActor
 public final class ConnectionHistorySyncCoordinator {
-    public nonisolated static let containerIdentifier = "iCloud.com.akinokaede.termind"
     // Preserve the deployed zone so fresh installations can read previously uploaded records.
-    public nonisolated static let zoneName = "TermindConnectionHistoryV1"
-    public nonisolated static let recordType = HistoryRecordKind.connectionHistory.recordType
+    public nonisolated static let zoneName = HistoryRecordSyncCoordinator.zoneName
     public nonisolated static let subscriptionID = "termind-connection-history-v1-changes"
 
     let core: HistoryRecordSyncCoordinator
@@ -23,9 +21,9 @@ public final class ConnectionHistorySyncCoordinator {
 
     public convenience init(
         persistence: HistorySyncPersistence,
-        container: CKContainer = CKContainer(identifier: ConnectionHistorySyncCoordinator.containerIdentifier),
+        container: CKContainer = CKContainer(identifier: CloudSyncContainer.identifier),
         defaults: UserDefaults = .standard,
-        environmentIdentifier: String = ConnectionHistorySyncCoordinator.runtimeEnvironmentIdentifier
+        environmentIdentifier: String = CloudSyncContainer.environmentIdentifier
     ) {
         self.init(
             persistence: persistence, defaults: defaults, environmentIdentifier: environmentIdentifier,
@@ -41,10 +39,6 @@ public final class ConnectionHistorySyncCoordinator {
         core = HistoryRecordSyncCoordinator(
             persistence: persistence, kind: .connectionHistory, defaults: defaults,
             environmentIdentifier: environmentIdentifier, makeTransport: makeTransport)
-    }
-
-    public nonisolated static var runtimeEnvironmentIdentifier: String {
-        Bundle.main.object(forInfoDictionaryKey: "TermindCloudKitEnvironment") as? String ?? "Unknown"
     }
 
     public func configureLogging(_ logging: any ApplicationLogManaging) { core.configureLogging(logging) }

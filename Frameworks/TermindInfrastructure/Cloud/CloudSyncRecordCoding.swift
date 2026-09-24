@@ -1,6 +1,16 @@
 import CloudKit
 import CryptoKit
 import Foundation
+import TermindDomain
+
+/// The CloudKit container shared by every sync category.
+public nonisolated enum CloudSyncContainer {
+    public static let identifier = "iCloud.com.akinokaede.termind"
+
+    public static var environmentIdentifier: String {
+        Bundle.main.object(forInfoDictionaryKey: "TermindCloudKitEnvironment") as? String ?? "Unknown"
+    }
+}
 
 /// CloudKit transport mechanics shared by the independently owned sync coordinators.
 nonisolated enum CloudSyncRecordCoding {
@@ -14,6 +24,20 @@ nonisolated enum CloudSyncRecordCoding {
             if let restored = CKRecord(coder: unarchiver) { return restored }
         }
         return CKRecord(recordType: type, recordID: id)
+    }
+
+    /// Queryable metadata written beside the JSON payload of Vault, Settings, and Metrics records.
+    static func setMetadata(
+        on record: CKRecord, formatVersion: Int, kind: String, entityID: String, version: VaultVersion,
+        isDeleted: Bool
+    ) {
+        record["formatVersion"] = NSNumber(value: formatVersion)
+        record["kind"] = kind as NSString
+        record["entityID"] = entityID as NSString
+        record["modifiedAt"] = version.modifiedAt as NSDate
+        record["counter"] = NSNumber(value: Int64(clamping: version.counter))
+        record["writerID"] = version.writerID.uuidString.lowercased() as NSString
+        record["isDeleted"] = NSNumber(value: isDeleted)
     }
 
     static func setPayload(
@@ -37,6 +61,15 @@ nonisolated enum CloudSyncRecordCoding {
         let data = try payloadData(from: record, invalidEnvelope: invalidEnvelope())
         guard record["payloadHash"] as? String == hash(data) else { throw invalidEnvelope() }
         return data
+    }
+
+    static func validateFormat(in data: Data, supported: Int) throws {
+        struct Header: Decodable { var formatVersion: Int }
+        let header = try JSONDecoder().decode(Header.self, from: data)
+        if header.formatVersion > supported {
+            throw CloudSyncCompatibilityError.unsupportedFormat(header.formatVersion)
+        }
+        guard header.formatVersion == supported else { throw CocoaError(.coderReadCorrupt) }
     }
 
     /// Raw bytes remain available to quarantine even when the payload hash is invalid.

@@ -343,7 +343,7 @@ private final class HistoryFixture {
     let device: HistoryEnvelope
     var scope: CloudSyncScope {
         CloudSyncScope(
-            container: HistoryRecordSyncCoordinator.containerIdentifier, environment: "Test", account: "current-user",
+            container: CloudSyncContainer.identifier, environment: "Test", account: "current-user",
             zone: HistoryRecordSyncCoordinator.zoneName, owner: CKCurrentUserDefaultName)
     }
     init() throws {

@@ -10,9 +10,8 @@ import TermindPersistence
 @MainActor
 @Observable
 final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchecked Sendable {
-    public nonisolated static let containerIdentifier = "iCloud.com.akinokaede.termind"
-    public nonisolated static let zoneName = "TermindConnectionHistoryV1"
-    public nonisolated static let recordTypes = Set(HistoryRecordKind.allCases.map(\.recordType))
+    nonisolated static let zoneName = "TermindConnectionHistoryV1"
+    nonisolated static let recordTypes = Set(HistoryRecordKind.allCases.map(\.recordType))
 
     private let context: ModelContext
     private let persistence: HistorySyncPersistence
@@ -25,13 +24,9 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
 
     @ObservationIgnored private(set) lazy var lifecycle = makeLifecycle()
 
-    public private(set) var status: VaultSyncStatus {
-        get { lifecycle.status }
-        set { lifecycle.status = newValue }
-    }
-    public var didApplyRemote: ((Set<HistoryRecordKey>) -> Void)?
-
-    public var isEnabled: Bool { lifecycle.isEnabled }
+    var status: VaultSyncStatus { lifecycle.status }
+    var didApplyRemote: ((Set<HistoryRecordKey>) -> Void)?
+    var isEnabled: Bool { lifecycle.isEnabled }
     private func includes(_ key: HistoryRecordKey) -> Bool { key.kind == kind }
 
     init(
@@ -49,23 +44,17 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
         super.init()
     }
 
-    public func configureLogging(_ logging: any ApplicationLogManaging) {
+    func configureLogging(_ logging: any ApplicationLogManaging) {
         lifecycle.logger = logging.makeLogger(label: "termind.cloud-sync")
     }
 
-    public func start() {
-        lifecycle.start()
-    }
-    public func setEnabled(_ enabled: Bool) { lifecycle.setEnabled(enabled) }
-    public func pause() {
-        lifecycle.pause()
-    }
-    public func retry() { lifecycle.retry() }
-    public func confirmAccountSwitchMerge() {
-        lifecycle.confirmAccountSwitchMerge()
-    }
+    func start() { lifecycle.start() }
+    func setEnabled(_ enabled: Bool) { lifecycle.setEnabled(enabled) }
+    func pause() { lifecycle.pause() }
+    func retry() { lifecycle.retry() }
+    func confirmAccountSwitchMerge() { lifecycle.confirmAccountSwitchMerge() }
 
-    public func noteLocalChanges(_ mutations: HistoryMutationSet) {
+    func noteLocalChanges(_ mutations: HistoryMutationSet) {
         lifecycle.noteLocalChanges(mutations.keys.filter(includes).map(\.recordName))
     }
 
@@ -75,20 +64,7 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
         let kind = kind
         return CloudSyncLifecycle(
             store: CloudSyncLifecycleStore(
-                state: {
-                    let state = try journal.state()
-                    return CloudSyncState(
-                        engineStateData: state.engineStateData, boundUserRecordName: state.boundUserRecordName,
-                        pendingUserRecordName: state.pendingUserRecordName, lastSuccessfulSync: state.lastSuccessfulSync
-                    )
-                },
-                updateState: { value in
-                    let state = try journal.state()
-                    state.engineStateData = value.engineStateData
-                    state.boundUserRecordName = value.boundUserRecordName
-                    state.pendingUserRecordName = value.pendingUserRecordName
-                    state.lastSuccessfulSync = value.lastSuccessfulSync
-                },
+                state: journal.syncState, updateState: journal.updateSyncState,
                 save: { try context.save() }, rollback: { context.rollback() },
                 pendingChanges: {
                     try CloudSyncRecordStateStore(context: context, scope: $0).pendingChanges(journal.cloudRecords())
@@ -112,7 +88,7 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
                         kind == .device && HistoryRecordKey(recordName: recordName)?.kind == .device
                     })),
             transport: makeTransport(zoneID, self),
-            zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
+            zoneID: zoneID, containerIdentifier: CloudSyncContainer.identifier, defaults: defaults,
             enabledKey: kind == .connectionHistory ? SettingsKey.historySyncEnabled : nil,
             defaultEnabled: SettingsKey.defaultHistorySyncEnabled,
             environmentKey: kind == .connectionHistory
@@ -122,20 +98,20 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
             receiveSnapshot: { [weak self] in try self?.receiveRemoteRecords($0, deletions: $1) })
     }
 
-    public nonisolated func nextFetchChangesOptions(
+    nonisolated func nextFetchChangesOptions(
         _ context: CKSyncEngine.FetchChangesContext, syncEngine: CKSyncEngine
     ) async -> CKSyncEngine.FetchChangesOptions {
         .init(scope: .zoneIDs([CKRecordZone.ID(zoneName: Self.zoneName, ownerName: CKCurrentUserDefaultName)]))
     }
 
-    public nonisolated func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
+    nonisolated func handleEvent(_ event: CKSyncEngine.Event, syncEngine: CKSyncEngine) async {
         await lifecycle.handle(
             CloudSyncEventInput(event), engine: syncEngine,
             receiveRemoteRecords: { try receiveRemoteRecords($0, deletions: $1) },
             handleSentChanges: handleSentChanges)
     }
 
-    public nonisolated func nextRecordZoneChangeBatch(
+    nonisolated func nextRecordZoneChangeBatch(
         _ context: CKSyncEngine.SendChangesContext, syncEngine: CKSyncEngine
     ) async -> CKSyncEngine.RecordZoneChangeBatch? {
         await makeChangeBatch(context, engine: syncEngine)
@@ -208,22 +184,9 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
             decoded.map { $0.1 }, deletions: deletedKeys,
             beforeSave: {
                 for (record, envelope) in decoded {
-                    let current = try journal.cloudRecords().first {
-                        $0.mutation.recordName == record.recordID.recordName
-                    }
-                    try cloud.observed(
-                        record.recordID.recordName, version: envelope.version, current: current)
-                    try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
-                    if try journal.envelope(for: envelope.key) == envelope {
-                        try journal.markUploaded(envelope.key, version: envelope.version)
-                    }
-                    try safety.clearQuarantine(recordName: record.recordID.recordName)
+                    try journal.noteRemoteRecord(record, envelope: envelope, cloud: cloud, safety: safety)
                 }
-                for key in deletedKeys {
-                    guard let envelope = try journal.envelope(for: key), envelope.isDeleted else { continue }
-                    try journal.acknowledgeDeletion(
-                        .init(recordName: key.recordName, operation: .delete, version: envelope.version), scope: scope)
-                }
+                try journal.acknowledgeRemoteDeletions(deletedKeys, scope: scope)
             })
         try lifecycle.reconcilePendingChanges()
         if !changed.isEmpty { didApplyRemote?(changed) }
@@ -231,27 +194,14 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
 
     func handleSentChanges(_ changes: CloudSyncSentChanges) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
+        let safety = CloudSyncSafetyStore(context: context, scope: scope)
         let cloud = CloudSyncRecordStateStore(context: context, scope: scope)
         for record in changes.savedRecords
         where record.recordID.zoneID == zoneID
             && HistoryRecordKey(recordName: record.recordID.recordName).map(includes) == true
         {
-            guard try !lifecycle.store.safety.isUploadBlocked(scope, record.recordID.recordName) else { continue }
-            let envelope = try Self.envelope(from: record)
-            let current = try journal.envelope(for: envelope.key)
-            let currentRecord = try journal.cloudRecords().first {
-                $0.mutation.recordName == record.recordID.recordName
-            }
-            try cloud.acknowledgeSave(
-                .init(recordName: record.recordID.recordName, operation: .save, version: envelope.version),
-                current: currentRecord)
-            if current?.isDeleted == true {
-                // An in-flight save may finish after a local/remote deletion. Delete its server copy again.
-                try journal.markNeedsUpload([envelope.key])
-            } else {
-                try journal.markUploaded(envelope.key, version: envelope.version)
-                try journal.updateSystemFields(Self.systemFields(of: record), for: envelope.key)
-            }
+            guard try !safety.isUploadBlocked(recordName: record.recordID.recordName) else { continue }
+            try journal.acknowledgeSavedRecord(record, envelope: Self.envelope(from: record), cloud: cloud)
         }
         for failure in changes.failedRecordSaves where failure.record.recordID.zoneID == zoneID {
             if failure.error.code == .unknownItem,
@@ -275,7 +225,7 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
         }
     }
 
-    public nonisolated static func makeRecord(
+    nonisolated static func makeRecord(
         _ outgoing: HistoryOutgoingEntry, recordID: CKRecord.ID
     ) throws -> CKRecord {
         let envelope = outgoing.envelope
@@ -285,11 +235,7 @@ final class HistoryRecordSyncCoordinator: NSObject, CKSyncEngineDelegate, @unche
         return record
     }
 
-    public nonisolated static func envelope(from record: CKRecord) throws -> HistoryEnvelope {
+    nonisolated static func envelope(from record: CKRecord) throws -> HistoryEnvelope {
         try HistoryCloudRecordV1.read(record)
-    }
-
-    public nonisolated static func systemFields(of record: CKRecord) throws -> Data {
-        try CloudSyncRecordCoding.systemFields(of: record)
     }
 }

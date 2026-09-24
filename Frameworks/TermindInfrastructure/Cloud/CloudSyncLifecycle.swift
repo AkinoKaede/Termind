@@ -254,7 +254,7 @@ final class CloudSyncLifecycle {
     func noteLocalChanges(_ recordNames: [String]) {
         guard !recordNames.isEmpty else { return }
         do {
-            try enqueue(recordNames)
+            try reconcilePendingChanges()
             guard isEnabled else { return }
             if engine == nil {
                 start()
@@ -347,7 +347,6 @@ final class CloudSyncLifecycle {
         let requiresRefetch = try store.safety.prepare(scope, legacyScope(for: state))
         state.boundUserRecordName = currentUser
         state.pendingUserRecordName = nil
-        if requiresRefetch { state.engineStateData = nil }
         try store.updateState(state)
         if defaults.string(forKey: environmentKey) != environmentIdentifier {
             try store.resetForEnvironment()
@@ -431,7 +430,6 @@ final class CloudSyncLifecycle {
         try store.safety.setRecoveryRequired(scope, required)
         try store.save()
     }
-
 }
 
 extension CloudSyncLifecycle {
@@ -447,7 +445,7 @@ extension CloudSyncLifecycle {
         let result = try replica.reconcileDeletions(scope, Array(deletedNames))
         if !result.recreated.isEmpty {
             try store.save()
-            try enqueue(result.recreated)
+            try reconcilePendingChanges()
         }
         let accepted = Set(result.deleted)
         return (
@@ -492,10 +490,8 @@ extension CloudSyncLifecycle {
         fetchFailed = fetchFailed || !succeeded
         if fetching == 0 && !fetchFailed, let scope {
             if inventoryPending {
-                let missing =
-                    try store.replica?.missing(scope, inventorySeen)
-                    ?? .init(deleted: [], recreated: [])
-                try receiveSnapshot([], missing.deleted.map { CKRecord.ID(recordName: $0, zoneID: zoneID) })
+                let deleted = try store.replica?.missing(scope, inventorySeen).deleted ?? []
+                try receiveSnapshot([], deleted.map { CKRecord.ID(recordName: $0, zoneID: zoneID) })
                 try store.replica?.complete(scope)
                 try store.save()
                 inventoryPending = false
@@ -522,11 +518,6 @@ extension CloudSyncLifecycle {
             inFlightDeletions.removeAll()
         }
         try setRecoveryRequired(!succeeded || fetching > 0 || sending > 0 || fetchFailed)
-    }
-
-    func enqueue(_ recordNames: [String]) throws {
-        guard !recordNames.isEmpty else { return }
-        try reconcilePendingChanges()
     }
 
     func reconcilePendingChanges() throws {
@@ -777,9 +768,6 @@ extension CloudSyncLifecycle {
         return .failed(error.localizedDescription)
     }
 
-}
-
-extension CloudSyncLifecycle {
     private func status(for accountStatus: CKAccountStatus) -> VaultSyncStatus {
         switch accountStatus {
         case .noAccount: .signInRequired

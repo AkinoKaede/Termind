@@ -122,7 +122,10 @@ struct SFTPSettingsSyncTests {
         record["payload"] = bytes as NSData
         record["payloadHash"] = SHA256.hash(data: bytes).map { String(format: "%02x", $0) }.joined() as NSString
         #expect(throws: SettingsSyncPersistenceError.self) { try SettingsSyncCoordinator.envelope(from: record) }
-        #expect(try SettingsSyncCoordinator.payloadData(from: record) == bytes)
+        #expect(
+            try CloudSyncRecordCoding.payloadData(
+                from: record, invalidEnvelope: SettingsSyncPersistenceError.invalidEnvelope(recordID.recordName))
+                == bytes)
         #expect(throws: SettingsSyncPersistenceError.self) { try fixture.store.applyRemote([invalid]) }
         #expect(try fixture.store.loadSFTP() == SFTPPreferences())
         #expect(fixture.defaults.integer(forKey: SettingsKey.sftpGlobalTransferLimit) == 30)
@@ -134,7 +137,7 @@ struct SFTPSettingsSyncTests {
         let wrong = CKRecord(recordType: SettingsSyncCoordinator.recordType, recordID: recordID)
         for field in record.allKeys() { wrong[field] = record[field] }
         #expect(throws: SettingsSyncPersistenceError.self) { try SettingsSyncCoordinator.envelope(from: wrong) }
-        let fields = try SettingsSyncCoordinator.systemFields(of: wrong)
+        let fields = try CloudSyncRecordCoding.systemFields(of: wrong)
         #expect(throws: SettingsSyncPersistenceError.self) {
             try SettingsSyncCoordinator.makeRecord(
                 .init(envelope: envelope, systemFieldsData: fields), recordID: recordID)
