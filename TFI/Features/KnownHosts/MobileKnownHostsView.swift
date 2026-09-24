@@ -77,7 +77,7 @@ struct MobileKnownHostsView: View {
             MobileKnownHostEditor(app: app, entry: entry, isNew: app.knownHosts.entry(entry.id) == nil)
         }
         .confirmationDialog(
-            AppStrings.KnownHosts.deleteKnownHostConfirmation.swiftUIKey,
+            AppStrings.KnownHosts.deleteKnownHostConfirmation,
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
             titleVisibility: .visible
         ) {

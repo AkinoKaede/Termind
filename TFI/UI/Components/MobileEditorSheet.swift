@@ -90,7 +90,7 @@ struct MobileEditorSheet<Content: View>: View {
                 .mobileProminentAction()
             }
             .confirmationDialog(
-                AppStrings.Common.discardChangesConfirmation.swiftUIKey, isPresented: $discard,
+                AppStrings.Common.discardChangesConfirmation, isPresented: $discard,
                 titleVisibility: .visible
             ) {
                 Button(AppStrings.Common.discardChanges.swiftUIKey, role: .destructive, action: cancel)

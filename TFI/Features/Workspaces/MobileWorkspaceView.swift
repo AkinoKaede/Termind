@@ -403,7 +403,7 @@ struct MobileWorkspaceView: View {
                 Button(AppStrings.Common.cancel.swiftUIKey, role: .cancel) {}
             }
             .confirmationDialog(
-                AppStrings.Workspace.deleteFileConfirmation.swiftUIKey, isPresented: deletingPresented,
+                AppStrings.Workspace.deleteFileConfirmation, isPresented: deletingPresented,
                 titleVisibility: .visible
             ) {
                 Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {

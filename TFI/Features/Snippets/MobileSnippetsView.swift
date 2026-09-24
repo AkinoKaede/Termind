@@ -127,7 +127,7 @@ struct MobileSnippetsView: View {
             }
         }
         .confirmationDialog(
-            AppStrings.Snippets.deleteSnippetConfirmation.swiftUIKey,
+            AppStrings.Snippets.deleteSnippetConfirmation,
             isPresented: Binding(
                 get: { deletingSnippetID != nil },
                 set: { if !$0 { deletingSnippetID = nil } }),
@@ -154,7 +154,7 @@ struct MobileSnippetsView: View {
             Text(packageDeletionMessage)
         }
         .confirmationDialog(
-            AppStrings.Snippets.runADestructiveScriptConfirmation.swiftUIKey,
+            AppStrings.Snippets.runADestructiveScriptConfirmation,
             isPresented: Binding(
                 get: { destructiveRequest != nil },
                 set: { if !$0 { destructiveRequest = nil } }),

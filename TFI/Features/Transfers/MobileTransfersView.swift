@@ -44,7 +44,7 @@ struct MobileTransfersView: View {
             }
         }
         .confirmationDialog(
-            AppStrings.SFTP.clearFinishedTransfersConfirmation.swiftUIKey, isPresented: $confirmsClearFinished,
+            AppStrings.SFTP.clearFinishedTransfersConfirmation, isPresented: $confirmsClearFinished,
             titleVisibility: .visible
         ) {
             Button(AppStrings.SFTP.clearFinished.swiftUIKey, role: .destructive) { transfers.clearFinished() }

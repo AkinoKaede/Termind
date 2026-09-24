@@ -83,7 +83,7 @@ struct MobileSFTPHistoryView: View {
                 }
             }
             .confirmationDialog(
-                AppStrings.SFTP.clearFileHistoryForThisHostConfirmation.swiftUIKey, isPresented: $clearing,
+                AppStrings.SFTP.clearFileHistoryForThisHostConfirmation, isPresented: $clearing,
                 titleVisibility: .visible
             ) {
                 Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {

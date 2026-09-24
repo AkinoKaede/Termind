@@ -101,7 +101,7 @@ struct MobileCredentialsView: View {
         .sheet(item: $editing) { MobileIdentityEditor(app: app, identity: $0) }
         .sheet(item: $keyEditor) { MobileKeyEditor(model: $0) }
         .confirmationDialog(
-            AppStrings.Keychain.deleteIdentityConfirmation.swiftUIKey,
+            AppStrings.Keychain.deleteIdentityConfirmation,
             isPresented: Binding(get: { deletingIdentity != nil }, set: { if !$0 { deletingIdentity = nil } }),
             titleVisibility: .visible
         ) {
@@ -115,7 +115,7 @@ struct MobileCredentialsView: View {
             Text(AppStrings.Keychain.deleteIdentityWarning)
         }
         .confirmationDialog(
-            AppStrings.Keychain.deleteKeyConfirmation.swiftUIKey,
+            AppStrings.Keychain.deleteKeyConfirmation,
             isPresented: Binding(get: { deletingKey != nil }, set: { if !$0 { deletingKey = nil } }),
             titleVisibility: .visible
         ) {

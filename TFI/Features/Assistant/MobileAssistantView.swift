@@ -141,7 +141,7 @@ struct MobileAssistantView: View {
                 }
             }
             .confirmationDialog(
-                AppStrings.Assistant.deleteConversation.swiftUIKey,
+                AppStrings.Assistant.deleteConversation,
                 isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
                 titleVisibility: .visible
             ) {
@@ -357,7 +357,7 @@ struct MobileAssistantLibrary: View {
             }
         }
         .confirmationDialog(
-            AppStrings.Assistant.deleteConversation.swiftUIKey,
+            AppStrings.Assistant.deleteConversation,
             isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
             titleVisibility: .visible
         ) {

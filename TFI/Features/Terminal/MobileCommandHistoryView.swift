@@ -95,7 +95,7 @@ struct MobileCommandHistoryView: View {
                 }
             }
             .confirmationDialog(
-                AppStrings.Terminal.clearHistoryConfirmation.swiftUIKey, isPresented: $clearing,
+                AppStrings.Terminal.clearHistoryConfirmation, isPresented: $clearing,
                 titleVisibility: .visible
             ) {
                 Button(AppStrings.Common.clear.swiftUIKey, role: .destructive) {

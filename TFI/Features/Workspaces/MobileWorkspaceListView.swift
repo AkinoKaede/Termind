@@ -96,7 +96,7 @@ struct MobileWorkspaceListView: View {
             scene.activatePendingWorkspace()
         }
         .confirmationDialog(
-            AppStrings.Workspace.clearRecentConnectionsConfirmation.swiftUIKey,
+            AppStrings.Workspace.clearRecentConnectionsConfirmation,
             isPresented: Binding(
                 get: { clearingRecentHost != nil },
                 set: { if !$0 { clearingRecentHost = nil } }

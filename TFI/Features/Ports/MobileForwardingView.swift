@@ -54,7 +54,7 @@ struct MobileForwardingView: View {
             MobileForwardingEditor(app: app, rule: rule, isNew: app.forwardingLibrary.portForwarding(rule.id) == nil)
         }
         .confirmationDialog(
-            AppStrings.Forwarding.deleteForwardingRulesConfirmation.swiftUIKey,
+            AppStrings.Forwarding.deleteForwardingRulesConfirmation,
             isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }),
             titleVisibility: .visible
         ) {

@@ -57,7 +57,7 @@ struct MobileLoggingView: View {
             if case .failure(let error) = result { errorMessage = error.localizedDescription }
         }
         .confirmationDialog(
-            AppStrings.Settings.deleteAllLoggingFilesConfirmation.swiftUIKey, isPresented: $showsDeleteAll,
+            AppStrings.Settings.deleteAllLoggingFilesConfirmation, isPresented: $showsDeleteAll,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.deleteAll.swiftUIKey, role: .destructive) { perform { try logging.deleteAll() } }

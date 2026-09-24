@@ -96,7 +96,9 @@ struct MobileConnectionHistoryView: View {
                             Button(AppStrings.Common.delete.swiftUIKey, systemImage: "trash", role: .destructive) {
                                 app.connectionHistory.delete(row.entry.id)
                             }
-                            ForEach(MobileConnectionHistoryActionPolicy.swipeKinds, id: \.self) { kind in
+                            ForEach(
+                                MobileConnectionHistoryActionPolicy.availableSwipeKinds(for: row.host), id: \.self
+                            ) { kind in
                                 connectionButton(kind, host: row.host)
                                     .tint(swipeTint(for: kind))
                             }
@@ -115,7 +117,7 @@ struct MobileConnectionHistoryView: View {
             }
         }
         .confirmationDialog(
-            AppStrings.Connections.clearConnectionHistoryConfirmation.swiftUIKey, isPresented: $clearingHistory,
+            AppStrings.Connections.clearConnectionHistoryConfirmation, isPresented: $clearingHistory,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
@@ -498,7 +500,7 @@ struct MobileVaultView: View {
                 parentID: request.parentID)
         }
         .confirmationDialog(
-            AppStrings.Vault.deleteHostConfirmation.swiftUIKey,
+            AppStrings.Vault.deleteHostConfirmation,
             isPresented: Binding(get: { deletingHost != nil }, set: { if !$0 { deletingHost = nil } }),
             titleVisibility: .visible
         ) {
