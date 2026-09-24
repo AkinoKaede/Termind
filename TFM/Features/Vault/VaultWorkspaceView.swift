@@ -124,7 +124,7 @@ struct VaultWorkspaceContent: View {
         }
         .environment(editingSession)
         .confirmationDialog(
-            AppStrings.Vault.saveChangesConfirmation.swiftUIKey,
+            AppStrings.Vault.saveChangesConfirmation,
             isPresented: Binding(
                 get: { editingSession.confirmationID != nil },
                 set: { if !$0 { editingSession.cancelTransition() } }

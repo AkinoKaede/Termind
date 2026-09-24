@@ -203,6 +203,21 @@ struct ArchitectureBoundaryTests {
     }
 
     @Test
+    func confirmationDialogsPassLocalizedResourcesDirectly() throws {
+        let bridgedTitle = try Regex(
+            #"\.confirmationDialog\(\s*AppStrings\.[A-Za-z0-9_.]+\.swiftUIKey"#)
+        for directory in ["", "../TFI"] {
+            for file in try swiftFiles(in: directory) {
+                let source = try String(contentsOf: file, encoding: .utf8)
+                #expect(
+                    source.firstMatch(of: bridgedTitle) == nil,
+                    "Pass LocalizedStringResource directly to confirmationDialog in \(file.path)"
+                )
+            }
+        }
+    }
+
+    @Test
     func cloudSyncCoordinatorsUseSharedUploadAndQuarantineGates() throws {
         let root = sourceRoot.appending(path: "../Frameworks/TermindInfrastructure/Cloud")
         let files = try FileManager.default.contentsOfDirectory(

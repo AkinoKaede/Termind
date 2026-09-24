@@ -666,7 +666,7 @@ private struct SoftwareKeyEditor: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            AppStrings.Keychain.deleteKeyConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Keychain.deleteKeyConfirmation, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Keychain.deleteKey.swiftUIKey, role: .destructive, action: deleteKey)
@@ -1344,7 +1344,7 @@ private struct SecureEnclaveKeyEditor: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            AppStrings.Keychain.deleteKeyConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Keychain.deleteKeyConfirmation, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Keychain.deleteKey.swiftUIKey, role: .destructive, action: deleteKey)

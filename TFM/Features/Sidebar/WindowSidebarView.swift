@@ -568,7 +568,7 @@ private struct SnippetsSidebarView: View {
             )
         }
         .confirmationDialog(
-            AppStrings.Snippets.runADestructiveScriptConfirmation.swiftUIKey,
+            AppStrings.Snippets.runADestructiveScriptConfirmation,
             isPresented: Binding(
                 get: { destructiveSnippet != nil },
                 set: { if !$0 { destructiveSnippet = nil } }
@@ -869,7 +869,7 @@ private struct SSHCommandHistorySidebar: View {
             SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
         .confirmationDialog(
-            AppStrings.Terminal.clearCommandHistoryForThisHostConfirmation.swiftUIKey,
+            AppStrings.Terminal.clearCommandHistoryForThisHostConfirmation,
             isPresented: $confirmsClear,
             titleVisibility: .visible
         ) {
@@ -879,7 +879,7 @@ private struct SSHCommandHistorySidebar: View {
             Text(AppStrings.Terminal.clearCommandHistoryWarning)
         }
         .confirmationDialog(
-            AppStrings.Assistant.executeADestructiveCommandConfirmation.swiftUIKey,
+            AppStrings.Assistant.executeADestructiveCommandConfirmation,
             isPresented: Binding(
                 get: { destructiveEntry != nil },
                 set: { if !$0 { destructiveEntry = nil } }
@@ -1109,7 +1109,7 @@ private struct SFTPBrowseHistorySidebar: View {
             SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
         .confirmationDialog(
-            AppStrings.SFTP.clearFileHistoryForThisHostConfirmation.swiftUIKey, isPresented: $confirmsClear,
+            AppStrings.SFTP.clearFileHistoryForThisHostConfirmation, isPresented: $confirmsClear,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
@@ -1254,7 +1254,7 @@ private struct ConnectionHistorySidebar: View {
             SidebarSearchFooter(text: $query, placeholder: String(localized: AppStrings.Common.searchHistory))
         }
         .confirmationDialog(
-            AppStrings.Connections.clearConnectionHistoryConfirmation.swiftUIKey,
+            AppStrings.Connections.clearConnectionHistoryConfirmation,
             isPresented: $confirmsClear,
             titleVisibility: .visible
         ) {

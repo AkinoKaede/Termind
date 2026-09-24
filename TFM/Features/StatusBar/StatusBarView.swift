@@ -582,7 +582,7 @@ private struct TransferCenterPopover: View {
         }
         .frame(width: Metrics.TransferCenter.width)
         .confirmationDialog(
-            AppStrings.SFTP.clearFinishedTransfersConfirmation.swiftUIKey, isPresented: $confirmsClearFinished,
+            AppStrings.SFTP.clearFinishedTransfersConfirmation, isPresented: $confirmsClearFinished,
             titleVisibility: .visible
         ) {
             Button(AppStrings.SFTP.clearFinished.swiftUIKey, role: .destructive) {

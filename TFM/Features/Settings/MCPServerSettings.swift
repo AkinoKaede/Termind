@@ -139,7 +139,7 @@ struct MCPServerSettings: View {
             }
         }
         .confirmationDialog(
-            AppStrings.Settings.clearCallHistoryConfirmation.swiftUIKey, isPresented: $confirmsHistoryClear,
+            AppStrings.Settings.clearCallHistoryConfirmation, isPresented: $confirmsHistoryClear,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) { app.toolAudit.clear() }

@@ -601,7 +601,7 @@ struct SnippetEditorSheet: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            AppStrings.Snippets.deleteSnippetConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Snippets.deleteSnippetConfirmation, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Snippets.deleteSnippet.swiftUIKey, role: .destructive, action: delete)

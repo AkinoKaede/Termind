@@ -121,7 +121,7 @@ struct NewIdentitySheet: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            AppStrings.Keychain.deleteIdentityConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Keychain.deleteIdentityConfirmation, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Keychain.deleteIdentity.swiftUIKey, role: .destructive, action: delete)

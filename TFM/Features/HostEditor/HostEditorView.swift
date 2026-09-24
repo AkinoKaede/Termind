@@ -114,7 +114,7 @@ struct HostEditorView: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            AppStrings.Vault.deleteHostConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Vault.deleteHostConfirmation, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.delete.swiftUIKey, role: .destructive) {

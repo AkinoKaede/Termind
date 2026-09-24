@@ -48,7 +48,7 @@ struct LoggingFilesSettings: View {
         }
         .background(LoggingSharingService(url: $shareURL))
         .confirmationDialog(
-            AppStrings.Settings.deleteAllLoggingFilesConfirmation.swiftUIKey, isPresented: $showsDeleteAll,
+            AppStrings.Settings.deleteAllLoggingFilesConfirmation, isPresented: $showsDeleteAll,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.deleteAll.swiftUIKey, role: .destructive) {

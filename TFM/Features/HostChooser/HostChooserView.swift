@@ -237,7 +237,7 @@ struct HostChooserView: View {
             }
         }
         .confirmationDialog(
-            AppStrings.Snippets.runADestructiveScriptConfirmation.swiftUIKey,
+            AppStrings.Snippets.runADestructiveScriptConfirmation,
             isPresented: $isConfirmingDestructiveSnippet,
             titleVisibility: .visible
         ) {

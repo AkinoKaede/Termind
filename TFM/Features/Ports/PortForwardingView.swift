@@ -304,7 +304,7 @@ struct PortForwardingDetailView: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            AppStrings.Forwarding.deleteForwardingRuleConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.Forwarding.deleteForwardingRuleConfirmation, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.delete.swiftUIKey, role: .destructive, action: delete)

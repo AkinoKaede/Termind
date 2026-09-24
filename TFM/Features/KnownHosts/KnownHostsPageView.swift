@@ -255,7 +255,7 @@ struct KnownHostEditorView: View {
             editingSession.unregister(editingToken)
         }
         .confirmationDialog(
-            AppStrings.KnownHosts.deleteKnownHostConfirmation.swiftUIKey, isPresented: $confirmsDeletion,
+            AppStrings.KnownHosts.deleteKnownHostConfirmation, isPresented: $confirmsDeletion,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.delete.swiftUIKey, role: .destructive, action: delete)

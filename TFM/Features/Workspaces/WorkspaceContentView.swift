@@ -1273,7 +1273,7 @@ private struct WelcomeHostRow: View {
             }
         }
         .confirmationDialog(
-            AppStrings.Workspace.clearRecentConnectionsConfirmation.swiftUIKey, isPresented: $confirmsHistoryClear,
+            AppStrings.Workspace.clearRecentConnectionsConfirmation, isPresented: $confirmsHistoryClear,
             titleVisibility: .visible
         ) {
             Button(AppStrings.Common.clearHistory.swiftUIKey, role: .destructive) {
