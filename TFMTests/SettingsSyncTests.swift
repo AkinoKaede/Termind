@@ -525,7 +525,7 @@ struct SettingsSyncTests {
         defaults.set(true, forKey: SettingsKey.iCloudSyncEnabled)
         #expect(vault.isEnabled && ai.isEnabled)
         defaults.set(false, forKey: SettingsKey.vaultSyncEnabled)
-        #expect(!vault.isEnabled && ai.isEnabled)
+        #expect(vault.isEnabled && ai.isEnabled)
     }
 
     @Test
@@ -562,10 +562,12 @@ struct SettingsSyncTests {
             secrets: AISecretStore(
                 context: container.mainContext, keychain: SyncTestSecrets(), defaults: defaults), defaults: defaults)
         #expect(vault.isEnabled && ai.isEnabled)
-        vault.setEnabled(false)
+        defaults.set(false, forKey: SettingsKey.vaultSyncEnabled)
         #expect(ai.isEnabled)
         defaults.set(false, forKey: SettingsKey.settingsSyncEnabled)
         #expect(!ai.isEnabled)
+        #expect(vault.isEnabled)
+        defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)
         #expect(!vault.isEnabled)
         ai.pause()
     }

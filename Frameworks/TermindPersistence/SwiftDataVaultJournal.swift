@@ -63,9 +63,7 @@ extension VaultSnapshot {
     }
 
     public nonisolated mutating func apply(_ envelope: VaultEnvelope) throws {
-        guard envelope.formatVersion <= VaultEnvelope.currentFormatVersion else {
-            throw VaultSyncPersistenceError.unsupportedFormat(envelope.formatVersion)
-        }
+        try SyncRecordFormats.vault.validate(kind: envelope.key.kind.rawValue, version: envelope.formatVersion)
         guard envelope.isValid else {
             throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
         }
@@ -219,7 +217,7 @@ public final class VaultSyncJournal {
             FetchDescriptor<PersistentVaultSyncEntry>(
                 predicate: #Predicate { $0.needsUpload }
             )
-        ).compactMap(\.envelope).map(\.withoutDeviceLocalMetadata)
+        ).compactMap(\.envelope).filter { $0.key.kind.isConfiguration }.map(\.withoutDeviceLocalMetadata)
     }
 
     public func uploadablePendingRecordNames(in scope: CloudSyncScope) throws -> [String] {
@@ -229,7 +227,8 @@ public final class VaultSyncJournal {
 
     public func importLegacyQuarantine(into scope: CloudSyncScope) throws {
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncQuarantine>()) {
+        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncQuarantine>())
+        where HistoryRecordKey(recordName: row.recordName) == nil {
             if try !safety.isUploadBlocked(recordName: row.recordName) {
                 try safety.quarantine(recordName: row.recordName, payloadData: row.payloadData, reason: row.reason)
             }
@@ -238,6 +237,8 @@ public final class VaultSyncJournal {
     }
 
     public func outgoingEntry(for key: VaultRecordKey, scope: CloudSyncScope? = nil) throws -> VaultOutgoingEntry? {
+        // Restored pre-V35 CKSyncEngine queues can still contain legacy history IDs.
+        guard key.kind.isConfiguration else { return nil }
         if let scope,
             try CloudSyncSafetyStore(context: context, scope: scope).isUploadBlocked(recordName: key.recordName)
         {
@@ -258,7 +259,8 @@ public final class VaultSyncJournal {
 
     public func modificationDates() throws -> [VaultRecordKey: Date] {
         var result: [VaultRecordKey: Date] = [:]
-        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()) {
+        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>())
+        where HistoryRecordKey(recordName: row.recordName) == nil {
             guard let envelope = row.envelope, !envelope.isDeleted else { continue }
             result[envelope.key] = envelope.version.modifiedAt
         }
@@ -268,11 +270,9 @@ public final class VaultSyncJournal {
     public func mergeDecision(for remote: [VaultEnvelope]) throws -> VaultRemoteMerge {
         var result = VaultRemoteMerge()
         let entries = try entriesByName()
-        for rawEnvelope in remote {
+        for rawEnvelope in remote where rawEnvelope.key.kind.isConfiguration {
             let envelope = rawEnvelope.withoutDeviceLocalMetadata
-            guard envelope.formatVersion <= VaultEnvelope.currentFormatVersion else {
-                throw VaultSyncPersistenceError.unsupportedFormat(envelope.formatVersion)
-            }
+            try SyncRecordFormats.vault.validate(kind: envelope.key.kind.rawValue, version: envelope.formatVersion)
             guard envelope.isValid else {
                 throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName)
             }
@@ -287,8 +287,8 @@ public final class VaultSyncJournal {
             } else if envelope.version < local.version {
                 result.needsUpload.insert(local.key)
             } else if local != envelope {
-                let localData = VaultSyncCodec.encode(local)
-                let remoteData = VaultSyncCodec.encode(envelope)
+                let localData = try VaultSyncCodec.encode(local)
+                let remoteData = try VaultSyncCodec.encode(envelope)
                 if localData.lexicographicallyPrecedes(remoteData) {
                     result.accepted.append(envelope)
                 } else {
@@ -301,7 +301,7 @@ public final class VaultSyncJournal {
 
     public func acceptRemote(_ envelopes: [VaultEnvelope]) throws {
         var entries = try entriesByName()
-        for envelope in envelopes {
+        for envelope in envelopes where envelope.key.kind.isConfiguration {
             try store(envelope.withoutDeviceLocalMetadata, needsUpload: false, in: &entries)
         }
     }
@@ -317,7 +317,7 @@ public final class VaultSyncJournal {
         else {
             return
         }
-        row.apply(envelope.withoutDeviceLocalMetadata, needsUpload: false)
+        try row.apply(envelope.withoutDeviceLocalMetadata, needsUpload: false)
     }
 
     public func updateSystemFields(_ data: Data?, for key: VaultRecordKey) throws {
@@ -390,118 +390,15 @@ public final class VaultSyncJournal {
                 version: .next(after: envelope.version, writerID: state.installationID, now: now),
                 isDeleted: true
             )
-            row.apply(tombstone, needsUpload: true)
+            try row.apply(tombstone, needsUpload: true)
             changed.insert(envelope.key)
-        }
-        return VaultMutationSet(keys: changed)
-    }
-
-    /// Reconciles the independently owned connection timeline with the Vault
-    /// journal. Calling this on every launch also bootstraps histories created by
-    /// clients whose original Vault bootstrap predates this record kind.
-    public func recordCurrentConnectionHistory(
-        _ values: [ConnectionHistoryEntry],
-        now: Date = .now
-    ) throws -> VaultMutationSet {
-        let state = try state()
-        let current = Dictionary(
-            uniqueKeysWithValues: values.map {
-                (VaultRecordKey(kind: .connectionHistory, id: $0.id), VaultRecordPayload.connectionHistory($0))
-            })
-        var entries = try entriesByName()
-        var changed = Set<VaultRecordKey>()
-
-        for (key, payload) in current {
-            let row = entries[key.recordName]
-            guard row?.envelope?.payload != payload || row?.envelope?.isDeleted != false else { continue }
-            let envelope = VaultEnvelope(
-                key: key,
-                version: .next(after: row?.envelope?.version, writerID: state.installationID, now: now),
-                payload: payload
-            )
-            try store(envelope, needsUpload: true, in: &entries)
-            changed.insert(key)
-        }
-
-        for row in entries.values {
-            guard let envelope = row.envelope, envelope.key.kind == .connectionHistory,
-                !envelope.isDeleted, current[envelope.key] == nil
-            else { continue }
-            let tombstone = VaultEnvelope(
-                key: envelope.key,
-                version: .next(after: envelope.version, writerID: state.installationID, now: now),
-                isDeleted: true
-            )
-            row.apply(tombstone, needsUpload: true)
-            changed.insert(envelope.key)
-        }
-        return VaultMutationSet(keys: changed)
-    }
-
-    /// Removes connection events that exceed local retention before launch-time
-    /// history bootstrap. Records that have never reached CloudKit can disappear
-    /// from the journal; records with CloudKit identity require ordinary logical
-    /// deletion so other devices converge on the same retained timeline.
-    public func discardOverflowConnectionHistory(
-        _ values: [ConnectionHistoryEntry],
-        now: Date = .now
-    ) throws -> VaultMutationSet {
-        guard !values.isEmpty else { return .empty }
-        let state = try state()
-        var entries = try entriesByName()
-        var changed = Set<VaultRecordKey>()
-        var discardedPendingChanges = false
-
-        for value in values {
-            let key = VaultRecordKey(kind: .connectionHistory, id: value.id)
-            guard let row = entries[key.recordName], let envelope = row.envelope else { continue }
-            if row.systemFieldsData == nil {
-                context.delete(row)
-                entries[key.recordName] = nil
-                discardedPendingChanges = true
-                continue
-            }
-            guard !envelope.isDeleted else { continue }
-            let tombstone = VaultEnvelope(
-                key: key,
-                version: .next(after: envelope.version, writerID: state.installationID, now: now),
-                isDeleted: true
-            )
-            row.apply(tombstone, needsUpload: true)
-            changed.insert(key)
-        }
-
-        // A serialized engine may still contain names removed above. A fresh
-        // engine restores only the journal's surviving pending changes.
-        if discardedPendingChanges { state.engineStateData = nil }
-        return VaultMutationSet(keys: changed)
-    }
-
-    /// Reconciles the shared installation directory without deleting records
-    /// for devices that are merely absent from one client's local store.
-    public func recordCurrentDevices(
-        _ values: [DeviceRecord], now: Date = .now
-    ) throws -> VaultMutationSet {
-        let state = try state()
-        var entries = try entriesByName()
-        var changed = Set<VaultRecordKey>()
-        for device in values {
-            let key = VaultRecordKey(kind: .device, id: device.id)
-            let payload = VaultRecordPayload.device(device)
-            let row = entries[key.recordName]
-            guard row?.envelope?.payload != payload || row?.envelope?.isDeleted != false else { continue }
-            let envelope = VaultEnvelope(
-                key: key,
-                version: .next(after: row?.envelope?.version, writerID: state.installationID, now: now),
-                payload: payload)
-            try store(envelope, needsUpload: true, in: &entries)
-            changed.insert(key)
         }
         return VaultMutationSet(keys: changed)
     }
 
     public func markAllLiveRecordsNeedsUploadForNewAccount() throws {
-        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()) {
+        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>())
+        where HistoryRecordKey(recordName: row.recordName) == nil {
             guard let envelope = row.envelope else { continue }
             if envelope.isDeleted {
                 context.delete(row)
@@ -516,7 +413,8 @@ public final class VaultSyncJournal {
     }
 
     public func markAllEntriesNeedsUploadAfterZoneReset() throws {
-        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()) {
+        for row in try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>())
+        where HistoryRecordKey(recordName: row.recordName) == nil {
             row.needsUpload = true
             row.systemFieldsData = nil
         }
@@ -545,7 +443,7 @@ public final class VaultSyncJournal {
         in entries: inout [String: PersistentVaultSyncEntry]
     ) throws {
         if let row = entries[envelope.key.recordName] {
-            row.apply(envelope, needsUpload: needsUpload)
+            try row.apply(envelope, needsUpload: needsUpload)
         } else {
             let row = try PersistentVaultSyncEntry(
                 envelope: envelope, needsUpload: needsUpload
@@ -557,7 +455,9 @@ public final class VaultSyncJournal {
 
     private func entriesByName() throws -> [String: PersistentVaultSyncEntry] {
         Dictionary(
-            try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()).map {
+            try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>()).filter {
+                HistoryRecordKey(recordName: $0.recordName) == nil
+            }.map {
                 ($0.recordName, $0)
             },
             uniquingKeysWith: { first, duplicate in

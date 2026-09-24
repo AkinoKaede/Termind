@@ -20,6 +20,9 @@ public nonisolated enum SettingsKey {
     public static let defaultTerminalThemeDark = "Termind Dark"
     public static let defaultTerminalThemeLight = "Termind Light"
     public static let defaultVaultSyncEnabled = true
+    public static let defaultHistorySyncEnabled = true
+    public static let historySyncEnabled = "history.sync.enabled"
+    public static let historySyncEnvironment = "history.sync.environment"
     public static let defaultWebSearchBuiltIn = true
     public static let defaultWebSearchEnabled = true
     public static let iCloudSyncEnabled = "icloud.sync.enabled"
@@ -51,11 +54,24 @@ public nonisolated enum SettingsKey {
     public static let terminalPasteOnRightClick = "terminal.pasteOnRightClick"
     public static let terminalThemeDark = "terminal.theme.dark"
     public static let terminalThemeLight = "terminal.theme.light"
+    // Migration-only key: configuration now follows the master switch.
     public static let vaultSyncEnabled = "vault.sync.enabled"
     public static let vaultSyncEnvironment = "vault.sync.environment"
     public static let webSearchBuiltIn = "search.builtIn"
     public static let webSearchEnabled = "search.enabled"
     public static func migrateSyncPreferences(in defaults: UserDefaults = .standard) {
+        // Run before the existing master-switch migration can normalize Vault choices.
+        // An explicitly disabled Vault must not become enabled History during upgrade.
+        if defaults.object(forKey: historySyncEnabled) == nil {
+            defaults.set(
+                defaults.object(forKey: vaultSyncEnabled) as? Bool ?? defaultHistorySyncEnabled,
+                forKey: historySyncEnabled)
+        }
+        if defaults.object(forKey: historySyncEnvironment) == nil,
+            let environment = defaults.string(forKey: vaultSyncEnvironment)
+        {
+            defaults.set(environment, forKey: historySyncEnvironment)
+        }
         if defaults.object(forKey: settingsSyncEnabled) == nil,
             let legacy = defaults.object(forKey: "ai.sync.enabled") as? Bool
         {
@@ -93,9 +109,6 @@ public nonisolated enum NewVaultCredentialStorage {
         let iCloudEnabled =
             defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool
             ?? SettingsKey.defaultICloudSyncEnabled
-        let vaultEnabled =
-            defaults.object(forKey: SettingsKey.vaultSyncEnabled) as? Bool
-            ?? SettingsKey.defaultVaultSyncEnabled
-        return iCloudEnabled && vaultEnabled && canUseVaultSync
+        return iCloudEnabled && canUseVaultSync
     }
 }

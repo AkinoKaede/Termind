@@ -110,7 +110,7 @@ struct SettingsPortTests {
         #expect(defaults.bool(forKey: SettingsKey.settingsSyncEnabled))
     }
 
-    @Test func newVaultCredentialStorageRequiresBothSwitchesAndProAccess() throws {
+    @Test func newVaultCredentialStorageRequiresMasterAndProRegardlessOfLegacyVaultChoice() throws {
         let domain = "VaultCredentialStorage.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: domain))
         defer { defaults.removePersistentDomain(forName: domain) }
@@ -120,9 +120,9 @@ struct SettingsPortTests {
                     defaults.set(iCloudEnabled, forKey: SettingsKey.iCloudSyncEnabled)
                     defaults.set(vaultEnabled, forKey: SettingsKey.vaultSyncEnabled)
                     let expectedKey: KeyStorage =
-                        iCloudEnabled && vaultEnabled && canUseVaultSync ? .iCloud : .thisDevice
+                        iCloudEnabled && canUseVaultSync ? .iCloud : .thisDevice
                     let expectedPassword: PasswordStorage =
-                        iCloudEnabled && vaultEnabled && canUseVaultSync ? .iCloud : .thisDevice
+                        iCloudEnabled && canUseVaultSync ? .iCloud : .thisDevice
 
                     #expect(
                         NewVaultCredentialStorage.keyStorage(

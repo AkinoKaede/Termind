@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:f65ef3bece82ac4bd0a4c9c9d91292ac8e315454fa3fe24bf01b7a39f1209c54",
+  "pageVersion": "sha256:8bb289540a69562fe8f6e9390dfebb461cf35726a994018001b9bc608de27937",
   "claims": [
     {
       "id": "claim_b47979774aa94e7dae517a6894c508d4",
@@ -8,7 +8,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
           "resource": "repo://TFM/App/MCPServerController.swift",
@@ -305,24 +305,20 @@
       "statement": "The macOS AppModel supplies shared AgentHostServices resolver, connection pool, authentication registry, and background commands to its MCPServerController, which owns the external upload/download ticket coordinators and ties them to MCP sessions; iOS instead supplies AgentHostServices to MobileAssistantModel and constructs a separate ordinary SFTPTransferCoordinator, without constructing an inbound MCP listener or its transfer routes.",
       "evidence": [
         {
-          "resource": "repo://TFI/App/MobileAppModel.swift#L241-L275",
-          "version": "repo-lines-v1:sha256:8d4d911d90dc89b12dd420b04b12d69b911218a6bac19b511a4ccbc2f51a8860:eyJzZWxlY3RlZExpbmVDb3VudCI6MzUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjJhNmVkZjNhNmY4NThlYTM3YTZmMDZiY2ZhNWFlY2Y4YmU4NzczNzJiYjhiYzA5ZmUwZjE3NmY5OGE1MTczZDYiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRmYWQ3ODk2ZGU0ODk4MzU0ODAyMGEwYzY5YmQxNDVjN2VjMTlhOTBkZTRhMGYxMjQyZWIwMWE3ZjMzZDVjOGIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjBiZDMxMGQwMTYwM2I3NmY0OWFhMjIzZjEzNzVlNjViYWQ5Zjc5Njk3ZWJlZmIzM2RiMTQ1OGUwZjMwMzE3Y2QiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImIyNmQyZWJjNGFjZWE5ZDk0YWMyOGU0ZWJhMmQwNzA2MDQzODU2Y2Q4YmFmZTk4YzdmYzQ3NGJmYTdhYTk5N2QifQ"
+          "resource": "repo://TFI/App/MobileAppModel.swift",
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
-          "resource": "repo://TFM/App/AppModel.swift#L201-L250",
-          "version": "repo-lines-v1:sha256:58b3f0c53db979ac8364ed09b8217835556719ff0162914f35e84ed27019f574:eyJzZWxlY3RlZExpbmVDb3VudCI6NTAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjhhZWVjYjk1YTc2M2FhZDQ5NjhiOWYxYWYyMDU2MjVmMTgxOTAyOGRmMWZkMGFkM2RiNmViMzQxZWE4NzJlY2EiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjU5MDlhNTNhNjE4ZDAyOGUxZDMwMDBjMGE3YWJjZWVjYmU1ZmIzN2Y0ZTUxMWVmZTQ2NjQzZmFkNmU2Njg3MmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjJlYWMyMWIyNGJkYThiN2QwM2M1NTkzYzE3YjZkNDkxZGVhODk0NjVjYTIzYWI3MmY0NjQ2MGI0NjA4MGIzODgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjcwZGEyY2NmZmZiOWM0ZWM4NTIzMGU5NDMzZGVmMDFlNDIxYWI4MjJkN2I5ZWQwYTA4Y2QzMGIwODg4YWJkNTAifQ"
+          "resource": "repo://TFM/App/AppModel.swift",
+          "version": "repo-file-v1:sha256:eb08508a1385bb806d57301701eb382c6527054fcda627d2b150198baa28adc0"
         },
         {
-          "resource": "repo://TFM/App/MCPServerController.swift#L172-L200",
-          "version": "repo-lines-v1:sha256:8d50f6892bee3ab850c9f1ec6d76c62d981a96772a0785561c58917ea0df154a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc4OTI3ZjY5ZjRiN2JiZGM0NjNiYjZiOWJiNjkxZDQ5NzBkNjg3YjI5YzAzZDc2NTIxMDI0NWI3Mzk4OTg4MTciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImY3ZWNmYTNkYjMwOTFjM2RhODgxZjZjODVlYmU3MjBlYmIxOTg1MDY3Zjg3M2Q5NWJmOWY2MDM3MWFiNTFiZDciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFmN2E0YTAxMTI5YjdiNDlmYjA0NzYzMWRhNzM3MjBjYTMwM2EzMWIzNjcyYWNkN2RlZjg4NWM4MzdhZGM4ZjcifQ"
+          "resource": "repo://TFM/App/MCPServerController.swift",
+          "version": "repo-file-v1:sha256:148237060fb32863988d3fce056529b2032e381e1b8da4070eee592134c86bff"
         },
         {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L114-L180",
-          "version": "repo-lines-v1:sha256:7429e23cc5acfb0c4d8c8db35b4f475f89eaca6cfc7509c889df129bd5960b36:eyJzZWxlY3RlZExpbmVDb3VudCI6NjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImMwNWYxMzcwN2U0OTQ2YWY4NjE2MjcxZjhlOTc3MmFlMTllODM0MDNlOWI1OTE2OWQ0ZjU1MmYzYzg2ZDRjZGUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzNzhkOGYxZTk3NDg0M2I4M2U0MDFhYjcxZDExZGZkYTAzZjE0OWJkYjIyZGFhOTVjMDYwMjQzYmVmODZmOGYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZmMGQ3NTk1MGRmMGZmOWEzZWU5NjYzOWRjYzhmZjVlYWVkYjQwZDY4MmJlYTkyNjIyYjUyMGRkODg3ZDkzZTkiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjY1YmRiYjExOTcyMzQ2MWM4NTBiZWFlMzNiMjdlZGZkMmFlZTY4YWM1ODc2ZTU2ZTc0MmZhMzRjOTg5YTcwZmEifQ"
-        },
-        {
-          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift#L24-L82",
-          "version": "repo-lines-v1:sha256:7e49cb710fe6531fd703953ff8e825394d457513e3338f6f31ef36dc2d21c462:eyJzZWxlY3RlZExpbmVDb3VudCI6NTksImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAyODgwNTA4Y2FkZTAwMmU3ZWE3Y2MxZGNkMmEzZjgxNTJkMWViMDlkMTU4MmU1ZmFiNjc0YzY5NzkyZDk3NWMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjZmYTk0OWU0N2NlZTA3MjhmODU0YWI1YjAwNDFkMDc3OWM0NjQ4NzEwOWMwNzM3ZTE5OTRhYmIzMzMxMzAxNmQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImZkZDgxODQxYzE0YTcxYzljODI3ZmQ0NjRhZjU2MTYxMDVlYTBhZGVmZjVjZjZjM2E4NDc5YjE1MmI3Y2FhMGUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5MzU3YjJhYjcyNTNjYzgzZjIxNTAxMzlhZTI2NmU0NTZiNjMzMjA2YjJjYWFlNjlkOWY5ODYyNmFlNjkxYjkifQ"
+          "resource": "repo://TFM/Application/MCPServer/MCPServerTools.swift",
+          "version": "repo-file-v1:sha256:6e1ccc217b7c3ea17192067e55e62343eacffa72bf0f3ed202aaf3fe98c8edba"
         }
       ]
     },
@@ -385,6 +381,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T03:18:19.992Z"
+    "at": "2026-09-24T06:30:19.118Z"
   }
 }

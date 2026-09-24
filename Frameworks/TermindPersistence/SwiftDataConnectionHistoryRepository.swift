@@ -64,7 +64,7 @@ public typealias PersistentConnectionHistoryEntry =
 @MainActor
 public final class SwiftDataConnectionHistoryRepository: ConnectionHistoryRepository {
     private let context: ModelContext
-    public var didRecordVaultChanges: ((VaultMutationSet) -> Void)?
+    public var didRecordHistoryChanges: ((HistoryMutationSet) -> Void)?
 
     public init(context: ModelContext) { self.context = context }
 
@@ -130,12 +130,12 @@ public final class SwiftDataConnectionHistoryRepository: ConnectionHistoryReposi
     }
 
     private func commitMutation(_ operation: () throws -> Void) throws {
-        var mutations = VaultMutationSet.empty
+        var mutations = HistoryMutationSet.empty
         try context.commit {
+            try HistorySyncJournal(context: context).bootstrapIfNeeded()
             try operation()
-            mutations = try VaultSyncJournal(context: context).recordCurrentConnectionHistory(
-                try entries())
+            mutations = try HistorySyncJournal(context: context).recordCurrentSnapshot()
         }
-        if !mutations.isEmpty { didRecordVaultChanges?(mutations) }
+        if !mutations.isEmpty { didRecordHistoryChanges?(mutations) }
     }
 }

@@ -3,9 +3,6 @@ type: architecture directory guide
 title: Native App Directory Responsibilities
 description: Directory ownership in the macOS and iOS apps, including desktop window composition, MCP transfer policy, and mobile scene, sync, and background lifetimes.
 tags: [architecture, directories, macos, ios, ipados, navigation, lifecycle]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-c4b6e224fdbea6dcd393344d
     resource: repo://Frameworks/TermindRemoteInfrastructure/Transfers/SFTPTransferCoordinator.swift
@@ -117,7 +114,10 @@ sources:
     resource: repo://TFMTests/SettingsNavigationTests.swift
   - id: openwiki-source-ea148dc5de8cabfc00dc07ae
     resource: repo://TFMTests/WindowSidebarTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T06:45:57.323Z
 ---
 
 # Native App Directory Responsibilities
@@ -315,7 +315,7 @@ Desktop destination switches park persistent workspace views; mobile route chang
 
 `MobileRootView` reports each scene phase and removal to the app model, and observes Pro changes to call `reconcileSync`. The app records phases per scene. On the first transition where **all registered scenes** are backgrounded (including removal of the last active scene while another remains backgrounded), it pauses monitoring, memory, sync engines, metrics and outbox, suspends Assistant recording and asks `MobileBackgroundController` for a UIKit background-task lease. It does **not** immediately disconnect healthy workspaces. Lease expiry requests workspace suspension and stops forwarding, transfers and Assistant background execution. The controller retires a lease exactly once; stale expiry callbacks cannot affect a replacement lease, and synchronous expiry during `begin` or an invalid identifier is handled without leaking an end call.
 
-On an active scene transition, the app finishes the lease, resumes affected workspaces, monitoring and memory, rechecks edited files, refreshes Pro, restarts outbox/metrics and Live Activities, and reconciles sync. `reconcileSync` starts vault, metrics and settings sync **only when at least one tracked scene is active and Pro permits vault sync**; otherwise it pauses all three. `setSyncEnabled` guards enabling with `pro.require(.vaultSync)`, stores the preference, migrates custom passwords when enabling vault/iCloud sync and calls `reconcileSync`—the individual coordinators still enforce their own enabled preferences. A `.inactive` scene is not an active scene for this decision, and an empty scene registry does not trigger background entry, but reconciliation pauses sync. In-memory/test composition omits the cloud coordinators altogether.
+On an active scene transition, the app finishes the lease, resumes affected workspaces, monitoring and memory, rechecks edited files, refreshes Pro, restarts outbox/metrics and Live Activities, and reconciles sync. `reconcileSync` starts vault, history/device, metrics and settings sync **only when at least one tracked scene is active and Pro permits vault sync**; otherwise it pauses all four. `setSyncEnabled` guards enabling with `pro.require(.vaultSync)`, stores the preference, migrates custom passwords when enabling the iCloud master switch and calls `reconcileSync`—Vault and Device follow the master switch; History, Metrics and Settings additionally enforce their optional selections. A `.inactive` scene is not an active scene for this decision, and an empty scene registry does not trigger background entry, but reconciliation pauses sync. In-memory/test composition omits the cloud coordinators altogether.
 
 ```mermaid
 flowchart TD
@@ -329,8 +329,8 @@ flowchart TD
     Track -->|scene removed| Sync
     Pro["Pro entitlement change or sync setting"] --> Sync
     Sync --> Gate{"Active scene and Pro vault sync"}
-    Gate -->|yes| Start["Start three sync coordinators"]
-    Gate -->|no| Stop["Pause three sync coordinators"]
+    Gate -->|yes| Start["Start four sync coordinators"]
+    Gate -->|no| Stop["Pause four sync coordinators"]
 ```
 
 Scene registration and entitlement gate app-owned synchronization independently of the visible route.

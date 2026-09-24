@@ -6,44 +6,17 @@ import TermindPresentation
 struct MobileSyncSettingsView: View {
     let app: MobileAppModel
     @AppStorage(SettingsKey.iCloudSyncEnabled) private var enabled = SettingsKey.defaultICloudSyncEnabled
-    @AppStorage(SettingsKey.vaultSyncEnabled) private var vault = SettingsKey.defaultVaultSyncEnabled
+    @AppStorage(SettingsKey.historySyncEnabled) private var history = SettingsKey.defaultHistorySyncEnabled
     @AppStorage(SettingsKey.metricsSyncEnabled) private var metrics = SettingsKey.defaultMetricsSyncEnabled
     @AppStorage(SettingsKey.settingsSyncEnabled) private var settings = SettingsKey.defaultSettingsSyncEnabled
 
     var body: some View {
         Form {
-            Section {
-                Toggle(
-                    AppStrings.Settings.iCloudSync.swiftUIKey,
-                    isOn: selection(enabled && app.pro.canUse(.vaultSync), SettingsKey.iCloudSyncEnabled))
-            }
-            Section {
-                Toggle(AppStrings.Navigation.vault.swiftUIKey, isOn: selection(vault, SettingsKey.vaultSyncEnabled))
-                if vault {
-                    status(
-                        app.vaultSync?.status, retry: { app.vaultSync?.retry() },
-                        merge: { app.vaultSync?.confirmAccountSwitchMerge() })
-                }
-            }.disabled(!enabled || !app.pro.canUse(.vaultSync))
-            Section {
-                Toggle(
-                    AppStrings.Navigation.metrics.swiftUIKey, isOn: selection(metrics, SettingsKey.metricsSyncEnabled))
-                if metrics {
-                    status(
-                        app.metricsSync?.status, retry: { app.metricsSync?.retry() },
-                        merge: { app.metricsSync?.confirmAccountSwitchMerge() })
-                }
-            }.disabled(!enabled || !app.pro.canUse(.vaultSync))
-            Section {
-                Toggle(
-                    AppStrings.Navigation.settings.swiftUIKey,
-                    isOn: selection(settings, SettingsKey.settingsSyncEnabled))
-                if settings {
-                    status(
-                        app.settingsSync?.status, retry: { app.settingsSync?.retry() },
-                        merge: { app.settingsSync?.confirmAccountSwitchMerge() })
-                }
-            }.disabled(!enabled || !app.pro.canUse(.vaultSync))
+            CloudSyncSettingsContent(
+                enabled: selection(enabled && app.pro.canUse(.vaultSync), SettingsKey.iCloudSyncEnabled),
+                history: selection(history, SettingsKey.historySyncEnabled),
+                settings: selection(settings, SettingsKey.settingsSyncEnabled),
+                metrics: selection(metrics, SettingsKey.metricsSyncEnabled), categories: syncCategories)
         }.navigationTitle(AppStrings.Settings.sync.swiftUIKey)
     }
 
@@ -51,21 +24,27 @@ struct MobileSyncSettingsView: View {
         Binding(get: { value }, set: { app.setSyncEnabled($0, key: key) })
     }
 
-    @ViewBuilder
-    private func status(_ value: VaultSyncStatus?, retry: @escaping () -> Void, merge: @escaping () -> Void)
-        -> some View
-    {
-        if let value {
-            VaultSyncStatusLabel(status: value)
-            switch value {
-            case .accountChangeConfirmationRequired:
-                Button(AppStrings.Settings.mergeWithThisICloudAccount.swiftUIKey, systemImage: "icloud", action: merge)
-            case .failed, .partiallyBlocked:
-                // Retry fetches again; it never dismisses a persisted upload restriction.
-                Button(AppStrings.Common.retry.swiftUIKey, systemImage: "arrow.clockwise", action: retry)
-            default:
-                EmptyView()
-            }
-        }
+    private var syncCategories: [CloudSyncCategoryPresentation] {
+        [
+            .init(
+                id: "vault", title: AppStrings.Navigation.vault, status: app.vaultSync?.status,
+                retry: { app.vaultSync?.retry() }, merge: { app.vaultSync?.confirmAccountSwitchMerge() }),
+            .init(
+                id: "history", title: AppStrings.Common.history, isSelected: history,
+                status: app.historySync?.historyStatus, retry: { app.historySync?.retry() },
+                merge: { app.historySync?.confirmAccountSwitchMerge() }),
+            .init(
+                id: "devices", actionID: "history", title: AppStrings.Settings.devices,
+                status: app.historySync?.deviceStatus,
+                retry: { app.historySync?.retry() }, merge: { app.historySync?.confirmAccountSwitchMerge() }),
+            .init(
+                id: "metrics", title: AppStrings.Navigation.metrics, isSelected: metrics,
+                status: app.metricsSync?.status, retry: { app.metricsSync?.retry() },
+                merge: { app.metricsSync?.confirmAccountSwitchMerge() }),
+            .init(
+                id: "settings", title: AppStrings.Navigation.settings, isSelected: settings,
+                status: app.settingsSync?.status, retry: { app.settingsSync?.retry() },
+                merge: { app.settingsSync?.confirmAccountSwitchMerge() }),
+        ]
     }
 }

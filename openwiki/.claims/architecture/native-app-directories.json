@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:7e34ef5b96eb24065e35c51caa369a71f930de2671f013463e2df8e3d65c9d68",
+  "pageVersion": "sha256:588e026738a95cc2858b80e317891b045f56f75902c18f28983d3cdd0adc6837",
   "claims": [
     {
       "id": "claim_8e9cf2adb50847f98fcd4516cb0ed521",
@@ -16,7 +16,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
+          "version": "repo-file-v1:sha256:6ca2085d45dc47f1958bf2500050e21b2f4ffc95af9dc67eb9b63cf97586bede"
         },
         {
           "resource": "repo://TFM/Features/Workspaces/WindowModel.swift",
@@ -86,7 +86,7 @@
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
+          "version": "repo-file-v1:sha256:cf6e9f9b2966d822cf0e486e02ffd605f67f3a5dd264f6eee58bfb40d2e9bc43"
         }
       ]
     },
@@ -212,11 +212,11 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
+          "version": "repo-file-v1:sha256:6ca2085d45dc47f1958bf2500050e21b2f4ffc95af9dc67eb9b63cf97586bede"
         },
         {
           "resource": "repo://TFM/Platform/MacDeviceName.swift",
@@ -230,7 +230,7 @@
       "evidence": [
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
+          "version": "repo-file-v1:sha256:6ca2085d45dc47f1958bf2500050e21b2f4ffc95af9dc67eb9b63cf97586bede"
         }
       ]
     },
@@ -264,7 +264,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
@@ -282,11 +282,11 @@
     },
     {
       "id": "claim_4b1bafeb03c74e7dbec2139a65e9457c",
-      "statement": "MobileAppModel.reconcileSync starts vault, metrics and settings sync only if a tracked scene is active and Pro allows vault sync, and otherwise pauses all three; it runs on foreground entry, scene removal, sync setting changes and Pro entitlement changes, while in-memory composition has no cloud coordinators.",
+      "statement": "MobileAppModel.reconcileSync starts Vault, History/Device, Metrics and Settings coordinators only with an active scene and Pro eligibility, otherwise pauses all four; in-memory composition has no live cloud coordinators.",
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
           "resource": "repo://TFI/App/MobileRootView.swift",
@@ -294,7 +294,7 @@
         },
         {
           "resource": "repo://TFITests/MobileSettingsPortTests.swift",
-          "version": "repo-file-v1:sha256:02e61b9d136c84002e35854cf33f1eab0751a685f2c5d9e27acb05a44ff10a57"
+          "version": "repo-file-v1:sha256:3041e21a1518747d57d75002ca197ade008487f5ad9ba949e8e276a1275b585f"
         }
       ]
     },
@@ -304,7 +304,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
           "resource": "repo://TFITests/MobileAppTests.swift",
@@ -328,11 +328,11 @@
     },
     {
       "id": "claim_f66918c39d834e18acd207900b826930",
-      "statement": "MobileAppModel.setSyncEnabled requires Pro permission to enable synchronization, persists the preference, attempts custom-password migration when enabling iCloud or vault sync, and then reconciles the app-level sync lifecycle.",
+      "statement": "MobileAppModel.setSyncEnabled checks Pro before enabling, persists the preference, routes History selection through its per-kind coordinator policy, migrates custom passwords when the iCloud master is enabled, then reconciles app-level sync.",
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         }
       ]
     },
@@ -360,7 +360,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
           "resource": "repo://TFI/App/MobileSceneModel.swift",
@@ -414,7 +414,7 @@
         },
         {
           "resource": "repo://TFM/App/TermindApp.swift",
-          "version": "repo-file-v1:sha256:767a302e0718800b28861d17e1d3948765e7177bd0d10479acecc64ece3e1332"
+          "version": "repo-file-v1:sha256:6ca2085d45dc47f1958bf2500050e21b2f4ffc95af9dc67eb9b63cf97586bede"
         },
         {
           "resource": "repo://TFM/Features/Sidebar/WindowSidebarView.swift",
@@ -531,6 +531,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T03:18:19.992Z"
+    "at": "2026-09-24T06:45:57.323Z"
   }
 }

@@ -78,6 +78,7 @@ final class AppModel {
     let settingsSync: SettingsSyncCoordinator?
     let metricsSync: MetricsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
+    let historySync: HistorySyncCoordinator?
     let forwarding: PortForwardingController
     let sftpEdits: SFTPEditService
     let sftpTransfers: SFTPTransferCoordinator
@@ -211,6 +212,7 @@ final class AppModel {
         agentBackgroundCommands = agentHostServices.background
         hostRepository = dependencies.hostRepository
         vaultSync = dependencies.vaultSync
+        historySync = dependencies.historySync
         settingsSync = dependencies.settingsSync
         metricsSync = dependencies.metricsSync
         forwarding = PortForwardingController(
@@ -293,6 +295,9 @@ final class AppModel {
             vaultSync?.noteLocalChanges(mutations)
         }
         if let repository = dependencies.hostRepository as? SwiftDataHostRepository {
+            repository.didRecordHistoryChanges = { [weak historySync = dependencies.historySync] in
+                historySync?.noteLocalChanges($0)
+            }
             repository.didRecordVaultChanges = { [weak vaultSync = dependencies.vaultSync] mutations in
                 vaultSync?.noteLocalChanges(mutations)
             }
@@ -318,6 +323,10 @@ final class AppModel {
             )
             outboxRunner.start()
         }
+        historySync?.didApplyRemote = { [weak self] keys in
+            if keys.contains(where: { $0.kind == .connectionHistory }) { self?.connectionHistory.reload() }
+            if keys.contains(where: { $0.kind == .device }) { self?.devices.reload() }
+        }
         vaultSync?.didApplyRemote = { [weak self] snapshot, keys in
             self?.applyRemoteVaultSnapshot(snapshot, changedKeys: keys)
         }
@@ -340,6 +349,7 @@ final class AppModel {
         }
         if proAccess.canUse(.vaultSync) {
             vaultSync?.start()
+            historySync?.start()
             metricsSync?.start()
             settingsSync?.start()
         }
@@ -348,11 +358,13 @@ final class AppModel {
     func reconcileProAccess() {
         if proAccess.canUse(.vaultSync) {
             vaultSync?.start()
+            historySync?.start()
             metricsSync?.start()
             settingsSync?.start()
             mcpServer.resumeForProAccess()
         } else {
             vaultSync?.pause()
+            historySync?.pause()
             metricsSync?.pause()
             settingsSync?.pause()
         }
@@ -386,10 +398,6 @@ final class AppModel {
         }
         if !plan.forwardingRuleIDs.isEmpty { forwarding.stop(plan.forwardingRuleIDs) }
         hosts.replacePersistedSnapshot(snapshot)
-        if changedKeys.contains(where: { $0.kind == .connectionHistory }) {
-            connectionHistory.reload()
-        }
-        if changedKeys.contains(where: { $0.kind == .device }) { devices.reload() }
         forwarding.reconcileConfiguration()
     }
 

@@ -12,6 +12,10 @@ public nonisolated enum VaultRecordKind: String, Codable, CaseIterable, Sendable
     case workspaceTemplate
     case connectionHistory
     case device
+
+    /// History cases remain readable only for the one-way TestFlight importer.
+    /// New writes for these identities belong to the History zone, never Vault.
+    public var isConfiguration: Bool { self != .connectionHistory && self != .device }
 }
 
 public nonisolated struct VaultRecordKey: Codable, Hashable, Sendable {
@@ -104,9 +108,7 @@ public nonisolated enum VaultRecordPayload: Codable, Hashable, Sendable {
 }
 
 public nonisolated struct VaultEnvelope: Codable, Hashable, Sendable {
-    public static let currentFormatVersion = 1
-
-    public var formatVersion = Self.currentFormatVersion
+    public var formatVersion: Int
     public var key: VaultRecordKey
     public var version: VaultVersion
     public var isDeleted: Bool
@@ -114,8 +116,9 @@ public nonisolated struct VaultEnvelope: Codable, Hashable, Sendable {
 
     public init(
         key: VaultRecordKey, version: VaultVersion,
-        isDeleted: Bool = false, payload: VaultRecordPayload? = nil
+        isDeleted: Bool = false, payload: VaultRecordPayload? = nil, formatVersion: Int? = nil
     ) {
+        self.formatVersion = formatVersion ?? SyncRecordFormats.vault.writingVersion(for: key.kind.rawValue)
         self.key = key
         self.version = version
         self.isDeleted = isDeleted
@@ -123,7 +126,7 @@ public nonisolated struct VaultEnvelope: Codable, Hashable, Sendable {
     }
 
     public var isValid: Bool {
-        guard formatVersion == Self.currentFormatVersion else { return false }
+        guard SyncRecordFormats.vault.supports(kind: key.kind.rawValue, version: formatVersion) else { return false }
         if isDeleted { return payload == nil }
         guard let payload, payload.key == key else { return false }
         if case .workspaceTemplate(let template) = payload { return template.isValid }

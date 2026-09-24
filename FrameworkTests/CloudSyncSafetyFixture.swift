@@ -10,7 +10,7 @@ import Testing
 @testable import TermindInfrastructure
 
 enum SyncSafetyCategory: CaseIterable, Sendable {
-    case vault, settings, metrics
+    case vault, settings, metrics, history, device
 }
 
 @MainActor
@@ -33,6 +33,7 @@ final class CloudSyncSafetyFixture {
     let defaults: UserDefaults
     let defaultsName = "CloudSyncSafetyTests.\(UUID())"
     let network = LifecycleNetwork()
+    let legacyNetwork = LifecycleNetwork()
     private let adapter: SyncSafetyAdapter
     var lifecycle: CloudSyncLifecycle { adapter.lifecycle }
     var recordIDs: [CKRecord.ID] {
@@ -51,10 +52,14 @@ final class CloudSyncSafetyFixture {
         defaults = UserDefaults(suiteName: defaultsName)!
         for key in [
             SettingsKey.iCloudSyncEnabled, SettingsKey.vaultSyncEnabled,
-            SettingsKey.settingsSyncEnabled, SettingsKey.metricsSyncEnabled,
+            SettingsKey.settingsSyncEnabled, SettingsKey.metricsSyncEnabled, SettingsKey.historySyncEnabled,
         ] { defaults.set(true, forKey: key) }
         let context = container.mainContext
         switch category {
+        case .history, .device:
+            adapter = try Self.history(
+                context, defaults: defaults, network: network, legacy: legacyNetwork,
+                environment: environment, devices: category == .device)
         case .vault:
             adapter = try Self.vault(context, defaults: defaults, network: network, environment: environment)
         case .settings:
@@ -100,6 +105,50 @@ final class CloudSyncSafetyFixture {
                 var envelope = envelopes[0]
                 envelope.version.counter += 1
                 _ = try HostPersistence(context: context).applyRemote(
+                    [envelope],
+                    beforeSave: {
+                        try safety.clearQuarantine(recordName: envelope.key.recordName)
+                        throw CocoaError(.fileWriteUnknown)
+                    })
+            })
+    }
+
+    private static func history(
+        _ context: ModelContext, defaults: UserDefaults, network: LifecycleNetwork, legacy: LifecycleNetwork,
+        environment: String, devices: Bool
+    ) throws -> SyncSafetyAdapter {
+        let persistence = HistorySyncPersistence(context: context)
+        try persistence.prepare()
+        let envelopes = (0..<2).map { index in
+            let payload: HistoryRecordPayload =
+                devices
+                ? .device(DeviceRecord(id: UUID(), displayName: "Device \(index)"))
+                : .connectionHistory(ConnectionHistoryEntry(hostID: UUID(), kind: .ssh))
+            return HistoryEnvelope(key: payload.key, version: version, payload: payload)
+        }
+        _ = try persistence.applyRemote(envelopes, importingLegacy: true)
+        let journal = persistence.journal
+        let coordinator = HistorySyncCoordinator(
+            persistence: persistence, defaults: defaults, environmentIdentifier: environment,
+            makeTransport: { _, _ in network.transport }, makeLegacyTransport: { _, _ in legacy.transport })
+        return SyncSafetyAdapter(
+            lifecycle: coordinator.lifecycle, recordNames: envelopes.map(\.key.recordName),
+            receive: { try coordinator.receiveRemoteRecords($0, deletions: $1) },
+            conflict: coordinator.handleFailedSave,
+            batch: { coordinator.makeChangeBatch($0, engine: network.nextEngine) },
+            record: { coordinator.recordToSave($0, engine: network.nextEngine) },
+            pendingNames: { Set(try journal.pendingEnvelopes().map(\.key.recordName)) },
+            markTombstone: {
+                var envelope = envelopes[0]
+                envelope.isDeleted = true
+                envelope.payload = nil
+                envelope.version.counter += 1
+                _ = try persistence.applyRemote([envelope], importingLegacy: true)
+            },
+            failingMerge: { safety in
+                var envelope = envelopes[0]
+                envelope.version.counter += 1
+                _ = try persistence.applyRemote(
                     [envelope],
                     beforeSave: {
                         try safety.clearQuarantine(recordName: envelope.key.recordName)
@@ -206,6 +255,10 @@ final class CloudSyncSafetyFixture {
 
     func futureRecord() throws -> CKRecord {
         let record = try #require(record(recordIDs[0]))
+        if HistorySyncCoordinator.recordTypes.contains(record.recordType) {
+            record["formatVersion"] = NSNumber(value: 99)
+            return record
+        }
         let data = try #require(record["payload"] as? Data)
         var json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
         json["formatVersion"] = 99
@@ -213,6 +266,17 @@ final class CloudSyncSafetyFixture {
         Self.setPayload(payload, in: record)
         record["formatVersion"] = NSNumber(value: 99)
         return record
+    }
+
+    static func expectPreserved(_ record: CKRecord, in data: Data) throws {
+        if HistorySyncCoordinator.recordTypes.contains(record.recordType) {
+            let restored = try #require(try NSKeyedUnarchiver.unarchivedObject(ofClass: CKRecord.self, from: data))
+            #expect(restored.recordID == record.recordID)
+            #expect(restored["formatVersion"] as? NSNumber == record["formatVersion"] as? NSNumber)
+            #expect(Set(restored.allKeys()) == Set(record.allKeys()))
+        } else {
+            #expect(data == record["payload"] as? Data)
+        }
     }
 
     static func setPayload(_ data: Data, in record: CKRecord) {

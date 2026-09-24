@@ -8,6 +8,61 @@ private final class FixtureBundle: NSObject {}
 
 @Suite @MainActor
 struct PersistenceCompatibilityTests {
+    @Test(arguments: [31, 34])
+    func historyJournalMigrationReopensWithStableIdentityAndDeletion(version: Int) throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let url = directory.appendingPathComponent("History.store")
+        let installationID = UUID()
+        let eventID = UUID()
+        try writeLegacyHistoryStore(to: url, version: version, installationID: installationID, eventID: eventID)
+        try verifyMigratedHistoryStore(at: url, installationID: installationID, eventID: eventID)
+        try verifyMigratedHistoryStore(at: url, installationID: installationID, eventID: eventID)
+    }
+
+    private func writeLegacyHistoryStore(to url: URL, version: Int, installationID: UUID, eventID: UUID) throws {
+        let schema =
+            version == 31
+            ? Schema(versionedSchema: TermindSchemaV31.self) : Schema(versionedSchema: TermindSchemaV34.self)
+        let container = try ModelContainer(
+            for: schema,
+            configurations: [ModelConfiguration("Termind", schema: schema, url: url, cloudKitDatabase: .none)])
+        let state = PersistentVaultSyncState()
+        state.installationID = installationID
+        state.boundUserRecordName = "old-account"
+        state.bootstrapCompleted = true
+        container.mainContext.insert(state)
+        let envelope = VaultEnvelope(
+            key: .init(kind: .connectionHistory, id: eventID),
+            version: .baseline(writerID: installationID), isDeleted: true)
+        let row = try PersistentVaultSyncEntry(envelope: envelope, needsUpload: true)
+        row.systemFieldsData = Data([4, 5, 6])
+        container.mainContext.insert(row)
+        try container.mainContext.save()
+    }
+
+    private func verifyMigratedHistoryStore(at url: URL, installationID: UUID, eventID: UUID) throws {
+        let container = try TermindPersistence.makeContainer(url: url)
+        let persistence = HistorySyncPersistence(context: container.mainContext)
+        try persistence.prepare()
+        let state = try persistence.journal.state()
+        #expect(state.installationID == installationID)
+        #expect(state.boundUserRecordName == "old-account")
+        let row = try #require(
+            container.mainContext.fetch(FetchDescriptor<PersistentHistorySyncEntry>()).first {
+                $0.recordName == HistoryRecordKey(kind: .connectionHistory, id: eventID).recordName
+            })
+        #expect(row.envelope?.isDeleted == true)
+        #expect(row.envelope?.version == .baseline(writerID: installationID))
+        #expect(row.systemFieldsData == nil)
+        #expect(row.needsUpload)
+        #expect(
+            try VaultSyncJournal(context: container.mainContext).pendingEnvelopes().allSatisfy {
+                $0.key.kind.isConfiguration
+            })
+    }
+
     @Test
     func credentialStorageNamesAndDefaultsRemainCompatible() {
         #expect(KeyStorage.thisDevice.rawValue == "thisDevice")
@@ -124,6 +179,7 @@ struct PersistenceCompatibilityTests {
                     hostname: "legacy.example.invalid", port: 2222,
                     fingerprint: "SHA256:fixture", addedAt: Date(timeIntervalSince1970: 50))
             ])
+        try HistorySyncPersistence(context: context).prepare()
         let history = try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).map(\.value)
         #expect(
             history == [

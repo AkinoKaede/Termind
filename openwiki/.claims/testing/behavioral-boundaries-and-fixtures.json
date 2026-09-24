@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:59829b8d5e54cff352e757dfa8ee42e5f875587624a61c6a6ab4b7e0f56d505a",
+  "pageVersion": "sha256:dd3ec17369a580e629ad7518d6b97ebd7d92e36ef750d772a16ca3d5701108ed",
   "claims": [
     {
       "id": "claim_b7fbd64158554b8b8ca80a0a613b3bc3",
@@ -22,15 +22,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
-          "version": "repo-file-v1:sha256:603f6e77ab33461d78203254b0746011e57d85070aa095fe60cf525ae9ad9dd7"
+          "version": "repo-file-v1:sha256:5a3aabca90c0d743f8e4d0031676a0617e8902586353f1294adaf164ff4eb59a"
         },
         {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L137-L274",
-          "version": "repo-lines-v1:sha256:c60b429e689ffea7a9338292e5921a0c87f97067aeb0b9a7dfcf6942d0b6559e:eyJzZWxlY3RlZExpbmVDb3VudCI6MTM4LCJmaXJzdFNlbGVjdGVkTGluZUhhc2giOiIwYzliZjYxNmRjZjUzOWEwZDU0YTEzNmM2NjRjNTNhMjU5ZWZhZDljZjVhZmE2OTA2OWZhMzhiNTMxOTk0NGM1IiwibGFzdFNlbGVjdGVkTGluZUhhc2giOiI0ODkzZjQwZTM3ODFlYjg5NmM4MmQwNDZhMDgwNjdhMTFlMzVjZGYyZjFkZmFmMjZmZWE5MGI4ZGI2Njc2NDEzIiwicHJlY2VkaW5nQ29udGV4dExpbmVDb3VudCI6MywicHJlY2VkaW5nQ29udGV4dEhhc2giOiJhNDdjYWI2Nzc1MTJkY2VkNGEyMjBlZGRkODYzZWQxZTQzNTkzNDZkYmE5OGQ5Y2I5MGQwZmY5NjI4YzNiMzRhIiwiZm9sbG93aW5nQ29udGV4dExpbmVDb3VudCI6MywiZm9sbG93aW5nQ29udGV4dEhhc2giOiI2NTkwOTE3MGMzZWNiYmJiYmQyM2ZiMWVlM2VmNDQzZDI5M2RkOWYzMDQ3NDYyMWRkMzFjYjA1YzhkNjRmZjZlIn0"
-        },
-        {
-          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift#L64-L105",
-          "version": "repo-lines-v1:sha256:228916a398677a68a14b8bcc405a7361bff7148080e8533610db6433dc754938:eyJzZWxlY3RlZExpbmVDb3VudCI6NDIsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6Ijc2M2YzMDBmMzYzYWM2YzU2YTViYTU1OTJiNWNhM2ZmOTc2YWEyNjQ0OTIyOWRkN2YwYThlMjRkOTkxNGYwNDQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjM4NWJlNTRjNmM2MGZmZjQ5ZTllOTU1Mzg1YjMzZTc4ZTRkNGQ4ZDJkNmUwMWQzMzJkNjhiNjg3MTA0OTkxYTAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImU4ZWFmM2UxZGIyODRmNmE2ZmQ0ZTA2NmFlMmZiNjU0YWU2OGZkZmNmM2U3ZTRkY2E0YzJkZDIxNGE0OWI5ZDAifQ"
+          "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
+          "version": "repo-file-v1:sha256:cf6e9f9b2966d822cf0e486e02ffd605f67f3a5dd264f6eee58bfb40d2e9bc43"
         }
       ]
     },
@@ -150,11 +146,11 @@
     },
     {
       "id": "claim_8d0709b664d94ebb8abcf7d7a20a7418",
-      "statement": "Persistence compatibility tests open historical SwiftData fixtures through the shared container factory and verify full-schema independent in-memory containers. The fixed V28 test migrates and reopens its copied store while retaining host/group values, GB18030 charset, credential/key references, ordered environment variables, snippets, Known Hosts and history with installation-ID backfill. V27, V30, V31 and current-V34 coverage remains; V31→V34 also preserves Identity configuration/journal dates and workspace defaults, while V29/V32/V33 remain absent endpoints.",
+      "statement": "Persistence compatibility tests open historical SwiftData fixtures through the shared container factory and verify full-schema independent in-memory containers. The fixed V28 test migrates and reopens its copied store while retaining host/group values, GB18030 charset, credential/key references, ordered environment variables, snippets, Known Hosts and history with installation-ID backfill. V27, V30, V31 and current-V35 coverage remains; V31→V34 also preserves Identity configuration/journal dates and workspace defaults, while V29/V32/V33 remain absent endpoints.",
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:3bded6a7759e701328038756678bc50355cf6bba2eaead8ef806b01b0146d2c3"
+          "version": "repo-file-v1:sha256:0674febd3ada94692fa9335d6035c3e6a94ebdbd2551d8fb9492ce2a7baca297"
         }
       ]
     },
@@ -188,11 +184,11 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyFixture.swift",
-          "version": "repo-file-v1:sha256:310e96395fb84c3cd93eed7778ef055e33499a2cc7b9de07750df427201a5db4"
+          "version": "repo-file-v1:sha256:0296ddada8dff13520001911c11aa353e18e0a630286ce67fd03b1c192f545e7"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
-          "version": "repo-file-v1:sha256:603f6e77ab33461d78203254b0746011e57d85070aa095fe60cf525ae9ad9dd7"
+          "version": "repo-file-v1:sha256:5a3aabca90c0d743f8e4d0031676a0617e8902586353f1294adaf164ff4eb59a"
         }
       ]
     },
@@ -206,7 +202,7 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:49b60cd6fbd6947443a729053f11b81278f3124c032b68439cf18a2ee2645f32"
+          "version": "repo-file-v1:sha256:52b0ff45bd7b3f448a36857e057715389ab6bdc3dc96b4dc4159b75f0e93c256"
         }
       ]
     },
@@ -216,7 +212,7 @@
       "evidence": [
         {
           "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
-          "version": "repo-file-v1:sha256:3bded6a7759e701328038756678bc50355cf6bba2eaead8ef806b01b0146d2c3"
+          "version": "repo-file-v1:sha256:0674febd3ada94692fa9335d6035c3e6a94ebdbd2551d8fb9492ce2a7baca297"
         },
         {
           "resource": "repo://TFITests/MobileCardRenderingTests.swift",
@@ -232,7 +228,7 @@
         },
         {
           "resource": "repo://TFMTests/VaultSyncTests.swift",
-          "version": "repo-file-v1:sha256:fb1177900e93b9a2d3f30d4b728e61381d7d1336226ac22610e85779b8d0dadc"
+          "version": "repo-file-v1:sha256:f502484219bc0cc1bc68e882c4a9ea10a2ba1c8d88ff3505bb2f112c5ffb8f98"
         }
       ]
     },
@@ -571,10 +567,24 @@
           "version": "repo-lines-v1:sha256:37082bec140bbc8fdecd8a3a0dd9d983c87d7d471fe4da8cb869ef65ec441b7c:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjNiYTQxMjgyYjkyN2Y1MzU3ODhjMzBmOWVhNzYyYWNkZjQ0YzQwYmY5OGM5YzU5OWViOWI2NzJmODgzNjY1MWEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImU2YjA0NDkxNDY5NzIyZTgzNjNhOTRlNDA0NDUzOGUwMTNhMmEyMTdlMzZiMWU1NjhiYTYwYWNiN2I0YzhmMmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImU2MTc0MGI5Y2FmN2I5NGNiNjM3MTQyODBmMjA1NDUzNWYyODY1MjMzYWM2NzBjM2YwNjFiZjkxNjZjYTMxOGIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
         }
       ]
+    },
+    {
+      "id": "claim_3ef853671a4e41f589068095b34d4d8a",
+      "statement": "History and evolution suites test native fields, independent Device selection, continuous legacy import, terminal deletion, source quarantine, overlapping fetch readiness, structured logging and per-kind test-only Host V2 evolution; local fixtures do not prove cloud deployment.",
+      "evidence": [
+        {
+          "resource": "repo://FrameworkTests/HistorySyncTests.swift",
+          "version": "repo-file-v1:sha256:4a660d6c5b962ff9d6e71d2b0315f43b645e4371ca5a6c64cc60ebf1ed73f59f"
+        },
+        {
+          "resource": "repo://FrameworkTests/SyncRecordEvolutionTests.swift",
+          "version": "repo-file-v1:sha256:ff69b127ab37112b5a84ed954a5b271de828d28ea1370c1f53e423c6ff7b74cb"
+        }
+      ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T03:18:19.992Z"
+    "at": "2026-09-24T06:45:57.323Z"
   }
 }

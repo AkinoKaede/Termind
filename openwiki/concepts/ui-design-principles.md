@@ -3,9 +3,6 @@ type: design guide
 title: UI Design Principles and Shared Presentation Boundaries
 description: "Source-backed UI principles for TFM and TFI: semantic visual systems, native interaction, shared forms and presentation values, stable rendering identity, accessibility, localization and safe extension boundaries."
 tags: [ui, design-system, presentation, accessibility, localization, macos, ios]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-a51ca858a040a90d4ab9c1c4
     resource: repo://Frameworks/TermindApplication/AppLanguage.swift
@@ -140,6 +137,9 @@ sources:
   - id: openwiki-source-a3093a0c1d98ecc1cdbc0279
     resource: repo://TFMTests/WorkspaceNavigatorDropTests.swift
 generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T06:30:19.118Z
 ---
 
 # UI Design Principles and Shared Presentation Boundaries

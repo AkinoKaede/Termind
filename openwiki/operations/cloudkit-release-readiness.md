@@ -3,9 +3,6 @@ type: release-readiness
 title: CloudKit Schema Deployment and Signed-Device Release Readiness
 description: Production CloudKit schema, compatibility, and signed-device checks for Vault, Settings, SFTP preferences, Metrics, and Keychain-backed secrets.
 tags: [cloudkit, sync, release, settings, vault, metrics, sftp]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-7ca30f0e781e8c2df826b47a
     resource: repo://Frameworks/TermindApplication/HistoryLimits.swift
@@ -19,6 +16,10 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-8329454aa460204bc28abedd
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncRecordCoding.swift
+  - id: openwiki-source-894539337bc9140a109608f0
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
+  - id: openwiki-source-44a21e2f19acb7f78c9e1d23
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistorySyncCoordinator.swift
   - id: openwiki-source-3effdff7f6b04e2a66d8f651
     resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
   - id: openwiki-source-04ef2b2f02773f8833db9a8b
@@ -73,14 +74,17 @@ sources:
     resource: repo://TFM/TFM.entitlements
   - id: openwiki-source-960109cd5bc0de7a879c1e16
     resource: repo://TFMTests/VaultSyncTests.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "codex", at: "2026-09-24T06:30:19.118Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T06:30:19.118Z
 ---
 
 # CloudKit Schema Deployment and Signed-Device Release Readiness
 
 A passing local build or sync test does not prove that the production CloudKit schema is deployed or that signed devices can exchange records. Treat schema deployment, App Store entitlements, iCloud account state, Keychain delivery, and multi-device behavior as separate release evidence.
 
-The macOS and mobile targets use the private container `iCloud.com.akinokaede.termind`. The master iCloud switch and the Vault, Metrics, and Settings category selections default on when no explicit value exists; existing explicit choices survive upgrades. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data.
+The macOS and mobile targets use the private container `iCloud.com.akinokaede.termind`. Vault and Device follow the master iCloud switch. Optional categories are History, Metrics and Settings, in that order; History inherits the prior Vault selection once on existing installs and defaults on for new installs. Category lifecycle and account bindings remain independent, and Pro access gates live synchronization without deleting local data.
 
 ## Schema inventory
 
@@ -88,6 +92,8 @@ Validate the Development schema first, then explicitly deploy it to Production.
 
 | Category | Zone | Record type | Subscription |
 | --- | --- | --- | --- |
+| Vault configuration | `TermindVaultV1` | `VaultItem` | `termind-vault-v1-changes` |
+| History and Device | `TermindConnectionHistoryV1` | `ConnectionHistoryItem`, `DeviceItem` | `termind-connection-history-v1-changes` |
 | Settings and AI configuration | `TermindAIConfigurationV1` | `AIConfigurationItem` | `termind-ai-configuration-v1-changes` |
 | SSH preferences | `TermindAIConfigurationV1` | `SSHPreferencesItem` | `termind-ai-configuration-v1-changes` |
 | SFTP preferences | `TermindAIConfigurationV1` | `SFTPPreferencesItem` | `termind-ai-configuration-v1-changes` |
@@ -96,7 +102,37 @@ Validate the Development schema first, then explicitly deploy it to Production.
 
 Vault records use the same private container through their own coordinator and compatibility contract. A Vault envelope stores integer `formatVersion` and `counter`, Boolean `isDeleted`, strings `kind`, `entityID`, `writerID`, and `payloadHash`, date `modifiedAt`, inline bytes `payload`, or `payloadAsset` for payloads above the 700,000-byte inline limit. Preserve zone names, record types, subscription identifiers, envelope fields, and format compatibility: older clients must be able to ignore the distinct `SFTPPreferencesItem` record type before attempting to decode it.
 
-Connection-history events and the reusable device directory use separate `connectionHistory` and `device` payload kinds inside the existing Vault `VaultItem` record type; neither requires a new CloudKit zone, record type, field or Production schema deployment. Release validation still needs mixed-version coverage because older clients cannot decode those payload kinds safely until the quarantine-capable build is deployed. On signed devices verify event start/end updates and tombstones, local-only Recents versus all-device History, and deterministic convergence to the newest 250 events. Independently rename a device and verify that one `device` update changes every history row resolving its stable ID, while event pruning, per-Host deletion and Clear History leave device records intact.
+## Native History V1 fields
+
+New cloud records contain typed CloudKit fields, not a JSON payload, payload hash,
+or asset. `HistoryCloudRecordV1` is the frozen field adapter. History's local
+journal encoding is an implementation detail and is not the cloud schema.
+
+| Field | CloudKit type | Meaning |
+| --- | --- | --- |
+| `formatVersion` | INT64 | Breaking format version for this record type/kind |
+| `kind` | STRING | `connectionHistory` or `device` |
+| `entityID` | STRING | Lowercase UUID matching the stable record ID |
+| `modifiedAt` | TIMESTAMP | Logical modification date |
+| `counter` | INT64 | Nonnegative logical modification counter |
+| `writerID` | STRING | UUID of the writer installation |
+| `isDeleted` | INT64 | Protocol tombstone, 0 or 1 |
+
+`ConnectionHistoryItem` adds `hostID` (STRING UUID), `connectionKind` (STRING:
+`ssh`, `telnet`, `sftp`), `connectedAt` (TIMESTAMP), optional `endedAt` (TIMESTAMP),
+and optional `sourceDeviceID` (STRING UUID). `DeviceItem` adds `displayName`
+(STRING). Live records require their nonoptional fields. Tombstones require only
+metadata. Optional fields are explicitly cleared on writes. Neither record uses
+CloudKit references: history may arrive before its Host and must remain durable.
+
+Record IDs remain `v1/connectionHistory/<uuid>` and `v1/device/<uuid>`. The `v1`
+identity namespace does not change when payload/field versions increase. Event
+UUIDs are never reused. Deletion is terminal for an event UUID, including against
+later-clock updates from an old client. Retention keeps 250 newest events and
+retains overflow tombstones. Clearing history leaves the device directory intact.
+
+
+The legacy importer reads `TermindVaultV1` through its independent `termind-history-legacy-vault-v1-changes` subscription. New clients write events and devices only to the new zone; preserve old records for old TestFlight clients. TestFlight uses Production, so additive Development schema changes must be explicitly deployed before release. Successful native writes or an authorized schema import create Development types; builds and empty reads do not. Exercise optional `endedAt` and `sourceDeviceID` fields during provisioning.
 
 There is no public-database access in this design. Before release, verify the app entitlements, the private-container Development schema, and the deployed Production schema with credentials that actually have CloudKit management access. An unavailable management token or a successful local test is not deployment evidence.
 
@@ -124,12 +160,12 @@ For a release check, change 30/10 to 100/50, close Settings, and verify that ano
 
 ## Installed V28 store upgrade gate
 
-The local SwiftData migration is a separate release gate from CloudKit schema deployment. `TermindPersistence.makeContainer` opens file and in-memory stores with the shared V34 schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`; CloudKit transport is owned by the category coordinators instead of SwiftData mirroring. Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34, skipping V29, V32 and V33 as endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
+The local SwiftData migration is a separate release gate from CloudKit schema deployment. `TermindPersistence.makeContainer` opens file and in-memory stores with the shared V35 schema, `TermindMigrationPlan`, and `cloudKitDatabase: .none`; CloudKit transport is owned by the category coordinators instead of SwiftData mirroring. Keep the historical V28 endpoint: the plan takes V27→V28→V30→V31→V34→V35, skipping V29, V32 and V33 as endpoints. V28 supplies the frozen Host shape (including `charset`), and V30 retains V28's `port`, `identityID` and `charset` column names as SSH values while introducing default-disabled Telnet fields. Do not rewrite shipped model shapes or replace the fixture with a store generated from current models just to make migration tests pass.
 
 ```mermaid
 flowchart TD
     Fixture["Historical V28 disk store"] --> Factory["Shared makeContainer"]
-    Factory --> Local["V28 to V30 to V31 to V34"]
+    Factory --> Local["V28 to V30 to V31 to V34 to V35"]
     Local --> Verify["Load Vault data and reopen store"]
     Verify --> Device["Signed device upgrade and relaunch"]
     Device --> Cloud["Independent CloudKit delivery checks"]
@@ -140,7 +176,7 @@ The checked-in `V28.store` was generated against the historical Persistence buil
 
 ## First-stage mixed-version safety
 
-Local schema V31 adds replica-scoped quarantine and recovery checkpoints. The current V34 schema retains that safety storage and adds the connection-history/device shapes through the direct V31→V34 migration. Those local changes do **not** add a Vault record type, change the existing zones, or raise the V1 envelope formats. Treat local database migration and cloud schema deployment as separate decisions; the distinct Settings record types in the inventory still require deployment before use.
+V35 retains existing quarantine/recovery models and adds independent History journals, source-import state and decoder-capability checkpoints via a lightweight V34→V35 stage. Local bootstrap preserves UUIDs, installation identity, modification versions, tombstones and pending intent without reusing old-zone system fields. This local migration is separate from deploying the two new native CloudKit record types.
 
 The compatibility contract is now fail-closed for records a client detects it cannot safely understand: keep the received bytes and local pending edits, remove that record from upload scheduling, and recheck the final batch/provider. Other compatible records remain eligible. Unsupported fetches and `serverRecordChanged` replies share this path. Only successful supported-data reconciliation clears the restriction; pressing Retry, pausing a category or restarting does not discard it.
 
@@ -149,7 +185,7 @@ Include the following matrix in release validation:
 | Scenario | Required result |
 | --- | --- |
 | New-format record with the same ID as a local pending edit | Block that ID without replacing it with defaults or clearing the local edit. |
-| Another record in the same category remains compatible | Upload it; show pending and blocked counts separately. |
+| Another record in the same category remains compatible | Upload it; include pending and blocked counts in the aggregate status. |
 | Restored save queue, local tombstone, or physical-delete recreation | No path bypasses the restriction; never emit physical deletes from a restored queue. |
 | Upload conflict returns an unsupported record | Preserve it in quarantine rather than retrying a stale local payload. |
 | Persistence failure during fetch/conflict handling | Retire that engine; a later callback cannot reauthorize it, and restart fetches afresh. |
@@ -159,7 +195,9 @@ Include the following matrix in release validation:
 
 Portable tests exercise real journals, coordinators, record coding and batch providers behind a fake CloudKit transport, plus on-disk migration and reopening. They do not establish signed-device delivery or Production behavior.
 
-This first layer does **not** preserve arbitrary unknown JSON fields that a decoder silently ignores, retrofit already-shipped clients, or implement general capability-upgrade replay. A new V31 safety scope forces an initial fresh fetch; that is not a promise to replay every previously ignored record after every future app update. Roll out the safety-capable clients before relying on the new gate, and isolate incompatible additions from historical clients with distinct record types or an explicitly designed migration protocol. Keep a genuine new→old→edit→new binary test in the release matrix.
+Decoder capability changes now force scoped full rereading; only successful merge and persistence advance the checkpoint and clear quarantine. Native quarantine retains complete CKRecord archives. This does not retrofit unsafe old binaries or preserve unknown fields silently ignored by a V1 JSON decoder: incompatible additions must raise that kind’s version. Keep signed new→old→edit→new and old→import→new tests in the release matrix.
+
+Validate old-client event creation, end-time updates and device renames through the continuous read-only importer. Repeat duplicate and out-of-order delivery after Clear History; terminal event tombstones must prevent resurrection. Verify History-off/Device-on, newest-250 convergence, local Recents versus cross-device History, and History arriving before its Host.
 
 ## Evidence boundaries and release sign-off
 

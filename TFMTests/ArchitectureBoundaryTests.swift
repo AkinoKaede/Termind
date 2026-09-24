@@ -214,6 +214,14 @@ struct ArchitectureBoundaryTests {
         #expect(!delegates.isEmpty)
         for file in delegates {
             let source = try String(contentsOf: file, encoding: .utf8)
+            if file.lastPathComponent == "LegacyHistoryImporter.swift" {
+                // A compatibility source has an independent reader but no writer.
+                #expect(source.contains("nextRecordZoneChangeBatch"))
+                #expect(!source.contains("recordsToSave:"))
+                #expect(!source.contains(".enqueue("))
+                #expect(!source.contains(".createZone("))
+                continue
+            }
             #expect(source.contains("lifecycle.makeChangeBatch("))
             #expect(source.contains("lifecycle.canUpload("))
             #expect(source.contains("CloudSyncRecordCoding.quarantine("))

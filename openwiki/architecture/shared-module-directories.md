@@ -64,6 +64,8 @@ sources:
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
   - id: openwiki-source-e14697ea11a99078be3adee9
     resource: repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift
+  - id: openwiki-source-6bdc502f2e27478a98f042fa
+    resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-28d6772acb1a409d29ff1973
@@ -130,10 +132,10 @@ sources:
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-d3d065330c730839f5cc6112
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
-generated: { by: "codex", at: "2026-09-23T14:32:50.942Z" }
+generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
 verified:
   - by: openwiki/0.5.2
-    at: 2026-09-24T01:58:11.184Z
+    at: 2026-09-24T06:45:57.323Z
 ---
 
 # Shared Framework Directory Responsibilities
@@ -220,9 +222,9 @@ This module currently has **no functional subdirectories**. Its root spans sever
 | Root-level responsibility group | What it owns |
 | --- | --- |
 | Schema and migration | Current SwiftData schema, frozen historical representations, migration plan, and the sole shared container factory. |
-| Vault and histories | Persistent Host/credential metadata and related Vault records; command and SFTP local histories; separate synchronized connection-event and generic device-directory repositories; and Vault journal integration. |
+| Vault and histories | Persistent Host/credential metadata and related Vault records; command and SFTP local histories; separate synchronized connection-event and generic device-directory repositories; and separate Vault/History journal integration. |
 | AI, Agent, skills, and audit | Provider/configuration records, agent-run/message replay, tool-audit storage, skill packages, and persistence redaction. `SwiftDataAgentRunRepository` implements the AgentKit persistence port; its SwiftData rows are not the AgentKit loop. |
-| Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault local stores, mutation journals, scoped upload restrictions, recovery checkpoints, and sync-facing persistence adapters. |
+| Preferences and sync journals | SSH/SFTP/terminal settings, metrics/settings/Vault/History local stores, mutation journals, scoped upload restrictions, recovery checkpoints, and sync-facing persistence adapters. |
 | Secret metadata/adapters | AI secret references and storage policy bridged to the injected Keychain service; not a plaintext secret database. |
 | Memory | Actor-owned GRDB/SQLite memory state, conversation snapshots, session/message indexing, and full-text search. This is distinct from SwiftData's model container. |
 
@@ -238,12 +240,12 @@ Details: [Persistent Data, Migrations, and Secrets](../concepts/persistence-and-
 | --- | --- |
 | Root files | In-memory host repository; Linux filesystem/process/server and NVIDIA metrics parsing; provider service-account file handling; skill-package import. Parsers do not own an SSH session. |
 | `Agent` | Read/import context attachments and provide the live attachment-loading adapter. Host-executing tools belong to Remote Infrastructure instead. |
-| `Cloud` | Shared CloudKit lifecycle, record coding and upload-safety gates; separate Vault, Settings, and Metrics coordinators using Persistence stores/journals. |
+| `Cloud` | Shared CloudKit lifecycle, record coding and upload-safety gates; separate Vault, History/Device, Settings, and Metrics coordinators plus a read-only legacy History importer using Persistence stores/journals. |
 | `Commerce` | StoreKit products, entitlement refresh, purchase/restore flows, transaction observation, and Pro access state. |
 | `Logging` | Launch-scoped file logging and log-file lifecycle. |
 | `Speech` | Apple speech-recognition implementation plus an audio-input abstraction; each app supplies its native audio capture. |
 
-This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. The shared safety adapter projects scoped persistent restrictions and recovery state into the lifecycle; it does not merge the categories' engines, accounts, subscriptions or journals. V31 added safety storage locally; the current V34 schema replaces Host/connection-history and Identity shapes, adds the generic device directory and workspace preferences, and keeps the independently versioned CloudKit envelopes. Released V31 stores migrate directly to V34; V32 and V33 were never distributed schema endpoints. Both received records and save-conflict replies use the same validation path before allowing a blocked record to become uploadable again.
+This layer can use Persistence. It does not depend on either native app, and a CloudKit coordinator is not a screen-level settings model. The shared safety adapter projects scoped persistent restrictions and recovery state into the lifecycle; it does not merge the categories' engines, accounts, subscriptions or journals. V31 added safety storage locally; the historical V34 schema replaces Host/connection-history and Identity shapes, adds the generic device directory and workspace preferences, and keeps the independently versioned CloudKit envelopes. Released V31 stores migrate directly to V34; V32 and V33 were never distributed schema endpoints. Both received records and save-conflict replies use the same validation path before allowing a blocked record to become uploadable again.
 
 ## TermindRemoteInfrastructure — protocol and remote-operation machinery
 
@@ -340,3 +342,5 @@ The editor owns interaction, the model owns the operation, Persistence owns stor
 - Native test targets: screen routing, runtime lifetimes, and platform integration; those contracts are not proven by shared value tests alone.
 
 Return to the [Module Map](module-map.md) for ownership choices or the [Engineering Quickstart](../quickstart.md) for task-specific validation.
+
+The latest local schema is V35: it additively introduces History journal/state, legacy-import state and decode-capability checkpoints after the historical V31→V34 migration. History and Device now use their own journal and native CloudKit fields, with a one-way reader of old Vault data. See [Cloud Sync](/openwiki/workflows/settings-and-cloud-sync.md).

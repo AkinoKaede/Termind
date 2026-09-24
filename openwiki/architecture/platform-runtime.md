@@ -3,9 +3,6 @@ type: architecture
 title: Platform Runtime, App Composition, and Lifetimes
 description: How Termind composes shared services and persistence on macOS and iOS, and where app-wide, window-local, scene-local, and session state begin and end.
 tags: [architecture, runtime, macos, ios, lifecycle, dependency-injection]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-875da2c4f1040409e53757af
     resource: repo://Frameworks/TermindApplication/Events/HostDeletionHandlers.swift
@@ -19,6 +16,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-63e25c47c9c7d38b354f4123
     resource: repo://Frameworks/TermindPersistence/SwiftDataHostRepository.swift
+  - id: openwiki-source-f7f7803d6920f3e68b98385b
+    resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
   - id: openwiki-source-cd0be716a2446029f345525a
     resource: repo://Termind.xcodeproj/project.pbxproj
   - id: openwiki-source-dc9295278cc250ed20567540
@@ -33,6 +32,8 @@ sources:
     resource: repo://TFI/App/TermindIOSApp.swift
   - id: openwiki-source-9c78befae6b387426c603305
     resource: repo://TFI/Application/Workspaces/MobileWorkspaceDescriptor.swift
+  - id: openwiki-source-ccfded56a6676310f11a2981
+    resource: repo://TFI/Features/Settings/MobileSyncSettingsView.swift
   - id: openwiki-source-492f738896225c6b3acf7d2f
     resource: repo://TFI/Features/Workspaces/MobileWorkspace.swift
   - id: openwiki-source-34542e0f07e1650e098824c7
@@ -53,6 +54,8 @@ sources:
     resource: repo://TFM/App/RootView.swift
   - id: openwiki-source-6570374eaac2e0278fa84640
     resource: repo://TFM/App/TermindApp.swift
+  - id: openwiki-source-0a0c39623be1c4e870d0f538
+    resource: repo://TFM/Features/Settings/SyncSettings.swift
   - id: openwiki-source-ee09ece1fddff7d72a2b5cf4
     resource: repo://TFM/Features/Workspaces/Pane.swift
   - id: openwiki-source-22b9fca540c3029c5ace451e
@@ -73,7 +76,10 @@ sources:
     resource: repo://TFMTests/RepositoryOutboxTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T06:45:57.323Z
 ---
 
 # Platform Runtime, App Composition, and Lifetimes
@@ -106,7 +112,7 @@ A useful consequence is that sharing a desktop `AppModel` does **not** make its 
 
 `TermindApp.init()` is the desktop composition root. Before opening data it cleans previous context attachments, sets up the scrubber web client and chooses the stored launch language (or a screenshot-demo language). A normal launch constructs one on-disk SwiftData `ModelContainer`, prepares settings and metrics persistence, makes the Keychain-backed secret store, and assembles `AppModel` with repositories, sync coordinators, logging, histories, the device directory, and a common `RemoteConnectionCoordinator`. The directory uses the Vault journal's stable installation ID and `MacDeviceName.current`: the trimmed `kern.hostname`, falling back to DeviceKit's `Device.current.safeDescription` when unavailable or empty. Startup fails closed: an inability to open the local database calls `fatalError` rather than substituting an empty store.
 
-**Debug test and screenshot launches still run the real app entrypoint, but not the normal disk-backed runtime.** XCTest detection uses `XCTestConfigurationFilePath` in DEBUG; it selects an in-memory container, a private metrics defaults suite, disabled file logging, unrestricted test Pro access, no Vault/Settings/Metrics cloud coordinators, no local host defaults or production memory store, and a window size store without persisted defaults. A screenshot-demo configuration also uses an in-memory container but returns early with demo hosts, AI, metrics and onboarding instead of constructing the normal production services. Neither path is a fallback for a failed production database open: construction errors still fail startup.
+**Debug test and screenshot launches still run the real app entrypoint, but not the normal disk-backed runtime.** XCTest detection uses `XCTestConfigurationFilePath` in DEBUG; it selects an in-memory container, a private metrics defaults suite, disabled file logging, unrestricted test Pro access, no Vault/History/Settings/Metrics cloud coordinators, no local host defaults or production memory store, and a window size store without persisted defaults. A screenshot-demo configuration also uses an in-memory container but returns early with demo hosts, AI, metrics and onboarding instead of constructing the normal production services. Neither path is a fallback for a failed production database open: construction errors still fail startup.
 
 ```mermaid
 flowchart TD
@@ -203,7 +209,7 @@ Scene phases are aggregated by scene ID. The app only enters global background b
 
 `MobileBackgroundController` owns one UIKit background-task lease. Beginning another lease finishes the old one; foreground `finish()` and expiration retire a valid identifier at most once. Expiration calls its cancellation callback synchronously before ending the task, even when UIKit expires during `begin`; a late callback for a retired lease is ignored. If UIKit returns `.invalid`, the controller expires immediately without trying to end an invalid identifier. Async disconnects started by the callback are best effort, not a guarantee that every drain completed before the lease ends.
 
-When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. `reconcileSync()` calls `start()` on Vault, Metrics and Settings coordinators only if at least one tracked scene is `.active` **and** Pro permits Vault sync; otherwise it pauses all three. This is a foreground/entitlement gate, **not** an override of user sync choices: each coordinator's `CloudSyncLifecycle.start()` separately checks the global iCloud switch and that category's enabled preference and pauses if disabled. `setSyncEnabled(_:key:)` gates enabling on Pro, writes the selected preference, migrates custom passwords when enabling global/Vault sync, then reconciles. `MobileRootView` also reconciles when Pro access changes. Desktop `AppModel` starts/reconciles those three coordinators against Pro access without a scene-phase gate, but their individual preferences still govern actual activation. Returning before expiration preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
+When any scene becomes active, mobile refreshes its current device-directory record, reenables edit monitoring, finishes the background task, asks existing workspaces to resume, reconciles sync, restarts the outbox and metrics, refreshes entitlement asynchronously, and updates activities. `reconcileSync()` calls `start()` on Vault, History/Device, Metrics and Settings coordinators only if at least one tracked scene is `.active` **and** Pro permits Vault sync; otherwise it pauses all four. This is a foreground/entitlement gate, **not** an override of user sync choices: each coordinator's `CloudSyncLifecycle.start()` separately checks the global iCloud switch and any applicable optional preference and pauses if disabled. `setSyncEnabled(_:key:)` gates enabling on Pro, writes the selected preference, migrates custom passwords when enabling the global iCloud switch, then reconciles. `MobileRootView` also reconciles when Pro access changes. Desktop `AppModel` starts/reconciles those four coordinators against Pro access without a scene-phase gate, but their individual preferences still govern actual activation. Returning before expiration preserves healthy connections; after expiration, workspace recovery follows the workspace's reconnection journey. Expired forwarding and pending interactive authentication are stopped rather than silently restarted on foreground.
 
 ```mermaid
 stateDiagram-v2
@@ -252,3 +258,5 @@ Tests exercise the lifetime contracts rather than merely constructing views:
 - `ExternalConnectionURLTests` verifies external desktop connections are temporary and unsaved, including the Telnet-password confirmation boundary.
 
 See [System Boundaries](/openwiki/architecture/system-boundaries.md) for framework ownership, [Agent Runtime and Assistant](/openwiki/concepts/agent-runtime-and-assistant.md) for shared agent execution state, [Persistence and Secrets](/openwiki/concepts/persistence-and-secrets.md) for storage policy, and [SSH Session Lifecycle](/openwiki/workflows/ssh-session-lifecycle.md) for per-session connection behavior.
+
+Vault and Device follow the master iCloud switch and Pro eligibility. History, Metrics and Settings retain optional selections. Both apps render shared `CloudSyncSettingsContent` with one aggregate status and the optional switches in History → Metrics → Settings order.

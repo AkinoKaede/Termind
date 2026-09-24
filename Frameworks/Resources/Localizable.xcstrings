@@ -9018,6 +9018,29 @@
         }
       }
     },
+    "Devices" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Devices"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设备"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裝置"
+          }
+        }
+      }
+    },
     "Did not run “%@”" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -18282,6 +18305,29 @@
         }
       }
     },
+    "Optional Sync" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Optional Sync"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可选同步"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "可選同步"
+          }
+        }
+      }
+    },
     "Orange" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -24192,6 +24238,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "登入iCloud以同步監控。"
+          }
+        }
+      }
+    },
+    "Sign in to iCloud to sync history." : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sign in to iCloud to sync history."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登录iCloud以同步历史。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "登入iCloud以同步歷史。"
           }
         }
       }

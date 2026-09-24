@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:618178c6b617cf32ec87544339d8bd04d364b3f4976b3ec972d4b0ef9815823e",
+  "pageVersion": "sha256:09b049983067b0142e9a702b787771d1852ab5e49703b6fce91a538e7787f2d3",
   "claims": [
     {
       "id": "claim_6e30bc8cde134c23815d274543d0786c",
@@ -74,31 +74,31 @@
     },
     {
       "id": "claim_4ed733207e8b495f9fb9f0db86f1ad04",
-      "statement": "Persistence owns the versioned SwiftData schema/container and adapters, including scoped sync restrictions, recovery checkpoints, synchronized connection history and the generic device directory. Current V34 migrates released V31 directly, replaces Host/history and Identity shapes and adds workspace preferences; V32 and V33 were never distributed endpoints, and local schema versions do not change CloudKit envelopes. GRDBMemoryStore separately owns a lazily opened SQLite memory database and full-text message index.",
+      "statement": "Persistence owns the V35 schema/container and sync adapters; the historical V31 to V34 model replacement/backfill is preserved, then V35 additively introduces History journal/state, scoped legacy-import state and capability checkpoints. Local schema versions remain independent of CloudKit formats; GRDBMemoryStore separately owns its memory database.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
-          "version": "repo-file-v1:sha256:c028e57ece449c591c32f8ac849fda2f6a82cda00974acc87f832295bb3acc3d"
+          "version": "repo-file-v1:sha256:ff8c05773006c7e4086516683704ca630b529861551073dcbc514637cd6c9fd5"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/GRDBMemoryStore.swift",
           "version": "repo-file-v1:sha256:5d148d9b678c6512cdf58a6803d31d360869a54ecf3c7cd1176abd1126ed2bb6"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L769-L793",
-          "version": "repo-lines-v1:sha256:b7ac9e99d444715cb0911e2477b946c4911b7233b3d39ab58f99844ae268d408:eyJzZWxlY3RlZExpbmVDb3VudCI6MjUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjdhY2JkOGQ4OWI1YmUyZGFmMmQ0NGVmMDQ4ZGNlMWJmZjY5ZmMxZWRhMmYxNzZiM2NkY2M0MzIyMDAyZjNkODEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRjYzllZDBkMTRmYjhhM2EzOGI3MDhmZmYzYmFmMWIxM2Q3YzA3YmIxMmNmZDZkMDJlMWJiMjRhZGY3ZTUzZWIifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HistorySyncStore.swift",
+          "version": "repo-file-v1:sha256:30c17e05ba10ed5b437b1ccc2cec802cd624d0212ed64bba6f11c81e635714e8"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L876-L898",
-          "version": "repo-lines-v1:sha256:28eb9309ffd1456c48b43bedfb27a33bd603389a2757cb3ffc05b9a3bace63dd:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjlmNjhiZTU3Njg0MmM1NWI2ZmNlZGZlMDg0ZTZjY2VlMGE2YTRmYzIwZWMyZDllZDdjOGJjYjRlOTQ2NjYwYmQiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImRkMzRhOWRmNzc5Yjk1NjZiMDRhZDJiOWU2Y2RkZTNiMWQ1ZTZjMWE4YzhiOTdhYjdjMjhhN2IxM2EzM2JkNmEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImIxOTQzZTUyMTk4NjA3YTJlNWIzYjQ2ZTg1ZmYxNWZkMmY1ZDJkNGVmODY5MzFjMTk1MzJkZWQzYWI0OWQwNWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjRmNTJkYTk1NjY5ODdhZThlZmYyMGY2NzgzOTZlMzA4Yjk3NmM1M2M4YmQ5OGZiMTFiNWQxYmMxZjlhYmNjMTkifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
+          "version": "repo-file-v1:sha256:23c75f2593d215ad91e4842d176ca8128128536af3352c0633d8b51d4b0db703"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
-          "version": "repo-file-v1:sha256:9a3e7296fd09c4b397c90c7b15c20775a0950a145ec1c506ac431c04fc5ea020"
+          "version": "repo-file-v1:sha256:610d27008bbadfae4f01f44706435a9a369d3a48ed473fa0ab4242e2d92f9ac5"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L4-L21",
-          "version": "repo-lines-v1:sha256:7e65b61e0ecd8586bc1e80f16931fdbf2d817b19ded10a5a2402897ced66b541:eyJzZWxlY3RlZExpbmVDb3VudCI6MTgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzA4NTlkNjgzODAyNWFiM2Y2NjIxNTU5NWM4N2JiZWI1ZDVlMDlmNTIxMjk3YmY2MzI3NTUwYzgxYzBjYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImQ1Y2FlOGYwMjAzOGQzMThlOTFlNzA2NTYxZGIyZTE4NzcxMmEwMzYwZDgwNzZjZDg2NGQwMzU0YzFmMTg0OGQiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjoyLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM3OTRkMDJhODEyMTk0NGQxNzZkMjY1ZTliYjljYzU5ZjZhYjg5MGJjYWRmOGFlZmRlYmRiYmI0ZjJlYTg0NDQifQ"
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
+          "version": "repo-file-v1:sha256:5b38e683a43f662428ca740aa54b1e4b60089f0572337f6d4bee41a6b1c3a495"
         }
       ]
     },
@@ -108,27 +108,27 @@
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift",
-          "version": "repo-file-v1:sha256:a66b5df76f386d4370e6b7df14cf7b00942b48c03bccebbed010343a30667f7f"
+          "version": "repo-file-v1:sha256:e3aac12fc8f1d82ef45c7e0510355f28112e247e297c1bde6686e1f310a920a5"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift",
-          "version": "repo-file-v1:sha256:e6fbb3f62e917da272cb0ea54790a212b235c044ed6e414883f0904a14b2ef0b"
+          "version": "repo-file-v1:sha256:f19f014e2949aaa9f1377dafb4a74df0b3bbeeb6fb4dc7c49c488536aa03b0b6"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift",
-          "version": "repo-file-v1:sha256:0736f9e5da36475861461a4b13e67c9b66035216f1a2d2160ab529a81f429615"
+          "version": "repo-file-v1:sha256:b0c02dc775358c14485b7adb46ed5c166ee07afbcb6721789c6a7c308d892b67"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/SettingsSyncCoordinator.swift",
-          "version": "repo-file-v1:sha256:824204c18d8d27fabfa814e302beb651599920ba5d6c4b1fa46ea0a8a0daea60"
+          "version": "repo-file-v1:sha256:237238b7a56cb9da7be3ef4524848272b898d734d661f6873678e73ae142f96c"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift",
-          "version": "repo-file-v1:sha256:c8a0385467103bef43d7a2d3bbf334701870656e54e06a960eb49ddbafbdb667"
+          "version": "repo-file-v1:sha256:da57dfba3244e71d8d96683d9b6baf5b8db3aef1ee8de3d1dfc618d0f7de3808"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
-          "version": "repo-file-v1:sha256:ad0b99e06c0a0817f6980a6a682f016a27d45d86fd8c378ab1036ae910712cd4"
+          "version": "repo-file-v1:sha256:5b38e683a43f662428ca740aa54b1e4b60089f0572337f6d4bee41a6b1c3a495"
         }
       ]
     },
@@ -266,13 +266,13 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
+          "version": "repo-file-v1:sha256:d274fb868d56884ebf7706a94731dbf0be5e7940b49d30176e970088d833b455"
         }
       ]
     },
     {
       "id": "claim_dd6ae4fba22f4214851997a12baa41db",
-      "statement": "Device metadata is reusable across features: Domain owns DeviceRecord, Application owns DeviceDirectoryModel and its repository port, and Persistence owns the SwiftData repository and Vault journaling adapter independently of connection-history storage.",
+      "statement": "Device metadata remains reusable: Domain owns DeviceRecord, Application owns the directory model and port, and Persistence owns its repository and History journal adapter; clearing event history does not remove the device directory.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/FeatureModels/DeviceDirectoryModel.swift",
@@ -287,8 +287,12 @@
           "version": "repo-file-v1:sha256:7bd4537277fda9c7e6e70318290ee3f17ce0271433ebff5c3ac0a28394f1d1d0"
         },
         {
+          "resource": "repo://Frameworks/TermindPersistence/HistorySyncStore.swift",
+          "version": "repo-file-v1:sha256:30c17e05ba10ed5b437b1ccc2cec802cd624d0212ed64bba6f11c81e635714e8"
+        },
+        {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataDeviceDirectoryRepository.swift",
-          "version": "repo-file-v1:sha256:9a3e7296fd09c4b397c90c7b15c20775a0950a145ec1c506ac431c04fc5ea020"
+          "version": "repo-file-v1:sha256:610d27008bbadfae4f01f44706435a9a369d3a48ed473fa0ab4242e2d92f9ac5"
         }
       ]
     },
@@ -522,13 +526,13 @@
         },
         {
           "resource": "repo://Termind.xcodeproj/project.pbxproj",
-          "version": "repo-file-v1:sha256:2707fdefa5e5b61d74a8007e3e4cc90ce473cb9aaae0a52b2a80c63fd79583c3"
+          "version": "repo-file-v1:sha256:d274fb868d56884ebf7706a94731dbf0be5e7940b49d30176e970088d833b455"
         }
       ]
     }
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T01:58:11.184Z"
+    "at": "2026-09-24T06:45:57.323Z"
   }
 }

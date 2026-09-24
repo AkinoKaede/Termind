@@ -43,7 +43,7 @@ struct CloudSyncSafetyTests {
         try fixture.lifecycle.updateUpToDateStatus()
         let safety = try fixture.safety()
         let isolated = try #require(try safety.entry(recordName: blockedID.recordName))
-        #expect(isolated.payloadData == future["payload"] as? Data)
+        try CloudSyncSafetyFixture.expectPreserved(future, in: isolated.payloadData)
         #expect(isolated.reasonCode == CloudSyncQuarantineReason.unsupportedFormat.rawValue)
         #expect(try fixture.pendingNames() == Set(fixture.recordIDs.map(\.recordName)))
         #expect(!fixture.network.nextEngine.queued.contains(blockedID.recordName))
@@ -97,9 +97,7 @@ struct CloudSyncSafetyTests {
         #expect(try !fixture.safety().isUploadBlocked(recordName: id.recordName))
         #expect(fixture.network.nextEngine.queued.contains(id.recordName))
         let outgoing = try #require(fixture.record(id))
-        let data = try #require(outgoing["payload"] as? Data)
-        let json = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
-        #expect(json["isDeleted"] as? Bool == true)
+        #expect(outgoing["isDeleted"] as? Bool == true)
     }
 
     @Test(arguments: SyncSafetyCategory.allCases)
@@ -112,7 +110,7 @@ struct CloudSyncSafetyTests {
         let safety = try fixture.safety()
         #expect(throws: CocoaError.self) { try fixture.failingMerge(safety) }
         let row = try #require(try safety.entry(recordName: fixture.recordIDs[0].recordName))
-        #expect(row.payloadData == future["payload"] as? Data)
+        try CloudSyncSafetyFixture.expectPreserved(future, in: row.payloadData)
         #expect(try fixture.pendingNames() == Set(fixture.recordIDs.map(\.recordName)))
         #expect(fixture.record(fixture.recordIDs[0]) == nil)
     }
@@ -124,11 +122,16 @@ struct CloudSyncSafetyTests {
         try await fixture.start()
         let record = try #require(fixture.record(fixture.recordIDs[0]))
         let malformed = Data([0xff])
-        CloudSyncSafetyFixture.setPayload(malformed, in: record)
+        let native = category == .history || category == .device
+        if native {
+            record["writerID"] = NSNumber(value: 42)
+        } else {
+            CloudSyncSafetyFixture.setPayload(malformed, in: record)
+        }
         try fixture.receive([record], [])
         let row = try #require(try fixture.safety().entry(recordName: record.recordID.recordName))
-        #expect(row.reasonCode == CloudSyncQuarantineReason.unreadablePayload.rawValue)
-        #expect(row.payloadData == malformed)
+        #expect(row.reasonCode == (native ? CloudSyncQuarantineReason.invalidRecord : .unreadablePayload).rawValue)
+        try CloudSyncSafetyFixture.expectPreserved(record, in: row.payloadData)
         try fixture.lifecycle.updateUpToDateStatus()
         #expect(fixture.lifecycle.status == .partiallyBlocked(pendingCount: 1, blockedCount: 1, requiresUpdate: false))
         #expect(fixture.record(record.recordID) == nil)

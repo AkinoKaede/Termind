@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:a71d66817c91463fad3b26f544059b3945dd6e5564036981c101550db75f8c4e",
+  "pageVersion": "sha256:e2c12e2ff82d7f9e77f1ee6b754d6b2aa0a6ca10c1d156736dc87ff20492583e",
   "claims": [
     {
       "id": "claim_3a403468456840acbfe0a524b90d5717",
@@ -12,7 +12,7 @@
         },
         {
           "resource": "repo://TFMTests/ArchitectureBoundaryTests.swift",
-          "version": "repo-file-v1:sha256:cda33d82d48452a5e1059be4ddbf0b4d924cc192e100f6cb785eeed60cd1e1f6"
+          "version": "repo-file-v1:sha256:cf6e9f9b2966d822cf0e486e02ffd605f67f3a5dd264f6eee58bfb40d2e9bc43"
         }
       ]
     },
@@ -352,7 +352,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
           "resource": "repo://TFI/Features/Vault/MobileVaultView.swift",
@@ -424,7 +424,7 @@
       "evidence": [
         {
           "resource": "repo://TFI/App/MobileAppModel.swift",
-          "version": "repo-file-v1:sha256:9b629f4d8c0fa449a18c4aee2e6672263cc99a839ad8e87888d26f179b54fea7"
+          "version": "repo-file-v1:sha256:b66926a9407a45fbe5d77bb85a189ccead835f2ffad2b0751c28084948c416e5"
         },
         {
           "resource": "repo://TFITests/MobileAdaptiveLayoutTests.swift",
@@ -713,6 +713,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T03:18:19.992Z"
+    "at": "2026-09-24T06:30:19.118Z"
   }
 }

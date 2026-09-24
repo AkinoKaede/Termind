@@ -25,7 +25,7 @@ public typealias PersistentDeviceRecord = TermindSchemaV32DeviceModels.Persisten
 @MainActor
 public final class SwiftDataDeviceDirectoryRepository: DeviceDirectoryRepository {
     private let context: ModelContext
-    public var didRecordVaultChanges: ((VaultMutationSet) -> Void)?
+    public var didRecordHistoryChanges: ((HistoryMutationSet) -> Void)?
 
     public init(context: ModelContext) { self.context = context }
 
@@ -34,8 +34,9 @@ public final class SwiftDataDeviceDirectoryRepository: DeviceDirectoryRepository
     }
 
     public func upsert(_ device: DeviceRecord) throws {
-        var mutations = VaultMutationSet.empty
+        var mutations = HistoryMutationSet.empty
         try context.commit {
+            try HistorySyncJournal(context: context).bootstrapIfNeeded()
             let id = device.id
             var descriptor = FetchDescriptor<PersistentDeviceRecord>(
                 predicate: #Predicate { $0.id == id })
@@ -46,8 +47,8 @@ public final class SwiftDataDeviceDirectoryRepository: DeviceDirectoryRepository
             } else {
                 context.insert(PersistentDeviceRecord(device))
             }
-            mutations = try VaultSyncJournal(context: context).recordCurrentDevices(try devices())
+            mutations = try HistorySyncJournal(context: context).recordCurrentSnapshot()
         }
-        if !mutations.isEmpty { didRecordVaultChanges?(mutations) }
+        if !mutations.isEmpty { didRecordHistoryChanges?(mutations) }
     }
 }

@@ -12,14 +12,14 @@ public final class PersistentVaultSyncEntry {
     public var needsUpload = false
 
     public init(envelope: VaultEnvelope, needsUpload: Bool) throws {
-        apply(envelope, needsUpload: needsUpload)
+        try apply(envelope, needsUpload: needsUpload)
     }
 
-    public func apply(_ envelope: VaultEnvelope, needsUpload: Bool) {
+    public func apply(_ envelope: VaultEnvelope, needsUpload: Bool) throws {
         recordName = envelope.key.recordName
         kind = envelope.key.kind.rawValue
         entityID = envelope.key.id
-        envelopeData = VaultSyncCodec.encode(envelope)
+        envelopeData = try VaultSyncCodec.encode(envelope)
         self.needsUpload = needsUpload
     }
 
@@ -53,14 +53,28 @@ public final class PersistentVaultSyncQuarantine {
     }
 }
 
+/// Stable CloudKit V1 encoding is deliberately independent of domain Codable.
 public nonisolated enum VaultSyncCodec {
-    public static func encode(_ envelope: VaultEnvelope) -> Data {
+    public static func encode(_ envelope: VaultEnvelope) throws -> Data {
+        try SyncRecordFormats.vault.validate(kind: envelope.key.kind.rawValue, version: envelope.formatVersion)
+        guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.sortedKeys]
-        return (try? encoder.encode(envelope)) ?? Data()
+        return try encoder.encode(VaultWireV1.Envelope(envelope))
     }
 
+    private static let decoder = VersionedRecordDecoder<VaultEnvelope>(
+        Dictionary(
+            uniqueKeysWithValues: VaultRecordKind.allCases.map { kind in
+                (
+                    kind.rawValue,
+                    [1: { data in try JSONDecoder().decode(VaultWireV1.Envelope.self, from: data).domainValue }]
+                )
+            }))
+
     public static func decode(_ data: Data) throws -> VaultEnvelope {
-        try JSONDecoder().decode(VaultEnvelope.self, from: data)
+        let envelope = try decoder.decode(data)
+        guard envelope.isValid else { throw VaultSyncPersistenceError.invalidEnvelope(envelope.key.recordName) }
+        return envelope
     }
 }

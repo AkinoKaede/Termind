@@ -800,6 +800,17 @@ public enum TermindSchemaV34: VersionedSchema {
     }
 }
 
+/// V35 adds journals/checkpoints; the V34 domain model shapes remain untouched.
+public enum TermindSchemaV35: VersionedSchema {
+    public static let versionIdentifier = Schema.Version(35, 0, 0)
+    public static var models: [any PersistentModel.Type] {
+        TermindSchemaV34.models + [
+            PersistentHistorySyncEntry.self, PersistentHistorySyncState.self,
+            PersistentHistoryImportState.self, PersistentSyncCapability.self,
+        ]
+    }
+}
+
 public enum TermindMigrationPlan: SchemaMigrationPlan {
     public static var schemas: [any VersionedSchema.Type] {
         [
@@ -812,7 +823,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
             TermindSchemaV22.self, TermindSchemaV23.self, TermindSchemaV24.self, TermindSchemaV25.self,
             TermindSchemaV26.self, TermindSchemaV27.self, TermindSchemaV28.self,
             TermindSchemaV30.self, TermindSchemaV31.self,
-            TermindSchemaV34.self,
+            TermindSchemaV34.self, TermindSchemaV35.self,
         ]
     }
 
@@ -906,6 +917,7 @@ public enum TermindMigrationPlan: SchemaMigrationPlan {
                     try context.save()
                 }
             ),
+            MigrationStage.lightweight(fromVersion: TermindSchemaV34.self, toVersion: TermindSchemaV35.self),
         ]
     }
 }

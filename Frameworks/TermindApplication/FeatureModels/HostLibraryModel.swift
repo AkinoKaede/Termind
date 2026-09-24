@@ -1328,10 +1328,7 @@ public final class HostLibraryModel: RemoteSessionHostStore {
         let cloud =
             defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool
             ?? SettingsKey.defaultICloudSyncEnabled
-        let vault =
-            defaults.object(forKey: SettingsKey.vaultSyncEnabled) as? Bool
-            ?? SettingsKey.defaultVaultSyncEnabled
-        return cloud && vault ? .iCloud : .thisDevice
+        return cloud ? .iCloud : .thisDevice
     }
 
     /// One-way migration for Host-private passwords when Vault sync becomes active.

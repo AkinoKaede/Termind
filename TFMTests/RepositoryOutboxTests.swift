@@ -240,8 +240,8 @@ struct RepositoryOutboxTests {
         #expect(try context.fetch(FetchDescriptor<PersistentSFTPHistoryEntry>()).isEmpty)
         #expect(try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>()).isEmpty)
         let connectionHistoryEnvelope = try #require(
-            try VaultSyncJournal(context: context).envelope(
-                for: VaultRecordKey(kind: .connectionHistory, id: connectionHistory.id)))
+            try HistorySyncJournal(context: context).envelope(
+                for: HistoryRecordKey(kind: .connectionHistory, id: connectionHistory.id)))
         #expect(connectionHistoryEnvelope.isDeleted)
         #expect(try context.fetch(FetchDescriptor<PersistentPendingDeletion>()).isEmpty)
         #expect(

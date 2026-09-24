@@ -66,6 +66,12 @@ struct CloudSyncSafetyPersistenceTests {
         let pending: [String]
         let uploadable: [String]
         switch category {
+        case .history, .device:
+            let journal = HistorySyncJournal(context: context)
+            pending = try journal.pendingEnvelopes().map(\.key.recordName)
+            uploadable = try journal.uploadablePendingRecordNames(in: saved.scope)
+            let key = try #require(HistoryRecordKey(recordName: saved.recordName))
+            #expect(try journal.outgoingEntry(for: key, scope: saved.scope) == nil)
         case .vault:
             let journal = VaultSyncJournal(context: context)
             pending = try journal.pendingEnvelopes().map(\.key.recordName)
@@ -116,7 +122,7 @@ struct CloudSyncSafetyPersistenceTests {
         #expect(try context.fetch(FetchDescriptor<PersistentHostGroup>()).map(\.name) == ["Existing data"])
         #expect(!TermindSchemaV30.models.contains { $0 == PersistentCloudSyncQuarantine.self })
         #expect(TermindSchemaV31.models.contains { $0 == PersistentCloudSyncQuarantine.self })
-        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV34.versionIdentifier)
+        #expect(TermindMigrationPlan.schemas.last?.versionIdentifier == TermindSchemaV35.versionIdentifier)
     }
 
     private func writeInterruptedFetch(
@@ -131,7 +137,7 @@ struct CloudSyncSafetyPersistenceTests {
         // Simulate termination before didFetchChanges: the durable fence must remain set.
         return (
             try #require(fixture.lifecycle.scope), record.recordID.recordName,
-            try #require(record["payload"] as? Data)
+            try #require(fixture.safety().entry(recordName: record.recordID.recordName)?.payloadData)
         )
     }
 

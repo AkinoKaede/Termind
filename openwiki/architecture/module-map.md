@@ -3,9 +3,6 @@ type: architecture map
 title: Module and Directory Architecture Map
 description: A concise map of Termind's modules, second-level functional directories, build dependencies, and responsibility boundaries, with links to the detailed directory guides.
 tags: [architecture, modules, directories, dependencies, ownership]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-ed77bc20b48d193bace3dde6
     resource: repo://.gitmodules
@@ -23,6 +20,8 @@ sources:
     resource: repo://Frameworks/TermindApplication/Transfers/RemoteFileSystem.swift
   - id: openwiki-source-7367aa06bc3b7ce470e78113
     resource: repo://Frameworks/TermindDomain/DeviceRecord.swift
+  - id: openwiki-source-894539337bc9140a109608f0
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
   - id: openwiki-source-eaa9d39ab551840299164d96
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-0b6ab59ec6a684de8101ff8e
@@ -57,7 +56,10 @@ sources:
     resource: repo://TFMTests/ArchitectureBoundaryTests.swift
   - id: openwiki-source-0f8d0f9d08d6674698dd054c
     resource: repo://WorkspaceActivitySupport/WorkspaceActivityAttributes.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T06:45:57.323Z
 ---
 
 # Module and Directory Architecture Map
@@ -142,7 +144,7 @@ The MCP bridge translates stdio requests into authenticated HTTP calls to the de
 | Browse or transfer files | Domain remote-file values; Application remote-filesystem and edit model. | Remote Infrastructure SFTP channels, transfer scheduler, planners, and edit service. | Native browser, conflict UI, local file access, and Open With presentation. |
 | Run an Assistant turn | Application conversation/execution coordination; AgentKit generic runtime. | Termind host tools in Remote Infrastructure; persistence and memory stores. | Native composer, approval/input presentation, transcript mounting, and navigation. |
 | Edit and synchronize Vault data | Domain snapshots and mutations; Application library/use-case state. | Persistence local stores and journals; Infrastructure CloudKit coordinators; Keychain secret implementation. | Platform editors and app-level service assembly. |
-| Resolve this or another installation's display name | Domain `DeviceRecord`; Application device-directory port and observable model. | Persistence-owned SwiftData device records and Vault journal payloads. | Platform composition supplies the stable installation ID and system display name. |
+| Resolve this or another installation's display name | Domain `DeviceRecord`; Application device-directory port and observable model. | Persistence-owned SwiftData device records and the independent History journal; native `DeviceItem` fields in CloudKit. | Platform composition supplies the stable installation ID and system display name. |
 | Display remote metrics | Domain metrics; Application sampling/snapshot interfaces and model. | Remote SSH sampler plus Infrastructure output parsers. | Native dashboards and desktop menu-bar integration. |
 
 This split is also a placement rule: shared behavior belongs with its existing owner; native lifetime or platform API usage stays in the app. Similar names such as `Agent`, `Transfers`, `Terminal`, or `Metrics` in different modules do not imply duplicated responsibilities.

@@ -6,102 +6,66 @@ import TermindPresentation
 struct SyncSettings: View {
     @Environment(AppModel.self) private var app
     @AppStorage(SettingsKey.iCloudSyncEnabled) private var isEnabled = SettingsKey.defaultICloudSyncEnabled
-    @AppStorage(SettingsKey.vaultSyncEnabled) private var includesVault = SettingsKey.defaultVaultSyncEnabled
+    @AppStorage(SettingsKey.historySyncEnabled) private var includesHistory = SettingsKey.defaultHistorySyncEnabled
     @AppStorage(SettingsKey.metricsSyncEnabled) private var includesMetrics = SettingsKey.defaultMetricsSyncEnabled
     @AppStorage(SettingsKey.settingsSyncEnabled) private var includesSettings = SettingsKey.defaultSettingsSyncEnabled
     private var isActive: Bool { isEnabled && app.proAccess.canUse(.vaultSync) }
 
     var body: some View {
-        Section(AppStrings.Keychain.iCloud.swiftUIKey) {
-            Toggle(
-                AppStrings.Settings.iCloudSync.swiftUIKey,
-                isOn: Binding(
-                    get: { isActive },
-                    set: { enabled in
-                        guard !enabled || app.proAccess.require(.vaultSync) else { return }
-                        isEnabled = enabled
-                        if enabled {
-                            do { try app.hostLibrary.migrateCustomPasswordsToICloud() } catch {
-                                app.hostLibrary.reportStorageError(error)
-                            }
-                        }
-                        app.reconcileProAccess()
-                    })
-            )
-            .toggleStyle(.switch)
-
-            VStack(alignment: .leading, spacing: Metrics.Space.m) {
-                SyncSelectionRow(
-                    title: AppStrings.Navigation.vault,
-                    isSelected: Binding(
-                        get: { includesVault },
-                        set: { value in
-                            includesVault = value
-                            if value {
-                                do { try app.hostLibrary.migrateCustomPasswordsToICloud() } catch {
-                                    app.hostLibrary.reportStorageError(error)
-                                }
-                            }
-                            app.vaultSync?.setEnabled(value)
-                        }), status: isActive ? app.vaultSync?.status : nil,
-                    retry: { app.vaultSync?.retry() },
-                    merge: { app.vaultSync?.confirmAccountSwitchMerge() })
-                SyncSelectionRow(
-                    title: AppStrings.Navigation.metrics,
-                    isSelected: Binding(
-                        get: { includesMetrics },
-                        set: { value in
-                            includesMetrics = value
-                            app.metricsSync?.setEnabled(value)
-                        }), status: isActive ? app.metricsSync?.status : nil,
-                    retry: { app.metricsSync?.retry() },
-                    merge: { app.metricsSync?.confirmAccountSwitchMerge() })
-                SyncSelectionRow(
-                    title: AppStrings.Navigation.settings,
-                    isSelected: Binding(
-                        get: { includesSettings },
-                        set: { value in
-                            includesSettings = value
-                            app.settingsSync?.setEnabled(value)
-                        }), status: isActive ? app.settingsSync?.status : nil,
-                    retry: { app.settingsSync?.retry() },
-                    merge: { app.settingsSync?.confirmAccountSwitchMerge() })
-            }
-            .disabled(!isActive)
-        }
+        CloudSyncSettingsContent(
+            enabled: Binding(
+                get: { isActive },
+                set: { enabled in
+                    guard !enabled || app.proAccess.require(.vaultSync) else { return }
+                    isEnabled = enabled
+                    if enabled { migratePasswords() }
+                    app.reconcileProAccess()
+                }),
+            history: Binding(
+                get: { includesHistory },
+                set: {
+                    includesHistory = $0
+                    app.historySync?.setEnabled($0)
+                }),
+            settings: Binding(
+                get: { includesSettings },
+                set: {
+                    includesSettings = $0
+                    app.settingsSync?.setEnabled($0)
+                }),
+            metrics: Binding(
+                get: { includesMetrics },
+                set: {
+                    includesMetrics = $0
+                    app.metricsSync?.setEnabled($0)
+                }), categories: syncCategories)
     }
-}
 
-private struct SyncSelectionRow: View {
-    let title: LocalizedStringResource
-    @Binding var isSelected: Bool
-    let status: VaultSyncStatus?
-    let retry: () -> Void
-    let merge: () -> Void
+    private func migratePasswords() {
+        do { try app.hostLibrary.migrateCustomPasswordsToICloud() } catch { app.hostLibrary.reportStorageError(error) }
+    }
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: Metrics.Space.xs) {
-            HStack {
-                Toggle(isOn: $isSelected) {
-                    Text(title)
-                }
-                .toggleStyle(.checkbox)
-                Spacer()
-                if isSelected, let status {
-                    VaultSyncStatusLabel(status: status)
-                        .font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            if isSelected, let status {
-                switch status {
-                case .accountChangeConfirmationRequired:
-                    Button(AppStrings.Settings.mergeWithThisICloudAccount.swiftUIKey, action: merge)
-                case .failed, .partiallyBlocked:
-                    // Retry fetches again; it never dismisses a persisted upload restriction.
-                    Button(AppStrings.Common.retry.swiftUIKey, action: retry)
-                default: EmptyView()
-                }
-            }
-        }
+    private var syncCategories: [CloudSyncCategoryPresentation] {
+        [
+            .init(
+                id: "vault", title: AppStrings.Navigation.vault, status: app.vaultSync?.status,
+                retry: { app.vaultSync?.retry() }, merge: { app.vaultSync?.confirmAccountSwitchMerge() }),
+            .init(
+                id: "history", title: AppStrings.Common.history, isSelected: includesHistory,
+                status: app.historySync?.historyStatus, retry: { app.historySync?.retry() },
+                merge: { app.historySync?.confirmAccountSwitchMerge() }),
+            .init(
+                id: "devices", actionID: "history", title: AppStrings.Settings.devices,
+                status: app.historySync?.deviceStatus,
+                retry: { app.historySync?.retry() }, merge: { app.historySync?.confirmAccountSwitchMerge() }),
+            .init(
+                id: "metrics", title: AppStrings.Navigation.metrics, isSelected: includesMetrics,
+                status: app.metricsSync?.status, retry: { app.metricsSync?.retry() },
+                merge: { app.metricsSync?.confirmAccountSwitchMerge() }),
+            .init(
+                id: "settings", title: AppStrings.Navigation.settings, isSelected: includesSettings,
+                status: app.settingsSync?.status, retry: { app.settingsSync?.retry() },
+                merge: { app.settingsSync?.confirmAccountSwitchMerge() }),
+        ]
     }
 }

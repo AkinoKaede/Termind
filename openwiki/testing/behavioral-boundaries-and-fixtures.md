@@ -3,9 +3,6 @@ type: testing strategy
 title: Testing Strategy and Behavioral Boundaries
 description: Focused regression strategy for Termind's shared frameworks and macOS and mobile targets, with fixtures that protect persistence, security, lifecycle, architecture, and UI contracts.
 tags: [testing, regression, fixtures, architecture, persistence, security, lifecycle, ui]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-8037e2358a2c4f9b2c722a11
     resource: repo://AGENTS.md
@@ -31,6 +28,8 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-b7edf1d892ee300ba46cecd4
+    resource: repo://FrameworkTests/HistorySyncTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
   - id: openwiki-source-3b424584de88a1150af27f83
@@ -39,6 +38,8 @@ sources:
     resource: repo://FrameworkTests/ProPaywallPresentationTests.swift
   - id: openwiki-source-db40aa993661b07f1a9aff6d
     resource: repo://FrameworkTests/SSHInteractionPolicyTests.swift
+  - id: openwiki-source-bb65493b0fd5bf5957736cd6
+    resource: repo://FrameworkTests/SyncRecordEvolutionTests.swift
   - id: openwiki-source-294dd6a8637abdafe40e9570
     resource: repo://Scripts/generate-v28-fixture.swift
   - id: openwiki-source-27d6a8d3b199ecf35f59fafb
@@ -95,7 +96,10 @@ sources:
     resource: repo://TFMTests/VaultSyncTests.swift
   - id: openwiki-source-a08489338be00125d646c77e
     resource: repo://TFMTests/VisibleWindowTestTrait.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T06:45:57.323Z
 ---
 
 # Testing Strategy and Behavioral Boundaries
@@ -130,7 +134,7 @@ Persistence tests are compatibility tests, not just encode/decode checks. `Persi
 
 The fixed `FrameworkTests/Fixtures/V28.store` covers the installed-store regression that produced CoreData `134504` when V28 was missing from the migration plan. `Scripts/generate-v28-fixture.swift` records source commit `0dc173d4b1d190071d35bc66f80ebb767d8b950c` (the parent of `b0d35d24`) and schema checksum `hh/HY7td7OFShC/UhxiuwAlJuf8IZOWsZm7U7VqLaSs=`. It must run against that historical Persistence framework: reconstructing a store from current models could hide a changed historical checksum. The checked-in store contains only synthetic data, with WAL contents consolidated through SQLite's backup API.
 
-`version28FixtureMigratesAndReopensWithoutLosingData` copies that store to a temporary directory, migrates through V28→V30→V31→V34, releases the container and opens it again. Both passes check host/group values, GB18030 charset, identity/password-storage/key references, ordered environment variables, startup snippet, Known Hosts, connection history and installation-ID backfill, plus workspace defaults. Existing V27, V30, V31 and current-schema tests remain alongside it. V29, V32 and V33 stay absent from the migration plan.
+`version28FixtureMigratesAndReopensWithoutLosingData` copies that store to a temporary directory, migrates through V28→V30→V31→V34→V35, releases the container and opens it again. Both passes check host/group values, GB18030 charset, identity/password-storage/key references, ordered environment variables, startup snippet, Known Hosts, connection history and installation-ID backfill, plus workspace defaults. Existing V27, V30, V31 and current-schema tests remain alongside it. V29, V32 and V33 stay absent from the migration plan.
 
 Agent replay persistence demonstrates the same principle for durable runtime state: an in-memory `SwiftDataAgentRunRepository` must restore frozen context and tool result projection without duplicating replay backing across subsequent snapshots, and deletion must remove that backing. A fixture should deliberately model the timing boundary it protects—for example, recording a tool result before the following run snapshot—rather than requiring a live provider.
 
@@ -151,7 +155,7 @@ The controller's `failedReplacementSaveCannotBeSupersededOrMutatedBeforeItComple
 
 ### CloudKit compatibility: test prohibited uploads, not just decoding
 
-The safety fixture substitutes only the CloudKit transport. It uses the production Vault, Settings and Metrics coordinators, journals, record coding, synchronous batches and final record providers. The same cases run for all three categories:
+The safety fixture substitutes only the CloudKit transport. It uses the production Vault, History/Device, Settings and Metrics coordinators, journals, record coding, synchronous batches and final record providers. The same cases run for all five record families (Vault, History, Device, Settings and Metrics):
 
 - Receive a future-format record with a pending local edit and verify its original bytes and pending intent survive, while a compatible peer still reaches the outgoing batch.
 - Feed an already-queued save and physical delete through the batch seam; neither may bypass the record restriction. Tombstones and physical-delete recreation remain pending but blocked.
@@ -161,7 +165,7 @@ The safety fixture substitutes only the CloudKit transport. It uses the producti
 
 Disk-backed tests separately migrate a V30 store to V31, import legacy quarantine, reopen interrupted state and verify that journal intent and recovery flags survive. Scope tests vary container, environment, account, zone and owner independently. Lifecycle tests hold fetches and inject persistence/lookup failures, exercise overlapping explicit operations and automatic callbacks, and prove that an old or failed engine cannot reopen upload authorization.
 
-Connection-history coverage adds a V31-to-V34 disk migration, Vault codec/merge/tombstone tests, event start/end lifetime checks, stable local-device filtering and deterministic retention of 250 stored events. Migration and sync tests also verify the independent generic device directory: old events receive the installation ID, a separate `DeviceRecord` is created, and changing that record's name updates resolution without rewriting events. Desktop tests distinguish local Welcome Recents from the 100-row all-device sidebar projection. Mobile tests distinguish local per-Host Recents and host-only quick actions from the 50-event Vault History page, including preferred SSH/Telnet activation, disabled protocol actions, device-name search and multilingual light/dark screenshots. Serial remains outside the connection-history enum and mobile workspace routes.
+Connection-history coverage adds a V31-to-V34 disk migration, History native-field/merge/tombstone tests, event start/end lifetime checks, stable local-device filtering and deterministic retention of 250 stored events. Migration and sync tests also verify the independent generic device directory: old events receive the installation ID, a separate `DeviceRecord` is created, and changing that record's name updates resolution without rewriting events. Desktop tests distinguish local Welcome Recents from the 100-row all-device sidebar projection. Mobile tests distinguish local per-Host Recents and host-only quick actions from the 50-event Vault History page, including preferred SSH/Telnet activation, disabled protocol actions, device-name search and multilingual light/dark screenshots. Serial remains outside the connection-history enum and mobile workspace routes.
 
 The same direct V31-to-V34 fixture verifies that removing Identity usage metadata preserves Identity configuration and its independent Vault journal modification date, and that workspace preferences bootstrap with defaults. V32 and V33 are not distributed migration endpoints.
 
@@ -263,3 +267,7 @@ xcrun swift-format lint --strict --recursive Frameworks TFM TFI FrameworkTests T
 ```
 
 This page complements [System Boundaries and Dependency Ownership](../architecture/system-boundaries.md), [Assistant, Agent Runtime, Skills, and Memory](../concepts/agent-runtime-and-assistant.md), and [Build, Validation, Localization, and Dependency Release Operations](../operations/build-test-and-release.md). The operational page defines the full build and release commands; this page defines what a focused regression must prove before those broader checks are meaningful.
+
+## History split and per-kind evolution
+
+`HistorySyncTests` exercises native CloudKit fields, independent History/Device selection, continuous legacy import, terminal tombstones, source-to-target quarantine fences, retry after failed startup and readiness during overlapping explicit/automatic reads. It verifies structured Logging without raw record/account data and treats expected cancellation as lifecycle control. `SyncRecordEvolutionTests` freezes a literal V1 Host fixture and exercises a test-only Host V2 reader/writer while other kinds remain V1, malformed and unknown formats, throwing encoders, and aggregate status. Persistence tests additionally migrate and reopen V31/V34 stores into V35 and prepare History state after the fixed V28 fixture migration. These are local protocol and transaction tests, not evidence of deployed schemas or signed-client delivery.

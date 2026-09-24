@@ -89,7 +89,7 @@ struct VaultSyncTests {
         let destination = try makeContainer("ConnectionHistoryDestination")
         let sourceHistoryRepository = SwiftDataConnectionHistoryRepository(context: source.mainContext)
         let sourceDeviceRepository = SwiftDataDeviceDirectoryRepository(context: source.mainContext)
-        let sourceDeviceID = try VaultSyncJournal(context: source.mainContext).state().installationID
+        let sourceDeviceID = try HistorySyncJournal(context: source.mainContext).state().installationID
         let sourceDevices = DeviceDirectoryModel(
             repository: sourceDeviceRepository, currentDeviceID: sourceDeviceID,
             currentDeviceName: "Source Mac")
@@ -101,12 +101,12 @@ struct VaultSyncTests {
         let entry = try #require(sourceModel.record(kind: .ssh, for: hostID, at: connectedAt))
         sourceModel.end(entry.id, at: endedAt)
 
-        let key = VaultRecordKey(kind: .connectionHistory, id: entry.id)
-        let deviceKey = VaultRecordKey(kind: .device, id: sourceModel.sourceDeviceID)
-        let sourceJournal = VaultSyncJournal(context: source.mainContext)
+        let key = HistoryRecordKey(kind: .connectionHistory, id: entry.id)
+        let deviceKey = HistoryRecordKey(kind: .device, id: sourceModel.sourceDeviceID)
+        let sourceJournal = HistorySyncJournal(context: source.mainContext)
         let envelope = try #require(try sourceJournal.envelope(for: key))
         let deviceEnvelope = try #require(try sourceJournal.envelope(for: deviceKey))
-        _ = try HostPersistence(context: destination.mainContext).applyRemote(
+        _ = try HistorySyncPersistence(context: destination.mainContext).applyRemote(
             [envelope, deviceEnvelope])
 
         let received = try destination.mainContext.fetch(
@@ -126,7 +126,7 @@ struct VaultSyncTests {
 
         sourceDevices.updateCurrentDeviceName("Renamed Source Mac")
         let renamedDeviceEnvelope = try #require(try sourceJournal.envelope(for: deviceKey))
-        _ = try HostPersistence(context: destination.mainContext).applyRemote(
+        _ = try HistorySyncPersistence(context: destination.mainContext).applyRemote(
             [renamedDeviceEnvelope])
         #expect(
             try destination.mainContext.fetch(
@@ -136,7 +136,7 @@ struct VaultSyncTests {
         sourceModel.delete(entry.id)
         let tombstone = try #require(try sourceJournal.envelope(for: key))
         #expect(tombstone.isDeleted)
-        _ = try HostPersistence(context: destination.mainContext).applyRemote([tombstone])
+        _ = try HistorySyncPersistence(context: destination.mainContext).applyRemote([tombstone])
         #expect(
             try destination.mainContext.fetchCount(
                 FetchDescriptor<PersistentConnectionHistoryEntry>()) == 0)
@@ -157,17 +157,17 @@ struct VaultSyncTests {
         context.insert(PersistentConnectionHistoryEntry(entry))
         try context.save()
 
-        _ = try persistence.load()
+        try HistorySyncPersistence(context: context).prepare()
 
-        let key = VaultRecordKey(kind: .connectionHistory, id: entry.id)
-        let envelope = try #require(try VaultSyncJournal(context: context).envelope(for: key))
+        let key = HistoryRecordKey(kind: .connectionHistory, id: entry.id)
+        let envelope = try #require(try HistorySyncJournal(context: context).envelope(for: key))
         #expect(envelope.payload == .connectionHistory(entry))
         let sourceDeviceEnvelope = try #require(
-            try VaultSyncJournal(context: context).envelope(
-                for: VaultRecordKey(kind: .device, id: sourceDevice.id)))
+            try HistorySyncJournal(context: context).envelope(
+                for: HistoryRecordKey(kind: .device, id: sourceDevice.id)))
         #expect(sourceDeviceEnvelope.payload == .device(sourceDevice))
         #expect(
-            try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>())
+            try context.fetch(FetchDescriptor<PersistentHistorySyncEntry>())
                 .first(where: { $0.recordName == key.recordName })?.needsUpload == true)
     }
 
@@ -185,22 +185,23 @@ struct VaultSyncTests {
         for value in values { context.insert(PersistentConnectionHistoryEntry(value)) }
         try context.save()
 
-        _ = try HostPersistence(context: context).load()
+        try HistorySyncPersistence(context: context).prepare()
 
         let retained = try context.fetch(FetchDescriptor<PersistentConnectionHistoryEntry>())
             .map(\.value)
             .sorted(by: ConnectionHistoryEntry.isNewer)
-        let historyEnvelopes = try context.fetch(FetchDescriptor<PersistentVaultSyncEntry>())
+        let historyEnvelopes = try context.fetch(FetchDescriptor<PersistentHistorySyncEntry>())
             .compactMap(\.envelope)
             .filter { $0.key.kind == .connectionHistory }
         #expect(retained.count == ConnectionHistoryModel.limit)
         #expect(retained.map(\.id) == Array(values.suffix(ConnectionHistoryModel.limit).reversed()).map(\.id))
-        #expect(historyEnvelopes.count == ConnectionHistoryModel.limit)
-        #expect(Set(historyEnvelopes.map(\.key.id)) == Set(retained.map(\.id)))
+        #expect(historyEnvelopes.count == values.count)
+        #expect(historyEnvelopes.filter(\.isDeleted).count == values.count - ConnectionHistoryModel.limit)
+        #expect(Set(historyEnvelopes.filter { !$0.isDeleted }.map(\.key.id)) == Set(retained.map(\.id)))
     }
 
     @Test
-    func launchDiscardsUnsentOverflowAndTombstonesUploadedOverflow() throws {
+    func launchTombstonesAllOverflowToPreventLegacyResurrection() throws {
         let container = try makeContainer("ConnectionHistoryOverflowJournal")
         let context = container.mainContext
         let values = (0...(ConnectionHistoryModel.limit + 1)).map { index in
@@ -213,16 +214,16 @@ struct VaultSyncTests {
         for value in values { context.insert(PersistentConnectionHistoryEntry(value)) }
         let unsent = values[0]
         let uploaded = values[1]
-        let unsentKey = VaultRecordKey(kind: .connectionHistory, id: unsent.id)
-        let uploadedKey = VaultRecordKey(kind: .connectionHistory, id: uploaded.id)
-        let journal = VaultSyncJournal(context: context)
+        let unsentKey = HistoryRecordKey(kind: .connectionHistory, id: unsent.id)
+        let uploadedKey = HistoryRecordKey(kind: .connectionHistory, id: uploaded.id)
+        let journal = HistorySyncJournal(context: context)
         for value in [unsent, uploaded] {
-            let envelope = VaultEnvelope(
-                key: VaultRecordKey(kind: .connectionHistory, id: value.id),
+            let envelope = HistoryEnvelope(
+                key: HistoryRecordKey(kind: .connectionHistory, id: value.id),
                 version: .baseline(writerID: UUID()), payload: .connectionHistory(value)
             )
             context.insert(
-                try PersistentVaultSyncEntry(envelope: envelope, needsUpload: value == unsent)
+                try PersistentHistorySyncEntry(envelope: envelope, needsUpload: value == unsent)
             )
         }
         try journal.updateSystemFields(Data("cloud-fields".utf8), for: uploadedKey)
@@ -230,11 +231,11 @@ struct VaultSyncTests {
         state.engineStateData = Data("stale-pending-history".utf8)
         try context.save()
 
-        _ = try HostPersistence(context: context).load()
+        try HistorySyncPersistence(context: context).prepare()
 
-        #expect(try journal.envelope(for: unsentKey) == nil)
+        #expect(try journal.envelope(for: unsentKey)?.isDeleted == true)
         #expect(try journal.envelope(for: uploadedKey)?.isDeleted == true)
-        #expect(try journal.state().engineStateData == nil)
+        #expect(try journal.state().engineStateData == Data("stale-pending-history".utf8))
         #expect(
             try context.fetchCount(FetchDescriptor<PersistentConnectionHistoryEntry>())
                 == ConnectionHistoryModel.limit)
@@ -505,7 +506,7 @@ struct VaultSyncTests {
             key: VaultRecordKey(kind: .identity, id: identity.id),
             version: .baseline(writerID: UUID()), payload: .identity(identity)
         )
-        let encoded = String(decoding: VaultSyncCodec.encode(envelope), as: UTF8.self)
+        let encoded = String(decoding: try VaultSyncCodec.encode(envelope), as: UTF8.self)
         #expect(encoded.contains(identity.credentialRef))
         #expect(!encoded.contains(secret))
     }

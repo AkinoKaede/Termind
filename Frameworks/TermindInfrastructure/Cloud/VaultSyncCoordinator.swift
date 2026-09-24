@@ -65,8 +65,11 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
             ?? "Unknown"
     }
 
+    public func configureLogging(_ logging: any ApplicationLogManaging) {
+        lifecycle.logger = logging.makeLogger(label: "termind.cloud-sync")
+    }
+
     public func start() { lifecycle.start() }
-    public func setEnabled(_ enabled: Bool) { lifecycle.setEnabled(enabled) }
     public func pause() { lifecycle.pause() }
     public func retry() { lifecycle.retry() }
     public func confirmAccountSwitchMerge() { lifecycle.confirmAccountSwitchMerge() }
@@ -96,13 +99,15 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
                 },
                 save: { try context.save() }, rollback: { context.rollback() },
                 pendingRecordNames: { try journal.uploadablePendingRecordNames(in: $0) },
-                safety: .persistent(context: context, importLegacyQuarantine: journal.importLegacyQuarantine),
+                safety: .persistent(
+                    context: context, capabilityID: SyncRecordFormats.vault.capabilityID,
+                    importLegacyQuarantine: journal.importLegacyQuarantine),
                 resetForNewAccount: { try journal.markAllLiveRecordsNeedsUploadForNewAccount() },
                 resetForZone: { try journal.markAllEntriesNeedsUploadAfterZoneReset() },
                 resetForEnvironment: { try journal.markAllEntriesNeedsUploadAfterEnvironmentChange() }),
             transport: makeTransport(zoneID, self),
             zoneID: zoneID, containerIdentifier: Self.containerIdentifier, defaults: defaults,
-            enabledKey: SettingsKey.vaultSyncEnabled, defaultEnabled: SettingsKey.defaultVaultSyncEnabled,
+            enabledKey: nil, defaultEnabled: SettingsKey.defaultVaultSyncEnabled,
             environmentKey: SettingsKey.vaultSyncEnvironment, environmentIdentifier: environmentIdentifier,
             signInMessage: { String(localized: "Sign in to iCloud to sync the Vault.") },
             beforeSend: { [weak self] in try self?.beforeSend?() })
@@ -139,13 +144,21 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     func makeChangeBatch(
         _ pending: [CKSyncEngine.PendingRecordZoneChange], engine: any CloudSyncEngineSession
     ) -> CKSyncEngine.RecordZoneChangeBatch? {
-        lifecycle.makeChangeBatch(pending, engine: engine) { recordToSave($0, engine: engine) }
+        let legacyNames = Set(
+            pending.compactMap { change -> String? in
+                guard case .saveRecord(let id) = change, HistoryRecordKey(recordName: id.recordName) != nil else {
+                    return nil
+                }
+                return id.recordName
+            })
+        engine.removePending(legacyNames, in: zoneID)
+        return lifecycle.makeChangeBatch(pending, engine: engine) { recordToSave($0, engine: engine) }
     }
 
     func recordToSave(_ recordID: CKRecord.ID, engine: any CloudSyncEngineSession) -> CKRecord? {
         do {
             guard try lifecycle.canUpload(recordID, engine: engine), let scope = lifecycle.scope,
-                let key = VaultRecordKey(recordName: recordID.recordName),
+                let key = VaultRecordKey(recordName: recordID.recordName), key.kind.isConfiguration,
                 let outgoing = try journal.outgoingEntry(for: key, scope: scope)
             else { return nil }
             return try Self.makeRecord(outgoing, recordID: recordID)
@@ -209,10 +222,13 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         var decoded: [(CKRecord, VaultEnvelope)] = []
         var rejected = Set<String>()
         for record in records
-        where record.recordID.zoneID == zoneID && (isConflict || record.recordType == Self.recordType) {
+        where record.recordID.zoneID == zoneID && (isConflict || record.recordType == Self.recordType)
+            && HistoryRecordKey(recordName: record.recordID.recordName) == nil
+        {
             do {
                 decoded.append((record, try Self.envelope(from: record)))
             } catch {
+                lifecycle.logFailure(error, stage: "decode-quarantine")
                 try CloudSyncRecordCoding.quarantine(record, error: error, in: safety)
                 rejected.insert(record.recordID.recordName)
             }
@@ -251,7 +267,10 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     private func handleSentChanges(_ changes: CKSyncEngine.Event.SentRecordZoneChanges) throws {
         guard let scope = lifecycle.scope else { throw CancellationError() }
         let safety = CloudSyncSafetyStore(context: context, scope: scope)
-        for record in changes.savedRecords where record.recordID.zoneID == zoneID {
+        for record in changes.savedRecords
+        where record.recordID.zoneID == zoneID
+            && HistoryRecordKey(recordName: record.recordID.recordName) == nil
+        {
             guard try !safety.isUploadBlocked(recordName: record.recordID.recordName) else { continue }
             let envelope = try Self.envelope(from: record)
             try journal.markUploaded(envelope.key, version: envelope.version)
@@ -271,6 +290,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         } else if error.code == .zoneNotFound {
             try lifecycle.handleZoneDeletion()
         } else if !CloudSyncLifecycle.isRetryable(error) {
+            lifecycle.logFailure(error, stage: "save")
             lifecycle.terminalError = error.localizedDescription
             status = .failed(error.localizedDescription)
         }
@@ -284,7 +304,7 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
         let envelope = outgoing.envelope
         let record = try CloudSyncRecordCoding.makeRecord(
             type: recordType, id: recordID, systemFields: outgoing.systemFieldsData)
-        let payload = VaultSyncCodec.encode(envelope)
+        let payload = try VaultSyncCodec.encode(envelope)
         record["formatVersion"] = NSNumber(value: envelope.formatVersion)
         record["kind"] = envelope.key.kind.rawValue as NSString
         record["entityID"] = envelope.key.id.uuidString.lowercased() as NSString
@@ -299,7 +319,6 @@ public final class VaultSyncCoordinator: NSObject, CKSyncEngineDelegate, @unchec
     public nonisolated static func envelope(from record: CKRecord) throws -> VaultEnvelope {
         let data = try CloudSyncRecordCoding.validatedPayloadData(
             from: record, invalidEnvelope: VaultSyncPersistenceError.invalidEnvelope(record.recordID.recordName))
-        try CloudSyncRecordCoding.validateFormat(in: data, supported: VaultEnvelope.currentFormatVersion)
         let envelope = try VaultSyncCodec.decode(data)
         guard record.recordType == recordType, envelope.key.recordName == record.recordID.recordName, envelope.isValid
         else {

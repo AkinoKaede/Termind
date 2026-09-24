@@ -69,6 +69,7 @@ final class MobileAppModel {
     let connectionHistory: ConnectionHistoryModel
     let devices: DeviceDirectoryModel
     let vaultSync: VaultSyncCoordinator?
+    let historySync: HistorySyncCoordinator?
     let settingsSync: SettingsSyncCoordinator?
     let metricsSync: MetricsSyncCoordinator?
     let skills: SkillLibraryModel
@@ -199,6 +200,8 @@ final class MobileAppModel {
             repository: SwiftDataCommandHistoryRepository(context: ModelContext(container)))
         sftpHistory = SFTPHistoryModel(
             repository: SwiftDataSFTPHistoryRepository(context: ModelContext(container)))
+        let historyPersistence = HistorySyncPersistence(context: vaultContext)
+        try historyPersistence.prepare()
         let connectionHistoryRepository = SwiftDataConnectionHistoryRepository(context: vaultContext)
         let deviceDirectoryRepository = SwiftDataDeviceDirectoryRepository(context: vaultContext)
         let currentDeviceID = try VaultSyncJournal(context: vaultContext).state().installationID
@@ -218,11 +221,17 @@ final class MobileAppModel {
             ? nil
             : MetricsSyncCoordinator(persistence: metricsPersistence, defaults: settingsDefaults)
         vaultSync = memoryOnly ? nil : VaultSyncCoordinator(context: vaultContext, defaults: settingsDefaults)
-        connectionHistoryRepository.didRecordVaultChanges = { [weak vaultSync] in
-            vaultSync?.noteLocalChanges($0)
+        historySync =
+            memoryOnly ? nil : HistorySyncCoordinator(persistence: historyPersistence, defaults: settingsDefaults)
+        vaultSync?.configureLogging(dependencies.logging)
+        historySync?.configureLogging(dependencies.logging)
+        settingsSync?.configureLogging(dependencies.logging)
+        metricsSync?.configureLogging(dependencies.logging)
+        connectionHistoryRepository.didRecordHistoryChanges = { [weak historySync] in
+            historySync?.noteLocalChanges($0)
         }
-        deviceDirectoryRepository.didRecordVaultChanges = { [weak vaultSync] in
-            vaultSync?.noteLocalChanges($0)
+        deviceDirectoryRepository.didRecordHistoryChanges = { [weak historySync] in
+            historySync?.noteLocalChanges($0)
         }
         ai = AIConfigurationModel(
             persistence: SyncedAIConfigurationPersistence(settingsPersistence), secrets: secrets,
@@ -309,7 +318,12 @@ final class MobileAppModel {
         )
         library.didRecordVaultChanges = { [weak vaultSync] in vaultSync?.noteLocalChanges($0) }
         if let repository = self.hosts as? SwiftDataHostRepository {
+            repository.didRecordHistoryChanges = { [weak historySync] in historySync?.noteLocalChanges($0) }
             repository.didRecordVaultChanges = { [weak vaultSync] in vaultSync?.noteLocalChanges($0) }
+        }
+        historySync?.didApplyRemote = { [weak self] keys in
+            if keys.contains(where: { $0.kind == .connectionHistory }) { self?.connectionHistory.reload() }
+            if keys.contains(where: { $0.kind == .device }) { self?.devices.reload() }
         }
         vaultSync?.didApplyRemote = { [weak self] in self?.applyRemoteVault($0, keys: $1) }
         sftpSettings.didChange = { [weak transfers] preferences in
@@ -583,10 +597,12 @@ final class MobileAppModel {
         let foreground = scenePhases.values.contains(.active)
         if foreground && pro.canUse(.vaultSync) {
             vaultSync?.start()
+            historySync?.start()
             metricsSync?.start()
             settingsSync?.start()
         } else {
             vaultSync?.pause()
+            historySync?.pause()
             metricsSync?.pause()
             settingsSync?.pause()
         }
@@ -595,7 +611,8 @@ final class MobileAppModel {
     func setSyncEnabled(_ value: Bool, key: String) {
         guard !value || pro.require(.vaultSync) else { return }
         defaults?.set(value, forKey: key)
-        if value && (key == SettingsKey.iCloudSyncEnabled || key == SettingsKey.vaultSyncEnabled) {
+        if key == SettingsKey.historySyncEnabled { historySync?.setEnabled(value) }
+        if value && key == SettingsKey.iCloudSyncEnabled {
             do { try library.migrateCustomPasswordsToICloud() } catch { self.error = error.localizedDescription }
         }
         reconcileSync()
@@ -626,10 +643,6 @@ final class MobileAppModel {
         }
         forwardings.stop(plan.forwardingRuleIDs)
         library.replacePersistedSnapshot(snapshot)
-        if keys.contains(where: { $0.kind == .connectionHistory }) {
-            connectionHistory.reload()
-        }
-        if keys.contains(where: { $0.kind == .device }) { devices.reload() }
         forwardings.reconcileConfiguration()
         liveActivities.update(workspaceActivitySessions)
     }
@@ -649,6 +662,7 @@ final class MobileAppModel {
         sftpEdits.setMonitoring(false)
         memory.suspend()
         vaultSync?.pause()
+        historySync?.pause()
         metricsSync?.pause()
         settingsSync?.pause()
         metrics.pause()

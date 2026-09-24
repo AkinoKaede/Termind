@@ -1,11 +1,8 @@
 ---
 type: synchronization workflow
-title: Settings, Vault, Metrics, and Cloud Sync Workflow
+title: Settings, Vault, History, Metrics, and Cloud Sync Workflow
 description: How Termind independently synchronizes Vault, Settings, and Metrics through CloudKit, including lifecycle gates, durable journals, account and environment transitions, conflict handling, and AI-secret upload authorization.
 tags: [cloudkit, synchronization, settings, vault, metrics, secrets, swiftdata]
-verified:
-  - by: openwiki/0.5.2
-    at: 2026-09-24T03:18:19.992Z
 sources:
   - id: openwiki-source-dc7b363138921b0923d2dc2f
     resource: repo://Frameworks/TermindApplication/FeatureModels/ConnectionHistoryModel.swift
@@ -17,12 +14,20 @@ sources:
     resource: repo://Frameworks/TermindDomain/Hosts/Host.swift
   - id: openwiki-source-1429ec01ac68a7770ce41977
     resource: repo://Frameworks/TermindDomain/Vault/CloudSyncSafety.swift
+  - id: openwiki-source-e08ad235d9d92a20cf09290b
+    resource: repo://Frameworks/TermindDomain/Vault/SyncRecordFormats.swift
   - id: openwiki-source-a9afccb62e1c69e5a0fbf46c
     resource: repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift
   - id: openwiki-source-1d1f503a260f304a969fcee4
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift
   - id: openwiki-source-4957f13c836c497e7ebe4656
     resource: repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncPersistenceSafety.swift
+  - id: openwiki-source-894539337bc9140a109608f0
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift
+  - id: openwiki-source-44a21e2f19acb7f78c9e1d23
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/HistorySyncCoordinator.swift
+  - id: openwiki-source-de21550ef087c0a50185267f
+    resource: repo://Frameworks/TermindInfrastructure/Cloud/LegacyHistoryImporter.swift
   - id: openwiki-source-3effdff7f6b04e2a66d8f651
     resource: repo://Frameworks/TermindInfrastructure/Cloud/MetricsSyncCoordinator.swift
   - id: openwiki-source-04ef2b2f02773f8833db9a8b
@@ -31,6 +36,8 @@ sources:
     resource: repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift
   - id: openwiki-source-1366e71322413c98e0ac1534
     resource: repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift
+  - id: openwiki-source-6bdc502f2e27478a98f042fa
+    resource: repo://Frameworks/TermindPersistence/HistorySyncStore.swift
   - id: openwiki-source-fe1dc993163bb9ff61397be7
     resource: repo://Frameworks/TermindPersistence/HostPersistence.swift
   - id: openwiki-source-07774a741f517493204edd63
@@ -63,6 +70,10 @@ sources:
     resource: repo://Frameworks/TermindPersistence/TermindSchemaV33IdentityModels.swift
   - id: openwiki-source-3cfc52217a7a6835b4bffac1
     resource: repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift
+  - id: openwiki-source-79f3c5a13bfe4aea8f4f02b6
+    resource: repo://Frameworks/TermindPersistence/VaultWireV1.swift
+  - id: openwiki-source-f7f7803d6920f3e68b98385b
+    resource: repo://Frameworks/TermindPresentation/CloudSyncSettingsContent.swift
   - id: openwiki-source-87b90af0bd504e35083a8414
     resource: repo://Frameworks/TermindPresentation/VaultSyncStatusLabel.swift
   - id: openwiki-source-b8eae581ee8d4d73aa45f827
@@ -75,8 +86,12 @@ sources:
     resource: repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift
   - id: openwiki-source-eb9518e5c7eb3782fa0cccc0
     resource: repo://FrameworkTests/CloudSyncSafetyTests.swift
+  - id: openwiki-source-b7edf1d892ee300ba46cecd4
+    resource: repo://FrameworkTests/HistorySyncTests.swift
   - id: openwiki-source-8428b9f5de49b8a561d93fa5
     resource: repo://FrameworkTests/PersistenceCompatibilityTests.swift
+  - id: openwiki-source-bb65493b0fd5bf5957736cd6
+    resource: repo://FrameworkTests/SyncRecordEvolutionTests.swift
   - id: openwiki-source-906678adb91c2fce2d3fcaed
     resource: repo://TFI/App/MobileAppModel.swift
   - id: openwiki-source-4dbea0ff2808163cb4ecdd8f
@@ -85,28 +100,38 @@ sources:
     resource: repo://TFM/Features/Settings/SettingsPageView.swift
   - id: openwiki-source-0a0c39623be1c4e870d0f538
     resource: repo://TFM/Features/Settings/SyncSettings.swift
-generated: { by: "openwiki/0.5.2", at: "2026-09-24T03:18:19.992Z" }
+generated: { by: "codex", at: "2026-09-24T06:45:57.323Z" }
+verified:
+  - by: openwiki/0.5.2
+    at: 2026-09-24T06:45:57.323Z
 ---
 
-# Settings, Vault, Metrics, and Cloud Sync Workflow
+# Settings, Vault, History, Metrics, and Cloud Sync Workflow
 
-Termind synchronizes three **independent categories** in the private `iCloud.com.akinokaede.termind` container: Vault records, application Settings, and Metrics selections. Each category has its own coordinator, private custom zone, subscription, `CKSyncEngine`, durable journal state, account binding, environment marker, pending queue, and status. The shared `CloudSyncLifecycle` supplies the safety protocol, but it does not make category state shared. Pausing Vault, for example, neither retires Settings/Metrics engines nor revokes Settings’ secret-upload authorization.
+Termind synchronizes Vault configuration, History/Device, Settings and Metrics through four independent coordinators in the private `iCloud.com.akinokaede.termind` container. Each owns its zone, subscription, engine, durable journal, account binding and queue while sharing `CloudSyncLifecycle` safety code. History and Device share a transport with per-kind selection.
 
 This workflow is CloudKit replication built around a SwiftData journal, not SwiftData’s CloudKit integration. `TermindPersistence` owns the journal models and the coordinator applies accepted remote envelopes back through the relevant persistence facade. Platform app models own coordinator lifetime and apply resulting snapshots to their runtime models.
 
 ## Categories, switches, and runtime ownership
 
-On desktop `SettingsPageView` routes the Sync category to `SyncSettings`. Its master switch checks the Pro capability, reconciles app-wide access, and, when enabled, attempts to move custom Host passwords into iCloud Keychain; Vault selection does the same migration. The category checkboxes change their own coordinator's enable state and show per-category status, retry, or account-merge confirmation. This UI is a control surface, not the store migration or CloudKit engine itself.
+The iCloud master switch and Pro eligibility control all synchronization. Vault
+configuration and device records follow that switch; the legacy Vault preference
+is read only during preference migration. Optional categories are **History →
+Metrics → Settings**, in that order on both platforms. History initially inherits
+the previous Vault selection; subsequent preference migrations never overwrite it.
+New installations enable History by default. Both apps use
+`CloudSyncSettingsContent`: one aggregate status, no category disclosure or footer.
+A shared History/Device engine receives at most one retry or account-merge action.
 
-| Category | Coordinator and zone | Content boundary | Default control |
-| --- | --- | --- | --- |
-| Vault | `VaultSyncCoordinator`; `TermindVaultV1`; `VaultItem` | Hosts, identities, SSH-key references, known hosts, snippets, forwarding rules, workspace templates, connection-history events, and the reusable device directory | `vault.sync.enabled` plus `icloud.sync.enabled` |
-| Settings | `SettingsSyncCoordinator`; `TermindAIConfigurationV1`; `AIConfigurationItem`, `SSHPreferencesItem`, `SFTPPreferencesItem`, and `WorkspacePreferencesItem` | AI configuration, skills, search, terminal, SSH, SFTP, and workspace preferences—not credential material | `settings.sync.enabled` plus `icloud.sync.enabled` |
-| Metrics | `MetricsSyncCoordinator`; `TermindMetricsV1`; `MetricsItem` | Persisted metrics selections, not samples or active monitoring | `metrics.sync.enabled` plus `icloud.sync.enabled` |
+Configuration retains `TermindVaultV1` / `VaultItem`. History and devices use
+`TermindConnectionHistoryV1` / `ConnectionHistoryItem` and `DeviceItem`. The shared
+History transport filters events independently at read, restored queue and final
+upload boundaries. Disabling History does not disable Device or require Vault.
+Settings and Metrics retain their existing record formats.
 
-All master and category switches default on. A category is enabled only when the master `SettingsKey.iCloudSyncEnabled` and that category’s key are enabled; an absent preference uses its category default. `SettingsKey.migrateSyncPreferences(in:)` migrates the old Settings selection and derives an initial master choice without discarding explicit opt-outs.
+The first shared Section has no header: it contains the iCloud Sync toggle and aggregate status/actions. The next Section is “Optional Sync” with History → Metrics → Settings. Enabling the master switch still attempts custom Host password migration to iCloud Keychain through the platform wrapper.
 
-`AppModel` starts all three coordinators only when the Vault-sync Pro capability is available, pauses all of them when entitlement is absent, and routes accepted remote snapshots to the corresponding app-wide models. On mobile, `MobileAppModel.reconcileSync()` starts them only while at least one scene is active and the same capability is available; otherwise it pauses them. This makes synchronization app-wide and entitlement/lifecycle-controlled rather than window- or scene-owned.
+`AppModel` starts all four coordinators only when the Vault-sync Pro capability is available, pauses all of them when entitlement is absent, and routes accepted remote snapshots to the corresponding app-wide models. On mobile, `MobileAppModel.reconcileSync()` starts them only while at least one scene is active and the same capability is available; otherwise it pauses them. This makes synchronization app-wide and entitlement/lifecycle-controlled rather than window- or scene-owned.
 
 ## Lifecycle: fetch before send
 
@@ -114,7 +139,7 @@ Every coordinator adapts its own journal to `CloudSyncLifecycleStore` and implem
 
 ```mermaid
 flowchart TD
-    Enabled{"Master and category enabled?"} -->|No| Paused["Paused and retain local journal"]
+    Enabled{"Master and applicable optional selection enabled?"} -->|No| Paused["Paused and retain local journal"]
     Enabled -->|Yes| Account{"Account available and binding accepted?"}
     Account -->|No| Waiting["Wait for account or merge confirmation"]
     Account -->|Yes| Prepare["Prepare scope and persist recovery checkpoint"]
@@ -145,7 +170,7 @@ The journal persists serialized engine state, `boundUserRecordName`, `pendingUse
 
 - With no binding or a matching account, it stores the current account and proceeds.
 - With a different bound account, it records the new user as pending, reports `.accountChangeConfirmationRequired`, and does not create an engine or upload anything.
-- `confirmAccountSwitchMerge()` imports legacy quarantine under the prior account/environment, resets journal state **before** binding the pending account, then retires and restarts. The account reset removes deletion tombstones, marks live records for upload, clears CloudKit system fields, serialized engine state, and last-success time. It therefore avoids carrying an old account’s deletions into the new account.
+- `confirmAccountSwitchMerge()` imports legacy quarantine under the prior account/environment, resets journal state **before** binding the pending account, then retires and restarts. The account reset removes old-account journal tombstones and requeues live records. Event deletion remains terminal during normal same-account sync/replay; account-merge confirmation deliberately starts a new account binding. The reset clears CloudKit system fields, serialized engine state, and last-success time. It therefore avoids carrying an old account’s deletions into the new account.
 - CloudKit sign-out retires the engine and reports the category’s sign-in message. A different sign-in or switch accounts retires it and requires merge confirmation; a same-user sign-in can continue.
 
 The current `TermindCloudKitEnvironment` bundle value is also compared with a category-specific `UserDefaults` marker. On change, the category keeps envelopes but requeues them, discards system fields/change tags and engine serialization, clears last-success time, saves, and records the new environment. This prevents Development metadata from being reused in Production. If CloudKit reports the category zone deleted or returns `zoneNotFound` from a save, the lifecycle similarly resets/requeues the journal, asks the engine to recreate the zone, and retains the account binding. The new quarantine rows are scoped by container, environment, account, zone and owner: resets neither erase an old replica's restrictions nor apply them to another replica.
@@ -154,7 +179,7 @@ The current `TermindCloudKitEnvironment` bundle value is also compared with a ca
 
 A journal is the durable outbox and merge authority for each category. Bootstrap creates baseline envelopes for an initial local snapshot. Local persistence writes compute only real differences, assign an ordered version using the installation writer ID, mark changed records `needsUpload`, and retain deletion tombstones. Because journaling happens independent of lifecycle readiness, edits made while disabled are accumulated and sent later; no-op saves do not advance versions.
 
-Each pending envelope is encoded into a CloudKit record with envelope metadata (`formatVersion`, `kind`, `entityID`, `modifiedAt`, `counter`, `writerID`, and `isDeleted`) and a payload hash. The coding layer uses inline bytes below its limit and a local `CKAsset` for larger payloads. Journal-held CloudKit system fields are reused on subsequent saves and updated from fetched/saved records, enabling ordinary CloudKit optimistic concurrency.
+Vault, Settings and Metrics encode each pending envelope into a CloudKit record with envelope metadata (`formatVersion`, `kind`, `entityID`, `modifiedAt`, `counter`, `writerID`, and `isDeleted`) and a payload hash. The coding layer uses inline bytes below its limit and a local `CKAsset` for larger payloads. Journal-held CloudKit system fields are reused on subsequent saves and updated from fetched/saved records, enabling ordinary CloudKit optimistic concurrency.
 
 On fetch, coordinators process only their zone and accepted record types. They decode and validate envelopes, quarantine malformed or unsupported payloads with their received bytes and structured reason, and merge valid envelopes in a persistence transaction. Valid remote system fields and quarantine removal participate in the same save; rejected records never replace normal outgoing-entry system fields. App notification follows successful application. A physical CloudKit deletion is not treated as a user deletion: if a local journal row still exists, it is marked for re-upload, but a compatibility restriction still prevents that recreation from being sent. Logical deletion is represented by an envelope tombstone.
 
@@ -162,11 +187,95 @@ Merge is deterministic: newer versions win; an older remote value causes the loc
 
 Vault projections deliberately remove device-local presentation metadata from envelopes: group and package expansion is normalized rather than synchronized. The live V33 Identity shape no longer contains `lastUsedAt` usage metadata. Settings likewise excludes explicitly device-local defaults such as debug/logging, review history, and terminal font family/size/follow-theme-size. Settings record-type compatibility is intentional: SSH, SFTP and workspace preferences use distinct types in the Settings zone so older clients can ignore newer records before decoding.
 
-**Host schema versus cloud wire format:** `TermindSchemaV28HostModels.PersistentHost` is a frozen *local* SwiftData shape with one SSH `port`, `identityID`, and `charset`; the V28→V30 migration keeps those stored property names in the successor Host model as SSH fields and defaults the new Telnet profile to disabled, port 23 and UTF-8. The live `PersistentHost` projection retains independent SSH and Telnet profiles. This migration does not create a Settings record or a new Vault zone: `HostPersistence` reads the migrated Host into a `VaultSnapshot`, bootstraps or diffs its Vault journal, and the existing `VaultItem` host envelope still uses format V1. `Host`'s Codable keys keep `port`, `identityID`, and `charset` for SSH, while new protocol flags and Telnet fields have backward-compatible decode defaults. Do not treat a successful V28 local-store reopen as proof of mixed-version CloudKit writes or account synchronization.
+**Host schema versus cloud wire format:** `TermindSchemaV28HostModels.PersistentHost` is a frozen *local* SwiftData shape with one SSH `port`, `identityID`, and `charset`; the V28→V30 migration keeps those stored property names in the successor Host model as SSH fields and defaults the new Telnet profile to disabled, port 23 and UTF-8. The live `PersistentHost` projection retains independent SSH and Telnet profiles. This migration does not create a Settings record or a new Vault zone: `HostPersistence` reads the migrated Host into a `VaultSnapshot`, bootstraps or diffs its Vault journal, and the existing `VaultItem` host envelope still uses format V1. The frozen `VaultWireV1` Host DTO keys keep `port`, `identityID`, and `charset` for SSH, while new protocol flags and Telnet fields have backward-compatible decode defaults. Do not treat a successful V28 local-store reopen as proof of mixed-version CloudKit writes or account synchronization.
 
-Connection history is an exception to “configuration-only Vault” by design: each event is an independent `connectionHistory` Vault key using the same `VaultItem` record type and V1 envelope. Existing local events bootstrap even after the original Vault bootstrap completed. Insert, end-time update, deletion and clear reconcile history rows with the journal in one transaction; logical deletions use ordinary envelope tombstones. Remote events may arrive before their referenced Host and remain stored but hidden until that Host exists. After local or remote merge, deterministic start-time/UUID ordering retains the newest 250 and journals tombstones for the overflow, allowing devices to converge. Launch-time pruning can discard overflow journal rows that never reached CloudKit; previously uploaded overflow receives tombstones. Platform views then choose a stable-source-device local projection or the complete synchronized event stream.
+## Native History V1 fields
 
-The reusable device directory is a separate replication stream in the same Vault category. Each `DeviceRecord` uses a `.device` payload keyed by the stable installation ID; its repository upsert and journal envelope commit together independently of the event repository. Platform activation refreshes the current system display name, and app models invalidate the directory cache when remote `.device` keys arrive. Device reconciliation creates or updates records but does not tombstone mappings merely because they are absent locally, and connection-event retention, per-Host deletion, or Clear History never removes them.
+New cloud records contain typed CloudKit fields, not a JSON payload, payload hash,
+or asset. `HistoryCloudRecordV1` is the frozen field adapter. History's local
+journal encoding is an implementation detail and is not the cloud schema.
+
+| Field | CloudKit type | Meaning |
+| --- | --- | --- |
+| `formatVersion` | INT64 | Breaking format version for this record type/kind |
+| `kind` | STRING | `connectionHistory` or `device` |
+| `entityID` | STRING | Lowercase UUID matching the stable record ID |
+| `modifiedAt` | TIMESTAMP | Logical modification date |
+| `counter` | INT64 | Nonnegative logical modification counter |
+| `writerID` | STRING | UUID of the writer installation |
+| `isDeleted` | INT64 | Protocol tombstone, 0 or 1 |
+
+`ConnectionHistoryItem` adds `hostID` (STRING UUID), `connectionKind` (STRING:
+`ssh`, `telnet`, `sftp`), `connectedAt` (TIMESTAMP), optional `endedAt` (TIMESTAMP),
+and optional `sourceDeviceID` (STRING UUID). `DeviceItem` adds `displayName`
+(STRING). Live records require their nonoptional fields. Tombstones require only
+metadata. Optional fields are explicitly cleared on writes. Neither record uses
+CloudKit references: history may arrive before its Host and must remain durable.
+
+Record IDs remain `v1/connectionHistory/<uuid>` and `v1/device/<uuid>`. The `v1`
+identity namespace does not change when payload/field versions increase. Event
+UUIDs are never reused. Deletion is terminal for an event UUID, including against
+later-clock updates from an old client. Retention keeps 250 newest events and
+retains overflow tombstones. Clearing history leaves the device directory intact.
+
+## Evolution and upload protection
+
+`SyncRecordFormats` declares readable versions and current write version by kind
+inside each record family. `VaultVersion` orders modifications; it does not version
+the protocol. Readers inspect raw kind and format version before decoding fields
+or choosing historical defaults. Unknown kinds, future versions, invalid types
+and malformed records cannot be silently rewritten.
+
+Configuration V1 is frozen in `VaultWireV1`, with explicit domain adapters. Do not
+extend those DTOs merely because a domain type has gained a property. Add a new
+per-kind version and decoder/adapter when old clients could misinterpret or lose
+information: field type/meaning changes, enum expansion or a new field that an
+old writer would drop. Missing historical fields may use documented V1 defaults;
+unrecognized present enum values may not. Encoding throws and participates in the
+same transaction as local edits. Never substitute empty Data on encoding failure.
+
+Reading an old record converts it in memory without echoing an upload. Actual
+edits use that kind's current writer version. `VersionedRecordDecoder` and the
+version tests exercise a test-only Host V2 while other kinds remain V1. Shipping
+Vault, native History and Device writers remain V1.
+
+Quarantine retains raw JSON for legacy records or a complete secure CKRecord
+archive for native records, plus CloudKit system fields, while preserving local
+pending intent. The journal, batch builder and final provider all fence writes.
+A source importer restriction also fences the corresponding destination ID.
+Failures are isolated per record; healthy records continue. Physical deletions,
+conflicts, retries and restarts do not clear a restriction. A supported record must
+merge and persist successfully before its quarantine can clear.
+
+Capability fingerprints are scoped by container/environment/account/zone/consumer.
+Changed decoder support forces a fresh read. The successful-read checkpoint is
+committed only after merges have saved. Enabling previously disabled History forces
+both source and destination replays. Recovery flags are committed before readers
+can advance their cursors. Compatibility guarantees begin with clients that have
+upload protection; an already-installed older unsafe binary cannot be retrofitted.
+
+## Local migration and continuous old-client import
+
+V35 is additive to the distributed V28 → V30 → V31 → V34 chain. It introduces
+History journal/state, scoped import state and capability checkpoints without
+changing historical schema definitions. Bootstrap copies event/device IDs,
+modification versions, raw unreadable entries, tombstones and original account
+binding. Old CloudKit system fields never become destination system fields.
+Bootstrap, projection changes and deletion intent commit atomically and can retry.
+Normal configuration edits do not reconcile History; Host deletion explicitly does.
+
+`LegacyHistoryImporter` independently reads `TermindVaultV1` using its own
+subscription and scoped checkpoint. It never creates the old zone or produces a
+record batch. Restored database and record mutations are removed from its engine.
+Old clients can keep adding events, ending sessions and renaming devices; changes
+merge by UUID/version and become destination upload intent. New clients never
+write History/Device changes back to Vault. Old cloud data remains untouched.
+
+Both source import and destination read must finish before the first upload.
+An absent old zone is a successful empty source. A same-account initial sign-in
+notification is normal engine startup; actual account switches retire both engines
+and require the normal merge flow. Pausing/master disable/Pro loss stops both.
+Late cancellation callbacks cannot replace current status with a red failure.
 
 ## Per-record compatibility restrictions
 
@@ -182,9 +291,9 @@ An acknowledgement for an already blocked record does not clear its local intent
 
 Only receiving supported data and successfully reconciling it removes a restriction. Merge, journal/system-field changes and quarantine removal commit together; failure restores the restriction. Retry, pause/resume, relaunch and clearing a terminal error do not unblock a record. Ordinary fetches still ignore unknown record types for independent future features; a conflict returned for an attempted known ID must be validated even if its type is unexpected.
 
-### What this layer does not solve
+### Compatibility baseline
 
-Compatibility checks protect records that this client **detects** it cannot safely process. They do not preserve arbitrary extra fields silently ignored by typed `Codable` decoding, constrain binaries released before these checks, or provide general capability-version replay after every future app upgrade. The initial fresh fetch for a new V31 safety scope is not that broader replay mechanism. Keep independent future features in distinct record types where appropriate, distinguish absent values from explicit clears when extending shared records, and test actual new→old→edit→new binaries before promising lossless mixed-version writes.
+The safeguards cannot retrofit binaries released before upload protection. V1 JSON decoders can silently ignore additional fields, so additions an old writer would lose require that kind’s breaking version to increase. Native fields likewise need version checks rather than assuming CloudKit preserves unknown semantic state. Capability replay handles newly supported formats; signed historical-binary round trips remain a release check.
 
 ## Settings references and secret authorization
 
@@ -213,9 +322,13 @@ When evolving a record, retain decode compatibility and validation. Unsupported 
 - `FrameworkTests/PersistenceCompatibilityTests.swift` opens a copied V28 store twice through `TermindPersistence.makeContainer`, checking the Host's legacy SSH port/identity/charset, disabled-default Telnet profile, associated Vault data and journal state, and default workspace preferences after Settings preparation; this is a local migration/reopen fixture, not a CloudKit sync test. `FrameworkTests/HostProtocolTests.swift` separately checks live Host protocol defaults and persistence projection.
 - `FrameworkTests/CloudSyncLifecycleTests.swift` verifies fetch gating, accumulated local changes, retry behavior, operation/engine retirement, account confirmation/reset ordering, environment and zone resets, and error-status precedence.
 - `FrameworkTests/CloudSyncCoordinatorLifecycleTests.swift` verifies category isolation and confirms that Settings secret authorization follows a successful fetch and is revoked on account retirement.
-- `CloudSyncSafetyTests` runs all three real coordinators behind fake transport, checking actual batches/providers, conflict quarantine, compatible peers, tombstones/recreation, retry/restart, failed-unblock rollback and status hints.
+- `CloudSyncSafetyTests` runs all four real coordinators behind fake transport, checking actual batches/providers, conflict quarantine, compatible peers, tombstones/recreation, retry/restart, failed-unblock rollback and status hints.
 - `CloudSyncSafetyPersistenceTests` checks scoped isolation, on-disk interrupted-state reopening, V30→V31 migration and legacy quarantine import. Lifecycle cases also exercise recovery checkpoints and overlapping automatic/manual callbacks.
 - `TFMTests/SettingsSyncTests.swift` covers local mirrors, Settings journal/merge behavior, independent toggles, device-local exclusions, wire compatibility, and AI secret migration/deletion behavior.
 - `TFMTests/VaultSyncTests.swift` covers stable envelope names, tombstones, deterministic merge/requeue behavior, local metadata exclusion, large payload assets and corruption rejection, and environment resets.
 
 For persistence ownership and Keychain boundaries, see [Persistent Data, Migrations, and Secret Boundaries](/openwiki/concepts/persistence-and-secrets.md). For app-wide coordinator construction and platform lifecycle behavior, see [Platform Runtime, App Composition, and Lifetimes](/openwiki/architecture/platform-runtime.md).
+
+## Structured diagnostics
+
+All coordinators receive the existing Logging manager from app composition. Failures emit `cloud.sync.failed` with zone, stage, NSError domain and code, excluding raw records, account IDs, credentials and localized error descriptions. Expected Swift/CloudKit cancellation is lifecycle control, not a failure. Legacy import waits for overlapping explicit and automatic reads to commit rather than synthesizing a persistent-store error; initial same-account sign-in does not cancel startup. See `HistorySyncTests` for these regressions.

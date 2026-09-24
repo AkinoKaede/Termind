@@ -25,6 +25,7 @@ struct AppDependencies {
     let settingsSync: SettingsSyncCoordinator?
     let metricsSync: MetricsSyncCoordinator?
     let vaultSync: VaultSyncCoordinator?
+    let historySync: HistorySyncCoordinator?
     let metricsPreferences: (any MetricsConfigurationStoring)?
     let mcpServerSecrets: any SecretStoring
     let logging: any ApplicationLogManaging
@@ -38,6 +39,7 @@ struct AppDependencies {
         serialPortService: any SerialPortServing = SystemSerialPortService(),
         agentRunRepository: (any AgentRunPersisting)? = nil,
         vaultSync: VaultSyncCoordinator? = nil,
+        historySync: HistorySyncCoordinator? = nil,
         settingsSync: SettingsSyncCoordinator? = nil,
         metricsSync: MetricsSyncCoordinator? = nil,
         metricsPreferences: (any MetricsConfigurationStoring)? = nil,
@@ -53,6 +55,7 @@ struct AppDependencies {
         self.serialPortService = serialPortService
         self.agentRunRepository = agentRunRepository
         self.vaultSync = vaultSync
+        self.historySync = historySync
         self.settingsSync = settingsSync
         self.metricsSync = metricsSync
         self.metricsPreferences = metricsPreferences

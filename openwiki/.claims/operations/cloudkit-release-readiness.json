@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "pageVersion": "sha256:3fdb6fea6ac8d8927120a183ee809996260dd8b78d2cb2acd9573701d5e9ff56",
+  "pageVersion": "sha256:ff8d159fd43ff52bbc84f57d7af295cccdad7a04cd4837ec287186f202935f65",
   "claims": [
     {
       "id": "claim_bca4a6f8574343d5b8310421bbdd595d",
@@ -94,37 +94,61 @@
     },
     {
       "id": "claim_69812e376ef344e482e0235cfe5e2573",
-      "statement": "The master iCloud switch and the Vault, Metrics, and Settings category switches have independent default and persisted values, and sync lifecycle activation is conditioned on the master switch plus the category-specific key.",
+      "statement": "Vault and Device follow the master iCloud switch and Pro gate; optional History, Metrics and Settings switches are independent, with History inheriting the legacy Vault selection once and defaulting on for new installs.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/SettingsPortTests.swift#L100-L122",
-          "version": "repo-lines-v1:sha256:28089df9ca2b4c30a25f92c5ef8393f48d67dad443029c730417e096882c8b6a:eyJzZWxlY3RlZExpbmVDb3VudCI6MjMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRmMDcyODYxMTdkYjViOTAzNGU3YjA4ZWQwZjVhOTc0NTE2ZGVkODlkZDRkMTNmYzAyMDFlNjY2YjY1NThjOGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFmMGRhM2JjMzJiOTBjNWZhN2Y1MGRlNjQ4ZjA3YWM5MzE0N2IwYTA4Zjc1Y2M4MzIxYTRlNzE3YzBjNmY1N2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY3OTdjOTcwZjcyNGVjZDc5ZmU2NmFlOTRlOTA5NDE4YjUxMDk1ODc1MzAzYTVjNDk3MWQ5N2FiZGI1NDk3ZWYiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjhjMGNjNTMzMDVjYzMwNmVjNWFkYTgzZTk0ZTJlMzNlODc1OWMyZWMwYzNjMzExM2RjYjZiZDE5ZDQ4OWE2NTAifQ"
+          "resource": "repo://FrameworkTests/SettingsPortTests.swift",
+          "version": "repo-file-v1:sha256:d2a39ebc1565163922c6c5724e96cc4eda6e6fb12c8e48ef02033a1b53c9dcdb"
         },
         {
-          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift#L20-L70",
-          "version": "repo-lines-v1:sha256:f141e4e454bfd7604de2aa2d768ab37224ca69531d32dd161f7051d78a12a63f:eyJzZWxlY3RlZExpbmVDb3VudCI6NTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjI5YjY4NWRmZDc3ZTNhYWJhNjIxN2ZhMzhiYzZiYzVlZWJkYjNkZjc2NWE4YzYxNDg2MWE1MDE1N2RmMWVmZDkiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjZhMjU1ZDViZWM0YTAxMDEyOGZmYmZmZDhlYTA5MWM1NjE2NmY3ODc3MjFkNTVmYjhkZmJiZmFhMTU0NTcyZTUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImE1YTg1NWIwNmYwOGU3NzA4MTJiMDVkMzBhNGU4YmE4NDI5MzEwMTIxZTAxNjE4MDM5Njg4NTkxNDM3Y2VkODgifQ"
+          "resource": "repo://Frameworks/TermindApplication/SettingsKey.swift",
+          "version": "repo-file-v1:sha256:c5465398989b6d0cfff2c672b96ec01d0fe41eb046a18907a1441f19ba2d750a"
         },
         {
-          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift#L118-L130",
-          "version": "repo-lines-v1:sha256:343f3556e7b9ab218a2245e7d7fd4eaca6de5007255bfb679e6d474d85d8160f:eyJzZWxlY3RlZExpbmVDb3VudCI6MTMsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6ImFhYzU2YzA1MTRjN2E5NmRjMTIwNmE1ODc3NDViN2RhZDIzYWUzODNiZjYyYmM5ODc0ODE0ZDQzZTFiZmY5ZTAiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjVlN2JjZDM2ZWY1M2I0NDUyM2U2NWU5OGQxOTQ0OTkzZTBmZjE3NDZmNTUzNmMxYTUxMTc0NmYzZTAxZTc1NmYiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjRkN2FiYjY2ODA5N2EzMGY4ODk4MGMwZWQ0YWNlZDk2NTVjYTJiNDNmODJkZGIzYmU3OTMwOWRiNmQ3ZjM1MGQiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImZkNjc3NTExNzE0MTFlNTI4Y2Y0ZWRjOTZkZGNiNDI1NTc1ZWE0YjU3ZWMyYzM1NzA3ZWY0YTgwZDFhZjJhNzkifQ"
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
+          "version": "repo-file-v1:sha256:b25a5ef7e23059d8246140e0e5ef8883b7cbd3c0e4b1e26112b9efbb123d5adb"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift",
+          "version": "repo-file-v1:sha256:bb08b1548daec9d2fdfb1f4ff0d9bcc7152624025ff7edb895480575b4c36ca6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistorySyncCoordinator.swift",
+          "version": "repo-file-v1:sha256:3d670ae5c26954e29c049140012d61de02417f22c1c71eddebaf0b0f7c95b6a6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
+          "version": "repo-file-v1:sha256:ff8c05773006c7e4086516683704ca630b529861551073dcbc514637cd6c9fd5"
         }
       ]
     },
     {
       "id": "claim_e195235702f84b7188836027fefa15f1",
-      "statement": "The compatibility safety layer retains local V31 quarantine/recovery entities in current V34, whose direct V31 migration adds connection-history and generic device-directory shapes. These Vault payloads continue using the existing category zone, VaultItem record type and V1 CloudKit envelope format.",
+      "statement": "V35 additively retains earlier safety models and adds History journals/import state/capability checkpoints; History and Device now require new native record types in TermindConnectionHistoryV1.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift",
-          "version": "repo-file-v1:sha256:5186b2e30bb07fa6c53dd4def6a5cfba285e103690004e7767bbd40f9f3fe18c"
+          "version": "repo-file-v1:sha256:41635970b2ab95ec90bbe10c3c6571abaf71bdbaae61e2bff42fbafba0c2b46e"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift",
+          "version": "repo-file-v1:sha256:bb08b1548daec9d2fdfb1f4ff0d9bcc7152624025ff7edb895480575b4c36ca6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistorySyncCoordinator.swift",
+          "version": "repo-file-v1:sha256:3d670ae5c26954e29c049140012d61de02417f22c1c71eddebaf0b0f7c95b6a6"
         },
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/VaultSyncCoordinator.swift",
-          "version": "repo-file-v1:sha256:c8a0385467103bef43d7a2d3bbf334701870656e54e06a960eb49ddbafbdb667"
+          "version": "repo-file-v1:sha256:da57dfba3244e71d8d96683d9b6baf5b8db3aef1ee8de3d1dfc618d0f7de3808"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
+          "version": "repo-file-v1:sha256:ff8c05773006c7e4086516683704ca630b529861551073dcbc514637cd6c9fd5"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
-          "version": "repo-file-v1:sha256:6cdcf2389d4a3f74aef4d99b4b77987ad362d2c4fc7a54027c1b69a82506fe58"
+          "version": "repo-file-v1:sha256:23c75f2593d215ad91e4842d176ca8128128536af3352c0633d8b51d4b0db703"
         }
       ]
     },
@@ -138,29 +162,37 @@
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyFixture.swift",
-          "version": "repo-file-v1:sha256:310e96395fb84c3cd93eed7778ef055e33499a2cc7b9de07750df427201a5db4"
+          "version": "repo-file-v1:sha256:0296ddada8dff13520001911c11aa353e18e0a630286ce67fd03b1c192f545e7"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyPersistenceTests.swift",
-          "version": "repo-file-v1:sha256:49b60cd6fbd6947443a729053f11b81278f3124c032b68439cf18a2ee2645f32"
+          "version": "repo-file-v1:sha256:52b0ff45bd7b3f448a36857e057715389ab6bdc3dc96b4dc4159b75f0e93c256"
         },
         {
           "resource": "repo://FrameworkTests/CloudSyncSafetyTests.swift",
-          "version": "repo-file-v1:sha256:603f6e77ab33461d78203254b0746011e57d85070aa095fe60cf525ae9ad9dd7"
+          "version": "repo-file-v1:sha256:5a3aabca90c0d743f8e4d0031676a0617e8902586353f1294adaf164ff4eb59a"
         }
       ]
     },
     {
       "id": "claim_a05253bb4b614ea5b5e6dd853a7de0b8",
-      "statement": "A new or interrupted safety scope triggers fresh fetching, but the typed envelope codecs and lifecycle do not provide generic unknown-field preservation or a general replay mechanism keyed to every future app capability upgrade.",
+      "statement": "Decoder capability changes force scoped rereads; checkpoints and restriction removal commit after supported merges. Native quarantine retains full CKRecord archives, but unsafe old clients cannot be retrofitted.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindInfrastructure/Cloud/CloudSyncLifecycle.swift",
-          "version": "repo-file-v1:sha256:fb027da6eb8f6d18a40f242b03d9e49c2a8a96540082884a13956b4bded9fc99"
+          "version": "repo-file-v1:sha256:b25a5ef7e23059d8246140e0e5ef8883b7cbd3c0e4b1e26112b9efbb123d5adb"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift",
+          "version": "repo-file-v1:sha256:bb08b1548daec9d2fdfb1f4ff0d9bcc7152624025ff7edb895480575b4c36ca6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistorySyncCoordinator.swift",
+          "version": "repo-file-v1:sha256:3d670ae5c26954e29c049140012d61de02417f22c1c71eddebaf0b0f7c95b6a6"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
-          "version": "repo-file-v1:sha256:c028e57ece449c591c32f8ac849fda2f6a82cda00974acc87f832295bb3acc3d"
+          "version": "repo-file-v1:sha256:ff8c05773006c7e4086516683704ca630b529861551073dcbc514637cd6c9fd5"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/MetricsSyncJournal.swift",
@@ -172,13 +204,13 @@
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/VaultSyncPersistence.swift",
-          "version": "repo-file-v1:sha256:39095bc585820f77c2b1893c684c2a81cfed675ae5f406fbe996bdbde4cdf2fe"
+          "version": "repo-file-v1:sha256:62407fdfb148e3be87befbc8f2b1d6864f79803865967427648264d9400fc97b"
         }
       ]
     },
     {
       "id": "claim_f279371635eb47f6af4ea58a4b6f3bb8",
-      "statement": "Connection events and reusable device-name records use separate connectionHistory and device payload kinds in the existing VaultItem schema; release validation must cover event end updates, tombstones and newest-250 convergence as well as device-rename propagation and independence from history retention or clearing on signed devices.",
+      "statement": "ConnectionHistoryItem and DeviceItem use native V1 fields in TermindConnectionHistoryV1; signed release checks must verify event ends, terminal deletion, 250 retention, device renames and continuous read-only legacy import.",
       "evidence": [
         {
           "resource": "repo://Frameworks/TermindApplication/HistoryLimits.swift",
@@ -186,37 +218,57 @@
         },
         {
           "resource": "repo://Frameworks/TermindDomain/Vault/VaultSyncTypes.swift",
-          "version": "repo-file-v1:sha256:5186b2e30bb07fa6c53dd4def6a5cfba285e103690004e7767bbd40f9f3fe18c"
+          "version": "repo-file-v1:sha256:41635970b2ab95ec90bbe10c3c6571abaf71bdbaae61e2bff42fbafba0c2b46e"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift",
+          "version": "repo-file-v1:sha256:bb08b1548daec9d2fdfb1f4ff0d9bcc7152624025ff7edb895480575b4c36ca6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistorySyncCoordinator.swift",
+          "version": "repo-file-v1:sha256:3d670ae5c26954e29c049140012d61de02417f22c1c71eddebaf0b0f7c95b6a6"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
+          "version": "repo-file-v1:sha256:ff8c05773006c7e4086516683704ca630b529861551073dcbc514637cd6c9fd5"
         },
         {
           "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultJournal.swift",
-          "version": "repo-file-v1:sha256:53e2195732d61b918a7ea9eb8bbe64bd000a402b894f31620d9c5747f08cacbe"
+          "version": "repo-file-v1:sha256:5f8cea44af28c1c6e20899658be66b7a86cebadea27ba93ee409962ee880543c"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift#L225-L235",
-          "version": "repo-lines-v1:sha256:95e9774f2b6d8d79a9634e030eea1c47d88c4e7c25a580d459192f542ed233f6:eyJzZWxlY3RlZExpbmVDb3VudCI6MTEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjAxYmE0NzE5YzgwYjZmZTkxMWIwOTFhN2MwNTEyNGI2NGVlZWNlOTY0ZTA5YzA1OGVmOGY5ODA1ZGFjYTU0NmIiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6ImMxNzE3Mzk5MzhiMWMzZWMyNDZlY2IxN2JhNzg4ZTlkN2Y5MjRkZGJlYWRmYzFkNTYzNmRjYjA5YjJjMzkxMzciLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjA0MjVjZTM4ZWU1NDFhZjRjYWVjNWM4MzY1NjM2Y2I4NThjMjUwOTFhODYwMzc1M2U4NGVhODUzM2VlZTk2MWQifQ"
+          "resource": "repo://Frameworks/TermindPersistence/SwiftDataVaultStore.swift",
+          "version": "repo-file-v1:sha256:91b9102f3bfdf3b7f3e40a97afc602ef1d3754f3400261c29540f6e25e4eb283"
         },
         {
           "resource": "repo://TFMTests/VaultSyncTests.swift",
-          "version": "repo-file-v1:sha256:fb1177900e93b9a2d3f30d4b728e61381d7d1336226ac22610e85779b8d0dadc"
+          "version": "repo-file-v1:sha256:f502484219bc0cc1bc68e882c4a9ea10a2ba1c8d88ff3505bb2f112c5ffb8f98"
         }
       ]
     },
     {
       "id": "claim_d9bd498c7bb54f79af60a63cf83c303c",
-      "statement": "The shared SwiftData container uses V34 and the migration plan with CloudKit mirroring disabled; the plan preserves a frozen V28 Host endpoint on the V27→V28→V30→V31→V34 upgrade path, while V29, V32 and V33 are not migration endpoints.",
+      "statement": "The SwiftData container uses V35 with mirroring disabled and the preserved V27→V28→V30→V31→V34→V35 migration path.",
       "evidence": [
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L748-L815",
-          "version": "repo-lines-v1:sha256:4b4ed3e06b0a78e93f812452711c7de7ffdfa90036e002c9a801562d8dd2caee:eyJzZWxlY3RlZExpbmVDb3VudCI6NjgsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ5ZDdjY2VkZmM5NzFlYzg0YTY4ZGJhYzZlNDg5NTI3ZGJhZDVhMjcxNmQ4NzRlOGYzZjgwMTJjYTFkMWQ5ZmIiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjMyNzEzMGYzYzFhZWM1ZDRiODIxZjcwODBmYzFkZDUyNzRmNWQ4M2VjYzdmMWRlZjJlNzU2Y2Y5MTIwZDIxN2UiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjQ5NTg0Njc2ZWZjMGU1YjI4MWYyNzViYTgwNjYwMzY0ZTRlMTI1MjkzOGZjMGRiMjZiMzVhNjE4MDgzMjM4ZDcifQ"
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistoryCloudRecordV1.swift",
+          "version": "repo-file-v1:sha256:bb08b1548daec9d2fdfb1f4ff0d9bcc7152624025ff7edb895480575b4c36ca6"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L883-L909",
-          "version": "repo-lines-v1:sha256:c48361cb01db8f7aaa9df243e632fac2fa84552f08bacd3ae48f32c70948cdbf:eyJzZWxlY3RlZExpbmVDb3VudCI6MjcsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjUyOGVjZTU4Nzc5NTgyZmI0YmY3Zjc4NTJkNzBjOGE0NWZlMjU3YWIyNTc5NTZiMDU0N2NhZDc3ODkwNjNlYzciLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImJhYWU4YTBjYTc2Zjk4ZjdiN2RjNzk4NDk1MWQ2M2U1N2RiM2M2NDU1NzljYTUxYmFkNmE1MzlkNjE0ZWRiYmUiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjUwNTE1MDdlYTM2YmZiNzAxMWE3NzhiZjcxMWIxNWUzN2U0Y2Q0ZmE5M2UzY2RiNDBhMjhmNzI1YjZlMTM2ZmIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjE5ZTc2MzU1Y2YxMTk5NDgwYzNmOTk4MzZiMTQ4NmM4NDFkODkxZmFhZDkwNGM2MDhlMDkzMDIyZDM3NTdhZWUifQ"
+          "resource": "repo://Frameworks/TermindInfrastructure/Cloud/HistorySyncCoordinator.swift",
+          "version": "repo-file-v1:sha256:3d670ae5c26954e29c049140012d61de02417f22c1c71eddebaf0b0f7c95b6a6"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift#L4-L23",
-          "version": "repo-lines-v1:sha256:8c60738deb877ed1b9047d779675ce26ace9d679e2bf4e8b9e6eed90258d3fce:eyJzZWxlY3RlZExpbmVDb3VudCI6MjAsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjgzMzA4NTlkNjgzODAyNWFiM2Y2NjIxNTU5NWM4N2JiZWI1ZDVlMDlmNTIxMjk3YmY2MzI3NTUwYzgxYzBjYzEiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQxMmNhMzQ1Y2NmNzViZjljMDgwNmJjZTY5NWJlOGRlODA4Yjc5OTg0MjUxYTdhNTRkMjAyY2Y2MTAxZGQ0NTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjY4OTUxYTVlMDA0MTE2ZjBmM2Y1MzVjODgxOTBiNmUwNmU3NGFmZGZlYjU2MTc0MTA0YTIzYzQyZjJiYTNlZTgiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjowLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImUzYjBjNDQyOThmYzFjMTQ5YWZiZjRjODk5NmZiOTI0MjdhZTQxZTQ2NDliOTM0Y2E0OTU5OTFiNzg1MmI4NTUifQ"
+          "resource": "repo://Frameworks/TermindPersistence/CloudSyncSafetyStore.swift",
+          "version": "repo-file-v1:sha256:ff8c05773006c7e4086516683704ca630b529861551073dcbc514637cd6c9fd5"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
+          "version": "repo-file-v1:sha256:23c75f2593d215ad91e4842d176ca8128128536af3352c0633d8b51d4b0db703"
+        },
+        {
+          "resource": "repo://Frameworks/TermindPersistence/TermindPersistence.swift",
+          "version": "repo-file-v1:sha256:5b38e683a43f662428ca740aa54b1e4b60089f0572337f6d4bee41a6b1c3a495"
         }
       ]
     },
@@ -243,16 +295,16 @@
       "statement": "The historical synthetic V28 disk fixture is generated against an older Persistence build rather than current models; its compatibility test copies the disk store, opens it twice through the normal container factory, and checks retained Host and related Vault data, default Telnet fields, device/history backfill and workspace defaults.",
       "evidence": [
         {
-          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift#L60-L144",
-          "version": "repo-lines-v1:sha256:4561b141f81b56941320a35e8389bea59dc6291fc22b2e7b359b58f0ed816631:eyJzZWxlY3RlZExpbmVDb3VudCI6ODUsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjRjZjA5ZWIwYzU3NDRmYjk3MzMxYjk4ZmYzZmJmMDVhNjAyYmEzZjdmNjdlNWRhNWJlOTA5NTAzM2Y2MjU4MjUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjQ4OTNmNDBlMzc4MWViODk2YzgyZDA0NmEwODA2N2ExMWUzNWNkZjJmMWRmYWYyNmZlYTkwYjhkYjY2NzY0MTMiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjdkZmY4ZDRjNGJlMTRmZDZjZjc4YmQ1ZmI2N2JkNTNkNGVjZWI0MTljNjVhMzFhNWQ2OTQ3NzA2OWE2Y2ExMGEiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImFkZjBmY2E5ODUzMjVjMDQ5ZTY0ZWE5ZmE2MTE3ZjI4NjY0YTcxNzlkMGY2NWEyNjRiNTcyOGNiMTg5NTA4MTIifQ"
+          "resource": "repo://FrameworkTests/PersistenceCompatibilityTests.swift",
+          "version": "repo-file-v1:sha256:0674febd3ada94692fa9335d6035c3e6a94ebdbd2551d8fb9492ce2a7baca297"
         },
         {
-          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift#L887-L907",
-          "version": "repo-lines-v1:sha256:3b2210e481a8147ee7a43ad5ba997d358ecc2ea6c04ba60e0cc96cf4548bf98d:eyJzZWxlY3RlZExpbmVDb3VudCI6MjEsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY5NWYyM2YzNzI1ZTkzNTU0ZjQwNGNhMzBhMWUzOWY0YTU1OGU3NmU5MWY5MThkZDBmNDE0Y2JkMGU3MmUwZDUiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6IjBjNjQ3OWNjMjMwNDQwZmQ0MWU4MjI0MjE4Njc5Njk4NTU5ZDI4OTNiZDY3YjQzODBhZmFiODExYjM4YTU1YWEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjI3ZGNkMjg5MWJlMDA0OGJkZjgyZmViMDU5YjJlM2RhOWNhNDJmMmU1ODllMTg1MDQ3MzVmMWU4NDYzNTFiZDAiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6ImNhZWQ3YzJkNTQ2YTEwZmI3ZDRkZjM1NWE3ODZlOGViZTRjZTJiMzgxMzZmNTI5ODVlNWVmOTAwYjgxMTBiMDEifQ"
+          "resource": "repo://Frameworks/TermindPersistence/HostPersistence.swift",
+          "version": "repo-file-v1:sha256:23c75f2593d215ad91e4842d176ca8128128536af3352c0633d8b51d4b0db703"
         },
         {
-          "resource": "repo://Scripts/generate-v28-fixture.swift#L6-L21",
-          "version": "repo-lines-v1:sha256:4f7f40344507ad155a1f284dccbb5654a2485548e8ae55bfe045f55c3a1d4749:eyJzZWxlY3RlZExpbmVDb3VudCI6MTYsImZpcnN0U2VsZWN0ZWRMaW5lSGFzaCI6IjY2ZmMwZjM3MzFlNjkwMGFhZmQ5ZDQ5NTczODIzZjc1NzQzM2Y3ZTc0OWY2OTQxYjNmZWU4ZDI3YzFjZDRhNGMiLCJsYXN0U2VsZWN0ZWRMaW5lSGFzaCI6ImZmYWY5OWU1MjY5MGI1YjQxNzJmNzFhOTgwOTYwMDRlOTc5N2Q3M2I5ODllMzAyNGQyNzcyODI3NTI2MmYxYTEiLCJwcmVjZWRpbmdDb250ZXh0TGluZUNvdW50IjozLCJwcmVjZWRpbmdDb250ZXh0SGFzaCI6IjNhNDEzOTNjODU0MWVjYzQwZTdjMzZiM2Y2MmQ0YTFmMDY5MWRmOTI3NzZkM2E1YzRhYWU2OWQ4OWFhYTZhOWIiLCJmb2xsb3dpbmdDb250ZXh0TGluZUNvdW50IjozLCJmb2xsb3dpbmdDb250ZXh0SGFzaCI6IjM4MzM3ZGI0ZjFhOTM5ZTllODc1ZjA5MzM0NmU3OTRiMjlhZjI3YTU1MThhNzg2Zjg0MWVjNjFmNGJlODBhOWUifQ"
+          "resource": "repo://Scripts/generate-v28-fixture.swift",
+          "version": "repo-file-v1:sha256:8db6bf1cd98a944c4b23c39f1178403d40046d5914218ce9c1dfe674203e54a9"
         }
       ]
     },
@@ -273,6 +325,6 @@
   ],
   "verification": {
     "by": "openwiki/0.5.2",
-    "at": "2026-09-24T03:18:19.992Z"
+    "at": "2026-09-24T06:30:19.118Z"
   }
 }

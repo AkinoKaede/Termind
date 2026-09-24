@@ -1,5 +1,6 @@
 import CloudKit
 import Foundation
+import Logging
 import TermindApplication
 import TermindDomain
 
@@ -69,7 +70,8 @@ struct CloudSyncTransport {
     var makeEngine: (Data?) throws -> any CloudSyncEngineSession
 
     static func live(
-        container: CKContainer, zoneID: CKRecordZone.ID, subscriptionID: String, delegate: any CKSyncEngineDelegate
+        container: CKContainer, zoneID: CKRecordZone.ID, subscriptionID: String, delegate: any CKSyncEngineDelegate,
+        readOnly: Bool = false
     ) -> Self {
         Self(
             accountStatus: { try await container.accountStatus() },
@@ -87,7 +89,14 @@ struct CloudSyncTransport {
                     database: container.privateCloudDatabase, stateSerialization: serialization, delegate: delegate)
                 configuration.automaticallySync = true
                 configuration.subscriptionID = subscriptionID
-                return CKSyncEngine(configuration)
+                let engine = CKSyncEngine(configuration)
+                if readOnly {
+                    // Clear restored database operations as well as record operations;
+                    // returning nil batches alone cannot block an old queued zone deletion.
+                    engine.state.remove(pendingRecordZoneChanges: engine.state.pendingRecordZoneChanges)
+                    engine.state.remove(pendingDatabaseChanges: engine.state.pendingDatabaseChanges)
+                }
+                return engine
             })
     }
 }
@@ -104,13 +113,14 @@ final class CloudSyncLifecycle {
     let zoneID: CKRecordZone.ID
     private let containerIdentifier: String
     private let defaults: UserDefaults
-    private let enabledKey: String
+    private let enabledKey: String?
     private let defaultEnabled: Bool
     private let environmentKey: String
     private let environmentIdentifier: String
     private let signInMessage: () -> String
     private let authorizeUploads: (Bool) -> Void
     private let beforeSend: () throws -> Void
+    private let prepareUploads: (CloudSyncScope) async throws -> Void
     private(set) var engine: (any CloudSyncEngineSession)?
     private(set) var scope: CloudSyncScope?
     private(set) var operation: Task<Void, Never>?
@@ -122,14 +132,17 @@ final class CloudSyncLifecycle {
     private var sending = 0
     private var fetchFailed = false
     private(set) var isReadyToSend = false
+    var logger = ApplicationLogger.disabled("termind.cloud-sync")
+    var didRetire: () -> Void = {}
     var terminalError: String?
     var status: VaultSyncStatus = .checkingAccount
 
     init(
         store: CloudSyncLifecycleStore, transport: CloudSyncTransport, zoneID: CKRecordZone.ID,
-        containerIdentifier: String, defaults: UserDefaults, enabledKey: String, defaultEnabled: Bool,
+        containerIdentifier: String, defaults: UserDefaults, enabledKey: String?, defaultEnabled: Bool,
         environmentKey: String, environmentIdentifier: String, signInMessage: @escaping () -> String,
-        authorizeUploads: @escaping (Bool) -> Void = { _ in }, beforeSend: @escaping () throws -> Void = {}
+        authorizeUploads: @escaping (Bool) -> Void = { _ in }, beforeSend: @escaping () throws -> Void = {},
+        prepareUploads: @escaping (CloudSyncScope) async throws -> Void = { _ in }
     ) {
         self.store = store
         self.transport = transport
@@ -143,11 +156,12 @@ final class CloudSyncLifecycle {
         self.signInMessage = signInMessage
         self.authorizeUploads = authorizeUploads
         self.beforeSend = beforeSend
+        self.prepareUploads = prepareUploads
     }
 
     var isEnabled: Bool {
         (defaults.object(forKey: SettingsKey.iCloudSyncEnabled) as? Bool ?? SettingsKey.defaultICloudSyncEnabled)
-            && (defaults.object(forKey: enabledKey) as? Bool ?? defaultEnabled)
+            && (enabledKey.map { defaults.object(forKey: $0) as? Bool ?? defaultEnabled } ?? true)
     }
 
     func start() {
@@ -161,6 +175,11 @@ final class CloudSyncLifecycle {
     }
 
     func setEnabled(_ enabled: Bool) {
+        // Vault has no category switch: nil means it follows the master setting.
+        guard let enabledKey else {
+            start()
+            return
+        }
         defaults.set(enabled, forKey: enabledKey)
         if enabled { start() } else { pause() }
     }
@@ -232,6 +251,7 @@ final class CloudSyncLifecycle {
             do { try await body() } catch is CancellationError {} catch {
                 guard let self, self.operationID == id else { return }
                 if let cloudError = error as? CKError, Self.isRetryable(cloudError) {
+                    self.logFailure(error, stage: "operation")
                     self.status = self.status(for: error)
                 } else {
                     self.failClosed(error)
@@ -281,6 +301,10 @@ final class CloudSyncLifecycle {
         try reconcilePendingChanges()
         try store.save()
         try await transport.createZone()
+        guard accepts(engine), !Task.isCancelled else { return }
+        // A category may have a read-only migration source. Both initial reads
+        // must finish before automatically scheduled destination uploads are eligible.
+        try await prepareUploads(scope)
         guard accepts(engine), !Task.isCancelled else { return }
         zonePrepared = true
         try await fetchAndSend(engine)
@@ -343,6 +367,7 @@ extension CloudSyncLifecycle {
     }
 
     func noteFetchFailure(_ error: CKError) {
+        logFailure(error, stage: "fetch")
         fetchFailed = true
         isReadyToSend = false
         authorizeUploads(false)
@@ -352,6 +377,9 @@ extension CloudSyncLifecycle {
     func finishFetch(succeeded: Bool = true) throws {
         fetching = max(0, fetching - 1)
         fetchFailed = fetchFailed || !succeeded
+        if fetching == 0 && !fetchFailed, let scope {
+            try store.safety.didCompleteFetch(scope)
+        }
         try setRecoveryRequired(fetching > 0 || sending > 0 || fetchFailed)
         isReadyToSend = zonePrepared && fetching == 0 && !fetchFailed
         authorizeUploads(isReadyToSend)
@@ -466,12 +494,30 @@ extension CloudSyncLifecycle {
     /// A delegate persistence failure must invalidate this engine, not just change a label.
     /// The already-committed recovery fence causes the next engine to fetch from the beginning.
     func failClosed(_ error: any Error) {
+        // Retired operations can finish after a preference/account transition.
+        // Cancellation must not replace the new engine's status with a red failure.
+        guard !Self.isCancellation(error) else { return }
+        logFailure(error, stage: "lifecycle")
         store.rollback()
         retireEngine()
         status = self.status(for: error)
     }
 
+    /// Error userInfo can contain full CKRecords (including host data). Log stable
+    /// domain/code and stage only; quarantine owns raw records for safe recovery.
+    func logFailure(_ error: any Error, stage: String) {
+        guard !Self.isCancellation(error) else { return }
+        let value = error as NSError
+        logger.error(
+            "cloud.sync.failed",
+            metadata: [
+                "zone": .string(zoneID.zoneName), "stage": .string(stage),
+                "error-domain": .string(value.domain), "error-code": .string(String(value.code)),
+            ])
+    }
+
     private func retireEngine() {
+        didRetire()
         operationID = UUID()
         operation?.cancel()
         operation = nil
@@ -511,7 +557,12 @@ extension CloudSyncLifecycle {
         }
     }
 
+    static func isCancellation(_ error: any Error) -> Bool {
+        error is CancellationError || (error as? CKError)?.code == .operationCancelled
+    }
+
     func status(for error: any Error) -> VaultSyncStatus {
+        if Self.isCancellation(error) { return status }
         if let cloudError = error as? CKError {
             if cloudError.code == .notAuthenticated { return .unavailable(signInMessage()) }
             if Self.isRetryable(cloudError) { return .syncing(pendingCount: 0) }

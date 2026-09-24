@@ -50,6 +50,7 @@ struct MobileSettingsPortTests {
         let app = try MobileAppModel(inMemory: true)
         app.sceneChanged(UUID(), phase: .active)
         #expect(app.vaultSync == nil)
+        #expect(app.historySync == nil)
         #expect(app.settingsSync == nil)
     }
 

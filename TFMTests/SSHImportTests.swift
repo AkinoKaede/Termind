@@ -28,11 +28,11 @@ struct SSHImportTests {
     }
 
     @Test
-    func appDefaultsNewCredentialsAndSSHImportToThisMacWhenVaultSyncIsOff() throws {
+    func appDefaultsNewCredentialsAndSSHImportToThisMacWhenICloudSyncIsOff() throws {
         let domain = "SSHImportDefaults.\(UUID())"
         let defaults = try #require(UserDefaults(suiteName: domain))
         defer { defaults.removePersistentDomain(forName: domain) }
-        defaults.set(false, forKey: SettingsKey.vaultSyncEnabled)
+        defaults.set(false, forKey: SettingsKey.iCloudSyncEnabled)
         let hosts = HostLibraryModel()
         let app = AppModel(
             hosts: hosts,

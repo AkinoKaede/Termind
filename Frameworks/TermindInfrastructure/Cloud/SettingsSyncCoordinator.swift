@@ -76,6 +76,10 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             ?? "Unknown"
     }
 
+    public func configureLogging(_ logging: any ApplicationLogManaging) {
+        lifecycle.logger = logging.makeLogger(label: "termind.cloud-sync")
+    }
+
     public func start() { lifecycle.start() }
     public func setEnabled(_ enabled: Bool) { lifecycle.setEnabled(enabled) }
     public func pause() { lifecycle.pause() }
@@ -256,6 +260,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
             do {
                 decoded.append((record, try Self.envelope(from: record)))
             } catch {
+                lifecycle.logFailure(error, stage: "decode-quarantine")
                 try CloudSyncRecordCoding.quarantine(record, error: error, in: safety)
                 rejected.insert(record.recordID.recordName)
             }
@@ -319,6 +324,7 @@ public final class SettingsSyncCoordinator: NSObject, CKSyncEngineDelegate, @unc
         } else if error.code == .zoneNotFound {
             try lifecycle.handleZoneDeletion()
         } else if !CloudSyncLifecycle.isRetryable(error) {
+            lifecycle.logFailure(error, stage: "save")
             lifecycle.terminalError = error.localizedDescription
             status = .failed(error.localizedDescription)
         }

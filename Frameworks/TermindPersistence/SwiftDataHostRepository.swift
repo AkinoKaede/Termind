@@ -9,6 +9,7 @@ import struct TermindDomain.Host
 public final class SwiftDataHostRepository: HostRepository {
     private let context: ModelContext
     private var continuations: [UUID: AsyncStream<RepositoryChange<HostLibrarySnapshot>>.Continuation] = [:]
+    public var didRecordHistoryChanges: ((HistoryMutationSet) -> Void)?
     public var didRecordVaultChanges: ((VaultMutationSet) -> Void)?
 
     public init(context: ModelContext) {
@@ -122,11 +123,12 @@ public final class SwiftDataHostRepository: HostRepository {
             model: PersistentSFTPHistoryEntry.self,
             where: #Predicate { $0.hostID == hostID }
         )
+        try HistorySyncJournal(context: context).bootstrapIfNeeded()
         try context.delete(
             model: PersistentConnectionHistoryEntry.self,
             where: #Predicate { $0.hostID == hostID }
         )
-        try commitMutation()
+        try commitMutation(recordHistory: true)
     }
 
     public func finalizeHostDeletion(_ hostID: Host.ID) throws {
@@ -148,11 +150,17 @@ public final class SwiftDataHostRepository: HostRepository {
         for continuation in continuations.values { continuation.yield(change) }
     }
 
-    private func commitMutation() throws {
+    private func commitMutation(recordHistory: Bool = false) throws {
         do {
             let revision = try advanceRevisionWithoutSaving()
             let vaultMutations = try HostPersistence(context: context).recordExternalMutation()
+            // Only Host deletion owns a history mutation. Configuration edits must
+            // not bootstrap, reconcile or enqueue unrelated event/device records.
+            let historyMutations =
+                recordHistory
+                ? try HistorySyncJournal(context: context).recordCurrentSnapshot() : .empty
             try context.save()
+            if !historyMutations.isEmpty { didRecordHistoryChanges?(historyMutations) }
             if !vaultMutations.isEmpty { didRecordVaultChanges?(vaultMutations) }
             try publishCommittedMutation(revision: revision)
         } catch {
